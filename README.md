@@ -35,14 +35,42 @@ smart-watering-system/
 └── scripts/ # Вспомогательные скрипты
 
 ## 🔧 Быстрый старт
-```bash
 # Сервер
 cd server && python3 main.py
-
 # ESP32
 cd firmware && pio run --target upload
 
 📞 Контакты
 Сервер: http://192.168.0.11
+Device ID: esp32_01
 
-Device ID: esp32_watering_001
+## 🎯 Current Status - STABLE
+
+### ✅ What's Working:
+- **ESP32 OOP Architecture** - Complete modular refactoring
+- **Sensor Reading** - DHT22 (temperature/humidity) and Soil Moisture  
+- **Actuator Control** - Relays for water pump and grow light
+- **Server Communication** - HTTP API to FastAPI backend
+- **Autonomous Operation** - Works offline with settings persistence
+- **System Monitoring** - Memory, uptime, diagnostics
+
+### 🔧 Technical Stack:
+- **ESP32** with PlatformIO
+- **C++ OOP** with proper inheritance and composition
+- **FastAPI** backend on 192.168.0.11:8000
+- **PostgreSQL** database
+- **WiFi + OTA** updates support
+
+### 📁 Module Structure:
+firmware/src/
+├── Sensors/ # Sensor abstractions
+├── Actuators/ # Relay and pump control
+├── Network/ # WiFi, OTA, HTTP
+├── System/ # Settings, tasks, monitoring
+└── Application.h/cpp # Main system coordinator
+
+## 🚀 Next Milestone: Advanced Features
+- Web interface enhancements
+- Mobile app integration  
+- Advanced scheduling
+- Data analytics
