@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Watering System</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .device { 
+            border: 1px solid #ddd; 
+            padding: 20px; 
+            margin: 15px 0; 
+            border-radius: 5px; 
+        }
+        .watering { 
+            background-color: #e8f5e8; 
+            border-left: 4px solid #4CAF50;
+        }
+        .light-on {
+            background-color: #fff9e6;
+            border-left: 4px solid #FFC107;
+        }
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .sensor-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .sensor-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .sensor-label {
+            color: #666;
+            font-size: 14px;
+        }
+        .settings-form { 
+            margin-top: 15px; 
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .ota-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e3f2fd;
+            border-radius: 5px;
+            border-left: 4px solid #2196F3;
+        }
+        input, button, select { 
+            margin: 5px; 
+            padding: 8px; 
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        input {
+            width: 100px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 15px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .btn-ota {
+            background-color: #2196F3;
+        }
+        .btn-ota:hover {
+            background-color: #1976D2;
+        }
+        .status { 
+            font-weight: bold; 
+            margin: 10px 0;
+        }
+        .moisture-bar {
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .moisture-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ffa726, #4CAF50);
+            transition: width 0.5s ease;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .upload-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #fff3e0;
+            border-radius: 5px;
+        }
+        .last-update {
+            font-size: 12px;
+            color: #888;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌱 Система умного полива</h1>
+        
+        <div class="upload-section">
+            <h3>📤 Загрузка прошивки OTA</h3>
+            <input type="file" id="firmwareFile" accept=".bin">
+            <input type="text" id="firmwareVersion" placeholder="Версия (например: 1.1.0)">
+            <button onclick="uploadFirmware()">Загрузить прошивку</button>
+        </div>
+        
+        <div id="devices">
+            <p>Загрузка устройств...</p>
+        </div>
+    </div>
+
+    <script>
+        let availableFirmware = ['1.0.0', '1.1.0', '1.2.0'];
+
+        async function loadDevices() {
+            try {
+                const response = await fetch('/api/devices');
+                const devices = await response.json();
+                
+                const devicesDiv = document.getElementById('devices');
+                
+                if (devices.length === 0) {
+                    devicesDiv.innerHTML = '<p>Устройства не найдены. Подключите ESP32 к системе.</p>';
+                    return;
+                }
+                
+                devicesDiv.innerHTML = '';
+                
+                devices.forEach(device => {
+                    const deviceClass = device.is_watering ? 'watering' : (device.is_light_on ? 'light-on' : '');
+                    const deviceDiv = document.createElement('div');
+                    deviceDiv.className = `device ${deviceClass}`;
+                    
+                    const moisturePercent = Math.min(Math.max(device.soil_moisture, 0), 100);
+                    const lastUpdate = new Date(device.last_seen).toLocaleString();
+                    
+                    deviceDiv.innerHTML = `
+                        <h3>${device.name} (${device.device_id})</h3>
+                        <div class="status">
+                            💦 Полив: ${device.is_watering ? 'ВКЛ' : 'ВЫКЛ'} | 
+                            💡 Освещение: ${device.is_light_on ? 'ВКЛ' : 'ВЫКЛ'} |
+                            ⏰ Последний полив: ${device.last_watering ? new Date(device.last_watering).toLocaleString() : 'Никогда'}
+                        </div>
+                        
+                        <div class="sensor-grid">
+                            <div class="sensor-card">
+                                <div class="sensor-label">🌱 Влажность почвы</div>
+                                <div class="sensor-value">${device.soil_moisture.toFixed(1)}%</div>
+                                <div class="moisture-bar">
+                                    <div class="moisture-fill" style="width: ${moisturePercent}%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="sensor-card">
+                                <div class="sensor-label">🌡️ Температура воздуха</div>
+                                <div class="sensor-value">${device.air_temperature.toFixed(1)}°C</div>
+                                <div style="color: ${device.air_temperature > 25 ? '#e74c3c' : device.air_temperature < 18 ? '#3498db' : '#27ae60'}">
+                                    ${device.air_temperature > 25 ? 'Жарко' : device.air_temperature < 18 ? 'Прохладно' : 'Нормально'}
+                                </div>
+                            </div>
+                            
+                            <div class="sensor-card">
+                                <div class="sensor-label">💧 Влажность воздуха</div>
+                                <div class="sensor-value">${device.air_humidity.toFixed(1)}%</div>
+                                <div style="color: ${device.air_humidity > 70 ? '#e74c3c' : device.air_humidity < 40 ? '#3498db' : '#27ae60'}">
+                                    ${device.air_humidity > 70 ? 'Высокая' : device.air_humidity < 40 ? 'Низкая' : 'Нормальная'}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="last-update">Последнее обновление: ${lastUpdate}</div>
+                        
+                        <div class="settings-form">
+                            <h4>⚙️ Настройки полива:</h4>
+                            <label>
+                                <input type="number" id="target-${device.device_id}" value="${device.target_moisture}" step="0.1" min="0" max="100"> 
+                                Целевая влажность (%)
+                            </label><br>
+                            
+                            <label>
+                                <input type="number" id="duration-${device.device_id}" value="${device.watering_duration}" min="1"> 
+                                Длительность полива (сек)
+                            </label><br>
+                            
+                            <label>
+                                <input type="number" id="timeout-${device.device_id}" value="${device.watering_timeout}" min="1"> 
+                                Таймаут после полива (сек)
+                            </label><br>
+                            
+                            <h4>💡 Настройки освещения:</h4>
+                            <label>
+                                <input type="number" id="light-on-${device.device_id}" value="${device.light_on_hour}" min="0" max="23"> 
+                                Включение света (час)
+                            </label><br>
+                            
+                            <label>
+                                <input type="number" id="light-off-${device.device_id}" value="${device.light_off_hour}" min="0" max="23"> 
+                                Выключение света (час)
+                            </label><br>
+                            
+                            <label>
+                                <input type="number" id="light-duration-${device.device_id}" value="${device.light_duration}" min="1" max="24"> 
+                                Длительность света (часов)
+                            </label><br>
+                            
+                            <button onclick="updateSettings('${device.device_id}')">💾 Сохранить все настройки</button>
+                        </div>
+                        
+                        <div class="ota-section">
+                            <h4>🔄 OTA Обновление:</h4>
+                            <select id="firmware-select-${device.device_id}">
+                                <option value="">Выберите версию прошивки</option>
+                                ${availableFirmware.map(fw => `<option value="${fw}">${fw}</option>`).join('')}
+                            </select>
+                            <button class="btn-ota" onclick="triggerOTAUpdate('${device.device_id}')">Запустить OTA обновление</button>
+                            ${device.update_available ? '<span style="color: orange;">⚠️ Доступно обновление!</span>' : ''}
+                        </div>
+                    `;
+                    
+                    devicesDiv.appendChild(deviceDiv);
+                });
+            } catch (error) {
+                console.error('Error loading devices:', error);
+                document.getElementById('devices').innerHTML = '<p>Ошибка загрузки устройств</p>';
+            }
+        }
+
+        async function updateSettings(deviceId) {
+            const settings = {
+                target_moisture: parseFloat(document.getElementById(`target-${deviceId}`).value),
+                watering_duration: parseInt(document.getElementById(`duration-${deviceId}`).value),
+                watering_timeout: parseInt(document.getElementById(`timeout-${deviceId}`).value),
+                light_on_hour: parseInt(document.getElementById(`light-on-${deviceId}`).value),
+                light_off_hour: parseInt(document.getElementById(`light-off-${deviceId}`).value),
+                light_duration: parseInt(document.getElementById(`light-duration-${deviceId}`).value)
+            };
+
+            try {
+                const response = await fetch(`/api/device/${deviceId}/settings`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+
+                if (response.ok) {
+                    alert('✅ Настройки обновлены!');
+                    loadDevices();
+                }
+            } catch (error) {
+                console.error('Error updating settings:', error);
+                alert('❌ Ошибка соединения с сервером');
+            }
+        }
+
+        async function uploadFirmware() {
+            const fileInput = document.getElementById('firmwareFile');
+            const versionInput = document.getElementById('firmwareVersion');
+            
+            if (!fileInput.files[0] || !versionInput.value) {
+                alert('Выберите файл и укажите версию');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('version', versionInput.value);
+
+            try {
+                const response = await fetch('/api/upload-firmware', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    alert('✅ Прошивка загружена!');
+                    availableFirmware.push(versionInput.value);
+                    loadDevices();
+                }
+            } catch (error) {
+                console.error('Error uploading firmware:', error);
+                alert('❌ Ошибка соединения с сервером');
+            }
+        }
+
+        async function triggerOTAUpdate(deviceId) {
+            const select = document.getElementById(`firmware-select-${deviceId}`);
+            const version = select.value;
+
+            if (!version) {
+                alert('Выберите версию прошивки');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/device/${deviceId}/trigger-update`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device_id: deviceId,
+                        firmware_version: version
+                    })
+                });
+
+                if (response.ok) {
+                    alert('✅ OTA обновление запущено!');
+                    loadDevices();
+                }
+            } catch (error) {
+                console.error('Error triggering OTA:', error);
+                alert('❌ Ошибка соединения с сервером');
+            }
+        }
+
+        // Обновляем каждые 10 секунд
+        setInterval(loadDevices, 10000);
+        loadDevices();
+    </script>
+</body>
+</html>
