@@ -1,0 +1,15 @@
+[Unit]
+Description=Smart Watering System API
+After=network.target
+
+[Service]
+Type=simple
+User=watering-admin
+WorkingDirectory=/home/watering-admin/smart-watering-system
+ExecStart=/usr/bin/python3 /home/watering-admin/smart-watering-system/main.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
