@@ -162,7 +162,7 @@ void WateringApplication::printStatus() {
 void WateringApplication::setupSensors() {
     Serial.println("Setting up sensors...");
     
-    SoilMoistureSensor* soilSensor = new SoilMoistureSensor(34, 4095, 1800, "Soil Sensor");
+    SoilMoistureSensor* soilSensor = new SoilMoistureSensor(34, 2800, 1300, "Soil Sensor");
     sensorManager.addSoilMoistureSensor(soilSensor);
     
     DHT22Sensor* dhtSensor = new DHT22Sensor(15, "DHT22");
