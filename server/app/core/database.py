@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from models import Base
+from app.models.database_models import Base
 
 SQLALCHEMY_DATABASE_URL = "postgresql://watering_user:watering_pass@localhost/watering_db"
 
