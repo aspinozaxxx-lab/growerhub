@@ -6,7 +6,7 @@ WateringApplication app;
 void setup() {
     app.begin();
     delay(3000);
-    app.checkRelayStates(); // Добавляем эту строку
+    app.checkRelayStates(); // Добавляем эту строку11
 
     //app.factoryReset(); // Добавляем эту строку
     
