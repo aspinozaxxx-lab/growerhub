@@ -35,8 +35,11 @@ void SettingsManager::resetToDefaults() {
     strncpy(settings.ssid, "JR", sizeof(settings.ssid)-1);
     strncpy(settings.password, "qazwsxedc", sizeof(settings.password)-1);
     strncpy(settings.serverURL, "http://192.168.0.11:8000", sizeof(settings.serverURL)-1);
-    strncpy(settings.deviceID, "esp32_01", sizeof(settings.deviceID)-1); // Фиксированное значение
-    
+     
+    // Генерация DeviceID из MAC-адреса
+    String generatedDeviceID = generateDeviceIDFromMAC();
+    strncpy(settings.deviceID, generatedDeviceID.c_str(), sizeof(settings.deviceID)-1);
+
     settings.soilDryValue = 4095;
     settings.soilWetValue = 1800;
     settings.wateringThreshold = 30.0;
@@ -44,6 +47,23 @@ void SettingsManager::resetToDefaults() {
     
     settings.crc = calculateCRC();
     settingsLoaded = true;
+}
+
+String SettingsManager::generateDeviceIDFromMAC() {
+    uint8_t mac[6];
+    esp_efuse_mac_get_default(mac);
+    
+    String deviceID = "esp32_";
+    // Берем последние 3 байта MAC-адреса
+    for (int i = 3; i < 6; i++) {
+        if (mac[i] < 0x10) {
+            deviceID += "0";  // добавляем ведущий ноль
+        }
+        deviceID += String(mac[i], HEX);
+    }
+    deviceID.toUpperCase();  // делаем буквы заглавными
+    
+    return deviceID;
 }
 
 // Getters implementation

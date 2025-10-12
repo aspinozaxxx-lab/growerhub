@@ -2,6 +2,7 @@
 #pragma once
 #include <EEPROM.h>
 #include <Arduino.h>
+#include "esp_efuse.h"
 
 struct SystemSettings {
     char ssid[32];
@@ -54,4 +55,5 @@ public:
 private:
     uint32_t calculateCRC();
     bool validateCRC();
+    String generateDeviceIDFromMAC();
 };
