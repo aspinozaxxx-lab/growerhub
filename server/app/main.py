@@ -11,7 +11,7 @@ from app.models.database_models import (DeviceDB, DeviceSettings, DeviceStatus, 
                    SensorDataDB, SensorDataPoint, WateringLogDB, OTAUpdateRequest)
 from app.core.database import get_db, create_tables
 
-app = FastAPI(title="Smart Watering System")
+app = FastAPI(title="GrowerHub")
 
 create_tables()
 

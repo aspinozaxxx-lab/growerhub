@@ -1,4 +1,4 @@
-#!/home/watering-admin/smart-watering-system/server/venv/bin/python3
+#!/home/watering-admin/growerhub/server/venv/bin/python3
 import requests
 import subprocess
 import time
@@ -8,8 +8,8 @@ from pathlib import Path
 
 class DeployAgent:
     def __init__(self):
-        self.repo_path = "/home/watering-admin/smart-watering-system"
-        self.github_repo = "aspinozaxxx-lab/smart-watering-system"
+        self.repo_path = "/home/watering-admin/growerhub"
+        self.github_repo = "aspinozaxxx-lab/growerhub"
         self.check_interval = 60
         self.last_commit = None
         self.github_token = os.getenv('GITHUB_TOKEN')

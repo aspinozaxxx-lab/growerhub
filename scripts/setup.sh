@@ -1,7 +1,7 @@
 #!/bin/bash
-# Setup script for Smart Watering System
+# Setup script for GrowerHub
 
-echo "🚀 Setting up Smart Watering System..."
+echo "🚀 Setting up GrowerHub..."
 
 # Colors for output
 RED='\033[0;31m'
@@ -27,14 +27,14 @@ echo -e "${YELLOW}Installing Python dependencies...${NC}"
 pip install -r requirements.txt
 
 echo -e "${YELLOW}Setting up systemd service...${NC}"
-sudo cp configs/smart-watering.service /etc/systemd/system/
-sudo sed -i "s|/home/watering-admin/smart-watering-system|$(pwd)|g" /etc/systemd/system/smart-watering.service
+sudo cp configs/growerhub.service /etc/systemd/system/
+sudo sed -i "s|/home/watering-admin/growerhub|$(pwd)|g" /etc/systemd/system/growerhub.service
 sudo systemctl daemon-reload
-sudo systemctl enable smart-watering
+sudo systemctl enable growerhub
 
 echo -e "${YELLOW}Setting up Nginx...${NC}"
-sudo cp configs/nginx.conf /etc/nginx/sites-available/smart-watering
-sudo ln -sf /etc/nginx/sites-available/smart-watering /etc/nginx/sites-enabled/
+sudo cp configs/nginx.conf /etc/nginx/sites-available/growerhub
+sudo ln -sf /etc/nginx/sites-available/growerhub /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 
 echo -e "${YELLOW}Testing Nginx configuration...${NC}"
@@ -46,9 +46,9 @@ sudo cp configs/iptables-rules.v4 /etc/iptables/rules.v4
 
 echo -e "${YELLOW}Starting services...${NC}"
 sudo systemctl reload nginx
-sudo systemctl start smart-watering
+sudo systemctl start growerhub
 
 echo -e "${GREEN}✅ Setup complete!${NC}"
-echo -e "${GREEN}📝 Service status: sudo systemctl status smart-watering${NC}"
+echo -e "${GREEN}📝 Service status: sudo systemctl status growerhub${NC}"
 echo -e "${GREEN}🌐 Access: http://$(hostname -I | awk '{print $1}')/${NC}"
-echo -e "${GREEN}📋 Logs: sudo journalctl -u smart-watering -f${NC}"
+echo -e "${GREEN}📋 Logs: sudo journalctl -u growerhub -f${NC}"

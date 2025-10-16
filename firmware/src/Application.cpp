@@ -7,7 +7,7 @@ WateringApplication::WateringApplication()
 
 void WateringApplication::begin() {
     Serial.begin(115200);
-    Serial.println("\n=== Smart Watering System Starting ===\n");
+    Serial.println("\n=== GrowerHub Starting ===\n");
     
     // Инициализация в правильном порядке
     settingsManager.begin();
@@ -17,8 +17,8 @@ void WateringApplication::begin() {
     setupActuators();
     setupNetwork();
     setupTasks();
-    
-    Serial.println("\n=== Smart Watering System Ready ===\n");
+
+    Serial.println("\n=== GrowerHub Ready ===\n");
 }
 
 void WateringApplication::update() {

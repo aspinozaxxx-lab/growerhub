@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /home/watering-admin/smart-watering-system
+cd /home/watering-admin/growerhub
 
 echo "$(date): Starting deployment" >> /home/watering-admin/deploy.log
 
@@ -12,7 +12,7 @@ pip install -r server/requirements.txt
 cd server && python -m pytest tests/ -v
 
 if [ $? -eq 0 ]; then
-    sudo systemctl restart watering-server.service
+    sudo systemctl restart growerhub.service
     echo "$(date): Deployment completed" >> /home/watering-admin/deploy.log
 else
     echo "$(date): Tests failed - deployment aborted" >> /home/watering-admin/deploy.log
