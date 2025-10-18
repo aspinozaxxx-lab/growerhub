@@ -16,6 +16,7 @@ from app.core.database import get_db, create_tables
 
 # === Глобальные пути проекта ===
 BASE_DIR = Path(__file__).resolve().parent.parent  # -> ~/growerhub/server
+SITE_DIR = (BASE_DIR.parent / "static").resolve()  # -> ~/growerhub/static
 FIRMWARE_DIR = BASE_DIR / "firmware_binaries"
 
 # Создаём директорию, если нет
@@ -26,14 +27,12 @@ app = FastAPI(title="GrowerHub")
 create_tables()
 
 # === Статические файлы ===
-app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+app.mount("/static", StaticFiles(directory=SITE_DIR), name="static")
 app.mount("/firmware", StaticFiles(directory=FIRMWARE_DIR), name="firmware")
-
-#Path("/firmware_binaries").mkdir(exist_ok=True)
 
 @app.get("/")
 async def read_root():
-    return FileResponse("../static/index.html")
+    return FileResponse(SITE_DIR / "index.html")
 
 @app.post("/api/device/{device_id}/status")
 async def update_device_status(device_id: str, status: DeviceStatus, db: Session = Depends(get_db)):
