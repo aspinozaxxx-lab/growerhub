@@ -16,9 +16,9 @@ app = FastAPI(title="GrowerHub")
 create_tables()
 
 app.mount("/static", StaticFiles(directory="../static"), name="static")
-app.mount("/firmware", StaticFiles(directory="../firmware_binaries"), name="firmware")
+app.mount("/firmware", StaticFiles(directory="/firmware_binaries"), name="firmware")
 
-Path("../firmware_binaries").mkdir(exist_ok=True)
+Path("/firmware_binaries").mkdir(exist_ok=True)
 
 @app.get("/")
 async def read_root():
@@ -150,7 +150,7 @@ async def check_firmware_update(device_id: str, db: Session = Depends(get_db)):
 
 @app.post("/api/upload-firmware")
 async def upload_firmware(file: UploadFile = File(...), version: str = "1.0.0"):
-    file_path = f"../firmware_binaries/{version}.bin"
+    file_path = f"/firmware_binaries/{version}.bin"
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
@@ -162,7 +162,7 @@ async def trigger_ota_update(device_id: str, update_request: OTAUpdateRequest, d
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     
-    firmware_path = f"../firmware_binaries/{update_request.firmware_version}.bin"
+    firmware_path = f"/firmware_binaries/{update_request.firmware_version}.bin"
     if not os.path.exists(firmware_path):
         raise HTTPException(status_code=404, detail="Firmware version not found")
     
