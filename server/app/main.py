@@ -7,18 +7,29 @@ import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from app.models.database_models import (DeviceDB, DeviceSettings, DeviceStatus, DeviceInfo, 
-                   SensorDataDB, SensorDataPoint, WateringLogDB, OTAUpdateRequest)
+from app.models.database_models import (
+    DeviceDB, DeviceSettings, DeviceStatus, DeviceInfo,
+    SensorDataDB, SensorDataPoint, WateringLogDB, OTAUpdateRequest
+)
 from app.core.database import get_db, create_tables
+
+
+# === Глобальные пути проекта ===
+BASE_DIR = Path(__file__).resolve().parent.parent  # -> ~/growerhub/server
+FIRMWARE_DIR = BASE_DIR / "firmware_binaries"
+
+# Создаём директорию, если нет
+FIRMWARE_DIR.mkdir(exist_ok=True, parents=True)
 
 app = FastAPI(title="GrowerHub")
 
 create_tables()
 
-app.mount("/static", StaticFiles(directory="../static"), name="static")
-app.mount("/firmware", StaticFiles(directory="/firmware_binaries"), name="firmware")
+# === Статические файлы ===
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+app.mount("/firmware", StaticFiles(directory=FIRMWARE_DIR), name="firmware")
 
-Path("/firmware_binaries").mkdir(exist_ok=True)
+#Path("/firmware_binaries").mkdir(exist_ok=True)
 
 @app.get("/")
 async def read_root():
@@ -150,7 +161,7 @@ async def check_firmware_update(device_id: str, db: Session = Depends(get_db)):
 
 @app.post("/api/upload-firmware")
 async def upload_firmware(file: UploadFile = File(...), version: str = "1.0.0"):
-    file_path = f"/firmware_binaries/{version}.bin"
+    file_path = FIRMWARE_DIR / f"{version}.bin"
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
@@ -162,7 +173,7 @@ async def trigger_ota_update(device_id: str, update_request: OTAUpdateRequest, d
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     
-    firmware_path = f"/firmware_binaries/{update_request.firmware_version}.bin"
+    firmware_path = FIRMWARE_DIR / f"{update_request.firmware_version}.bin"
     if not os.path.exists(firmware_path):
         raise HTTPException(status_code=404, detail="Firmware version not found")
     
