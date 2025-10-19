@@ -1,0 +1,90 @@
+---
+- name: Ensure required apt packages are present
+  ansible.builtin.apt:
+    name: "{{ apt_packages }}"
+    update_cache: true
+    state: present
+
+- name: Ensure app group exists
+  ansible.builtin.group:
+    name: "{{ app_group }}"
+    state: present
+
+- name: Ensure app user exists
+  ansible.builtin.user:
+    name: "{{ app_user }}"
+    group: "{{ app_group }}"
+    shell: /bin/bash
+    create_home: true
+    state: present
+
+- name: Ensure app working directory exists
+  ansible.builtin.file:
+    path: "{{ app_workdir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0755"
+
+- name: Create virtualenv if missing
+  ansible.builtin.command:
+    cmd: "python3 -m venv {{ app_venv }}"
+    creates: "{{ app_venv }}/bin/activate"
+
+- name: Upgrade pip/setuptools/wheel
+  ansible.builtin.command:
+    cmd: "{{ app_venv }}/bin/python -m pip install --upgrade pip setuptools wheel"
+
+- name: Check if requirements.txt exists
+  ansible.builtin.stat:
+    path: "{{ app_requirements }}"
+  register: req_stat
+
+- name: Install app requirements (if present)
+  when: req_stat.stat.exists
+  ansible.builtin.command:
+    cmd: "{{ app_venv }}/bin/python -m pip install -r {{ app_requirements }}"
+  notify: Restart app service
+  changed_when: true
+
+- name: Install FastAPI + Uvicorn if requirements.txt is absent
+  when: not req_stat.stat.exists
+  ansible.builtin.command:
+    cmd: "{{ app_venv }}/bin/python -m pip install fastapi uvicorn[standard]"
+  changed_when: true
+
+# Сносим возможные overrides, чтобы ничего не перетирало ExecStart
+- name: Remove unit overrides directory if exists
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ service_name }}.service.d"
+    state: absent
+
+- name: Render systemd service unit (canonical)
+  ansible.builtin.template:
+    src: fastapi-app.service.j2
+    dest: "/etc/systemd/system/{{ service_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Systemd daemon-reload
+    - Restart app service
+
+# Валидация: убеждаемся, что ExecStart содержит run:app
+- name: Read unit content
+  ansible.builtin.slurp:
+    src: "/etc/systemd/system/{{ service_name }}.service"
+  register: unit_slurp
+
+- name: Assert ExecStart points to run:app
+  ansible.builtin.assert:
+    that:
+      - unit_slurp.content | b64decode is search("uvicorn.*\\srun:app\\s")
+    fail_msg: "ExecStart в юните не содержит run:app — проверь шаблон/переменные."
+    success_msg: "ExecStart указывает на run:app (ок)."
+
+- name: Ensure service enabled and started
+  ansible.builtin.systemd:
+    name: "{{ service_name }}"
+    enabled: true
+    state: started

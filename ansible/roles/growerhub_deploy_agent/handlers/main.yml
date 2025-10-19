@@ -1,0 +1,8 @@
+- name: systemd daemon-reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: restart growerhub-deploy-agent
+  ansible.builtin.systemd:
+    name: growerhub-deploy-agent.service
+    state: restarted

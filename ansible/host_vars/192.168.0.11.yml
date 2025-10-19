@@ -1,0 +1,14 @@
+ansible_python_interpreter: /usr/bin/python3.12
+server_timezone: "Europe/Moscow"
+server_hostname: "growerhub"
+
+app_user: watering-admin
+app_dir: /home/watering-admin/growerhub/server
+venv_dir: /home/watering-admin/growerhub/server/.venv
+# ВАЖНО: предполагаю, что в run.py есть объект FastAPI с именем "app"
+app_module: "run:app"
+app_port: 8000
+app_workers: 2
+app_env_file: /etc/growerhub.env
+python_cmd: /usr/bin/python3
+

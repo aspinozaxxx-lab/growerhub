@@ -1,0 +1,23 @@
+[Unit]
+Description=GrowerHub Deploy Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ growerhub_da_user }}
+Group={{ growerhub_da_group }}
+WorkingDirectory={{ growerhub_da_workdir }}
+EnvironmentFile={{ growerhub_da_envfile }}
+ExecStart={{ growerhub_da_exec_start }} {{ growerhub_da_exec_args }}
+Restart={{ growerhub_da_restart }}
+RestartSec={{ growerhub_da_restart_sec }}
+StandardOutput={{ growerhub_da_standard_output }}
+StandardError={{ growerhub_da_standard_error }}
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

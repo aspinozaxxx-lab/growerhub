@@ -1,0 +1,6 @@
+---
+- name: Deploy FastAPI app as a systemd service
+  hosts: app
+  become: true
+  roles:
+    - role: fastapi_app

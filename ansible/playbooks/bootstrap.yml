@@ -1,0 +1,96 @@
+---
+- name: Bootstrap GrowerHub server
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Ensure correct timezone (optional)
+      ansible.builtin.command: timedatectl set-timezone {{ server_timezone }}
+      when: server_timezone is defined
+      changed_when: false
+
+    - name: Set hostname (optional)
+      ansible.builtin.hostname:
+        name: "{{ server_hostname }}"
+      when: server_hostname is defined
+
+    - name: Apt update cache
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+  tasks:
+    - name: Upgrade installed packages (safe)
+      ansible.builtin.apt:
+        upgrade: yes
+
+    - name: Install base packages
+      ansible.builtin.apt:
+        name: "{{ base_packages }}"
+        state: present
+
+    - name: Ensure SSH authorized_key for watering-admin
+      ansible.posix.authorized_key:
+        user: "watering-admin"
+        state: present
+        key: "{{ admin_pubkey }}"
+
+    - name: Harden sshd_config (basic)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^(#\s*)?{{ item.key }}\s+'
+        line: '{{ item.key }} {{ item.value }}'
+        create: no
+        backup: yes
+      loop: "{{ sshd_config | dict2items }}"
+      notify: Restart ssh
+
+    - name: Enable unattended-upgrades (Debian/Ubuntu)
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+
+    - name: Ensure UFW IPv6 disabled
+      ansible.builtin.lineinfile:
+        path: /etc/default/ufw
+        regexp: '^IPV6='
+        line: 'IPV6=no'
+        backup: yes
+
+    - name: UFW disable before reconfigure
+      community.general.ufw:
+        state: disabled
+
+    - name: Reset UFW rules (optional but clean)
+      community.general.ufw:
+        state: reset
+
+    - name: Configure UFW default policy
+      community.general.ufw:
+        state: enabled
+        policy: deny
+        logging: on
+
+    - name: Allow required UFW ports
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+      loop: "{{ ufw_allowed_ports }}"
+
+    - name: Ensure fail2ban service is enabled and started
+      ansible.builtin.service:
+        name: fail2ban
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Restart ssh
+      ansible.builtin.service:
+        name: ssh
+        state: restarted

@@ -1,0 +1,34 @@
+[Unit]
+Description=FastAPI (Uvicorn) service for {{ app_name }}
+After=network.target
+
+[Service]
+PermissionsStartOnly=true
+
+# Освободить порт, если он занят
+ExecStartPre=/usr/bin/bash -lc '/usr/bin/ss -ltnp | /usr/bin/grep -q ":{{ app_port }} " && /usr/bin/fuser -k {{ app_port }}/tcp || true'
+
+User={{ app_user }}
+Group={{ app_group }}
+WorkingDirectory={{ app_workdir }}
+
+# Прокидываем PYTHONPATH к каталогу приложения
+Environment=PYTHONPATH={{ app_workdir }}
+{% for k, v in app_env.items() -%}
+Environment={{ k }}={{ v }}
+{% endfor %}
+
+# Жёстко целимся в run:app и явно указываем --app-dir
+ExecStart={{ app_venv }}/bin/uvicorn --app-dir {{ app_workdir }} run:app --host {{ app_host }} --port {{ app_port }} --workers {{ app_workers }}{% if app_reload %} --reload{% endif %}
+
+ExecStop=/bin/kill -s SIGTERM $MAINPID
+KillSignal=SIGINT
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

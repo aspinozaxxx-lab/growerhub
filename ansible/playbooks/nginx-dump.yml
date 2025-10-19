@@ -1,0 +1,28 @@
+---
+- name: Dump Nginx config from host
+  hosts: app
+  become: true
+  tasks:
+    - name: Create /tmp dir for archive
+      ansible.builtin.file:
+        path: /tmp
+        state: directory
+        mode: "1777"
+
+    - name: Create tarball with /etc/nginx (без сертификатов)
+      ansible.builtin.shell: >
+        tar --exclude='*.crt' --exclude='*.key' --exclude='/etc/letsencrypt'
+        -czf /tmp/nginx-config.tgz /etc/nginx
+      args:
+        executable: /bin/bash
+
+    - name: Fetch tarball to controller
+      ansible.builtin.fetch:
+        src: /tmp/nginx-config.tgz
+        dest: "{{ lookup('env','HOME') }}/ansible/artifacts/{{ inventory_hostname }}-nginx-config.tgz"
+        flat: true
+
+    - name: Remove remote tarball
+      ansible.builtin.file:
+        path: /tmp/nginx-config.tgz
+        state: absent

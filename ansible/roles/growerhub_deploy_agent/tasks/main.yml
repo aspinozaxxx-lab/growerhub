@@ -1,0 +1,48 @@
+- name: Ensure group exists
+  ansible.builtin.group:
+    name: "{{ growerhub_da_group }}"
+    system: true
+  when: growerhub_da_manage_user
+
+- name: Ensure user exists
+  ansible.builtin.user:
+    name: "{{ growerhub_da_user }}"
+    group: "{{ growerhub_da_group }}"
+    shell: /usr/sbin/nologin
+    create_home: false
+    system: true
+  when: growerhub_da_manage_user and growerhub_da_user != ansible_user
+
+- name: Ensure workdir exists
+  ansible.builtin.file:
+    path: "{{ growerhub_da_workdir }}"
+    state: directory
+    owner: "{{ growerhub_da_user }}"
+    group: "{{ growerhub_da_group }}"
+    mode: "0755"
+
+- name: Render environment file
+  ansible.builtin.template:
+    src: growerhub-deploy-agent.env.j2
+    dest: "{{ growerhub_da_envfile }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart growerhub-deploy-agent
+
+- name: Install systemd unit
+  ansible.builtin.template:
+    src: growerhub-deploy-agent.service.j2
+    dest: "/etc/systemd/system/{{ growerhub_da_unit_name }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - systemd daemon-reload
+    - restart growerhub-deploy-agent
+
+- name: Enable and start service
+  ansible.builtin.systemd:
+    name: "{{ growerhub_da_unit_name }}"
+    enabled: true
+    state: started

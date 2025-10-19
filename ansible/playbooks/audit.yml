@@ -1,0 +1,151 @@
+---
+- name: Audit current server baseline
+  hosts: all
+  gather_facts: true
+  become: true
+
+  vars:
+    report_path: "{{ (playbook_dir + '/..') | realpath }}/reports"
+    report_file: "server_baseline_{{ inventory_hostname }}.md"
+
+  pre_tasks:
+    - name: Ensure local reports dir exists
+      delegate_to: localhost
+      ansible.builtin.file:
+        path: "{{ report_path }}"
+        state: directory
+        mode: "0755"
+
+  tasks:
+    - name: Read /etc/ssh/sshd_config
+      ansible.builtin.slurp:
+        path: /etc/ssh/sshd_config
+      register: sshd_conf
+
+    - name: UFW status
+      ansible.builtin.command: ufw status verbose
+      register: ufw_status
+      changed_when: false
+      failed_when: false
+
+    - name: Fail2ban status
+      ansible.builtin.command: fail2ban-client status
+      register: f2b_status
+      changed_when: false
+      failed_when: false
+
+    - name: Fail2ban version
+      ansible.builtin.command: fail2ban-client -V
+      register: f2b_ver
+      changed_when: false
+      failed_when: false
+
+    - name: UFW version
+      ansible.builtin.command: ufw version
+      register: ufw_ver
+      changed_when: false
+      failed_when: false
+
+    - name: Unattended-upgrades config
+      ansible.builtin.slurp:
+        path: /etc/apt/apt.conf.d/20auto-upgrades
+      register: unattended_conf
+      ignore_errors: true
+
+    - name: Packages (subset)
+      ansible.builtin.command: bash -lc 'dpkg -l | egrep "ufw|fail2ban|unattended-upgrades|nginx|python3|git"'
+      register: pkgs
+      changed_when: false
+
+    - name: Kernel / OS brief
+      ansible.builtin.command: bash -lc 'uname -a && (lsb_release -a || cat /etc/os-release)'
+      register: osinfo
+      changed_when: false
+
+    - name: Open ports
+      ansible.builtin.command: ss -tulpen
+      register: open_ports
+      changed_when: false
+
+    - name: Disk usage
+      ansible.builtin.command: df -h
+      register: disk_usage
+      changed_when: false
+
+    - name: Running systemd services
+      ansible.builtin.command: systemctl list-units --type=service --state=running --no-pager --no-legend
+      register: running_services
+      changed_when: false
+
+    - name: Users with sudo privileges
+      ansible.builtin.command: awk -F':' '$4 ~ /sudo/ {print $1}' /etc/passwd
+      register: sudo_users
+      changed_when: false
+
+    - name: Build Markdown report (locally per host)
+      delegate_to: localhost
+      ansible.builtin.copy:
+        dest: "{{ report_path }}/{{ report_file }}"
+        mode: "0644"
+        content: |
+          # Server Baseline Report: {{ inventory_hostname }}
+
+          **Generated:** {{ ansible_date_time.iso8601 }}
+
+          ## 🖥️ Host
+          - Hostname: {{ ansible_facts.hostname }}
+          - FQDN: {{ ansible_facts.fqdn | default('n/a') }}
+          - OS: {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }} ({{ ansible_facts.architecture }})
+          - Kernel: {{ ansible_facts.kernel }}
+          - Default IPv4: {{ ansible_facts.default_ipv4.address | default('n/a') }}
+
+          ---
+
+          ## 🔐 SSH (/etc/ssh/sshd_config)
+          ```
+          {{ (sshd_conf.content | b64decode) if sshd_conf is defined else 'not found' }}
+          ```
+
+          ## 🧱 UFW status
+          ```
+          {{ ufw_status.stdout }}
+          ```
+
+          **UFW version:**
+          ```
+          {{ ufw_ver.stdout }}
+          ```
+
+          ## 🧿 Fail2ban
+          ```
+          {{ f2b_status.stdout }}
+          ```
+
+          **Fail2ban version:**
+          ```
+          {{ f2b_ver.stdout }}
+          ```
+
+          ## 🔄 Unattended upgrades
+          ```
+          {{ (unattended_conf.content | b64decode) if unattended_conf is defined else 'not found' }}
+          ```
+
+          ## 📦 Packages (subset)
+          ```
+          {{ pkgs.stdout }}
+          ```
+
+          ## 🌐 Open Ports
+          ```
+          {{ open_ports.stdout }}
+          ```
+
+          ## 🧮 Disk Usage
+          ```
+          {{ disk_usage.stdout }}
+          ```
+
+          ## ⚙️ Running Services (systemd)
+          ```
+

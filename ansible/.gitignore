@@ -1,0 +1,7 @@
+artifacts/
+reports/
+.retry
+.cache/
+collections/
+.vault_pass.txt
+playbooks/imported/

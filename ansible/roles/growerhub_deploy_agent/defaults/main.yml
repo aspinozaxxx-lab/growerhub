@@ -1,0 +1,23 @@
+growerhub_da_user: watering-admin
+growerhub_da_group: "{{ growerhub_da_user }}"
+growerhub_da_workdir: /home/watering-admin/growerhub
+growerhub_da_envfile: /etc/default/growerhub-deploy-agent
+growerhub_da_unit_name: growerhub-deploy-agent.service
+
+growerhub_da_exec_start: /home/watering-admin/growerhub/server/.venv/bin/python -m deploy_agent
+
+growerhub_da_exec_args: ""
+
+growerhub_da_protect_home: false
+growerhub_da_restart: on-failure
+growerhub_da_restart_sec: 3s
+growerhub_da_standard_output: journal
+growerhub_da_standard_error: journal
+growerhub_da_manage_user: false
+
+growerhub_da_env:
+  GITHUB_TOKEN: "{{ vault_github_token }}"
+  GROWERHUB_REPO_URL: "https://github.com/aspinozaxxx-lab/growerhub"
+  GROWERHUB_BRANCH: "main"
+  GROWERHUB_POLL_INTERVAL: "30"
+  GROWERHUB_WORKDIR: "{{ growerhub_da_workdir }}"

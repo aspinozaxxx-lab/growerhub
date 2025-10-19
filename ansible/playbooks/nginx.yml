@@ -1,0 +1,6 @@
+---
+- name: Apply Nginx config from role
+  hosts: app
+  become: true
+  roles:
+    - role: nginx

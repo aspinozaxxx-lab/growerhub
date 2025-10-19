@@ -1,0 +1,29 @@
+---
+- name: Ensure Nginx is installed
+  ansible.builtin.apt:
+    name: nginx
+    update_cache: true
+    state: present
+
+- name: Create backup of current /etc/nginx (одноразово, если нет бэкапа)
+  ansible.builtin.command:
+    cmd: tar -czf /etc/nginx.backup.tgz /etc/nginx
+    creates: /etc/nginx.backup.tgz
+
+- name: Deploy captured nginx config tree
+  ansible.builtin.copy:
+    src: etc/nginx/
+    dest: /etc/nginx/
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Test nginx config
+    - Reload nginx
+
+# Валидация конфигурации
+- name: nginx -t (assert success)
+  ansible.builtin.command: nginx -t
+  register: nginx_test
+  changed_when: false
+  failed_when: nginx_test.rc != 0

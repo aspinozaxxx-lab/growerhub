@@ -1,0 +1,91 @@
+# import-existing.yml
+- name: Import current growerhub-deploy-agent settings
+  hosts: app
+  become: true
+  gather_facts: false
+
+  vars:
+    svc_name: growerhub-deploy-agent
+    import_dir: imported/systemd
+
+  tasks:
+    - name: Ensure local import dir exists (on controller)
+      delegate_to: localhost
+      run_once: true
+      ansible.builtin.file:
+        path: "{{ import_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Read systemd resolved unit with drop-ins
+      ansible.builtin.command: "systemctl cat {{ svc_name }}.service"
+      register: systemctl_cat
+      changed_when: false
+      failed_when: systemctl_cat.rc not in [0]
+
+    - name: Save concatenated unit (on controller)
+      delegate_to: localhost
+      run_once: true
+      ansible.builtin.copy:
+        content: "{{ systemctl_cat.stdout }}"
+        dest: "{{ import_dir }}/{{ svc_name }}.service.cat.txt"
+        mode: "0644"
+
+    - name: Locate primary unit file
+      ansible.builtin.command: "systemctl show -p FragmentPath {{ svc_name }}.service"
+      register: fragment
+      changed_when: false
+
+    - name: Set fact with fragment_path
+      ansible.builtin.set_fact:
+        fragment_path: "{{ fragment.stdout.split('=')[-1] | trim }}"
+
+    - name: Fetch primary unit file
+      ansible.builtin.fetch:
+        src: "{{ fragment_path }}"
+        dest: "{{ import_dir }}/"
+        flat: true
+      when: fragment_path is match('^/')
+
+    - name: Check drop-in directory exists
+      ansible.builtin.stat:
+        path: "/etc/systemd/system/{{ svc_name }}.service.d"
+      register: dropin_dir
+
+    - name: Ensure rsync is installed on remote
+      ansible.builtin.package:
+        name: rsync
+        state: present
+      when: dropin_dir.stat.exists
+
+    - name: Pull drop-ins directory to controller (rsync)
+      delegate_to: localhost
+      become: false
+      ansible.posix.synchronize:
+        mode: pull
+        src: "/etc/systemd/system/{{ svc_name }}.service.d/"
+        dest: "{{ import_dir }}/{{ svc_name }}.service.d/"
+        rsync_opts:
+          - "--chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r"
+      when: dropin_dir.stat.exists
+
+    - name: Try fetch environment file from /etc/default
+      ansible.builtin.fetch:
+        src: "/etc/default/{{ svc_name }}"
+        dest: "{{ import_dir }}/"
+        flat: true
+      ignore_errors: true
+
+    - name: Get ExecStart and User for quick reference
+      ansible.builtin.command: "systemctl show {{ svc_name }}.service -p ExecStart -p User -p WorkingDirectory"
+      register: svc_show
+      changed_when: false
+
+    - name: Save service facts (on controller)
+      delegate_to: localhost
+      run_once: true
+      ansible.builtin.copy:
+        content: "{{ svc_show.stdout }}"
+        dest: "{{ import_dir }}/{{ svc_name }}.facts.txt"
+        mode: "0644"
+

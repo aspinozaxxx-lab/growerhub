@@ -1,0 +1,27 @@
+# ВСТАВЬ СЮДА СВОЙ ПУБЛИЧНЫЙ КЛЮЧ:
+admin_pubkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIObo4jJzfIsh9+GImNqKWGTHBW2UWfZMv9cmHurX+ozG ansible@Home"
+
+# Базовые пакеты
+base_packages:
+  - curl
+  - ca-certificates
+  - git
+  - htop
+  - vim
+  - unzip
+  - ufw
+  - fail2ban
+  - unattended-upgrades
+  - software-properties-common
+
+# Порты, которые откроем в UFW
+ufw_allowed_ports:
+  - 22      # SSH
+  - 80      # HTTP
+  - 443     # HTTPS
+
+# Минимальные правки SSH
+sshd_config:
+  PasswordAuthentication: "no"
+  PermitRootLogin: "no"
+  PubkeyAuthentication: "yes"

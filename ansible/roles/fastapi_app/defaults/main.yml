@@ -1,0 +1,26 @@
+app_name: growerhub
+service_name: "{{ app_name }}"
+
+app_user: watering-admin
+app_group: "{{ app_user }}"
+
+app_workdir: /home/watering-admin/growerhub/server
+app_venv: "/home/watering-admin/growerhub/server/.venv"
+app_requirements: "{{ app_workdir }}/requirements.txt"
+
+app_module: run
+app_object: app
+app_host: 127.0.0.1
+app_port: 8000
+app_workers: 2
+app_reload: false
+
+apt_packages:
+  - python3-venv
+  - python3-pip
+  - python3-dev
+  - build-essential
+  - procps
+  - psmisc
+
+app_env: {}

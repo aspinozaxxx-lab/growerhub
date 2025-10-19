@@ -1,0 +1,11 @@
+---
+- name: Test nginx config
+  ansible.builtin.command: nginx -t
+  register: nginx_test_handler
+  changed_when: false
+  failed_when: nginx_test_handler.rc != 0
+
+- name: Reload nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
