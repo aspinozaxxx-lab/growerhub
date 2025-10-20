@@ -27,3 +27,34 @@
   register: nginx_test
   changed_when: false
   failed_when: nginx_test.rc != 0
+
+- name: Ensure certbot installed when HTTPS enabled
+  when: nginx_enable_https
+  become: true
+  block:
+    - name: Install certbot (via snap)
+      apt:
+        name: snapd
+        state: present
+        update_cache: yes
+
+    - name: Install certbot
+      snap:
+        name: certbot
+        classic: yes
+        state: present
+
+    - name: Link certbot binary
+      file:
+        src: /snap/bin/certbot
+        dest: /usr/bin/certbot
+        state: link
+        force: yes
+
+    - name: Create ACME challenge dir
+      file:
+        path: /var/www/letsencrypt/.well-known/acme-challenge
+        state: directory
+        mode: "0755"
+        owner: www-data
+        group: www-data
