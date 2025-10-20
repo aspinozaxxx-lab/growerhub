@@ -9,7 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    steps:
+     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -18,13 +18,16 @@ jobs:
           install -m 700 -d ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          ssh-keyscan -p 6733 growerhub.ru > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
+
+      - name: SSH smoke test
+        run: |
+          ssh -p 6733 -o StrictHostKeyChecking=yes watering-admin@growerhub.ru "echo 'SSH connection OK'"
 
       - name: Sync project to server
         run: |
-          RSYNC_RSH="ssh -p 6733 -o StrictHostKeyChecking=yes"
-          rsync -az --delete --exclude ".git" ./ watering-admin@growerhub.ru:/home/watering-admin/growerhub/
+          rsync -az --delete -e "ssh -p 6733 -o StrictHostKeyChecking=yes" ./ watering-admin@growerhub.ru:/home/watering-admin/growerhub/
 
       - name: Remote build & restart
         run: |
