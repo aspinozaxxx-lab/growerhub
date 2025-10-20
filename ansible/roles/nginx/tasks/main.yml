@@ -10,17 +10,6 @@
     cmd: tar -czf /etc/nginx.backup.tgz /etc/nginx
     creates: /etc/nginx.backup.tgz
 
-- name: Deploy captured nginx config tree
-  ansible.builtin.copy:
-    src: etc/nginx/
-    dest: /etc/nginx/
-    owner: root
-    group: root
-    mode: "0644"
-  notify:
-    - Test nginx config
-    - Reload nginx
-
 # Валидация конфигурации
 - name: nginx -t (assert success)
   ansible.builtin.command: nginx -t
@@ -58,3 +47,27 @@
         mode: "0755"
         owner: www-data
         group: www-data
+
+- name: Deploy captured nginx config tree
+  ansible.builtin.copy:
+    src: etc/nginx/
+    dest: /etc/nginx/
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Test nginx config
+    - Reload nginx
+
+- name: Obtain/renew Let’s Encrypt certificate
+  when: nginx_enable_https
+  become: true
+  command: >
+    certbot certonly --webroot
+    -w /var/www/letsencrypt
+    -d {{ nginx_domain }} {% for d in nginx_alt_domains %}-d {{ d }} {% endfor %}
+    --non-interactive --agree-tos -m {{ nginx_letsencrypt_email }}
+    {% if nginx_letsencrypt_staging %}--staging{% endif %}
+  args:
+    creates: "/etc/letsencrypt/live/{{ nginx_domain }}/fullchain.pem"
+  notify: reload nginx
