@@ -21,13 +21,24 @@ jobs:
           ssh-keyscan -p 6733 growerhub.ru > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
+      - name: Ensure target dir exists (SSH)
+        run: |
+          ssh -p 6733 -o StrictHostKeyChecking=yes watering-admin@growerhub.ru "mkdir -p /home/watering-admin/growerhub && chmod 755 /home/watering-admin/growerhub"
+
       - name: SSH smoke test
         run: |
           ssh -p 6733 -o StrictHostKeyChecking=yes watering-admin@growerhub.ru "echo 'SSH connection OK'"
 
-      - name: Sync project to server
+      - name: Sync project to server (robust)
         run: |
-          rsync -az --delete -e "ssh -p 6733 -o StrictHostKeyChecking=yes" ./ watering-admin@growerhub.ru:/home/watering-admin/growerhub/
+          rsync -azv --delete \
+            --exclude ".git/" \
+            --exclude ".venv/" \
+            --exclude "__pycache__/" \
+            --exclude "*.pyc" \
+            --omit-dir-times --no-perms --no-owner --no-group \
+            -e "ssh -p 6733 -o StrictHostKeyChecking=yes" \
+            ./ watering-admin@growerhub.ru:/home/watering-admin/growerhub/
 
       - name: Remote build & restart
         run: |
