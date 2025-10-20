@@ -5,10 +5,10 @@
     update_cache: true
     state: present
 
-#- name: Create backup of current /etc/nginx (одноразово, если нет бэкапа)
-#  ansible.builtin.command:
-#    cmd: tar -czf /etc/nginx.backup.tgz /etc/nginx
-#    creates: /etc/nginx.backup.tgz
+- name: Create backup of current /etc/nginx (одноразово, если нет бэкапа)
+  ansible.builtin.command:
+    cmd: tar -czf /etc/nginx.backup.tgz /etc/nginx
+    creates: /etc/nginx.backup.tgz
 
 # Валидация текущей конфигурации (до изменений)
 - name: nginx -t (assert success)
