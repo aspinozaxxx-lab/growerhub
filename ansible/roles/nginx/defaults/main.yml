@@ -1,0 +1,6 @@
+nginx_enable_https: false
+nginx_domain: ""
+nginx_alt_domains: []
+nginx_letsencrypt_email: ""
+nginx_backend: "http://127.0.0.1:8000"
+nginx_letsencrypt_staging: false
