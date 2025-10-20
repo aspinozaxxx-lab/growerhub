@@ -1,6 +1,10 @@
----
-- name: Apply Nginx config from role
+- name: Apply Nginx config with HTTPS
   hosts: app
   become: true
   roles:
     - role: nginx
+      vars:
+        nginx_enable_https: true
+        nginx_domain: "growerhub.ru"
+        nginx_letsencrypt_email: "oleg@growerhub.ru"
+        nginx_backend: "http://127.0.0.1:8000"
