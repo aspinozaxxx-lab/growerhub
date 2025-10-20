@@ -1,0 +1,75 @@
+# HTTP — challenge и редирект (если включен HTTPS),
+# иначе проксирование на бэкенд.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {{ nginx_domain }}{% for d in nginx_alt_domains %} {{ d }}{% endfor %};
+
+    # ACME http-01 (для выпуска сертификата)
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type "text/plain";
+    }
+
+    {% if nginx_enable_https %}
+    # Если включен HTTPS — редиректим
+    return 301 https://$host$request_uri;
+    {% else %}
+    # Если HTTPS не включен — просто проксируем на backend
+    location / {
+        proxy_pass {{ nginx_backend }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_read_timeout 300;
+        client_max_body_size 20m;
+    }
+    {% endif %}
+
+    access_log /var/log/nginx/{{ nginx_domain }}_access.log;
+    error_log  /var/log/nginx/{{ nginx_domain }}_error.log;
+}
+
+{% if nginx_enable_https %}
+# HTTPS — основной сайт
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name {{ nginx_domain }}{% for d in nginx_alt_domains %} {{ d }}{% endfor %};
+
+    # Пути к сертификатам (будут созданы certbot'ом)
+    ssl_certificate     /etc/letsencrypt/live/{{ nginx_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ nginx_domain }}/privkey.pem;
+
+    # Безопасные заголовки
+    add_header X-Content-Type-Options nosniff;
+    add_header X-Frame-Options SAMEORIGIN;
+    add_header Referrer-Policy strict-origin-when-cross-origin;
+    # HSTS включай после первого успешного запуска
+    # add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    # ACME-директория, чтобы certbot мог продлевать
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type "text/plain";
+    }
+
+    location / {
+        proxy_pass {{ nginx_backend }};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_read_timeout 300;
+        client_max_body_size 20m;
+    }
+
+    access_log /var/log/nginx/{{ nginx_domain }}_ssl_access.log;
+    error_log  /var/log/nginx/{{ nginx_domain }}_ssl_error.log;
+}
+{% endif %}
