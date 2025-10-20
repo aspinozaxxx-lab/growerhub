@@ -1,0 +1,99 @@
+name: CI/CD (test → deploy)
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('server/requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install deps
+        working-directory: server
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install -U pip
+          pip install -r requirements.txt || true
+          pip install pytest
+
+      - name: Run pytest
+        working-directory: server
+        run: |
+          . .venv/bin/activate
+          pytest -q --maxfail=1 --disable-warnings --junitxml=pytest-report.xml
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-report
+          path: server/pytest-report.xml
+
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    needs: [ test ]
+    if: ${{ needs.test.result == 'success' && github.ref == 'refs/heads/main' }}
+    environment:
+      name: production
+      url: https://growerhub.ru/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p 6733 growerhub.ru > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: SSH smoke test
+        run: |
+          ssh -p 6733 -o StrictHostKeyChecking=yes watering-admin@growerhub.ru "echo 'SSH OK'"
+
+      - name: Ensure target dir exists
+        run: |
+          ssh -p 6733 -o StrictHostKeyChecking=yes watering-admin@growerhub.ru \
+            "mkdir -p /home/watering-admin/growerhub && chmod 755 /home/watering-admin/growerhub"
+
+      - name: Sync project to server
+        run: |
+          rsync -azv --delete \
+            --exclude ".git/" --exclude ".venv/" --exclude "__pycache__/" --exclude "*.pyc" \
+            --omit-dir-times --no-perms --no-owner --no-group \
+            -e "ssh -p 6733 -o StrictHostKeyChecking=yes" \
+            ./ watering-admin@growerhub.ru:/home/watering-admin/growerhub/
+
+      - name: Remote build & restart
+        run: |
+          ssh -p 6733 watering-admin@growerhub.ru <<'EOF'
+          set -e
+          cd ~/growerhub/server
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install -U pip
+          pip install -r requirements.txt
+          sudo systemctl daemon-reload || true
+          sudo systemctl restart growerhub.service
+          systemctl status growerhub.service --no-pager || true
+          EOF
