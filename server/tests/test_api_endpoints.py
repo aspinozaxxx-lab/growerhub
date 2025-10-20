@@ -30,7 +30,7 @@ package dependencies are already declared in the project's
 
 import pytest
 import sqlalchemy
-from fastapi.testclient import TestClient
+import httpx
 from sqlalchemy.orm import sessionmaker
 
 from app.models.database_models import Base
@@ -98,8 +98,10 @@ def override_get_db():
 # Apply the dependency override
 fastapi_app.dependency_overrides[db.get_db] = override_get_db
 
-# Construct a TestClient using the patched FastAPI application
-client = TestClient(fastapi_app)
+# Construct an httpx client using the patched FastAPI application. Use ASGITransport so
+# that httpx can make in-process requests against our FastAPI app. The base_url is
+# required when making requests with httpx Client.
+client = httpx.Client(transport=httpx.ASGITransport(app=fastapi_app), base_url="http://testserver")
 
 
 def test_get_all_devices_empty() -> None:
