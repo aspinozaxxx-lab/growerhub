@@ -6,5 +6,9 @@
       vars:
         nginx_enable_https: true
         nginx_domain: "growerhub.ru"
+        nginx_alt_domains: ["www.growerhub.ru"]
+        nginx_backend_api: "http://127.0.0.1:8000"
+        nginx_static_root: "~/growerhub/static"
+        nginx_index: "index.html"
         nginx_letsencrypt_email: "oleg@growerhub.ru"
-        nginx_backend: "http://127.0.0.1:8000"
+        nginx_letsencrypt_staging: false

@@ -1,6 +1,9 @@
 nginx_enable_https: false
 nginx_domain: ""
-nginx_alt_domains: []
+nginx_alt_domains: []             # например: ["www.growerhub.ru"]
+nginx_backend_api: "http://127.0.0.1:8000"   # FastAPI/uvicorn
+nginx_static_root: "/var/www/html"           # корень статики сайта
+nginx_index: "index.html"                    # главная страница
 nginx_letsencrypt_email: ""
-nginx_backend: "http://127.0.0.1:8000"
 nginx_letsencrypt_staging: false
+
