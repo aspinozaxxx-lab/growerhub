@@ -29,8 +29,58 @@ package dependencies are already declared in the project's
 """
 
 import pytest
+import pytest_asyncio
 import sqlalchemy
-import httpx
+import sys
+# Import httpx or fall back to the local stub if the package is not installed.
+# When running in the CI environment the ``httpx`` dependency may not be
+# available.  The tests rely on ``httpx.AsyncClient`` and ``httpx.ASGITransport``
+# but we provide a lightweight stub in ``server/httpx.py``.  Attempt to import
+# the real package first; if that fails load the stub module manually.
+try:
+    import httpx  # type: ignore[assignment]
+except ModuleNotFoundError:
+    import importlib.util
+    import sys
+    import pathlib
+
+    # Construct the path to the stub relative to this test file.  The stub
+    # lives one directory above (``server/httpx.py``).  Resolve the path
+    # to ensure an absolute location.
+    stub_path = (pathlib.Path(__file__).resolve().parent.parent / "httpx.py").resolve()
+    spec = importlib.util.spec_from_file_location("httpx", stub_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load httpx stub from {stub_path}")
+    httpx = importlib.util.module_from_spec(spec)  # type: ignore[assignment]
+    # Execute the module to populate its namespace.
+    spec.loader.exec_module(httpx)
+    # Insert the loaded module into sys.modules so subsequent imports of
+    # ``httpx`` return this stub.
+    sys.modules["httpx"] = httpx
+
+# ---------------------------------------------------------------------------
+# Ensure ``psycopg2`` can be imported in environments where the real driver
+# is unavailable.  SQLAlchemy's PostgreSQL dialect attempts to import
+# ``psycopg2`` when constructing an engine from a URL beginning with
+# ``postgresql://``.  In our tests we patch the database engine to use
+# SQLite, so the PostgreSQL driver is never actually used.  However, the
+# import still happens at module import time and will raise a
+# ModuleNotFoundError if ``psycopg2`` is not installed.  To prevent the
+# error we provide a minimal stub module and register it in
+# ``sys.modules`` before importing the application's database module.  This
+# stub is intentionally empty because the tests never call any
+# ``psycopg2`` APIs.
+try:
+    import psycopg2  # type: ignore[assignment]
+except ModuleNotFoundError:
+    import types
+    # Create an empty module object and insert it into sys.modules.  This
+    # satisfies import statements like ``import psycopg2`` used by
+    # SQLAlchemy's PostgreSQL dialect.  Should any code attempt to use
+    # attributes of this stub they will raise AttributeError, which is
+    # acceptable because in the test environment we never hit that code path.
+    psycopg2 = types.ModuleType("psycopg2")  # type: ignore[assignment]
+    sys.modules["psycopg2"] = psycopg2  # type: ignore[assignment]
 from sqlalchemy.orm import sessionmaker
 
 from app.models.database_models import Base
@@ -103,8 +153,8 @@ fastapi_app.dependency_overrides[db.get_db] = override_get_db
 # We use httpx.AsyncClient together with ASGITransport so that each test can await
 # HTTP requests directly against the in-process FastAPI application.  The base_url
 # is required when making requests with httpx.
-@pytest.fixture
-async def async_client():
+@pytest_asyncio.fixture
+async def async_client() -> httpx.AsyncClient:
     transport = httpx.ASGITransport(app=fastapi_app)
     async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
         yield client
