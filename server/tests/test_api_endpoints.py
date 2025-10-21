@@ -98,20 +98,28 @@ def override_get_db():
 # Apply the dependency override
 fastapi_app.dependency_overrides[db.get_db] = override_get_db
 
-# Construct an httpx client using the patched FastAPI application. Use ASGITransport so
-# that httpx can make in-process requests against our FastAPI app. The base_url is
-# required when making requests with httpx Client.
-client = httpx.Client(transport=httpx.ASGITransport(app=fastapi_app), base_url="http://testserver")
+# Define an asynchronous client fixture for making requests against the FastAPI app.
+#
+# We use httpx.AsyncClient together with ASGITransport so that each test can await
+# HTTP requests directly against the in-process FastAPI application.  The base_url
+# is required when making requests with httpx.
+@pytest.fixture
+async def async_client():
+    transport = httpx.ASGITransport(app=fastapi_app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+        yield client
 
 
-def test_get_all_devices_empty() -> None:
+@pytest.mark.asyncio
+async def test_get_all_devices_empty(async_client) -> None:
     """Ensure that the device list is empty when no devices have reported."""
-    response = client.get("/api/devices")
+    response = await async_client.get("/api/devices")
     assert response.status_code == 200
     assert response.json() == []
 
 
-def test_update_device_status_creates_device_and_returns_message() -> None:
+@pytest.mark.asyncio
+async def test_update_device_status_creates_device_and_returns_message(async_client) -> None:
     """
     Posting status for a new device should return a success message and
     cause the device to appear in the list of devices.
@@ -125,17 +133,18 @@ def test_update_device_status_creates_device_and_returns_message() -> None:
         "is_light_on": True,
         "last_watering": None,
     }
-    response = client.post("/api/device/testdevice/status", json=payload)
+    response = await async_client.post("/api/device/testdevice/status", json=payload)
     assert response.status_code == 200
     assert response.json()["message"] == "Status updated"
 
     # The device list should now include ``testdevice``
-    list_response = client.get("/api/devices")
+    list_response = await async_client.get("/api/devices")
     assert list_response.status_code == 200
     assert any(d["device_id"] == "testdevice" for d in list_response.json())
 
 
-def test_get_device_settings_returns_defaults_for_new_device() -> None:
+@pytest.mark.asyncio
+async def test_get_device_settings_returns_defaults_for_new_device(async_client) -> None:
     """
     When requesting settings for a device that has only reported status
     once, the API should return the default settings defined in the
@@ -151,11 +160,11 @@ def test_get_device_settings_returns_defaults_for_new_device() -> None:
         "last_watering": None,
     }
     # Create the device by posting its status
-    status_response = client.post("/api/device/dev1/status", json=payload)
+    status_response = await async_client.post("/api/device/dev1/status", json=payload)
     assert status_response.status_code == 200
 
     # Fetch the settings and verify the defaults
-    response = client.get("/api/device/dev1/settings")
+    response = await async_client.get("/api/device/dev1/settings")
     assert response.status_code == 200
     data = response.json()
     assert data["target_moisture"] == 40.0
@@ -167,7 +176,8 @@ def test_get_device_settings_returns_defaults_for_new_device() -> None:
     assert data["update_available"] is False
 
 
-def test_update_device_settings_updates_values() -> None:
+@pytest.mark.asyncio
+async def test_update_device_settings_updates_values(async_client) -> None:
     """
     Updating a device's settings should persist the provided values.
     After calling the PUT endpoint the subsequent GET request should
@@ -183,7 +193,7 @@ def test_update_device_settings_updates_values() -> None:
         "is_light_on": False,
         "last_watering": None,
     }
-    status_resp = client.post("/api/device/dev2/status", json=payload_status)
+    status_resp = await async_client.post("/api/device/dev2/status", json=payload_status)
     assert status_resp.status_code == 200
 
     # Now update its settings
@@ -195,19 +205,20 @@ def test_update_device_settings_updates_values() -> None:
         "light_off_hour": 21,
         "light_duration": 14,
     }
-    update_resp = client.put("/api/device/dev2/settings", json=new_settings)
+    update_resp = await async_client.put("/api/device/dev2/settings", json=new_settings)
     assert update_resp.status_code == 200
     assert update_resp.json()["message"] == "Settings updated"
 
     # Retrieve settings to check that the values were updated
-    settings_response = client.get("/api/device/dev2/settings")
+    settings_response = await async_client.get("/api/device/dev2/settings")
     assert settings_response.status_code == 200
     data = settings_response.json()
     for key, value in new_settings.items():
         assert data[key] == value
 
 
-def test_firmware_check_no_update_available() -> None:
+@pytest.mark.asyncio
+async def test_firmware_check_no_update_available(async_client) -> None:
     """
     If a device has no pending firmware update, the firmware check
     endpoint should return ``{"update_available": false}``.
@@ -222,11 +233,11 @@ def test_firmware_check_no_update_available() -> None:
         "is_light_on": False,
         "last_watering": None,
     }
-    resp = client.post("/api/device/dev3/status", json=payload_status)
+    resp = await async_client.post("/api/device/dev3/status", json=payload_status)
     assert resp.status_code == 200
 
     # Check firmware status
-    response = client.get("/api/device/dev3/firmware")
+    response = await async_client.get("/api/device/dev3/firmware")
     assert response.status_code == 200
     data = response.json()
     assert data["update_available"] is False
