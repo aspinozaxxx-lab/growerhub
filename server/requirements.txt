@@ -6,4 +6,5 @@ python-multipart==0.0.6
 httpx
 pytest-asyncio
 pytest
-psycopg2-binary==2.9.9
+# NOTE: psycopg2-binary requires system dependencies that may not be available in the CI environment.
+# Since the application defaults to an SQLite database for tests, we omit it from the requirements.
