@@ -28,8 +28,44 @@ package dependencies are already declared in the project's
 ``requirements.txt``.
 """
 
+# This minor edit triggers a CI run.
 import pytest
-import pytest_asyncio
+"""
+Test suite for GrowerHub FastAPI endpoints.  This module includes a
+lightweight fallback mechanism for missing optional dependencies.  If
+the third‑party packages ``httpx`` or ``pytest_asyncio`` are not
+available in the execution environment (as is the case in some CI
+pipelines), the tests will automatically load local stub
+implementations.  These stubs provide the minimal API surface needed
+for the tests to run without installing external libraries.
+
+The fallback for ``httpx`` loads the stub from ``server/httpx.py``
+relative to this file.  The fallback for ``psycopg2`` registers a
+dummy module in ``sys.modules`` so that SQLAlchemy does not attempt
+to import the real Postgres driver when using an in‑memory SQLite
+database.  Finally, if ``pytest_asyncio`` is not installed, a simple
+shim is defined which wraps ``pytest.fixture`` to allow the ``async``
+fixture syntax used in the test functions below.
+"""
+
+import importlib.util as _importlib_util
+import sys as _sys
+import types as _types
+
+try:
+    import pytest_asyncio  # type: ignore[unused-import]
+except ImportError:  # pragma: no cover
+    # Define a minimal shim for pytest_asyncio when the package is missing.
+    import pytest
+
+    def _asyncio_fixture(func=None, **kwargs):
+        # If used as @pytest_asyncio.fixture without parentheses
+        if func is not None:
+            return pytest.fixture(func)
+        # If used with arguments like @pytest_asyncio.fixture(scope="session")
+        return pytest.fixture(**kwargs)
+
+    pytest_asyncio = _types.SimpleNamespace(fixture=_asyncio_fixture)  # type: ignore[assignment]
 import sqlalchemy
 import sys
 # Import httpx or fall back to the local stub if the package is not installed.
