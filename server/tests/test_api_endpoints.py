@@ -1,12 +1,12 @@
 """
 Integration tests for the core FastAPI endpoints of the GrowerHub server.
 
-These tests spin up the application using an in‑memory SQLite database so
+These tests spin up the application using an in-memory SQLite database so
 that they can run in isolation without requiring a running PostgreSQL
 instance.  Before importing the FastAPI application the database engine
 and session factory defined in ``app.core.database`` are patched to use
 SQLite.  The ``create_tables`` function is also replaced so that
-``Base.metadata.create_all`` operates on the in‑memory engine.  Finally
+``Base.metadata.create_all`` operates on the in-memory engine.  Finally
 the ``get_db`` dependency is overridden so that each request gets a
 fresh session bound to the test engine.
 
@@ -23,17 +23,18 @@ server:
 * checking for firmware updates on a device which has no pending
   update and confirming the API signals that appropriately.
 
-Running these tests requires pytest and FastAPI's TestClient.  The
-package dependencies are already declared in the project's
+Running these tests requires pytest and FastAPI’s TestClient.  The
+package dependencies are already declared in the project’s
 ``requirements.txt``.
 """
 
-# This minor edit triggers a CI run.
+# This comment triggers CI run.
 import pytest
+
 """
 Test suite for GrowerHub FastAPI endpoints.  This module includes a
 lightweight fallback mechanism for missing optional dependencies.  If
-the third‑party packages ``httpx`` or ``pytest_asyncio`` are not
+the third-party packages ``httpx`` or ``pytest_asyncio`` are not
 available in the execution environment (as is the case in some CI
 pipelines), the tests will automatically load local stub
 implementations.  These stubs provide the minimal API surface needed
@@ -42,103 +43,68 @@ for the tests to run without installing external libraries.
 The fallback for ``httpx`` loads the stub from ``server/httpx.py``
 relative to this file.  The fallback for ``psycopg2`` registers a
 dummy module in ``sys.modules`` so that SQLAlchemy does not attempt
-to import the real Postgres driver when using an in‑memory SQLite
+to import the real Postgres driver when using an in-memory SQLite
 database.  Finally, if ``pytest_asyncio`` is not installed, a simple
 shim is defined which wraps ``pytest.fixture`` to allow the ``async``
 fixture syntax used in the test functions below.
 """
 
-import importlib.util as _importlib_util
-import sys as _sys
-import types as _types
-
+# ---------------------------------------------------------------------------
+# Define a fallback for pytest_asyncio when the package is missing.
 try:
     import pytest_asyncio  # type: ignore[unused-import]
-except ImportError:  # pragma: no cover
-    # Define a minimal shim for pytest_asyncio when the package is missing.
-    import pytest
+except ImportError:
+    import types as _types
 
     def _asyncio_fixture(func=None, **kwargs):
-        # If used as @pytest_asyncio.fixture without parentheses
+        import pytest  # local import to avoid circular import at module level
+
         if func is not None:
             return pytest.fixture(func)
-        # If used with arguments like @pytest_asyncio.fixture(scope="session")
         return pytest.fixture(**kwargs)
 
     pytest_asyncio = _types.SimpleNamespace(fixture=_asyncio_fixture)  # type: ignore[assignment]
-import sqlalchemy
+
 import sys
-# Import httpx or fall back to the local stub if the package is not installed.
-# When running in the CI environment the ``httpx`` dependency may not be
-# available.  The tests rely on ``httpx.AsyncClient`` and ``httpx.ASGITransport``
-# but we provide a lightweight stub in ``server/httpx.py``.  Attempt to import
-# the real package first; if that fails load the stub module manually.
+import types
+
+# ---------------------------------------------------------------------------
+# Ensure psycopg2 can be imported even if the real driver is not installed.
+# SQLAlchemy’s PostgreSQL dialect tries to import psycopg2; this stub
+# prevents ModuleNotFoundError during test setup when using SQLite.
+try:
+    import psycopg2  # type: ignore[unused-import]
+except ModuleNotFoundError:
+    psycopg2 = types.ModuleType("psycopg2")  # type: ignore[assignment]
+    sys.modules["psycopg2"] = psycopg2  # type: ignore[assignment]
+
+import importlib.util as _importlib_util
+import pathlib
+
+# ---------------------------------------------------------------------------
+# Import httpx or fall back to the local stub if httpx is not installed.
+# The stub is implemented in ``server/httpx.py`` and provides
+# AsyncClient and ASGITransport used by the tests.
 try:
     import httpx  # type: ignore[assignment]
 except ModuleNotFoundError:
-    import importlib.util
-    import sys
-    import pathlib
-
-    # Construct the path to the stub relative to this test file.  The stub
-    # lives one directory above (``server/httpx.py``).  Resolve the path
-    # to ensure an absolute location.
     stub_path = (pathlib.Path(__file__).resolve().parent.parent / "httpx.py").resolve()
-    spec = importlib.util.spec_from_file_location("httpx", stub_path)
+    spec = _importlib_util.spec_from_file_location("httpx", stub_path)
     if spec is None or spec.loader is None:
         raise ImportError(f"Could not load httpx stub from {stub_path}")
-    httpx = importlib.util.module_from_spec(spec)  # type: ignore[assignment]
-    # Execute the module to populate its namespace.
-    spec.loader.exec_module(httpx)
-    # Insert the loaded module into sys.modules so subsequent imports of
-    # ``httpx`` return this stub.
+    httpx = _importlib_util.module_from_spec(spec)  # type: ignore[assignment]
+    spec.loader.exec_module(httpx)  # type: ignore[operator]
     sys.modules["httpx"] = httpx
 
-# ---------------------------------------------------------------------------
-# Ensure ``psycopg2`` can be imported in environments where the real driver
-# is unavailable.  SQLAlchemy's PostgreSQL dialect attempts to import
-# ``psycopg2`` when constructing an engine from a URL beginning with
-# ``postgresql://``.  In our tests we patch the database engine to use
-# SQLite, so the PostgreSQL driver is never actually used.  However, the
-# import still happens at module import time and will raise a
-# ModuleNotFoundError if ``psycopg2`` is not installed.  To prevent the
-# error we provide a minimal stub module and register it in
-# ``sys.modules`` before importing the application's database module.  This
-# stub is intentionally empty because the tests never call any
-# ``psycopg2`` APIs.
-try:
-    import psycopg2  # type: ignore[assignment]
-except ModuleNotFoundError:
-    import types
-    # Create an empty module object and insert it into sys.modules.  This
-    # satisfies import statements like ``import psycopg2`` used by
-    # SQLAlchemy's PostgreSQL dialect.  Should any code attempt to use
-    # attributes of this stub they will raise AttributeError, which is
-    # acceptable because in the test environment we never hit that code path.
-    psycopg2 = types.ModuleType("psycopg2")  # type: ignore[assignment]
-    sys.modules["psycopg2"] = psycopg2  # type: ignore[assignment]
+import sqlalchemy
 from sqlalchemy.orm import sessionmaker
 
 from app.models.database_models import Base
 import app.core.database as db
 
-
 # ---------------------------------------------------------------------------
-# Configure an in‑memory SQLite database for testing
-#
-# The application relies on ``app.core.database`` to provide the SQLAlchemy
-# engine, a ``SessionLocal`` factory and a ``create_tables`` function.  At
-# import time the FastAPI app calls ``create_tables()`` which would
-# otherwise connect to the production PostgreSQL instance.  Here we
-# override the relevant attributes before importing the app so that
-# everything points at our SQLite engine instead.
-
-# Use a SQLite database living purely in memory.  ``check_same_thread=False``
-# is required when using SQLite with SQLAlchemy in a multi‑threaded context
-# (the TestClient runs the application in a separate thread).
+# Configure an in-memory SQLite database for testing
 SQLALCHEMY_TEST_URL = "sqlite:///:memory:"
-
-# Create our test engine and session factory
 engine = sqlalchemy.create_engine(
     SQLALCHEMY_TEST_URL, connect_args={"check_same_thread": False}
 )
@@ -157,38 +123,27 @@ def _create_all_tables() -> None:
     Base.metadata.create_all(bind=engine)
 
 
-# Replace the ``create_tables`` function to use our in‑memory engine
+# Replace the ``create_tables`` function to use our in-memory engine
 db.create_tables = _create_all_tables  # type: ignore[assignment]
 
-
-# Only now import the FastAPI application.  On import the application will
-# call ``create_tables()`` (our patched version) so that the database
-# schema is created on our SQLite engine.
+# Import the FastAPI application only after the DB has been patched.
 from app.main import app as fastapi_app  # noqa: E402  import after patch
 
-
-# Ensure the tables exist.  This call is idempotent and safe to run
-# multiple times.
+# Ensure the tables exist.
 _create_all_tables()
 
-
+# Override get_db to provide a session bound to the test engine.
 def override_get_db():
-    """Dependency override to provide a session bound to the test engine."""
     db_session = TestingSessionLocal()
     try:
         yield db_session
     finally:
         db_session.close()
 
-
-# Apply the dependency override
 fastapi_app.dependency_overrides[db.get_db] = override_get_db
 
+# ---------------------------------------------------------------------------
 # Define an asynchronous client fixture for making requests against the FastAPI app.
-#
-# We use httpx.AsyncClient together with ASGITransport so that each test can await
-# HTTP requests directly against the in-process FastAPI application.  The base_url
-# is required when making requests with httpx.
 @pytest_asyncio.fixture
 async def async_client() -> httpx.AsyncClient:
     transport = httpx.ASGITransport(app=fastapi_app)
