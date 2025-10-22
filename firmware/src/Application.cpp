@@ -72,7 +72,11 @@ void WateringApplication::factoryReset() {
     settingsManager.saveSettings();
     
     // ПЕРЕИНИЦИАЛИЗИРУЕМ HTTP КЛИЕНТ
-    httpClient.begin(settingsManager.getServerURL(), settingsManager.getDeviceID());
+    httpClient.begin(
+        settingsManager.getServerURL(),
+        settingsManager.getDeviceID(),
+        settingsManager.getServerCAPem()
+    );
     
     Serial.println("Settings reset to defaults");
     Serial.println("DeviceID: " + settingsManager.getDeviceID());
@@ -197,18 +201,25 @@ void WateringApplication::setupActuators() {
 void WateringApplication::setupNetwork() {
     Serial.println("Setting up network...");
     
-    wifiManager.begin(
-        settingsManager.getSSID(),
-        settingsManager.getPassword(), 
-        settingsManager.getDeviceID()
-    );
+    // Инициализация WiFi (WiFiMulti)
+    wifiManager.begin(settingsManager.getDeviceID());
+    // Регистрируем до 10 известных сетей
+    for (int i = 0; i < settingsManager.getWiFiCount(); ++i) {
+        String ssid, pass;
+        if (settingsManager.getWiFiCredential(i, ssid, pass)) {
+            wifiManager.addAccessPoint(ssid, pass);
+        }
+    }
+    // Первая попытка подключения (3 секунды таймаут внутри)
+    wifiManager.reconnect();
     
     otaUpdater.begin(settingsManager.getDeviceID());
     
     // ВКЛЮЧАЕМ HTTP клиент с правильными настройками
     httpClient.begin(
         settingsManager.getServerURL(),
-        settingsManager.getDeviceID()
+        settingsManager.getDeviceID(),
+        settingsManager.getServerCAPem()
     );
 }
 

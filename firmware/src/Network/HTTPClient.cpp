@@ -1,12 +1,14 @@
 // firmware/src/Network/HTTPClient.cpp
 #include "HTTPClient.h"
+#include <WiFiClientSecure.h>
 
 WateringHTTPClient::WateringHTTPClient() 
     : enabled(false), lastSendTime(0) {}
 
-void WateringHTTPClient::begin(const String& serverBaseURL, const String& id) {
+void WateringHTTPClient::begin(const String& serverBaseURL, const String& id, const String& caPemPEM) {
     serverURL = serverBaseURL;
     deviceID = id;
+    caPem = caPemPEM;
     enable();
 }
 
@@ -38,8 +40,10 @@ String WateringHTTPClient::getStatus() {
 bool WateringHTTPClient::discoverEndpoints() {
     if (WiFi.status() != WL_CONNECTED) return false;
     
+    WiFiClientSecure client;
+    if (caPem.length() > 0) client.setCACert(caPem.c_str());
     HTTPClient http;
-    http.begin(serverURL + "/");
+    http.begin(client, serverURL + "/");
     int httpCode = http.GET();
     
     if (httpCode == 200) {
@@ -115,13 +119,15 @@ bool WateringHTTPClient::sendData(const String& endpoint, const JsonDocument& do
         return false;
     }
     
+    WiFiClientSecure client;
+    if (caPem.length() > 0) client.setCACert(caPem.c_str());
     HTTPClient http;
     
     // Добавляем логирование URL
     String fullURL = serverURL + endpoint;
     Serial.println("HTTP: Sending to " + fullURL);
     
-    http.begin(fullURL);
+    http.begin(client, fullURL);
     http.addHeader("Content-Type", "application/json");
     http.setTimeout(5000);
     

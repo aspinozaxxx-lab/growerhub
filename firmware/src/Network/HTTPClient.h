@@ -8,6 +8,7 @@ class WateringHTTPClient {
 private:
     String serverURL;
     String deviceID;
+    String caPem;
     bool enabled;
     unsigned long lastSendTime;
     const unsigned long SEND_INTERVAL = 60000; // 1 минута
@@ -15,7 +16,7 @@ private:
 public:
     WateringHTTPClient();
     
-    void begin(const String& serverBaseURL, const String& id);
+    void begin(const String& serverBaseURL, const String& id, const String& caPemPEM);
     void update(float soilMoisture, float airTemperature, float airHumidity, 
                 bool pumpState, bool lightState);
     
