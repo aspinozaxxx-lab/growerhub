@@ -3,8 +3,9 @@ uvicorn==0.24.0
 sqlalchemy==2.0.23
 pydantic==2.5.0
 python-multipart==0.0.6
-httpx
+httpx<0.28
 pytest-asyncio
 pytest
+paho-mqtt>=2.1.0
 # NOTE: psycopg2-binary requires system dependencies that may not be available in the CI environment.
 # Since the application defaults to an SQLite database for tests, we omit it from the requirements.

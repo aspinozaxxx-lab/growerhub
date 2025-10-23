@@ -7,11 +7,13 @@ import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from api_manual_watering import router as manual_watering_router
 from app.models.database_models import (
     DeviceDB, DeviceSettings, DeviceStatus, DeviceInfo,
     SensorDataDB, SensorDataPoint, WateringLogDB, OTAUpdateRequest
 )
 from app.core.database import get_db, create_tables
+from mqtt_publisher import init_publisher, shutdown_publisher
 
 
 # === Глобальные пути проекта ===
@@ -26,9 +28,20 @@ app = FastAPI(title="GrowerHub")
 
 create_tables()
 
+@app.on_event("startup")
+async def _startup_mqtt() -> None:
+    init_publisher()
+
+
+@app.on_event("shutdown")
+async def _shutdown_mqtt() -> None:
+    shutdown_publisher()
+
 # === Статические файлы ===
 app.mount("/static", StaticFiles(directory=SITE_DIR), name="static")
 app.mount("/firmware", StaticFiles(directory=FIRMWARE_DIR), name="firmware")
+
+app.include_router(manual_watering_router)
 
 @app.get("/")
 async def read_root():
