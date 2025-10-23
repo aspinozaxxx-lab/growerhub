@@ -7,10 +7,14 @@
 ### Добавлено
 - Эндпоинт `POST /api/manual-watering/stop` с публикацией команды `pump.stop` (`server/api_manual_watering.py`).
 - Тест `test_manual_watering_stop` с фейковым MQTT-паблишером без выхода в сеть (`server/tests/test_api_manual_watering_stop.py`).
+- Теневое хранилище состояний устройств (`server/device_shadow.py`) и расчёт remaining_s на сервере.
+- Эндпоинт `GET /api/manual-watering/status` для фронтенда с прогресс-баром.
+- Временный отладочный эндпоинт `POST /_debug/shadow/state` для тестов и локальной отладки.
 
 ### Изменено
 - Расширены русские докстроки и комментарии в модулях MQTT-паблишера и ручного полива (`server/mqtt_publisher.py`, `server/api_manual_watering.py`).
 - Дополнены комментариями интеграционные тесты ручного полива (`server/tests/test_api_manual_watering_start.py`).
+- Прогресс расчёта `remaining_s` теперь всегда выполняется на сервере по `duration_s` и `started_at`.
 
 ## [2025-10-23]
 

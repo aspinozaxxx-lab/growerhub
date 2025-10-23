@@ -13,6 +13,7 @@ from app.models.database_models import (
     SensorDataDB, SensorDataPoint, WateringLogDB, OTAUpdateRequest
 )
 from app.core.database import get_db, create_tables
+from device_shadow import init_shadow_store, shutdown_shadow_store
 from mqtt_publisher import init_publisher, shutdown_publisher
 
 
@@ -30,11 +31,13 @@ create_tables()
 
 @app.on_event("startup")
 async def _startup_mqtt() -> None:
+    init_shadow_store()
     init_publisher()
 
 
 @app.on_event("shutdown")
 async def _shutdown_mqtt() -> None:
+    shutdown_shadow_store()
     shutdown_publisher()
 
 # === Статические файлы ===

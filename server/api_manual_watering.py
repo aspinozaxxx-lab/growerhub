@@ -1,4 +1,6 @@
-"""REST API для ручного управления насосом: команды pump.start и pump.stop."""
+"""REST API для ручного управления насосом: команды pump.start, pump.stop и статус."""
+
+from __future__ import annotations
 
 from datetime import datetime
 from uuid import uuid4
@@ -6,14 +8,15 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, conint
 
-from mqtt_protocol import CmdPumpStart, CmdPumpStop, CommandType
+from device_shadow import DeviceShadowStore, get_shadow_store
+from mqtt_protocol import CmdPumpStart, CmdPumpStop, CommandType, DeviceState
 from mqtt_publisher import IMqttPublisher, get_publisher
 
 router = APIRouter()
 
 
 def get_mqtt_dep() -> IMqttPublisher:
-    """Возвращает готовый MQTT-паблишер или выдаёт 503, если он недоступен."""
+    """Возвращает MQTT-паблишер или отвечает 503, если сервис недоступен."""
 
     try:
         return get_publisher()
@@ -21,11 +24,19 @@ def get_mqtt_dep() -> IMqttPublisher:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="MQTT publisher unavailable") from exc
 
 
-class ManualWateringStartIn(BaseModel):
-    """Тело запроса для запуска полива.
+def get_shadow_dep() -> DeviceShadowStore:
+    """Возвращает стор теневых состояний или 503, если он не инициализирован."""
 
-    device_id: идентификатор устройства, которому нужно отправить команду.
-    duration_s: желаемая длительность ручного полива в секундах.
+    try:
+        return get_shadow_store()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Device shadow store unavailable") from exc
+
+
+class ManualWateringStartIn(BaseModel):
+    """Входные данные для запуска ручного полива.
+
+    device_id — идентификатор устройства, duration_s — длительность полива в секундах.
     """
 
     device_id: str
@@ -33,31 +44,46 @@ class ManualWateringStartIn(BaseModel):
 
 
 class ManualWateringStartOut(BaseModel):
-    """Ответ при запуске полива.
+    """Ответ на запуск полива.
 
-    correlation_id: уникальный идентификатор команды,
-    по которому устройство пришлёт подтверждение (ack) и обновит состояние.
+    Возвращаем только correlation_id, чтобы фронтенд мог отслеживать подтверждения.
     """
 
     correlation_id: str
 
 
 class ManualWateringStopIn(BaseModel):
-    """Тело запроса для остановки полива.
-
-    device_id: идентификатор устройства, которому требуется отправить pump.stop.
-    """
+    """Входные данные для остановки полива."""
 
     device_id: str
 
 
 class ManualWateringStopOut(BaseModel):
-    """Ответ при остановке полива, аналогичен старту.
-
-    correlation_id: уникальный идентификатор отправленной команды pump.stop.
-    """
+    """Ответ на остановку полива (возвращаем correlation_id для ack)."""
 
     correlation_id: str
+
+
+class ManualWateringStatusOut(BaseModel):
+    """Нормализованное состояние ручного полива для фронтенда.
+
+    Структура совпадает с результатом get_manual_watering_view в сторах.
+    """
+
+    status: str
+    duration_s: int | None
+    started_at: str | None
+    remaining_s: int | None
+    correlation_id: str | None
+    updated_at: str
+    source: str
+
+
+class ShadowStateIn(BaseModel):
+    """Входные данные для отладочной записи теневого состояния (используется в тестах)."""
+
+    device_id: str
+    state: DeviceState
 
 
 @router.post("/api/manual-watering/start", response_model=ManualWateringStartOut)
@@ -65,12 +91,7 @@ async def manual_watering_start(
     payload: ManualWateringStartIn,
     publisher: IMqttPublisher = Depends(get_mqtt_dep),
 ) -> ManualWateringStartOut:
-    """Запускает ручной полив, публикуя pump.start.
-
-    Корреляционный идентификатор генерируем на сервере, чтобы фронтенд/оператор
-    могли отслеживать подтверждения и состояние. На фронт возвращаем только
-    correlation_id: все остальные поля доступны через MQTT-сообщения и REST-метрики.
-    """
+    """Запускаем ручной полив, публикуя pump.start в MQTT."""
 
     correlation_id = uuid4().hex
     cmd = CmdPumpStart(
@@ -82,7 +103,7 @@ async def manual_watering_start(
 
     try:
         publisher.publish_cmd(payload.device_id, cmd)
-    except Exception as exc:
+    except Exception as exc:  # pragma: no cover - отлаживаем через 502
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to publish manual watering command") from exc
 
     return ManualWateringStartOut(correlation_id=correlation_id)
@@ -93,12 +114,7 @@ async def manual_watering_stop(
     payload: ManualWateringStopIn,
     publisher: IMqttPublisher = Depends(get_mqtt_dep),
 ) -> ManualWateringStopOut:
-    """Останавливает ручной полив, публикуя pump.stop.
-
-    Корреляционный идентификатор генерируется сервером по той же причине, что
-    и для pump.start — единая связка команд и ответов. На выходе только id,
-    дальше оператор сверяет подтверждения по MQTT.
-    """
+    """Останавливаем ручной полив, публикуя pump.stop и возвращая correlation_id."""
 
     correlation_id = uuid4().hex
     cmd = CmdPumpStop(
@@ -109,7 +125,31 @@ async def manual_watering_stop(
 
     try:
         publisher.publish_cmd(payload.device_id, cmd)
-    except Exception as exc:
+    except Exception as exc:  # pragma: no cover - отлаживаем через 502
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to publish manual watering command") from exc
 
     return ManualWateringStopOut(correlation_id=correlation_id)
+
+
+@router.get("/api/manual-watering/status", response_model=ManualWateringStatusOut)
+async def manual_watering_status(
+    device_id: str,
+    store: DeviceShadowStore = Depends(get_shadow_dep),
+) -> ManualWateringStatusOut:
+    """Возвращает нормализованный статус полива для прогресс-бара на фронтенде."""
+
+    view = store.get_manual_watering_view(device_id)
+    if view is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Нет данных о состоянии устройства")
+    return ManualWateringStatusOut(**view)
+
+
+@router.post("/_debug/shadow/state")
+async def debug_shadow_state(
+    payload: ShadowStateIn,
+    store: DeviceShadowStore = Depends(get_shadow_dep),
+) -> dict:
+    """Отладочный эндпоинт для тестов: сохраняет состояние в теневом сторе."""
+
+    store.update_from_state(payload.device_id, payload.state)
+    return {"ok": True}
