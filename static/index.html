@@ -177,6 +177,13 @@
     <script>
         let availableFirmware = ['1.0.0', '1.1.0', '1.2.0'];
 
+        const formatMoscowTime = (isoString) => {
+            if (!isoString) {
+                return null;
+            }
+            return new Date(isoString).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
+        };
+
         async function loadDevices() {
             try {
                 const response = await fetch('/api/devices');
@@ -197,7 +204,7 @@
                     deviceDiv.className = `device ${deviceClass}`;
                     
                     const moisturePercent = Math.min(Math.max(device.soil_moisture, 0), 100);
-                    const lastUpdate = new Date(device.last_seen).toLocaleString();
+                    const lastUpdate = formatMoscowTime(device.last_seen) || 'н/д';
                     
                     deviceDiv.innerHTML = `
                         <div class="device-header">
@@ -211,7 +218,7 @@
                             </span> |
                             💦 Полив: ${device.is_watering ? 'ВКЛ' : 'ВЫКЛ'} | 
                             💡 Освещение: ${device.is_light_on ? 'ВКЛ' : 'ВЫКЛ'} |
-                            ⏰ Последний полив: ${device.last_watering ? new Date(device.last_watering).toLocaleString() : 'Никогда'}
+                            ⏰ Последний полив: ${device.last_watering ? formatMoscowTime(device.last_watering) : 'Никогда'}
                         </div>
                         
                         <div class="sensor-grid">
