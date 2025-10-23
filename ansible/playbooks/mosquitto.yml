@@ -1,0 +1,5 @@
+- name: Setup MQTT broker
+  hosts: app
+  become: yes
+  roles:
+    - mosquitto

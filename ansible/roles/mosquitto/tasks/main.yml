@@ -1,0 +1,43 @@
+---
+# roles/mosquitto/tasks/main.yml
+- name: Install Mosquitto broker
+  apt:
+    name:
+      - mosquitto
+      - mosquitto-clients
+    state: present
+    update_cache: yes
+
+- name: Ensure Mosquitto is enabled and running
+  systemd:
+    name: mosquitto
+    enabled: yes
+    state: started
+
+- name: Copy Mosquitto configuration
+  copy:
+    src: mosquitto.conf
+    dest: /etc/mosquitto/mosquitto.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify: Restart Mosquitto
+
+- name: Allow MQTT ports in UFW (1883 - plain, 8883 - TLS)
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  with_items:
+    - 1883
+    - 8883
+
+- name: Create credentials file (basic auth)
+  copy:
+    src: passwd
+    dest: /etc/mosquitto/passwd
+    owner: root
+    group: mosquitto
+    mode: '0640'
+  notify: Restart Mosquitto
+
