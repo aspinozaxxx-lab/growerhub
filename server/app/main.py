@@ -130,6 +130,19 @@ async def get_all_devices(db: Session = Depends(get_db)):
         for device in devices
     ]
 
+@app.delete("/api/device/{device_id}")
+async def delete_device(device_id: str, db: Session = Depends(get_db)):
+    device = db.query(DeviceDB).filter(DeviceDB.device_id == device_id).first()
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+
+    db.query(SensorDataDB).filter(SensorDataDB.device_id == device_id).delete()
+    db.query(WateringLogDB).filter(WateringLogDB.device_id == device_id).delete()
+
+    db.delete(device)
+    db.commit()
+    return {"message": "Device deleted"}
+
 @app.put("/api/device/{device_id}/settings")
 async def update_device_settings(device_id: str, settings: DeviceSettings, db: Session = Depends(get_db)):
     device = db.query(DeviceDB).filter(DeviceDB.device_id == device_id).first()

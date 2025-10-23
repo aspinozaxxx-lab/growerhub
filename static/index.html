@@ -24,6 +24,15 @@
             margin: 15px 0; 
             border-radius: 5px; 
         }
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .device-header h3 {
+            margin: 0;
+        }
         .watering { 
             background-color: #e8f5e8; 
             border-left: 4px solid #4CAF50;
@@ -90,6 +99,12 @@
         }
         .btn-ota:hover {
             background-color: #1976D2;
+        }
+        .btn-delete {
+            background-color: #e74c3c;
+        }
+        .btn-delete:hover {
+            background-color: #c0392b;
         }
         .status { 
             font-weight: bold; 
@@ -166,7 +181,10 @@
                     const lastUpdate = new Date(device.last_seen).toLocaleString();
                     
                     deviceDiv.innerHTML = `
-                        <h3>${device.name} (${device.device_id})</h3>
+                        <div class="device-header">
+                            <h3>${device.name} (${device.device_id})</h3>
+                            <button class="btn-delete" onclick="deleteDevice('${device.device_id}')">Удалить</button>
+                        </div>
                         <div class="status">
                             💦 Полив: ${device.is_watering ? 'ВКЛ' : 'ВЫКЛ'} | 
                             💡 Освещение: ${device.is_light_on ? 'ВКЛ' : 'ВЫКЛ'} |
@@ -253,6 +271,28 @@
             } catch (error) {
                 console.error('Error loading devices:', error);
                 document.getElementById('devices').innerHTML = '<p>Ошибка загрузки устройств</p>';
+            }
+        }
+
+        async function deleteDevice(deviceId) {
+            if (!confirm('Удалить устройство?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/device/${deviceId}`, { method: 'DELETE' });
+
+                if (response.ok) {
+                    alert('Устройство удалено');
+                    loadDevices();
+                    return;
+                }
+
+                const error = await response.json();
+                alert(error.detail || 'Ошибка при удалении устройства');
+            } catch (error) {
+                console.error('Error deleting device:', error);
+                alert('Ошибка при удалении устройства');
             }
         }
 
