@@ -70,10 +70,10 @@ String WiFiManager::getSSID() {
 
 void WiFiManager::reconnect() {
     if (isConnected()) return;
-    Serial.println("Connecting via WiFiMulti (3s timeout)...");
+    Serial.println("Connecting via WiFiMulti (5s timeout)...");
     lastConnectAttempt = millis();
     // Some cores return uint8_t from WiFiMulti::run(); cast to wl_status_t for compatibility
-    wl_status_t st = static_cast<wl_status_t>(wifiMulti.run(3000));
+    wl_status_t st = static_cast<wl_status_t>(wifiMulti.run(5000));
     if (st == WL_CONNECTED) {
         onConnected();
     } else {
