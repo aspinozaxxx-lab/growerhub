@@ -12,6 +12,12 @@ void WiFiManager::begin(const String& deviceHostname) {
 
 void WiFiManager::addAccessPoint(const String& ssid, const String& password) {
     if (ssid.length() == 0) return;
+    for (int i = 0; i < knownCount; ++i) {
+        if (knownAPs[i].ssid == ssid) {
+            // Уже в списке — обновлять пароль в wifiMulti напрямую нельзя, поэтому просто выходим
+            return;
+        }
+    }
     WiFi.persistent(false);
     wifiMulti.addAP(ssid.c_str(), password.c_str());
     if (knownCount < 10) {

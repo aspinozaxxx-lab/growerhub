@@ -4,6 +4,62 @@
 #include <Arduino.h>
 #include "esp_efuse.h"
 
+struct DefaultAccessPoint {
+    const char* ssid;
+    const char* password;
+};
+
+struct DefaultNetworkProfile {
+    static const uint8_t MAX_WIFI = 10;
+    uint8_t wifiCount;
+    DefaultAccessPoint wifi[MAX_WIFI];
+    const char* serverURL;
+    const char* serverCAPem;
+};
+
+constexpr DefaultNetworkProfile BUILTIN_NETWORK_DEFAULTS = {
+    3,
+    {
+        {"JR", "qazwsxedc"},
+        {"AKADO-E84E", "90838985"},
+        {"TP-LINK_446C", "70863765"},
+        {"", ""},
+        {"", ""},
+        {"", ""},
+        {"", ""},
+        {"", ""},
+        {"", ""},
+        {"", ""}
+    },
+    "https://growerhub.ru",
+    R"(-----BEGIN CERTIFICATE-----
+MIIEVzCCAj+gAwIBAgIRAKp18eYrjwoiCWbTi7/UuqEwDQYJKoZIhvcNAQELBQAw
+TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh
+cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMjQwMzEzMDAwMDAw
+WhcNMjcwMzEyMjM1OTU5WjAyMQswCQYDVQQGEwJVUzEWMBQGA1UEChMNTGV0J3Mg
+RW5jcnlwdDELMAkGA1UEAxMCRTcwdjAQBgcqhkjOPQIBBgUrgQQAIgNiAARB6AST
+CFh/vjcwDMCgQer+VtqEkz7JANurZxLP+U9TCeioL6sp5Z8VRvRbYk4P1INBmbef
+QHJFHCxcSjKmwtvGBWpl/9ra8HW0QDsUaJW2qOJqceJ0ZVFT3hbUHifBM/2jgfgw
+gfUwDgYDVR0PAQH/BAQDAgGGMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggrBgEFBQcD
+ATASBgNVHRMBAf8ECDAGAQH/AgEAMB0GA1UdDgQWBBSuSJ7chx1EoG/aouVgdAR4
+wpwAgDAfBgNVHSMEGDAWgBR5tFnme7bl5AFzgAiIyBpY9umbbjAyBggrBgEFBQcB
+AQQmMCQwIgYIKwYBBQUHMAKGFmh0dHA6Ly94MS5pLmxlbmNyLm9yZy8wEwYDVR0g
+BAwwCjAIBgZngQwBAgEwJwYDVR0fBCAwHjAcoBqgGIYWaHR0cDovL3gxLmMubGVu
+Y3Iub3JnLzANBgkqhkiG9w0BAQsFAAOCAgEAjx66fDdLk5ywFn3CzA1w1qfylHUD
+aEf0QZpXcJseddJGSfbUUOvbNR9N/QQ16K1lXl4VFyhmGXDT5Kdfcr0RvIIVrNxF
+h4lqHtRRCP6RBRstqbZ2zURgqakn/Xip0iaQL0IdfHBZr396FgknniRYFckKORPG
+yM3QKnd66gtMst8I5nkRQlAg/Jb+Gc3egIvuGKWboE1G89NTsN9LTDD3PLj0dUMr
+OIuqVjLB8pEC6yk9enrlrqjXQgkLEYhXzq7dLafv5Vkig6Gl0nuuqjqfp0Q1bi1o
+yVNAlXe6aUXw92CcghC9bNsKEO1+M52YY5+ofIXlS/SEQbvVYYBLZ5yeiglV6t3S
+M6H+vTG0aP9YHzLn/KVOHzGQfXDP7qM5tkf+7diZe7o2fw6O7IvN6fsQXEQQj8TJ
+UXJxv2/uJhcuy/tSDgXwHM8Uk34WNbRT7zGTGkQRX0gsbjAea/jYAoWv0ZvQRwpq
+Pe79D/i7Cep8qWnA+7AE/3B3S/3dEEYmc0lpe1366A/6GEgk3ktr9PEoQrLChs6I
+tu3wnNLB2euC8IKGLQFpGtOO/2/hiAKjyajaBP25w1jF0Wl8Bbqne3uZ2q1GyPFJ
+YRmT7/OXpmOH/FVLtwS+8ng1cAmpCujPwteJZNcDG0sF2n/sc0+SQf49fdyUK0ty
++VUwFj9tmWxyR/M=
+-----END CERTIFICATE-----)"
+};
+
 struct WiFiCredential {
     char ssid[32];
     char password[32];
@@ -28,10 +84,10 @@ class SettingsManager {
 private:
     SystemSettings settings;
     bool settingsLoaded;
-    const int EEPROM_SIZE = 1024; // увеличено из-за хранения до 10 Wi-Fi сетей
+    const int EEPROM_SIZE = 1024; // EEPROM size allows storing up to 10 Wi-Fi entries
     const int SETTINGS_ADDRESS = 0;
 
-    // Дефолтные значения из config.ini (не хранятся в EEPROM)
+    // Built-in defaults (not stored in EEPROM)
     WiFiCredential defaultWifi[10];
     uint8_t defaultWifiCount = 0;
     String defaultServerURL = String("https://growerhub.ru");
@@ -45,12 +101,12 @@ public:
     void resetToDefaults();
     
     // Getters
-    String getSSID();      // первый SSID из пользовательских либо дефолтов
-    String getPassword();  // пароль к первому SSID
-    int getWiFiCount();    // число пользовательских или дефолтных сетей
+    String getSSID();      // first SSID from user settings or built-in defaults
+    String getPassword();  // password for the first SSID
+    int getWiFiCount();    // number of user or default networks
     bool getWiFiCredential(int index, String& ssid, String& password);
-    String getServerURL(); // теперь из config.ini (или дефолт в коде)
-    String getServerCAPem(); // PEM сертификат сервера из config.ini (или дефолт)
+    String getServerURL(); // base server URL from built-in defaults
+    String getServerCAPem(); // CA certificate from built-in defaults
     String getDeviceID();
     int getSoilDryValue();
     int getSoilWetValue();
@@ -72,6 +128,6 @@ private:
     uint32_t calculateCRC();
     bool validateCRC();
     String generateDeviceIDFromMAC();
-    void loadDefaultsFromConfig();
+    void loadBuiltinDefaults();
     String defaultServerCAPem;
 };
