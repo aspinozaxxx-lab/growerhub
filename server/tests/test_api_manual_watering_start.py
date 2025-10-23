@@ -11,10 +11,12 @@ engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def _create_tables() -> None:
+    """Создаём таблицы в изолированной in-memory БД для тестов."""
     Base.metadata.create_all(bind=engine)
 
 
 def _get_db():
+    """Выдаём сессию SQLAlchemy и гарантированно закрываем её после использования."""
     db = SessionLocal()
     try:
         yield db
@@ -36,6 +38,8 @@ from mqtt_publisher import IMqttPublisher
 
 
 class FakePublisher(IMqttPublisher):
+    """Тестовый паблишер, который просто накапливает опубликованные команды."""
+
     def __init__(self) -> None:
         self.published: list[tuple[str, CmdPumpStart]] = []
 
@@ -44,9 +48,13 @@ class FakePublisher(IMqttPublisher):
 
 
 def test_manual_watering_start_endpoint():
+    """Проверяем, что эндпоинт запуска полива публикует pump.start и возвращает correlation_id."""
+
+    # Подменяем зависимость на наш фейковый паблишер, чтобы не обращаться к реальному брокеру.
     fake = FakePublisher()
     app.dependency_overrides[get_mqtt_dep] = lambda: fake
 
+    # Отправляем запрос на запуск полива и сохраняем ответ.
     with TestClient(app) as client:
         response = client.post(
             "/api/manual-watering/start",
@@ -55,11 +63,13 @@ def test_manual_watering_start_endpoint():
 
     app.dependency_overrides.clear()
 
+    # Проверяем, что сервер вернул успешный статус и выдал корреляционный идентификатор.
     assert response.status_code == 200
     data = response.json()
     correlation_id = data.get("correlation_id")
     assert isinstance(correlation_id, str) and correlation_id
 
+    # Убеждаемся, что публикация ровно одна и в неё попал ожидаемый набор данных.
     assert len(fake.published) == 1
     device_id, cmd = fake.published[0]
     assert device_id == "abc123"

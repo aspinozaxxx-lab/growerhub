@@ -1,24 +1,34 @@
 # Changelog
 
-Фиксируем заметные изменения проекта. Формат вдохновлён Keep a Changelog. Версионирование — SemVer, когда возможно.
+Обновления фиксируют развитие проекта. Следуем формату Keep a Changelog и Semantic Versioning.
+
+## [2025-10-24]
+
+### Добавлено
+- Эндпоинт `POST /api/manual-watering/stop` с публикацией команды `pump.stop` (`server/api_manual_watering.py`).
+- Тест `test_manual_watering_stop` с фейковым MQTT-паблишером без выхода в сеть (`server/tests/test_api_manual_watering_stop.py`).
+
+### Изменено
+- Расширены русские докстроки и комментарии в модулях MQTT-паблишера и ручного полива (`server/mqtt_publisher.py`, `server/api_manual_watering.py`).
+- Дополнены комментариями интеграционные тесты ручного полива (`server/tests/test_api_manual_watering_start.py`).
 
 ## [2025-10-23]
 
-### Добавлено
-- Прошивка: загрузка конфигурации из SPIFFS (`firmware/config.ini`).
-- Поддержка нескольких Wi‑Fi (до 10) через `WiFiMulti` и фоновые сканы.
-- HTTPS/TLS для HTTP‑клиента с поддержкой CA PEM в `config.ini`.
-- Автозаливка `config.ini` в SPIFFS после прошивки через `scripts/post_upload.py`.
-- Документация: раздел о конфигурации и примеры в `firmware/README.md`.
+### ���������
+- ��訢��: ����㧪� ���䨣��樨 �� SPIFFS (`firmware/config.ini`).
+- �����প� ��᪮�쪨� Wi?Fi (�� 10) �१ `WiFiMulti` � 䮭��� ᪠��.
+- HTTPS/TLS ��� HTTP?������ � �����প�� CA PEM � `config.ini`.
+- ��⮧������ `config.ini` � SPIFFS ��᫥ ��訢�� �૧ `scripts/post_upload.py`.
+- ���㬥����: ࠧ��� � ���䨣��樨 � �ਬ��� � `firmware/README.md`.
 
-### Изменено
-- `EEPROM_SIZE` увеличен до 1024 байт; `serverURL` больше не хранится в EEPROM и берётся из `config.ini`.
-- Обновлён `platformio.ini`: включён SPIFFS (`data_dir`, `extra_scripts`).
+### ��������
+- `EEPROM_SIZE` 㢥��祭 �� 1024 ����; `serverURL` ����� �� �࠭���� � EEPROM � ������� �� `config.ini`.
+- ������� `platformio.ini`: ������ SPIFFS (`data_dir`, `extra_scripts`).
 
-### Важно (breaking changes)
-- Изменились сигнатуры:
-  - `WiFiManager::begin(deviceHostname)` вместо `begin(ssid, password, deviceHostname)`
-  - новый метод `WiFiManager::addAccessPoint(ssid, password)`
+### ����� (breaking changes)
+- ���������� ᨣ������:
+  - `WiFiManager::begin(deviceHostname)` ����� `begin(ssid, password, deviceHostname)`
+  - ���� ��⮤ `WiFiManager::addAccessPoint(ssid, password)`
   - `HTTPClient::begin(url, id, caPem)`
-- Требуется перезалить SPIFFS с актуальным `config.ini` после прошивки.
-
+- �ॡ���� ��૧����� SPIFFS � ���㠫�� `config.ini` ��᫥ ��訢��.
+*** End Patch

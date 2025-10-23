@@ -15,14 +15,24 @@ logger = logging.getLogger(__name__)
 
 
 class IMqttPublisher(Protocol):
-    """Publisher interface for sending commands to devices."""
+    """Интерфейс паблишера команд в MQTT.
+
+    Любая реализация должна уметь публиковать команды pump.start/pump.stop
+    в нужный топик с QoS1 и без retain, а также сигнализировать об ошибках
+    публикации. Такой контракт позволяет подменять реализацию в тестах.
+    """
 
     def publish_cmd(self, device_id: str, cmd: Union[CmdPumpStart, CmdPumpStop]) -> None:
         """Публикует команду в QoS1, retain=False."""
 
 
 class PahoMqttPublisher(IMqttPublisher):
-    """paho-mqtt based publisher implementation."""
+    """Реализация паблишера на базе paho-mqtt.
+
+    Создаёт MQTT-клиент с индивидуальным client_id, подключается при старте,
+    запускает сетевой loop в отдельном потоке и умеет публиковать команды.
+    Любая ошибка подключения или публикации переводится в исключение.
+    """
 
     def __init__(self) -> None:
         settings = get_settings()
@@ -54,7 +64,11 @@ class PahoMqttPublisher(IMqttPublisher):
             self._connected = False
 
     def publish_cmd(self, device_id: str, cmd: Union[CmdPumpStart, CmdPumpStop]) -> None:
-        """Публикует команду в QoS1, retain=False."""
+        """Публикует команду в QoS1, retain=False; ошибки rc != SUCCESS считаем критичными.
+
+        Любая неуспешная попытка (код возврата брокера не равен MQTT_ERR_SUCCESS)
+        приводит к выбросу RuntimeError, чтобы вызывающий код мог отработать ошибку.
+        """
 
         if not self._connected:
             raise RuntimeError("MQTT client is not connected")
@@ -71,7 +85,11 @@ _publisher_error: Optional[Exception] = None
 
 
 def init_publisher() -> None:
-    """Initialise global publisher instance."""
+    """Инициализирует глобальный экземпляр паблишера; повторные вызовы игнорируются.
+
+    Соединение с брокером устанавливается один раз на старте приложения,
+    чтобы переиспользовать MQTT-клиент между запросами FastAPI.
+    """
 
     global _publisher, _publisher_error
     if _publisher:
@@ -90,7 +108,11 @@ def init_publisher() -> None:
 
 
 def shutdown_publisher() -> None:
-    """Shutdown publisher if initialised."""
+    """Аккуратно завершает работу паблишера: останавливает loop и закрывает соединение.
+
+    Вызывается при выключении приложения, чтобы корректно завершить
+    фоновые потоки paho-mqtt и освободить ресурсы.
+    """
 
     global _publisher, _publisher_error
     if _publisher:
@@ -100,7 +122,7 @@ def shutdown_publisher() -> None:
 
 
 def get_publisher() -> IMqttPublisher:
-    """Return active publisher instance or raise descriptive error."""
+    """Возвращает активный паблишер или поднимает осмысленную ошибку."""
 
     if _publisher:
         return _publisher
