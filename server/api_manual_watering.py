@@ -8,8 +8,9 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, conint
 
+from ack_store import AckStore, get_ack_store
 from device_shadow import DeviceShadowStore, get_shadow_store
-from mqtt_protocol import CmdPumpStart, CmdPumpStop, CommandType, DeviceState
+from mqtt_protocol import Ack, CmdPumpStart, CmdPumpStop, CommandType, DeviceState
 from mqtt_publisher import IMqttPublisher, get_publisher
 
 router = APIRouter()
@@ -31,6 +32,15 @@ def get_shadow_dep() -> DeviceShadowStore:
         return get_shadow_store()
     except RuntimeError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Device shadow store unavailable") from exc
+
+
+def get_ack_dep() -> AckStore:
+    """Возвращает AckStore или 503, если он недоступен."""
+
+    try:
+        return get_ack_store()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Ack store unavailable") from exc
 
 
 class ManualWateringStartIn(BaseModel):
@@ -84,6 +94,15 @@ class ShadowStateIn(BaseModel):
 
     device_id: str
     state: DeviceState
+
+
+class ManualWateringAckOut(BaseModel):
+    """Ответ при запросе ACK — фронту важен итог выполнения команды."""
+
+    correlation_id: str
+    result: str
+    reason: str | None = None
+    status: str | None = None
 
 
 @router.post("/api/manual-watering/start", response_model=ManualWateringStartOut)
@@ -142,6 +161,25 @@ async def manual_watering_status(
     if view is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Нет данных о состоянии устройства")
     return ManualWateringStatusOut(**view)
+
+
+@router.get("/api/manual-watering/ack", response_model=ManualWateringAckOut)
+async def manual_watering_ack(
+    correlation_id: str,
+    store: AckStore = Depends(get_ack_dep),
+) -> ManualWateringAckOut:
+    """Возвращает ACK по correlation_id: фронт показывает оператору результат команды."""
+
+    ack = store.get(correlation_id)
+    if ack is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ACK ещё не получен или удалён по TTL")
+
+    return ManualWateringAckOut(
+        correlation_id=ack.correlation_id,
+        result=ack.result.value if hasattr(ack.result, "value") else ack.result,
+        reason=ack.reason,
+        status=ack.status.value if ack.status is not None and hasattr(ack.status, "value") else (ack.status if ack.status is not None else None),
+    )
 
 
 @router.post("/_debug/shadow/state")

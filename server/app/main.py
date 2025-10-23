@@ -15,9 +15,17 @@ from app.models.database_models import (
     SensorDataDB, SensorDataPoint, WateringLogDB, OTAUpdateRequest
 )
 from app.core.database import get_db, create_tables
+from ack_store import get_ack_store, init_ack_store, shutdown_ack_store
 from device_shadow import get_shadow_store, init_shadow_store, shutdown_shadow_store
 from mqtt_publisher import init_publisher, shutdown_publisher
-from mqtt_subscriber import get_state_subscriber, init_state_subscriber, shutdown_state_subscriber
+from mqtt_subscriber import (
+    get_ack_subscriber,
+    get_state_subscriber,
+    init_ack_subscriber,
+    init_state_subscriber,
+    shutdown_ack_subscriber,
+    shutdown_state_subscriber,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -38,11 +46,17 @@ create_tables()
 async def _startup_mqtt() -> None:
     # Сначала поднимаем стор, затем подписчика и паблишера.
     init_shadow_store()
+    init_ack_store()
     init_state_subscriber(get_shadow_store())
     try:
         get_state_subscriber().start()
     except RuntimeError:
         logger.warning("MQTT state subscriber is not initialised")
+    init_ack_subscriber(get_ack_store())
+    try:
+        get_ack_subscriber().start()
+    except RuntimeError:
+        logger.warning("MQTT ack subscriber is not initialised")
     init_publisher()
 
 
@@ -56,7 +70,15 @@ async def _shutdown_mqtt() -> None:
     if subscriber:
         subscriber.stop()
     shutdown_state_subscriber()
+    try:
+        ack_subscriber = get_ack_subscriber()
+    except RuntimeError:
+        ack_subscriber = None
+    if ack_subscriber:
+        ack_subscriber.stop()
+    shutdown_ack_subscriber()
     shutdown_shadow_store()
+    shutdown_ack_store()
     shutdown_publisher()
 
 # === Статические файлы ===
