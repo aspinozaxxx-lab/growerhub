@@ -1,3 +1,8 @@
+# Ansible
+ansible/roles/mosquitto/files/passwd
+ansible/roles/mosquitto/files/*.secret
+*.vault
+
 # PlatformIO
 .pio/
 .pioenvs/ 
