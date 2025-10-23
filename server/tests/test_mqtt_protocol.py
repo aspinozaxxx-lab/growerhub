@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from server.mqtt_protocol import (
+from mqtt_protocol import (
     CmdPumpStart,
     CmdPumpStop,
     DeviceState,
@@ -148,4 +148,3 @@ def test_is_same_command():
     assert is_same_command(cmd, "corr-1") is True
     assert is_same_command(cmd, "corr-2") is False
     assert is_same_command(cmd, None) is False
-
