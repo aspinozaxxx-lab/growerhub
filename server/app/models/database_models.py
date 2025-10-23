@@ -84,6 +84,7 @@ class DeviceInfo(BaseModel):
     air_humidity: float
     is_watering: bool
     is_light_on: bool
+    is_online: bool
     last_watering: Optional[datetime]
     last_seen: datetime
     target_moisture: float

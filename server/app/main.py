@@ -107,6 +107,8 @@ async def get_device_settings(device_id: str, db: Session = Depends(get_db)):
 @app.get("/api/devices")
 async def get_all_devices(db: Session = Depends(get_db)):
     devices = db.query(DeviceDB).all()
+    current_time = datetime.utcnow()
+    online_window = timedelta(minutes=3)
     return [
         DeviceInfo(
             device_id=device.device_id,
@@ -116,6 +118,7 @@ async def get_all_devices(db: Session = Depends(get_db)):
             air_humidity=device.air_humidity,
             is_watering=device.is_watering,
             is_light_on=device.is_light_on,
+            is_online=bool(device.last_seen and (current_time - device.last_seen) <= online_window),
             last_watering=device.last_watering,
             last_seen=device.last_seen,
             target_moisture=device.target_moisture,

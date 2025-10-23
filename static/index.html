@@ -110,6 +110,25 @@
             font-weight: bold; 
             margin: 10px 0;
         }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: normal;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            background-color: #e74c3c;
+        }
+        .status-indicator.online {
+            background-color: #2ecc71;
+        }
+        .status-indicator.offline {
+            background-color: #e74c3c;
+        }
         .moisture-bar {
             height: 20px;
             background-color: #e0e0e0;
@@ -186,6 +205,10 @@
                             <button class="btn-delete" onclick="deleteDevice('${device.device_id}')">Удалить</button>
                         </div>
                         <div class="status">
+                            <span class="status-badge">
+                                <span class="status-indicator ${device.is_online ? 'online' : 'offline'}"></span>
+                                ${device.is_online ? 'В сети' : 'Не в сети'}
+                            </span> |
                             💦 Полив: ${device.is_watering ? 'ВКЛ' : 'ВЫКЛ'} | 
                             💡 Освещение: ${device.is_light_on ? 'ВКЛ' : 'ВЫКЛ'} |
                             ⏰ Последний полив: ${device.last_watering ? new Date(device.last_watering).toLocaleString() : 'Никогда'}
