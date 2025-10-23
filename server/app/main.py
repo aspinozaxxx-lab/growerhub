@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -13,8 +15,11 @@ from app.models.database_models import (
     SensorDataDB, SensorDataPoint, WateringLogDB, OTAUpdateRequest
 )
 from app.core.database import get_db, create_tables
-from device_shadow import init_shadow_store, shutdown_shadow_store
+from device_shadow import get_shadow_store, init_shadow_store, shutdown_shadow_store
 from mqtt_publisher import init_publisher, shutdown_publisher
+from mqtt_subscriber import get_state_subscriber, init_state_subscriber, shutdown_state_subscriber
+
+logger = logging.getLogger(__name__)
 
 
 # === Глобальные пути проекта ===
@@ -31,12 +36,26 @@ create_tables()
 
 @app.on_event("startup")
 async def _startup_mqtt() -> None:
+    # Сначала поднимаем стор, затем подписчика и паблишера.
     init_shadow_store()
+    init_state_subscriber(get_shadow_store())
+    try:
+        get_state_subscriber().start()
+    except RuntimeError:
+        logger.warning("MQTT state subscriber is not initialised")
     init_publisher()
 
 
 @app.on_event("shutdown")
 async def _shutdown_mqtt() -> None:
+    # Останавливаем подписчика до сброса стора, затем завершаем паблишер.
+    try:
+        subscriber = get_state_subscriber()
+    except RuntimeError:
+        subscriber = None
+    if subscriber:
+        subscriber.stop()
+    shutdown_state_subscriber()
     shutdown_shadow_store()
     shutdown_publisher()
 
