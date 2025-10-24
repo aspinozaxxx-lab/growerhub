@@ -109,8 +109,14 @@ class ManualWateringAckOut(BaseModel):
 async def manual_watering_start(
     payload: ManualWateringStartIn,
     publisher: IMqttPublisher = Depends(get_mqtt_dep),
+    store: DeviceShadowStore = Depends(get_shadow_dep),
 ) -> ManualWateringStartOut:
-    """Запускаем ручной полив, публикуя pump.start в MQTT."""
+    """Запускает ручной полив, но сперва консультируется с тенью устройства, защищая от «двойного клика» и лишних команд."""
+
+    # Тень — источник истины: если видим статус running, значит устройство уже занято и повторный старт нарушит бизнес-правило.
+    view = store.get_manual_watering_view(payload.device_id)
+    if view is not None and view.get("status") == "running":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Полив уже выполняется — повторный запуск запрещён.")
 
     correlation_id = uuid4().hex
     cmd = CmdPumpStart(
@@ -122,7 +128,7 @@ async def manual_watering_start(
 
     try:
         publisher.publish_cmd(payload.device_id, cmd)
-    except Exception as exc:  # pragma: no cover - отлаживаем через 502
+    except Exception as exc:  # pragma: no cover - ���������� ����� 502
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to publish manual watering command") from exc
 
     return ManualWateringStartOut(correlation_id=correlation_id)
@@ -132,8 +138,14 @@ async def manual_watering_start(
 async def manual_watering_stop(
     payload: ManualWateringStopIn,
     publisher: IMqttPublisher = Depends(get_mqtt_dep),
+    store: DeviceShadowStore = Depends(get_shadow_dep),
 ) -> ManualWateringStopOut:
-    """Останавливаем ручной полив, публикуя pump.stop и возвращая correlation_id."""
+    """Останавливает ручной полив только когда он действительно идёт, избавляя MQTT и устройство от лишних stop-команд."""
+
+    # Без статуса running в тени нет смысла отправлять стоп: оператор либо ошибся, либо команда уже выполнилась.
+    view = store.get_manual_watering_view(payload.device_id)
+    if view is None or view.get("status") != "running":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Полив не выполняется — останавливать нечего.")
 
     correlation_id = uuid4().hex
     cmd = CmdPumpStop(
@@ -144,7 +156,7 @@ async def manual_watering_stop(
 
     try:
         publisher.publish_cmd(payload.device_id, cmd)
-    except Exception as exc:  # pragma: no cover - отлаживаем через 502
+    except Exception as exc:  # pragma: no cover - ���������� ����� 502
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to publish manual watering command") from exc
 
     return ManualWateringStopOut(correlation_id=correlation_id)

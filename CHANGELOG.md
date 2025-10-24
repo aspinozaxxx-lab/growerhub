@@ -5,6 +5,8 @@
 ## [2025-10-24]
 
 ### Добавлено
+- Добавлены проверки состояния DeviceShadowStore перед start/stop в API ручного полива (409 при некорректном статусе).
+- Добавлены юнит-тесты для новых правил.
 - Эндпоинт POST /api/manual-watering/stop с публикацией команды pump.stop (server/api_manual_watering.py).
 - Тест test_manual_watering_stop с фейковым MQTT-паблишером (server/tests/test_api_manual_watering_stop.py).
 - Теневое хранилище состояний устройств (server/device_shadow.py) с расчётом remaining_s на сервере.

@@ -1,5 +1,6 @@
 import sys
 import types
+from datetime import datetime
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -63,6 +64,20 @@ def test_manual_watering_stop_endpoint():
 
     # Отправляем POST-запрос на остановку полива.
     with TestClient(app) as client:
+        seed_state = {
+            "device_id": "abc123",
+            "state": {
+                "manual_watering": {
+                    "status": "running",
+                    "duration_s": 30,
+                    "started_at": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+                    "correlation_id": "shadow-correlation",
+                }
+            },
+        }
+        shadow_response = client.post("/_debug/shadow/state", json=seed_state)
+        assert shadow_response.status_code == 200
+
         response = client.post(
             "/api/manual-watering/stop",
             json={"device_id": "abc123"},
