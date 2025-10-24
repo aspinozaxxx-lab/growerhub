@@ -51,6 +51,9 @@ public:
     void waterPlants(int durationMs = 30000);
     void toggleLight();
     void toggleWaterPump();
+    // Прямой контроль насоса для сценариев ручного полива по MQTT (шаги 2+).
+    void setManualPumpState(bool state);
+    bool isManualPumpRunning();
     
     // Тестирование
     void testSensors();

@@ -138,6 +138,21 @@ void WateringApplication::waterPlants(int durationMs) {
     actuatorManager.setWaterPumpState(false);
 }
 
+void WateringApplication::setManualPumpState(bool state) {
+    // Выносим прямой доступ к реле насоса, чтобы MQTT-команды могли включать/выключать помпу
+    // без вмешательства в остальную автоматику. Здесь не дёргаем GPIO вручную, а идём через
+    // ActuatorManager, который знает про инверсию пина и применяет внутренние проверки безопасности.
+    actuatorManager.setWaterPumpState(state);
+}
+
+bool WateringApplication::isManualPumpRunning() {
+    // Даём наружу актуальное состояние реле. Это будет использоваться в шагах MQTT-интеграции:
+    // - шаг 2: чтобы игнорировать повторные pump.start, если уже поливаем;
+    // - шаг 3: для формирования корректных ACK;
+    // - шаг 4+: при публикации статуса manual watering.
+    return actuatorManager.isWaterPumpRunning();
+}
+
 void WateringApplication::testSensors() {
     Serial.println("=== TESTING SENSORS ===");
     sensorManager.printDiagnostics();

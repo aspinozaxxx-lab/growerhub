@@ -1,81 +1,96 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
 #include "Application.h"
 
-// Уникальный идентификатор устройства одновременно служит MQTT clientId, чтобы брокер однозначно понимал,
-// какое устройство подключается и можно было сопоставлять команды и состояния конкретному ESP32.
+// Уникальный идентификатор устройства одновременно является MQTT clientId. Так сервер и брокер
+// однозначно понимают, какое железо с ними общается, и смогут сопоставлять входящие ACK/state (шаги 3–4).
 const char* DEVICE_ID = "ESP32_2C294C";
 
-// Временные данные Wi-Fi; реальные креды прошьем отдельно перед установкой устройства в стойку.
+// Временные Wi-Fi креды. В продакшене перед прошивкой нужно будет прописать реальные SSID/PASS.
 const char* WIFI_SSID = "YOUR_WIFI";
 const char* WIFI_PASS = "YOUR_PASS";
 
-// Настройки брокера MQTT. Нельзя использовать 127.0.0.1, потому что этот адрес смотрит на сам ESP32,
-// а нам нужна точка зрения устройства на Mosquitto в сети.
+// Настройки MQTT брокера. Нельзя использовать 127.0.0.1 — этот IP для самого ESP32.
+// Указываем реальный адрес Mosquitto в локальной сети, чтобы контроллер нашёл брокер.
 const char* MQTT_HOST = "192.168.0.11";
 const uint16_t MQTT_PORT = 1883;
 
-// Учетные данные тестового пользователя брокера.
+// Учетные данные тестового пользователя Mosquitto.
 const char* MQTT_USER = "mosquitto-admin";
 const char* MQTT_PASS = "qazwsxedc";
 
-// Командный топик, куда сервер шлет pump.start/pump.stop и другие команды управления.
+// Командный топик для ручного полива. Сервер публикует pump.start/pump.stop именно сюда.
 const char* CMD_TOPIC = "gh/dev/ESP32_2C294C/cmd";
 
-// Сетевой стек: аппаратный TCP клиент и MQTT клиент поверх него.
+// Сетевой стек: TCP клиент и MQTT клиент.
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
-// Переменные для управления реконнектом MQTT. Храним таймстемп последней попытки, чтобы не спамить брокер
-// и не лочить устройство постоянными connect().
+// Контроль реконнекта MQTT, чтобы не забивать брокер попытками каждую миллисекунду.
 unsigned long lastMqttReconnectAttempt = 0;
 const unsigned long MQTT_RECONNECT_INTERVAL_MS = 5000;
+
+// Текущее состояние ручного полива. Эти переменные понадобятся:
+// - на шаге 3 для формирования корректного ACK (успех/отказ + correlation_id),
+// - на шаге 4 для публикации state (running/idle, оставшееся время),
+// - на шаге 5 для автоматического отключения по таймеру и watchdog'ам.
+static bool g_isWatering = false;              // true, когда насос включен именно по manual watering.
+static uint32_t g_wateringDurationSec = 0;     // Количество секунд, которое попросили поливать.
+static uint32_t g_wateringStartMillis = 0;     // Метка millis(), когда включили насос.
+static String g_activeCorrelationId = "";      // correlation_id последней pump.start (для ACK/state).
 
 WateringApplication app;
 
 static void connectToWiFi();
 static void ensureWifiConnected();
+static void startManualWatering(uint32_t durationSec, const String& correlationId);
+static void stopManualWatering(const String& correlationId);
 static void mqttCallback(char* topic, byte* payload, unsigned int length);
 static bool mqttReconnect();
 
 void setup() {
     Serial.begin(115200);
     Serial.println();
-    Serial.println(F("GrowerHub ESP32 ManualWatering v0.1 (MQTT step1)"));
+    Serial.println(F("GrowerHub ESP32 ManualWatering v0.1 (MQTT step2)"));
     Serial.print(F("Текущий DEVICE_ID: "));
     Serial.println(DEVICE_ID);
 
-    // На первом шаге подключаемся к Wi-Fi в режиме STA и ждем IP, чтобы сразу после загрузки прошивки
-    // можно было протестировать брокер из Serial Monitor.
+    // Подключаемся к Wi-Fi как станция и дожидаемся IP, чтобы сразу тестировать MQTT.
     connectToWiFi();
 
-    // Настраиваем MQTT-клиент: задаем адрес брокера и callback, который будет логировать входящие команды.
+    // Готовим MQTT клиент: прописываем брокер и callback до старта основной логики.
     mqttClient.setServer(MQTT_HOST, MQTT_PORT);
     mqttClient.setCallback(mqttCallback);
 
     if (mqttReconnect()) {
-        Serial.println(F("MQTT подключение установлено и подписка оформлена."));
+        Serial.println(F("MQTT подключение установлено и оформлена подписка на командный топик."));
     } else {
-        Serial.print(F("MQTT подключиться не удалось, код состояния: "));
+        Serial.print(F("MQTT подключиться не удалось, код состояния клиента: "));
         Serial.println(mqttClient.state());
     }
 
-    // Запускаем основное приложение GrowerHub, где остаются сенсоры, HTTP и автоматические задачи.
+    // Запускаем базовое приложение: сенсоры, HTTP, автоматические задачи и т.д.
     app.begin();
     delay(3000);
-    app.checkRelayStates(); // TODO: заменить на аккуратную диагностику после интеграции управления насосом через MQTT.
-
-    //app.factoryReset();
-    // delay(3000);
-    // app.testSensors();
-    // delay(1000);
-    // app.testActuators();
+    app.checkRelayStates(); // TODO: после полного перехода на MQTT синхронизировать с серверным state.
 }
 
 void loop() {
     // === Контроль Wi-Fi ===
     ensureWifiConnected();
+
+    // === Автоостановка полива по таймеру ===
+    // Это страховка от затопления: если сервер забудет прислать pump.stop, мы всё равно выключим насос.
+    if (g_isWatering && g_wateringDurationSec > 0) {
+        const unsigned long elapsedMs = millis() - g_wateringStartMillis;
+        const unsigned long plannedMs = static_cast<unsigned long>(g_wateringDurationSec) * 1000UL;
+        if (elapsedMs >= plannedMs) {
+            Serial.println(F("Полив завершён по таймеру duration_s, выключаем насос (будущий шаг 5: публиковать state/ACK)."));
+            stopManualWatering(String("auto-timeout"));
+        }
+    }
 
     // === MQTT keepalive ===
     if (mqttClient.connected()) {
@@ -84,31 +99,30 @@ void loop() {
         const unsigned long now = millis();
         if (now - lastMqttReconnectAttempt >= MQTT_RECONNECT_INTERVAL_MS) {
             lastMqttReconnectAttempt = now;
-            Serial.println(F("MQTT не подключен, пробуем реконнект..."));
+            Serial.println(F("MQTT не подключен, пробуем переподключиться..."));
             if (mqttReconnect()) {
-                Serial.println(F("MQTT переподключение прошло успешно."));
+                Serial.println(F("MQTT переподключение прошло успешно, подписка восстановлена."));
                 lastMqttReconnectAttempt = 0;
             }
         }
     }
 
-    // TODO: Шаг 2 — разруливать pump.start/pump.stop, публиковать ACK и state в зависимости от результата.
+    // TODO: Шаг 3 — отправлять ACK (accepted/rejected) через MQTT.
+    // TODO: Шаг 4 — публиковать актуальный state (running/idle) в брокер.
 
     app.update();
 
-    // Даем ESP32 немного отдохнуть, чтобы не держать CPU на 100%.
+    // Небольшая пауза, чтобы не жечь CPU впустую.
     delay(10);
 }
 
 static void connectToWiFi() {
-    // Включаем режим станции — ESP32 должен подключаться к существующей точке, а не поднимать свою.
     WiFi.mode(WIFI_STA);
     Serial.print(F("Подключаемся к Wi-Fi SSID: "));
     Serial.println(WIFI_SSID);
 
     WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-    // Ждем установления соединения, печатая точки, чтобы видеть прогресс в Serial Monitor.
     while (WiFi.status() != WL_CONNECTED) {
         Serial.print('.');
         delay(500);
@@ -122,13 +136,53 @@ static void ensureWifiConnected() {
     if (WiFi.status() == WL_CONNECTED) {
         return;
     }
-    Serial.println(F("Wi-Fi отключился, пытаемся переподключиться..."));
+    Serial.println(F("Wi-Fi отключился, переподключаемся..."));
     connectToWiFi();
 }
 
+static void startManualWatering(uint32_t durationSec, const String& correlationId) {
+    if (g_isWatering) {
+        Serial.println(F("Игнорируем pump.start: насос уже включен вручную, ждём завершения текущей сессии."));
+        return;
+    }
+    if (durationSec == 0) {
+        Serial.println(F("Получена pump.start без duration_s или с нулевым значением — команду игнорируем."));
+        return;
+    }
+
+    // TODO: уточнить инверсию реле. Сейчас считаем, что app.setManualPumpState(true) реально включает насос.
+    app.setManualPumpState(true);
+
+    g_isWatering = true;
+    g_wateringDurationSec = durationSec;
+    g_wateringStartMillis = millis();
+    g_activeCorrelationId = correlationId;
+
+    Serial.print(F("Запускаем ручной полив на "));
+    Serial.print(durationSec);
+    Serial.print(F(" секунд, correlation_id="));
+    Serial.println(correlationId);
+}
+
+static void stopManualWatering(const String& correlationId) {
+    if (!g_isWatering) {
+        Serial.println(F("Получили pump.stop, но полив уже остановлен. На всякий случай обнуляем состояние и выключаем насос."));
+    }
+
+    app.setManualPumpState(false);
+
+    g_isWatering = false;
+    g_wateringDurationSec = 0;
+    g_wateringStartMillis = 0;
+    g_activeCorrelationId = "";
+
+    Serial.print(F("Полив остановлен. Источник остановки: "));
+    Serial.println(correlationId.length() ? correlationId : String("не указан (pump.stop без correlation_id)"));
+}
+
 static void mqttCallback(char* topic, byte* payload, unsigned int length) {
-    // Здесь в следующих шагах появится разбор pump.start/pump.stop, проверка correlation_id и контроль насоса.
-    // На первом шаге ограничиваемся логированием входящих команд, чтобы проверить цепочку "сервер -> брокер -> устройство".
+    // Это входная точка всех команд ручного полива. Через неё фронтенд -> сервер -> MQTT -> устройство
+    // передают pump.start/pump.stop. Любая ошибка парсинга напрямую влияет на то, включится ли реальный насос.
     Serial.println(F("----- MQTT команда -----"));
     Serial.print(F("Топик: "));
     Serial.println(topic);
@@ -141,6 +195,47 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
 
     Serial.print(F("Длина полезной нагрузки (байт): "));
     Serial.println(length);
+
+    StaticJsonDocument<256> doc;
+    DeserializationError err = deserializeJson(doc, payload, length);
+    if (err) {
+        Serial.print(F("Не удалось распарсить JSON команды: "));
+        Serial.println(err.c_str());
+        return;
+    }
+
+    const char* type = doc["type"];
+    if (!type) {
+        Serial.println(F("Поле type отсутствует — команда не распознана."));
+        return;
+    }
+
+    const String commandType(type);
+    if (commandType == "pump.start") {
+        if (!doc.containsKey("duration_s")) {
+            Serial.println(F("pump.start без duration_s — команду игнорируем."));
+            return;
+        }
+        const uint32_t durationSec = doc["duration_s"];
+        const char* corr = doc["correlation_id"] | "";
+        Serial.print(F("Разбор pump.start: duration_s="));
+        Serial.print(durationSec);
+        Serial.print(F(", correlation_id="));
+        Serial.println(corr);
+        startManualWatering(durationSec, String(corr));
+        return;
+    }
+
+    if (commandType == "pump.stop") {
+        const char* corr = doc["correlation_id"] | "";
+        Serial.print(F("Разбор pump.stop, correlation_id="));
+        Serial.println(corr);
+        stopManualWatering(String(corr));
+        return;
+    }
+
+    Serial.print(F("Нераспознанная команда type="));
+    Serial.println(commandType);
 }
 
 static bool mqttReconnect() {
@@ -149,13 +244,13 @@ static bool mqttReconnect() {
 
     if (mqttClient.connect(DEVICE_ID, MQTT_USER, MQTT_PASS)) {
         Serial.println(F("MQTT соединение установлено, подписываемся на командный топик..."));
-        // После любой потери соединения брокер забывает наши подписки, поэтому каждый раз оформляем subscribe заново.
+        // После каждого реконнекта брокер забывает подписки, поэтому оформляем их заново.
         if (mqttClient.subscribe(CMD_TOPIC, 1)) {
             Serial.print(F("Подписались на "));
             Serial.print(CMD_TOPIC);
             Serial.println(F(" с QoS=1."));
         } else {
-            Serial.println(F("Не удалось оформить подписку, проверим позже при следующей попытке."));
+            Serial.println(F("Не удалось подписаться на командный топик — попробуем снова при следующем реконнекте."));
         }
         return true;
     }
