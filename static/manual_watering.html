@@ -135,6 +135,27 @@
         let fastPollTimer = null;
         let lastKnownStatus = null;
 
+        function cancelSlowPoll() {
+            if (slowPollTimer) {
+                clearTimeout(slowPollTimer);
+                slowPollTimer = null;
+            }
+        }
+
+        deviceInput.addEventListener("input", () => {
+            // Каждое изменение ID устройства сбрасывает таймеры и заново запрашивает статус.
+            cancelSlowPoll();
+            stopFastPoll();
+            if (!deviceInput.value.trim()) {
+                showAck("ID устройства не указан — кнопки заблокированы.");
+                setButtonsDisabled(true);
+                resetProgress();
+                onlineStatusBlock.textContent = "Статус устройства: неизвестно";
+                return;
+            }
+            fetchStatus().catch(console.error);
+        });
+
         startBtn.addEventListener("click", () => {
             if (!validateDeviceId()) {
                 return;
@@ -202,9 +223,7 @@
         }
 
         function scheduleSlowPoll() {
-            if (slowPollTimer) {
-                clearTimeout(slowPollTimer);
-            }
+            cancelSlowPoll();
             slowPollTimer = setTimeout(() => fetchStatus().catch(console.error), slowPollIntervalMs);
         }
 
@@ -225,6 +244,7 @@
         }
 
         async function fetchStatus() {
+            cancelSlowPoll();
             const deviceId = deviceInput.value.trim();
             if (!deviceId) {
                 showAck("ID устройства не задан — статусы не опрашиваются.");
@@ -235,6 +255,16 @@
 
             try {
                 const response = await fetch(`/api/manual-watering/status?device_id=${encodeURIComponent(deviceId)}`);
+                if (response.status === 404) {
+                    // Такой device_id сервер ещё не видел — сообщаем пользователю.
+                    onlineStatusBlock.textContent = "Устройство не найдено или ещё ни разу не прислало состояние";
+                    showAck("Сервер не знает такого device_id — обновите страницу после появления устройства.");
+                    setButtonsDisabled(true);
+                    resetProgress();
+                    stopFastPoll();
+                    scheduleSlowPoll();
+                    return;
+                }
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
@@ -258,9 +288,9 @@
             const textSuffix = lastSeen ? describeLastSeen(lastSeen) : "нет данных";
 
             if (isOnline) {
-                onlineStatusBlock.textContent = `Статус устройства: Онлайн ✅ (${textSuffix})`;
+                onlineStatusBlock.textContent = `Статус устройства: Онлайн ✅ (последняя активность: ${textSuffix})`;
             } else {
-                onlineStatusBlock.textContent = `Статус устройства: Оффлайн ❌ (${textSuffix})`;
+                onlineStatusBlock.textContent = `Статус устройства: Оффлайн ❌ (последняя активность: ${textSuffix})`;
             }
 
             setButtonsForStatus(status.status, isOnline);
