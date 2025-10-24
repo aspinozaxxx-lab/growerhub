@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from threading import RLock
 from typing import Dict, Optional, Tuple
 
+from config import get_settings
 from mqtt_protocol import DeviceState, ManualWateringStatus
 
 
@@ -68,6 +69,7 @@ class DeviceShadowStore:
 
         state, updated_at = entry
         mw_state = state.manual_watering
+        settings = get_settings()
 
         if isinstance(mw_state.status, ManualWateringStatus):
             status_enum = mw_state.status
@@ -90,6 +92,12 @@ class DeviceShadowStore:
             remaining_s = max(0, duration_s - elapsed)
 
         started_iso = _isoformat_utc(started_at) if started_at else None
+        observed_at = _as_utc(updated_at)
+        current_utc = _as_utc(now or datetime.utcnow())
+        # Время updated_at хранит последнее retained/state; фронту важно знать и timestamp, и булевый признак,
+        # чтобы одновременно показать «когда был seen» и отключить кнопки при оффлайне.
+        is_online = (current_utc - observed_at).total_seconds() <= settings.DEVICE_ONLINE_THRESHOLD_S
+        last_seen_iso = _isoformat_utc(observed_at)
 
         return {
             "status": status,
@@ -97,7 +105,9 @@ class DeviceShadowStore:
             "started_at": started_iso,
             "remaining_s": remaining_s,
             "correlation_id": correlation_id,
-            "updated_at": _isoformat_utc(updated_at),
+            "updated_at": last_seen_iso,
+            "last_seen_at": last_seen_iso,
+            "is_online": is_online,
             "source": "calculated",
         }
 

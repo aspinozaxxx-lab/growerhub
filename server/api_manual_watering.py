@@ -79,7 +79,8 @@ class ManualWateringStopOut(BaseModel):
 class ManualWateringStatusOut(BaseModel):
     """Нормализованное состояние ручного полива для фронтенда.
 
-    Структура совпадает с результатом get_manual_watering_view в сторах.
+    is_online рассчитывается по свежести retained/state, чтобы фронт мог быстро дизейблить управление,
+    а last_seen_at показывает оператору, когда устройство в последний раз выходило на связь.
     """
 
     status: str
@@ -88,6 +89,8 @@ class ManualWateringStatusOut(BaseModel):
     remaining_s: int | None
     correlation_id: str | None
     updated_at: str
+    last_seen_at: str
+    is_online: bool
     source: str
 
 
@@ -169,7 +172,11 @@ async def manual_watering_status(
     device_id: str,
     store: DeviceShadowStore = Depends(get_shadow_dep),
 ) -> ManualWateringStatusOut:
-    """Возвращает нормализованный статус полива для прогресс-бара на фронтенде."""
+    """Возвращает нормализованный статус полива для прогресс-бара на фронтенде.
+
+    is_online рассчитывается по свежести retained/state, чтобы фронт мог быстро дизейблить управление,
+    а last_seen_at показывает оператору, когда устройство в последний раз выходило на связь.
+    """
 
     view = store.get_manual_watering_view(device_id)
     if view is None:

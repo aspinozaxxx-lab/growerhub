@@ -8,6 +8,9 @@
 - Добавлены проверки состояния DeviceShadowStore перед start/stop в API ручного полива (409 при некорректном статусе).
 - Добавлены юнит-тесты для новых правил.
 - Добавлен эндпоинт GET /api/manual-watering/wait-ack для мягкого ожидания подтверждения команд.
+- Добавлены is_online и last_seen_at в GET /api/manual-watering/status.
+- Введён настраиваемый порог DEVICE_ONLINE_THRESHOLD_S (по умолчанию 10 с).
+- Обновлены тесты статуса на онлайн/офлайн.
 - Добавлены тесты на быстрый, отложенный и отсутствующий ACK.
 - Эндпоинт POST /api/manual-watering/stop с публикацией команды pump.stop (server/api_manual_watering.py).
 - Тест test_manual_watering_stop с фейковым MQTT-паблишером (server/tests/test_api_manual_watering_stop.py).

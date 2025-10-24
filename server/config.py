@@ -25,12 +25,19 @@ def _env_int(name: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class Settings:
+    """Настройки приложения: позволяют переключать MQTT и задать порог живости устройств.
+
+    DEVICE_ONLINE_THRESHOLD_S определяет, сколько секунд считать retained/state свежим; при необходимости
+    меняем переменную окружения DEVICE_ONLINE_THRESHOLD_S, чтобы адаптировать UI под реальные задержки.
+    """
+
     MQTT_HOST: str = "localhost"
     MQTT_PORT: int = 1883
     MQTT_USERNAME: Optional[str] = None
     MQTT_PASSWORD: Optional[str] = None
     MQTT_TLS: bool = False
     MQTT_CLIENT_ID_PREFIX: str = "growerhub-api"
+    DEVICE_ONLINE_THRESHOLD_S: int = 10
 
 
 @lru_cache()
@@ -44,4 +51,5 @@ def get_settings() -> Settings:
         MQTT_PASSWORD=os.getenv("MQTT_PASSWORD"),
         MQTT_TLS=_env_bool("MQTT_TLS", Settings.MQTT_TLS),
         MQTT_CLIENT_ID_PREFIX=os.getenv("MQTT_CLIENT_ID_PREFIX", Settings.MQTT_CLIENT_ID_PREFIX),
+        DEVICE_ONLINE_THRESHOLD_S=_env_int("DEVICE_ONLINE_THRESHOLD_S", Settings.DEVICE_ONLINE_THRESHOLD_S),
     )
