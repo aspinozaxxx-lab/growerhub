@@ -1,5 +1,7 @@
 """Интеграционные тесты ожидания ACK: проверяем быстрый, отложенный и таймаут-сценарии."""
 
+from __future__ import annotations
+
 import sys
 import threading
 import time
@@ -20,13 +22,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def _create_tables() -> None:
-    """Разворачиваем in-memory SQLite, чтобы не поднимать реальную БД во время тестов."""
+    """Разворачиваем in-memory SQLite, чтобы тесты не зависели от настоящей БД."""
 
     Base.metadata.create_all(bind=engine)
 
 
 def _get_db():
-    """Отдаём сессию SQLAlchemy и корректно закрываем её после использования."""
+    """Отдаём сессию SQLAlchemy и гарантированно закрываем её после использования."""
 
     db = SessionLocal()
     try:
@@ -49,24 +51,23 @@ from mqtt_protocol import Ack, AckResult  # noqa: E402
 
 
 class _DummySubscriber:
-    """Заглушка для MQTT-сабскрайберов, чтобы приложению не приходилось ходить в сеть."""
+    """Заглушка для MQTT-сабскрайберов: не делает ничего, но удовлетворяет интерфейс."""
 
     def start(self) -> None:
-        """Ничего не делаем, но сохраняем интерфейс, которого ждёт app.main."""
+        """Ничего не делаем на старте — тесты не нуждаются в реальном брокере."""
 
     def stop(self) -> None:
-        """Тоже ничего не делаем при остановке, чтобы тесты завершались быстро."""
+        """Также ничего не делаем на остановке, чтобы завершение было мгновенным."""
 
 
 @contextmanager
 def wait_ack_client(store: AckStore) -> Iterator[TestClient]:
-    """Создаём TestClient с переопределёнными зависимостями и готовым AckStore."""
+    """Создаём TestClient с подменёнными зависимостями и заранее подготовленным AckStore."""
 
     stack = ExitStack()
     dummy_state = _DummySubscriber()
     dummy_ack = _DummySubscriber()
 
-    # На старте FastAPI пробует инициализировать MQTT-подписчиков и паблишер — глушим эти вызовы.
     stack.enter_context(patch("app.main.init_publisher", lambda: None))
     stack.enter_context(patch("app.main.init_state_subscriber", lambda shadow: None))
     stack.enter_context(patch("app.main.get_state_subscriber", lambda: dummy_state))
@@ -77,16 +78,14 @@ def wait_ack_client(store: AckStore) -> Iterator[TestClient]:
     stack.enter_context(patch("app.main.shutdown_publisher", lambda: None))
 
     def _init_ack_store_stub() -> None:
-        """Во время старта привязываем глобальный AckStore к нашему инстансу."""
+        """При старте приложения привязываем глобальный AckStore к нашему in-memory экземпляру."""
 
         ack_store_module._ack_store = store
 
     stack.enter_context(patch("app.main.init_ack_store", _init_ack_store_stub))
     stack.enter_context(patch("app.main.shutdown_ack_store", lambda: None))
 
-    # Подменяем зависимость FastAPI на наш in-memory стор, чтобы читать/писать ACK-и напрямую.
     app.dependency_overrides[get_ack_dep] = lambda: store
-
     ack_store_module._ack_store = store
 
     try:
@@ -99,13 +98,13 @@ def wait_ack_client(store: AckStore) -> Iterator[TestClient]:
 
 
 def _make_ack(correlation_id: str, *, result: AckResult = AckResult.accepted) -> Ack:
-    """Упрощённая фабрика ACK: удобно создавать тестовые ответы с нужным статусом."""
+    """Создаём минимальный ACK с заданным результатом."""
 
     return Ack(correlation_id=correlation_id, result=result)
 
 
 def test_wait_ack_returns_existing_ack() -> None:
-    """Если ACK уже лежит в сторе, эндпоинт должен вернуть его моментально."""
+    """Если ACK уже лежит в сторе, ручка должна вернуть его мгновенно."""
 
     store = AckStore()
     correlation_id = "ack-immediate"
@@ -124,13 +123,13 @@ def test_wait_ack_returns_existing_ack() -> None:
 
 
 def test_wait_ack_returns_when_ack_delayed() -> None:
-    """ACK может прийти чуть позже: проверяем, что long-poll ждёт и возвращает результат."""
+    """ACK может появиться с задержкой — проверяем, что long-poll дожидается ответа."""
 
     store = AckStore()
     correlation_id = "ack-delayed"
 
     def _delayed_put() -> None:
-        """Через секунду кладём ACK в стор, имитируя задержку на устройстве."""
+        """Имитация устройства: через секунду записываем ACK в стор."""
 
         time.sleep(1)
         store.put("dev-2", _make_ack(correlation_id))
@@ -151,7 +150,7 @@ def test_wait_ack_returns_when_ack_delayed() -> None:
 
 
 def test_wait_ack_returns_timeout_when_ack_missing() -> None:
-    """Если подтверждение не пришло даже за короткий таймаут, получаем 408."""
+    """Если подтверждение так и не пришло, ручка отвечает 408 с понятным detail."""
 
     store = AckStore()
 

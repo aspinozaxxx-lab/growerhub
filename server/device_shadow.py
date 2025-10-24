@@ -1,7 +1,7 @@
-"""Теневое хранилище последних состояний устройств для построения UI-прогресса.
+﻿"""Теневое хранилище устройств: отдаёт данные для UI и внутренних сервисов.
 
-Храним данные в памяти, обеспечивая потокобезопасный доступ через RLock,
-так как обновления могут приходить из MQTT/HTTP параллельно запросам от UI.
+Храним состояние в памяти, синхронизируя доступ через RLock, чтобы обрабатывать обновления
+по MQTT/HTTP параллельно без гонок.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from mqtt_protocol import DeviceState, ManualWateringStatus
 
 
 def _as_utc(dt: datetime) -> datetime:
-    """Преобразуем произвольный datetime в UTC-aware для корректных расчетов."""
+    """Приводим datetime к UTC-aware, чтобы не путаться с часовыми поясами."""
 
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
@@ -23,26 +23,26 @@ def _as_utc(dt: datetime) -> datetime:
 
 
 def _isoformat_utc(dt: datetime) -> str:
-    """Сериализуем дату/время в ISO 8601 с явным указанием UTC."""
+    """Сериализуем дату/время в ISO 8601 с суффиксом Z (UTC)."""
 
     return _as_utc(dt).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 class DeviceShadowStore:
-    """Потокобезопасное in-memory хранилище теневых состояний устройств."""
+    """In-memory представление теневого состояния устройства."""
 
     def __init__(self) -> None:
         self._lock = RLock()
         self._storage: Dict[str, Tuple[DeviceState, datetime]] = {}
 
     def update_from_state(self, device_id: str, state: DeviceState) -> None:
-        """Сохраняем последнее состояние, сохраняем timestamp обновления."""
+        """Обновляем состояние устройства, фиксируя момент получения сообщения."""
 
         with self._lock:
             self._storage[device_id] = (state, datetime.utcnow())
 
     def get_last_state(self, device_id: str) -> Optional[DeviceState]:
-        """Возвращаем последнее DeviceState либо None, если данных нет."""
+        """Возвращает последнее сохранённое DeviceState или None, если данных нет."""
 
         with self._lock:
             entry = self._storage.get(device_id)
@@ -55,11 +55,7 @@ class DeviceShadowStore:
         device_id: str,
         now: Optional[datetime] = None,
     ) -> Optional[dict]:
-        """Возвращает нормализованное состояние ручного полива для UI.
-
-        Здесь рассчитываем остаток времени (remaining_s) на сервере, чтобы
-        фронтенд мог строить прогресс-бар без отдельных формул.
-        """
+        """Формирует нормализованное представление ручного полива для UI."""
 
         with self._lock:
             entry = self._storage.get(device_id)
@@ -94,8 +90,9 @@ class DeviceShadowStore:
         started_iso = _isoformat_utc(started_at) if started_at else None
         observed_at = _as_utc(updated_at)
         current_utc = _as_utc(now or datetime.utcnow())
-        # Время updated_at хранит последнее retained/state; фронту важно знать и timestamp, и булевый признак,
-        # чтобы одновременно показать «когда был seen» и отключить кнопки при оффлайне.
+        # updated_at хранит последнее полученное retained/state; фронту важно знать и точное время (last_seen_at),
+        # и булев флаг is_online. Даже retained после рестарта брокера считается «последним seen», ведь UI видит
+        # ровно эти данные.
         is_online = (current_utc - observed_at).total_seconds() <= settings.DEVICE_ONLINE_THRESHOLD_S
         last_seen_iso = _isoformat_utc(observed_at)
 
@@ -116,7 +113,7 @@ _store: Optional[DeviceShadowStore] = None
 
 
 def init_shadow_store() -> None:
-    """Инициализируем синглтон стора (вызывается на старте приложения)."""
+    """Инициализирует стор теневых состояний (вызывается при старте приложения)."""
 
     global _store
     if _store is None:
@@ -124,14 +121,14 @@ def init_shadow_store() -> None:
 
 
 def shutdown_shadow_store() -> None:
-    """Очищаем ссылку на стор (на будущее, если потребуется сбросить состояние)."""
+    """Сбрасывает стор (нужно при тестах и при штатном выключении)."""
 
     global _store
     _store = None
 
 
 def get_shadow_store() -> DeviceShadowStore:
-    """Возвращает активный стор либо поднимает ошибку, если он не инициализирован."""
+    """Возвращает текущий стор или выбрасывает RuntimeError, если его не инициализировали."""
 
     if _store is None:
         raise RuntimeError("Device shadow store not initialised")

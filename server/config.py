@@ -1,4 +1,6 @@
-"""Application configuration settings."""
+﻿"""Application configuration settings."""
+
+from __future__ import annotations
 
 import os
 from dataclasses import dataclass
@@ -25,10 +27,10 @@ def _env_int(name: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class Settings:
-    """Настройки приложения: позволяют переключать MQTT и задать порог живости устройств.
+    """Настройки приложения: управляют подключением к MQTT и вспомогательными порогами для UI.
 
-    DEVICE_ONLINE_THRESHOLD_S определяет, сколько секунд считать retained/state свежим; при необходимости
-    меняем переменную окружения DEVICE_ONLINE_THRESHOLD_S, чтобы адаптировать UI под реальные задержки.
+    DEVICE_ONLINE_THRESHOLD_S задаёт, насколько свежим должен быть state; по необходимости можно
+    переопределить переменной окружения DEVICE_ONLINE_THRESHOLD_S.
     """
 
     MQTT_HOST: str = "localhost"
@@ -42,7 +44,7 @@ class Settings:
 
 @lru_cache()
 def get_settings() -> Settings:
-    """Return cached application settings loaded from environment."""
+    """Возвращает кэшированные настройки, считанные из окружения."""
 
     return Settings(
         MQTT_HOST=os.getenv("MQTT_HOST", Settings.MQTT_HOST),
