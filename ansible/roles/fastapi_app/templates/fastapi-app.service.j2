@@ -1,12 +1,19 @@
 [Unit]
 Description=FastAPI (Uvicorn) service for {{ app_name }}
-After=network.target
+
+# Ждём пока сеть поднята полностью и Docker-демон запущен
+After=network-online.target docker.service
+Wants=network-online.target docker.service
 
 [Service]
 PermissionsStartOnly=true
 
-# Освободить порт, если он занят
+# 1) Освободить порт, если он вдруг залип после кривого останова
 ExecStartPre=/usr/bin/bash -lc '/usr/bin/ss -ltnp | /usr/bin/grep -q ":{{ app_port }} " && /usr/bin/fuser -k {{ app_port }}/tcp || true'
+
+# 2) Дать базе данных в контейнере проснуться.
+#    Это критично после ребута, когда uvicorn поднимается быстрее, чем Postgres.
+ExecStartPre=/bin/sleep 10
 
 User={{ app_user }}
 Group={{ app_group }}
@@ -24,7 +31,9 @@ ExecStart={{ app_venv }}/bin/uvicorn --app-dir {{ app_workdir }} run:app --host 
 ExecStop=/bin/kill -s SIGTERM $MAINPID
 KillSignal=SIGINT
 TimeoutStopSec=30
-Restart=on-failure
+
+# ВАЖНО: хотим автоподъём всегда, а не только "если код возврата плохой"
+Restart=always
 RestartSec=5
 
 StandardOutput=journal
