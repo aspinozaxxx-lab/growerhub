@@ -2,6 +2,8 @@ import sys
 import types
 from datetime import datetime
 
+import config
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -11,6 +13,17 @@ from app.models.database_models import Base
 # --- Настраиваем изолированную БД, чтобы не зависеть от реального сервера. ---
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+@pytest.fixture(autouse=True)
+def enable_debug(monkeypatch):
+    """Включаем DEBUG, чтобы сервисный эндпоинт /_debug/shadow/state был доступен в тестах."""
+
+    monkeypatch.setenv("DEBUG", "true")
+    config.get_settings.cache_clear()
+    config.get_settings()
+    yield
+    config.get_settings.cache_clear()
 
 
 def _create_tables() -> None:

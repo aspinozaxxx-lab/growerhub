@@ -11,11 +11,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, conint
 
 from ack_store import AckStore, get_ack_store
+from config import get_settings
 from device_shadow import DeviceShadowStore, get_shadow_store
 from mqtt_protocol import Ack, CmdPumpStart, CmdPumpStop, CommandType, DeviceState
 from mqtt_publisher import IMqttPublisher, get_publisher
 
 router = APIRouter()
+settings = get_settings()
 
 
 def get_mqtt_dep() -> IMqttPublisher:
@@ -233,12 +235,14 @@ async def manual_watering_wait_ack(
         await asyncio.sleep(0.5)
 
 
-@router.post("/_debug/shadow/state")
-async def debug_shadow_state(
-    payload: ShadowStateIn,
-    store: DeviceShadowStore = Depends(get_shadow_dep),
-) -> dict:
-    """Отладочный эндпоинт для тестов: сохраняет состояние в теневом сторе."""
+if settings.DEBUG:
+    @router.post("/_debug/shadow/state")
+    async def debug_shadow_state(
+        payload: ShadowStateIn,
+        store: DeviceShadowStore = Depends(get_shadow_dep),
+    ) -> dict:
+        """Отладочный эндпоинт: напрямую пишет состояние устройства в стор (только для тестов/локальной отладки)."""
 
-    store.update_from_state(payload.device_id, payload.state)
-    return {"ok": True}
+        # В продакшене эндпоинт выключен, чтобы никто не подменил теневое состояние через HTTP.
+        store.update_from_state(payload.device_id, payload.state)
+        return {"ok": True}

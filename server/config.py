@@ -1,4 +1,4 @@
-﻿"""Application configuration settings."""
+"""Application configuration settings."""
 
 from __future__ import annotations
 
@@ -29,8 +29,9 @@ def _env_int(name: str, default: int) -> int:
 class Settings:
     """Настройки приложения: управляют подключением к MQTT и вспомогательными порогами для UI.
 
-    DEVICE_ONLINE_THRESHOLD_S задаёт, насколько свежим должен быть state; по необходимости можно
-    переопределить переменной окружения DEVICE_ONLINE_THRESHOLD_S.
+    DEVICE_ONLINE_THRESHOLD_S задаёт, насколько свежим должен быть state; при необходимости можно
+    переопределить переменной окружения DEVICE_ONLINE_THRESHOLD_S. DEBUG включает отладочные ручки и
+    тестовые сценарии: в продакшене ставим False, чтобы скрыть опасные эндпоинты.
     """
 
     MQTT_HOST: str = "localhost"
@@ -40,6 +41,7 @@ class Settings:
     MQTT_TLS: bool = False
     MQTT_CLIENT_ID_PREFIX: str = "growerhub-api"
     DEVICE_ONLINE_THRESHOLD_S: int = 10
+    DEBUG: bool = True
 
 
 @lru_cache()
@@ -54,4 +56,5 @@ def get_settings() -> Settings:
         MQTT_TLS=_env_bool("MQTT_TLS", Settings.MQTT_TLS),
         MQTT_CLIENT_ID_PREFIX=os.getenv("MQTT_CLIENT_ID_PREFIX", Settings.MQTT_CLIENT_ID_PREFIX),
         DEVICE_ONLINE_THRESHOLD_S=_env_int("DEVICE_ONLINE_THRESHOLD_S", Settings.DEVICE_ONLINE_THRESHOLD_S),
+        DEBUG=_env_bool("DEBUG", Settings.DEBUG),
     )
