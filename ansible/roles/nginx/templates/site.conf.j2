@@ -45,7 +45,7 @@ server {
         proxy_read_timeout 300;
     }
 
-    # ReDoc — вот это добавляем
+    # ReDoc
     location = /redoc {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
@@ -57,7 +57,7 @@ server {
         proxy_read_timeout 300;
     }
 
-    # Схема OpenAPI — нужна и для /docs, и для /redoc
+    # OpenAPI JSON
     location = /openapi.json {
         proxy_pass http://127.0.0.1:8000;
         proxy_set_header Host $host;
@@ -69,13 +69,34 @@ server {
         proxy_read_timeout 300;
     }
 
-    # === СТАТИКА как на 80 ===
-    root /home/watering-admin/growerhub/static;  # если ты уже перенёс статику в /var/www/growerhub — укажи тот путь
-    index index.html;
+    ########################################
+    # СТАТИКА
+    ########################################
 
-    # Если у тебя есть API/бэкенд — временно НЕ проксируем (источник 500/502).
-    # location ^~ /api/ { proxy_pass http://127.0.0.1:8000; ... }
-    # location = /docs { proxy_pass http://127.0.0.1:8000; ... }
+    # 1. Отдаём /static/... как файлы, без SPA-фоллбека
+    #
+    # ВАЖНО: здесь alias должен указывать на ДИРЕКТОРИЮ,
+    # где реально лежит manual_watering.html.
+    #
+    # Пример: если файл находится по фактическому пути
+    #   /home/watering-admin/growerhub/static/manual_watering.html
+    # то alias должен быть именно /home/watering-admin/growerhub/static;
+    # тогда запрос /static/manual_watering.html мапится на
+    # /home/watering-admin/growerhub/static/manual_watering.html
+    #
+    location ^~ /static/ {
+        alias /home/watering-admin/growerhub/static/;
+        try_files $uri =404;
+        access_log off;
+    }
+
+    # 2. SPA (лендинг / кабинет). Всё остальное
+    #
+    # root здесь должен указывать на директорию,
+    # где лежит index.html фронта.
+    #
+    root /home/watering-admin/growerhub/static;
+    index index.html;
 
     location / {
         try_files $uri $uri/ /index.html;
@@ -84,4 +105,3 @@ server {
     access_log /var/log/nginx/growerhub.ru_ssl_access.log;
     error_log  /var/log/nginx/growerhub.ru_ssl_error.log;
 }
-
