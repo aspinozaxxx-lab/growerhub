@@ -1,20 +1,31 @@
+# ==========================================================
+# Роль fastapi_app — настройки по умолчанию
+# ==========================================================
+
+# Имя приложения и systemd-сервиса
 app_name: growerhub
 service_name: "{{ app_name }}"
 
+# Пользователь, от которого запускается FastAPI
 app_user: watering-admin
 app_group: "{{ app_user }}"
 
+# Пути к проекту и виртуальному окружению
 app_workdir: /home/watering-admin/growerhub/server
 app_venv: "/home/watering-admin/growerhub/server/.venv"
 app_requirements: "{{ app_workdir }}/requirements.txt"
 
+# Основной модуль приложения (run:app)
 app_module: run
 app_object: app
+
+# Параметры хоста и порта FastAPI
 app_host: 127.0.0.1
 app_port: 8000
 app_workers: 2
 app_reload: false
 
+# Необходимые системные пакеты
 apt_packages:
   - python3-venv
   - python3-pip
@@ -23,4 +34,29 @@ apt_packages:
   - procps
   - psmisc
 
-app_env: {}
+# ----------------------------------------------------------
+# Переменные окружения приложения (env)
+# ----------------------------------------------------------
+# Этот словарь будет развёрнут в systemd unit-файле как:
+#   Environment=KEY=VALUE
+#
+# Здесь задаются параметры подключения к брокеру MQTT и
+# отладочные флаги для FastAPI (читаются через config.py).
+# ----------------------------------------------------------
+
+app_env:
+  # Настройки MQTT-клиента (используются и паблишером, и подписчиками)
+  MQTT_HOST: "127.0.0.1"
+  MQTT_PORT: "1883"
+  MQTT_USERNAME: "mosquitto-admin"
+  MQTT_PASSWORD: "qazwsxedc"
+  MQTT_TLS: "false"
+
+  # Флаг отладки (в продакшене следует выключить)
+  DEBUG: "true"
+
+  # Порог "онлайн" устройства в секундах
+  DEVICE_ONLINE_THRESHOLD_S: "10"
+
+  # Дополнительно можно прокидывать другие переменные,
+  # если их читает config.py, например URL БД, токены и т.п.
