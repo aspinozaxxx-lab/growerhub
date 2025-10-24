@@ -9,6 +9,7 @@
 - Добавлен эндпоинт GET /api/manual-watering/wait-ack для мягкого ожидания подтверждения команд.
 - Добавлены поля is_online и last_seen_at в GET /api/manual-watering/status.
 - Поле offline_reason поясняет причину блокировки кнопок (device_offline/no_state_yet/None).
+- Добавлена документация docs/manual_watering_protocol.md с описанием протокола.
 
 ### Изменено
 - Перенёс manual_watering.html из server/static в static/.
