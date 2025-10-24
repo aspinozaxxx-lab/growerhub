@@ -108,7 +108,7 @@
         <button id="stopBtn">Остановить</button>
     </div>
 
-    <div id="onlineStatus">Статус устройства: неизвестно</div>
+    <div id="onlineStatus">Введите ID устройства</div>
     <div id="ackResult"></div>
 
     <div id="progressContainer">
@@ -117,23 +117,30 @@
     <div id="progressText">Нет активного полива</div>
 
     <script>
-        // Фиксируем элементы интерфейса, чтобы повторно не искать их в DOM
         const deviceInput = document.getElementById("device_id");
         const durationSelect = document.getElementById("duration");
         const startBtn = document.getElementById("startBtn");
         const stopBtn = document.getElementById("stopBtn");
         const onlineStatusBlock = document.getElementById("onlineStatus");
         const ackResultBlock = document.getElementById("ackResult");
-        const progressContainer = document.getElementById("progressContainer");
         const progressBar = document.getElementById("progressBar");
         const progressText = document.getElementById("progressText");
 
-        const slowPollIntervalMs = 5000; // обновление статуса для UI, чтобы показывать онлайн/оффлайн
-        const fastPollIntervalMs = 2000; // быстрый опрос во время активного полива
+        const slowPollIntervalMs = 5000;
+        const fastPollIntervalMs = 2000;
 
         let slowPollTimer = null;
         let fastPollTimer = null;
-        let lastKnownStatus = null;
+
+        function setButtonsDisabled(disabled) {
+            startBtn.disabled = disabled;
+            stopBtn.disabled = disabled;
+        }
+
+        function resetProgress() {
+            progressBar.style.width = "0%";
+            progressText.textContent = "Нет активного полива";
+        }
 
         function cancelSlowPoll() {
             if (slowPollTimer) {
@@ -142,18 +149,32 @@
             }
         }
 
-        deviceInput.addEventListener("input", () => {
-            // Каждое изменение ID устройства сбрасывает таймеры и заново запрашивает статус.
+        function scheduleSlowPoll() {
             cancelSlowPoll();
-            stopFastPoll();
-            if (!deviceInput.value.trim()) {
-                showAck("ID устройства не указан — кнопки заблокированы.");
-                setButtonsDisabled(true);
-                resetProgress();
-                onlineStatusBlock.textContent = "Статус устройства: неизвестно";
-                return;
+            slowPollTimer = setTimeout(() => fetchStatus().catch(console.error), slowPollIntervalMs);
+        }
+
+        function startFastPoll() {
+            if (!fastPollTimer) {
+                fastPollTimer = setInterval(() => {
+                    fetchStatus().catch(console.error);
+                }, fastPollIntervalMs);
             }
-            fetchStatus().catch(console.error);
+        }
+
+        function stopFastPoll() {
+            if (fastPollTimer) {
+                clearInterval(fastPollTimer);
+                fastPollTimer = null;
+            }
+        }
+
+        document.addEventListener("input", (event) => {
+            if (event.target === deviceInput) {
+                cancelSlowPoll();
+                stopFastPoll();
+                fetchStatus().catch(console.error);
+            }
         });
 
         startBtn.addEventListener("click", () => {
@@ -171,83 +192,33 @@
         });
 
         function validateDeviceId() {
-            const value = deviceInput.value.trim();
-            if (!value) {
-                showAck("Укажите ID устройства ❗");
+            if (!deviceInput.value.trim()) {
+                showAck("Нужно указать ID устройства ❗");
                 return false;
             }
             return true;
-        }
-
-        function setButtonsDisabled(disabled) {
-            startBtn.disabled = disabled;
-            stopBtn.disabled = disabled;
-        }
-
-        function resetProgress() {
-            progressBar.style.width = "0%";
-            progressText.textContent = "Нет активного полива";
-        }
-
-        function updateProgressBar(status) {
-            if (status.status !== "running" || status.duration_s == null) {
-                resetProgress();
-                return;
-            }
-
-            const duration = status.duration_s;
-            const remaining = status.remaining_s ?? duration;
-            const elapsed = Math.max(0, duration - remaining);
-            const percent = Math.min(100, Math.max(0, (elapsed / duration) * 100));
-            progressBar.style.width = `${percent}%`;
-            progressText.textContent = `Осталось ${remaining} с из ${duration}`;
-        }
-
-        function showAck(message) {
-            ackResultBlock.textContent = message;
-        }
-
-        function scheduleSlowPoll() {
-            cancelSlowPoll();
-            slowPollTimer = setTimeout(() => fetchStatus().catch(console.error), slowPollIntervalMs);
-        }
-
-        function startFastPoll() {
-            if (fastPollTimer) {
-                return;
-            }
-            fastPollTimer = setInterval(() => {
-                fetchStatus().catch(console.error);
-            }, fastPollIntervalMs);
-        }
-
-        function stopFastPoll() {
-            if (fastPollTimer) {
-                clearInterval(fastPollTimer);
-                fastPollTimer = null;
-            }
         }
 
         async function fetchStatus() {
             cancelSlowPoll();
             const deviceId = deviceInput.value.trim();
             if (!deviceId) {
-                showAck("ID устройства не указан — статусы не опрашиваются.");
+                onlineStatusBlock.textContent = "Введите ID устройства";
+                showAck("Для опроса статуса нужно указать ID." );
                 setButtonsDisabled(true);
                 resetProgress();
-                onlineStatusBlock.textContent = "Статус устройства: неизвестно";
                 return;
             }
 
             try {
-                // Тримим ID и кодируем его в URL, чтобы убрать случайные пробелы и переводы строки из буфера обмена.
+                // Перед каждым запросом подчищаем ID и кодируем его в URL: реальные идентификаторы часто копируются с пробелами и строками.
                 const response = await fetch(`/api/manual-watering/status?device_id=${encodeURIComponent(deviceId)}`);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
-                const statusPayload = await response.json();
-                lastKnownStatus = statusPayload;
-                renderStatus(statusPayload);
+                const data = await response.json();
+                console.log("[СТАТУС ОТ СЕРВЕРА]", data);
+                renderStatus(data);
             } catch (error) {
                 console.error("Не удалось получить статус", error);
                 showAck("Ошибка запроса статуса ❌");
@@ -259,19 +230,17 @@
             }
         }
 
-        function renderStatus(status) {
-            const deviceId = deviceInput.value.trim();
-            const isOnline = Boolean(status.is_online);
-            const offlineReason = status.offline_reason;
-            const lastSeen = status.last_seen_at;
-            const lastSeenText = lastSeen ? describeLastSeen(lastSeen) : "нет данных";
+        function renderStatus(data) {
+            const isOnline = Boolean(data.is_online);
+            const offlineReason = data.offline_reason;
+            const lastSeenText = data.last_seen_at ? describeLastSeen(data.last_seen_at) : "—";
 
-            if (isOnline && !offlineReason) {
+            if (isOnline) {
                 onlineStatusBlock.textContent = `Статус устройства: Онлайн ✅ (последняя активность: ${lastSeenText})`;
                 startBtn.disabled = false;
                 stopBtn.disabled = false;
-                updateProgressBar(status);
-                if (status.status === "running") {
+                updateProgressBar(data);
+                if (data.status === "running") {
                     startFastPoll();
                 } else {
                     stopFastPoll();
@@ -288,11 +257,25 @@
                 onlineStatusBlock.textContent = "Статус устройства: нет данных ❓ (устройство ещё ни разу не выходило на связь)";
                 showAck("Ждём первое подключение устройства — кнопки заблокированы.");
             } else {
-                onlineStatusBlock.textContent = "Статус устройства: неизвестно";
+                onlineStatusBlock.textContent = "Статус устройства: Оффлайн ❌ (причина неизвестна)";
             }
 
             setButtonsDisabled(true);
             resetProgress();
+        }
+
+        function updateProgressBar(status) {
+            if (status.status !== "running" || status.duration_s == null) {
+                resetProgress();
+                return;
+            }
+
+            const duration = status.duration_s;
+            const remaining = status.remaining_s ?? duration;
+            const elapsed = Math.max(0, duration - remaining);
+            const percent = Math.min(100, Math.max(0, (elapsed / duration) * 100));
+            progressBar.style.width = `${percent}%`;
+            progressText.textContent = `Осталось ${remaining} с из ${duration}`;
         }
 
         function describeLastSeen(lastSeenIso) {
@@ -301,20 +284,23 @@
                 return "время неизвестно";
             }
             const now = new Date();
-            const diffSeconds = Math.max(0, Math.floor((now.getTime() - seen.getTime()) / 1000));
+            const diffSeconds = Math.max(0, Math.floor((now - seen) / 1000));
             if (diffSeconds < 1) {
                 return "менее секунды назад";
             }
             return `${diffSeconds} с назад`;
         }
 
+        function showAck(message) {
+            ackResultBlock.textContent = message;
+        }
+
         async function startWatering() {
             const deviceId = deviceInput.value.trim();
-            // Перед отправкой команды тримим ID, чтобы убрать случайные пробелы/переводы строки.
             const duration = Number(durationSelect.value);
 
             setButtonsDisabled(true);
-            showAck("Отправляем команду запуска...");
+            showAck("Отправляем команду на запуск...");
 
             try {
                 const response = await fetch("/api/manual-watering/start", {
@@ -335,6 +321,8 @@
                 showAck(ackMessage);
 
                 fetchStatus().catch(console.error);
+                // Чтобы UI точно обновился и не оставался в состоянии "нет данных", через секунду опрашиваем статус ещё раз.
+                setTimeout(() => fetchStatus().catch(console.error), 1000);
             } catch (error) {
                 console.error("Ошибка запуска полива", error);
                 showAck(`Не удалось запустить полив ❌ (${error.message})`);
@@ -345,10 +333,9 @@
 
         async function stopWatering() {
             const deviceId = deviceInput.value.trim();
-            // Здесь также используем трим, чтобы остановка работала даже с "грязным" ID из буфера обмена.
 
             setButtonsDisabled(true);
-            showAck("Останавливаем полив...");
+            showAck("Отправляем команду остановки...");
 
             try {
                 const response = await fetch("/api/manual-watering/stop", {
@@ -378,7 +365,6 @@
         }
 
         async function waitAck(correlationId) {
-            // Используем wait-ack, чтобы не спамить фронтендом опрос каждую секунду
             try {
                 const response = await fetch(`/api/manual-watering/wait-ack?correlation_id=${encodeURIComponent(correlationId)}&timeout_s=5`);
                 if (response.status === 408) {
@@ -402,9 +388,8 @@
             }
         }
 
-        // Первичная инициализация: снимаем блокировки и запускаем фоновый опрос статуса.
         function init() {
-            stopBtn.disabled = true; // останавливать полив нечего
+            stopBtn.disabled = true;
             fetchStatus().catch(console.error);
         }
 
