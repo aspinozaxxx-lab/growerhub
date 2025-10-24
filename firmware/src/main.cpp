@@ -4,45 +4,46 @@
 #include <ArduinoJson.h>
 #include "Application.h"
 
-// Уникальный идентификатор устройства одновременно выступает MQTT clientId.
-// Сервер и брокер опираются на него, чтобы понимать, какое именно железо получило команду и кто должен ответить ACK/state.
+// Уникальный идентификатор устройства = MQTT clientId. Сервер и брокер используют его,
+// чтобы понять, какое железо получило команду и кто должен вернуть ACK/state.
 const char* DEVICE_ID = "ESP32_2C294C";
+// Версия прошивки, публикуемая в state, чтобы фронтенд видел активную сборку.
+const char* FW_VERSION = "esp32-alpha1";
 
-// Заглушки Wi-Fi для отладки. В продакшене перед прошивкой вписываем реальные значения.
+// Временные Wi-Fi креды. Перед боевой прошивкой подставим реальные SSID/PASS.
 const char* WIFI_SSID = "YOUR_WIFI";
 const char* WIFI_PASS = "YOUR_PASS";
 
-// Параметры MQTT-брокера. Здесь указываем реальный адрес Mosquitto в локальной сети, а не 127.0.0.1,
-// потому что ESP32 подключается удалённо и должна идти на IP сервера, где крутится брокер.
+// Адрес брокера Mosquitto. Нельзя использовать 127.0.0.1, потому что с точки зрения ESP32 это локальная петля.
 const char* MQTT_HOST = "192.168.0.11";
 const uint16_t MQTT_PORT = 1883;
 
-// Учетка Mosquitto для отладки.
+// Учётка Mosquitto для отладки.
 const char* MQTT_USER = "mosquitto-admin";
 const char* MQTT_PASS = "qazwsxedc";
 
-// Командный канал "сервер -> устройство": сюда приходят pump.start/pump.stop.
-const char* CMD_TOPIC = "gh/dev/ESP32_2C294C/cmd";
-// Канал подтверждений "устройство -> сервер". FastAPI слушает его, чтобы фронтенд получил результат через wait-ack.
-const char* ACK_TOPIC = "gh/dev/ESP32_2C294C/ack";
+// Каналы MQTT: команды, ACK и retained state.
+const char* CMD_TOPIC = "gh/dev/ESP32_2C294C/cmd";   // Сервер шлёт сюда pump.start/pump.stop.
+const char* ACK_TOPIC = "gh/dev/ESP32_2C294C/ack";   // Устройство подтверждает приём команд (без retain).
+const char* STATE_TOPIC = "gh/dev/ESP32_2C294C/state"; // Retained state: сервер/фронт читают текущее состояние устройства.
 
 // Сетевой стек.
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
-// Контроль частоты реконнектов MQTT: не долбим брокер чаще раза в 5 секунд.
+// Контроль частоты реконнектов MQTT.
 unsigned long lastMqttReconnectAttempt = 0;
 const unsigned long MQTT_RECONNECT_INTERVAL_MS = 5000;
 
-// Состояние ручного полива.
-// Эти поля читаемы следующими шагами:
-//  - шаг 3: формирование ACK (accepted/error) с корректным correlation_id и статусом,
-//  - шаг 4: публикация state (running/idle) с retain,
-//  - шаг 5: защита от зависания и автоостановка по таймеру.
-static bool g_isWatering = false;              // true, если насос сейчас включён именно по manual watering.
-static uint32_t g_wateringDurationSec = 0;     // Сколько секунд полива запросили через pump.start.
-static uint32_t g_wateringStartMillis = 0;     // Время включения насоса (millis), чтобы отслеживать timeout.
-static String g_activeCorrelationId = "";      // correlation_id текущей сессии полива для ACK и будущего state.
+// Текущее состояние ручного полива. Эти поля понадобятся шагам 3+:
+//  - ACK (чтобы ответить accepted/error с нужным correlation_id),
+//  - state (retained снимок для фронтенда),
+//  - автостоп/вотчдоги (когда появятся таймеры и более сложная логика).
+static bool g_isWatering = false;              // true, если насос включён по manual watering.
+static uint32_t g_wateringDurationSec = 0;     // Сколько секунд полива попросили через pump.start.
+static uint32_t g_wateringStartMillis = 0;     // Момент включения насоса (millis) для таймаута.
+static String g_activeCorrelationId = "";      // correlation_id последней команды pump.start.
+static String g_wateringStartIso8601 = "";     // ISO8601 времени старта. Пока заглушка, позже будет реальное UTC.
 
 WateringApplication app;
 
@@ -52,34 +53,34 @@ static void startManualWatering(uint32_t durationSec, const String& correlationI
 static void stopManualWatering(const String& correlationId);
 static void publishAckAccepted(const String& correlationId, const char* statusText);
 static void publishAckError(const String& correlationId, const char* reasonText);
+static void publishCurrentState();
 static void mqttCallback(char* topic, byte* payload, unsigned int length);
 static bool mqttReconnect();
 
 void setup() {
     Serial.begin(115200);
     Serial.println();
-    Serial.println(F("GrowerHub ESP32 ManualWatering v0.1 (MQTT step3)"));
+    Serial.println(F("GrowerHub ESP32 ManualWatering v0.1 (MQTT step4)"));
     Serial.print(F("Текущий DEVICE_ID: "));
     Serial.println(DEVICE_ID);
 
     // Подключаемся к Wi-Fi как станция и ждём IP, чтобы сразу тестировать MQTT-цепочку.
     connectToWiFi();
 
-    // Настраиваем MQTT клиент до запуска остальной логики.
     mqttClient.setServer(MQTT_HOST, MQTT_PORT);
     mqttClient.setCallback(mqttCallback);
 
     if (mqttReconnect()) {
-        Serial.println(F("MQTT подключение установлено и подписка на командный топик активна."));
+        Serial.println(F("MQTT подключение установлено, подписка активна."));
     } else {
         Serial.print(F("MQTT подключиться не удалось, код состояния клиента: "));
         Serial.println(mqttClient.state());
     }
 
-    // Запускаем остальную логику GrowerHub: сенсоры, HTTP, планировщик задач и т.д.
+    // Стартуем основное приложение: сенсоры, HTTP, планировщик задач и прочие подсистемы GrowerHub.
     app.begin();
     delay(3000);
-    app.checkRelayStates(); // TODO: после полного перехода на MQTT синхронизировать диагностику с серверным state.
+    app.checkRelayStates(); // TODO: синхронизировать с MQTT state, когда появится полноценная диагностика.
 }
 
 void loop() {
@@ -93,7 +94,8 @@ void loop() {
         if (elapsedMs >= plannedMs) {
             Serial.println(F("Полив завершён по таймеру duration_s, выключаем насос (auto-timeout)."));
             stopManualWatering(String("auto-timeout"));
-            // TODO: Шаг 4/5 — публиковать финальное состояние (state) и при необходимости отдельный ACK о завершении таймера.
+            publishCurrentState(); // Важно: фронтенд должен увидеть, что полив завершился и кнопки можно разблокировать.
+            // TODO: когда появится логика финального ACK/state о завершении по таймеру, реализовать её здесь.
         }
     }
 
@@ -111,8 +113,6 @@ void loop() {
             }
         }
     }
-
-    // TODO: Шаг 4 — публиковать state c retain.
 
     app.update();
 
@@ -154,7 +154,7 @@ static void startManualWatering(uint32_t durationSec, const String& correlationI
         return;
     }
 
-    // TODO: уточнить инверсию реле. Предполагаем, что true действительно включает насос.
+    // TODO: уточнить инверсию реле. Сейчас считаем, что true = включить насос (через ActuatorManager).
     app.setManualPumpState(true);
 
     g_isWatering = true;
@@ -162,10 +162,15 @@ static void startManualWatering(uint32_t durationSec, const String& correlationI
     g_wateringStartMillis = millis();
     g_activeCorrelationId = correlationId;
 
+    // TODO: подставить реальное UTC время старта, когда появится синхронизация (NTP/RTC).
+    g_wateringStartIso8601 = "1970-01-01T00:00:00Z";
+
     Serial.print(F("Запускаем ручной полив на "));
     Serial.print(durationSec);
     Serial.print(F(" секунд, correlation_id="));
     Serial.println(correlationId);
+
+    publishCurrentState();
 }
 
 static void stopManualWatering(const String& correlationId) {
@@ -179,13 +184,16 @@ static void stopManualWatering(const String& correlationId) {
     g_wateringDurationSec = 0;
     g_wateringStartMillis = 0;
     g_activeCorrelationId = "";
+    g_wateringStartIso8601 = "";
 
     Serial.print(F("Полив остановлен. Источник остановки: "));
     Serial.println(correlationId.length() ? correlationId : String("не указан (pump.stop без correlation_id)"));
+
+    publishCurrentState();
 }
 
 static void publishAckAccepted(const String& correlationId, const char* statusText) {
-    // ACK — одноразовое подтверждение. Retain всегда false, чтобы не держать старые ответы в брокере.
+    // ACK — одноразовое подтверждение. Retain всегда false, чтобы брокер не хранил старые ответы.
     if (!mqttClient.connected()) {
         Serial.println(F("Не удалось отправить ACK (accepted): MQTT не подключён, сообщение потеряно."));
         return;
@@ -217,9 +225,46 @@ static void publishAckError(const String& correlationId, const char* reasonText)
     mqttClient.publish(ACK_TOPIC, payload.c_str(), false);
 }
 
+static void publishCurrentState() {
+    // Retained state (device shadow) устройства. Брокер хранит последнее сообщение,
+    // сервер читает его, кеширует и отдаёт фронтенду через /api/manual-watering/status.
+    // Именно по этому снимку UI понимает: контроллер онлайн или оффлайн, работает ли насос,
+    // можно ли разблокировать кнопки или показать прогресс полива.
+    if (!mqttClient.connected()) {
+        Serial.println(F("Не удалось отправить state: MQTT не подключён, снимок не обновлён."));
+        return;
+    }
+
+    const bool hasCorrelation = g_activeCorrelationId.length() > 0;
+    const bool hasStartIso = g_wateringStartIso8601.length() > 0;
+
+    const String status = g_isWatering ? "running" : "idle";
+    const String durationField = g_isWatering ? String(g_wateringDurationSec) : String("null");
+    const String startedField = g_isWatering && hasStartIso
+        ? String("\"") + g_wateringStartIso8601 + "\""
+        : String("null");
+    const String correlationField = g_isWatering && hasCorrelation
+        ? String("\"") + g_activeCorrelationId + "\""
+        : String("null");
+
+    String payload = "{";
+    payload += "\"manual_watering\":{";
+    payload += "\"status\":\"" + status + "\",";
+    payload += "\"duration_s\":" + durationField + ",";
+    payload += "\"started_at\":" + startedField + ",";
+    payload += "\"correlation_id\":" + correlationField;
+    payload += "},";
+    payload += "\"fw\":\"" + String(FW_VERSION) + "\"";
+    payload += "}";
+
+    Serial.print(F("Отправляем state (retained) в брокер: "));
+    Serial.println(payload);
+    mqttClient.publish(STATE_TOPIC, payload.c_str(), true); // retain=true: брокер хранит снимок.
+}
+
 static void mqttCallback(char* topic, byte* payload, unsigned int length) {
-    // Это критический шлюз между фронтендом и реальным насосом. Команды приходят с сервера,
-    // после обработки мы обязаны отправить ACK через publishAck*, чтобы FastAPI ответил фронту из /wait-ack.
+    // Критический шлюз: фронтенд -> сервер -> MQTT -> устройство. Любая ошибка парсинга влияет на работу реального насоса.
+    // После обработки каждой команды шлём ACK publishAck*, чтобы FastAPI ответил клиенту из /wait-ack.
     Serial.println(F("----- MQTT команда -----"));
     Serial.print(F("Топик: "));
     Serial.println(topic);
@@ -279,7 +324,7 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
         if (correlationId.length() > 0) {
             publishAckAccepted(correlationId, "running");
         } else {
-            Serial.println(F("pump.start без correlation_id — выполнили команду, но предупредим сервер об ошибке формата."));
+            Serial.println(F("pump.start без correlation_id — выполнили команду, но сообщаем серверу об ошибке формата."));
             publishAckError(String(""), "bad command format: correlation_id missing");
         }
         return;
@@ -310,11 +355,13 @@ static bool mqttReconnect() {
 
     if (mqttClient.connect(DEVICE_ID, MQTT_USER, MQTT_PASS)) {
         Serial.println(F("MQTT соединение установлено, подписываемся на командный топик..."));
-        // После каждого реконнекта брокер забывает подписки, поэтому оформляем их заново.
+        // После реконнекта брокер забывает подписки, поэтому оформляем их заново.
         if (mqttClient.subscribe(CMD_TOPIC, 1)) {
             Serial.print(F("Подписались на "));
             Serial.print(CMD_TOPIC);
             Serial.println(F(" с QoS=1."));
+            // После успешной подписки объявляем текущее состояние, чтобы сервер видел устройство онлайн сразу после реконнекта.
+            publishCurrentState();
         } else {
             Serial.println(F("Не удалось подписаться на командный топик — попробуем снова при следующем реконнекте."));
         }
