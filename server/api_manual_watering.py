@@ -47,6 +47,20 @@ def get_ack_dep() -> AckStore:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Ack store unavailable") from exc
 
 
+if settings.DEBUG:
+    @router.get("/_debug/manual-watering/config")
+    async def manual_watering_debug_config():
+        """Эта ручка существует только в отладочном режиме, в проде при DEBUG=False она не создаётся."""
+
+        return {
+            "mqtt_host": settings.MQTT_HOST,
+            "mqtt_port": settings.MQTT_PORT,
+            "mqtt_username": settings.MQTT_USERNAME,
+            "mqtt_tls": settings.MQTT_TLS,
+            "debug": settings.DEBUG,
+        }
+
+
 class ManualWateringStartIn(BaseModel):
     """Входные данные для запуска ручного полива.
 

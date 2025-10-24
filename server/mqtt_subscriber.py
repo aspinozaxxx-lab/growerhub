@@ -106,6 +106,13 @@ class MqttStateSubscriber:
         client = self._client_factory()
         client.on_connect = self._on_connect
         client.on_message = self._on_message
+        settings = self._settings
+        if settings.DEBUG:
+            # Печатаем напрямую в stdout, чтобы systemd/uvicorn гарантированно передал эти строки в journalctl.
+            print(
+                f"[MQTT DEBUG] (state) Пытаемся подключиться к брокеру "
+                f"{settings.MQTT_HOST}:{settings.MQTT_PORT} как пользователь {settings.MQTT_USERNAME!r}"
+            )
 
         try:
             logger.info(
@@ -144,6 +151,10 @@ class MqttStateSubscriber:
         return self._running
 
     def _on_connect(self, client: Client, _userdata, _flags, rc):  # type: ignore[override]
+        settings = self._settings
+        if settings.DEBUG:
+            print(f"[MQTT DEBUG] (state) on_connect rc={rc}")
+
         if rc == 0:
             logger.info(
                 "Успешно подключились к MQTT (%s:%s) для state, rc=%s",
@@ -151,7 +162,10 @@ class MqttStateSubscriber:
                 self._settings.MQTT_PORT,
                 rc,
             )
-            client.subscribe(make_state_topic_filter(), qos=1)
+            topic_filter = make_state_topic_filter()
+            client.subscribe(topic_filter, qos=1)
+            if settings.DEBUG:
+                print(f"[MQTT DEBUG] (state) Подписались на {topic_filter}")
         else:
             logger.error(
                 "Не удалось подключиться к MQTT (%s:%s) для state, rc=%s. Проверьте логин/пароль и ACL брокера",
@@ -159,10 +173,19 @@ class MqttStateSubscriber:
                 self._settings.MQTT_PORT,
                 rc,
             )
+            if settings.DEBUG:
+                print("[MQTT DEBUG] (state) Не удалось подключиться к MQTT, rc={rc} (rc=5 обычно означает ошибку авторизации)".format(rc=rc))
 
     def _on_message(self, _client: Client, _userdata, message):  # type: ignore[override]
+        settings = self._settings
         topic = getattr(message, "topic", "")
         payload = getattr(message, "payload", b"")
+        if settings.DEBUG:
+            try:
+                raw_payload = payload.decode("utf-8", errors="replace")
+            except Exception:
+                raw_payload = "<decode error>"
+            print(f"[MQTT DEBUG] (state) Пришло сообщение topic={topic} payload={raw_payload}")
         # Это сырое сообщение от устройства, до проверки схемы.
         logger.info(
             "MQTT state message: topic=%s payload=%s",
@@ -180,9 +203,14 @@ class MqttStateSubscriber:
         except (UnicodeDecodeError, ValueError, json.JSONDecodeError, ValidationError) as exc:
             # сообщение проигнорировано, т.к. не соответствует ожидаемому формату DeviceState
             logger.warning("Не удалось разобрать состояние устройства %s: %s", device_id, exc)
+            if settings.DEBUG:
+                # Такое может произойти, если прошивка прислала JSON в неожиданном формате.
+                print(f"[MQTT DEBUG] (state) Ошибка парсинга состояния устройства: {exc}")
             return
 
         self._store.update_from_state(device_id, state)
+        if settings.DEBUG:
+            print(f"[MQTT DEBUG] (state) Обновили стор для устройства {device_id}")
         logger.info("Обновили стор для устройства %s", device_id)
 
 
@@ -247,6 +275,12 @@ class MqttAckSubscriber:
         client = self._client_factory()
         client.on_connect = self._on_connect
         client.on_message = self._on_message
+        settings = self._settings
+        if settings.DEBUG:
+            # Здесь тоже используем прямой print, чтобы stdout гарантированно оказался в journalctl при DEBUG=True.
+            print(
+                f"[MQTT DEBUG] (ack) Пытаемся подключиться к брокеру {settings.MQTT_HOST}:{settings.MQTT_PORT} как пользователь {settings.MQTT_USERNAME!r}"
+            )
 
         try:
             logger.info(
@@ -285,6 +319,10 @@ class MqttAckSubscriber:
         return self._running
 
     def _on_connect(self, client: Client, _userdata, _flags, rc):  # type: ignore[override]
+        settings = self._settings
+        if settings.DEBUG:
+            print(f"[MQTT DEBUG] (ack) on_connect rc={rc}")
+
         if rc == 0:
             logger.info(
                 "Успешно подключились к MQTT (%s:%s) для ack, rc=%s",
@@ -292,7 +330,10 @@ class MqttAckSubscriber:
                 self._settings.MQTT_PORT,
                 rc,
             )
-            client.subscribe(make_ack_topic_filter(), qos=1)
+            topic_filter = make_ack_topic_filter()
+            client.subscribe(topic_filter, qos=1)
+            if settings.DEBUG:
+                print(f"[MQTT DEBUG] (ack) Подписались на {topic_filter}")
         else:
             logger.error(
                 "Не удалось подключиться к MQTT (%s:%s) для ack, rc=%s. Проверьте логин/пароль и ACL брокера",
@@ -300,10 +341,19 @@ class MqttAckSubscriber:
                 self._settings.MQTT_PORT,
                 rc,
             )
+            if settings.DEBUG:
+                print("[MQTT DEBUG] (ack) Не удалось подключиться к MQTT, rc={rc} (rc=5 обычно означает ошибку авторизации)".format(rc=rc))
 
     def _on_message(self, _client: Client, _userdata, message):  # type: ignore[override]
+        settings = self._settings
         topic = getattr(message, "topic", "")
         payload = getattr(message, "payload", b"")
+        if settings.DEBUG:
+            try:
+                raw_payload = payload.decode("utf-8", errors="replace")
+            except Exception:
+                raw_payload = "<decode error>"
+            print(f"[MQTT DEBUG] (ack) Пришло сообщение topic={topic} payload={raw_payload}")
         # Это сырое сообщение от устройства, до проверки схемы.
         logger.info(
             "MQTT ack message: topic=%s payload=%s",
@@ -321,9 +371,14 @@ class MqttAckSubscriber:
         except (UnicodeDecodeError, ValueError, json.JSONDecodeError, ValidationError) as exc:
             # сообщение проигнорировано, т.к. не соответствует ожидаемому формату Ack
             logger.warning("Не удалось разобрать ACK для %s: %s", device_id, exc)
+            if settings.DEBUG:
+                # Такое может произойти, если устройство прислало ACK в неожиданном формате.
+                print(f"[MQTT DEBUG] (ack) Ошибка парсинга состояния устройства: {exc}")
             return
 
         self._store.put(device_id, ack)
+        if settings.DEBUG:
+            print(f"[MQTT DEBUG] (ack) Сохранили ACK correlation_id={ack.correlation_id}")
         logger.info("Сохранили ACK для correlation_id=%s", ack.correlation_id)
 
 
