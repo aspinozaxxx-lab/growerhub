@@ -27,11 +27,11 @@ def _env_int(name: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class Settings:
-    """Настройки приложения: управляют подключением к MQTT и вспомогательными порогами для UI.
+    """Настройки приложения: отвечают за подключение бэкенда к MQTT и сопутствующие пороги для UI.
 
-    DEVICE_ONLINE_THRESHOLD_S задаёт, насколько свежим должен быть state; при необходимости можно
-    переопределить переменной окружения DEVICE_ONLINE_THRESHOLD_S. DEBUG включает отладочные ручки и
-    тестовые сценарии: в продакшене ставим False, чтобы скрыть опасные эндпоинты.
+    Переменные окружения MQTT_HOST/MQTT_PORT/MQTT_USERNAME/MQTT_PASSWORD задают креды, с которыми
+    сервер выступает как MQTT-клиент; их удобно прокидывать через systemd unit. DEVICE_ONLINE_THRESHOLD_S
+    ограничивает, насколько свежим должен быть state, а DEBUG включает отладочные ручки и сценарии.
     """
 
     MQTT_HOST: str = "localhost"

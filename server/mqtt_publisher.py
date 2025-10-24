@@ -40,8 +40,10 @@ class PahoMqttPublisher(IMqttPublisher):
         self._settings = settings
         self._client = Client(client_id=client_id)
         if settings.MQTT_USERNAME:
+            # Передаём брокеру логин/пароль, иначе mosquitto отвечает rc=5 (Not authorized) и публикация не работает.
             self._client.username_pw_set(settings.MQTT_USERNAME, settings.MQTT_PASSWORD)
         if settings.MQTT_TLS:
+            # Включаем TLS, когда брокер требует защищённое соединение.
             self._client.tls_set()  # Defaults suitable for simple TLS enablement.
         self._connected = False
 
@@ -49,9 +51,27 @@ class PahoMqttPublisher(IMqttPublisher):
         """Connect to MQTT broker and start background network loop."""
 
         settings = self._settings
+        logger.info(
+            "Подключаемся к MQTT брокеру %s:%s как publisher",
+            settings.MQTT_HOST,
+            settings.MQTT_PORT,
+        )
         result = self._client.connect(settings.MQTT_HOST, settings.MQTT_PORT)
         if result != MQTT_ERR_SUCCESS:
+            logger.error(
+                "Не удалось подключиться к MQTT (%s:%s) как publisher, rc=%s. "
+                "Проверьте логин/пароль и ACL брокера",
+                settings.MQTT_HOST,
+                settings.MQTT_PORT,
+                result,
+            )
             raise RuntimeError(f"Failed to connect to MQTT broker: rc={result}")
+        logger.info(
+            "Успешно подключились к MQTT (%s:%s) как publisher, rc=%s",
+            settings.MQTT_HOST,
+            settings.MQTT_PORT,
+            result,
+        )
         self._client.loop_start()
         self._connected = True
 

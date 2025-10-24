@@ -93,6 +93,7 @@ class MqttStateSubscriber:
         client_id = f"{settings.MQTT_CLIENT_ID_PREFIX}-state-{uuid4().hex[:8]}"
         client = Client(client_id=client_id)
         if settings.MQTT_USERNAME:
+            # Передаём брокеру логин/пароль, иначе mosquitto отвечает rc=5 (Not authorized) и соединение не устанавливается.
             client.username_pw_set(settings.MQTT_USERNAME, settings.MQTT_PASSWORD)
         if settings.MQTT_TLS:
             client.tls_set()
@@ -144,10 +145,20 @@ class MqttStateSubscriber:
 
     def _on_connect(self, client: Client, _userdata, _flags, rc):  # type: ignore[override]
         if rc == 0:
-            logger.info("Успешно подключились к MQTT, подписываемся на gh/dev/+/state")
+            logger.info(
+                "Успешно подключились к MQTT (%s:%s) для state, rc=%s",
+                self._settings.MQTT_HOST,
+                self._settings.MQTT_PORT,
+                rc,
+            )
             client.subscribe(make_state_topic_filter(), qos=1)
         else:
-            logger.warning("Не удалось подключиться к MQTT для state (rc=%s)", rc)
+            logger.error(
+                "Не удалось подключиться к MQTT (%s:%s) для state, rc=%s. Проверьте логин/пароль и ACL брокера",
+                self._settings.MQTT_HOST,
+                self._settings.MQTT_PORT,
+                rc,
+            )
 
     def _on_message(self, _client: Client, _userdata, message):  # type: ignore[override]
         topic = getattr(message, "topic", "")
@@ -223,6 +234,7 @@ class MqttAckSubscriber:
         client_id = f"{settings.MQTT_CLIENT_ID_PREFIX}-ack-{uuid4().hex[:8]}"
         client = Client(client_id=client_id)
         if settings.MQTT_USERNAME:
+            # Передаём брокеру логин/пароль, иначе mosquitto отвечает rc=5 (Not authorized) и соединение не устанавливается.
             client.username_pw_set(settings.MQTT_USERNAME, settings.MQTT_PASSWORD)
         if settings.MQTT_TLS:
             client.tls_set()
@@ -274,10 +286,20 @@ class MqttAckSubscriber:
 
     def _on_connect(self, client: Client, _userdata, _flags, rc):  # type: ignore[override]
         if rc == 0:
-            logger.info("Успешно подключились к MQTT, подписываемся на gh/dev/+/ack")
+            logger.info(
+                "Успешно подключились к MQTT (%s:%s) для ack, rc=%s",
+                self._settings.MQTT_HOST,
+                self._settings.MQTT_PORT,
+                rc,
+            )
             client.subscribe(make_ack_topic_filter(), qos=1)
         else:
-            logger.warning("Не удалось подключиться к MQTT для ack (rc=%s)", rc)
+            logger.error(
+                "Не удалось подключиться к MQTT (%s:%s) для ack, rc=%s. Проверьте логин/пароль и ACL брокера",
+                self._settings.MQTT_HOST,
+                self._settings.MQTT_PORT,
+                rc,
+            )
 
     def _on_message(self, _client: Client, _userdata, message):  # type: ignore[override]
         topic = getattr(message, "topic", "")
