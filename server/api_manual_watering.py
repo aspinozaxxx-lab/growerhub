@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import time
 from datetime import datetime
 from uuid import uuid4
 
@@ -192,6 +194,36 @@ async def manual_watering_ack(
         reason=ack.reason,
         status=ack.status.value if ack.status is not None and hasattr(ack.status, "value") else (ack.status if ack.status is not None else None),
     )
+
+
+@router.get("/api/manual-watering/wait-ack", response_model=ManualWateringAckOut)
+async def manual_watering_wait_ack(
+    correlation_id: str,
+    timeout_s: conint(ge=1, le=15) = 5,
+    store: AckStore = Depends(get_ack_dep),
+) -> ManualWateringAckOut:
+    """Ждёт появления ACK в сторе мягким long-poll-ом, чтобы фронтенд не спамил короткими запросами каждую секунду."""
+
+    # Такой подход позволяет фронту вызвать эндпоинт сразу после отправки команды и спокойно дождаться результата,
+    # не занимая очередь постоянными опросами.
+    deadline = time.monotonic() + timeout_s
+    # Ограничение в 15 секунд удерживает соединение в разумных рамках: дальше фронту проще повторить запрос.
+
+    while True:
+        ack = store.get(correlation_id)
+        if ack is not None:
+            return ManualWateringAckOut(
+                correlation_id=ack.correlation_id,
+                result=ack.result.value if hasattr(ack.result, "value") else ack.result,
+                reason=ack.reason,
+                status=ack.status.value if ack.status is not None and hasattr(ack.status, "value") else (ack.status if ack.status is not None else None),
+            )
+
+        if time.monotonic() >= deadline:
+            raise HTTPException(status_code=status.HTTP_408_REQUEST_TIMEOUT, detail="ACK не получен в заданное время")
+
+        # Шаг ожидания 0.5 с: достаточно часто чтобы не подвисать, но достаточно редко чтобы не жечь CPU впустую.
+        await asyncio.sleep(0.5)
 
 
 @router.post("/_debug/shadow/state")
