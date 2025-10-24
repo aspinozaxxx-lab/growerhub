@@ -50,6 +50,20 @@ class DeviceShadowStore:
                 return None
             return entry[0]
 
+    def debug_dump(self, device_id: str) -> Optional[dict]:
+        """Возвращает внутреннее содержимое стора для указанного устройства (только для отладки)."""
+
+        with self._lock:
+            entry = self._storage.get(device_id)
+            if not entry:
+                return None
+            state, updated_at = entry
+
+        return {
+            "state": state.model_dump(mode="json"),
+            "updated_at": _isoformat_utc(updated_at),
+        }
+
     def get_manual_watering_view(
         self,
         device_id: str,

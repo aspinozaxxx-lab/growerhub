@@ -266,6 +266,20 @@ if settings.DEBUG:
         store.update_from_state(payload.device_id, payload.state)
         return {"ok": True}
 
+    @router.get("/_debug/manual-watering/snapshot")
+    async def debug_manual_watering_snapshot(
+        device_id: str,
+        store: DeviceShadowStore = Depends(get_shadow_dep),
+    ) -> dict:
+        """Отладочный снимок стора: помогает посмотреть сырые данные и вычисленное представление.
+
+        Используется только в отладочном окружении и никогда не должен быть доступен в продакшене.
+        """
+
+        raw_data = store.debug_dump(device_id)
+        view = store.get_manual_watering_view(device_id)
+        return {"raw": raw_data, "view": view}
+
     """Возвращает данные для прогресс-бара и статуса устройства.
 
     offline_reason помогает фронтенду принять решение:

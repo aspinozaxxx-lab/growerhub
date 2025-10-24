@@ -107,6 +107,11 @@ class MqttStateSubscriber:
         client.on_message = self._on_message
 
         try:
+            logger.info(
+                "Подключаемся к MQTT брокеру %s:%s для чтения state",
+                self._settings.MQTT_HOST,
+                self._settings.MQTT_PORT,
+            )
             rc = client.connect(self._settings.MQTT_HOST, self._settings.MQTT_PORT)
             if rc != MQTT_ERR_SUCCESS:
                 raise RuntimeError(f"MQTT connect returned rc={rc}")
@@ -139,25 +144,35 @@ class MqttStateSubscriber:
 
     def _on_connect(self, client: Client, _userdata, _flags, rc):  # type: ignore[override]
         if rc == 0:
+            logger.info("Успешно подключились к MQTT, подписываемся на gh/dev/+/state")
             client.subscribe(make_state_topic_filter(), qos=1)
         else:
-            logger.warning("MQTT state subscriber connect rc=%s", rc)
+            logger.warning("Не удалось подключиться к MQTT для state (rc=%s)", rc)
 
     def _on_message(self, _client: Client, _userdata, message):  # type: ignore[override]
         topic = getattr(message, "topic", "")
+        payload = getattr(message, "payload", b"")
+        # Это сырое сообщение от устройства, до проверки схемы.
+        logger.info(
+            "MQTT state message: topic=%s payload=%s",
+            topic,
+            payload.decode("utf-8", errors="replace"),
+        )
         device_id = extract_device_id_from_state_topic(topic)
         if not device_id:
-            logger.debug("Ignore MQTT state message with unexpected topic: %s", topic)
+            logger.warning("Топик %s не соответствует шаблону gh/dev/<id>/state", topic)
             return
 
-        payload = getattr(message, "payload", b"")
         try:
-            state = DeviceState.model_validate_json(payload.decode("utf-8"))
+            payload_text = payload.decode("utf-8")
+            state = DeviceState.model_validate_json(payload_text)
         except (UnicodeDecodeError, ValueError, json.JSONDecodeError, ValidationError) as exc:
-            logger.warning("Failed to parse device state for %s: %s", device_id, exc)
+            # сообщение проигнорировано, т.к. не соответствует ожидаемому формату DeviceState
+            logger.warning("Не удалось разобрать состояние устройства %s: %s", device_id, exc)
             return
 
         self._store.update_from_state(device_id, state)
+        logger.info("Обновили стор для устройства %s", device_id)
 
 
 _state_subscriber: Optional[MqttStateSubscriber] = None
@@ -222,6 +237,11 @@ class MqttAckSubscriber:
         client.on_message = self._on_message
 
         try:
+            logger.info(
+                "Подключаемся к MQTT брокеру %s:%s для чтения ack",
+                self._settings.MQTT_HOST,
+                self._settings.MQTT_PORT,
+            )
             rc = client.connect(self._settings.MQTT_HOST, self._settings.MQTT_PORT)
             if rc != MQTT_ERR_SUCCESS:
                 raise RuntimeError(f"MQTT connect returned rc={rc}")
@@ -254,25 +274,35 @@ class MqttAckSubscriber:
 
     def _on_connect(self, client: Client, _userdata, _flags, rc):  # type: ignore[override]
         if rc == 0:
+            logger.info("Успешно подключились к MQTT, подписываемся на gh/dev/+/ack")
             client.subscribe(make_ack_topic_filter(), qos=1)
         else:
-            logger.warning("MQTT ack subscriber connect rc=%s", rc)
+            logger.warning("Не удалось подключиться к MQTT для ack (rc=%s)", rc)
 
     def _on_message(self, _client: Client, _userdata, message):  # type: ignore[override]
         topic = getattr(message, "topic", "")
+        payload = getattr(message, "payload", b"")
+        # Это сырое сообщение от устройства, до проверки схемы.
+        logger.info(
+            "MQTT ack message: topic=%s payload=%s",
+            topic,
+            payload.decode("utf-8", errors="replace"),
+        )
         device_id = extract_device_id_from_ack_topic(topic)
         if not device_id:
-            logger.debug("Ignore MQTT ack message with unexpected topic: %s", topic)
+            logger.warning("Топик %s не соответствует шаблону gh/dev/<id>/ack", topic)
             return
 
-        payload = getattr(message, "payload", b"")
         try:
-            ack = Ack.model_validate_json(payload.decode("utf-8"))
+            payload_text = payload.decode("utf-8")
+            ack = Ack.model_validate_json(payload_text)
         except (UnicodeDecodeError, ValueError, json.JSONDecodeError, ValidationError) as exc:
-            logger.warning("Failed to parse ack for %s: %s", device_id, exc)
+            # сообщение проигнорировано, т.к. не соответствует ожидаемому формату Ack
+            logger.warning("Не удалось разобрать ACK для %s: %s", device_id, exc)
             return
 
         self._store.put(device_id, ack)
+        logger.info("Сохранили ACK для correlation_id=%s", ack.correlation_id)
 
 
 _ack_subscriber: Optional[MqttAckSubscriber] = None
