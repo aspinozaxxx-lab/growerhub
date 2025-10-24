@@ -79,20 +79,18 @@ class ManualWateringStopOut(BaseModel):
 
 
 class ManualWateringStatusOut(BaseModel):
-    """Нормализованное состояние ручного полива для фронтенда.
-
-    is_online рассчитывается по свежести retained/state, чтобы фронт мог быстро дизейблить управление,
-    а last_seen_at показывает оператору, когда устройство в последний раз выходило на связь.
-    """
+    """Нормализованный ответ для фронтенда: данные для кнопок и прогресса."""
 
     status: str
     duration_s: int | None
     started_at: str | None
     remaining_s: int | None
     correlation_id: str | None
-    updated_at: str
-    last_seen_at: str
+    updated_at: str | None
+    last_seen_at: str | None
     is_online: bool
+    offline_reason: str | None = None
+    source: str
     source: str
 
 
@@ -174,16 +172,37 @@ async def manual_watering_status(
     device_id: str,
     store: DeviceShadowStore = Depends(get_shadow_dep),
 ) -> ManualWateringStatusOut:
-    """Возвращает нормализованный статус полива для прогресс-бара на фронтенде.
+    """Возвращает данные для прогресс-бара и статуса устройства.
 
-    is_online рассчитывается по свежести retained/state, чтобы фронт мог быстро дизейблить управление,
-    а last_seen_at показывает оператору, когда устройство в последний раз выходило на связь.
+    offline_reason помогает фронтенду понять, можно ли управлять устройством:
+      * None — устройство онлайн, кнопки доступные.
+      * "device_offline" — устройство известно, но временно недоступно.
+      * "no_state_yet" — сервер ещё ни разу не видел state от устройства.
     """
 
     view = store.get_manual_watering_view(device_id)
     if view is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Нет данных о состоянии устройства")
-    return ManualWateringStatusOut(**view)
+        # Возвращаем 200 и заполняем пустой ответ, чтобы фронтенд мог заблокировать кнопки
+        # до первого появления устройства, не полагаясь на 404.
+        return ManualWateringStatusOut(
+            status="idle",
+            duration_s=None,
+            started_at=None,
+            remaining_s=None,
+            correlation_id=None,
+            updated_at=None,
+            last_seen_at=None,
+            is_online=False,
+            offline_reason="no_state_yet",
+            source="fallback",
+        )
+
+    offline_reason = None if view.get("is_online") else "device_offline"
+    enriched = dict(view)
+    enriched.setdefault("updated_at", None)
+    enriched.setdefault("last_seen_at", None)
+    enriched["offline_reason"] = offline_reason
+    return ManualWateringStatusOut(**enriched)
 
 
 @router.get("/api/manual-watering/ack", response_model=ManualWateringAckOut)
@@ -246,3 +265,11 @@ if settings.DEBUG:
         # В продакшене эндпоинт выключен, чтобы никто не подменил теневое состояние через HTTP.
         store.update_from_state(payload.device_id, payload.state)
         return {"ok": True}
+
+    """Возвращает данные для прогресс-бара и статуса устройства.
+
+    offline_reason помогает фронтенду принять решение:
+      * None — устройство онлайн, кнопки можно нажимать.
+      * "device_offline" — устройство известно, но сейчас не на связи.
+      * "no_state_yet" — сервер ещё не видел state от устройства, ждём первого подключения.
+    """

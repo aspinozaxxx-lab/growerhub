@@ -184,21 +184,6 @@
             stopBtn.disabled = disabled;
         }
 
-        function setButtonsForStatus(statusValue, isOnline) {
-            if (!isOnline) {
-                setButtonsDisabled(true);
-                return;
-            }
-
-            if (statusValue === "running") {
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
-            } else {
-                startBtn.disabled = false;
-                stopBtn.disabled = true;
-            }
-        }
-
         function resetProgress() {
             progressBar.style.width = "0%";
             progressText.textContent = "Нет активного полива";
@@ -247,24 +232,16 @@
             cancelSlowPoll();
             const deviceId = deviceInput.value.trim();
             if (!deviceId) {
-                showAck("ID устройства не задан — статусы не опрашиваются.");
+                showAck("ID устройства не указан — статусы не опрашиваются.");
                 setButtonsDisabled(true);
                 resetProgress();
+                onlineStatusBlock.textContent = "Статус устройства: неизвестно";
                 return;
             }
 
             try {
+                // Тримим ID и кодируем его в URL, чтобы убрать случайные пробелы и переводы строки из буфера обмена.
                 const response = await fetch(`/api/manual-watering/status?device_id=${encodeURIComponent(deviceId)}`);
-                if (response.status === 404) {
-                    // Такой device_id сервер ещё не видел — сообщаем пользователю.
-                    onlineStatusBlock.textContent = "Устройство не найдено или ещё ни разу не прислало состояние";
-                    showAck("Сервер не знает такого device_id — обновите страницу после появления устройства.");
-                    setButtonsDisabled(true);
-                    resetProgress();
-                    stopFastPoll();
-                    scheduleSlowPoll();
-                    return;
-                }
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
@@ -283,31 +260,39 @@
         }
 
         function renderStatus(status) {
+            const deviceId = deviceInput.value.trim();
             const isOnline = Boolean(status.is_online);
+            const offlineReason = status.offline_reason;
             const lastSeen = status.last_seen_at;
-            const textSuffix = lastSeen ? describeLastSeen(lastSeen) : "нет данных";
+            const lastSeenText = lastSeen ? describeLastSeen(lastSeen) : "нет данных";
 
-            if (isOnline) {
-                onlineStatusBlock.textContent = `Статус устройства: Онлайн ✅ (последняя активность: ${textSuffix})`;
-            } else {
-                onlineStatusBlock.textContent = `Статус устройства: Оффлайн ❌ (последняя активность: ${textSuffix})`;
-            }
-
-            setButtonsForStatus(status.status, isOnline);
-
-            if (!isOnline) {
-                resetProgress();
-                stopFastPoll();
+            if (isOnline && !offlineReason) {
+                onlineStatusBlock.textContent = `Статус устройства: Онлайн ✅ (последняя активность: ${lastSeenText})`;
+                startBtn.disabled = false;
+                stopBtn.disabled = false;
+                updateProgressBar(status);
+                if (status.status === "running") {
+                    startFastPoll();
+                } else {
+                    stopFastPoll();
+                }
                 return;
             }
 
-            updateProgressBar(status);
+            stopFastPoll();
 
-            if (status.status === "running") {
-                startFastPoll();
+            if (offlineReason === "device_offline") {
+                onlineStatusBlock.textContent = "Статус устройства: Оффлайн ❌ (устройство было на связи, но сейчас недоступно)";
+                showAck("Устройство оффлайн — кнопки блокируем.");
+            } else if (offlineReason === "no_state_yet") {
+                onlineStatusBlock.textContent = "Статус устройства: нет данных ❓ (устройство ещё ни разу не выходило на связь)";
+                showAck("Ждём первое подключение устройства — кнопки заблокированы.");
             } else {
-                stopFastPoll();
+                onlineStatusBlock.textContent = "Статус устройства: неизвестно";
             }
+
+            setButtonsDisabled(true);
+            resetProgress();
         }
 
         function describeLastSeen(lastSeenIso) {
@@ -325,6 +310,7 @@
 
         async function startWatering() {
             const deviceId = deviceInput.value.trim();
+            // Перед отправкой команды тримим ID, чтобы убрать случайные пробелы/переводы строки.
             const duration = Number(durationSelect.value);
 
             setButtonsDisabled(true);
@@ -359,6 +345,7 @@
 
         async function stopWatering() {
             const deviceId = deviceInput.value.trim();
+            // Здесь также используем трим, чтобы остановка работала даже с "грязным" ID из буфера обмена.
 
             setButtonsDisabled(true);
             showAck("Останавливаем полив...");

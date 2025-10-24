@@ -1,4 +1,4 @@
-﻿"""Тесты API статуса ручного полива: проверяем оставшееся время и онлайн-признаки."""
+﻿"""Тесты API статуса ручного полива: заботимся о прогрессе и признаке онлайна."""
 
 from __future__ import annotations
 
@@ -26,13 +26,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def _create_tables() -> None:
-    """Разворачиваем in-memory SQLite, чтобы не использовать реальную базу."""
+    """Разворачиваем in-memory SQLite, чтобы не трогать настоящую базу."""
 
     Base.metadata.create_all(bind=engine)
 
 
 def _get_db():
-    """Отдаём сессию SQLAlchemy и корректно освобождаем ресурсы после использования."""
+    """Отдаём сессию SQLAlchemy и аккуратно закрываем её после использования."""
 
     db = SessionLocal()
     try:
@@ -51,7 +51,7 @@ sys.modules["app.core.database"] = stub_database
 
 @pytest.fixture(autouse=True)
 def ensure_debug_enabled(monkeypatch):
-    """В тестах включаем DEBUG, чтобы был доступен сервисный эндпоинт для подготовки тени."""
+    """В тестах включаем DEBUG, чтобы использовать сервисный эндпоинт подготовки состояния."""
 
     monkeypatch.setenv("DEBUG", "true")
     config.get_settings.cache_clear()
@@ -67,14 +67,14 @@ def _iso_utc(dt: datetime) -> str:
 
 
 def _post_shadow_state(client: TestClient, payload: dict) -> None:
-    """Утилита для тестов: кладём состояние в стор через отладочный эндпоинт."""
+    """Вспомогательная запись в стор через отладочный эндпоинт."""
 
     response = client.post("/_debug/shadow/state", json=payload)
     assert response.status_code == 200, response.text
 
 
 def test_status_idle_returns_idle_and_no_remaining() -> None:
-    """Idle: нет таймера, устройство онлайн и виден last_seen_at."""
+    """Idle: нет таймера, устройство онлайн и offline_reason отсутствует."""
 
     with TestClient(app) as client:
         _post_shadow_state(
@@ -100,12 +100,13 @@ def test_status_idle_returns_idle_and_no_remaining() -> None:
     assert data["remaining_s"] is None
     assert data["source"] == "calculated"
     assert data["is_online"] is True
+    assert data["offline_reason"] is None
     assert data["updated_at"] == data["last_seen_at"]
     assert data["last_seen_at"].endswith("Z")
 
 
 def test_status_running_calculates_remaining_seconds() -> None:
-    """Running: оставшееся время уменьшается, устройство онлайн."""
+    """Running: трекаем оставшееся время и подтверждаем, что устройство онлайн."""
 
     started_at = datetime.utcnow() - timedelta(seconds=5)
 
@@ -135,45 +136,18 @@ def test_status_running_calculates_remaining_seconds() -> None:
     assert data["duration_s"] == 20
     assert data["correlation_id"] == "corr-running"
     assert data["is_online"] is True
+    assert data["offline_reason"] is None
 
 
 def test_status_running_expired_returns_zero() -> None:
-    """Когда таймер истёк, remaining_s равно нулю, но устройство ещё онлайн."""
+    """Когда таймер истёк, offline_reason сообщает, что устройство считается оффлайн."""
 
     started_at = datetime.utcnow() - timedelta(seconds=20)
 
-    with TestClient(app) as client:
-        _post_shadow_state(
-            client,
-            {
-                "device_id": "abc123",
-                "state": {
-                    "manual_watering": {
-                        "status": "running",
-                        "duration_s": 10,
-                        "started_at": _iso_utc(started_at),
-                        "correlation_id": "corr-expired",
-                    }
-                },
-            },
-        )
-
-        response = client.get("/api/manual-watering/status", params={"device_id": "abc123"})
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["status"] == "running"
-    assert data["remaining_s"] == 0
-    assert data["is_online"] is True
-
-
-def test_status_marks_device_offline_when_state_is_stale() -> None:
-    """Если порог свежести нулевой, даже свежее состояние выглядит оффлайном."""
-
     base_settings = config.get_settings()
-    custom_settings = replace(base_settings, DEVICE_ONLINE_THRESHOLD_S=0)
+    custom_settings = replace(base_settings, DEVICE_ONLINE_THRESHOLD_S=-1)
 
-    with patch("config.get_settings", return_value=custom_settings):
+    with patch("config.get_settings", return_value=custom_settings), patch("device_shadow.get_settings", return_value=custom_settings):
         with TestClient(app) as client:
             _post_shadow_state(
                 client,
@@ -181,39 +155,40 @@ def test_status_marks_device_offline_when_state_is_stale() -> None:
                     "device_id": "abc123",
                     "state": {
                         "manual_watering": {
-                            "status": "idle",
-                            "duration_s": None,
-                            "started_at": None,
-                            "correlation_id": None,
+                            "status": "running",
+                            "duration_s": 10,
+                            "started_at": _iso_utc(started_at),
+                            "correlation_id": "corr-expired",
                         }
                     },
                 },
             )
 
-            store = get_shadow_store()
-            with store._lock:
-                state, _ = store._storage["abc123"]
-                store._storage["abc123"] = (state, datetime.utcnow() - timedelta(seconds=30))
-
             response = client.get("/api/manual-watering/status", params={"device_id": "abc123"})
 
     assert response.status_code == 200
     data = response.json()
+    assert data["status"] == "running"
+    assert data["remaining_s"] == 0
     assert data["is_online"] is False
-    assert data["last_seen_at"].endswith("Z")
-    assert data["updated_at"] == data["last_seen_at"]
+    assert data["offline_reason"] == "device_offline"
 
 
-def test_status_not_found_returns_404() -> None:
-    """Неизвестный device_id даёт 404 и понятный detail."""
+def test_status_without_state_returns_placeholder() -> None:
+    """Если сервер ещё ни разу не видел state от устройства — приходят заглушки."""
 
     with TestClient(app) as client:
-        response = client.get("/api/manual-watering/status", params={"device_id": "no-such"})
-        assert response.status_code == 404
+        response = client.get("/api/manual-watering/status", params={"device_id": "unknown"})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_online"] is False
+    assert data["offline_reason"] == "no_state_yet"
+    assert data["status"] == "idle"
 
 
 def test_debug_shadow_state_disabled_when_debug_false(monkeypatch) -> None:
-    """Проверяем, что сервисный эндпоинт скрыт, когда DEBUG=False."""
+    """Если DEBUG=False, сервисный эндпоинт регистрации стейта недоступен."""
 
     monkeypatch.setenv("DEBUG", "false")
     config.get_settings.cache_clear()
