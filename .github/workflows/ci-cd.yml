@@ -3,6 +3,9 @@ name: CI/CD (test → deploy)
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - "server/**"
+      - "static/**"
   workflow_dispatch:
 
 jobs:

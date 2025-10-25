@@ -1,1 +1,1 @@
-/etc/nginx/sites-available/growerhub.ru
+D:/etc/nginx/sites-available/growerhub.ru
