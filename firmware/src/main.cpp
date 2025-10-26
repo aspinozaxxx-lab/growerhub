@@ -15,8 +15,6 @@ const char* FW_VERSION = "esp32-alpha1";
 
 // Адрес брокера Mosquitto. Нельзя использовать 127.0.0.1, потому что с точки зрения ESP32 это локальная петля.
 
-// Учётка Mosquitto для отладки.
-
 // Каналы MQTT: команды, ACK и retained state.
 
 // Сетевой стек.
@@ -44,6 +42,10 @@ static uint32_t g_wateringDurationSec = 0;     // Сколько секунд п
 static uint32_t g_wateringStartMillis = 0;     // Момент включения насоса (millis) для таймаута.
 static String g_activeCorrelationId = "";      // correlation_id последней команды pump.start.
 static String g_wateringStartIso8601 = "";     // ISO8601 времени старта. Пока заглушка, позже будет реальное UTC.
+
+// --- Периодическая отправка state (heartbeat) ---
+static unsigned long lastHeartbeatMs = 0;
+const unsigned long HEARTBEAT_INTERVAL_MS = 20000; // каждые 20 секунд
 
 WateringApplication app;
 
@@ -128,6 +130,15 @@ void loop() {
         lastMqttReconnectAttempt = 0;
     }
 
+    // === Heartbeat publish ===
+    if (wifiConnected && mqttClient.connected()) {
+        unsigned long nowMs = millis();
+        if (nowMs - lastHeartbeatMs >= HEARTBEAT_INTERVAL_MS) {
+            publishCurrentState(); // отправляем тот же retained state
+            lastHeartbeatMs = nowMs;
+        }
+    }
+
     app.update();
 
     // ?>?'??????? ??????????, ??'???+?< ???? ???????'???'? CPU ???? 100%.
@@ -136,8 +147,9 @@ void loop() {
 
 
 static void configureWifiNetworks() {
-    g_wifiMulti.cleanAPlist();
-    WiFi.setAutoReconnect(true);
+    // WiFiMulti не имеет cleanAPlist() в ESP32 core.
+    // Мы просто пересоздаём список точек один раз в setup().
+    WiFi.setAutoReconnect(true);   
 
     const int totalNetworks = g_settings.getWiFiCount();
     if (totalNetworks <= 0) {
@@ -170,7 +182,9 @@ static void updateWifiConnection() {
     if (status == WL_CONNECTED) {
         if (g_lastWifiStatus != WL_CONNECTED) {
             Serial.print(F("Wi-Fi connected, IP: "));
-            Serial.println(WiFi.localIP());
+            Serial.print(WiFi.localIP());
+            Serial.print(F(" Wi-Fi AP: "));
+            Serial.println(WiFi.SSID());
         }
         g_wifiAttemptCounter = 0;
         g_wifiNextAttemptMillis = now + WIFI_RETRY_INTERVAL_MS;
@@ -203,10 +217,12 @@ static void updateWifiConnection() {
     g_wifiLoggedNoNetworks = false;
 
     Serial.println(F("WiFiMulti attempting connection..."));
-    wl_status_t result = g_wifiMulti.run();
+    wl_status_t result = (wl_status_t) g_wifiMulti.run();
     if (result == WL_CONNECTED) {
         Serial.print(F("Wi-Fi connected, IP: "));
-        Serial.println(WiFi.localIP());
+        Serial.print(WiFi.localIP());
+        Serial.print(F(" Wi-Fi AP: "));
+        Serial.println(WiFi.SSID());
         g_wifiAttemptCounter = 0;
         g_wifiNextAttemptMillis = now + WIFI_RETRY_INTERVAL_MS;
         g_lastWifiStatus = WL_CONNECTED;
