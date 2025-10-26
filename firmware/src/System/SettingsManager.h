@@ -70,6 +70,10 @@ struct SystemSettings {
     WiFiCredential wifi[10]; // до 10 сетей
     uint8_t wifiCount;       // текущее число пользовательских сетей
     char serverURL[64];
+    char mqttHost[64];
+    uint16_t mqttPort;
+    char mqttUser[32];
+    char mqttPass[32];
     char deviceID[16];
     
     int soilDryValue;
@@ -91,6 +95,11 @@ private:
     WiFiCredential defaultWifi[10];
     uint8_t defaultWifiCount = 0;
     String defaultServerURL = String("https://growerhub.ru");
+    String defaultMqttHost;
+    uint16_t defaultMqttPort = 1883;
+    String defaultMqttUser;
+    String defaultMqttPass;
+    String defaultDeviceID;
     
 public:
     SettingsManager();
@@ -108,6 +117,10 @@ public:
     String getServerURL(); // base server URL from built-in defaults
     String getServerCAPem(); // CA certificate from built-in defaults
     String getDeviceID();
+    String getMqttHost();
+    uint16_t getMqttPort();
+    String getMqttUser();
+    String getMqttPass();
     int getSoilDryValue();
     int getSoilWetValue();
     float getWateringThreshold();
@@ -130,4 +143,5 @@ private:
     String generateDeviceIDFromMAC();
     void loadBuiltinDefaults();
     String defaultServerCAPem;
+    String getStringOrDefault(const char* value, const String& fallback);
 };

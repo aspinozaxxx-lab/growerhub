@@ -2,6 +2,7 @@
 #include "SettingsManager.h"
 
 SettingsManager::SettingsManager() : settingsLoaded(false) {
+    memset(&settings, 0, sizeof(settings));
     loadBuiltinDefaults();
     // Значения по умолчанию
     resetToDefaults();
@@ -23,6 +24,7 @@ bool SettingsManager::loadSettings() {
     } else {
         Serial.println("Invalid settings CRC, using defaults");
         resetToDefaults();
+        saveSettings();
         return false;
     }
 }
@@ -35,16 +37,32 @@ bool SettingsManager::saveSettings() {
 
 void SettingsManager::resetToDefaults() {
     // Пользовательских сетей по умолчанию нет (используем встроенные значения)
-    memset(settings.wifi, 0, sizeof(settings.wifi));
+    memset(&settings, 0, sizeof(settings));
     settings.wifiCount = 0;
 
     // Базовый URL сервера (без дублирования /api в путях)
     // Адрес сервера больше не хранится в EEPROM
-    settings.serverURL[0] = '\0';
+    if (defaultServerURL.length() > 0) {
+        strncpy(settings.serverURL, defaultServerURL.c_str(), sizeof(settings.serverURL) - 1);
+    }
      
     // Генерация DeviceID из MAC-адреса
-    String generatedDeviceID = generateDeviceIDFromMAC();
-    strncpy(settings.deviceID, generatedDeviceID.c_str(), sizeof(settings.deviceID)-1);
+    if (defaultMqttHost.length() > 0) {
+        strncpy(settings.mqttHost, defaultMqttHost.c_str(), sizeof(settings.mqttHost) - 1);
+    }
+    settings.mqttPort = defaultMqttPort != 0 ? defaultMqttPort : 1883;
+    if (defaultMqttUser.length() > 0) {
+        strncpy(settings.mqttUser, defaultMqttUser.c_str(), sizeof(settings.mqttUser) - 1);
+    }
+    if (defaultMqttPass.length() > 0) {
+        strncpy(settings.mqttPass, defaultMqttPass.c_str(), sizeof(settings.mqttPass) - 1);
+    }
+
+    String deviceId = defaultDeviceID.length() > 0 ? defaultDeviceID : generateDeviceIDFromMAC();
+    if (deviceId.length() == 0) {
+        deviceId = generateDeviceIDFromMAC();
+    }
+    strncpy(settings.deviceID, deviceId.c_str(), sizeof(settings.deviceID) - 1);
 
     settings.soilDryValue = 4095;
     settings.soilWetValue = 1800;
@@ -84,20 +102,24 @@ String SettingsManager::getPassword() {
     return String(""); 
 }
 int SettingsManager::getWiFiCount() { 
-    return (settings.wifiCount > 0) ? (int)settings.wifiCount : (int)defaultWifiCount; 
+    return static_cast<int>(settings.wifiCount) + static_cast<int>(defaultWifiCount); 
 }
 bool SettingsManager::getWiFiCredential(int index, String& ssid, String& password) {
-    if (settings.wifiCount > 0) {
-        if (index < 0 || index >= (int)settings.wifiCount) return false;
+    if (index < 0) {
+        return false;
+    }
+    if (index < static_cast<int>(settings.wifiCount)) {
         ssid = String(settings.wifi[index].ssid);
         password = String(settings.wifi[index].password);
         return true;
-    } else {
-        if (index < 0 || index >= (int)defaultWifiCount) return false;
-        ssid = String(defaultWifi[index].ssid);
-        password = String(defaultWifi[index].password);
-        return true;
     }
+    int defaultIndex = index - static_cast<int>(settings.wifiCount);
+    if (defaultIndex < 0 || defaultIndex >= static_cast<int>(defaultWifiCount)) {
+        return false;
+    }
+    ssid = String(defaultWifi[defaultIndex].ssid);
+    password = String(defaultWifi[defaultIndex].password);
+    return true;
 }
 String SettingsManager::getServerURL() { 
     return defaultServerURL; 
@@ -106,7 +128,34 @@ String SettingsManager::getServerURL() {
 String SettingsManager::getServerCAPem() {
     return defaultServerCAPem;
 }
-String SettingsManager::getDeviceID() { return String(settings.deviceID); }
+String SettingsManager::getDeviceID() {
+    if (settings.deviceID[0] == '\0') {
+        String fallback = defaultDeviceID.length() > 0 ? defaultDeviceID : generateDeviceIDFromMAC();
+        if (fallback.length() == 0) {
+            fallback = generateDeviceIDFromMAC();
+        }
+        strncpy(settings.deviceID, fallback.c_str(), sizeof(settings.deviceID) - 1);
+        saveSettings();
+        return fallback;
+    }
+    return String(settings.deviceID);
+}
+
+String SettingsManager::getMqttHost() {
+    return getStringOrDefault(settings.mqttHost, defaultMqttHost);
+}
+
+uint16_t SettingsManager::getMqttPort() {
+    return settings.mqttPort != 0 ? settings.mqttPort : defaultMqttPort;
+}
+
+String SettingsManager::getMqttUser() {
+    return getStringOrDefault(settings.mqttUser, defaultMqttUser);
+}
+
+String SettingsManager::getMqttPass() {
+    return getStringOrDefault(settings.mqttPass, defaultMqttPass);
+}
 int SettingsManager::getSoilDryValue() { return settings.soilDryValue; }
 int SettingsManager::getSoilWetValue() { return settings.soilWetValue; }
 float SettingsManager::getWateringThreshold() { return settings.wateringThreshold; }
@@ -200,5 +249,16 @@ void SettingsManager::loadBuiltinDefaults() {
     }
     defaultServerURL = String(defaults.serverURL ? defaults.serverURL : "");
     defaultServerCAPem = String(defaults.serverCAPem ? defaults.serverCAPem : "");
+    defaultMqttHost = String("growerhub.ru");
+    defaultMqttPort = 1883;
+    defaultMqttUser = String("mosquitto-admin");
+    defaultMqttPass = String("qazwsxedc");
+    defaultDeviceID = String("ESP32_2C294C");
 }
 
+String SettingsManager::getStringOrDefault(const char* value, const String& fallback) {
+    if (value && value[0] != '\0') {
+        return String(value);
+    }
+    return fallback;
+}

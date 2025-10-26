@@ -1,39 +1,39 @@
 #include <Arduino.h>
 #include <WiFi.h>
+#include <WiFiMulti.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include "System/SettingsManager.h"
 #include "Application.h"
 
 // Уникальный идентификатор устройства = MQTT clientId. Сервер и брокер используют его,
 // чтобы понять, какое железо получило команду и кто должен вернуть ACK/state.
-const char* DEVICE_ID = "ESP32_2C294C";
 // Версия прошивки, публикуемая в state, чтобы фронтенд видел активную сборку.
 const char* FW_VERSION = "esp32-alpha1";
 
 // Временные Wi-Fi креды. Перед боевой прошивкой подставим реальные SSID/PASS.
-const char* WIFI_SSID = "YOUR_WIFI";
-const char* WIFI_PASS = "YOUR_PASS";
 
 // Адрес брокера Mosquitto. Нельзя использовать 127.0.0.1, потому что с точки зрения ESP32 это локальная петля.
-const char* MQTT_HOST = "192.168.0.11";
-const uint16_t MQTT_PORT = 1883;
 
 // Учётка Mosquitto для отладки.
-const char* MQTT_USER = "mosquitto-admin";
-const char* MQTT_PASS = "qazwsxedc";
 
 // Каналы MQTT: команды, ACK и retained state.
-const char* CMD_TOPIC = "gh/dev/ESP32_2C294C/cmd";   // Сервер шлёт сюда pump.start/pump.stop.
-const char* ACK_TOPIC = "gh/dev/ESP32_2C294C/ack";   // Устройство подтверждает приём команд (без retain).
-const char* STATE_TOPIC = "gh/dev/ESP32_2C294C/state"; // Retained state: сервер/фронт читают текущее состояние устройства.
 
 // Сетевой стек.
+SettingsManager g_settings;
+WiFiMulti g_wifiMulti;
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
 // Контроль частоты реконнектов MQTT.
 unsigned long lastMqttReconnectAttempt = 0;
 const unsigned long MQTT_RECONNECT_INTERVAL_MS = 5000;
+static const unsigned long WIFI_RETRY_INTERVAL_MS = 5000;
+static const unsigned long WIFI_BACKOFF_INTERVAL_MS = 20000;
+static unsigned long g_wifiNextAttemptMillis = 0;
+static uint16_t g_wifiAttemptCounter = 0;
+static bool g_wifiLoggedNoNetworks = false;
+static wl_status_t g_lastWifiStatus = WL_IDLE_STATUS;
 
 // Текущее состояние ручного полива. Эти поля понадобятся шагам 3+:
 //  - ACK (чтобы ответить accepted/error с нужным correlation_id),
@@ -47,8 +47,9 @@ static String g_wateringStartIso8601 = "";     // ISO8601 времени ста�
 
 WateringApplication app;
 
-static void connectToWiFi();
-static void ensureWifiConnected();
+static void configureWifiNetworks();
+static void updateWifiConnection();
+static String buildDeviceTopic(const char* suffix);
 static void startManualWatering(uint32_t durationSec, const String& correlationId);
 static void stopManualWatering(const String& correlationId);
 static void publishAckAccepted(const String& correlationId, const char* statusText);
@@ -61,87 +62,173 @@ void setup() {
     Serial.begin(115200);
     Serial.println();
     Serial.println(F("GrowerHub ESP32 ManualWatering v0.1 (MQTT step4)"));
-    Serial.print(F("Текущий DEVICE_ID: "));
-    Serial.println(DEVICE_ID);
 
-    // Подключаемся к Wi-Fi как станция и ждём IP, чтобы сразу тестировать MQTT-цепочку.
-    connectToWiFi();
-
-    mqttClient.setServer(MQTT_HOST, MQTT_PORT);
-    mqttClient.setCallback(mqttCallback);
-
-    if (mqttReconnect()) {
-        Serial.println(F("MQTT подключение установлено, подписка активна."));
+    bool settingsLoaded = g_settings.begin();
+    if (!settingsLoaded) {
+        Serial.println(F("Settings CRC invalid, using defaults."));
     } else {
-        Serial.print(F("MQTT подключиться не удалось, код состояния клиента: "));
-        Serial.println(mqttClient.state());
+        Serial.println(F("Settings loaded from EEPROM."));
     }
 
-    // Стартуем основное приложение: сенсоры, HTTP, планировщик задач и прочие подсистемы GrowerHub.
+    String deviceId = g_settings.getDeviceID();
+    Serial.print(F("Current DEVICE_ID: "));
+    Serial.println(deviceId);
+
+    WiFi.mode(WIFI_STA);
+    configureWifiNetworks();
+    g_wifiNextAttemptMillis = 0;
+    g_wifiAttemptCounter = 0;
+    g_wifiLoggedNoNetworks = false;
+    g_lastWifiStatus = WiFi.status();
+    updateWifiConnection();
+
+    mqttClient.setCallback(mqttCallback);
+
     app.begin();
     delay(3000);
-    app.checkRelayStates(); // TODO: синхронизировать с MQTT state, когда появится полноценная диагностика.
+    app.checkRelayStates(); // TODO: ?????????? ? MQTT state, ????? ?????? ????????? ?????????.
 }
 
 void loop() {
-    // === Контроль Wi-Fi ===
-    ensureWifiConnected();
+    // === Wi-Fi state machine ===
+    updateWifiConnection();
 
-    // === Автоостановка ручного полива по таймеру ===
+    // === ?????'???????'??????????? ????????????? ?????>????? ???? ?'??????????? ===
     if (g_isWatering && g_wateringDurationSec > 0) {
         const unsigned long elapsedMs = millis() - g_wateringStartMillis;
         const unsigned long plannedMs = static_cast<unsigned long>(g_wateringDurationSec) * 1000UL;
         if (elapsedMs >= plannedMs) {
-            Serial.println(F("Полив завершён по таймеру duration_s, выключаем насос (auto-timeout)."));
+            Serial.println(F("?????>??? ????????????'?? ???? ?'??????????? duration_s, ???<??>???????? ?????????? (auto-timeout)."));
             stopManualWatering(String("auto-timeout"));
-            publishCurrentState(); // Важно: фронтенд должен увидеть, что полив завершился и кнопки можно разблокировать.
-            // TODO: когда появится логика финального ACK/state о завершении по таймеру, реализовать её здесь.
+            publishCurrentState(); // ?'??????????: ?"???????'????? ?????>?????????? ?????????'??, ??'?? ?????>??? ?????????????>???? ?? ?????????? ??????'?? ???????+?>?????????????'??.
+            // TODO: ????????? ??????????'???? ?>???????? ?"??????>?????????? ACK/state ?? ????????????????? ???? ?'???????????, ??????>??????????'?? ??' ?????????.
         }
     }
 
     // === MQTT keepalive ===
-    if (mqttClient.connected()) {
-        mqttClient.loop();
-    } else {
-        const unsigned long now = millis();
-        if (now - lastMqttReconnectAttempt >= MQTT_RECONNECT_INTERVAL_MS) {
-            lastMqttReconnectAttempt = now;
-            Serial.println(F("MQTT не подключен, пробуем переподключиться..."));
-            if (mqttReconnect()) {
-                Serial.println(F("MQTT переподключение успешно, подписка восстановлена."));
-                lastMqttReconnectAttempt = 0;
+    const bool wifiConnected = (WiFi.status() == WL_CONNECTED);
+    if (wifiConnected) {
+        if (mqttClient.connected()) {
+            mqttClient.loop();
+        } else {
+            const unsigned long now = millis();
+            if (now - lastMqttReconnectAttempt >= MQTT_RECONNECT_INTERVAL_MS) {
+                lastMqttReconnectAttempt = now;
+                Serial.println(F("MQTT not connected, retrying..."));
+                if (mqttReconnect()) {
+                    Serial.println(F("MQTT reconnected successfully."));
+                    lastMqttReconnectAttempt = 0;
+                }
             }
         }
+    } else {
+        if (mqttClient.connected()) {
+            mqttClient.disconnect();
+        }
+        lastMqttReconnectAttempt = 0;
     }
 
     app.update();
 
-    // Лёгкая пауза, чтобы не держать CPU на 100%.
+    // ?>?'??????? ??????????, ??'???+?< ???? ???????'???'? CPU ???? 100%.
     delay(10);
 }
 
-static void connectToWiFi() {
-    WiFi.mode(WIFI_STA);
-    Serial.print(F("Подключаемся к Wi-Fi SSID: "));
-    Serial.println(WIFI_SSID);
 
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
+static void configureWifiNetworks() {
+    g_wifiMulti.cleanAPlist();
+    WiFi.setAutoReconnect(true);
 
-    while (WiFi.status() != WL_CONNECTED) {
-        Serial.print('.');
-        delay(500);
-    }
-    Serial.println();
-    Serial.print(F("Wi-Fi подключен, локальный IP: "));
-    Serial.println(WiFi.localIP());
-}
-
-static void ensureWifiConnected() {
-    if (WiFi.status() == WL_CONNECTED) {
+    const int totalNetworks = g_settings.getWiFiCount();
+    if (totalNetworks <= 0) {
+        Serial.println(F("No Wi-Fi networks configured (user or defaults)."));
+        g_wifiLoggedNoNetworks = true;
         return;
     }
-    Serial.println(F("Wi-Fi отключился, переподключаемся..."));
-    connectToWiFi();
+
+    for (int i = 0; i < totalNetworks; ++i) {
+        String ssid;
+        String password;
+        if (!g_settings.getWiFiCredential(i, ssid, password)) {
+            continue;
+        }
+        if (ssid.length() == 0) {
+            continue;
+        }
+        g_wifiMulti.addAP(ssid.c_str(), password.c_str());
+        Serial.print(F("Configured Wi-Fi network: "));
+        Serial.println(ssid);
+    }
+
+    g_wifiLoggedNoNetworks = false;
+}
+
+static void updateWifiConnection() {
+    const unsigned long now = millis();
+    const wl_status_t status = WiFi.status();
+
+    if (status == WL_CONNECTED) {
+        if (g_lastWifiStatus != WL_CONNECTED) {
+            Serial.print(F("Wi-Fi connected, IP: "));
+            Serial.println(WiFi.localIP());
+        }
+        g_wifiAttemptCounter = 0;
+        g_wifiNextAttemptMillis = now + WIFI_RETRY_INTERVAL_MS;
+        g_lastWifiStatus = WL_CONNECTED;
+        return;
+    }
+
+    if (g_lastWifiStatus == WL_CONNECTED) {
+        Serial.println(F("Wi-Fi connection lost, will retry via WiFiMulti."));
+        if (mqttClient.connected()) {
+            mqttClient.disconnect();
+        }
+        lastMqttReconnectAttempt = 0;
+    }
+    g_lastWifiStatus = status;
+
+    if (now < g_wifiNextAttemptMillis) {
+        return;
+    }
+
+    const int totalNetworks = g_settings.getWiFiCount();
+    if (totalNetworks <= 0) {
+        if (!g_wifiLoggedNoNetworks) {
+            Serial.println(F("No Wi-Fi networks available for WiFiMulti, backing off."));
+            g_wifiLoggedNoNetworks = true;
+        }
+        g_wifiNextAttemptMillis = now + WIFI_BACKOFF_INTERVAL_MS;
+        return;
+    }
+    g_wifiLoggedNoNetworks = false;
+
+    Serial.println(F("WiFiMulti attempting connection..."));
+    wl_status_t result = g_wifiMulti.run();
+    if (result == WL_CONNECTED) {
+        Serial.print(F("Wi-Fi connected, IP: "));
+        Serial.println(WiFi.localIP());
+        g_wifiAttemptCounter = 0;
+        g_wifiNextAttemptMillis = now + WIFI_RETRY_INTERVAL_MS;
+        g_lastWifiStatus = WL_CONNECTED;
+        return;
+    }
+
+    g_wifiAttemptCounter++;
+    if (g_wifiAttemptCounter >= static_cast<uint16_t>(totalNetworks)) {
+        Serial.println(F("Failed to connect to all Wi-Fi networks, backing off."));
+        g_wifiAttemptCounter = 0;
+        g_wifiNextAttemptMillis = now + WIFI_BACKOFF_INTERVAL_MS;
+    } else {
+        g_wifiNextAttemptMillis = now + WIFI_RETRY_INTERVAL_MS;
+    }
+}
+
+static String buildDeviceTopic(const char* suffix) {
+    String topic = "gh/dev/";
+    topic += g_settings.getDeviceID();
+    topic += "/";
+    topic += suffix;
+    return topic;
 }
 
 static void startManualWatering(uint32_t durationSec, const String& correlationId) {
@@ -206,7 +293,8 @@ static void publishAckAccepted(const String& correlationId, const char* statusTe
 
     Serial.print(F("Отправляем ACK (accepted) в брокер: "));
     Serial.println(payload);
-    mqttClient.publish(ACK_TOPIC, payload.c_str(), false);
+    const String ackTopic = buildDeviceTopic("ack");
+    mqttClient.publish(ackTopic.c_str(), payload.c_str(), false);
 }
 
 static void publishAckError(const String& correlationId, const char* reasonText) {
@@ -222,7 +310,8 @@ static void publishAckError(const String& correlationId, const char* reasonText)
 
     Serial.print(F("Отправляем ACK (error) в брокер: "));
     Serial.println(payload);
-    mqttClient.publish(ACK_TOPIC, payload.c_str(), false);
+    const String ackTopic = buildDeviceTopic("ack");
+    mqttClient.publish(ackTopic.c_str(), payload.c_str(), false);
 }
 
 static void publishCurrentState() {
@@ -259,7 +348,8 @@ static void publishCurrentState() {
 
     Serial.print(F("Отправляем state (retained) в брокер: "));
     Serial.println(payload);
-    mqttClient.publish(STATE_TOPIC, payload.c_str(), true); // retain=true: брокер хранит снимок.
+    String topic = "gh/dev/" + g_settings.getDeviceID() + "/state";
+    mqttClient.publish(topic.c_str(), payload.c_str(), true); // retain=true: брокер хранит снимок.
 }
 
 static void mqttCallback(char* topic, byte* payload, unsigned int length) {
@@ -350,25 +440,38 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
 }
 
 static bool mqttReconnect() {
-    Serial.print(F("Пробуем подключиться к MQTT как "));
-    Serial.println(DEVICE_ID);
+    if (WiFi.status() != WL_CONNECTED) {
+        return false;
+    }
 
-    if (mqttClient.connect(DEVICE_ID, MQTT_USER, MQTT_PASS)) {
-        Serial.println(F("MQTT соединение установлено, подписываемся на командный топик..."));
-        // После реконнекта брокер забывает подписки, поэтому оформляем их заново.
-        if (mqttClient.subscribe(CMD_TOPIC, 1)) {
-            Serial.print(F("Подписались на "));
-            Serial.print(CMD_TOPIC);
-            Serial.println(F(" с QoS=1."));
-            // После успешной подписки объявляем текущее состояние, чтобы сервер видел устройство онлайн сразу после реконнекта.
+    String clientId = g_settings.getDeviceID();
+    String host = g_settings.getMqttHost();
+    uint16_t port = g_settings.getMqttPort();
+    String user = g_settings.getMqttUser();
+    String pass = g_settings.getMqttPass();
+
+    mqttClient.setServer(host.c_str(), port);
+
+    Serial.print(F("MQTT connect as "));
+    Serial.println(clientId);
+
+    if (mqttClient.connect(clientId.c_str(), user.c_str(), pass.c_str())) {
+        Serial.println(F("MQTT connected, subscribing..."));
+        String cmdTopic = buildDeviceTopic("cmd");
+        if (mqttClient.subscribe(cmdTopic.c_str(), 1)) {
+            Serial.print(F("Subscribed to "));
+            Serial.println(cmdTopic);
             publishCurrentState();
         } else {
-            Serial.println(F("Не удалось подписаться на командный топик — попробуем снова при следующем реконнекте."));
+            Serial.println(F("Failed to subscribe to command topic."));
         }
         return true;
     }
 
-    Serial.print(F("MQTT connect вернул ошибку, состояние клиента: "));
+    Serial.print(F("MQTT connect failed, state="));
     Serial.println(mqttClient.state());
     return false;
 }
+
+
+
