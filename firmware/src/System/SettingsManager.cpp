@@ -77,7 +77,7 @@ String SettingsManager::generateDeviceIDFromMAC() {
     uint8_t mac[6];
     esp_efuse_mac_get_default(mac);
     
-    String deviceID = "esp32_";
+    String deviceID = "grovika_";
     // Берем последние 3 байта MAC-адреса
     for (int i = 3; i < 6; i++) {
         if (mac[i] < 0x10) {
@@ -253,7 +253,7 @@ void SettingsManager::loadBuiltinDefaults() {
     defaultMqttPort = 1883;
     defaultMqttUser = String("mosquitto-admin");
     defaultMqttPass = String("qazwsxedc");
-    defaultDeviceID = String("ESP32_2C294C");
+    defaultDeviceID = generateDeviceIDFromMAC();    
 }
 
 String SettingsManager::getStringOrDefault(const char* value, const String& fallback) {

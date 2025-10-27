@@ -9,7 +9,7 @@
 // Уникальный идентификатор устройства = MQTT clientId. Сервер и брокер используют его,
 // чтобы понять, какое железо получило команду и кто должен вернуть ACK/state.
 // Версия прошивки, публикуемая в state, чтобы фронтенд видел активную сборку.
-const char* FW_VERSION = "esp32-alpha1";
+const char* FW_VERSION = "grovika-alpha1";
 
 // Временные Wi-Fi креды. Перед боевой прошивкой подставим реальные SSID/PASS.
 
@@ -63,7 +63,7 @@ static bool mqttReconnect();
 void setup() {
     Serial.begin(115200);
     Serial.println();
-    Serial.println(F("GrowerHub ESP32 ManualWatering v0.1 (MQTT step4)"));
+    Serial.println(F("GrowerHub Grovika ManualWatering v0.1 (MQTT step4)"));
 
     bool settingsLoaded = g_settings.begin();
     if (!settingsLoaded) {

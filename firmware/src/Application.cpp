@@ -36,7 +36,7 @@ void WateringApplication::update() {
     // Логирование состояний каждые 10 секунд
     static unsigned long lastStateLog = 0;
     if (millis() - lastStateLog > 10000) {
-        Serial.println("ESP32 States - Pump: " + String(actuatorManager.isWaterPumpRunning() ? "ON" : "OFF") + 
+        Serial.println("Grovika States - Pump: " + String(actuatorManager.isWaterPumpRunning() ? "ON" : "OFF") + 
                       ", Light: " + String(actuatorManager.isLightOn() ? "ON" : "OFF"));
         lastStateLog = millis();
     }
