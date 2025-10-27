@@ -66,22 +66,6 @@ void WateringApplication::update() {
     }
 }
 
-void WateringApplication::factoryReset() {
-    Serial.println("Performing factory reset...");
-    settingsManager.resetToDefaults();
-    settingsManager.saveSettings();
-    
-    // ПЕРЕИНИЦИАЛИЗИРУЕМ HTTP КЛИЕНТ
-    httpClient.begin(
-        settingsManager.getServerURL(),
-        settingsManager.getDeviceID(),
-        settingsManager.getServerCAPem()
-    );
-    
-    Serial.println("Settings reset to defaults");
-    Serial.println("DeviceID: " + settingsManager.getDeviceID());
-}
-
 void WateringApplication::updateActuatorTest() {
     if (!testingActuators) return;
     

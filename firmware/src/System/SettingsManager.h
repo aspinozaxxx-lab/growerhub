@@ -1,23 +1,59 @@
 // firmware/src/System/SettingsManager.h
 #pragma once
-#include <EEPROM.h>
+//#include <EEPROM.h>
 #include <Arduino.h>
 #include "esp_efuse.h"
 
-struct DefaultAccessPoint {
+/* struct DefaultAccessPoint {
     const char* ssid;
     const char* password;
+}; */
+
+struct WiFiCredential {
+    String ssid;
+    String password;
 };
 
+/* struct WiFiCredential {
+    char ssid[32];
+    char password[32];
+}; */
 struct DefaultNetworkProfile {
     static const uint8_t MAX_WIFI = 10;
     uint8_t wifiCount;
-    DefaultAccessPoint wifi[MAX_WIFI];
+    WiFiCredential wifi[MAX_WIFI];
     const char* serverURL;
     const char* serverCAPem;
 };
 
-constexpr DefaultNetworkProfile BUILTIN_NETWORK_DEFAULTS = {
+struct SystemSettings {
+    // Пользовательские сети (если заданы пользователем и сохранены)
+    WiFiCredential wifi[10]; // до 10 сетей
+    uint8_t wifiCount;       // текущее число пользовательских сетей
+    //char serverURL[64];
+    String serverURL;
+    //har mqttHost[64];
+    String mqttHost;
+    uint16_t mqttPort;
+    //char mqttUser[32];
+    //char mqttPass[32];
+    //char deviceID[16];
+    String mqttUser;
+    String mqttPass;
+    String deviceID;
+    int soilDryValue;
+    int soilWetValue;
+    float wateringThreshold;
+    unsigned long pumpMaxRunTime;
+    String serverCAPem;
+    
+   // uint32_t crc;
+};
+
+class SettingsManager {
+private:
+    SystemSettings settings;
+    DefaultNetworkProfile BUILTIN_NETWORK_DEFAULTS = {
     3,
     {
         {"JR", "qazwsxedc"},
@@ -59,59 +95,18 @@ YRmT7/OXpmOH/FVLtwS+8ng1cAmpCujPwteJZNcDG0sF2n/sc0+SQf49fdyUK0ty
 +VUwFj9tmWxyR/M=
 -----END CERTIFICATE-----)"
 };
-
-struct WiFiCredential {
-    char ssid[32];
-    char password[32];
-};
-
-struct SystemSettings {
-    // Пользовательские сети (если заданы пользователем и сохранены)
-    WiFiCredential wifi[10]; // до 10 сетей
-    uint8_t wifiCount;       // текущее число пользовательских сетей
-    char serverURL[64];
-    char mqttHost[64];
-    uint16_t mqttPort;
-    char mqttUser[32];
-    char mqttPass[32];
-    char deviceID[16];
-    
-    int soilDryValue;
-    int soilWetValue;
-    float wateringThreshold;
-    unsigned long pumpMaxRunTime;
-    
-    uint32_t crc;
-};
-
-class SettingsManager {
-private:
-    SystemSettings settings;
-    bool settingsLoaded;
-    const int EEPROM_SIZE = 1024; // EEPROM size allows storing up to 10 Wi-Fi entries
-    const int SETTINGS_ADDRESS = 0;
-
-    // Built-in defaults (not stored in EEPROM)
-    WiFiCredential defaultWifi[10];
-    uint8_t defaultWifiCount = 0;
-    String defaultServerURL = String("https://growerhub.ru");
-    String defaultMqttHost;
-    uint16_t defaultMqttPort = 1883;
-    String defaultMqttUser;
-    String defaultMqttPass;
-    String defaultDeviceID;
     
 public:
     SettingsManager();
     
-    bool begin();
-    bool loadSettings();
-    bool saveSettings();
-    void resetToDefaults();
+    void begin();
+    /* bool loadSettings();
+    bool saveSettings();*/
+    void SetSettings(); 
     
     // Getters
-    String getSSID();      // first SSID from user settings or built-in defaults
-    String getPassword();  // password for the first SSID
+    //String getSSID();      // first SSID from user settings or built-in defaults
+    //String getPassword();  // password for the first SSID
     int getWiFiCount();    // number of user or default networks
     bool getWiFiCredential(int index, String& ssid, String& password);
     String getServerURL(); // base server URL from built-in defaults
@@ -127,10 +122,12 @@ public:
     unsigned long getPumpMaxRunTime();
     
     // Setters
-    void setWiFiCredentials(const String& ssid, const String& password); // заменяет [0]
+    /* void setWiFiCredentials(const String& ssid, const String& password); // заменяет [0]
     bool addWiFiCredential(const String& ssid, const String& password);  // добавляет, до 10
     void clearWiFiCredentials();
     void setServerConfig(const String& url, const String& id); // url игнорируется
+ */
+
     void setSoilCalibration(int dry, int wet);
     void setWateringThreshold(float threshold);
     void setPumpMaxRunTime(unsigned long runTime);
@@ -138,10 +135,11 @@ public:
     String getStatus();
     
 private:
-    uint32_t calculateCRC();
-    bool validateCRC();
+    /* uint32_t calculateCRC();
+    bool validateCRC(); */
+
     String generateDeviceIDFromMAC();
-    void loadBuiltinDefaults();
+    //void loadBuiltinDefaults();
     String defaultServerCAPem;
     String getStringOrDefault(const char* value, const String& fallback);
 };

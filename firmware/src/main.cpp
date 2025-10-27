@@ -64,17 +64,13 @@ void setup() {
     Serial.begin(115200);
     Serial.println();
     Serial.println(F("GrowerHub Grovika ManualWatering v0.1 (MQTT step4)"));
-
-    bool settingsLoaded = g_settings.begin();
-    if (!settingsLoaded) {
-        Serial.println(F("Settings CRC invalid, using defaults."));
-    } else {
-        Serial.println(F("Settings loaded from EEPROM."));
-    }
-
+    g_settings.begin();
+    
     String deviceId = g_settings.getDeviceID();
     Serial.print(F("Current DEVICE_ID: "));
     Serial.println(deviceId);
+
+    Serial.println("!!!!!!!!!!!!DEBUG: WIFI COUNT = " + String(g_settings.getWiFiCount()));
 
     WiFi.mode(WIFI_STA);
     configureWifiNetworks();

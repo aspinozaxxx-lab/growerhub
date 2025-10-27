@@ -39,7 +39,7 @@ public:
     void begin();
     void update();
 
-    void factoryReset();
+    //void factoryReset();
 
     // Управление системой
     void enableAutomaticWatering();

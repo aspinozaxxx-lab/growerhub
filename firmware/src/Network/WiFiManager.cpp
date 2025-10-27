@@ -41,8 +41,8 @@ void WiFiManager::update() {
         } else {
             if (millis() - lastScanTime >= SCAN_INTERVAL) {
                 startAsyncScan();
-            } else if (millis() - lastConnectAttempt >= RECONNECT_INTERVAL) {
-                reconnect();
+            //} else if (millis() - lastConnectAttempt >= RECONNECT_INTERVAL) {
+            //    reconnect();
             }
         }
     }
