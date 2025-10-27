@@ -180,8 +180,8 @@ void WateringApplication::setupSensors() {
 
 void WateringApplication::checkRelayStates() {
     Serial.println("=== RELAY DIAGNOSTICS ===");
-    Serial.println("GPIO 4 (Pump): " + String(digitalRead(5) ? "HIGH" : "LOW"));
-    Serial.println("GPIO 5 (Light): " + String(digitalRead(4) ? "HIGH" : "LOW"));
+    Serial.println("GPIO 4 (Pump): " + String(digitalRead(4) ? "HIGH" : "LOW"));
+    Serial.println("GPIO 5 (Light): " + String(digitalRead(5) ? "HIGH" : "LOW"));
     Serial.println("Software states - Pump: " + String(actuatorManager.isWaterPumpRunning() ? "ON" : "OFF") +
                   ", Light: " + String(actuatorManager.isLightOn() ? "ON" : "OFF"));
     Serial.println("========================");
@@ -189,8 +189,8 @@ void WateringApplication::checkRelayStates() {
 
 void WateringApplication::setupActuators() {
     // Оба реле с invertedLogic = true
-    WaterPump* waterPump = new WaterPump(5, 300000, "Water Pump"); // inverted по умолчанию true
-    Relay* lightRelay = new Relay(4, true, "Grow Light"); // явно true
+    WaterPump* waterPump = new WaterPump(4, 300000, "Water Pump"); // inverted по умолчанию true
+    Relay* lightRelay = new Relay(5, true, "Grow Light"); // явно true
     
     actuatorManager.addWaterPump(waterPump);
     actuatorManager.addLightRelay(lightRelay);
