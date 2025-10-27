@@ -69,9 +69,7 @@ void setup() {
     String deviceId = g_settings.getDeviceID();
     Serial.print(F("Current DEVICE_ID: "));
     Serial.println(deviceId);
-
-    Serial.println("!!!!!!!!!!!!DEBUG: WIFI COUNT = " + String(g_settings.getWiFiCount()));
-
+    
     WiFi.mode(WIFI_STA);
     configureWifiNetworks();
     g_wifiNextAttemptMillis = 0;
