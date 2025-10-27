@@ -55,6 +55,7 @@ def get_settings() -> Settings:
         MQTT_PASSWORD=os.getenv("MQTT_PASSWORD"),
         MQTT_TLS=_env_bool("MQTT_TLS", Settings.MQTT_TLS),
         MQTT_CLIENT_ID_PREFIX=os.getenv("MQTT_CLIENT_ID_PREFIX", Settings.MQTT_CLIENT_ID_PREFIX),
-        DEVICE_ONLINE_THRESHOLD_S=_env_int("DEVICE_ONLINE_THRESHOLD_S", Settings.DEVICE_ONLINE_THRESHOLD_S),
+        DEVICE_ONLINE_THRESHOLD_S=Settings.DEVICE_ONLINE_THRESHOLD_S,
+        #DEVICE_ONLINE_THRESHOLD_S=_env_int("DEVICE_ONLINE_THRESHOLD_S", Settings.DEVICE_ONLINE_THRESHOLD_S),
         DEBUG=_env_bool("DEBUG", Settings.DEBUG),
     )
