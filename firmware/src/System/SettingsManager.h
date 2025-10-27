@@ -46,8 +46,6 @@ struct SystemSettings {
     float wateringThreshold;
     unsigned long pumpMaxRunTime;
     String serverCAPem;
-    
-   // uint32_t crc;
 };
 
 class SettingsManager {
@@ -100,13 +98,9 @@ public:
     SettingsManager();
     
     void begin();
-    /* bool loadSettings();
-    bool saveSettings();*/
     void SetSettings(); 
     
     // Getters
-    //String getSSID();      // first SSID from user settings or built-in defaults
-    //String getPassword();  // password for the first SSID
     int getWiFiCount();    // number of user or default networks
     bool getWiFiCredential(int index, String& ssid, String& password);
     String getServerURL(); // base server URL from built-in defaults
@@ -122,12 +116,6 @@ public:
     unsigned long getPumpMaxRunTime();
     
     // Setters
-    /* void setWiFiCredentials(const String& ssid, const String& password); // заменяет [0]
-    bool addWiFiCredential(const String& ssid, const String& password);  // добавляет, до 10
-    void clearWiFiCredentials();
-    void setServerConfig(const String& url, const String& id); // url игнорируется
- */
-
     void setSoilCalibration(int dry, int wet);
     void setWateringThreshold(float threshold);
     void setPumpMaxRunTime(unsigned long runTime);
@@ -135,9 +123,6 @@ public:
     String getStatus();
     
 private:
-    /* uint32_t calculateCRC();
-    bool validateCRC(); */
-
     String generateDeviceIDFromMAC();
     //void loadBuiltinDefaults();
     String defaultServerCAPem;

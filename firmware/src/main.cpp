@@ -64,6 +64,7 @@ void setup() {
     Serial.begin(115200);
     Serial.println();
     Serial.println(F("GrowerHub Grovika ManualWatering v0.1 (MQTT step4)"));
+    app.begin();
     g_settings.begin();
     
     String deviceId = g_settings.getDeviceID();
@@ -79,8 +80,7 @@ void setup() {
     updateWifiConnection();
 
     mqttClient.setCallback(mqttCallback);
-
-    app.begin();
+    
     delay(3000);
     app.checkRelayStates(); // TODO: ?????????? ? MQTT state, ????? ?????? ????????? ?????????.
 }
