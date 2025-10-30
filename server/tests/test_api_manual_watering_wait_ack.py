@@ -47,7 +47,7 @@ sys.modules["app.core.database"] = stub_database
 from ack_store import AckStore  # noqa: E402
 from api_manual_watering import get_ack_dep  # noqa: E402
 from app.main import app  # noqa: E402
-from mqtt_protocol import Ack, AckResult  # noqa: E402
+from service.mqtt.serialization import Ack, AckResult  # noqa: E402
 
 
 class _DummySubscriber:

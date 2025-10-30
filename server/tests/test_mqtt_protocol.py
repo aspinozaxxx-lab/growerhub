@@ -2,24 +2,22 @@ from datetime import datetime, timezone
 
 import pytest
 
-from mqtt_protocol import (
+from service.mqtt.serialization import (
+    Ack,
+    AckResult,
     CmdPumpStart,
     CmdPumpStop,
+    CommandType,
     DeviceState,
     ManualWateringState,
     ManualWateringStatus,
-    ack_topic,
-    cmd_topic,
     deserialize_ack,
     deserialize_cmd,
     deserialize_state,
     is_same_command,
     serialize,
-    state_topic,
-    Ack,
-    AckResult,
-    CommandType,
 )
+from service.mqtt.topics import ack_topic, cmd_topic, state_topic
 
 
 def test_topic_generation():

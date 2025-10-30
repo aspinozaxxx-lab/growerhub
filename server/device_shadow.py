@@ -11,7 +11,7 @@ from threading import RLock
 from typing import Dict, Optional, Tuple
 
 from config import get_settings
-from mqtt_protocol import DeviceState, ManualWateringStatus
+from service.mqtt.serialization import DeviceState, ManualWateringStatus
 
 
 def _as_utc(dt: datetime) -> datetime:

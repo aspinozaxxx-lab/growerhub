@@ -16,9 +16,9 @@ from paho.mqtt.client import Client, MQTT_ERR_SUCCESS
 from pydantic import ValidationError
 
 from ack_store import AckStore
-from config import get_settings
 from device_shadow import DeviceShadowStore
-from mqtt_protocol import Ack, DeviceState
+from service.mqtt.config import get_mqtt_settings
+from service.mqtt.serialization import Ack, DeviceState
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ class MqttStateSubscriber:
         store: DeviceShadowStore,
         client_factory: Optional[Callable[[], Client]] = None,
     ) -> None:
-        settings = get_settings()
+        settings = get_mqtt_settings()
         self._settings = settings
         self._store = store
         self._client_factory = client_factory or self._default_client_factory
@@ -90,12 +90,12 @@ class MqttStateSubscriber:
 
     def _default_client_factory(self) -> Client:
         settings = self._settings
-        client_id = f"{settings.MQTT_CLIENT_ID_PREFIX}-state-{uuid4().hex[:8]}"
+        client_id = f"{settings.client_id_prefix}-state-{uuid4().hex[:8]}"
         client = Client(client_id=client_id)
-        if settings.MQTT_USERNAME:
+        if settings.username:
             # Передаём брокеру логин/пароль, иначе mosquitto отвечает rc=5 (Not authorized) и соединение не устанавливается.
-            client.username_pw_set(settings.MQTT_USERNAME, settings.MQTT_PASSWORD)
-        if settings.MQTT_TLS:
+            client.username_pw_set(settings.username, settings.password)
+        if settings.tls:
             client.tls_set()
         return client
 
@@ -107,20 +107,20 @@ class MqttStateSubscriber:
         client.on_connect = self._on_connect
         client.on_message = self._on_message
         settings = self._settings
-        if settings.DEBUG:
+        if settings.debug:
             # Печатаем напрямую в stdout, чтобы systemd/uvicorn гарантированно передал эти строки в journalctl.
             print(
                 f"[MQTT DEBUG] (state) Пытаемся подключиться к брокеру "
-                f"{settings.MQTT_HOST}:{settings.MQTT_PORT} как пользователь {settings.MQTT_USERNAME!r}"
+                f"{settings.host}:{settings.port} как пользователь {settings.username!r}"
             )
 
         try:
             logger.info(
                 "Подключаемся к MQTT брокеру %s:%s для чтения state",
-                self._settings.MQTT_HOST,
-                self._settings.MQTT_PORT,
+                self._settings.host,
+                self._settings.port,
             )
-            rc = client.connect(self._settings.MQTT_HOST, self._settings.MQTT_PORT)
+            rc = client.connect(self._settings.host, self._settings.port)
             if rc != MQTT_ERR_SUCCESS:
                 raise RuntimeError(f"MQTT connect returned rc={rc}")
             client.loop_start()
@@ -152,35 +152,35 @@ class MqttStateSubscriber:
 
     def _on_connect(self, client: Client, _userdata, _flags, rc):  # type: ignore[override]
         settings = self._settings
-        if settings.DEBUG:
+        if settings.debug:
             print(f"[MQTT DEBUG] (state) on_connect rc={rc}")
 
         if rc == 0:
             logger.info(
                 "Успешно подключились к MQTT (%s:%s) для state, rc=%s",
-                self._settings.MQTT_HOST,
-                self._settings.MQTT_PORT,
+                self._settings.host,
+                self._settings.port,
                 rc,
             )
             topic_filter = make_state_topic_filter()
             client.subscribe(topic_filter, qos=1)
-            if settings.DEBUG:
+            if settings.debug:
                 print(f"[MQTT DEBUG] (state) Подписались на {topic_filter}")
         else:
             logger.error(
                 "Не удалось подключиться к MQTT (%s:%s) для state, rc=%s. Проверьте логин/пароль и ACL брокера",
-                self._settings.MQTT_HOST,
-                self._settings.MQTT_PORT,
+                self._settings.host,
+                self._settings.port,
                 rc,
             )
-            if settings.DEBUG:
+            if settings.debug:
                 print("[MQTT DEBUG] (state) Не удалось подключиться к MQTT, rc={rc} (rc=5 обычно означает ошибку авторизации)".format(rc=rc))
 
     def _on_message(self, _client: Client, _userdata, message):  # type: ignore[override]
         settings = self._settings
         topic = getattr(message, "topic", "")
         payload = getattr(message, "payload", b"")
-        if settings.DEBUG:
+        if settings.debug:
             try:
                 raw_payload = payload.decode("utf-8", errors="replace")
             except Exception:
@@ -203,13 +203,13 @@ class MqttStateSubscriber:
         except (UnicodeDecodeError, ValueError, json.JSONDecodeError, ValidationError) as exc:
             # сообщение проигнорировано, т.к. не соответствует ожидаемому формату DeviceState
             logger.warning("Не удалось разобрать состояние устройства %s: %s", device_id, exc)
-            if settings.DEBUG:
+            if settings.debug:
                 # Такое может произойти, если прошивка прислала JSON в неожиданном формате.
                 print(f"[MQTT DEBUG] (state) Ошибка парсинга состояния устройства: {exc}")
             return
 
         self._store.update_from_state(device_id, state)
-        if settings.DEBUG:
+        if settings.debug:
             print(f"[MQTT DEBUG] (state) Обновили стор для устройства {device_id}")
         logger.info("Обновили стор для устройства %s", device_id)
 
@@ -250,7 +250,7 @@ class MqttAckSubscriber:
         store: AckStore,
         client_factory: Optional[Callable[[], Client]] = None,
     ) -> None:
-        settings = get_settings()
+        settings = get_mqtt_settings()
         self._settings = settings
         self._store = store
         self._client_factory = client_factory or self._default_client_factory
@@ -259,12 +259,12 @@ class MqttAckSubscriber:
 
     def _default_client_factory(self) -> Client:
         settings = self._settings
-        client_id = f"{settings.MQTT_CLIENT_ID_PREFIX}-ack-{uuid4().hex[:8]}"
+        client_id = f"{settings.client_id_prefix}-ack-{uuid4().hex[:8]}"
         client = Client(client_id=client_id)
-        if settings.MQTT_USERNAME:
+        if settings.username:
             # Передаём брокеру логин/пароль, иначе mosquitto отвечает rc=5 (Not authorized) и соединение не устанавливается.
-            client.username_pw_set(settings.MQTT_USERNAME, settings.MQTT_PASSWORD)
-        if settings.MQTT_TLS:
+            client.username_pw_set(settings.username, settings.password)
+        if settings.tls:
             client.tls_set()
         return client
 
@@ -276,19 +276,19 @@ class MqttAckSubscriber:
         client.on_connect = self._on_connect
         client.on_message = self._on_message
         settings = self._settings
-        if settings.DEBUG:
+        if settings.debug:
             # Здесь тоже используем прямой print, чтобы stdout гарантированно оказался в journalctl при DEBUG=True.
             print(
-                f"[MQTT DEBUG] (ack) Пытаемся подключиться к брокеру {settings.MQTT_HOST}:{settings.MQTT_PORT} как пользователь {settings.MQTT_USERNAME!r}"
+                f"[MQTT DEBUG] (ack) Пытаемся подключиться к брокеру {settings.host}:{settings.port} как пользователь {settings.username!r}"
             )
 
         try:
             logger.info(
                 "Подключаемся к MQTT брокеру %s:%s для чтения ack",
-                self._settings.MQTT_HOST,
-                self._settings.MQTT_PORT,
+                self._settings.host,
+                self._settings.port,
             )
-            rc = client.connect(self._settings.MQTT_HOST, self._settings.MQTT_PORT)
+            rc = client.connect(self._settings.host, self._settings.port)
             if rc != MQTT_ERR_SUCCESS:
                 raise RuntimeError(f"MQTT connect returned rc={rc}")
             client.loop_start()
@@ -320,35 +320,35 @@ class MqttAckSubscriber:
 
     def _on_connect(self, client: Client, _userdata, _flags, rc):  # type: ignore[override]
         settings = self._settings
-        if settings.DEBUG:
+        if settings.debug:
             print(f"[MQTT DEBUG] (ack) on_connect rc={rc}")
 
         if rc == 0:
             logger.info(
                 "Успешно подключились к MQTT (%s:%s) для ack, rc=%s",
-                self._settings.MQTT_HOST,
-                self._settings.MQTT_PORT,
+                self._settings.host,
+                self._settings.port,
                 rc,
             )
             topic_filter = make_ack_topic_filter()
             client.subscribe(topic_filter, qos=1)
-            if settings.DEBUG:
+            if settings.debug:
                 print(f"[MQTT DEBUG] (ack) Подписались на {topic_filter}")
         else:
             logger.error(
                 "Не удалось подключиться к MQTT (%s:%s) для ack, rc=%s. Проверьте логин/пароль и ACL брокера",
-                self._settings.MQTT_HOST,
-                self._settings.MQTT_PORT,
+                self._settings.host,
+                self._settings.port,
                 rc,
             )
-            if settings.DEBUG:
+            if settings.debug:
                 print("[MQTT DEBUG] (ack) Не удалось подключиться к MQTT, rc={rc} (rc=5 обычно означает ошибку авторизации)".format(rc=rc))
 
     def _on_message(self, _client: Client, _userdata, message):  # type: ignore[override]
         settings = self._settings
         topic = getattr(message, "topic", "")
         payload = getattr(message, "payload", b"")
-        if settings.DEBUG:
+        if settings.debug:
             try:
                 raw_payload = payload.decode("utf-8", errors="replace")
             except Exception:
@@ -371,13 +371,13 @@ class MqttAckSubscriber:
         except (UnicodeDecodeError, ValueError, json.JSONDecodeError, ValidationError) as exc:
             # сообщение проигнорировано, т.к. не соответствует ожидаемому формату Ack
             logger.warning("Не удалось разобрать ACK для %s: %s", device_id, exc)
-            if settings.DEBUG:
+            if settings.debug:
                 # Такое может произойти, если устройство прислало ACK в неожиданном формате.
                 print(f"[MQTT DEBUG] (ack) Ошибка парсинга состояния устройства: {exc}")
             return
 
         self._store.put(device_id, ack)
-        if settings.DEBUG:
+        if settings.debug:
             print(f"[MQTT DEBUG] (ack) Сохранили ACK correlation_id={ack.correlation_id}")
         logger.info("Сохранили ACK для correlation_id=%s", ack.correlation_id)
 

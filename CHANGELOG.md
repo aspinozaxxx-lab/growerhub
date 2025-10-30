@@ -1,5 +1,11 @@
 # Changelog
 
+## [2025-10-26] MQTT service refactor
+
+- Вынесли шаблоны топиков, модели и сериализацию MQTT в `server/service/mqtt/` (topics/serialization/interfaces/config), сохранив формат payload без изменений.
+- `mqtt_publisher`, `mqtt_subscriber`, API и тесты переведены на новые импорты сервиса; добавлена совместимость через `server/mqtt_protocol.py`.
+- Обновили доступ к MQTT-настройкам через новую обёртку, сохранив поведение существующих тестов и инициализации.
+
 ## [2025-10-24] MQTT step 4
 
 - Контроллер публикует текущее состояние устройства в топик `gh/dev/ESP32_2C294C/state` с `retain=true`: туда попадает блок `manual_watering` (status, duration_s, started_at, correlation_id) и версия прошивки.

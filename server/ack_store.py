@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from threading import RLock
 from typing import Dict, Optional, Tuple
 
-from mqtt_protocol import Ack
+from service.mqtt.serialization import Ack
 
 
 class AckStore:

@@ -52,7 +52,7 @@ sys.modules["app.core.database"] = stub_database
 
 from api_manual_watering import get_mqtt_dep  # noqa: E402  # импорт после подмены БД
 from app.main import app  # noqa: E402
-from mqtt_protocol import CmdPumpStop, CommandType  # noqa: E402
+from service.mqtt.serialization import CmdPumpStop, CommandType  # noqa: E402
 from mqtt_publisher import IMqttPublisher  # noqa: E402
 
 

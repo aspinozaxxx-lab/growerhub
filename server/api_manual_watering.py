@@ -13,8 +13,9 @@ from pydantic import BaseModel, conint
 from ack_store import AckStore, get_ack_store
 from config import get_settings
 from device_shadow import DeviceShadowStore, get_shadow_store
-from mqtt_protocol import Ack, CmdPumpStart, CmdPumpStop, CommandType, DeviceState
-from mqtt_publisher import IMqttPublisher, get_publisher
+from service.mqtt.interfaces import IMqttPublisher
+from service.mqtt.serialization import Ack, CmdPumpStart, CmdPumpStop, CommandType, DeviceState
+from mqtt_publisher import get_publisher
 
 router = APIRouter()
 settings = get_settings()

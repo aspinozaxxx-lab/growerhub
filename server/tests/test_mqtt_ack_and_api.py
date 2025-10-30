@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 from ack_store import AckStore, get_ack_store, init_ack_store, shutdown_ack_store
 from app.main import app
-from mqtt_protocol import Ack, AckResult, ManualWateringStatus
+from service.mqtt.serialization import Ack, AckResult, ManualWateringStatus
 from mqtt_subscriber import (
     MqttAckSubscriber,
     extract_device_id_from_ack_topic,

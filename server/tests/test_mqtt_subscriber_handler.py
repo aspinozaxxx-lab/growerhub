@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timedelta, timezone
 
-from mqtt_protocol import DeviceState, ManualWateringState, ManualWateringStatus
+from service.mqtt.serialization import DeviceState, ManualWateringState, ManualWateringStatus
 from device_shadow import DeviceShadowStore
 from mqtt_subscriber import (
     MqttStateSubscriber,
