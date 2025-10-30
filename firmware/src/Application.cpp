@@ -1,3 +1,4 @@
+﻿// Реализация Application: объединяет подсистемы, управляет ручным поливом, отдаёт состояния для MQTT/сервера.
 // firmware/src/Application.cpp
 #include "Application.h"
 #include <PubSubClient.h>
@@ -23,7 +24,7 @@ void WateringApplication::begin() {
     //Serial.begin(115200);
     //Serial.println("\n=== GrowerHub Starting ===\n");
     
-    // Инициализация в правильном порядке
+    // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РІ РїСЂР°РІРёР»СЊРЅРѕРј РїРѕСЂСЏРґРєРµ
     settingsManager.begin();
     systemMonitor.begin();
     
@@ -36,7 +37,7 @@ void WateringApplication::begin() {
 }
 
 void WateringApplication::update() {
-    // Основная логика
+    // РћСЃРЅРѕРІРЅР°СЏ Р»РѕРіРёРєР°
     sensorManager.update();
     actuatorManager.update(); 
     wifiManager.update();
@@ -44,10 +45,10 @@ void WateringApplication::update() {
     taskScheduler.update();
     systemMonitor.update();
     
-    // Статическая переменная для интервала отправки
+    // РЎС‚Р°С‚РёС‡РµСЃРєР°СЏ РїРµСЂРµРјРµРЅРЅР°СЏ РґР»СЏ РёРЅС‚РµСЂРІР°Р»Р° РѕС‚РїСЂР°РІРєРё
     static unsigned long lastSend = 0;
     
-    // Логирование состояний каждые 10 секунд
+    // Р›РѕРіРёСЂРѕРІР°РЅРёРµ СЃРѕСЃС‚РѕСЏРЅРёР№ РєР°Р¶РґС‹Рµ 10 СЃРµРєСѓРЅРґ
     static unsigned long lastStateLog = 0;
     if (millis() - lastStateLog > 10000) {
         Serial.println("Grovika States - Pump: " + String(actuatorManager.isWaterPumpRunning() ? "ON" : "OFF") + 
@@ -55,7 +56,7 @@ void WateringApplication::update() {
         lastStateLog = millis();
     }
     
-    // Отправка данных на сервер каждые 60 секунд
+    // РћС‚РїСЂР°РІРєР° РґР°РЅРЅС‹С… РЅР° СЃРµСЂРІРµСЂ РєР°Р¶РґС‹Рµ 60 СЃРµРєСѓРЅРґ
     if (millis() - lastSend > 60000) {
         SoilMoistureSensor* soilSensor = sensorManager.getSoilMoistureSensor();
         DHT22Sensor* dhtSensor = sensorManager.getDHT22Sensor();
@@ -87,7 +88,7 @@ void WateringApplication::updateActuatorTest() {
     unsigned long elapsed = currentTime - testStartTime;
     
     switch (testPhase) {
-        case 0: // Насос работает 3 секунды
+        case 0: // РќР°СЃРѕСЃ СЂР°Р±РѕС‚Р°РµС‚ 3 СЃРµРєСѓРЅРґС‹
             if (elapsed >= 3000) {
                 Serial.println("Phase 1: Pump OFF, Light ON");
                 actuatorManager.setWaterPumpState(false);
@@ -97,7 +98,7 @@ void WateringApplication::updateActuatorTest() {
             }
             break;
             
-        case 1: // Свет работает 2 секунды
+        case 1: // РЎРІРµС‚ СЂР°Р±РѕС‚Р°РµС‚ 2 СЃРµРєСѓРЅРґС‹
             if (elapsed >= 2000) {
                 Serial.println("Phase 2: Light OFF - TEST COMPLETE");
                 actuatorManager.setLightState(false);
@@ -108,7 +109,7 @@ void WateringApplication::updateActuatorTest() {
     }
 }
 
-// Упрощенные методы пока
+// РЈРїСЂРѕС‰РµРЅРЅС‹Рµ РјРµС‚РѕРґС‹ РїРѕРєР°
 void WateringApplication::enableAutomaticWatering() {
     automaticWateringEnabled = true;
     Serial.println("Automatic watering enabled");
@@ -137,32 +138,32 @@ void WateringApplication::waterPlants(int durationMs) {
 }
 
 void WateringApplication::setManualPumpState(bool state) {
-    // Выносим прямой доступ к реле насоса, чтобы MQTT-команды могли включать/выключать помпу
-    // без вмешательства в остальную автоматику. Здесь не дёргаем GPIO вручную, а идём через
-    // ActuatorManager, который знает про инверсию пина и применяет внутренние проверки безопасности.
+    // Р’С‹РЅРѕСЃРёРј РїСЂСЏРјРѕР№ РґРѕСЃС‚СѓРї Рє СЂРµР»Рµ РЅР°СЃРѕСЃР°, С‡С‚РѕР±С‹ MQTT-РєРѕРјР°РЅРґС‹ РјРѕРіР»Рё РІРєР»СЋС‡Р°С‚СЊ/РІС‹РєР»СЋС‡Р°С‚СЊ РїРѕРјРїСѓ
+    // Р±РµР· РІРјРµС€Р°С‚РµР»СЊСЃС‚РІР° РІ РѕСЃС‚Р°Р»СЊРЅСѓСЋ Р°РІС‚РѕРјР°С‚РёРєСѓ. Р—РґРµСЃСЊ РЅРµ РґС‘СЂРіР°РµРј GPIO РІСЂСѓС‡РЅСѓСЋ, Р° РёРґС‘Рј С‡РµСЂРµР·
+    // ActuatorManager, РєРѕС‚РѕСЂС‹Р№ Р·РЅР°РµС‚ РїСЂРѕ РёРЅРІРµСЂСЃРёСЋ РїРёРЅР° Рё РїСЂРёРјРµРЅСЏРµС‚ РІРЅСѓС‚СЂРµРЅРЅРёРµ РїСЂРѕРІРµСЂРєРё Р±РµР·РѕРїР°СЃРЅРѕСЃС‚Рё.
     actuatorManager.setWaterPumpState(state);
 }
 
 bool WateringApplication::isManualPumpRunning() {
-    // Даём наружу актуальное состояние реле. Это будет использоваться в шагах MQTT-интеграции:
-    // - шаг 2: чтобы игнорировать повторные pump.start, если уже поливаем;
-    // - шаг 3: для формирования корректных ACK;
-    // - шаг 4+: при публикации статуса manual watering.
+    // Р”Р°С‘Рј РЅР°СЂСѓР¶Сѓ Р°РєС‚СѓР°Р»СЊРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ СЂРµР»Рµ. Р­С‚Рѕ Р±СѓРґРµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊСЃСЏ РІ С€Р°РіР°С… MQTT-РёРЅС‚РµРіСЂР°С†РёРё:
+    // - С€Р°Рі 2: С‡С‚РѕР±С‹ РёРіРЅРѕСЂРёСЂРѕРІР°С‚СЊ РїРѕРІС‚РѕСЂРЅС‹Рµ pump.start, РµСЃР»Рё СѓР¶Рµ РїРѕР»РёРІР°РµРј;
+    // - С€Р°Рі 3: РґР»СЏ С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РєРѕСЂСЂРµРєС‚РЅС‹С… ACK;
+    // - С€Р°Рі 4+: РїСЂРё РїСѓР±Р»РёРєР°С†РёРё СЃС‚Р°С‚СѓСЃР° manual watering.
     return actuatorManager.isWaterPumpRunning();
 }
 
 bool WateringApplication::manualStart(uint32_t durationSec, const String& correlationId) {
-    // Стартуем manual watering по команде pump.start.
+    // РЎС‚Р°СЂС‚СѓРµРј manual watering РїРѕ РєРѕРјР°РЅРґРµ pump.start.
     if (manualWateringActive) {
-        Serial.println(F("pump.start проигнорирован: насос уже включён вручную, держим текущую сессию."));
+        Serial.println(F("pump.start РїСЂРѕРёРіРЅРѕСЂРёСЂРѕРІР°РЅ: РЅР°СЃРѕСЃ СѓР¶Рµ РІРєР»СЋС‡С‘РЅ РІСЂСѓС‡РЅСѓСЋ, РґРµСЂР¶РёРј С‚РµРєСѓС‰СѓСЋ СЃРµСЃСЃРёСЋ."));
         return false;
     }
     if (durationSec == 0) {
-        Serial.println(F("Запрос pump.start с duration_s=0 — насос не включаем."));
+        Serial.println(F("Р—Р°РїСЂРѕСЃ pump.start СЃ duration_s=0 вЂ” РЅР°СЃРѕСЃ РЅРµ РІРєР»СЋС‡Р°РµРј."));
         return false;
     }
 
-    // TODO: уточнить инверсию реле. Сейчас считаем, что true = включить насос (через ActuatorManager).
+    // TODO: СѓС‚РѕС‡РЅРёС‚СЊ РёРЅРІРµСЂСЃРёСЋ СЂРµР»Рµ. РЎРµР№С‡Р°СЃ СЃС‡РёС‚Р°РµРј, С‡С‚Рѕ true = РІРєР»СЋС‡РёС‚СЊ РЅР°СЃРѕСЃ (С‡РµСЂРµР· ActuatorManager).
     setManualPumpState(true);
 
     manualWateringActive = true;
@@ -170,21 +171,21 @@ bool WateringApplication::manualStart(uint32_t durationSec, const String& correl
     manualWateringStartMillis = millis();
     manualActiveCorrelationId = correlationId;
 
-    // TODO: подставить реальное UTC время старта, когда появится синхронизация (NTP/RTC).
+    // TODO: РїРѕРґСЃС‚Р°РІРёС‚СЊ СЂРµР°Р»СЊРЅРѕРµ UTC РІСЂРµРјСЏ СЃС‚Р°СЂС‚Р°, РєРѕРіРґР° РїРѕСЏРІРёС‚СЃСЏ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ (NTP/RTC).
     manualStartIso8601 = "1970-01-01T00:00:00Z";
 
-    Serial.print(F("Запускаем ручной полив на "));
+    Serial.print(F("Р—Р°РїСѓСЃРєР°РµРј СЂСѓС‡РЅРѕР№ РїРѕР»РёРІ РЅР° "));
     Serial.print(durationSec);
-    Serial.print(F(" секунд, correlation_id="));
+    Serial.print(F(" СЃРµРєСѓРЅРґ, correlation_id="));
     Serial.println(correlationId);
 
     return true;
 }
 
 bool WateringApplication::manualStop(const String& correlationId) {
-    // Остановка manual watering по pump.stop или авто-таймауту.
+    // РћСЃС‚Р°РЅРѕРІРєР° manual watering РїРѕ pump.stop РёР»Рё Р°РІС‚Рѕ-С‚Р°Р№РјР°СѓС‚Сѓ.
     if (!manualWateringActive) {
-        Serial.println(F("Получили pump.stop, но насос уже был выключен. Обнуляем состояние на всякий случай."));
+        Serial.println(F("РџРѕР»СѓС‡РёР»Рё pump.stop, РЅРѕ РЅР°СЃРѕСЃ СѓР¶Рµ Р±С‹Р» РІС‹РєР»СЋС‡РµРЅ. РћР±РЅСѓР»СЏРµРј СЃРѕСЃС‚РѕСЏРЅРёРµ РЅР° РІСЃСЏРєРёР№ СЃР»СѓС‡Р°Р№."));
     }
 
     setManualPumpState(false);
@@ -195,14 +196,14 @@ bool WateringApplication::manualStop(const String& correlationId) {
     manualActiveCorrelationId = "";
     manualStartIso8601 = "";
 
-    Serial.print(F("Полив остановлен. Источник остановки: "));
-    Serial.println(correlationId.length() ? correlationId : String("не указан (pump.stop без correlation_id)"));
+    Serial.print(F("РџРѕР»РёРІ РѕСЃС‚Р°РЅРѕРІР»РµРЅ. РСЃС‚РѕС‡РЅРёРє РѕСЃС‚Р°РЅРѕРІРєРё: "));
+    Serial.println(correlationId.length() ? correlationId : String("РЅРµ СѓРєР°Р·Р°РЅ (pump.stop Р±РµР· correlation_id)"));
 
     return true;
 }
 
 bool WateringApplication::manualLoop() {
-    // Наблюдаем за длительностью manual watering и выключаем насос по таймауту.
+    // РќР°Р±Р»СЋРґР°РµРј Р·Р° РґР»РёС‚РµР»СЊРЅРѕСЃС‚СЊСЋ manual watering Рё РІС‹РєР»СЋС‡Р°РµРј РЅР°СЃРѕСЃ РїРѕ С‚Р°Р№РјР°СѓС‚Сѓ.
     if (!manualWateringActive || manualWateringDurationSec == 0) {
         return false;
     }
@@ -213,9 +214,9 @@ bool WateringApplication::manualLoop() {
         return false;
     }
 
-    Serial.println(F("Полив завершился по duration_s, выключаем насос (auto-timeout)."));
+    Serial.println(F("РџРѕР»РёРІ Р·Р°РІРµСЂС€РёР»СЃСЏ РїРѕ duration_s, РІС‹РєР»СЋС‡Р°РµРј РЅР°СЃРѕСЃ (auto-timeout)."));
     manualStop(String("auto-timeout"));
-    // TODO: проанализировать повторные публикации ACK/state при автоостановке, договориться со стороной сервера.
+    // TODO: РїСЂРѕР°РЅР°Р»РёР·РёСЂРѕРІР°С‚СЊ РїРѕРІС‚РѕСЂРЅС‹Рµ РїСѓР±Р»РёРєР°С†РёРё ACK/state РїСЂРё Р°РІС‚РѕРѕСЃС‚Р°РЅРѕРІРєРµ, РґРѕРіРѕРІРѕСЂРёС‚СЊСЃСЏ СЃРѕ СЃС‚РѕСЂРѕРЅРѕР№ СЃРµСЂРІРµСЂР°.
     return true;
 }
 
@@ -241,7 +242,7 @@ void WateringApplication::setMqttClient(PubSubClient* client) {
 
 void WateringApplication::statePublishNow(bool retained) {
     if (!mqttClient || !mqttClient->connected()) {
-        Serial.println(F("Не удалось отправить state: MQTT не подключён, снимок не обновлён."));
+        Serial.println(F("РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ state: MQTT РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ, СЃРЅРёРјРѕРє РЅРµ РѕР±РЅРѕРІР»С‘РЅ."));
         return;
     }
 
@@ -268,7 +269,7 @@ void WateringApplication::statePublishNow(bool retained) {
     payload += "\"fw\":\"" + String(FW_VERSION) + "\"";
     payload += "}";
 
-    Serial.print(F("Отправляем state (retained) в брокер: "));
+    Serial.print(F("РћС‚РїСЂР°РІР»СЏРµРј state (retained) РІ Р±СЂРѕРєРµСЂ: "));
     Serial.println(payload);
     String topic = "gh/dev/" + settingsManager.getDeviceID() + "/state";
     mqttClient->publish(topic.c_str(), payload.c_str(), retained);
@@ -326,7 +327,7 @@ void WateringApplication::setupSensors() {
     
     sensorManager.begin();
 
-    // ЗАДЕРЖКА для стабилизации DHT22
+    // Р—РђР”Р•Р Р–РљРђ РґР»СЏ СЃС‚Р°Р±РёР»РёР·Р°С†РёРё DHT22
     Serial.println("Waiting for sensors to stabilize...");
     delay(2000);
 }
@@ -341,9 +342,9 @@ void WateringApplication::checkRelayStates() {
 }
 
 void WateringApplication::setupActuators() {
-    // Оба реле с invertedLogic = true
-    WaterPump* waterPump = new WaterPump(4, 300000, "Water Pump"); // inverted по умолчанию true
-    Relay* lightRelay = new Relay(5, true, "Grow Light"); // явно true
+    // РћР±Р° СЂРµР»Рµ СЃ invertedLogic = true
+    WaterPump* waterPump = new WaterPump(4, 300000, "Water Pump"); // inverted РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ true
+    Relay* lightRelay = new Relay(5, true, "Grow Light"); // СЏРІРЅРѕ true
     
     actuatorManager.addWaterPump(waterPump);
     actuatorManager.addLightRelay(lightRelay);
@@ -353,21 +354,21 @@ void WateringApplication::setupActuators() {
 void WateringApplication::setupNetwork() {
     Serial.println("Setting up network...");
     
-    // Инициализация WiFi (WiFiMulti)
+    // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ WiFi (WiFiMulti)
     wifiManager.begin(settingsManager.getDeviceID());
-    // Регистрируем до 10 известных сетей
+    // Р РµРіРёСЃС‚СЂРёСЂСѓРµРј РґРѕ 10 РёР·РІРµСЃС‚РЅС‹С… СЃРµС‚РµР№
     for (int i = 0; i < settingsManager.getWiFiCount(); ++i) {
         String ssid, pass;
         if (settingsManager.getWiFiCredential(i, ssid, pass)) {
             wifiManager.addAccessPoint(ssid, pass);
         }
     }
-    // Первая попытка подключения (3 секунды таймаут внутри)
+    // РџРµСЂРІР°СЏ РїРѕРїС‹С‚РєР° РїРѕРґРєР»СЋС‡РµРЅРёСЏ (3 СЃРµРєСѓРЅРґС‹ С‚Р°Р№РјР°СѓС‚ РІРЅСѓС‚СЂРё)
     wifiManager.reconnect();
     
     otaUpdater.begin(settingsManager.getDeviceID());
     
-    // ВКЛЮЧАЕМ HTTP клиент с правильными настройками
+    // Р’РљР›Р®Р§РђР•Рњ HTTP РєР»РёРµРЅС‚ СЃ РїСЂР°РІРёР»СЊРЅС‹РјРё РЅР°СЃС‚СЂРѕР№РєР°РјРё
     httpClient.begin(
         settingsManager.getServerURL(),
         settingsManager.getDeviceID(),
@@ -377,19 +378,19 @@ void WateringApplication::setupNetwork() {
 
 void WateringApplication::setupTasks() {
     Serial.println("Setting up tasks...");
-    // Пока пусто - добавим позже
+    // РџРѕРєР° РїСѓСЃС‚Рѕ - РґРѕР±Р°РІРёРј РїРѕР·Р¶Рµ
 }
 
 void WateringApplication::checkWatering() {
-    // Пока пусто
+    // РџРѕРєР° РїСѓСЃС‚Рѕ
 }
 
 void WateringApplication::checkLight() {
-    // Пока пусто
+    // РџРѕРєР° РїСѓСЃС‚Рѕ
 }
 
 void WateringApplication::updateServer() {
-    // Пока пусто
+    // РџРѕРєР° РїСѓСЃС‚Рѕ
 }
 
 void WateringApplication::printDebugInfo() {

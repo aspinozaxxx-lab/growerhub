@@ -1,3 +1,4 @@
+﻿// Реализация MQTTClient: удерживает соединение и передаёт pump-команды/ACK/state между брокером и приложением.
 #include "Network/MQTTClient.h"
 
 #include <WiFi.h>
@@ -69,23 +70,23 @@ void MQTTClient::mqttCallbackRouter(char* topic, byte* payload, unsigned int len
 }
 
 void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) {
-    Serial.println(F("----- MQTT команда -----"));
-    Serial.print(F("Топик: "));
+    Serial.println(F("----- MQTT РєРѕРјР°РЅРґР° -----"));
+    Serial.print(F("РўРѕРїРёРє: "));
     Serial.println(topic);
 
-    Serial.print(F("Полезная нагрузка: "));
+    Serial.print(F("РџРѕР»РµР·РЅР°СЏ РЅР°РіСЂСѓР·РєР°: "));
     for (unsigned int i = 0; i < length; ++i) {
         Serial.print(static_cast<char>(payload[i]));
     }
     Serial.println();
 
-    Serial.print(F("Длина полезной нагрузки (байт): "));
+    Serial.print(F("Р”Р»РёРЅР° РїРѕР»РµР·РЅРѕР№ РЅР°РіСЂСѓР·РєРё (Р±Р°Р№С‚): "));
     Serial.println(length);
 
     StaticJsonDocument<256> doc;
     DeserializationError err = deserializeJson(doc, payload, length);
     if (err) {
-        Serial.print(F("Не удалось распарсить JSON команды: "));
+        Serial.print(F("РќРµ СѓРґР°Р»РѕСЃСЊ СЂР°СЃРїР°СЂСЃРёС‚СЊ JSON РєРѕРјР°РЅРґС‹: "));
         Serial.println(err.c_str());
         publishAckError(String(""), "bad command format: invalid JSON");
         return;
@@ -98,7 +99,7 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
     }
 
     if (!type) {
-        Serial.println(F("Поле type отсутствует — команда не распознана."));
+        Serial.println(F("РџРѕР»Рµ type РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ вЂ” РєРѕРјР°РЅРґР° РЅРµ СЂР°СЃРїРѕР·РЅР°РЅР°."));
         publishAckError(correlationId, "bad command format: type missing");
         return;
     }
@@ -107,19 +108,19 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
     if (commandType == "pump.start") {
         if (!doc.containsKey("duration_s") ||
             !(doc["duration_s"].is<uint32_t>() || doc["duration_s"].is<unsigned long>() || doc["duration_s"].is<int>())) {
-            Serial.println(F("pump.start без duration_s или с некорректным типом — игнорируем."));
+            Serial.println(F("pump.start Р±РµР· duration_s РёР»Рё СЃ РЅРµРєРѕСЂСЂРµРєС‚РЅС‹Рј С‚РёРїРѕРј вЂ” РёРіРЅРѕСЂРёСЂСѓРµРј."));
             publishAckError(correlationId, "bad command format: duration_s missing or invalid");
             return;
         }
 
         uint32_t durationSec = doc["duration_s"];
         if (durationSec == 0) {
-            Serial.println(F("pump.start с duration_s=0 — игнорируем команду."));
+            Serial.println(F("pump.start СЃ duration_s=0 вЂ” РёРіРЅРѕСЂРёСЂСѓРµРј РєРѕРјР°РЅРґСѓ."));
             publishAckError(correlationId, "bad command format: duration_s missing or invalid");
             return;
         }
 
-        Serial.print(F("Разбор pump.start: duration_s="));
+        Serial.print(F("Р Р°Р·Р±РѕСЂ pump.start: duration_s="));
         Serial.print(durationSec);
         Serial.print(F(", correlation_id="));
         Serial.println(correlationId);
@@ -131,14 +132,14 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
         if (correlationId.length() > 0) {
             publishAckAccepted(correlationId, "running");
         } else {
-            Serial.println(F("pump.start без correlation_id — выполнили команду, но сообщаем серверу об ошибке формата."));
+            Serial.println(F("pump.start Р±РµР· correlation_id вЂ” РІС‹РїРѕР»РЅРёР»Рё РєРѕРјР°РЅРґСѓ, РЅРѕ СЃРѕРѕР±С‰Р°РµРј СЃРµСЂРІРµСЂСѓ РѕР± РѕС€РёР±РєРµ С„РѕСЂРјР°С‚Р°."));
             publishAckError(String(""), "bad command format: correlation_id missing");
         }
         return;
     }
 
     if (commandType == "pump.stop") {
-        Serial.print(F("Разбор pump.stop, correlation_id="));
+        Serial.print(F("Р Р°Р·Р±РѕСЂ pump.stop, correlation_id="));
         Serial.println(correlationId);
 
         if (commandHandler) {
@@ -148,13 +149,13 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
         if (correlationId.length() > 0) {
             publishAckAccepted(correlationId, "idle");
         } else {
-            Serial.println(F("pump.stop без correlation_id — насос остановлен, но ответа без идентификатора недостаточно."));
+            Serial.println(F("pump.stop Р±РµР· correlation_id вЂ” РЅР°СЃРѕСЃ РѕСЃС‚Р°РЅРѕРІР»РµРЅ, РЅРѕ РѕС‚РІРµС‚Р° Р±РµР· РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂР° РЅРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ."));
             publishAckError(String(""), "bad command format: correlation_id missing");
         }
         return;
     }
 
-    Serial.print(F("Нераспознанная команда type="));
+    Serial.print(F("РќРµСЂР°СЃРїРѕР·РЅР°РЅРЅР°СЏ РєРѕРјР°РЅРґР° type="));
     Serial.println(commandType);
     publishAckError(correlationId, "unsupported command type");
 }
@@ -201,7 +202,7 @@ String MQTTClient::buildDeviceTopic(const char* suffix) const {
 
 void MQTTClient::publishAckAccepted(const String& correlationId, const char* statusText) {
     if (!mqttClient.connected()) {
-        Serial.println(F("Не удалось отправить ACK (accepted): MQTT не подключён, сообщение потеряно."));
+        Serial.println(F("РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ ACK (accepted): MQTT РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ, СЃРѕРѕР±С‰РµРЅРёРµ РїРѕС‚РµСЂСЏРЅРѕ."));
         return;
     }
 
@@ -210,7 +211,7 @@ void MQTTClient::publishAckAccepted(const String& correlationId, const char* sta
         String("{\"correlation_id\":\"") + correlationId +
         "\",\"result\":\"accepted\",\"status\":\"" + status + "\"}";
 
-    Serial.print(F("Отправляем ACK (accepted) в брокер: "));
+    Serial.print(F("РћС‚РїСЂР°РІР»СЏРµРј ACK (accepted) РІ Р±СЂРѕРєРµСЂ: "));
     Serial.println(payload);
     const String ackTopic = buildDeviceTopic("ack");
     mqttClient.publish(ackTopic.c_str(), payload.c_str(), false);
@@ -218,7 +219,7 @@ void MQTTClient::publishAckAccepted(const String& correlationId, const char* sta
 
 void MQTTClient::publishAckError(const String& correlationId, const char* reasonText) {
     if (!mqttClient.connected()) {
-        Serial.println(F("Не удалось отправить ACK (error): MQTT не подключён, сообщение потеряно."));
+        Serial.println(F("РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РїСЂР°РІРёС‚СЊ ACK (error): MQTT РЅРµ РїРѕРґРєР»СЋС‡С‘РЅ, СЃРѕРѕР±С‰РµРЅРёРµ РїРѕС‚РµСЂСЏРЅРѕ."));
         return;
     }
 
@@ -227,7 +228,7 @@ void MQTTClient::publishAckError(const String& correlationId, const char* reason
         String("{\"correlation_id\":\"") + correlationId +
         "\",\"result\":\"error\",\"reason\":\"" + reason + "\"}";
 
-    Serial.print(F("Отправляем ACK (error) в брокер: "));
+    Serial.print(F("РћС‚РїСЂР°РІР»СЏРµРј ACK (error) РІ Р±СЂРѕРєРµСЂ: "));
     Serial.println(payload);
     const String ackTopic = buildDeviceTopic("ack");
     mqttClient.publish(ackTopic.c_str(), payload.c_str(), false);

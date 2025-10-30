@@ -1,3 +1,4 @@
+﻿// Обёртка над PubSubClient: подключение, подписка и маршрутизация MQTT-команд устройства.
 #pragma once
 
 #include <Arduino.h>

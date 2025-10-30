@@ -1,10 +1,11 @@
+﻿// Модуль Application — координирует датчики, актуаторы и ручной полив через высокоуровневые методы.
 // firmware/src/Application.h
 #pragma once
 #include <Arduino.h>
 
 class PubSubClient;
 
-// Включаем все необходимые заголовки
+// Р’РєР»СЋС‡Р°РµРј РІСЃРµ РЅРµРѕР±С…РѕРґРёРјС‹Рµ Р·Р°РіРѕР»РѕРІРєРё
 #include "Sensors/SensorManager.h"
 #include "Actuators/ActuatorManager.h"
 #include "Network/WiFiManager.h"
@@ -16,7 +17,7 @@ class PubSubClient;
 
 class WateringApplication {
 private:
-    // Менеджеры
+    // РњРµРЅРµРґР¶РµСЂС‹
     SensorManager sensorManager;
     ActuatorManager actuatorManager;
     WiFiManager wifiManager;
@@ -26,7 +27,7 @@ private:
     TaskScheduler taskScheduler;
     SystemMonitor systemMonitor;
     
-    // Состояние
+    // РЎРѕСЃС‚РѕСЏРЅРёРµ
     bool automaticWateringEnabled;
     bool automaticLightEnabled;
     unsigned long lastStatusPrint;
@@ -35,7 +36,7 @@ private:
     bool testingActuators;
     int testPhase;
 
-    // Состояние ручного полива (используется для MQTT и авто-таймаута)
+    // РЎРѕСЃС‚РѕСЏРЅРёРµ СЂСѓС‡РЅРѕРіРѕ РїРѕР»РёРІР° (РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РґР»СЏ MQTT Рё Р°РІС‚Рѕ-С‚Р°Р№РјР°СѓС‚Р°)
     bool manualWateringActive;
     uint32_t manualWateringDurationSec;
     unsigned long manualWateringStartMillis;
@@ -53,21 +54,21 @@ public:
 
     //void factoryReset();
 
-    // Управление системой
+    // РЈРїСЂР°РІР»РµРЅРёРµ СЃРёСЃС‚РµРјРѕР№
     void enableAutomaticWatering();
     void disableAutomaticWatering();
     void enableAutomaticLight();
     void disableAutomaticLight();
     
-    // Ручное управление
+    // Р СѓС‡РЅРѕРµ СѓРїСЂР°РІР»РµРЅРёРµ
     void waterPlants(int durationMs = 30000);
     void toggleLight();
     void toggleWaterPump();
-    // Прямой контроль насоса для сценариев ручного полива по MQTT (шаги 2+).
+    // РџСЂСЏРјРѕР№ РєРѕРЅС‚СЂРѕР»СЊ РЅР°СЃРѕСЃР° РґР»СЏ СЃС†РµРЅР°СЂРёРµРІ СЂСѓС‡РЅРѕРіРѕ РїРѕР»РёРІР° РїРѕ MQTT (С€Р°РіРё 2+).
     void setManualPumpState(bool state);
     bool isManualPumpRunning();
 
-    // Ручной полив (интеграция с main.cpp)
+    // Р СѓС‡РЅРѕР№ РїРѕР»РёРІ (РёРЅС‚РµРіСЂР°С†РёСЏ СЃ main.cpp)
     bool manualStart(uint32_t durationSec, const String& correlationId);
     bool manualStop(const String& correlationId);
     bool manualLoop();
@@ -81,11 +82,11 @@ public:
     void stateHeartbeatLoop(bool mqttConnected);
     void resetHeartbeatTimer();
     
-    // Тестирование
+    // РўРµСЃС‚РёСЂРѕРІР°РЅРёРµ
     void testSensors();
     void testActuators();
     
-    // Статус
+    // РЎС‚Р°С‚СѓСЃ
     String getFullStatus();
     void printStatus();
 
@@ -98,7 +99,7 @@ private:
     void setupNetwork();
     void setupTasks();
     
-    // Автоматические задачи
+    // РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРёРµ Р·Р°РґР°С‡Рё
     void checkWatering();
     void checkLight();
     void updateServer();
