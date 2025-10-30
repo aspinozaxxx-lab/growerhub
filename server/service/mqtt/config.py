@@ -1,4 +1,4 @@
-"""Доступ к MQTT-настройкам приложения."""
+﻿"""Centralised MQTT configuration access."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ __all__ = ["MqttSettings", "get_mqtt_settings"]
 
 @dataclass(frozen=True)
 class MqttSettings:
-    """Набор настроек MQTT, необходимых сервисному слою."""
+    """Configuration subset used by the MQTT service layer."""
 
     host: str
     port: int
@@ -22,11 +22,18 @@ class MqttSettings:
     tls: bool
     client_id_prefix: str
     debug: bool
+    device_online_threshold_s: int
+
+    @property
+    def DEVICE_ONLINE_THRESHOLD_S(self) -> int:  # pragma: no cover - compatibility shim
+        """Backward-compatible accessor for legacy code/tests."""
+
+        return self.device_online_threshold_s
 
 
 @lru_cache()
 def get_mqtt_settings() -> MqttSettings:
-    """Вернуть кэшированную проекцию настроек приложения на MQTT."""
+    """Return cached MQTT-related configuration."""
 
     settings = get_settings()
     return MqttSettings(
@@ -37,5 +44,5 @@ def get_mqtt_settings() -> MqttSettings:
         tls=settings.MQTT_TLS,
         client_id_prefix=settings.MQTT_CLIENT_ID_PREFIX,
         debug=settings.DEBUG,
+        device_online_threshold_s=settings.DEVICE_ONLINE_THRESHOLD_S,
     )
-

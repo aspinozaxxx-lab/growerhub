@@ -1,4 +1,4 @@
-﻿"""MQTT service in-memory stores for ACKs and device shadow."""
+﻿"""In-memory stores used by the MQTT service (ACKs and device shadow)."""
 
 from __future__ import annotations
 
@@ -6,8 +6,7 @@ from datetime import datetime, timedelta, timezone
 from threading import RLock
 from typing import Dict, Optional, Tuple
 
-from config import get_settings
-from service.mqtt.serialization import Ack, DeviceState, ManualWateringStatus
+from service.mqtt.config import get_mqtt_settings
 
 __all__ = [
     "AckStore",
@@ -18,6 +17,7 @@ __all__ = [
     "init_shadow_store",
     "get_shadow_store",
     "shutdown_shadow_store",
+    "get_settings",
 ]
 
 
@@ -26,16 +26,16 @@ class AckStore:
 
     def __init__(self) -> None:
         self._lock = RLock()
-        self._storage: Dict[str, Tuple[str, Ack, datetime]] = {}
+        self._storage: Dict[str, Tuple[str, "Ack", datetime]] = {}
 
-    def put(self, device_id: str, ack: Ack) -> None:
+    def put(self, device_id: str, ack: "Ack") -> None:
         """Store ACK together with device id and insertion timestamp."""
 
         inserted_at = datetime.utcnow()
         with self._lock:
             self._storage[ack.correlation_id] = (device_id, ack, inserted_at)
 
-    def get(self, correlation_id: str) -> Optional[Ack]:
+    def get(self, correlation_id: str) -> Optional["Ack"]:
         """Return ACK by correlation id or None when missing."""
 
         with self._lock:
@@ -92,15 +92,15 @@ class DeviceShadowStore:
 
     def __init__(self) -> None:
         self._lock = RLock()
-        self._storage: Dict[str, Tuple[DeviceState, datetime]] = {}
+        self._storage: Dict[str, Tuple["DeviceState", datetime]] = {}
 
-    def update_from_state(self, device_id: str, state: DeviceState) -> None:
+    def update_from_state(self, device_id: str, state: "DeviceState") -> None:
         """Store latest DeviceState and timestamp."""
 
         with self._lock:
             self._storage[device_id] = (state, datetime.utcnow())
 
-    def get_last_state(self, device_id: str) -> Optional[DeviceState]:
+    def get_last_state(self, device_id: str) -> Optional["DeviceState"]:
         """Return last DeviceState for device or None."""
 
         with self._lock:
@@ -127,7 +127,7 @@ class DeviceShadowStore:
         device_id: str,
         now: Optional[datetime] = None,
     ) -> Optional[dict]:
-        """Prepare presentation for manual watering status endpoint."""
+        """Prepare presentation for manual-watering status endpoint."""
 
         with self._lock:
             entry = self._storage.get(device_id)
@@ -137,11 +137,11 @@ class DeviceShadowStore:
 
         state, updated_at = entry
         mw_state = state.manual_watering
-        settings = get_settings()
+        mqtt_settings = get_settings()
 
-        if isinstance(mw_state.status, ManualWateringStatus):
+        if hasattr(mw_state.status, "value"):
             status_enum = mw_state.status
-            status = status_enum.value
+            status = mw_state.status.value
         else:
             status = str(mw_state.status)
             try:
@@ -166,7 +166,12 @@ class DeviceShadowStore:
         started_iso = _isoformat_utc(started_at) if started_at else None
         observed_at = _as_utc(updated_at)
         current_utc = _as_utc(now or datetime.utcnow())
-        is_online = (current_utc - observed_at).total_seconds() <= settings.DEVICE_ONLINE_THRESHOLD_S
+        threshold = getattr(
+            mqtt_settings,
+            "device_online_threshold_s",
+            getattr(mqtt_settings, "DEVICE_ONLINE_THRESHOLD_S", 60),
+        )
+        is_online = (current_utc - observed_at).total_seconds() <= threshold
         last_seen_iso = _isoformat_utc(observed_at)
 
         return {
@@ -206,6 +211,15 @@ def shutdown_shadow_store() -> None:
 
     global _shadow_store
     _shadow_store = None
+
+
+def get_settings():  # pragma: no cover - compatibility shim for old patches
+    """Return MQTT settings object (legacy alias)."""
+
+    return get_mqtt_settings()
+
+
+from service.mqtt.serialization import Ack, DeviceState, ManualWateringStatus  # noqa: E402
 
 
 def _as_utc(dt: datetime) -> datetime:
