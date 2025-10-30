@@ -2,13 +2,11 @@
 
 from fastapi.testclient import TestClient
 
-from service.mqtt.store import AckStore, get_ack_store, init_ack_store, shutdown_ack_store
 from app.main import app
+from service.mqtt.handlers.ack import extract_device_id_from_ack_topic
+from service.mqtt.router import MqttAckSubscriber
 from service.mqtt.serialization import Ack, AckResult, ManualWateringStatus
-from mqtt_subscriber import (
-    MqttAckSubscriber,
-    extract_device_id_from_ack_topic,
-)
+from service.mqtt.store import AckStore, get_ack_store, init_ack_store, shutdown_ack_store
 
 
 def test_extract_device_id_from_ack_topic_valid():

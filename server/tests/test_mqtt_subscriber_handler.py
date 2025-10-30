@@ -1,12 +1,10 @@
 ﻿import json
 from datetime import datetime, timedelta, timezone
 
+from service.mqtt.handlers.device_state import extract_device_id_from_state_topic
+from service.mqtt.router import MqttStateSubscriber
 from service.mqtt.serialization import DeviceState, ManualWateringState, ManualWateringStatus
 from service.mqtt.store import DeviceShadowStore
-from mqtt_subscriber import (
-    MqttStateSubscriber,
-    extract_device_id_from_state_topic,
-)
 
 
 def test_extract_device_id_from_state_topic_valid():

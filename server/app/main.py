@@ -28,8 +28,6 @@ from service.mqtt.lifecycle import (
     shutdown_mqtt_stores,
     init_publisher,
     shutdown_publisher,
-)
-from mqtt_subscriber import (
     get_ack_subscriber,
     get_state_subscriber,
     init_ack_subscriber,

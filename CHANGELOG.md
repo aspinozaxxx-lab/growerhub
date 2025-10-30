@@ -1,6 +1,24 @@
-﻿# Changelog
+# Changelog
 
-## [2025-10-26] FastAPI MQTT lifecycle integration\n\n- FastAPI startup/shutdown теперь используют фасады service.mqtt.lifecycle вместо ручного вызова подписчиков.\n- API manual_watering переведён на service.mqtt.interfaces.IMqttPublisher и новые сторажи; тесты патчат lifecycle/store.\n\n## [2025-10-26] MQTT serialization cleanup\n\n- Удалены избыточные функции deserialize_* и тесты переведены на прямой model_validate_json.\n- Совместимый модуль mqtt_protocol.py и тесты приведены к новым API, строки ответов нормализованы.\n\n## [2025-10-26] MQTT store refactor (Ack/Shadow)\n\n- AckStore и DeviceShadowStore перенесены в service/mqtt/store.py с единым управлением инициализацией.\n- lifecycle теперь управляет запуском/остановкой сторажей и подписчиков, API и тесты переведены на новые импорты.\n- Доктесты/ожидания обновлены на нормальные строки ошибок и совместимые патчи.\n\n## [2025-10-26] MQTT router refactor (subscribers)
+## [2025-10-30] MQTT refactor — step 8
+- Удалены совместимые модули server/mqtt_*.py, все импорты переведены на server/service/mqtt.
+- Обновлены server/app/main.py, тесты и документация manual_watering на новую архитектуру.
+- Цель: завершить миграцию MQTT-слоя, оставить единый сервисный фасад и актуальную документацию.
+
+## [2025-10-26] FastAPI MQTT lifecycle integration
+- FastAPI startup/shutdown теперь используют фасады service.mqtt.lifecycle вместо ручного вызова подписчиков.
+- API manual_watering переведён на service.mqtt.interfaces.IMqttPublisher и новые сторажи; тесты патчат lifecycle/store.
+
+## [2025-10-26] MQTT serialization cleanup
+- Удалены избыточные функции deserialize_* и тесты переведены на прямой model_validate_json.
+- Совместимый модуль mqtt_protocol.py и тесты приведены к новым API, строки ответов нормализованы.
+
+## [2025-10-26] MQTT store refactor (Ack/Shadow)
+- AckStore и DeviceShadowStore перенесены в service/mqtt/store.py с единым управлением инициализацией.
+- lifecycle теперь управляет запуском/остановкой сторажей и подписчиков, API и тесты переведены на новые импорты.
+- Доктесты/ожидания обновлены на нормальные строки ошибок и совместимые патчи.
+
+## [2025-10-26] MQTT router refactor (subscribers)
 
 - Логика подписчиков и обработчиков вынесена в service/mqtt/router.py и service/mqtt/handlers/ (ACK/state, парсинг топиков и payload).
 - service/mqtt/lifecycle.py теперь управляет запуском/остановкой подписчиков через старт/стоп фасады.
