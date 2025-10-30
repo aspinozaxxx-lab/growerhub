@@ -31,7 +31,7 @@ stub_database.create_tables = _create_tables
 stub_database.get_db = _get_db
 sys.modules["app.core.database"] = stub_database
 
-from api_manual_watering import get_mqtt_dep
+from app.api.routers.manual_watering import get_mqtt_dep
 from app.main import app
 from service.mqtt.serialization import CmdPumpStart, CommandType
 from service.mqtt.interfaces import IMqttPublisher

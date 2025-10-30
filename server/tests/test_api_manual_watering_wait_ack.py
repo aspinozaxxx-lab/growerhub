@@ -45,7 +45,7 @@ stub_database.get_db = _get_db
 sys.modules["app.core.database"] = stub_database
 
 from service.mqtt.store import AckStore  # noqa: E402
-from api_manual_watering import get_ack_dep  # noqa: E402
+from app.api.routers.manual_watering import get_ack_dep  # noqa: E402
 from app.main import app  # noqa: E402
 from service.mqtt.serialization import Ack, AckResult  # noqa: E402
 

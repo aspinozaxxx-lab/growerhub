@@ -193,8 +193,8 @@ def test_debug_shadow_state_disabled_when_debug_false(monkeypatch) -> None:
     monkeypatch.setenv("DEBUG", "false")
     config.get_settings.cache_clear()
 
-    module_path = Path(__file__).resolve().parents[1] / "api_manual_watering.py"
-    spec = util.spec_from_file_location("api_manual_watering_temp", module_path)
+    module_path = Path(__file__).resolve().parents[1] / "app" / "api" / "routers" / "manual_watering.py"
+    spec = util.spec_from_file_location("manual_watering_temp", module_path)
     module = util.module_from_spec(spec)
     spec.loader.exec_module(module)  # type: ignore[union-attr]
 
@@ -219,6 +219,6 @@ def test_debug_shadow_state_disabled_when_debug_false(monkeypatch) -> None:
     monkeypatch.setenv("DEBUG", "true")
     config.get_settings.cache_clear()
     config.get_settings()
-    sys.modules.pop("api_manual_watering_temp", None)
+    sys.modules.pop("manual_watering_temp", None)
 
 
