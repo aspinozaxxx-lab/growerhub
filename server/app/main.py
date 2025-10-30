@@ -77,13 +77,12 @@ async def _shutdown_mqtt() -> None:
 app.mount("/static", StaticFiles(directory=SITE_DIR), name="static")
 app.mount("/firmware", StaticFiles(directory=FIRMWARE_DIR), name="firmware")
 
-app.include_router(manual_watering_router.router)
-app.include_router(devices_router.router)
-app.include_router(history_router.router)
-app.include_router(firmware_router.router)
+app.include_router(manual_watering_router.router, tags=["Manual watering"])
+app.include_router(devices_router.router, tags=["Devices"])
+app.include_router(history_router.router, tags=["History"])
+app.include_router(firmware_router.router, tags=["Firmware"])
 
 
 @app.get("/")
 async def read_root():
     return FileResponse(SITE_DIR / "index.html")
-
