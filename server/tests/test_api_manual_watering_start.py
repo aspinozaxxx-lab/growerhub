@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import types
 
 from fastapi.testclient import TestClient
@@ -11,12 +11,12 @@ engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def _create_tables() -> None:
-    """Создаём таблицы в изолированной in-memory БД для тестов."""
+    """╨б╨╛╨╖╨┤╨░╤С╨╝ ╤В╨░╨▒╨╗╨╕╤Ж╤Л ╨▓ ╨╕╨╖╨╛╨╗╨╕╤А╨╛╨▓╨░╨╜╨╜╨╛╨╣ in-memory ╨С╨Ф ╨┤╨╗╤П ╤В╨╡╤Б╤В╨╛╨▓."""
     Base.metadata.create_all(bind=engine)
 
 
 def _get_db():
-    """Выдаём сессию SQLAlchemy и гарантированно закрываем её после использования."""
+    """╨Т╤Л╨┤╨░╤С╨╝ ╤Б╨╡╤Б╤Б╨╕╤О SQLAlchemy ╨╕ ╨│╨░╤А╨░╨╜╤В╨╕╤А╨╛╨▓╨░╨╜╨╜╨╛ ╨╖╨░╨║╤А╤Л╨▓╨░╨╡╨╝ ╨╡╤С ╨┐╨╛╤Б╨╗╨╡ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╨╜╨╕╤П."""
     db = SessionLocal()
     try:
         yield db
@@ -38,7 +38,7 @@ from service.mqtt.interfaces import IMqttPublisher
 
 
 class FakePublisher(IMqttPublisher):
-    """Тестовый паблишер, который просто накапливает опубликованные команды."""
+    """╨в╨╡╤Б╤В╨╛╨▓╤Л╨╣ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А, ╨║╨╛╤В╨╛╤А╤Л╨╣ ╨┐╤А╨╛╤Б╤В╨╛ ╨╜╨░╨║╨░╨┐╨╗╨╕╨▓╨░╨╡╤В ╨╛╨┐╤Г╨▒╨╗╨╕╨║╨╛╨▓╨░╨╜╨╜╤Л╨╡ ╨║╨╛╨╝╨░╨╜╨┤╤Л."""
 
     def __init__(self) -> None:
         self.published: list[tuple[str, CmdPumpStart]] = []
@@ -48,13 +48,13 @@ class FakePublisher(IMqttPublisher):
 
 
 def test_manual_watering_start_endpoint():
-    """Проверяем, что эндпоинт запуска полива публикует pump.start и возвращает correlation_id."""
+    """╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝, ╤З╤В╨╛ ╤Н╨╜╨┤╨┐╨╛╨╕╨╜╤В ╨╖╨░╨┐╤Г╤Б╨║╨░ ╨┐╨╛╨╗╨╕╨▓╨░ ╨┐╤Г╨▒╨╗╨╕╨║╤Г╨╡╤В pump.start ╨╕ ╨▓╨╛╨╖╨▓╤А╨░╤Й╨░╨╡╤В correlation_id."""
 
-    # Подменяем зависимость на наш фейковый паблишер, чтобы не обращаться к реальному брокеру.
+    # ╨Я╨╛╨┤╨╝╨╡╨╜╤П╨╡╨╝ ╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╤М ╨╜╨░ ╨╜╨░╤И ╤Д╨╡╨╣╨║╨╛╨▓╤Л╨╣ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А, ╤З╤В╨╛╨▒╤Л ╨╜╨╡ ╨╛╨▒╤А╨░╤Й╨░╤В╤М╤Б╤П ╨║ ╤А╨╡╨░╨╗╤М╨╜╨╛╨╝╤Г ╨▒╤А╨╛╨║╨╡╤А╤Г.
     fake = FakePublisher()
     app.dependency_overrides[get_mqtt_dep] = lambda: fake
 
-    # Отправляем запрос на запуск полива и сохраняем ответ.
+    # ╨Ю╤В╨┐╤А╨░╨▓╨╗╤П╨╡╨╝ ╨╖╨░╨┐╤А╨╛╤Б ╨╜╨░ ╨╖╨░╨┐╤Г╤Б╨║ ╨┐╨╛╨╗╨╕╨▓╨░ ╨╕ ╤Б╨╛╤Е╤А╨░╨╜╤П╨╡╨╝ ╨╛╤В╨▓╨╡╤В.
     with TestClient(app) as client:
         response = client.post(
             "/api/manual-watering/start",
@@ -63,13 +63,13 @@ def test_manual_watering_start_endpoint():
 
     app.dependency_overrides.clear()
 
-    # Проверяем, что сервер вернул успешный статус и выдал корреляционный идентификатор.
+    # ╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝, ╤З╤В╨╛ ╤Б╨╡╤А╨▓╨╡╤А ╨▓╨╡╤А╨╜╤Г╨╗ ╤Г╤Б╨┐╨╡╤И╨╜╤Л╨╣ ╤Б╤В╨░╤В╤Г╤Б ╨╕ ╨▓╤Л╨┤╨░╨╗ ╨║╨╛╤А╤А╨╡╨╗╤П╤Ж╨╕╨╛╨╜╨╜╤Л╨╣ ╨╕╨┤╨╡╨╜╤В╨╕╤Д╨╕╨║╨░╤В╨╛╤А.
     assert response.status_code == 200
     data = response.json()
     correlation_id = data.get("correlation_id")
     assert isinstance(correlation_id, str) and correlation_id
 
-    # Убеждаемся, что публикация ровно одна и в неё попал ожидаемый набор данных.
+    # ╨г╨▒╨╡╨╢╨┤╨░╨╡╨╝╤Б╤П, ╤З╤В╨╛ ╨┐╤Г╨▒╨╗╨╕╨║╨░╤Ж╨╕╤П ╤А╨╛╨▓╨╜╨╛ ╨╛╨┤╨╜╨░ ╨╕ ╨▓ ╨╜╨╡╤С ╨┐╨╛╨┐╨░╨╗ ╨╛╨╢╨╕╨┤╨░╨╡╨╝╤Л╨╣ ╨╜╨░╨▒╨╛╤А ╨┤╨░╨╜╨╜╤Л╤Е.
     assert len(fake.published) == 1
     device_id, cmd = fake.published[0]
     assert device_id == "abc123"

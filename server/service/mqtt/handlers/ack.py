@@ -8,7 +8,7 @@ from typing import Optional
 
 from pydantic import ValidationError
 
-from ack_store import AckStore
+from service.mqtt.store import AckStore
 from service.mqtt.config import MqttSettings
 from service.mqtt.serialization import Ack
 
@@ -81,4 +81,5 @@ def handle_ack_message(
     if settings.debug:
         print(f"[MQTT DEBUG] (ack) сохранён ACK correlation_id={ack.correlation_id}")
     logger.info("Сохранён ACK с correlation_id=%s", ack.correlation_id)
+
 

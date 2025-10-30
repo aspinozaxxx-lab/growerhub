@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import types
 from datetime import datetime
 
@@ -10,14 +10,14 @@ from sqlalchemy.orm import sessionmaker
 
 from app.models.database_models import Base
 
-# --- Настраиваем изолированную БД, чтобы не зависеть от реального сервера. ---
+# --- ╨Э╨░╤Б╤В╤А╨░╨╕╨▓╨░╨╡╨╝ ╨╕╨╖╨╛╨╗╨╕╤А╨╛╨▓╨░╨╜╨╜╤Г╤О ╨С╨Ф, ╤З╤В╨╛╨▒╤Л ╨╜╨╡ ╨╖╨░╨▓╨╕╤Б╨╡╤В╤М ╨╛╤В ╤А╨╡╨░╨╗╤М╨╜╨╛╨│╨╛ ╤Б╨╡╤А╨▓╨╡╤А╨░. ---
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 @pytest.fixture(autouse=True)
 def enable_debug(monkeypatch):
-    """Включаем DEBUG, чтобы сервисный эндпоинт /_debug/shadow/state был доступен в тестах."""
+    """╨Т╨║╨╗╤О╤З╨░╨╡╨╝ DEBUG, ╤З╤В╨╛╨▒╤Л ╤Б╨╡╤А╨▓╨╕╤Б╨╜╤Л╨╣ ╤Н╨╜╨┤╨┐╨╛╨╕╨╜╤В /_debug/shadow/state ╨▒╤Л╨╗ ╨┤╨╛╤Б╤В╤Г╨┐╨╡╨╜ ╨▓ ╤В╨╡╤Б╤В╨░╤Е."""
 
     monkeypatch.setenv("DEBUG", "true")
     config.get_settings.cache_clear()
@@ -27,13 +27,13 @@ def enable_debug(monkeypatch):
 
 
 def _create_tables() -> None:
-    """Создаём схему БД (таблицы) в памяти перед запуском тестов."""
+    """╨б╨╛╨╖╨┤╨░╤С╨╝ ╤Б╤Е╨╡╨╝╤Г ╨С╨Ф (╤В╨░╨▒╨╗╨╕╤Ж╤Л) ╨▓ ╨┐╨░╨╝╤П╤В╨╕ ╨┐╨╡╤А╨╡╨┤ ╨╖╨░╨┐╤Г╤Б╨║╨╛╨╝ ╤В╨╡╤Б╤В╨╛╨▓."""
 
     Base.metadata.create_all(bind=engine)
 
 
 def _get_db():
-    """Выдаём сессию SQLAlchemy и закрываем её после использования."""
+    """╨Т╤Л╨┤╨░╤С╨╝ ╤Б╨╡╤Б╤Б╨╕╤О SQLAlchemy ╨╕ ╨╖╨░╨║╤А╤Л╨▓╨░╨╡╨╝ ╨╡╤С ╨┐╨╛╤Б╨╗╨╡ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╨╜╨╕╤П."""
 
     db = SessionLocal()
     try:
@@ -42,7 +42,7 @@ def _get_db():
         db.close()
 
 
-# --- Подменяем модуль app.core.database на заглушку с нашей in-memory БД. ---
+# --- ╨Я╨╛╨┤╨╝╨╡╨╜╤П╨╡╨╝ ╨╝╨╛╨┤╤Г╨╗╤М app.core.database ╨╜╨░ ╨╖╨░╨│╨╗╤Г╤И╨║╤Г ╤Б ╨╜╨░╤И╨╡╨╣ in-memory ╨С╨Ф. ---
 stub_database = types.ModuleType("app.core.database")
 stub_database.engine = engine
 stub_database.SessionLocal = SessionLocal
@@ -50,32 +50,32 @@ stub_database.create_tables = _create_tables
 stub_database.get_db = _get_db
 sys.modules["app.core.database"] = stub_database
 
-from api_manual_watering import get_mqtt_dep  # noqa: E402  # импорт после подмены БД
+from api_manual_watering import get_mqtt_dep  # noqa: E402  # ╨╕╨╝╨┐╨╛╤А╤В ╨┐╨╛╤Б╨╗╨╡ ╨┐╨╛╨┤╨╝╨╡╨╜╤Л ╨С╨Ф
 from app.main import app  # noqa: E402
 from service.mqtt.serialization import CmdPumpStop, CommandType  # noqa: E402
 from service.mqtt.interfaces import IMqttPublisher  # noqa: E402
 
 
 class FakePublisher(IMqttPublisher):
-    """Фейковый MQTT-паблишер: вместо реального брокера запоминает команды."""
+    """╨д╨╡╨╣╨║╨╛╨▓╤Л╨╣ MQTT-╨┐╨░╨▒╨╗╨╕╤И╨╡╤А: ╨▓╨╝╨╡╤Б╤В╨╛ ╤А╨╡╨░╨╗╤М╨╜╨╛╨│╨╛ ╨▒╤А╨╛╨║╨╡╤А╨░ ╨╖╨░╨┐╨╛╨╝╨╕╨╜╨░╨╡╤В ╨║╨╛╨╝╨░╨╜╨┤╤Л."""
 
     def __init__(self) -> None:
         self.published: list[tuple[str, CmdPumpStop]] = []
 
     def publish_cmd(self, device_id: str, cmd: CmdPumpStop) -> None:
-        """Сохраняем команду в список, чтобы затем проверить содержимое."""
+        """╨б╨╛╤Е╤А╨░╨╜╤П╨╡╨╝ ╨║╨╛╨╝╨░╨╜╨┤╤Г ╨▓ ╤Б╨┐╨╕╤Б╨╛╨║, ╤З╤В╨╛╨▒╤Л ╨╖╨░╤В╨╡╨╝ ╨┐╤А╨╛╨▓╨╡╤А╨╕╤В╤М ╤Б╨╛╨┤╨╡╤А╨╢╨╕╨╝╨╛╨╡."""
 
         self.published.append((device_id, cmd))
 
 
 def test_manual_watering_stop_endpoint():
-    """Проверяем, что эндпоинт остановки полива публикует pump.stop и отдаёт correlation_id."""
+    """╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝, ╤З╤В╨╛ ╤Н╨╜╨┤╨┐╨╛╨╕╨╜╤В ╨╛╤Б╤В╨░╨╜╨╛╨▓╨║╨╕ ╨┐╨╛╨╗╨╕╨▓╨░ ╨┐╤Г╨▒╨╗╨╕╨║╤Г╨╡╤В pump.stop ╨╕ ╨╛╤В╨┤╨░╤С╤В correlation_id."""
 
-    # Подменяем зависимость FastAPI на фейковый паблишер: он не ходит в сеть.
+    # ╨Я╨╛╨┤╨╝╨╡╨╜╤П╨╡╨╝ ╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╤М FastAPI ╨╜╨░ ╤Д╨╡╨╣╨║╨╛╨▓╤Л╨╣ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А: ╨╛╨╜ ╨╜╨╡ ╤Е╨╛╨┤╨╕╤В ╨▓ ╤Б╨╡╤В╤М.
     fake = FakePublisher()
     app.dependency_overrides[get_mqtt_dep] = lambda: fake
 
-    # Отправляем POST-запрос на остановку полива.
+    # ╨Ю╤В╨┐╤А╨░╨▓╨╗╤П╨╡╨╝ POST-╨╖╨░╨┐╤А╨╛╤Б ╨╜╨░ ╨╛╤Б╤В╨░╨╜╨╛╨▓╨║╤Г ╨┐╨╛╨╗╨╕╨▓╨░.
     with TestClient(app) as client:
         seed_state = {
             "device_id": "abc123",
@@ -96,16 +96,16 @@ def test_manual_watering_stop_endpoint():
             json={"device_id": "abc123"},
         )
 
-    # Возвращаем зависимости в исходное состояние, чтобы не влиять на другие тесты.
+    # ╨Т╨╛╨╖╨▓╤А╨░╤Й╨░╨╡╨╝ ╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╨╕ ╨▓ ╨╕╤Б╤Е╨╛╨┤╨╜╨╛╨╡ ╤Б╨╛╤Б╤В╨╛╤П╨╜╨╕╨╡, ╤З╤В╨╛╨▒╤Л ╨╜╨╡ ╨▓╨╗╨╕╤П╤В╤М ╨╜╨░ ╨┤╤А╤Г╨│╨╕╨╡ ╤В╨╡╤Б╤В╤Л.
     app.dependency_overrides.clear()
 
-    # Проверяем успешный статус и наличие корреляционного идентификатора.
+    # ╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝ ╤Г╤Б╨┐╨╡╤И╨╜╤Л╨╣ ╤Б╤В╨░╤В╤Г╤Б ╨╕ ╨╜╨░╨╗╨╕╤З╨╕╨╡ ╨║╨╛╤А╤А╨╡╨╗╤П╤Ж╨╕╨╛╨╜╨╜╨╛╨│╨╛ ╨╕╨┤╨╡╨╜╤В╨╕╤Д╨╕╨║╨░╤В╨╛╤А╨░.
     assert response.status_code == 200
     data = response.json()
     correlation_id = data.get("correlation_id")
     assert isinstance(correlation_id, str) and correlation_id
 
-    # Проверяем, что опубликована ровно одна команда и это действительно pump.stop.
+    # ╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝, ╤З╤В╨╛ ╨╛╨┐╤Г╨▒╨╗╨╕╨║╨╛╨▓╨░╨╜╨░ ╤А╨╛╨▓╨╜╨╛ ╨╛╨┤╨╜╨░ ╨║╨╛╨╝╨░╨╜╨┤╨░ ╨╕ ╤Н╤В╨╛ ╨┤╨╡╨╣╤Б╤В╨▓╨╕╤В╨╡╨╗╤М╨╜╨╛ pump.stop.
     assert len(fake.published) == 1
     device_id, cmd = fake.published[0]
     assert device_id == "abc123"

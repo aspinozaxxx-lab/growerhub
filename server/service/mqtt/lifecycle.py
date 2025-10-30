@@ -1,13 +1,22 @@
-"""Жизненный цикл компонентов MQTT-сервиса."""
+﻿"""Управление жизненным циклом компонентов MQTT-сервиса."""
 
 from __future__ import annotations
 
 import logging
 from typing import Callable, Optional
 
-from ack_store import AckStore
-from device_shadow import DeviceShadowStore
 from paho.mqtt.client import Client
+
+from service.mqtt.store import (
+    AckStore,
+    DeviceShadowStore,
+    get_ack_store,
+    get_shadow_store,
+    init_ack_store,
+    init_shadow_store,
+    shutdown_ack_store,
+    shutdown_shadow_store,
+)
 
 from .client import PahoMqttPublisher
 from .interfaces import IMqttPublisher
@@ -27,6 +36,14 @@ __all__ = [
     "start_ack_subscriber",
     "stop_ack_subscriber",
     "shutdown_ack_subscriber",
+    "init_ack_store",
+    "init_shadow_store",
+    "get_ack_store",
+    "get_shadow_store",
+    "shutdown_ack_store",
+    "shutdown_shadow_store",
+    "init_mqtt_stores",
+    "shutdown_mqtt_stores",
 ]
 
 logger = logging.getLogger(__name__)
@@ -37,8 +54,22 @@ _state_subscriber: Optional[MqttStateSubscriber] = None
 _ack_subscriber: Optional[MqttAckSubscriber] = None
 
 
+def init_mqtt_stores() -> None:
+    """Инициализировать in-memory сторы ACK и shadow."""
+
+    init_ack_store()
+    init_shadow_store()
+
+
+def shutdown_mqtt_stores() -> None:
+    """Освободить in-memory сторы ACK и shadow."""
+
+    shutdown_shadow_store()
+    shutdown_ack_store()
+
+
 def init_publisher() -> None:
-    """Инициализировать singleton-публикатор и установить соединение."""
+    """Создать singleton публикатора и подключиться к брокеру."""
 
     global _publisher, _publisher_error
     if _publisher:
@@ -47,7 +78,7 @@ def init_publisher() -> None:
     publisher = PahoMqttPublisher()
     try:
         publisher.connect()
-    except Exception as exc:  # pragma: no cover - путь с логированием
+    except Exception as exc:  # pragma: no cover - логирование ошибок сети
         _publisher = None
         _publisher_error = exc
         logger.warning("MQTT publisher initialisation failed: %s", exc)
@@ -57,7 +88,7 @@ def init_publisher() -> None:
 
 
 def shutdown_publisher() -> None:
-    """Остановить и очистить публикатор."""
+    """Остановить публикатор и забыть singleton."""
 
     global _publisher, _publisher_error
     if _publisher:
@@ -67,7 +98,7 @@ def shutdown_publisher() -> None:
 
 
 def get_publisher() -> IMqttPublisher:
-    """Вернуть готовый публикатор или выбросить RuntimeError."""
+    """Вернуть готовый публикатор либо поднять RuntimeError."""
 
     if _publisher:
         return _publisher
@@ -77,13 +108,16 @@ def get_publisher() -> IMqttPublisher:
 
 
 def init_state_subscriber(
-    store: DeviceShadowStore,
+    store: Optional[DeviceShadowStore] = None,
     client_factory: Optional[Callable[[], Client]] = None,
 ) -> None:
-    """Создать подписчика state и сохранить singleton."""
+    """Создать singleton подписчика retained state."""
 
     global _state_subscriber
     if _state_subscriber is None:
+        if store is None:
+            init_shadow_store()
+            store = get_shadow_store()
         _state_subscriber = MqttStateSubscriber(store, client_factory=client_factory)
 
 
@@ -94,6 +128,8 @@ def get_state_subscriber() -> MqttStateSubscriber:
 
 
 def start_state_subscriber() -> None:
+    if _state_subscriber is None:
+        init_state_subscriber()
     get_state_subscriber().start()
 
 
@@ -107,16 +143,20 @@ def shutdown_state_subscriber() -> None:
     global _state_subscriber
     stop_state_subscriber()
     _state_subscriber = None
+    shutdown_shadow_store()
 
 
 def init_ack_subscriber(
-    store: AckStore,
+    store: Optional[AckStore] = None,
     client_factory: Optional[Callable[[], Client]] = None,
 ) -> None:
-    """Создать подписчика ACK и сохранить singleton."""
+    """Создать singleton подписчика ACK."""
 
     global _ack_subscriber
     if _ack_subscriber is None:
+        if store is None:
+            init_ack_store()
+            store = get_ack_store()
         _ack_subscriber = MqttAckSubscriber(store, client_factory=client_factory)
 
 
@@ -127,6 +167,8 @@ def get_ack_subscriber() -> MqttAckSubscriber:
 
 
 def start_ack_subscriber() -> None:
+    if _ack_subscriber is None:
+        init_ack_subscriber()
     get_ack_subscriber().start()
 
 
@@ -140,4 +182,9 @@ def shutdown_ack_subscriber() -> None:
     global _ack_subscriber
     stop_ack_subscriber()
     _ack_subscriber = None
+    shutdown_ack_store()
+
+
+
+
 

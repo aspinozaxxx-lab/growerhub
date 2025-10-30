@@ -1,8 +1,8 @@
-import json
+﻿import json
 from datetime import datetime, timedelta, timezone
 
 from service.mqtt.serialization import DeviceState, ManualWateringState, ManualWateringStatus
-from device_shadow import DeviceShadowStore
+from service.mqtt.store import DeviceShadowStore
 from mqtt_subscriber import (
     MqttStateSubscriber,
     extract_device_id_from_state_topic,
@@ -10,13 +10,13 @@ from mqtt_subscriber import (
 
 
 def test_extract_device_id_from_state_topic_valid():
-    """Корректный топик возвращает device_id."""
+    """╨Ъ╨╛╤А╤А╨╡╨║╤В╨╜╤Л╨╣ ╤В╨╛╨┐╨╕╨║ ╨▓╨╛╨╖╨▓╤А╨░╤Й╨░╨╡╤В device_id."""
 
     assert extract_device_id_from_state_topic("gh/dev/abc123/state") == "abc123"
 
 
 def test_extract_device_id_from_state_topic_invalid():
-    """Некорректные топики дают None, чтобы обработчик их игнорировал."""
+    """╨Э╨╡╨║╨╛╤А╤А╨╡╨║╤В╨╜╤Л╨╡ ╤В╨╛╨┐╨╕╨║╨╕ ╨┤╨░╤О╤В None, ╤З╤В╨╛╨▒╤Л ╨╛╨▒╤А╨░╨▒╨╛╤В╤З╨╕╨║ ╨╕╤Е ╨╕╨│╨╜╨╛╤А╨╕╤А╨╛╨▓╨░╨╗."""
 
     assert extract_device_id_from_state_topic("gh/dev//state") is None
     assert extract_device_id_from_state_topic("gh/dev/abc123/status") is None
@@ -24,7 +24,7 @@ def test_extract_device_id_from_state_topic_invalid():
 
 
 class FakeMessage:
-    """Минимальная заглушка MQTT-сообщения для вызова on_message."""
+    """╨Ь╨╕╨╜╨╕╨╝╨░╨╗╤М╨╜╨░╤П ╨╖╨░╨│╨╗╤Г╤И╨║╨░ MQTT-╤Б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╤П ╨┤╨╗╤П ╨▓╤Л╨╖╨╛╨▓╨░ on_message."""
 
     def __init__(self, topic: str, payload: bytes) -> None:
         self.topic = topic
@@ -32,7 +32,7 @@ class FakeMessage:
 
 
 def _make_state_payload(status: ManualWateringStatus, duration: int, started_at: datetime, correlation_id: str) -> bytes:
-    """Формируем JSON payload так же, как его отправит устройство."""
+    """╨д╨╛╤А╨╝╨╕╤А╤Г╨╡╨╝ JSON payload ╤В╨░╨║ ╨╢╨╡, ╨║╨░╨║ ╨╡╨│╨╛ ╨╛╤В╨┐╤А╨░╨▓╨╕╤В ╤Г╤Б╤В╤А╨╛╨╣╤Б╤В╨▓╨╛."""
 
     state = DeviceState(
         manual_watering=ManualWateringState(
@@ -46,10 +46,10 @@ def _make_state_payload(status: ManualWateringStatus, duration: int, started_at:
 
 
 def test_on_message_updates_store_running_state():
-    """При получении валидного state стор должен обновиться."""
+    """╨Я╤А╨╕ ╨┐╨╛╨╗╤Г╤З╨╡╨╜╨╕╨╕ ╨▓╨░╨╗╨╕╨┤╨╜╨╛╨│╨╛ state ╤Б╤В╨╛╤А ╨┤╨╛╨╗╨╢╨╡╨╜ ╨╛╨▒╨╜╨╛╨▓╨╕╤В╤М╤Б╤П."""
 
     store = DeviceShadowStore()
-    subscriber = MqttStateSubscriber(store, client_factory=lambda: None)  # фабрика не используется в тесте
+    subscriber = MqttStateSubscriber(store, client_factory=lambda: None)  # ╤Д╨░╨▒╤А╨╕╨║╨░ ╨╜╨╡ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╤Г╨╡╤В╤Б╤П ╨▓ ╤В╨╡╤Б╤В╨╡
 
     started_at = datetime.now(timezone.utc) - timedelta(seconds=5)
     payload = _make_state_payload(ManualWateringStatus.running, 20, started_at, "corr-1")
@@ -65,7 +65,7 @@ def test_on_message_updates_store_running_state():
 
 
 def test_on_message_invalid_json_does_not_crash():
-    """Невалидный JSON игнорируется и стор не меняется."""
+    """╨Э╨╡╨▓╨░╨╗╨╕╨┤╨╜╤Л╨╣ JSON ╨╕╨│╨╜╨╛╤А╨╕╤А╤Г╨╡╤В╤Б╤П ╨╕ ╤Б╤В╨╛╤А ╨╜╨╡ ╨╝╨╡╨╜╤П╨╡╤В╤Б╤П."""
 
     store = DeviceShadowStore()
     subscriber = MqttStateSubscriber(store, client_factory=lambda: None)
@@ -77,7 +77,7 @@ def test_on_message_invalid_json_does_not_crash():
 
 
 def test_on_message_wrong_topic_ignored():
-    """Сообщение из другого топика не должно менять стор."""
+    """╨б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╨╡ ╨╕╨╖ ╨┤╤А╤Г╨│╨╛╨│╨╛ ╤В╨╛╨┐╨╕╨║╨░ ╨╜╨╡ ╨┤╨╛╨╗╨╢╨╜╨╛ ╨╝╨╡╨╜╤П╤В╤М ╤Б╤В╨╛╤А."""
 
     store = DeviceShadowStore()
     subscriber = MqttStateSubscriber(store, client_factory=lambda: None)
@@ -87,3 +87,4 @@ def test_on_message_wrong_topic_ignored():
     subscriber._on_message(None, None, message)  # type: ignore[attr-defined]
 
     assert store.get_last_state("abc123") is None
+

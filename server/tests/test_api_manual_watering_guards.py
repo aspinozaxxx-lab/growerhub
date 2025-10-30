@@ -18,7 +18,7 @@ from app.models.database_models import Base
 
 @pytest.fixture(autouse=True)
 def enable_debug(monkeypatch):
-    """Включаем DEBUG, чтобы сервисный эндпоинт /_debug/shadow/state был доступен в тестах."""
+    """╨Т╨║╨╗╤О╤З╨░╨╡╨╝ DEBUG, ╤З╤В╨╛╨▒╤Л ╤Б╨╡╤А╨▓╨╕╤Б╨╜╤Л╨╣ ╤Н╨╜╨┤╨┐╨╛╨╕╨╜╤В /_debug/shadow/state ╨▒╤Л╨╗ ╨┤╨╛╤Б╤В╤Г╨┐╨╡╨╜ ╨▓ ╤В╨╡╤Б╤В╨░╤Е."""
 
     monkeypatch.setenv("DEBUG", "true")
     config.get_settings.cache_clear()
@@ -31,13 +31,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def _create_tables() -> None:
-    """Разворачиваем in-memory SQLite, чтобы FastAPI не тянул реальный Postgres."""
+    """╨а╨░╨╖╨▓╨╛╤А╨░╤З╨╕╨▓╨░╨╡╨╝ in-memory SQLite, ╤З╤В╨╛╨▒╤Л FastAPI ╨╜╨╡ ╤В╤П╨╜╤Г╨╗ ╤А╨╡╨░╨╗╤М╨╜╤Л╨╣ Postgres."""
 
     Base.metadata.create_all(bind=engine)
 
 
 def _get_db():
-    """Отдаём тестовую сессию SQLAlchemy и аккуратно закрываем её после использования."""
+    """╨Ю╤В╨┤╨░╤С╨╝ ╤В╨╡╤Б╤В╨╛╨▓╤Г╤О ╤Б╨╡╤Б╤Б╨╕╤О SQLAlchemy ╨╕ ╨░╨║╨║╤Г╤А╨░╤В╨╜╨╛ ╨╖╨░╨║╤А╤Л╨▓╨░╨╡╨╝ ╨╡╤С ╨┐╨╛╤Б╨╗╨╡ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╨╜╨╕╤П."""
 
     db = SessionLocal()
     try:
@@ -60,37 +60,37 @@ from service.mqtt.serialization import CmdPumpStart, CmdPumpStop, CommandType
 
 
 class FakePublisher(IMqttPublisher):
-    """Фейковый MQTT-паблишер: запоминает публикуемые команды вместо реального брокера."""
+    """╨д╨╡╨╣╨║╨╛╨▓╤Л╨╣ MQTT-╨┐╨░╨▒╨╗╨╕╤И╨╡╤А: ╨╖╨░╨┐╨╛╨╝╨╕╨╜╨░╨╡╤В ╨┐╤Г╨▒╨╗╨╕╨║╤Г╨╡╨╝╤Л╨╡ ╨║╨╛╨╝╨░╨╜╨┤╤Л ╨▓╨╝╨╡╤Б╤В╨╛ ╤А╨╡╨░╨╗╤М╨╜╨╛╨│╨╛ ╨▒╤А╨╛╨║╨╡╤А╨░."""
 
     def __init__(self) -> None:
         self.published: list[tuple[str, CmdPumpStart | CmdPumpStop]] = []
 
     def publish_cmd(self, device_id: str, cmd: CmdPumpStart | CmdPumpStop) -> None:
-        """Сохраняем команду в список, чтобы тесты могли проверить факт публикации."""
+        """╨б╨╛╤Е╤А╨░╨╜╤П╨╡╨╝ ╨║╨╛╨╝╨░╨╜╨┤╤Г ╨▓ ╤Б╨┐╨╕╤Б╨╛╨║, ╤З╤В╨╛╨▒╤Л ╤В╨╡╤Б╤В╤Л ╨╝╨╛╨│╨╗╨╕ ╨┐╤А╨╛╨▓╨╡╤А╨╕╤В╤М ╤Д╨░╨║╤В ╨┐╤Г╨▒╨╗╨╕╨║╨░╤Ж╨╕╨╕."""
 
         self.published.append((device_id, cmd))
 
 
 class _DummySubscriber:
-    """Заглушка для MQTT-подписчиков, чтобы выключить реальные подключения на старте приложения."""
+    """╨Ч╨░╨│╨╗╤Г╤И╨║╨░ ╨┤╨╗╤П MQTT-╨┐╨╛╨┤╨┐╨╕╤Б╤З╨╕╨║╨╛╨▓, ╤З╤В╨╛╨▒╤Л ╨▓╤Л╨║╨╗╤О╤З╨╕╤В╤М ╤А╨╡╨░╨╗╤М╨╜╤Л╨╡ ╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╕╤П ╨╜╨░ ╤Б╤В╨░╤А╤В╨╡ ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╤П."""
 
     def start(self) -> None:
-        """Ничего не делаем, но сохраняем совместимость с ожиданиями app.main."""
+        """╨Э╨╕╤З╨╡╨│╨╛ ╨╜╨╡ ╨┤╨╡╨╗╨░╨╡╨╝, ╨╜╨╛ ╤Б╨╛╤Е╤А╨░╨╜╤П╨╡╨╝ ╤Б╨╛╨▓╨╝╨╡╤Б╤В╨╕╨╝╨╛╤Б╤В╤М ╤Б ╨╛╨╢╨╕╨┤╨░╨╜╨╕╤П╨╝╨╕ app.main."""
 
     def stop(self) -> None:
-        """Ничего не делаем при остановке, чтобы тесты завершались мгновенно."""
+        """╨Э╨╕╤З╨╡╨│╨╛ ╨╜╨╡ ╨┤╨╡╨╗╨░╨╡╨╝ ╨┐╤А╨╕ ╨╛╤Б╤В╨░╨╜╨╛╨▓╨║╨╡, ╤З╤В╨╛╨▒╤Л ╤В╨╡╤Б╤В╤Л ╨╖╨░╨▓╨╡╤А╤И╨░╨╗╨╕╤Б╤М ╨╝╨│╨╜╨╛╨▓╨╡╨╜╨╜╨╛."""
 
 
 @contextmanager
 def manual_watering_client(fake_publisher: FakePublisher) -> Iterator[TestClient]:
-    """Создаём TestClient с подменёнными зависимостями, оставляя рабочим только DeviceShadowStore."""
+    """╨б╨╛╨╖╨┤╨░╤С╨╝ TestClient ╤Б ╨┐╨╛╨┤╨╝╨╡╨╜╤С╨╜╨╜╤Л╨╝╨╕ ╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╤П╨╝╨╕, ╨╛╤Б╤В╨░╨▓╨╗╤П╤П ╤А╨░╨▒╨╛╤З╨╕╨╝ ╤В╨╛╨╗╤М╨║╨╛ DeviceShadowStore."""
 
     stack = ExitStack()
     dummy_state = _DummySubscriber()
     dummy_ack = _DummySubscriber()
 
-    # На этапе старта FastAPI инициализирует MQTT-подписчиков и паблишер — подменяем на заглушки,
-    # чтобы тесты не ходили в сеть и не зависели от брокера.
+    # ╨Э╨░ ╤Н╤В╨░╨┐╨╡ ╤Б╤В╨░╤А╤В╨░ FastAPI ╨╕╨╜╨╕╤Ж╨╕╨░╨╗╨╕╨╖╨╕╤А╤Г╨╡╤В MQTT-╨┐╨╛╨┤╨┐╨╕╤Б╤З╨╕╨║╨╛╨▓ ╨╕ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А тАФ ╨┐╨╛╨┤╨╝╨╡╨╜╤П╨╡╨╝ ╨╜╨░ ╨╖╨░╨│╨╗╤Г╤И╨║╨╕,
+    # ╤З╤В╨╛╨▒╤Л ╤В╨╡╤Б╤В╤Л ╨╜╨╡ ╤Е╨╛╨┤╨╕╨╗╨╕ ╨▓ ╤Б╨╡╤В╤М ╨╕ ╨╜╨╡ ╨╖╨░╨▓╨╕╤Б╨╡╨╗╨╕ ╨╛╤В ╨▒╤А╨╛╨║╨╡╤А╨░.
     stack.enter_context(patch("app.main.init_publisher", lambda: None))
     stack.enter_context(patch("app.main.init_state_subscriber", lambda store: None))
     stack.enter_context(patch("app.main.get_state_subscriber", lambda: dummy_state))
@@ -100,7 +100,7 @@ def manual_watering_client(fake_publisher: FakePublisher) -> Iterator[TestClient
     stack.enter_context(patch("app.main.shutdown_ack_subscriber", lambda: None))
     stack.enter_context(patch("app.main.shutdown_publisher", lambda: None))
 
-    # Подменяем MQTT-зависимость в роутере на наш фейковый паблишер.
+    # ╨Я╨╛╨┤╨╝╨╡╨╜╤П╨╡╨╝ MQTT-╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╤М ╨▓ ╤А╨╛╤Г╤В╨╡╤А╨╡ ╨╜╨░ ╨╜╨░╤И ╤Д╨╡╨╣╨║╨╛╨▓╤Л╨╣ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А.
     app.dependency_overrides[get_mqtt_dep] = lambda: fake_publisher
 
     try:
@@ -112,7 +112,7 @@ def manual_watering_client(fake_publisher: FakePublisher) -> Iterator[TestClient
 
 
 def _push_shadow_state(client: TestClient, device_id: str, status: str, *, duration: int | None = None, started_at: str | None = None, correlation_id: str | None = None) -> None:
-    """Отправляем состояние в DeviceShadowStore через публичный debug-эндпойнт."""
+    """╨Ю╤В╨┐╤А╨░╨▓╨╗╤П╨╡╨╝ ╤Б╨╛╤Б╤В╨╛╤П╨╜╨╕╨╡ ╨▓ DeviceShadowStore ╤З╨╡╤А╨╡╨╖ ╨┐╤Г╨▒╨╗╨╕╤З╨╜╤Л╨╣ debug-╤Н╨╜╨┤╨┐╨╛╨╣╨╜╤В."""
 
     manual_watering: dict[str, object] = {"status": status}
     if duration is not None:
@@ -135,13 +135,13 @@ def _push_shadow_state(client: TestClient, device_id: str, status: str, *, durat
 
 
 def _iso_now() -> str:
-    """Генерируем ISO-время без микросекунд для started_at."""
+    """╨У╨╡╨╜╨╡╤А╨╕╤А╤Г╨╡╨╝ ISO-╨▓╤А╨╡╨╝╤П ╨▒╨╡╨╖ ╨╝╨╕╨║╤А╨╛╤Б╨╡╨║╤Г╨╜╨┤ ╨┤╨╗╤П started_at."""
 
     return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
 
 
 def test_manual_watering_start_conflict_when_running() -> None:
-    """Повторный старт при статусе running должен блокироваться с 409 и без публикации команды."""
+    """╨Я╨╛╨▓╤В╨╛╤А╨╜╤Л╨╣ ╤Б╤В╨░╤А╤В ╨┐╤А╨╕ ╤Б╤В╨░╤В╤Г╤Б╨╡ running ╨┤╨╛╨╗╨╢╨╡╨╜ ╨▒╨╗╨╛╨║╨╕╤А╨╛╨▓╨░╤В╤М╤Б╤П ╤Б 409 ╨╕ ╨▒╨╡╨╖ ╨┐╤Г╨▒╨╗╨╕╨║╨░╤Ж╨╕╨╕ ╨║╨╛╨╝╨░╨╜╨┤╤Л."""
 
     fake = FakePublisher()
     device_id = "guard-start-running"
@@ -167,7 +167,7 @@ def test_manual_watering_start_conflict_when_running() -> None:
 
 
 def test_manual_watering_stop_conflict_when_idle() -> None:
-    """Стоп при статусе idle должен возвращать 409 и не отправлять команду."""
+    """╨б╤В╨╛╨┐ ╨┐╤А╨╕ ╤Б╤В╨░╤В╤Г╤Б╨╡ idle ╨┤╨╛╨╗╨╢╨╡╨╜ ╨▓╨╛╨╖╨▓╤А╨░╤Й╨░╤В╤М 409 ╨╕ ╨╜╨╡ ╨╛╤В╨┐╤А╨░╨▓╨╗╤П╤В╤М ╨║╨╛╨╝╨░╨╜╨┤╤Г."""
 
     fake = FakePublisher()
     device_id = "guard-stop-idle"
@@ -190,7 +190,7 @@ def test_manual_watering_stop_conflict_when_idle() -> None:
 
 
 def test_manual_watering_start_allowed_after_idle() -> None:
-    """При статусе idle запуск разрешён: видим 200, команду pump.start и корректный correlation_id."""
+    """╨Я╤А╨╕ ╤Б╤В╨░╤В╤Г╤Б╨╡ idle ╨╖╨░╨┐╤Г╤Б╨║ ╤А╨░╨╖╤А╨╡╤И╤С╨╜: ╨▓╨╕╨┤╨╕╨╝ 200, ╨║╨╛╨╝╨░╨╜╨┤╤Г pump.start ╨╕ ╨║╨╛╤А╤А╨╡╨║╤В╨╜╤Л╨╣ correlation_id."""
 
     fake = FakePublisher()
     device_id = "guard-start-idle"
@@ -222,7 +222,7 @@ def test_manual_watering_start_allowed_after_idle() -> None:
 
 
 def test_manual_watering_stop_allowed_after_running() -> None:
-    """Если тень сообщает running, стоп проходит успешно и публикует pump.stop."""
+    """╨Х╤Б╨╗╨╕ ╤В╨╡╨╜╤М ╤Б╨╛╨╛╨▒╤Й╨░╨╡╤В running, ╤Б╤В╨╛╨┐ ╨┐╤А╨╛╤Е╨╛╨┤╨╕╤В ╤Г╤Б╨┐╨╡╤И╨╜╨╛ ╨╕ ╨┐╤Г╨▒╨╗╨╕╨║╤Г╨╡╤В pump.stop."""
 
     fake = FakePublisher()
     device_id = "guard-stop-running"
@@ -253,3 +253,4 @@ def test_manual_watering_stop_allowed_after_running() -> None:
     assert isinstance(command, CmdPumpStop)
     assert command.type == CommandType.pump_stop.value
     assert command.correlation_id == correlation_id
+

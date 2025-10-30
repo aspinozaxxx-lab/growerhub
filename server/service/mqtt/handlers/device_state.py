@@ -8,7 +8,7 @@ from typing import Optional
 
 from pydantic import ValidationError
 
-from device_shadow import DeviceShadowStore
+from service.mqtt.store import DeviceShadowStore
 from service.mqtt.config import MqttSettings
 from service.mqtt.serialization import DeviceState
 
@@ -81,4 +81,5 @@ def handle_state_message(
     if settings.debug:
         print(f"[MQTT DEBUG] (state) обновлён shadow для {device_id}")
     logger.info("Обновлён shadow устройства %s", device_id)
+
 

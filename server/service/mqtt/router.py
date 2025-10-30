@@ -8,7 +8,6 @@ from uuid import uuid4
 
 from paho.mqtt.client import Client, MQTT_ERR_SUCCESS
 
-from ack_store import AckStore
 from service.mqtt.config import get_mqtt_settings
 from service.mqtt.handlers.ack import (
     extract_device_id_from_ack_topic,
@@ -20,7 +19,7 @@ from service.mqtt.handlers.device_state import (
     handle_state_message,
     make_state_topic_filter,
 )
-from device_shadow import DeviceShadowStore
+from service.mqtt.store import AckStore, DeviceShadowStore
 
 __all__ = [
     "MqttStateSubscriber",

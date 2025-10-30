@@ -1,4 +1,4 @@
-"""Интеграционные тесты ожидания ACK: проверяем быстрый, отложенный и таймаут-сценарии."""
+﻿"""ACK не получен в заданное время"""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-import ack_store as ack_store_module
+import service.mqtt.store as ack_store_module
 from app.models.database_models import Base
 
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
@@ -22,13 +22,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def _create_tables() -> None:
-    """Разворачиваем in-memory SQLite, чтобы тесты не зависели от настоящей БД."""
+    """╨а╨░╨╖╨▓╨╛╤А╨░╤З╨╕╨▓╨░╨╡╨╝ in-memory SQLite, ╤З╤В╨╛╨▒╤Л ╤В╨╡╤Б╤В╤Л ╨╜╨╡ ╨╖╨░╨▓╨╕╤Б╨╡╨╗╨╕ ╨╛╤В ╨╜╨░╤Б╤В╨╛╤П╤Й╨╡╨╣ ╨С╨Ф."""
 
     Base.metadata.create_all(bind=engine)
 
 
 def _get_db():
-    """Отдаём сессию SQLAlchemy и гарантированно закрываем её после использования."""
+    """╨Ю╤В╨┤╨░╤С╨╝ ╤Б╨╡╤Б╤Б╨╕╤О SQLAlchemy ╨╕ ╨│╨░╤А╨░╨╜╤В╨╕╤А╨╛╨▓╨░╨╜╨╜╨╛ ╨╖╨░╨║╤А╤Л╨▓╨░╨╡╨╝ ╨╡╤С ╨┐╨╛╤Б╨╗╨╡ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╨╜╨╕╤П."""
 
     db = SessionLocal()
     try:
@@ -44,25 +44,25 @@ stub_database.create_tables = _create_tables
 stub_database.get_db = _get_db
 sys.modules["app.core.database"] = stub_database
 
-from ack_store import AckStore  # noqa: E402
+from service.mqtt.store import AckStore  # noqa: E402
 from api_manual_watering import get_ack_dep  # noqa: E402
 from app.main import app  # noqa: E402
 from service.mqtt.serialization import Ack, AckResult  # noqa: E402
 
 
 class _DummySubscriber:
-    """Заглушка для MQTT-сабскрайберов: не делает ничего, но удовлетворяет интерфейс."""
+    """╨Ч╨░╨│╨╗╤Г╤И╨║╨░ ╨┤╨╗╤П MQTT-╤Б╨░╨▒╤Б╨║╤А╨░╨╣╨▒╨╡╤А╨╛╨▓: ╨╜╨╡ ╨┤╨╡╨╗╨░╨╡╤В ╨╜╨╕╤З╨╡╨│╨╛, ╨╜╨╛ ╤Г╨┤╨╛╨▓╨╗╨╡╤В╨▓╨╛╤А╤П╨╡╤В ╨╕╨╜╤В╨╡╤А╤Д╨╡╨╣╤Б."""
 
     def start(self) -> None:
-        """Ничего не делаем на старте — тесты не нуждаются в реальном брокере."""
+        """╨Э╨╕╤З╨╡╨│╨╛ ╨╜╨╡ ╨┤╨╡╨╗╨░╨╡╨╝ ╨╜╨░ ╤Б╤В╨░╤А╤В╨╡ тАФ ╤В╨╡╤Б╤В╤Л ╨╜╨╡ ╨╜╤Г╨╢╨┤╨░╤О╤В╤Б╤П ╨▓ ╤А╨╡╨░╨╗╤М╨╜╨╛╨╝ ╨▒╤А╨╛╨║╨╡╤А╨╡."""
 
     def stop(self) -> None:
-        """Также ничего не делаем на остановке, чтобы завершение было мгновенным."""
+        """╨в╨░╨║╨╢╨╡ ╨╜╨╕╤З╨╡╨│╨╛ ╨╜╨╡ ╨┤╨╡╨╗╨░╨╡╨╝ ╨╜╨░ ╨╛╤Б╤В╨░╨╜╨╛╨▓╨║╨╡, ╤З╤В╨╛╨▒╤Л ╨╖╨░╨▓╨╡╤А╤И╨╡╨╜╨╕╨╡ ╨▒╤Л╨╗╨╛ ╨╝╨│╨╜╨╛╨▓╨╡╨╜╨╜╤Л╨╝."""
 
 
 @contextmanager
 def wait_ack_client(store: AckStore) -> Iterator[TestClient]:
-    """Создаём TestClient с подменёнными зависимостями и заранее подготовленным AckStore."""
+    """╨б╨╛╨╖╨┤╨░╤С╨╝ TestClient ╤Б ╨┐╨╛╨┤╨╝╨╡╨╜╤С╨╜╨╜╤Л╨╝╨╕ ╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╤П╨╝╨╕ ╨╕ ╨╖╨░╤А╨░╨╜╨╡╨╡ ╨┐╨╛╨┤╨│╨╛╤В╨╛╨▓╨╗╨╡╨╜╨╜╤Л╨╝ AckStore."""
 
     stack = ExitStack()
     dummy_state = _DummySubscriber()
@@ -78,7 +78,7 @@ def wait_ack_client(store: AckStore) -> Iterator[TestClient]:
     stack.enter_context(patch("app.main.shutdown_publisher", lambda: None))
 
     def _init_ack_store_stub() -> None:
-        """При старте приложения привязываем глобальный AckStore к нашему in-memory экземпляру."""
+        """╨Я╤А╨╕ ╤Б╤В╨░╤А╤В╨╡ ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╤П ╨┐╤А╨╕╨▓╤П╨╖╤Л╨▓╨░╨╡╨╝ ╨│╨╗╨╛╨▒╨░╨╗╤М╨╜╤Л╨╣ AckStore ╨║ ╨╜╨░╤И╨╡╨╝╤Г in-memory ╤Н╨║╨╖╨╡╨╝╨┐╨╗╤П╤А╤Г."""
 
         ack_store_module._ack_store = store
 
@@ -98,13 +98,13 @@ def wait_ack_client(store: AckStore) -> Iterator[TestClient]:
 
 
 def _make_ack(correlation_id: str, *, result: AckResult = AckResult.accepted) -> Ack:
-    """Создаём минимальный ACK с заданным результатом."""
+    """╨б╨╛╨╖╨┤╨░╤С╨╝ ╨╝╨╕╨╜╨╕╨╝╨░╨╗╤М╨╜╤Л╨╣ ACK ╤Б ╨╖╨░╨┤╨░╨╜╨╜╤Л╨╝ ╤А╨╡╨╖╤Г╨╗╤М╤В╨░╤В╨╛╨╝."""
 
     return Ack(correlation_id=correlation_id, result=result)
 
 
 def test_wait_ack_returns_existing_ack() -> None:
-    """Если ACK уже лежит в сторе, ручка должна вернуть его мгновенно."""
+    """╨Х╤Б╨╗╨╕ ACK ╤Г╨╢╨╡ ╨╗╨╡╨╢╨╕╤В ╨▓ ╤Б╤В╨╛╤А╨╡, ╤А╤Г╤З╨║╨░ ╨┤╨╛╨╗╨╢╨╜╨░ ╨▓╨╡╤А╨╜╤Г╤В╤М ╨╡╨│╨╛ ╨╝╨│╨╜╨╛╨▓╨╡╨╜╨╜╨╛."""
 
     store = AckStore()
     correlation_id = "ack-immediate"
@@ -123,13 +123,13 @@ def test_wait_ack_returns_existing_ack() -> None:
 
 
 def test_wait_ack_returns_when_ack_delayed() -> None:
-    """ACK может появиться с задержкой — проверяем, что long-poll дожидается ответа."""
+    """ACK ╨╝╨╛╨╢╨╡╤В ╨┐╨╛╤П╨▓╨╕╤В╤М╤Б╤П ╤Б ╨╖╨░╨┤╨╡╤А╨╢╨║╨╛╨╣ тАФ ╨┐╤А╨╛╨▓╨╡╤А╤П╨╡╨╝, ╤З╤В╨╛ long-poll ╨┤╨╛╨╢╨╕╨┤╨░╨╡╤В╤Б╤П ╨╛╤В╨▓╨╡╤В╨░."""
 
     store = AckStore()
     correlation_id = "ack-delayed"
 
     def _delayed_put() -> None:
-        """Имитация устройства: через секунду записываем ACK в стор."""
+        """╨Ш╨╝╨╕╤В╨░╤Ж╨╕╤П ╤Г╤Б╤В╤А╨╛╨╣╤Б╤В╨▓╨░: ╤З╨╡╤А╨╡╨╖ ╤Б╨╡╨║╤Г╨╜╨┤╤Г ╨╖╨░╨┐╨╕╤Б╤Л╨▓╨░╨╡╨╝ ACK ╨▓ ╤Б╤В╨╛╤А."""
 
         time.sleep(1)
         store.put("dev-2", _make_ack(correlation_id))
@@ -150,7 +150,7 @@ def test_wait_ack_returns_when_ack_delayed() -> None:
 
 
 def test_wait_ack_returns_timeout_when_ack_missing() -> None:
-    """Если подтверждение так и не пришло, ручка отвечает 408 с понятным detail."""
+    """╨Х╤Б╨╗╨╕ ╨┐╨╛╨┤╤В╨▓╨╡╤А╨╢╨┤╨╡╨╜╨╕╨╡ ╤В╨░╨║ ╨╕ ╨╜╨╡ ╨┐╤А╨╕╤И╨╗╨╛, ╤А╤Г╤З╨║╨░ ╨╛╤В╨▓╨╡╤З╨░╨╡╤В 408 ╤Б ╨┐╨╛╨╜╤П╤В╨╜╤Л╨╝ detail."""
 
     store = AckStore()
 
@@ -162,3 +162,5 @@ def test_wait_ack_returns_timeout_when_ack_missing() -> None:
 
     assert response.status_code == 408
     assert response.json() == {"detail": "ACK не получен в заданное время"}
+
+

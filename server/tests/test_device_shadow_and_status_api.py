@@ -19,7 +19,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.models.database_models import Base
 from app.main import app
-from device_shadow import get_shadow_store
+from service.mqtt.store import get_shadow_store
 
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -147,7 +147,7 @@ def test_status_running_expired_returns_zero() -> None:
     base_settings = config.get_settings()
     custom_settings = replace(base_settings, DEVICE_ONLINE_THRESHOLD_S=-1)
 
-    with patch("config.get_settings", return_value=custom_settings), patch("device_shadow.get_settings", return_value=custom_settings):
+    with patch("config.get_settings", return_value=custom_settings), patch("service.mqtt.store.get_settings", return_value=custom_settings):
         with TestClient(app) as client:
             _post_shadow_state(
                 client,
@@ -220,3 +220,5 @@ def test_debug_shadow_state_disabled_when_debug_false(monkeypatch) -> None:
     config.get_settings.cache_clear()
     config.get_settings()
     sys.modules.pop("api_manual_watering_temp", None)
+
+

@@ -10,9 +10,9 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, conint
 
-from ack_store import AckStore, get_ack_store
+from service.mqtt.store import AckStore, get_ack_store
 from config import get_settings
-from device_shadow import DeviceShadowStore, get_shadow_store
+from service.mqtt.store import DeviceShadowStore, get_shadow_store
 from service.mqtt.interfaces import IMqttPublisher
 from service.mqtt.lifecycle import get_publisher
 from service.mqtt.serialization import Ack, CmdPumpStart, CmdPumpStop, CommandType, DeviceState
@@ -302,3 +302,4 @@ if settings.DEBUG:
       * "device_offline" — устройство известно, но сейчас не на связи.
       * "no_state_yet" — сервер ещё не видел state от устройства, ждём первого подключения.
     """
+
