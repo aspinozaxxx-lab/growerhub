@@ -17,7 +17,7 @@ from app.models.database_models import (
 from app.core.database import get_db, create_tables
 from ack_store import get_ack_store, init_ack_store, shutdown_ack_store
 from device_shadow import get_shadow_store, init_shadow_store, shutdown_shadow_store
-from mqtt_publisher import init_publisher, shutdown_publisher
+from service.mqtt.lifecycle import init_publisher, shutdown_publisher
 from mqtt_subscriber import (
     get_ack_subscriber,
     get_state_subscriber,

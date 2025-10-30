@@ -1,10 +1,16 @@
 # Changelog
 
-## [2025-10-26] MQTT service refactor
+## [2025-10-26] MQTT service refactor (topics/serialization)
 
-- Вынесли шаблоны топиков, модели и сериализацию MQTT в `server/service/mqtt/` (topics/serialization/interfaces/config), сохранив формат payload без изменений.
-- `mqtt_publisher`, `mqtt_subscriber`, API и тесты переведены на новые импорты сервиса; добавлена совместимость через `server/mqtt_protocol.py`.
-- Обновили доступ к MQTT-настройкам через новую обёртку, сохранив поведение существующих тестов и инициализации.
+- Вынесли шаблоны топиков, модели и сериализацию MQTT в server/service/mqtt/ (topics/serialization/interfaces/config), сохранив формат payload.
+- mqtt_subscriber, API и тесты переведены на новые импорты, добавлен совместимый реэкспорт server/mqtt_protocol.py.
+- Обновили доступ к MQTT-настройкам через сервисную обёртку без изменения поведения инициализации.
+
+## [2025-10-26] MQTT lifecycle refactor (publisher)
+
+- Реализованы service/mqtt/client.py (адаптер PahoMqttPublisher) и service/mqtt/lifecycle.py с фасадом init/get/shutdown.
+- server/mqtt_publisher.py заменён тонкой прокладкой с TODO на удаление; приложение и тесты используют service.mqtt.lifecycle.
+- Поведение публикации команд, QoS и обработка ошибок подключения сохранены, pytest остаётся зелёным.
 
 ## [2025-10-24] MQTT step 4
 

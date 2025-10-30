@@ -55,7 +55,7 @@ sys.modules["app.core.database"] = stub_database
 
 from api_manual_watering import get_mqtt_dep
 from app.main import app
-from mqtt_publisher import IMqttPublisher
+from service.mqtt.interfaces import IMqttPublisher
 from service.mqtt.serialization import CmdPumpStart, CmdPumpStop, CommandType
 
 
