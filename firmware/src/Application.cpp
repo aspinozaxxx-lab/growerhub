@@ -1,5 +1,8 @@
 // firmware/src/Application.cpp
 #include "Application.h"
+#include <PubSubClient.h>
+
+extern const char* FW_VERSION;
 
 WateringApplication::WateringApplication() 
     : automaticWateringEnabled(true),
@@ -12,7 +15,9 @@ WateringApplication::WateringApplication()
       manualWateringDurationSec(0),
       manualWateringStartMillis(0),
       manualActiveCorrelationId(""),
-      manualStartIso8601("") {}
+      manualStartIso8601(""),
+      lastHeartbeatMillis(0),
+      mqttClient(nullptr) {}
 
 void WateringApplication::begin() {
     //Serial.begin(115200);
@@ -228,6 +233,61 @@ const String& WateringApplication::getManualActiveCorrelationId() const {
 
 const String& WateringApplication::getManualWateringStartIso8601() const {
     return manualStartIso8601;
+}
+
+void WateringApplication::setMqttClient(PubSubClient* client) {
+    mqttClient = client;
+}
+
+void WateringApplication::statePublishNow(bool retained) {
+    if (!mqttClient || !mqttClient->connected()) {
+        Serial.println(F("Не удалось отправить state: MQTT не подключён, снимок не обновлён."));
+        return;
+    }
+
+    const bool manualActive = manualWateringActive;
+    const bool hasCorrelation = manualActiveCorrelationId.length() > 0;
+    const bool hasStartIso = manualStartIso8601.length() > 0;
+
+    const String status = manualActive ? "running" : "idle";
+    const String durationField = manualActive ? String(manualWateringDurationSec) : String("null");
+    const String startedField = manualActive && hasStartIso
+        ? String("\"") + manualStartIso8601 + "\""
+        : String("null");
+    const String correlationField = manualActive && hasCorrelation
+        ? String("\"") + manualActiveCorrelationId + "\""
+        : String("null");
+
+    String payload = "{";
+    payload += "\"manual_watering\":{";
+    payload += "\"status\":\"" + status + "\",";
+    payload += "\"duration_s\":" + durationField + ",";
+    payload += "\"started_at\":" + startedField + ",";
+    payload += "\"correlation_id\":" + correlationField;
+    payload += "},";
+    payload += "\"fw\":\"" + String(FW_VERSION) + "\"";
+    payload += "}";
+
+    Serial.print(F("Отправляем state (retained) в брокер: "));
+    Serial.println(payload);
+    String topic = "gh/dev/" + settingsManager.getDeviceID() + "/state";
+    mqttClient->publish(topic.c_str(), payload.c_str(), retained);
+}
+
+void WateringApplication::stateHeartbeatLoop(bool mqttConnected) {
+    if (!mqttConnected) {
+        return;
+    }
+
+    const unsigned long nowMs = millis();
+    if (nowMs - lastHeartbeatMillis >= HEARTBEAT_INTERVAL_MS) {
+        statePublishNow(true);
+        lastHeartbeatMillis = nowMs;
+    }
+}
+
+void WateringApplication::resetHeartbeatTimer() {
+    lastHeartbeatMillis = millis();
 }
 
 void WateringApplication::testSensors() {

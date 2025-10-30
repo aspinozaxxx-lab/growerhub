@@ -34,8 +34,6 @@ static bool g_wifiLoggedNoNetworks = false;
 static wl_status_t g_lastWifiStatus = WL_IDLE_STATUS;
 
 // --- Периодическая отправка state (heartbeat) ---
-static unsigned long lastHeartbeatMs = 0;
-const unsigned long HEARTBEAT_INTERVAL_MS = 20000; // каждые 20 секунд
 
 WateringApplication app;
 
@@ -44,7 +42,6 @@ static void updateWifiConnection();
 static String buildDeviceTopic(const char* suffix);
 static void publishAckAccepted(const String& correlationId, const char* statusText);
 static void publishAckError(const String& correlationId, const char* reasonText);
-static void publishCurrentState();
 static void mqttCallback(char* topic, byte* payload, unsigned int length);
 static bool mqttReconnect();
 
@@ -68,6 +65,7 @@ void setup() {
     updateWifiConnection();
 
     mqttClient.setCallback(mqttCallback);
+    app.setMqttClient(&mqttClient);
     
     delay(3000);
     app.checkRelayStates(); // TODO: ?????????? ? MQTT state, ????? ?????? ????????? ?????????.
@@ -79,8 +77,8 @@ void loop() {
 
     // === ?????'???????'??????????? ????????????? ?????>????? ???? ?'??????????? ===
     if (app.manualLoop()) {
-        publishCurrentState(); // Отправляем снимок, чтобы сервер увидел auto-timeout сразу.
-        // TODO: обсудить повторные публикации ACK/state при автоостановке, договориться со стороной сервера.
+        app.statePublishNow(); // ?????????? ??? ?? retained state, ????? ???????? ?????? auto-timeout.
+        // TODO: ???????? ????????? ?????????? ACK/state ?? ?????????????? ?? ???????? ???????.
     }
 
     // === MQTT keepalive ===
@@ -107,13 +105,7 @@ void loop() {
     }
 
     // === Heartbeat publish ===
-    if (wifiConnected && mqttClient.connected()) {
-        unsigned long nowMs = millis();
-        if (nowMs - lastHeartbeatMs >= HEARTBEAT_INTERVAL_MS) {
-            publishCurrentState(); // отправляем тот же retained state
-            lastHeartbeatMs = nowMs;
-        }
-    }
+    app.stateHeartbeatLoop(wifiConnected && mqttClient.connected());
 
     app.update();
 
@@ -258,47 +250,6 @@ static void publishAckError(const String& correlationId, const char* reasonText)
     mqttClient.publish(ackTopic.c_str(), payload.c_str(), false);
 }
 
-static void publishCurrentState() {
-    // Retained state (device shadow) устройства. Брокер хранит последнее сообщение,
-    // сервер читает его, кеширует и отдаёт фронтенду через /api/manual-watering/status.
-    // Именно по этому снимку UI понимает: контроллер онлайн или оффлайн, работает ли насос,
-    // можно ли разблокировать кнопки или показать прогресс полива.
-    if (!mqttClient.connected()) {
-        Serial.println(F("Не удалось отправить state: MQTT не подключён, снимок не обновлён."));
-        return;
-    }
-
-    const bool manualActive = app.isManualWatering();
-    const String& manualCorrelation = app.getManualActiveCorrelationId();
-    const String& manualStartIso = app.getManualWateringStartIso8601();
-    const bool hasCorrelation = manualCorrelation.length() > 0;
-    const bool hasStartIso = manualStartIso.length() > 0;
-
-    const String status = manualActive ? "running" : "idle";
-    const String durationField = manualActive ? String(app.getManualWateringDurationSec()) : String("null");
-    const String startedField = manualActive && hasStartIso
-        ? String("\"") + manualStartIso + "\""
-        : String("null");
-    const String correlationField = manualActive && hasCorrelation
-        ? String("\"") + manualCorrelation + "\""
-        : String("null");
-
-    String payload = "{";
-    payload += "\"manual_watering\":{";
-    payload += "\"status\":\"" + status + "\",";
-    payload += "\"duration_s\":" + durationField + ",";
-    payload += "\"started_at\":" + startedField + ",";
-    payload += "\"correlation_id\":" + correlationField;
-    payload += "},";
-    payload += "\"fw\":\"" + String(FW_VERSION) + "\"";
-    payload += "}";
-
-    Serial.print(F("Отправляем state (retained) в брокер: "));
-    Serial.println(payload);
-    String topic = "gh/dev/" + g_settings.getDeviceID() + "/state";
-    mqttClient.publish(topic.c_str(), payload.c_str(), true); // retain=true: брокер хранит снимок.
-}
-
 static void mqttCallback(char* topic, byte* payload, unsigned int length) {
     // Критический шлюз: фронтенд -> сервер -> MQTT -> устройство. Любая ошибка парсинга влияет на работу реального насоса.
     // После обработки каждой команды шлём ACK publishAck*, чтобы FastAPI ответил клиенту из /wait-ack.
@@ -358,7 +309,7 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
         Serial.println(correlationId);
 
         if (app.manualStart(durationSec, correlationId)) {
-            publishCurrentState();
+            app.statePublishNow();
         }
         if (correlationId.length() > 0) {
             publishAckAccepted(correlationId, "running");
@@ -374,7 +325,7 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
         Serial.println(correlationId);
 
         if (app.manualStop(correlationId)) {
-            publishCurrentState();
+            app.statePublishNow();
         }
         if (correlationId.length() > 0) {
             publishAckAccepted(correlationId, "idle");
@@ -412,7 +363,7 @@ static bool mqttReconnect() {
         if (mqttClient.subscribe(cmdTopic.c_str(), 1)) {
             Serial.print(F("Subscribed to "));
             Serial.println(cmdTopic);
-            publishCurrentState();
+            app.statePublishNow();
         } else {
             Serial.println(F("Failed to subscribe to command topic."));
         }

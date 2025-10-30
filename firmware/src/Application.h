@@ -2,6 +2,8 @@
 #pragma once
 #include <Arduino.h>
 
+class PubSubClient;
+
 // Включаем все необходимые заголовки
 #include "Sensors/SensorManager.h"
 #include "Actuators/ActuatorManager.h"
@@ -39,6 +41,9 @@ private:
     unsigned long manualWateringStartMillis;
     String manualActiveCorrelationId;
     String manualStartIso8601;
+    unsigned long lastHeartbeatMillis;
+    PubSubClient* mqttClient;
+    static constexpr unsigned long HEARTBEAT_INTERVAL_MS = 20000UL;
     
 public:
     WateringApplication();
@@ -70,6 +75,11 @@ public:
     uint32_t getManualWateringDurationSec() const;
     const String& getManualActiveCorrelationId() const;
     const String& getManualWateringStartIso8601() const;
+
+    void setMqttClient(PubSubClient* client);
+    void statePublishNow(bool retained = true);
+    void stateHeartbeatLoop(bool mqttConnected);
+    void resetHeartbeatTimer();
     
     // Тестирование
     void testSensors();
