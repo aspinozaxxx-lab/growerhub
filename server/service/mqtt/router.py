@@ -6,7 +6,7 @@ import logging
 from typing import Callable, Optional
 from uuid import uuid4
 
-from paho.mqtt.client import Client, MQTT_ERR_SUCCESS
+from paho.mqtt.client import CallbackAPIVersion, Client, MQTT_ERR_SUCCESS
 
 from service.mqtt.config import get_mqtt_settings
 from service.mqtt.handlers.ack import (
@@ -50,7 +50,7 @@ class MqttStateSubscriber:
     def _default_client_factory(self) -> Client:
         settings = self._settings
         client_id = f"{settings.client_id_prefix}-state-{uuid4().hex[:8]}"
-        client = Client(client_id=client_id)
+        client = Client(client_id=client_id, callback_api_version=CallbackAPIVersion.VERSION2)
         if settings.username:
             client.username_pw_set(settings.username, settings.password)
         if settings.tls:
@@ -159,7 +159,7 @@ class MqttAckSubscriber:
     def _default_client_factory(self) -> Client:
         settings = self._settings
         client_id = f"{settings.client_id_prefix}-ack-{uuid4().hex[:8]}"
-        client = Client(client_id=client_id)
+        client = Client(client_id=client_id, callback_api_version=CallbackAPIVersion.VERSION2)
         if settings.username:
             client.username_pw_set(settings.username, settings.password)
         if settings.tls:

@@ -27,3 +27,22 @@ uvicorn app.main:app --reload
 
 Конфигурация берётся из `server/config.py` (`get_settings()` возвращает dataclass `Settings`). Флаг `DEBUG` управляет доступностью `_debug/*` эндпойнтов manual watering.
 
+## Сопоставление эндпойнтов и файлов
+
+| HTTP метод | Путь | Файл-реализация |
+|-------------|------|----------------|
+| GET | /api/manual-watering/status | `app/api/routers/manual_watering.py` |
+| POST | /api/manual-watering/start | `app/api/routers/manual_watering.py` |
+| POST | /api/manual-watering/stop | `app/api/routers/manual_watering.py` |
+| GET | /api/device/{device_id}/settings | `app/api/routers/devices.py` |
+| PUT | /api/device/{device_id}/settings | `app/api/routers/devices.py` |
+| POST | /api/device/{device_id}/status | `app/api/routers/devices.py` |
+| GET | /api/device/{device_id}/sensor-history | `app/api/routers/history.py` |
+| GET | /api/device/{device_id}/watering-logs | `app/api/routers/history.py` |
+| POST | /api/upload-firmware | `app/api/routers/firmware.py` |
+| GET | /api/device/{device_id}/firmware | `app/api/routers/firmware.py` |
+| POST | /api/device/{device_id}/trigger-update | `app/api/routers/firmware.py` |
+| GET | /_debug/manual-watering/* | `app/api/routers/manual_watering.py` (DEBUG only) |
+
+Все эндпойнты зарегистрированы в `app.main` через `include_router(...)`, а теги OpenAPI помогают быстро найти соответствующий раздел в Swagger UI.
+

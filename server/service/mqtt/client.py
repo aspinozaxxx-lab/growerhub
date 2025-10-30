@@ -6,7 +6,7 @@ import logging
 from typing import Union
 from uuid import uuid4
 
-from paho.mqtt.client import Client, MQTT_ERR_SUCCESS
+from paho.mqtt.client import CallbackAPIVersion, Client, MQTT_ERR_SUCCESS
 
 from .config import get_mqtt_settings
 from .interfaces import IMqttPublisher
@@ -25,7 +25,7 @@ class PahoMqttPublisher(IMqttPublisher):
         settings = get_mqtt_settings()
         client_id = f"{settings.client_id_prefix}-{uuid4().hex[:8]}"
         self._settings = settings
-        self._client = Client(client_id=client_id)
+        self._client = Client(client_id=client_id, callback_api_version=CallbackAPIVersion.VERSION2)
         if settings.username:
             # Авторизация через Mosquitto ACL.
             self._client.username_pw_set(settings.username, settings.password)

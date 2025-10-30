@@ -1,5 +1,11 @@
 # Changelog
 
+## [2025-11-01] Cleanup warnings and improve API docs
+- Устранены или подавлены 44 предупреждения (Deprecation/SQLAlchemy/Pydantic/Pytest).
+- Добавлен pytest.ini с фильтрацией лишних предупреждений.
+- README_API.md дополнен таблицей «endpoint → файл роутера».
+- Тесты успешно проходят без варнингов.
+
 
 ## [2025-10-31] Tests fixed after router refactor
 - Исправлены пути импортов в тестах (`api_manual_watering` → `app.api.routers.manual_watering`).
