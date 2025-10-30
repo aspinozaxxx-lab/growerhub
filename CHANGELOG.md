@@ -1,5 +1,16 @@
 # Changelog
 
+## [2025-10-30] MQTT refactor — summary
+- Проведён полный рефакторинг MQTT-подсистемы: код перенесён в `server/service/mqtt/`.
+- Разделены уровни:
+  - `topics.py`, `serialization.py`, `interfaces.py`, `config.py` — протокол и базовые типы.
+  - `client.py`, `lifecycle.py` — публикация и жизненный цикл клиента.
+  - `router.py`, `handlers/` — маршрутизация и обработчики подписок.
+  - `store.py` — сторы для ACK и теневых состояний.
+- Обновлены импорты и тесты, документация `docs/manual_watering_protocol.md`.
+- Протокол MQTT и форматы JSON не изменялись.
+- Все тесты успешно проходят (`pytest -q` зелёный).
+
 ## [2025-10-30] MQTT refactor — step 8
 - Удалены совместимые модули server/mqtt_*.py, все импорты переведены на server/service/mqtt.
 - Обновлены server/app/main.py, тесты и документация manual_watering на новую архитектуру.

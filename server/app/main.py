@@ -43,12 +43,12 @@ from service.mqtt.lifecycle import (
 logger = logging.getLogger(__name__)
 
 
-# === ╨У╨╗╨╛╨▒╨░╨╗╤М╨╜╤Л╨╡ ╨┐╤Г╤В╨╕ ╨┐╤А╨╛╨╡╨║╤В╨░ ===
+# === Базовые пути приложения ===
 BASE_DIR = Path(__file__).resolve().parent.parent  # -> ~/growerhub/server
 SITE_DIR = (BASE_DIR.parent / "static").resolve()  # -> ~/growerhub/static
 FIRMWARE_DIR = BASE_DIR / "firmware_binaries"
 
-# ╨б╨╛╨╖╨┤╨░╤С╨╝ ╨┤╨╕╤А╨╡╨║╤В╨╛╤А╨╕╤О, ╨╡╤Б╨╗╨╕ ╨╜╨╡╤В
+# Создаём каталог с прошивками, если его ещё нет
 FIRMWARE_DIR.mkdir(exist_ok=True, parents=True)
 
 app = FastAPI(title="GrowerHub")
@@ -57,7 +57,7 @@ create_tables()
 
 @app.on_event("startup")
 async def _startup_mqtt() -> None:
-    # ╨б╨╜╨░╤З╨░╨╗╨░ ╨┐╨╛╨┤╨╜╨╕╨╝╨░╨╡╨╝ ╤Б╤В╨╛╤А, ╨╖╨░╤В╨╡╨╝ ╨┐╨╛╨┤╨┐╨╕╤Б╤З╨╕╨║╨░ ╨╕ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А╨░.
+    # Настраиваем MQTT-компоненты: сторажи, подписчиков и паблишер
     init_mqtt_stores()
     init_state_subscriber()
     try:
@@ -74,7 +74,7 @@ async def _startup_mqtt() -> None:
 
 @app.on_event("shutdown")
 async def _shutdown_mqtt() -> None:
-    # ╨Ю╤Б╤В╨░╨╜╨░╨▓╨╗╨╕╨▓╨░╨╡╨╝ ╨┐╨╛╨┤╨┐╨╕╤Б╤З╨╕╨║╨░ ╨┤╨╛ ╤Б╨▒╤А╨╛╤Б╨░ ╤Б╤В╨╛╤А╨░, ╨╖╨░╤В╨╡╨╝ ╨╖╨░╨▓╨╡╤А╤И╨░╨╡╨╝ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А.
+    # Корректно останавливаем подписчиков, паблишер и очищаем сторажи
     stop_state_subscriber()
     shutdown_state_subscriber()
     stop_ack_subscriber()
@@ -82,7 +82,7 @@ async def _shutdown_mqtt() -> None:
     shutdown_publisher()
     shutdown_mqtt_stores()
 
-# === ╨б╤В╨░╤В╨╕╤З╨╡╤Б╨║╨╕╨╡ ╤Д╨░╨╣╨╗╤Л ===
+# === Маршруты для статики и прошивок ===
 app.mount("/static", StaticFiles(directory=SITE_DIR), name="static")
 app.mount("/firmware", StaticFiles(directory=FIRMWARE_DIR), name="firmware")
 
@@ -119,7 +119,7 @@ async def update_device_status(device_id: str, status: DeviceStatus, db: Session
             device.last_watering = status.last_watering
         device.last_seen = datetime.utcnow()
     
-    # ╨б╨╛╤Е╤А╨░╨╜╤П╨╡╨╝ ╨┤╨░╨╜╨╜╤Л╨╡ ╤Б╨╡╨╜╤Б╨╛╤А╨╛╨▓ ╨▓ ╨╕╤Б╤В╨╛╤А╨╕╤О
+    # Сохраняем свежие показания датчиков в историю
     sensor_data = SensorDataDB(
         device_id=device_id,
         soil_moisture=status.soil_moisture,
@@ -128,7 +128,7 @@ async def update_device_status(device_id: str, status: DeviceStatus, db: Session
     )
     db.add(sensor_data)
     
-    # ╨Ы╨╛╨│╨╕╤А╤Г╨╡╨╝ ╨┐╨╛╨╗╨╕╨▓ ╨╡╤Б╨╗╨╕ ╨╛╨╜ ╤В╨╛╨╗╤М╨║╨╛ ╤З╤В╨╛ ╨╜╨░╤З╨░╨╗╤Б╤П
+    # Создаём запись о начале полива при переходе в active-состояние
     if status.is_watering and not device.is_watering:
         watering_log = WateringLogDB(
             device_id=device_id,
@@ -257,7 +257,7 @@ async def trigger_ota_update(device_id: str, update_request: OTAUpdateRequest, d
     db.commit()
     return {"message": "OTA update triggered", "firmware_url": device.firmware_url}
 
-# ╨Э╨╛╨▓╤Л╨╡ API ╤Н╨╜╨┤╨┐╨╛╨╕╨╜╤В╤Л ╨┤╨╗╤П ╨╕╤Б╤В╨╛╤А╨╕╨╕ ╨┤╨░╨╜╨╜╤Л╤Е
+# Прочие API для истории и логов устройств
 @app.get("/api/device/{device_id}/sensor-history")
 async def get_sensor_history(device_id: str, hours: int = 24, db: Session = Depends(get_db)):
     since = datetime.utcnow() - timedelta(hours=hours)
