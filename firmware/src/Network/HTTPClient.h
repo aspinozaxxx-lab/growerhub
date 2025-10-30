@@ -1,4 +1,4 @@
-// firmware/src/Network/HTTPClient.h
+﻿// firmware/src/Network/HTTPClient.h
 #pragma once
 #include <HTTPClient.h>
 #include <ArduinoJson.h>

@@ -1,4 +1,4 @@
-// firmware/src/System/SettingsManager.cpp
+﻿// firmware/src/System/SettingsManager.cpp
 #include "SettingsManager.h"
 
 SettingsManager::SettingsManager() {}

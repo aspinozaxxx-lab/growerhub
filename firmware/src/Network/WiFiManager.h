@@ -1,4 +1,4 @@
-// firmware/src/Network/WiFiManager.h
+﻿// firmware/src/Network/WiFiManager.h
 #pragma once
 #include <WiFi.h>
 #include <WiFiMulti.h>

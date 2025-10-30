@@ -1,4 +1,4 @@
-// firmware/src/Network/WiFiManager.cpp
+﻿// firmware/src/Network/WiFiManager.cpp
 #include "WiFiManager.h"
 
 WiFiManager::WiFiManager() 

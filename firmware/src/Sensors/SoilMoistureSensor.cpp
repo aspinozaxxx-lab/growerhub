@@ -1,4 +1,4 @@
-// firmware/src/Sensors/SoilMoistureSensor.cpp
+﻿// firmware/src/Sensors/SoilMoistureSensor.cpp
 #include "SoilMoistureSensor.h"
 
 SoilMoistureSensor::SoilMoistureSensor(int sensorPin, int dry, int wet, String sensorName) 

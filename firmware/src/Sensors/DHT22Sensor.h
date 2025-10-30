@@ -1,4 +1,4 @@
-// firmware/src/Sensors/DHT22Sensor.h
+﻿// firmware/src/Sensors/DHT22Sensor.h
 #pragma once
 #include "Sensor.h"
 #include <DHT.h>

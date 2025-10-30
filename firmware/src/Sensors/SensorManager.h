@@ -1,4 +1,4 @@
-// firmware/src/Sensors/SensorManager.h
+﻿// firmware/src/Sensors/SensorManager.h
 #pragma once
 #include "Sensor.h"
 #include "SoilMoistureSensor.h"

@@ -1,4 +1,4 @@
-// firmware/src/System/SettingsManager.h
+﻿// firmware/src/System/SettingsManager.h
 #pragma once
 //#include <EEPROM.h>
 #include <Arduino.h>

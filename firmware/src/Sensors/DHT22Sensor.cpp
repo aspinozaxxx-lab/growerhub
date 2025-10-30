@@ -1,4 +1,4 @@
-// firmware/src/Sensors/DHT22Sensor.cpp
+﻿// firmware/src/Sensors/DHT22Sensor.cpp
 #include "DHT22Sensor.h"
 
 DHT22Sensor::DHT22Sensor(int sensorPin, String sensorName) 

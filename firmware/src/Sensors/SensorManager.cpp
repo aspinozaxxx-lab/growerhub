@@ -1,4 +1,4 @@
-// firmware/src/Sensors/SensorManager.cpp
+﻿// firmware/src/Sensors/SensorManager.cpp
 #include "SensorManager.h"
 
 SensorManager::SensorManager() : lastReadTime(0), soilMoistureSensor(nullptr), dht22Sensor(nullptr) {}

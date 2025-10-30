@@ -5,7 +5,7 @@
 
 class PubSubClient;
 
-// Р’РєР»СЋС‡Р°РµРј РІСЃРµ РЅРµРѕР±С…РѕРґРёРјС‹Рµ Р·Р°РіРѕР»РѕРІРєРё
+// Включаем все необходимые заголовки
 #include "Sensors/SensorManager.h"
 #include "Actuators/ActuatorManager.h"
 #include "Network/WiFiManager.h"
@@ -17,7 +17,7 @@ class PubSubClient;
 
 class WateringApplication {
 private:
-    // РњРµРЅРµРґР¶РµСЂС‹
+    // Менеджеры
     SensorManager sensorManager;
     ActuatorManager actuatorManager;
     WiFiManager wifiManager;
@@ -27,7 +27,7 @@ private:
     TaskScheduler taskScheduler;
     SystemMonitor systemMonitor;
     
-    // РЎРѕСЃС‚РѕСЏРЅРёРµ
+    // Состояние
     bool automaticWateringEnabled;
     bool automaticLightEnabled;
     unsigned long lastStatusPrint;
@@ -36,7 +36,7 @@ private:
     bool testingActuators;
     int testPhase;
 
-    // РЎРѕСЃС‚РѕСЏРЅРёРµ СЂСѓС‡РЅРѕРіРѕ РїРѕР»РёРІР° (РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РґР»СЏ MQTT Рё Р°РІС‚Рѕ-С‚Р°Р№РјР°СѓС‚Р°)
+    // Состояние ручного полива (используется для MQTT и авто-таймаута)
     bool manualWateringActive;
     uint32_t manualWateringDurationSec;
     unsigned long manualWateringStartMillis;
@@ -54,21 +54,21 @@ public:
 
     //void factoryReset();
 
-    // РЈРїСЂР°РІР»РµРЅРёРµ СЃРёСЃС‚РµРјРѕР№
+    // Управление системой
     void enableAutomaticWatering();
     void disableAutomaticWatering();
     void enableAutomaticLight();
     void disableAutomaticLight();
     
-    // Р СѓС‡РЅРѕРµ СѓРїСЂР°РІР»РµРЅРёРµ
+    // Ручное управление
     void waterPlants(int durationMs = 30000);
     void toggleLight();
     void toggleWaterPump();
-    // РџСЂСЏРјРѕР№ РєРѕРЅС‚СЂРѕР»СЊ РЅР°СЃРѕСЃР° РґР»СЏ СЃС†РµРЅР°СЂРёРµРІ СЂСѓС‡РЅРѕРіРѕ РїРѕР»РёРІР° РїРѕ MQTT (С€Р°РіРё 2+).
+    // Прямой контроль насоса для сценариев ручного полива по MQTT (шаги 2+).
     void setManualPumpState(bool state);
     bool isManualPumpRunning();
 
-    // Р СѓС‡РЅРѕР№ РїРѕР»РёРІ (РёРЅС‚РµРіСЂР°С†РёСЏ СЃ main.cpp)
+    // Ручной полив (интеграция с main.cpp)
     bool manualStart(uint32_t durationSec, const String& correlationId);
     bool manualStop(const String& correlationId);
     bool manualLoop();
@@ -82,11 +82,11 @@ public:
     void stateHeartbeatLoop(bool mqttConnected);
     void resetHeartbeatTimer();
     
-    // РўРµСЃС‚РёСЂРѕРІР°РЅРёРµ
+    // Тестирование
     void testSensors();
     void testActuators();
     
-    // РЎС‚Р°С‚СѓСЃ
+    // Статус
     String getFullStatus();
     void printStatus();
 
@@ -99,7 +99,7 @@ private:
     void setupNetwork();
     void setupTasks();
     
-    // РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРёРµ Р·Р°РґР°С‡Рё
+    // Автоматические задачи
     void checkWatering();
     void checkLight();
     void updateServer();

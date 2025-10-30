@@ -1,4 +1,4 @@
-# Firmware: встроенные настройки сети, Multi-WiFi и TLS
+﻿# Firmware: встроенные настройки сети, Multi-WiFi и TLS
 
 Прошивка больше не зависит от `config.ini` и SPIFFS. Все значения по умолчанию (список точек доступа, URL сервера и корневой сертификат) зашиты в код и доступны через структуру `BUILTIN_NETWORK_DEFAULTS` в `src/System/SettingsManager.h`.
 

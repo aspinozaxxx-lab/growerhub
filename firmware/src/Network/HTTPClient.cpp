@@ -1,4 +1,4 @@
-// firmware/src/Network/HTTPClient.cpp
+﻿// firmware/src/Network/HTTPClient.cpp
 #include "HTTPClient.h"
 #include <WiFiClientSecure.h>
 

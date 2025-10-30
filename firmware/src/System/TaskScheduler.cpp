@@ -1,4 +1,4 @@
-// firmware/src/System/TaskScheduler.cpp
+﻿// firmware/src/System/TaskScheduler.cpp
 #include "TaskScheduler.h"
 
 TaskScheduler::TaskScheduler(int maxTasksCount) 
