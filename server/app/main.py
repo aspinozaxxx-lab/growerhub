@@ -53,10 +53,15 @@ FIRMWARE_DIR.mkdir(exist_ok=True, parents=True)
 
 app = FastAPI(title="GrowerHub")
 
+# TODO: на финальном шаге миграции роутеров удалить прямой вызов, чтобы не ломать текущие тесты и окружения.
 create_tables()
 
 @app.on_event("startup")
 async def _startup_mqtt() -> None:
+    try:
+        create_tables()
+    except Exception as exc:  # pragma: no cover - защитный вызов на случай гонок
+        logger.warning("create_tables skipped on startup (вероятно, таблицы уже существуют): %s", exc)
     # Настраиваем MQTT-компоненты: сторажи, подписчиков и паблишер
     init_mqtt_stores()
     init_state_subscriber()
