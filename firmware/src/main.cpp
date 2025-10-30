@@ -1,3 +1,4 @@
+﻿// Тонкая точка входа прошивки; логика вынесена в Application и Network/MQTTClient
 #include <Arduino.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -6,18 +7,18 @@
 #include "Application.h"
 #include "Network/MQTTClient.h"
 
-// Уникальный идентификатор устройства = MQTT clientId. Сервер и брокер используют его,
-// чтобы понять, какое железо получило команду и кто должен вернуть ACK/state.
-// Версия прошивки, публикуемая в state, чтобы фронтенд видел активную сборку.
+// РЈРЅРёРєР°Р»СЊРЅС‹Р№ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂ СѓСЃС‚СЂРѕР№СЃС‚РІР° = MQTT clientId. РЎРµСЂРІРµСЂ Рё Р±СЂРѕРєРµСЂ РёСЃРїРѕР»СЊР·СѓСЋС‚ РµРіРѕ,
+// С‡С‚РѕР±С‹ РїРѕРЅСЏС‚СЊ, РєР°РєРѕРµ Р¶РµР»РµР·Рѕ РїРѕР»СѓС‡РёР»Рѕ РєРѕРјР°РЅРґСѓ Рё РєС‚Рѕ РґРѕР»Р¶РµРЅ РІРµСЂРЅСѓС‚СЊ ACK/state.
+// Р’РµСЂСЃРёСЏ РїСЂРѕС€РёРІРєРё, РїСѓР±Р»РёРєСѓРµРјР°СЏ РІ state, С‡С‚РѕР±С‹ С„СЂРѕРЅС‚РµРЅРґ РІРёРґРµР» Р°РєС‚РёРІРЅСѓСЋ СЃР±РѕСЂРєСѓ.
 const char* FW_VERSION = "grovika-alpha1";
 
-// Временные Wi-Fi креды. Перед боевой прошивкой подставим реальные SSID/PASS.
+// Р’СЂРµРјРµРЅРЅС‹Рµ Wi-Fi РєСЂРµРґС‹. РџРµСЂРµРґ Р±РѕРµРІРѕР№ РїСЂРѕС€РёРІРєРѕР№ РїРѕРґСЃС‚Р°РІРёРј СЂРµР°Р»СЊРЅС‹Рµ SSID/PASS.
 
-// Адрес брокера Mosquitto. Нельзя использовать 127.0.0.1, потому что с точки зрения ESP32 это локальная петля.
+// РђРґСЂРµСЃ Р±СЂРѕРєРµСЂР° Mosquitto. РќРµР»СЊР·СЏ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ 127.0.0.1, РїРѕС‚РѕРјСѓ С‡С‚Рѕ СЃ С‚РѕС‡РєРё Р·СЂРµРЅРёСЏ ESP32 СЌС‚Рѕ Р»РѕРєР°Р»СЊРЅР°СЏ РїРµС‚Р»СЏ.
 
-// Каналы MQTT: команды, ACK и retained state.
+// РљР°РЅР°Р»С‹ MQTT: РєРѕРјР°РЅРґС‹, ACK Рё retained state.
 
-// Сетевой стек.
+// РЎРµС‚РµРІРѕР№ СЃС‚РµРє.
 SettingsManager g_settings;
 WiFiMulti g_wifiMulti;
 WiFiClient espClient;
@@ -29,7 +30,7 @@ static uint16_t g_wifiAttemptCounter = 0;
 static bool g_wifiLoggedNoNetworks = false;
 static wl_status_t g_lastWifiStatus = WL_IDLE_STATUS;
 
-// --- Периодическая отправка state (heartbeat) ---
+// --- РџРµСЂРёРѕРґРёС‡РµСЃРєР°СЏ РѕС‚РїСЂР°РІРєР° state (heartbeat) ---
 
 WateringApplication app;
 
@@ -101,8 +102,8 @@ void loop() {
 
 
 static void configureWifiNetworks() {
-    // WiFiMulti не имеет cleanAPlist() в ESP32 core.
-    // Мы просто пересоздаём список точек один раз в setup().
+    // WiFiMulti РЅРµ РёРјРµРµС‚ cleanAPlist() РІ ESP32 core.
+    // РњС‹ РїСЂРѕСЃС‚Рѕ РїРµСЂРµСЃРѕР·РґР°С‘Рј СЃРїРёСЃРѕРє С‚РѕС‡РµРє РѕРґРёРЅ СЂР°Р· РІ setup().
     WiFi.setAutoReconnect(true);   
 
     const int totalNetworks = g_settings.getWiFiCount();
@@ -148,9 +149,6 @@ static void updateWifiConnection() {
 
     if (g_lastWifiStatus == WL_CONNECTED) {
         Serial.println(F("Wi-Fi connection lost, will retry via WiFiMulti."));
-        if (mqttClientManager.isConnected()) {
-            mqttClientManager.client().disconnect();
-        }
     }
     g_lastWifiStatus = status;
 
