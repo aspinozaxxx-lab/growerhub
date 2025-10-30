@@ -2,8 +2,17 @@
 #include "Application.h"
 
 WateringApplication::WateringApplication() 
-    : automaticWateringEnabled(true), automaticLightEnabled(true),
-      lastStatusPrint(0) {}
+    : automaticWateringEnabled(true),
+      automaticLightEnabled(true),
+      lastStatusPrint(0),
+      testStartTime(0),
+      testingActuators(false),
+      testPhase(0),
+      manualWateringActive(false),
+      manualWateringDurationSec(0),
+      manualWateringStartMillis(0),
+      manualActiveCorrelationId(""),
+      manualStartIso8601("") {}
 
 void WateringApplication::begin() {
     //Serial.begin(115200);
@@ -135,6 +144,90 @@ bool WateringApplication::isManualPumpRunning() {
     // - шаг 3: для формирования корректных ACK;
     // - шаг 4+: при публикации статуса manual watering.
     return actuatorManager.isWaterPumpRunning();
+}
+
+bool WateringApplication::manualStart(uint32_t durationSec, const String& correlationId) {
+    // Стартуем manual watering по команде pump.start.
+    if (manualWateringActive) {
+        Serial.println(F("pump.start проигнорирован: насос уже включён вручную, держим текущую сессию."));
+        return false;
+    }
+    if (durationSec == 0) {
+        Serial.println(F("Запрос pump.start с duration_s=0 — насос не включаем."));
+        return false;
+    }
+
+    // TODO: уточнить инверсию реле. Сейчас считаем, что true = включить насос (через ActuatorManager).
+    setManualPumpState(true);
+
+    manualWateringActive = true;
+    manualWateringDurationSec = durationSec;
+    manualWateringStartMillis = millis();
+    manualActiveCorrelationId = correlationId;
+
+    // TODO: подставить реальное UTC время старта, когда появится синхронизация (NTP/RTC).
+    manualStartIso8601 = "1970-01-01T00:00:00Z";
+
+    Serial.print(F("Запускаем ручной полив на "));
+    Serial.print(durationSec);
+    Serial.print(F(" секунд, correlation_id="));
+    Serial.println(correlationId);
+
+    return true;
+}
+
+bool WateringApplication::manualStop(const String& correlationId) {
+    // Остановка manual watering по pump.stop или авто-таймауту.
+    if (!manualWateringActive) {
+        Serial.println(F("Получили pump.stop, но насос уже был выключен. Обнуляем состояние на всякий случай."));
+    }
+
+    setManualPumpState(false);
+
+    manualWateringActive = false;
+    manualWateringDurationSec = 0;
+    manualWateringStartMillis = 0;
+    manualActiveCorrelationId = "";
+    manualStartIso8601 = "";
+
+    Serial.print(F("Полив остановлен. Источник остановки: "));
+    Serial.println(correlationId.length() ? correlationId : String("не указан (pump.stop без correlation_id)"));
+
+    return true;
+}
+
+bool WateringApplication::manualLoop() {
+    // Наблюдаем за длительностью manual watering и выключаем насос по таймауту.
+    if (!manualWateringActive || manualWateringDurationSec == 0) {
+        return false;
+    }
+
+    const unsigned long elapsedMs = millis() - manualWateringStartMillis;
+    const unsigned long plannedMs = static_cast<unsigned long>(manualWateringDurationSec) * 1000UL;
+    if (elapsedMs < plannedMs) {
+        return false;
+    }
+
+    Serial.println(F("Полив завершился по duration_s, выключаем насос (auto-timeout)."));
+    manualStop(String("auto-timeout"));
+    // TODO: проанализировать повторные публикации ACK/state при автоостановке, договориться со стороной сервера.
+    return true;
+}
+
+bool WateringApplication::isManualWatering() const {
+    return manualWateringActive;
+}
+
+uint32_t WateringApplication::getManualWateringDurationSec() const {
+    return manualWateringDurationSec;
+}
+
+const String& WateringApplication::getManualActiveCorrelationId() const {
+    return manualActiveCorrelationId;
+}
+
+const String& WateringApplication::getManualWateringStartIso8601() const {
+    return manualStartIso8601;
 }
 
 void WateringApplication::testSensors() {

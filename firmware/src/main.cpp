@@ -33,16 +33,6 @@ static uint16_t g_wifiAttemptCounter = 0;
 static bool g_wifiLoggedNoNetworks = false;
 static wl_status_t g_lastWifiStatus = WL_IDLE_STATUS;
 
-// Текущее состояние ручного полива. Эти поля понадобятся шагам 3+:
-//  - ACK (чтобы ответить accepted/error с нужным correlation_id),
-//  - state (retained снимок для фронтенда),
-//  - автостоп/вотчдоги (когда появятся таймеры и более сложная логика).
-static bool g_isWatering = false;              // true, если насос включён по manual watering.
-static uint32_t g_wateringDurationSec = 0;     // Сколько секунд полива попросили через pump.start.
-static uint32_t g_wateringStartMillis = 0;     // Момент включения насоса (millis) для таймаута.
-static String g_activeCorrelationId = "";      // correlation_id последней команды pump.start.
-static String g_wateringStartIso8601 = "";     // ISO8601 времени старта. Пока заглушка, позже будет реальное UTC.
-
 // --- Периодическая отправка state (heartbeat) ---
 static unsigned long lastHeartbeatMs = 0;
 const unsigned long HEARTBEAT_INTERVAL_MS = 20000; // каждые 20 секунд
@@ -52,8 +42,6 @@ WateringApplication app;
 static void configureWifiNetworks();
 static void updateWifiConnection();
 static String buildDeviceTopic(const char* suffix);
-static void startManualWatering(uint32_t durationSec, const String& correlationId);
-static void stopManualWatering(const String& correlationId);
 static void publishAckAccepted(const String& correlationId, const char* statusText);
 static void publishAckError(const String& correlationId, const char* reasonText);
 static void publishCurrentState();
@@ -90,15 +78,9 @@ void loop() {
     updateWifiConnection();
 
     // === ?????'???????'??????????? ????????????? ?????>????? ???? ?'??????????? ===
-    if (g_isWatering && g_wateringDurationSec > 0) {
-        const unsigned long elapsedMs = millis() - g_wateringStartMillis;
-        const unsigned long plannedMs = static_cast<unsigned long>(g_wateringDurationSec) * 1000UL;
-        if (elapsedMs >= plannedMs) {
-            Serial.println(F("?????>??? ????????????'?? ???? ?'??????????? duration_s, ???<??>???????? ?????????? (auto-timeout)."));
-            stopManualWatering(String("auto-timeout"));
-            publishCurrentState(); // ?'??????????: ?"???????'????? ?????>?????????? ?????????'??, ??'?? ?????>??? ?????????????>???? ?? ?????????? ??????'?? ???????+?>?????????????'??.
-            // TODO: ????????? ??????????'???? ?>???????? ?"??????>?????????? ACK/state ?? ????????????????? ???? ?'???????????, ??????>??????????'?? ??' ?????????.
-        }
+    if (app.manualLoop()) {
+        publishCurrentState(); // Отправляем снимок, чтобы сервер увидел auto-timeout сразу.
+        // TODO: обсудить повторные публикации ACK/state при автоостановке, договориться со стороной сервера.
     }
 
     // === MQTT keepalive ===
@@ -241,54 +223,6 @@ static String buildDeviceTopic(const char* suffix) {
     return topic;
 }
 
-static void startManualWatering(uint32_t durationSec, const String& correlationId) {
-    if (g_isWatering) {
-        Serial.println(F("pump.start проигнорирован: насос уже включён вручную, держим текущую сессию."));
-        return;
-    }
-    if (durationSec == 0) {
-        Serial.println(F("Запрос pump.start с duration_s=0 — насос не включаем."));
-        return;
-    }
-
-    // TODO: уточнить инверсию реле. Сейчас считаем, что true = включить насос (через ActuatorManager).
-    app.setManualPumpState(true);
-
-    g_isWatering = true;
-    g_wateringDurationSec = durationSec;
-    g_wateringStartMillis = millis();
-    g_activeCorrelationId = correlationId;
-
-    // TODO: подставить реальное UTC время старта, когда появится синхронизация (NTP/RTC).
-    g_wateringStartIso8601 = "1970-01-01T00:00:00Z";
-
-    Serial.print(F("Запускаем ручной полив на "));
-    Serial.print(durationSec);
-    Serial.print(F(" секунд, correlation_id="));
-    Serial.println(correlationId);
-
-    publishCurrentState();
-}
-
-static void stopManualWatering(const String& correlationId) {
-    if (!g_isWatering) {
-        Serial.println(F("Получили pump.stop, но насос уже был выключен. Обнуляем состояние на всякий случай."));
-    }
-
-    app.setManualPumpState(false);
-
-    g_isWatering = false;
-    g_wateringDurationSec = 0;
-    g_wateringStartMillis = 0;
-    g_activeCorrelationId = "";
-    g_wateringStartIso8601 = "";
-
-    Serial.print(F("Полив остановлен. Источник остановки: "));
-    Serial.println(correlationId.length() ? correlationId : String("не указан (pump.stop без correlation_id)"));
-
-    publishCurrentState();
-}
-
 static void publishAckAccepted(const String& correlationId, const char* statusText) {
     // ACK — одноразовое подтверждение. Retain всегда false, чтобы брокер не хранил старые ответы.
     if (!mqttClient.connected()) {
@@ -334,16 +268,19 @@ static void publishCurrentState() {
         return;
     }
 
-    const bool hasCorrelation = g_activeCorrelationId.length() > 0;
-    const bool hasStartIso = g_wateringStartIso8601.length() > 0;
+    const bool manualActive = app.isManualWatering();
+    const String& manualCorrelation = app.getManualActiveCorrelationId();
+    const String& manualStartIso = app.getManualWateringStartIso8601();
+    const bool hasCorrelation = manualCorrelation.length() > 0;
+    const bool hasStartIso = manualStartIso.length() > 0;
 
-    const String status = g_isWatering ? "running" : "idle";
-    const String durationField = g_isWatering ? String(g_wateringDurationSec) : String("null");
-    const String startedField = g_isWatering && hasStartIso
-        ? String("\"") + g_wateringStartIso8601 + "\""
+    const String status = manualActive ? "running" : "idle";
+    const String durationField = manualActive ? String(app.getManualWateringDurationSec()) : String("null");
+    const String startedField = manualActive && hasStartIso
+        ? String("\"") + manualStartIso + "\""
         : String("null");
-    const String correlationField = g_isWatering && hasCorrelation
-        ? String("\"") + g_activeCorrelationId + "\""
+    const String correlationField = manualActive && hasCorrelation
+        ? String("\"") + manualCorrelation + "\""
         : String("null");
 
     String payload = "{";
@@ -420,7 +357,9 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
         Serial.print(F(", correlation_id="));
         Serial.println(correlationId);
 
-        startManualWatering(durationSec, correlationId);
+        if (app.manualStart(durationSec, correlationId)) {
+            publishCurrentState();
+        }
         if (correlationId.length() > 0) {
             publishAckAccepted(correlationId, "running");
         } else {
@@ -434,7 +373,9 @@ static void mqttCallback(char* topic, byte* payload, unsigned int length) {
         Serial.print(F("Разбор pump.stop, correlation_id="));
         Serial.println(correlationId);
 
-        stopManualWatering(correlationId);
+        if (app.manualStop(correlationId)) {
+            publishCurrentState();
+        }
         if (correlationId.length() > 0) {
             publishAckAccepted(correlationId, "idle");
         } else {

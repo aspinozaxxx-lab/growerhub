@@ -32,6 +32,13 @@ private:
     unsigned long testStartTime;
     bool testingActuators;
     int testPhase;
+
+    // Состояние ручного полива (используется для MQTT и авто-таймаута)
+    bool manualWateringActive;
+    uint32_t manualWateringDurationSec;
+    unsigned long manualWateringStartMillis;
+    String manualActiveCorrelationId;
+    String manualStartIso8601;
     
 public:
     WateringApplication();
@@ -54,6 +61,15 @@ public:
     // Прямой контроль насоса для сценариев ручного полива по MQTT (шаги 2+).
     void setManualPumpState(bool state);
     bool isManualPumpRunning();
+
+    // Ручной полив (интеграция с main.cpp)
+    bool manualStart(uint32_t durationSec, const String& correlationId);
+    bool manualStop(const String& correlationId);
+    bool manualLoop();
+    bool isManualWatering() const;
+    uint32_t getManualWateringDurationSec() const;
+    const String& getManualActiveCorrelationId() const;
+    const String& getManualWateringStartIso8601() const;
     
     // Тестирование
     void testSensors();
