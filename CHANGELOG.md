@@ -1,5 +1,11 @@
 # Changelog
 
+## [2025-10-26] MQTT router refactor (subscribers)
+
+- Логика подписчиков и обработчиков вынесена в service/mqtt/router.py и service/mqtt/handlers/ (ACK/state, парсинг топиков и payload).
+- service/mqtt/lifecycle.py теперь управляет запуском/остановкой подписчиков через старт/стоп фасады.
+- server/mqtt_subscriber.py оставлен как совместимая прокладка для старых импортов и тестов.
+
 ## [2025-10-26] MQTT service refactor (topics/serialization)
 
 - Вынесли шаблоны топиков, модели и сериализацию MQTT в server/service/mqtt/ (topics/serialization/interfaces/config), сохранив формат payload.

@@ -25,6 +25,10 @@ from mqtt_subscriber import (
     init_state_subscriber,
     shutdown_ack_subscriber,
     shutdown_state_subscriber,
+    start_ack_subscriber,
+    start_state_subscriber,
+    stop_ack_subscriber,
+    stop_state_subscriber,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,12 +53,12 @@ async def _startup_mqtt() -> None:
     init_ack_store()
     init_state_subscriber(get_shadow_store())
     try:
-        get_state_subscriber().start()
+        start_state_subscriber()
     except RuntimeError:
         logger.warning("MQTT state subscriber is not initialised")
     init_ack_subscriber(get_ack_store())
     try:
-        get_ack_subscriber().start()
+        start_ack_subscriber()
     except RuntimeError:
         logger.warning("MQTT ack subscriber is not initialised")
     init_publisher()
@@ -63,19 +67,9 @@ async def _startup_mqtt() -> None:
 @app.on_event("shutdown")
 async def _shutdown_mqtt() -> None:
     # Останавливаем подписчика до сброса стора, затем завершаем паблишер.
-    try:
-        subscriber = get_state_subscriber()
-    except RuntimeError:
-        subscriber = None
-    if subscriber:
-        subscriber.stop()
+    stop_state_subscriber()
     shutdown_state_subscriber()
-    try:
-        ack_subscriber = get_ack_subscriber()
-    except RuntimeError:
-        ack_subscriber = None
-    if ack_subscriber:
-        ack_subscriber.stop()
+    stop_ack_subscriber()
     shutdown_ack_subscriber()
     shutdown_shadow_store()
     shutdown_ack_store()
