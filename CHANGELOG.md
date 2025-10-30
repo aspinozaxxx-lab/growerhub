@@ -1,6 +1,6 @@
 ﻿# Changelog
 
-## [2025-10-26] MQTT store refactor (Ack/Shadow)\n\n- AckStore и DeviceShadowStore перенесены в service/mqtt/store.py с единым управлением инициализацией.\n- lifecycle теперь управляет запуском/остановкой сторажей и подписчиков, API и тесты переведены на новые импорты.\n- Доктесты/ожидания обновлены на нормальные строки ошибок и совместимые патчи.\n\n## [2025-10-26] MQTT router refactor (subscribers)
+## [2025-10-26] MQTT serialization cleanup\n\n- Удалены избыточные функции deserialize_* и тесты переведены на прямой model_validate_json.\n- Совместимый модуль mqtt_protocol.py и тесты приведены к новым API, строки ответов нормализованы.\n\n## [2025-10-26] MQTT store refactor (Ack/Shadow)\n\n- AckStore и DeviceShadowStore перенесены в service/mqtt/store.py с единым управлением инициализацией.\n- lifecycle теперь управляет запуском/остановкой сторажей и подписчиков, API и тесты переведены на новые импорты.\n- Доктесты/ожидания обновлены на нормальные строки ошибок и совместимые патчи.\n\n## [2025-10-26] MQTT router refactor (subscribers)
 
 - Логика подписчиков и обработчиков вынесена в service/mqtt/router.py и service/mqtt/handlers/ (ACK/state, парсинг топиков и payload).
 - service/mqtt/lifecycle.py теперь управляет запуском/остановкой подписчиков через старт/стоп фасады.
@@ -44,4 +44,5 @@
 - Добавлено базовое подключение ESP32 к Wi-Fi (STA) и MQTT, использованы логин/пароль Mosquitto и clientId `ESP32_2C294C`.
 - Устройство подписывается на командный топик `gh/dev/ESP32_2C294C/cmd` (QoS=1), логирует входящие сообщения в Serial и автоматически переподключается при обрыве.
 - Управление насосом и публикация ack/state намечены на последующие шаги.
+
 

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 
 import pytest
 
@@ -11,13 +11,13 @@ from service.mqtt.serialization import (
     DeviceState,
     ManualWateringState,
     ManualWateringStatus,
-    deserialize_ack,
-    deserialize_cmd,
-    deserialize_state,
-    is_same_command,
     serialize,
 )
 from service.mqtt.topics import ack_topic, cmd_topic, state_topic
+
+
+def _loads(payload: bytes) -> str:
+    return payload.decode("utf-8")
 
 
 def test_topic_generation():
@@ -37,7 +37,7 @@ def test_serialize_deserialize_cmd_pump_start():
     )
 
     payload = serialize(command)
-    restored = deserialize_cmd(payload)
+    restored = CmdPumpStart.model_validate_json(_loads(payload))
 
     assert isinstance(restored, CmdPumpStart)
     assert restored.type == CommandType.pump_start.value
@@ -55,7 +55,7 @@ def test_serialize_deserialize_cmd_pump_stop():
     )
 
     payload = serialize(command)
-    restored = deserialize_cmd(payload)
+    restored = CmdPumpStop.model_validate_json(_loads(payload))
 
     assert isinstance(restored, CmdPumpStop)
     assert restored.correlation_id == command.correlation_id
@@ -64,7 +64,7 @@ def test_serialize_deserialize_cmd_pump_stop():
 
 def test_deserialize_cmd_invalid():
     with pytest.raises(ValueError):
-        deserialize_cmd(b'{"type": "unknown"}')
+        CommandType("unknown")
 
 
 def test_serialize_deserialize_ack_success():
@@ -76,7 +76,7 @@ def test_serialize_deserialize_ack_success():
     )
 
     payload = serialize(ack)
-    restored = deserialize_ack(payload)
+    restored = Ack.model_validate_json(_loads(payload))
 
     assert restored.correlation_id == ack.correlation_id
     assert restored.result == ack.result
@@ -93,7 +93,7 @@ def test_serialize_deserialize_ack_error_with_reason():
     )
 
     payload = serialize(ack)
-    restored = deserialize_ack(payload)
+    restored = Ack.model_validate_json(_loads(payload))
 
     assert restored.result == AckResult.error
     assert restored.reason == "pump jammed"
@@ -113,7 +113,7 @@ def test_serialize_deserialize_device_state_running():
     )
 
     payload = serialize(state)
-    restored = deserialize_state(payload)
+    restored = DeviceState.model_validate_json(_loads(payload))
 
     assert restored.manual_watering.status == ManualWateringStatus.running
     assert restored.manual_watering.duration_s == 30
@@ -129,20 +129,8 @@ def test_serialize_deserialize_device_state_idle():
     )
 
     payload = serialize(state)
-    restored = deserialize_state(payload)
+    restored = DeviceState.model_validate_json(_loads(payload))
 
     assert restored.manual_watering.status == ManualWateringStatus.idle
     assert restored.manual_watering.duration_s is None
     assert restored.fw is None
-
-
-def test_is_same_command():
-    cmd = CmdPumpStop(
-        type=CommandType.pump_stop.value,
-        correlation_id="corr-1",
-        ts=datetime.now(tz=timezone.utc),
-    )
-
-    assert is_same_command(cmd, "corr-1") is True
-    assert is_same_command(cmd, "corr-2") is False
-    assert is_same_command(cmd, None) is False

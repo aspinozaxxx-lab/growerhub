@@ -1,6 +1,6 @@
-"""Совместимость для старых импортов mqtt_protocol.
+﻿"""Compatibility layer for legacy imports of mqtt_protocol.
 
-TODO: удалить после перехода всего кода на service.mqtt.*.
+TODO: remove this module once everything uses service.mqtt.* directly.
 """
 
 from __future__ import annotations
@@ -15,10 +15,6 @@ from service.mqtt.serialization import (
     DeviceState,
     ManualWateringState,
     ManualWateringStatus,
-    deserialize_ack,
-    deserialize_cmd,
-    deserialize_state,
-    is_same_command,
     serialize,
 )
 from service.mqtt.topics import (
@@ -40,10 +36,6 @@ __all__ = [
     "DeviceState",
     "ManualWateringState",
     "ManualWateringStatus",
-    "deserialize_ack",
-    "deserialize_cmd",
-    "deserialize_state",
-    "is_same_command",
     "serialize",
     "CMD_TOPIC_TEMPLATE",
     "ACK_TOPIC_TEMPLATE",
@@ -52,4 +44,3 @@ __all__ = [
     "ack_topic",
     "state_topic",
 ]
-
