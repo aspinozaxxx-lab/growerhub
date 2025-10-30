@@ -37,12 +37,10 @@ FIRMWARE_DIR.mkdir(exist_ok=True, parents=True)
 
 app = FastAPI(title="GrowerHub")
 
-# TODO: на финальном шаге миграции роутеров удалить прямой вызов, чтобы не ломать текущие тесты и окружения.
-create_tables()
-
 
 @app.on_event("startup")
 async def _startup_mqtt() -> None:
+    # Инициализация БД перенесена в startup для безопасности импортов и тестов
     try:
         create_tables()
     except Exception as exc:  # pragma: no cover - защитный вызов на случай гонок

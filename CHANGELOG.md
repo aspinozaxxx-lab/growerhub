@@ -1,5 +1,9 @@
 # Changelog
 
+## [2025-10-31] FastAPI main cleanup
+- Завершена чистка main.py: импорт-тайм create_tables() удалён, инициализация БД теперь происходит в startup. Поведение API и URL неизменны.
+
+
 ## [2025-10-31] FastAPI routers layout
 - Вынесены HTTP-эндпойнты в отдельные роутеры: manual_watering.py, devices.py, history.py, firmware.py. В main.py остались только точка входа, события и статика. Контракты и URL без изменений.
 
