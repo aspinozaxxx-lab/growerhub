@@ -61,12 +61,12 @@ create_tables()
 async def _startup_mqtt() -> None:
     # ╨б╨╜╨░╤З╨░╨╗╨░ ╨┐╨╛╨┤╨╜╨╕╨╝╨░╨╡╨╝ ╤Б╤В╨╛╤А, ╨╖╨░╤В╨╡╨╝ ╨┐╨╛╨┤╨┐╨╕╤Б╤З╨╕╨║╨░ ╨╕ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А╨░.
     init_mqtt_stores()
-    init_state_subscriber(get_shadow_store())
+    init_state_subscriber()
     try:
         start_state_subscriber()
     except RuntimeError:
         logger.warning("MQTT state subscriber is not initialised")
-    init_ack_subscriber(get_ack_store())
+    init_ack_subscriber()
     try:
         start_ack_subscriber()
     except RuntimeError:
@@ -291,6 +291,8 @@ async def get_watering_logs(device_id: str, days: int = 7, db: Session = Depends
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
 
 
 

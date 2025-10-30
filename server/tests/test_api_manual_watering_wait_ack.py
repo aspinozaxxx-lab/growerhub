@@ -68,22 +68,22 @@ def wait_ack_client(store: AckStore) -> Iterator[TestClient]:
     dummy_state = _DummySubscriber()
     dummy_ack = _DummySubscriber()
 
-    stack.enter_context(patch("app.main.init_publisher", lambda: None))
-    stack.enter_context(patch("app.main.init_state_subscriber", lambda shadow: None))
-    stack.enter_context(patch("app.main.get_state_subscriber", lambda: dummy_state))
-    stack.enter_context(patch("app.main.init_ack_subscriber", lambda ack_store: None))
-    stack.enter_context(patch("app.main.get_ack_subscriber", lambda: dummy_ack))
-    stack.enter_context(patch("app.main.shutdown_state_subscriber", lambda: None))
-    stack.enter_context(patch("app.main.shutdown_ack_subscriber", lambda: None))
-    stack.enter_context(patch("app.main.shutdown_publisher", lambda: None))
+    stack.enter_context(patch("service.mqtt.lifecycle.init_publisher", lambda: None))
+    stack.enter_context(patch("service.mqtt.lifecycle.init_state_subscriber", lambda shadow: None))
+    stack.enter_context(patch("service.mqtt.lifecycle.get_state_subscriber", lambda: dummy_state))
+    stack.enter_context(patch("service.mqtt.lifecycle.init_ack_subscriber", lambda ack_store: None))
+    stack.enter_context(patch("service.mqtt.lifecycle.get_ack_subscriber", lambda: dummy_ack))
+    stack.enter_context(patch("service.mqtt.lifecycle.shutdown_state_subscriber", lambda: None))
+    stack.enter_context(patch("service.mqtt.lifecycle.shutdown_ack_subscriber", lambda: None))
+    stack.enter_context(patch("service.mqtt.lifecycle.shutdown_publisher", lambda: None))
 
     def _init_ack_store_stub() -> None:
         """╨Я╤А╨╕ ╤Б╤В╨░╤А╤В╨╡ ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╤П ╨┐╤А╨╕╨▓╤П╨╖╤Л╨▓╨░╨╡╨╝ ╨│╨╗╨╛╨▒╨░╨╗╤М╨╜╤Л╨╣ AckStore ╨║ ╨╜╨░╤И╨╡╨╝╤Г in-memory ╤Н╨║╨╖╨╡╨╝╨┐╨╗╤П╤А╤Г."""
 
         ack_store_module._ack_store = store
 
-    stack.enter_context(patch("app.main.init_ack_store", _init_ack_store_stub))
-    stack.enter_context(patch("app.main.shutdown_ack_store", lambda: None))
+    stack.enter_context(patch("service.mqtt.store.init_ack_store", _init_ack_store_stub))
+    stack.enter_context(patch("service.mqtt.store.shutdown_ack_store", lambda: None))
 
     app.dependency_overrides[get_ack_dep] = lambda: store
     ack_store_module._ack_store = store
@@ -162,5 +162,6 @@ def test_wait_ack_returns_timeout_when_ack_missing() -> None:
 
     assert response.status_code == 408
     assert response.json() == {"detail": "ACK не получен в заданное время"}
+
 
 

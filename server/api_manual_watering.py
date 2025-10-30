@@ -1,4 +1,4 @@
-"""REST API для ручного управления насосом: команды pump.start, pump.stop и статус."""
+﻿"""REST API для ручного управления насосом: команды pump.start, pump.stop и статус."""
 
 from __future__ import annotations
 
@@ -302,4 +302,5 @@ if settings.DEBUG:
       * "device_offline" — устройство известно, но сейчас не на связи.
       * "no_state_yet" — сервер ещё не видел state от устройства, ждём первого подключения.
     """
+
 

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import sys
 import types
@@ -92,13 +92,13 @@ def manual_watering_client(fake_publisher: FakePublisher) -> Iterator[TestClient
     # ╨Э╨░ ╤Н╤В╨░╨┐╨╡ ╤Б╤В╨░╤А╤В╨░ FastAPI ╨╕╨╜╨╕╤Ж╨╕╨░╨╗╨╕╨╖╨╕╤А╤Г╨╡╤В MQTT-╨┐╨╛╨┤╨┐╨╕╤Б╤З╨╕╨║╨╛╨▓ ╨╕ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А тАФ ╨┐╨╛╨┤╨╝╨╡╨╜╤П╨╡╨╝ ╨╜╨░ ╨╖╨░╨│╨╗╤Г╤И╨║╨╕,
     # ╤З╤В╨╛╨▒╤Л ╤В╨╡╤Б╤В╤Л ╨╜╨╡ ╤Е╨╛╨┤╨╕╨╗╨╕ ╨▓ ╤Б╨╡╤В╤М ╨╕ ╨╜╨╡ ╨╖╨░╨▓╨╕╤Б╨╡╨╗╨╕ ╨╛╤В ╨▒╤А╨╛╨║╨╡╤А╨░.
     stack.enter_context(patch("app.main.init_publisher", lambda: None))
-    stack.enter_context(patch("app.main.init_state_subscriber", lambda store: None))
-    stack.enter_context(patch("app.main.get_state_subscriber", lambda: dummy_state))
-    stack.enter_context(patch("app.main.init_ack_subscriber", lambda store: None))
-    stack.enter_context(patch("app.main.get_ack_subscriber", lambda: dummy_ack))
-    stack.enter_context(patch("app.main.shutdown_state_subscriber", lambda: None))
-    stack.enter_context(patch("app.main.shutdown_ack_subscriber", lambda: None))
-    stack.enter_context(patch("app.main.shutdown_publisher", lambda: None))
+    stack.enter_context(patch("service.mqtt.lifecycle.init_state_subscriber", lambda store: None))
+    stack.enter_context(patch("service.mqtt.lifecycle.get_state_subscriber", lambda: dummy_state))
+    stack.enter_context(patch("service.mqtt.lifecycle.init_ack_subscriber", lambda store: None))
+    stack.enter_context(patch("service.mqtt.lifecycle.get_ack_subscriber", lambda: dummy_ack))
+    stack.enter_context(patch("service.mqtt.lifecycle.shutdown_state_subscriber", lambda: None))
+    stack.enter_context(patch("service.mqtt.lifecycle.shutdown_ack_subscriber", lambda: None))
+    stack.enter_context(patch("service.mqtt.lifecycle.shutdown_publisher", lambda: None))
 
     # ╨Я╨╛╨┤╨╝╨╡╨╜╤П╨╡╨╝ MQTT-╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╤М ╨▓ ╤А╨╛╤Г╤В╨╡╤А╨╡ ╨╜╨░ ╨╜╨░╤И ╤Д╨╡╨╣╨║╨╛╨▓╤Л╨╣ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А.
     app.dependency_overrides[get_mqtt_dep] = lambda: fake_publisher
@@ -253,4 +253,5 @@ def test_manual_watering_stop_allowed_after_running() -> None:
     assert isinstance(command, CmdPumpStop)
     assert command.type == CommandType.pump_stop.value
     assert command.correlation_id == correlation_id
+
 
