@@ -1,5 +1,8 @@
 # Changelog
 
+## [2025-10-31] FastAPI routers layout
+- Вынесены HTTP-эндпойнты в отдельные роутеры: manual_watering.py, devices.py, history.py, firmware.py. В main.py остались только точка входа, события и статика. Контракты и URL без изменений.
+
 ## [2025-10-31] FastAPI startup safety net
 - Цель: подготовить перенос инициализации БД в `startup`, не ломая текущие тесты и окружение.
 - Вставлен дублирующий вызов `create_tables()` в `@app.on_event("startup")` с безопасным логированием при повторе; импорт-time вызов оставлен без изменений.
