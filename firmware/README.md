@@ -1,4 +1,4 @@
-﻿# Firmware: встроенные настройки сети, Multi-WiFi и TLS
+# Firmware: встроенные настройки сети, Multi-WiFi и TLS
 
 Прошивка больше не зависит от `config.ini` и SPIFFS. Все значения по умолчанию (список точек доступа, URL сервера и корневой сертификат) зашиты в код и доступны через структуру `BUILTIN_NETWORK_DEFAULTS` в `src/System/SettingsManager.h`.
 
@@ -56,6 +56,21 @@ yRmT7/OXpmOH/FVLtwS+8ng1cAmpCujPwteJZNcDG0sF2n/sc0+SQf49fdyUK0ty
 ```bash
 pio run -e <env>
 pio run -t upload -e <env>
+```
+
+## Тесты
+- Требования: установлен Python 3.11+ и PlatformIO (`pip install platformio`).
+- Проверка версии и запуск базового набора:
+
+```bash
+pio --version
+pio test -e wifi_service_test
+```
+
+- Дополнительно можно ограничить тесты и включить подробный вывод:
+
+```bash
+pio test -e wifi_service_test -f wifi_service_basic -v
 ```
 
 ## Поведение Wi-Fi
