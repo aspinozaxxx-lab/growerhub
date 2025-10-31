@@ -20,40 +20,62 @@ SystemClock::SystemClock(IRTC* rtcSource, INTPClient* ntpClient, ILogger* logger
       ntp(ntpClient),
       logger(loggerInstance),
       scheduler(schedulerInstance),
+      internalRtcAdapter(nullptr),
       cachedUtc(0),
       timeValid(false),
       nextRetryMillis(0),
       nextResyncMillis(0),
       retryPending(false),
-      resyncPending(false) {}
+      resyncPending(false),
+      syncAttemptCounter(0),
+      lastNtpSyncOk(false),
+      lastNtpDelta(0),
+      lastNtpMillis(0) {}
 
 void SystemClock::begin() {
+    debugLog("start begin");
     if (!rtc) {
         if (!internalRtcAdapter) {
             internalRtcAdapter.reset(new DS3231RTCAdapter());
         }
         if (!internalRtcAdapter->begin()) {
-            logWarn("RTC: устройство не отвечает, работаем без RTC.");
+            debugLog("RTC init fail, fallback bez RTC");
+            logWarn("RTC: ustroistvo ne otvechaet, rabotaem bez RTC.");
             rtc = nullptr;
         } else {
-            logInfo("RTC: инициализация I2C (SDA=21, SCL=22).");
+            debugLog("RTC init ok");
+            logInfo("RTC: inicializacia I2C (SDA=21, SCL=22).");
             rtc = internalRtcAdapter.get();
         }
     }
+
     retryPending = false;
     resyncPending = false;
     nextRetryMillis = 0;
     nextResyncMillis = 0;
     cachedUtc = 0;
     timeValid = false;
+    syncAttemptCounter = 0;
 
+    bool rtcHadTime = false;
     if (rtc) {
         rtc->begin();
-        updateFromRtc(); // Р—Р°РіСЂСѓР¶Р°РµРј РїСЂРµРґС‹РґСѓС‰РµРµ РІСЂРµРјСЏ, РµСЃР»Рё РѕРЅРѕ РІР°Р»РёРґРЅРѕ.
+        rtcHadTime = updateFromRtc();
+        if (rtcHadTime) {
+            debugLog("RTC time valid posle starta");
+        } else {
+            debugLog("RTC time ne valid posle starta");
+        }
+    } else {
+        debugLog("RTC nedostupen posle starta");
     }
 
     if (!ntp) {
-        logWarn("NTP РєР»РёРµРЅС‚ РЅРµ Р·Р°РґР°РЅ, СЂР°Р±РѕС‚Р°РµРј С‚РѕР»СЊРєРѕ РїРѕ RTC.");
+        debugLog("NTP klient ne zadat");
+        logWarn("NTP klient ne zadat, rabotaem tolko po RTC.");
+        lastNtpSyncOk = false;
+        lastNtpDelta = 0;
+        lastNtpMillis = millis();
         return;
     }
 
@@ -70,14 +92,16 @@ void SystemClock::begin() {
     if (synced) {
         scheduleResync(RESYNC_INTERVAL_MS);
     } else {
-        logWarn("NTP: РЅР°С‡Р°Р»СЊРЅР°СЏ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ РЅРµ СѓРґР°Р»Р°СЃСЊ, РїР»Р°РЅРёСЂСѓРµРј СЂРµС‚СЂР°Рё.");
+        debugLog("NTP startup ne udalsia, planiruem retry");
+        logWarn("NTP: nachalnaia sinhronizacia ne udalas, planiruem retry.");
         scheduleRetry(RETRY_INTERVAL_MS);
     }
+    debugLog("start end");
 }
 
 void SystemClock::loop() {
     if (scheduler) {
-        return; // Р’РЅРµС€РЅРёР№ РїР»Р°РЅРёСЂРѕРІС‰РёРє РІС‹Р·РѕРІРµС‚ handleRetry/handleResync.
+        return; // Vneshnii planirovshchik vyzovet handleRetry/handleResync.
     }
 
     unsigned long now = millis();
@@ -151,15 +175,81 @@ String SystemClock::formatIso8601(time_t value) const {
     return String(buffer);
 }
 
+void SystemClock::dumpStatusToSerial() {
+#if !defined(ARDUINO)
+    (void)syncAttemptCounter;
+    (void)lastNtpSyncOk;
+    (void)lastNtpDelta;
+    (void)lastNtpMillis;
+    return;
+#else
+    Serial.println("[CLOCK] dump begin");
+    Serial.print("[CLOCK] is_time_set=");
+    Serial.println(isTimeSet() ? "yes" : "no");
+
+    if (timeValid) {
+        Serial.print("[CLOCK] cached=");
+        Serial.println(formatIso8601(cachedUtc));
+    } else {
+        Serial.println("[CLOCK] cached=n/a");
+    }
+
+    if (rtc) {
+        time_t rtcUtc = 0;
+        if (rtc->isTimeValid() && rtc->getTime(rtcUtc)) {
+            Serial.print("[CLOCK] rtc=");
+            Serial.println(formatIso8601(rtcUtc));
+        } else {
+            Serial.println("[CLOCK] rtc=n/a");
+        }
+    } else {
+        Serial.println("[CLOCK] rtc=absent");
+    }
+
+    const unsigned long nowMs = scheduler ? scheduler->nowMs() : millis();
+
+    Serial.print("[CLOCK] retry_pending=");
+    Serial.print(retryPending ? "yes" : "no");
+    if (retryPending) {
+        Serial.print(" left=");
+        Serial.println(static_cast<long long>(nextRetryMillis) - static_cast<long long>(nowMs));
+    } else {
+        Serial.println();
+    }
+
+    Serial.print("[CLOCK] resync_pending=");
+    Serial.print(resyncPending ? "yes" : "no");
+    if (resyncPending) {
+        Serial.print(" left=");
+        Serial.println(static_cast<long long>(nextResyncMillis) - static_cast<long long>(nowMs));
+    } else {
+        Serial.println();
+    }
+
+    Serial.print("[CLOCK] last_ntp_ok=");
+    Serial.print(lastNtpSyncOk ? "yes" : "no");
+    Serial.print(" delta=");
+    Serial.println(lastNtpDelta);
+    Serial.print("[CLOCK] last_ntp_ms=");
+    Serial.println(lastNtpMillis);
+    Serial.println("[CLOCK] dump end");
+#endif
+}
+
+
+
 bool SystemClock::updateFromRtc() {
     time_t rtcTime = 0;
     if (!getRtcUtc(rtcTime)) {
+        debugLog("RTC read fail");
         return false;
     }
 
     cachedUtc = rtcTime;
     timeValid = true;
-    logInfo("RTC: загружено валидное время.");
+    String msg = "RTC read ok: " + formatIso8601(rtcTime);
+    debugLog(msg.c_str());
+    logInfo("RTC: zagruzheno validnoe vremia.");
     return true;
 }
 
@@ -168,36 +258,59 @@ bool SystemClock::attemptNtpSync(const char* context) {
         return false;
     }
 
+    ++syncAttemptCounter;
+    char dbg[96];
+    snprintf(dbg, sizeof(dbg), "NTP try #%lu (%s)", syncAttemptCounter, context ? context : "unknown");
+    debugLog(dbg);
+
     if (!ntp->syncOnce()) {
+        snprintf(dbg, sizeof(dbg), "NTP fail ili tajmaut (%s)", context ? context : "unknown");
+        debugLog(dbg);
         char warn[96];
-        snprintf(warn, sizeof(warn), "NTP: РїРѕРїС‹С‚РєР° %s вЂ” РЅРµС‚ СЃРµС‚Рё/С‚Р°Р№РјР°СѓС‚.", context ? context : "unknown");
+        snprintf(warn, sizeof(warn), "NTP: popytka %s - net seti ili tajmaut.", context ? context : "unknown");
         logWarn(warn);
+        lastNtpSyncOk = false;
+        lastNtpDelta = 0;
+        lastNtpMillis = millis();
         return false;
     }
 
     time_t ntpUtc = 0;
     if (!fetchNtpTime(ntpUtc)) {
+        snprintf(dbg, sizeof(dbg), "NTP client ne vernul vremia (%s)", context ? context : "unknown");
+        debugLog(dbg);
         char warn[96];
-        snprintf(warn, sizeof(warn), "NTP: РїРѕРїС‹С‚РєР° %s вЂ” РєР»РёРµРЅС‚ РЅРµ РІРµСЂРЅСѓР» РІСЂРµРјСЏ.", context ? context : "unknown");
+        snprintf(warn, sizeof(warn), "NTP: popytka %s - klient ne vernul vremia.", context ? context : "unknown");
         logWarn(warn);
+        lastNtpSyncOk = false;
+        lastNtpDelta = 0;
+        lastNtpMillis = millis();
         return false;
     }
 
     if (!isYearValid(ntpUtc)) {
         char warn[96];
-        snprintf(warn, sizeof(warn), "NTP: РїРѕРїС‹С‚РєР° %s вЂ” РіРѕРґ РІРЅРµ РґРёР°РїР°Р·РѕРЅР°.", context ? context : "unknown");
+        snprintf(warn, sizeof(warn), "NTP: popytka %s - god vne diapazona.", context ? context : "unknown");
         logWarn(warn);
+        debugLog("NTP otklonen iz-za goda vne diapazona");
+        lastNtpSyncOk = false;
+        lastNtpDelta = 0;
+        lastNtpMillis = millis();
         return false;
     }
 
     time_t rtcUtc = 0;
     const bool rtcValid = getRtcUtc(rtcUtc);
     if (rtcValid) {
-        const long long deltaRtc = std::llabs(static_cast<long long>(ntpUtc) - static_cast<long long>(rtcUtc));
-        if (deltaRtc > MAX_ALLOWED_DRIFT_SECONDS) {
+        const long long deltaCheck = std::llabs(static_cast<long long>(ntpUtc) - static_cast<long long>(rtcUtc));
+        if (deltaCheck > MAX_ALLOWED_DRIFT_SECONDS) {
             char warn[128];
-            snprintf(warn, sizeof(warn), "NTP: РїРѕРїС‹С‚РєР° %s вЂ” РїРѕРґРѕР·СЂРёС‚РµР»СЊРЅС‹Р№ СЃРґРІРёРі %llds, РѕС‚РєР»РѕРЅРµРЅРѕ.", context ? context : "unknown", deltaRtc);
+            snprintf(warn, sizeof(warn), "NTP: popytka %s - podozritelnyi sdvig %llds, otkloneno.", context ? context : "unknown", deltaCheck);
             logWarn(warn);
+            debugLog("NTP otkloneno iz-za delta >31d");
+            lastNtpSyncOk = false;
+            lastNtpDelta = 0;
+            lastNtpMillis = millis();
             return false;
         }
     }
@@ -214,11 +327,13 @@ bool SystemClock::attemptNtpSync(const char* context) {
 
     if (rtc) {
         if (!rtc->setTime(ntpUtc)) {
-            logWarn("RTC: не удалось записать время после NTP.");
+            logWarn("RTC: ne udalos zapisat vremia posle NTP.");
+            debugLog("RTC zapis ne udalas");
         } else {
             char rtcMsg[96];
-            snprintf(rtcMsg, sizeof(rtcMsg), "RTC: обновлено от NTP, delta=%llds.", deltaRtc);
+            snprintf(rtcMsg, sizeof(rtcMsg), "RTC: obnovleno ot NTP, delta=%llds.", deltaRtc);
             logInfo(rtcMsg);
+            debugLog("RTC updated from NTP");
         }
     }
 
@@ -226,15 +341,19 @@ bool SystemClock::attemptNtpSync(const char* context) {
     timeValid = true;
 
     long long deltaLog = deltaRtc;
-    if (rtcValid) {
-        deltaLog = static_cast<long long>(ntpUtc) - static_cast<long long>(rtcUtc);
-    } else if (previousValid) {
+    if (!rtcValid && previousValid) {
         deltaLog = static_cast<long long>(ntpUtc) - static_cast<long long>(previousUtc);
     }
 
     char info[128];
-    snprintf(info, sizeof(info), "NTP: СѓСЃРїРµС€РЅР°СЏ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ (%s), delta=%llds.", context ? context : "unknown", deltaLog);
+    snprintf(info, sizeof(info), "NTP: uspeshnaia sinhronizacia (%s), delta=%llds.", context ? context : "unknown", deltaLog);
     logInfo(info);
+    snprintf(dbg, sizeof(dbg), "NTP ok delta=%llds", deltaLog);
+    debugLog(dbg);
+
+    lastNtpSyncOk = true;
+    lastNtpDelta = deltaLog;
+    lastNtpMillis = millis();
     return true;
 }
 
@@ -287,11 +406,17 @@ void SystemClock::scheduleRetry(unsigned long delayMs) {
 
     if (scheduler) {
         scheduler->scheduleDelayed("SystemClockRetry", delayMs, [this]() { this->handleRetry(); });
+        char dbg[64];
+        snprintf(dbg, sizeof(dbg), "schedule retry %lu ms", delayMs);
+        debugLog(dbg);
         return;
     }
 
     nextRetryMillis = millis() + delayMs;
     retryPending = true;
+    char dbg[64];
+    snprintf(dbg, sizeof(dbg), "schedule retry %lu ms", delayMs);
+    debugLog(dbg);
 }
 
 void SystemClock::scheduleResync(unsigned long delayMs) {
@@ -301,11 +426,17 @@ void SystemClock::scheduleResync(unsigned long delayMs) {
 
     if (scheduler) {
         scheduler->scheduleDelayed("SystemClockResync", delayMs, [this]() { this->handleResync(); });
+        char dbg[64];
+        snprintf(dbg, sizeof(dbg), "schedule resync %lu ms", delayMs);
+        debugLog(dbg);
         return;
     }
 
     nextResyncMillis = millis() + delayMs;
     resyncPending = true;
+    char dbg[64];
+    snprintf(dbg, sizeof(dbg), "schedule resync %lu ms", delayMs);
+    debugLog(dbg);
 }
 
 void SystemClock::handleRetry() {
@@ -342,3 +473,15 @@ void SystemClock::logError(const char* message) const {
     }
 }
 
+
+void SystemClock::debugLog(const char* message) const {
+#if GH_CLOCK_DEBUG
+    if (!message) {
+        return;
+    }
+    Serial.print("[CLOCK] ");
+    Serial.println(message);
+#else
+    (void)message;
+#endif
+}

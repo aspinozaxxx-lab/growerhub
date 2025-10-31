@@ -43,7 +43,7 @@ namespace {
 DS3231RTCAdapter::DS3231RTCAdapter() : cachedUtc_(0), valid_(false) {}
 
 bool DS3231RTCAdapter::begin() {
-    Wire.begin(21, 22); // TODO: вынести SDA/SCL в настройки, если появятся.
+    Wire.begin(21, 22); // TODO: vynesti SDA/SCL v nastroyki esli poiaviatsia.
     Wire.beginTransmission(DS3231_ADDRESS);
     if (Wire.endTransmission() != 0) {
         valid_ = false;
@@ -111,7 +111,7 @@ bool DS3231RTCAdapter::readTime(time_t& outUtc) const {
     const uint8_t seconds = decodeBCD(Wire.read() & 0x7F);
     const uint8_t minutes = decodeBCD(Wire.read() & 0x7F);
     const uint8_t hours = decodeBCD(Wire.read() & 0x3F);
-    Wire.read(); // day of week, игнорируем
+    Wire.read(); // day of week, ignoriruem
     const uint8_t day = decodeBCD(Wire.read() & 0x3F);
     const uint8_t monthCentury = Wire.read();
     const uint8_t month = decodeBCD(monthCentury & 0x1F);

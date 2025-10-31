@@ -1,9 +1,9 @@
 # Changelog
 
 ## 2025-11-01
-- Добавлен адаптер RTC (DS3231), SystemClock сам инициализирует RTC; при отсутствии модуля — безопасный фолбек.
-- Объединены тесты WiFi и SystemClock в одном окружении PlatformIO (wifi_service_test).
-- Исправлена кодировка FakeScheduler.h (UTF-8), стабилизированы тесты SystemClock.
-- Добавлен каркас SystemClock и DI-интерфейсы времени; безопасные фолбеки сохраняют текущее поведение.
-- Реализована синхронизация: 3 NTP-попытки при старте, ретраи каждые 30 с и плановый ресинк раз в 6 ч с проверкой сдвига >31 дня.
-- Добавлены Unity-тесты SystemClock (фолбеки, стартовые попытки, фильтр >31 дня, ретраи 30 с, ресинк 6 ч, граничные годы).
+- Dobavlen adapter RTC (DS3231), SystemClock sam inicializiruet RTC; pri otsutstvii modulya - bezopasnyi folbek.
+- Obedineny testy WiFi i SystemClock v odnom okruzhenii PlatformIO (wifi_service_test).
+- Ispravlena kodirovka FakeScheduler.h (UTF-8), stabilizirovany testy SystemClock.
+- Dobavlen karkas SystemClock i DI-interfeisy vremeni; bezopasnye folbeki sokhranjayut tekushchee povedenie.
+- Realizovana sinhronizacia: 3 NTP-popytki pri starte, retry kazhdyh 30 s i planovyi resink raz v 6 ch s proverkoi sdviga >31 dnya.
+- Dobavleny Unity-testy SystemClock (folbeki, startovye popytki, filtr >31 dnya, retry 30 s, resink 6 ch, granichnye gody).

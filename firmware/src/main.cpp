@@ -36,6 +36,7 @@ void setup() {
     Serial.println(F("GrowerHub Grovika ManualWatering v0.1 (MQTT step4)"));
     app.setSystemClock(&systemClock);
     systemClock.begin();
+    systemClock.dumpStatusToSerial();
     app.begin();
     settings.begin();
     

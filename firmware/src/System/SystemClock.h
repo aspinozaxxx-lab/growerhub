@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef GH_CLOCK_DEBUG
+#define GH_CLOCK_DEBUG 0
+#endif
+
 #include <Arduino.h>
 #include <ctime>
 #include <memory>
@@ -24,6 +28,7 @@ public:
     bool isTimeSet() const;           // true, если кеш содержит валидный UTC.
     bool nowUtc(time_t& outUtc) const; // Возвращает кеш или RTC, если они валидны.
     String formatIso8601(time_t value) const; // ISO8601 (UTC) для статусов/логов.
+    void dumpStatusToSerial();
 
 private:
     bool updateFromRtc();             // Пробуем подтянуть время из RTC.
@@ -38,6 +43,7 @@ private:
     void logInfo(const char* message) const;
     void logWarn(const char* message) const;
     void logError(const char* message) const;
+    void debugLog(const char* message) const;
 
     IRTC* rtc;
     INTPClient* ntp;
@@ -52,6 +58,10 @@ private:
     bool retryPending;
     bool resyncPending;
 
+    unsigned long syncAttemptCounter;
+    bool lastNtpSyncOk;
+    long long lastNtpDelta;
+    unsigned long lastNtpMillis;
     static constexpr const char* TAG = "SystemClock";
     static constexpr unsigned long STARTUP_ATTEMPTS = 3;
     static constexpr unsigned long RETRY_INTERVAL_MS = 30000UL;
