@@ -1,9 +1,17 @@
 #include "SystemClock.h"
 
+#include <cstdlib>
+
 #include "System/Time/IRTC.h"
 #include "System/Time/INTPClient.h"
 #include "System/Time/ILogger.h"
 #include "System/Time/IScheduler.h"
+
+namespace {
+    inline bool millisReached(unsigned long target) {
+        return static_cast<long>(millis() - target) >= 0;
+    }
+}
 
 SystemClock::SystemClock(IRTC* rtcSource, INTPClient* ntpClient, ILogger* loggerInstance, IScheduler* schedulerInstance)
     : rtc(rtcSource),
@@ -11,53 +19,89 @@ SystemClock::SystemClock(IRTC* rtcSource, INTPClient* ntpClient, ILogger* logger
       logger(loggerInstance),
       scheduler(schedulerInstance),
       cachedUtc(0),
-      timeValid(false) {}
+      timeValid(false),
+      nextRetryMillis(0),
+      nextResyncMillis(0),
+      retryPending(false),
+      resyncPending(false) {}
 
 void SystemClock::begin() {
-    // Стартуем RTC и NTP, если они есть, но не навязываем синхронизацию.
+    retryPending = false;
+    resyncPending = false;
+    nextRetryMillis = 0;
+    nextResyncMillis = 0;
+    cachedUtc = 0;
+    timeValid = false;
+
     if (rtc) {
         rtc->begin();
-        if (updateFromRtc()) {
-            return;
+        updateFromRtc(); // Загружаем предыдущее время, если оно валидно.
+    }
+
+    if (!ntp) {
+        logWarn("NTP клиент не задан, работаем только по RTC.");
+        return;
+    }
+
+    ntp->begin();
+
+    bool synced = false;
+    for (unsigned long attempt = 0; attempt < STARTUP_ATTEMPTS; ++attempt) {
+        if (attemptNtpSync("startup")) {
+            synced = true;
+            break;
         }
     }
 
-    if (ntp) {
-        ntp->begin();
-        // Позже добавим попытку первой синхронизации. Пока просто фиксируем запуск.
-        if (updateFromNtp()) {
-            return;
-        }
+    if (synced) {
+        scheduleResync(RESYNC_INTERVAL_MS);
+    } else {
+        logWarn("NTP: начальная синхронизация не удалась, планируем ретраи.");
+        scheduleRetry(RETRY_INTERVAL_MS);
     }
-
-    timeValid = false;
 }
 
 void SystemClock::loop() {
-    // Будущие ретраи/планировщик попадут сюда. Пока ничего не делаем.
-    (void)scheduler;
-}
-
-bool SystemClock::isTimeSet() const {
-    if (rtc && rtc->isTimeValid()) {
-        return true;
+    if (scheduler) {
+        return; // Внешний планировщик вызовет handleRetry/handleResync.
     }
-    return timeValid;
-}
 
-bool SystemClock::nowUtc(time_t& outUtc) const {
-    if (rtc && rtc->isTimeValid()) {
-        time_t rtcTime = 0;
-        if (rtc->getTime(rtcTime)) {
-            cachedUtc = rtcTime;
-            timeValid = true;
-            outUtc = rtcTime;
-            return true;
+    unsigned long now = millis();
+
+    if (retryPending && millisReached(nextRetryMillis)) {
+        retryPending = false;
+        if (attemptNtpSync("loop retry")) {
+            scheduleResync(RESYNC_INTERVAL_MS);
+        } else {
+            scheduleRetry(RETRY_INTERVAL_MS);
         }
     }
 
-    if (timeValid && cachedUtc > 0) {
+    if (resyncPending && millisReached(nextResyncMillis)) {
+        resyncPending = false;
+        if (attemptNtpSync("loop resync")) {
+            scheduleResync(RESYNC_INTERVAL_MS);
+        } else {
+            scheduleRetry(RETRY_INTERVAL_MS);
+        }
+    }
+}
+
+bool SystemClock::isTimeSet() const {
+    return timeValid && isYearValid(cachedUtc);
+}
+
+bool SystemClock::nowUtc(time_t& outUtc) const {
+    if (timeValid && isYearValid(cachedUtc)) {
         outUtc = cachedUtc;
+        return true;
+    }
+
+    time_t rtcTime = 0;
+    if (getRtcUtc(rtcTime)) {
+        cachedUtc = rtcTime;
+        timeValid = true;
+        outUtc = rtcTime;
         return true;
     }
 
@@ -94,55 +138,165 @@ String SystemClock::formatIso8601(time_t value) const {
 }
 
 bool SystemClock::updateFromRtc() {
-    if (!rtc) {
-        return false;
-    }
-
-    if (!rtc->isTimeValid()) {
-        logWarn("RTC доступен, но время невалидно.");
-        return false;
-    }
-
     time_t rtcTime = 0;
-    if (!rtc->getTime(rtcTime)) {
-        logWarn("RTC не вернул время.");
+    if (!getRtcUtc(rtcTime)) {
         return false;
     }
 
     cachedUtc = rtcTime;
-    timeValid = (rtcTime > 0);
-
-    if (timeValid) {
-        logInfo("Время получено из RTC.");
-    }
-    return timeValid;
+    timeValid = true;
+    logInfo("RTC: загружено валидное время.");
+    return true;
 }
 
-bool SystemClock::updateFromNtp() {
+bool SystemClock::attemptNtpSync(const char* context) {
     if (!ntp) {
         return false;
     }
 
-    time_t ntpTime = 0;
-    if (!ntp->getTime(ntpTime)) {
-        logWarn("NTP клиент не вернул время.");
+    if (!ntp->syncOnce()) {
+        char warn[96];
+        snprintf(warn, sizeof(warn), "NTP: попытка %s — нет сети/таймаут.", context ? context : "unknown");
+        logWarn(warn);
         return false;
     }
 
-    if (ntpTime <= 0) {
-        logWarn("NTP вернул некорректное значение.");
+    time_t ntpUtc = 0;
+    if (!fetchNtpTime(ntpUtc)) {
+        char warn[96];
+        snprintf(warn, sizeof(warn), "NTP: попытка %s — клиент не вернул время.", context ? context : "unknown");
+        logWarn(warn);
         return false;
     }
 
-    cachedUtc = ntpTime;
+    if (!isYearValid(ntpUtc)) {
+        char warn[96];
+        snprintf(warn, sizeof(warn), "NTP: попытка %s — год вне диапазона.", context ? context : "unknown");
+        logWarn(warn);
+        return false;
+    }
+
+    time_t rtcUtc = 0;
+    const bool rtcValid = getRtcUtc(rtcUtc);
+    if (rtcValid) {
+        const long long deltaRtc = std::llabs(static_cast<long long>(ntpUtc) - static_cast<long long>(rtcUtc));
+        if (deltaRtc > MAX_ALLOWED_DRIFT_SECONDS) {
+            char warn[128];
+            snprintf(warn, sizeof(warn), "NTP: попытка %s — подозрительный сдвиг %llds, отклонено.", context ? context : "unknown", deltaRtc);
+            logWarn(warn);
+            return false;
+        }
+    }
+
+    time_t previousUtc = cachedUtc;
+    const bool previousValid = timeValid && isYearValid(previousUtc);
+
+    cachedUtc = ntpUtc;
     timeValid = true;
-    logInfo("Время получено от NTP.");
 
     if (rtc) {
-        rtc->setTime(ntpTime);
+        if (!rtc->setTime(ntpUtc)) {
+            logWarn("RTC: не удалось записать время после NTP.");
+        }
     }
 
+    long long deltaLog = 0;
+    if (rtcValid) {
+        deltaLog = static_cast<long long>(ntpUtc) - static_cast<long long>(rtcUtc);
+    } else if (previousValid) {
+        deltaLog = static_cast<long long>(ntpUtc) - static_cast<long long>(previousUtc);
+    }
+
+    char info[128];
+    snprintf(info, sizeof(info), "NTP: успешная синхронизация (%s), delta=%llds.", context ? context : "unknown", deltaLog);
+    logInfo(info);
     return true;
+}
+
+bool SystemClock::fetchNtpTime(time_t& outUtc) {
+    if (!ntp) {
+        return false;
+    }
+    return ntp->getTime(outUtc) && outUtc > 0;
+}
+
+bool SystemClock::getRtcUtc(time_t& outUtc) const {
+    if (!rtc) {
+        return false;
+    }
+    if (!rtc->isTimeValid()) {
+        return false;
+    }
+    if (!rtc->getTime(outUtc)) {
+        return false;
+    }
+    return isYearValid(outUtc);
+}
+
+bool SystemClock::isYearValid(time_t value) const {
+    if (value <= 0) {
+        return false;
+    }
+
+    struct tm timeInfo;
+#if defined(__unix__) || defined(__APPLE__) || defined(ESP_PLATFORM)
+    if (gmtime_r(&value, &timeInfo) == nullptr) {
+        return false;
+    }
+#else
+    struct tm* tmp = gmtime(&value);
+    if (!tmp) {
+        return false;
+    }
+    timeInfo = *tmp;
+#endif
+
+    const int year = timeInfo.tm_year + 1900;
+    return year >= MIN_VALID_YEAR && year <= MAX_VALID_YEAR;
+}
+
+void SystemClock::scheduleRetry(unsigned long delayMs) {
+    if (!ntp) {
+        return;
+    }
+
+    if (scheduler) {
+        scheduler->scheduleDelayed("SystemClockRetry", delayMs, [this]() { this->handleRetry(); });
+        return;
+    }
+
+    nextRetryMillis = millis() + delayMs;
+    retryPending = true;
+}
+
+void SystemClock::scheduleResync(unsigned long delayMs) {
+    if (!ntp) {
+        return;
+    }
+
+    if (scheduler) {
+        scheduler->scheduleDelayed("SystemClockResync", delayMs, [this]() { this->handleResync(); });
+        return;
+    }
+
+    nextResyncMillis = millis() + delayMs;
+    resyncPending = true;
+}
+
+void SystemClock::handleRetry() {
+    if (attemptNtpSync("scheduled retry")) {
+        scheduleResync(RESYNC_INTERVAL_MS);
+    } else {
+        scheduleRetry(RETRY_INTERVAL_MS);
+    }
+}
+
+void SystemClock::handleResync() {
+    if (attemptNtpSync("scheduled resync")) {
+        scheduleResync(RESYNC_INTERVAL_MS);
+    } else {
+        scheduleRetry(RETRY_INTERVAL_MS);
+    }
 }
 
 void SystemClock::logInfo(const char* message) const {
@@ -154,6 +308,12 @@ void SystemClock::logInfo(const char* message) const {
 void SystemClock::logWarn(const char* message) const {
     if (logger) {
         logger->logWarn(TAG, message);
+    }
+}
+
+void SystemClock::logError(const char* message) const {
+    if (logger) {
+        logger->logError(TAG, message);
     }
 }
 
