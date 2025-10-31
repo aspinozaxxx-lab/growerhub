@@ -1,10 +1,11 @@
 #pragma once
 
-#include <vector>
 #include <functional>
+#include <vector>
+
 #include "System/Time/IScheduler.h"
 
-// Фейковый планировщик: сохраняет задачи и позволяет тесту запускать их вручную.
+// Р¤РµР№РєРѕРІС‹Р№ РїР»Р°РЅРёСЂРѕРІС‰РёРє: С…СЂР°РЅРёС‚ РѕС‚Р»РѕР¶РµРЅРЅС‹Рµ Р·Р°РґР°С‡Рё Рё РїРѕР·РІРѕР»СЏРµС‚ С‚РµСЃС‚Р°Рј Р·Р°РїСѓСЃРєР°С‚СЊ РёС… РІСЂСѓС‡РЅСѓСЋ.
 class FakeScheduler : public IScheduler {
 public:
     struct Task {
@@ -19,9 +20,9 @@ public:
     void scheduleRepeated(const char* name, unsigned long intervalMs, std::function<void()> callback) override;
     void scheduleDelayed(const char* name, unsigned long delayMs, std::function<void()> callback) override;
 
-    void advanceTo(unsigned long ms);           // Установка текущего времени.
-    void runDue(unsigned long ms);              // Выполнить все задачи, срок которых <= ms.
-    void clear();
+    void advanceTo(unsigned long ms);   // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј С‚РµСЃС‚РѕРІРѕРµ РІСЂРµРјСЏ.
+    void runDue(unsigned long ms);      // Р’С‹РїРѕР»РЅСЏРµРј РІСЃРµ Р·Р°РґР°С‡Рё СЃ dueMs <= ms.
+    void clear();                       // РћС‡РёС‰Р°РµРј РѕС‡РµСЂРµРґСЊ Р·Р°РґР°С‡.
 
     const std::vector<Task>& scheduledOnce() const;
 
