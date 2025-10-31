@@ -1,4 +1,4 @@
-name: WiFiService Tests
+name: Firmware Tests
 
 on:
   push:
