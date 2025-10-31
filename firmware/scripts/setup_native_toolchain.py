@@ -1,3 +1,5 @@
+import os
+import shutil
 from os.path import join
 
 from SCons.Script import Import
@@ -9,6 +11,14 @@ toolchain_dir = pio_platform.get_package_dir("toolchain-gccmingw32")
 if toolchain_dir:
     bin_dir = join(toolchain_dir, "bin")
     env.AppendENVPath("PATH", bin_dir)
+    os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
+
+    build_dir = env.subst("$BUILD_DIR")
+    os.makedirs(build_dir, exist_ok=True)
+    for dll in ("libstdc++-6.dll", "libgcc_s_dw2-1.dll", "libwinpthread-1.dll"):
+        src = join(bin_dir, dll)
+        if os.path.exists(src):
+            shutil.copy(src, build_dir)
 
     exe = ".exe"
     env.Replace(
