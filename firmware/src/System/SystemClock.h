@@ -2,11 +2,14 @@
 
 #include <Arduino.h>
 #include <ctime>
+#include <memory>
+#include "System/Time/DS3231RTCAdapter.h"
 
 // Вперёд объявляем интерфейсы DI, чтобы не тянуть тяжёлые заголовки везде.
 class IRTC;
 class INTPClient;
 class ILogger;
+class DS3231RTCAdapter;
 class IScheduler;
 
 // SystemClock отвечает за единый источник UTC для прошивки.
@@ -40,6 +43,7 @@ private:
     INTPClient* ntp;
     ILogger* logger;
     IScheduler* scheduler;
+    std::unique_ptr<DS3231RTCAdapter> internalRtcAdapter;
 
     mutable time_t cachedUtc;
     mutable bool timeValid;

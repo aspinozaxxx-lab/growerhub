@@ -1,11 +1,13 @@
 #include "SystemClock.h"
 
 #include <cstdlib>
+#include <memory>
 
 #include "System/Time/IRTC.h"
 #include "System/Time/INTPClient.h"
 #include "System/Time/ILogger.h"
 #include "System/Time/IScheduler.h"
+#include "System/Time/DS3231RTCAdapter.h"
 
 namespace {
     inline bool millisReached(unsigned long target) {
@@ -26,6 +28,18 @@ SystemClock::SystemClock(IRTC* rtcSource, INTPClient* ntpClient, ILogger* logger
       resyncPending(false) {}
 
 void SystemClock::begin() {
+    if (!rtc) {
+        if (!internalRtcAdapter) {
+            internalRtcAdapter.reset(new DS3231RTCAdapter());
+        }
+        if (!internalRtcAdapter->begin()) {
+            logWarn("RTC: устройство не отвечает, работаем без RTC.");
+            rtc = nullptr;
+        } else {
+            logInfo("RTC: инициализация I2C (SDA=21, SCL=22).");
+            rtc = internalRtcAdapter.get();
+        }
+    }
     retryPending = false;
     resyncPending = false;
     nextRetryMillis = 0;
@@ -35,11 +49,11 @@ void SystemClock::begin() {
 
     if (rtc) {
         rtc->begin();
-        updateFromRtc(); // Загружаем предыдущее время, если оно валидно.
+        updateFromRtc(); // Р—Р°РіСЂСѓР¶Р°РµРј РїСЂРµРґС‹РґСѓС‰РµРµ РІСЂРµРјСЏ, РµСЃР»Рё РѕРЅРѕ РІР°Р»РёРґРЅРѕ.
     }
 
     if (!ntp) {
-        logWarn("NTP клиент не задан, работаем только по RTC.");
+        logWarn("NTP РєР»РёРµРЅС‚ РЅРµ Р·Р°РґР°РЅ, СЂР°Р±РѕС‚Р°РµРј С‚РѕР»СЊРєРѕ РїРѕ RTC.");
         return;
     }
 
@@ -56,14 +70,14 @@ void SystemClock::begin() {
     if (synced) {
         scheduleResync(RESYNC_INTERVAL_MS);
     } else {
-        logWarn("NTP: начальная синхронизация не удалась, планируем ретраи.");
+        logWarn("NTP: РЅР°С‡Р°Р»СЊРЅР°СЏ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ РЅРµ СѓРґР°Р»Р°СЃСЊ, РїР»Р°РЅРёСЂСѓРµРј СЂРµС‚СЂР°Рё.");
         scheduleRetry(RETRY_INTERVAL_MS);
     }
 }
 
 void SystemClock::loop() {
     if (scheduler) {
-        return; // Внешний планировщик вызовет handleRetry/handleResync.
+        return; // Р’РЅРµС€РЅРёР№ РїР»Р°РЅРёСЂРѕРІС‰РёРє РІС‹Р·РѕРІРµС‚ handleRetry/handleResync.
     }
 
     unsigned long now = millis();
@@ -156,7 +170,7 @@ bool SystemClock::attemptNtpSync(const char* context) {
 
     if (!ntp->syncOnce()) {
         char warn[96];
-        snprintf(warn, sizeof(warn), "NTP: попытка %s — нет сети/таймаут.", context ? context : "unknown");
+        snprintf(warn, sizeof(warn), "NTP: РїРѕРїС‹С‚РєР° %s вЂ” РЅРµС‚ СЃРµС‚Рё/С‚Р°Р№РјР°СѓС‚.", context ? context : "unknown");
         logWarn(warn);
         return false;
     }
@@ -164,14 +178,14 @@ bool SystemClock::attemptNtpSync(const char* context) {
     time_t ntpUtc = 0;
     if (!fetchNtpTime(ntpUtc)) {
         char warn[96];
-        snprintf(warn, sizeof(warn), "NTP: попытка %s — клиент не вернул время.", context ? context : "unknown");
+        snprintf(warn, sizeof(warn), "NTP: РїРѕРїС‹С‚РєР° %s вЂ” РєР»РёРµРЅС‚ РЅРµ РІРµСЂРЅСѓР» РІСЂРµРјСЏ.", context ? context : "unknown");
         logWarn(warn);
         return false;
     }
 
     if (!isYearValid(ntpUtc)) {
         char warn[96];
-        snprintf(warn, sizeof(warn), "NTP: попытка %s — год вне диапазона.", context ? context : "unknown");
+        snprintf(warn, sizeof(warn), "NTP: РїРѕРїС‹С‚РєР° %s вЂ” РіРѕРґ РІРЅРµ РґРёР°РїР°Р·РѕРЅР°.", context ? context : "unknown");
         logWarn(warn);
         return false;
     }
@@ -182,7 +196,7 @@ bool SystemClock::attemptNtpSync(const char* context) {
         const long long deltaRtc = std::llabs(static_cast<long long>(ntpUtc) - static_cast<long long>(rtcUtc));
         if (deltaRtc > MAX_ALLOWED_DRIFT_SECONDS) {
             char warn[128];
-            snprintf(warn, sizeof(warn), "NTP: попытка %s — подозрительный сдвиг %llds, отклонено.", context ? context : "unknown", deltaRtc);
+            snprintf(warn, sizeof(warn), "NTP: РїРѕРїС‹С‚РєР° %s вЂ” РїРѕРґРѕР·СЂРёС‚РµР»СЊРЅС‹Р№ СЃРґРІРёРі %llds, РѕС‚РєР»РѕРЅРµРЅРѕ.", context ? context : "unknown", deltaRtc);
             logWarn(warn);
             return false;
         }
@@ -191,16 +205,27 @@ bool SystemClock::attemptNtpSync(const char* context) {
     time_t previousUtc = cachedUtc;
     const bool previousValid = timeValid && isYearValid(previousUtc);
 
-    cachedUtc = ntpUtc;
-    timeValid = true;
+    long long deltaRtc = 0;
+    if (rtcValid) {
+        deltaRtc = static_cast<long long>(ntpUtc) - static_cast<long long>(rtcUtc);
+    } else if (previousValid) {
+        deltaRtc = static_cast<long long>(ntpUtc) - static_cast<long long>(previousUtc);
+    }
 
     if (rtc) {
         if (!rtc->setTime(ntpUtc)) {
             logWarn("RTC: не удалось записать время после NTP.");
+        } else {
+            char rtcMsg[96];
+            snprintf(rtcMsg, sizeof(rtcMsg), "RTC: обновлено от NTP, delta=%llds.", deltaRtc);
+            logInfo(rtcMsg);
         }
     }
 
-    long long deltaLog = 0;
+    cachedUtc = ntpUtc;
+    timeValid = true;
+
+    long long deltaLog = deltaRtc;
     if (rtcValid) {
         deltaLog = static_cast<long long>(ntpUtc) - static_cast<long long>(rtcUtc);
     } else if (previousValid) {
@@ -208,7 +233,7 @@ bool SystemClock::attemptNtpSync(const char* context) {
     }
 
     char info[128];
-    snprintf(info, sizeof(info), "NTP: успешная синхронизация (%s), delta=%llds.", context ? context : "unknown", deltaLog);
+    snprintf(info, sizeof(info), "NTP: СѓСЃРїРµС€РЅР°СЏ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёСЏ (%s), delta=%llds.", context ? context : "unknown", deltaLog);
     logInfo(info);
     return true;
 }
