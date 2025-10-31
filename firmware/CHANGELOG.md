@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2025-11-01
+- Dobavleny konstanty intervalov NTP i pinov RTC; dobavlen fail dokumentacii po nastroike RTC/NTP.
 - Dobavlen adapter RTC (DS3231), SystemClock sam inicializiruet RTC; pri otsutstvii modulya - bezopasnyi folbek.
 - Obedineny testy WiFi i SystemClock v odnom okruzhenii PlatformIO (wifi_service_test).
 - Ispravlena kodirovka FakeScheduler.h (UTF-8), stabilizirovany testy SystemClock.

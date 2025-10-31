@@ -8,6 +8,13 @@
 #include <ctime>
 #include <memory>
 #include "System/Time/DS3231RTCAdapter.h"
+constexpr uint32_t NTP_RETRY_INTERVAL_MS = 30000; // Povtor cherez 30 sekund
+constexpr uint32_t NTP_RESYNC_INTERVAL_MS = 21600000; // Povtornaya sinhronizacia kazhdyh 6 chasov
+constexpr uint32_t SUSPICIOUS_THRESHOLD_SEC = 31U * 24U * 3600U; // Porog podozritelnego sdviga
+constexpr int RTC_SDA_PIN = 21; // Standartnaia liniia SDA
+constexpr int RTC_SCL_PIN = 22; // Standartnaia liniia SCL
+constexpr const char* NTP_SERVER = "pool.ntp.org"; // Osnovnoi server NTP
+
 
 // Вперёд объявляем интерфейсы DI, чтобы не тянуть тяжёлые заголовки везде.
 class IRTC;

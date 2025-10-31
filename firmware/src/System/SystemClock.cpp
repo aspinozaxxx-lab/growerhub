@@ -90,11 +90,11 @@ void SystemClock::begin() {
     }
 
     if (synced) {
-        scheduleResync(RESYNC_INTERVAL_MS);
+        scheduleResync(NTP_RESYNC_INTERVAL_MS);
     } else {
         debugLog("NTP startup ne udalsia, planiruem retry");
         logWarn("NTP: nachalnaia sinhronizacia ne udalas, planiruem retry.");
-        scheduleRetry(RETRY_INTERVAL_MS);
+        scheduleRetry(NTP_RETRY_INTERVAL_MS);
     }
     debugLog("start end");
 }
@@ -109,18 +109,18 @@ void SystemClock::loop() {
     if (retryPending && millisReached(nextRetryMillis)) {
         retryPending = false;
         if (attemptNtpSync("loop retry")) {
-            scheduleResync(RESYNC_INTERVAL_MS);
+            scheduleResync(NTP_RESYNC_INTERVAL_MS);
         } else {
-            scheduleRetry(RETRY_INTERVAL_MS);
+            scheduleRetry(NTP_RETRY_INTERVAL_MS);
         }
     }
 
     if (resyncPending && millisReached(nextResyncMillis)) {
         resyncPending = false;
         if (attemptNtpSync("loop resync")) {
-            scheduleResync(RESYNC_INTERVAL_MS);
+            scheduleResync(NTP_RESYNC_INTERVAL_MS);
         } else {
-            scheduleRetry(RETRY_INTERVAL_MS);
+            scheduleRetry(NTP_RETRY_INTERVAL_MS);
         }
     }
 }
@@ -303,7 +303,7 @@ bool SystemClock::attemptNtpSync(const char* context) {
     const bool rtcValid = getRtcUtc(rtcUtc);
     if (rtcValid) {
         const long long deltaCheck = std::llabs(static_cast<long long>(ntpUtc) - static_cast<long long>(rtcUtc));
-        if (deltaCheck > MAX_ALLOWED_DRIFT_SECONDS) {
+        if (deltaCheck > SUSPICIOUS_THRESHOLD_SEC) {
             char warn[128];
             snprintf(warn, sizeof(warn), "NTP: popytka %s - podozritelnyi sdvig %llds, otkloneno.", context ? context : "unknown", deltaCheck);
             logWarn(warn);
@@ -441,17 +441,17 @@ void SystemClock::scheduleResync(unsigned long delayMs) {
 
 void SystemClock::handleRetry() {
     if (attemptNtpSync("scheduled retry")) {
-        scheduleResync(RESYNC_INTERVAL_MS);
+        scheduleResync(NTP_RESYNC_INTERVAL_MS);
     } else {
-        scheduleRetry(RETRY_INTERVAL_MS);
+        scheduleRetry(NTP_RETRY_INTERVAL_MS);
     }
 }
 
 void SystemClock::handleResync() {
     if (attemptNtpSync("scheduled resync")) {
-        scheduleResync(RESYNC_INTERVAL_MS);
+        scheduleResync(NTP_RESYNC_INTERVAL_MS);
     } else {
-        scheduleRetry(RETRY_INTERVAL_MS);
+        scheduleRetry(NTP_RETRY_INTERVAL_MS);
     }
 }
 
