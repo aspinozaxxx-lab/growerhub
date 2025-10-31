@@ -1,4 +1,4 @@
-﻿// Тонкая точка входа прошивки; логика вынесена в Application и Network/MQTTClient
+// Тонкая точка входа прошивки; логика вынесена в Application и Network/MQTTClient
 #include <Arduino.h>
 #include <WiFi.h>
 #include <ArduinoJson.h>

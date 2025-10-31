@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 ## 2025-10-31
 - add IWiFiSettings interface
