@@ -1,4 +1,5 @@
 #include "Network/WiFiShim.h"
+#include "FakeMillis.h"
 
 #if defined(UNIT_TEST) || defined(PIO_UNIT_TESTING)
 
@@ -9,8 +10,6 @@ namespace {
     String g_connectedSsid;
     String g_ipAddress = "0.0.0.0";
     bool g_autoReconnect = false;
-    unsigned long g_millis = 0;
-
     std::vector<wl_status_t> g_resultSequence;
     std::size_t g_resultIndex = 0;
     std::size_t g_runCallCount = 0;
@@ -138,7 +137,7 @@ namespace FakeWiFiShim {
         FakeWiFiMulti::resetResults();
         g_runCallCount = 0;
         g_resultIndex = 0;
-        g_millis = 0;
+        FakeMillis::set(0);
     }
 
     void setInitialStatus(wl_status_t status) {
@@ -155,20 +154,16 @@ namespace FakeWiFiShim {
     }
 
     void setMillis(unsigned long value) {
-        g_millis = value;
+        FakeMillis::set(value);
     }
 
     unsigned long getMillis() {
-        return g_millis;
+        return FakeMillis::get();
     }
 
     std::size_t getRunCallCount() {
         return g_runCallCount;
     }
-}
-
-unsigned long millis() {
-    return g_millis;
 }
 
 #endif
