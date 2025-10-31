@@ -5,17 +5,24 @@ on:
     branches: [ "main" ]
     paths:
       - "firmware/**"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "firmware/**"
   workflow_dispatch:
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: firmware   # <— важное: запускаем из папки с platformio.ini
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -26,4 +33,4 @@ jobs:
         run: pio --version
 
       - name: Run WiFiService tests
-        run: pio test -e wifi_service_test
+        run: pio test -e wifi_service_test -v
