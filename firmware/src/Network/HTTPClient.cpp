@@ -1,9 +1,14 @@
-﻿// firmware/src/Network/HTTPClient.cpp
+// firmware/src/Network/HTTPClient.cpp
 #include "HTTPClient.h"
 #include <WiFiClientSecure.h>
+#include <WiFi.h>
 
 WateringHTTPClient::WateringHTTPClient() 
     : enabled(false), lastSendTime(0) {}
+
+std::function<bool()> WateringHTTPClient::wifiOnlineProvider = []() {
+    return WiFi.status() == WL_CONNECTED;
+};
 
 void WateringHTTPClient::begin(const String& serverBaseURL, const String& id, const String& caPemPEM) {
     serverURL = serverBaseURL;
@@ -38,7 +43,7 @@ String WateringHTTPClient::getStatus() {
 
 // Добавляем в WateringHTTPClient.cpp
 bool WateringHTTPClient::discoverEndpoints() {
-    if (WiFi.status() != WL_CONNECTED) return false;
+    if (!wifiOnlineProvider || !wifiOnlineProvider()) return false;
     
     WiFiClientSecure client;
     if (caPem.length() > 0) client.setCACert(caPem.c_str());
@@ -114,7 +119,7 @@ bool WateringHTTPClient::sendSystemStatus(const String& status) {
 }
 
 bool WateringHTTPClient::sendData(const String& endpoint, const JsonDocument& doc) {
-    if (WiFi.status() != WL_CONNECTED) {
+    if (!wifiOnlineProvider || !wifiOnlineProvider()) {
         Serial.println("HTTP: No WiFi connection");
         return false;
     }
@@ -152,4 +157,13 @@ bool WateringHTTPClient::sendData(const String& endpoint, const JsonDocument& do
     
     http.end();
     return success;
+}
+
+void WateringHTTPClient::setWiFiOnlineProvider(std::function<bool()> provider) {
+    // Позволяет переиспользовать флаг онлайн-статуса из WiFiService.
+    if (provider) {
+        wifiOnlineProvider = std::move(provider);
+    } else {
+        wifiOnlineProvider = []() { return WiFi.status() == WL_CONNECTED; };
+    }
 }

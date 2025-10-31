@@ -41,6 +41,8 @@ void setup() {
     
     // Настраиваем Wi-Fi сервис: режим STA и синхронная попытка подключения.
     WiFi.mode(WIFI_STA);
+    // Передаём HTTP клиенту флаг доступности сети из WiFiService.
+    WateringHTTPClient::setWiFiOnlineProvider([]() { return wifi.isOnline(); });
     wifi.connectSync();
     wifi.startAsyncReconnectIfNeeded();
 
@@ -87,4 +89,3 @@ void loop() {
     // Даём контрольной петле паузу, чтобы не грузить CPU на 100%.
     delay(10);
 }
-

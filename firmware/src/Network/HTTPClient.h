@@ -1,8 +1,9 @@
-﻿// firmware/src/Network/HTTPClient.h
+// firmware/src/Network/HTTPClient.h
 #pragma once
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Arduino.h>
+#include <functional>
 
 class WateringHTTPClient {
 private:
@@ -30,8 +31,10 @@ public:
     bool sendSystemStatus(const String& status);
 
     bool discoverEndpoints();
+    static void setWiFiOnlineProvider(std::function<bool()> provider);
     
 private:
     bool sendData(const String& endpoint, const JsonDocument& doc);
     String getTimestamp();
+    static std::function<bool()> wifiOnlineProvider;
 };
