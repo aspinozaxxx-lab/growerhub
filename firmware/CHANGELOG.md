@@ -1,5 +1,8 @@
 # Changelog
 
+## 2025-11-01
+- Добавлен каркас SystemClock и DI-интерфейсы времени; безопасные фолбеки сохраняют текущее поведение.
+
 ## 2025-10-31
 - add IWiFiSettings interface
 - introduce WiFiService (DI), no integration yet

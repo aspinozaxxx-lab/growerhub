@@ -5,6 +5,8 @@
 #include <Arduino.h>
 #include <functional>
 
+class SystemClock;
+
 class WateringHTTPClient {
 private:
     String serverURL;
@@ -24,6 +26,7 @@ public:
     void enable();
     void disable();
     String getStatus();
+    void setTimeProvider(SystemClock* clock);
     
     bool sendSensorData(float soilMoisture, float airTemperature, float airHumidity,
                        bool isWatering, bool isLightOn);
@@ -37,4 +40,5 @@ private:
     bool sendData(const String& endpoint, const JsonDocument& doc);
     String getTimestamp();
     static std::function<bool()> wifiOnlineProvider;
+    SystemClock* timeProvider;
 };

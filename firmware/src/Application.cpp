@@ -2,6 +2,7 @@
 // firmware/src/Application.cpp
 #include "Application.h"
 #include <PubSubClient.h>
+#include "System/SystemClock.h"
 
 extern const char* FW_VERSION;
 
@@ -18,7 +19,8 @@ WateringApplication::WateringApplication()
       manualActiveCorrelationId(""),
       manualStartIso8601(""),
       lastHeartbeatMillis(0),
-      mqttClient(nullptr) {}
+      mqttClient(nullptr),
+      systemClock(nullptr) {}
 
 void WateringApplication::begin() {
     //Serial.begin(115200);
@@ -172,7 +174,16 @@ bool WateringApplication::manualStart(uint32_t durationSec, const String& correl
     manualActiveCorrelationId = correlationId;
 
     // TODO: подставить реальное UTC время старта, когда появится синхронизация (NTP/RTC).
-    manualStartIso8601 = "1970-01-01T00:00:00Z";
+    if (systemClock && systemClock->isTimeSet()) {
+        time_t utcNow = 0;
+        if (systemClock->nowUtc(utcNow)) {
+            manualStartIso8601 = systemClock->formatIso8601(utcNow);
+        } else {
+            manualStartIso8601 = "1970-01-01T00:00:00Z";
+        }
+    } else {
+        manualStartIso8601 = "1970-01-01T00:00:00Z";
+    }
 
     Serial.print(F("Запускаем ручной полив на "));
     Serial.print(durationSec);
@@ -238,6 +249,11 @@ const String& WateringApplication::getManualWateringStartIso8601() const {
 
 void WateringApplication::setMqttClient(PubSubClient* client) {
     mqttClient = client;
+}
+
+void WateringApplication::setSystemClock(SystemClock* clock) {
+    systemClock = clock;
+    httpClient.setTimeProvider(clock);
 }
 
 void WateringApplication::statePublishNow(bool retained) {

@@ -6,6 +6,7 @@
 #include "Application.h"
 #include "Network/MQTTClient.h"
 #include "Network/WiFiService.h"
+#include "System/SystemClock.h"
 
 // Уникальный идентификатор устройства = MQTT clientId. Сервер и брокер используют его,
 // чтобы понять, какое железо получило команду и кто должен вернуть ACK/state.
@@ -23,6 +24,7 @@ SettingsManager settings;
 WiFiService wifi(settings);
 WiFiClient espClient;
 Network::MQTTClient mqttClientManager(settings, espClient);
+SystemClock systemClock(nullptr, nullptr, nullptr, nullptr);
 
 // --- Периодическая отправка state (heartbeat) ---
 
@@ -32,6 +34,8 @@ void setup() {
     Serial.begin(115200);
     Serial.println();
     Serial.println(F("GrowerHub Grovika ManualWatering v0.1 (MQTT step4)"));
+    app.setSystemClock(&systemClock);
+    systemClock.begin();
     app.begin();
     settings.begin();
     
@@ -84,6 +88,7 @@ void loop() {
     // === Heartbeat publish ===
     app.stateHeartbeatLoop(wifiConnected && mqttClientManager.isConnected());
 
+    systemClock.loop();
     app.update();
 
     // Даём контрольной петле паузу, чтобы не грузить CPU на 100%.

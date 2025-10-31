@@ -15,6 +15,8 @@ class PubSubClient;
 #include "System/TaskScheduler.h"
 #include "System/SystemMonitor.h"
 
+class SystemClock;
+
 class WateringApplication {
 private:
     // Менеджеры
@@ -44,6 +46,7 @@ private:
     String manualStartIso8601;
     unsigned long lastHeartbeatMillis;
     PubSubClient* mqttClient;
+    SystemClock* systemClock;
     static constexpr unsigned long HEARTBEAT_INTERVAL_MS = 20000UL;
     
 public:
@@ -78,6 +81,7 @@ public:
     const String& getManualWateringStartIso8601() const;
 
     void setMqttClient(PubSubClient* client);
+    void setSystemClock(SystemClock* clock);
     void statePublishNow(bool retained = true);
     void stateHeartbeatLoop(bool mqttConnected);
     void resetHeartbeatTimer();

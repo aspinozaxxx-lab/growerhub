@@ -2,9 +2,10 @@
 #include "HTTPClient.h"
 #include <WiFiClientSecure.h>
 #include <WiFi.h>
+#include "System/SystemClock.h"
 
 WateringHTTPClient::WateringHTTPClient() 
-    : enabled(false), lastSendTime(0) {}
+    : enabled(false), lastSendTime(0), timeProvider(nullptr) {}
 
 std::function<bool()> WateringHTTPClient::wifiOnlineProvider = []() {
     return WiFi.status() == WL_CONNECTED;
@@ -36,6 +37,10 @@ void WateringHTTPClient::disable() {
     enabled = false;
 }
 
+void WateringHTTPClient::setTimeProvider(SystemClock* clock) {
+    timeProvider = clock;
+}
+
 String WateringHTTPClient::getStatus() {
     return "HTTPClient[Enabled:" + String(enabled ? "Yes" : "No") + 
            ", Server:" + serverURL + "]";
@@ -62,6 +67,13 @@ bool WateringHTTPClient::discoverEndpoints() {
 }
 
 String WateringHTTPClient::getTimestamp() {
+    if (timeProvider) {
+        time_t utcNow = 0;
+        if (timeProvider->nowUtc(utcNow)) {
+            return timeProvider->formatIso8601(utcNow);
+        }
+    }
+
     // Временная реализация - используем миллисы
     // В будущем можно добавить NTP синхронизацию
     unsigned long now = millis();
