@@ -1,6 +1,8 @@
+#include "Network/WiFiShim.h"
+
 #if defined(UNIT_TEST) || defined(PIO_UNIT_TESTING)
 
-#include "Network/WiFiShim.h"
+#include <algorithm>
 
 FakeWiFiClass WiFi;
 FakeSerialClass Serial;
@@ -94,10 +96,8 @@ wl_status_t FakeWiFiMulti::run(uint32_t) {
         : WiFi.status();
 
     WiFi.setStatus(result);
-    if (result == WL_CONNECTED) {
-        if (WiFi.SSID().empty() && !knownAPs.empty()) {
-            WiFi.setConnectedSSID(knownAPs.front().first);
-        }
+    if (result == WL_CONNECTED && WiFi.SSID().empty() && !knownAPs.empty()) {
+        WiFi.setConnectedSSID(knownAPs.front().first);
     }
     return result;
 }

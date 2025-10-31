@@ -89,6 +89,8 @@ private:
     static std::size_t runCallCount;
 };
 
+using WiFiMulti = FakeWiFiMulti;
+
 class FakeSerialClass {
 public:
     template<typename T>
@@ -121,4 +123,3 @@ unsigned long millis();
 #include <WiFiMulti.h>
 
 #endif
-
