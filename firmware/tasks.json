@@ -1,0 +1,7 @@
+{
+  "label": "PlatformIO Tests JSON",
+  "type": "shell",
+  "command": "pio test -e wifi_service_test --json-output",
+  "options": { "cwd": "${workspaceFolder}/firmware" },
+  "problemMatcher": []
+}
