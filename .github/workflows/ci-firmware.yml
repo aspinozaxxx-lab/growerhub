@@ -1,0 +1,36 @@
+name: Firmware Tests
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "firmware/**"
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - "firmware/**"
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: firmware   # <— важное: запускаем из папки с platformio.ini
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Show PlatformIO version
+        run: pio --version
+
+      - name: Run WiFiService tests
+        run: pio test -e wifi_service_test -v

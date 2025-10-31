@@ -1,4 +1,4 @@
-name: CI/CD (test → deploy)
+name: CI/CD (test → deploy to app server)
 
 on:
   push:
