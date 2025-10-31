@@ -1,4 +1,5 @@
 # 🌱 GrowerHub - Интеллектуальная система ухода за растениями
+![Build Status](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-firmware.yml/badge.svg)
 
 ## 📚 Оглавление
 
