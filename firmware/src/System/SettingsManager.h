@@ -3,6 +3,7 @@
 //#include <EEPROM.h>
 #include <Arduino.h>
 #include "esp_efuse.h"
+#include "System/IWiFiSettings.h"
 
 /* struct DefaultAccessPoint {
     const char* ssid;
@@ -48,7 +49,7 @@ struct SystemSettings {
     String serverCAPem;
 };
 
-class SettingsManager {
+class SettingsManager : public IWiFiSettings {
 private:
     SystemSettings settings;
     DefaultNetworkProfile BUILTIN_NETWORK_DEFAULTS = {
@@ -103,6 +104,8 @@ public:
     // Getters
     int getWiFiCount();    // number of user or default networks
     bool getWiFiCredential(int index, String& ssid, String& password);
+    std::size_t getWiFiCount() const override;
+    bool getWiFiCredential(std::size_t index, const char*& ssid, const char*& password) const override;
     String getServerURL(); // base server URL from built-in defaults
     String getServerCAPem(); // CA certificate from built-in defaults
     String getDeviceID();

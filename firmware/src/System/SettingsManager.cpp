@@ -66,6 +66,21 @@ bool SettingsManager::getWiFiCredential(int index, String& ssid, String& passwor
     }    
     return false;
 }
+std::size_t SettingsManager::getWiFiCount() const {
+    return static_cast<std::size_t>(settings.wifiCount);
+}
+
+bool SettingsManager::getWiFiCredential(std::size_t index, const char*& ssid, const char*& password) const {
+    if (index >= settings.wifiCount) {
+        ssid = nullptr;
+        password = nullptr;
+        return false;
+    }
+
+    ssid = settings.wifi[index].ssid.c_str();
+    password = settings.wifi[index].password.c_str();
+    return true;
+}
 String SettingsManager::getServerURL() { 
     return settings.serverURL; 
 }
