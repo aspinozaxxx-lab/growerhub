@@ -5,6 +5,7 @@
 - introduce WiFiService (DI), no integration yet
 - integrate WiFiService into main (sync connect + async reconnect loop)
 - use WiFiService online flag in consumers (non-breaking)
+- add minimal tests for WiFiService via PlatformIO/Unity; introduce WiFiShim for fakes
 - Перенесена логика ручного полива из `main.cpp` в `Application`, чтобы централизовать управление насосом и таймаутами.
 - MQTT вынесен в `Network/MQTTClient`; main.cpp упрощён; поведение неизменено.
 - main.cpp ???????; ??? ?????? manual/state/MQTT ????? ? ??????? Application ? Network/MQTTClient.

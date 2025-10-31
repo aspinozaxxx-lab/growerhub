@@ -1,8 +1,6 @@
 #pragma once
 
-#include <Arduino.h>
-#include <WiFi.h>
-#include <WiFiMulti.h>
+#include "Network/WiFiShim.h"
 #include <cstdint>
 #include "System/IWiFiSettings.h"
 
@@ -37,4 +35,3 @@ private:
     static constexpr unsigned long WIFI_RETRY_INTERVAL_MS = 5000UL;
     static constexpr unsigned long WIFI_BACKOFF_INTERVAL_MS = 20000UL;
 };
-
