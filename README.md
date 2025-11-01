@@ -1,6 +1,6 @@
 # 🌱 GrowerHub - Интеллектуальная система ухода за растениями
 ![Build Status](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-firmware.yml/badge.svg) 
-![Build Status](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-cd.yml/badge.svg)
+![Build Status](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-cd.yml/badge.svg)<br>
 ![PlatformIO](https://img.shields.io/badge/platformio-ESP32-orange?logo=platformio)
 ![C++](https://img.shields.io/badge/language-C++17-blue?logo=c%2B%2B)
 ![Lines of code](https://tokei.rs/b1/github/aspinozaxxx-lab/growerhub?category=code)
