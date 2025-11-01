@@ -1,6 +1,7 @@
 #include "SystemClock.h"
 
 #include <cstdlib>
+#include <cstdio>
 #include <memory>
 
 #include "System/Time/IRTC.h"
@@ -8,6 +9,7 @@
 #include "System/Time/ILogger.h"
 #include "System/Time/IScheduler.h"
 #include "System/Time/DS3231RTCAdapter.h"
+#include "System/Time/ESP32NTPClientAdapter.h"
 
 namespace {
     inline bool millisReached(unsigned long target) {
@@ -21,6 +23,7 @@ SystemClock::SystemClock(IRTC* rtcSource, INTPClient* ntpClient, ILogger* logger
       logger(loggerInstance),
       scheduler(schedulerInstance),
       internalRtcAdapter(nullptr),
+      internalNtpAdapter(nullptr),
       cachedUtc(0),
       timeValid(false),
       nextRetryMillis(0),
@@ -71,12 +74,12 @@ void SystemClock::begin() {
     }
 
     if (!ntp) {
-        debugLog("NTP klient ne zadat");
-        logWarn("NTP klient ne zadat, rabotaem tolko po RTC.");
-        lastNtpSyncOk = false;
-        lastNtpDelta = 0;
-        lastNtpMillis = millis();
-        return;
+        if (!internalNtpAdapter) {
+            internalNtpAdapter.reset(new ESP32NTPClientAdapter(NTP_SERVER));
+        }
+        ntp = internalNtpAdapter.get();
+        logInfo("NTP klient sozdan po umolchaniyu.");
+        debugLog("NTP klient sozdan po umolchaniyu");
     }
 
     ntp->begin();
@@ -232,6 +235,11 @@ void SystemClock::dumpStatusToSerial() {
     Serial.println(lastNtpDelta);
     Serial.print("[CLOCK] last_ntp_ms=");
     Serial.println(lastNtpMillis);
+#if GH_CLOCK_DEBUG
+    if (internalRtcAdapter) {
+        internalRtcAdapter->dumpRegisters();
+    }
+#endif
     Serial.println("[CLOCK] dump end");
 #endif
 }
@@ -334,6 +342,18 @@ bool SystemClock::attemptNtpSync(const char* context) {
             snprintf(rtcMsg, sizeof(rtcMsg), "RTC: obnovleno ot NTP, delta=%llds.", deltaRtc);
             logInfo(rtcMsg);
             debugLog("RTC updated from NTP");
+
+            time_t verifyUtc = 0;
+            if (rtc->getTime(verifyUtc)) {
+                const long long confirmDelta = std::llabs(static_cast<long long>(ntpUtc) - static_cast<long long>(verifyUtc));
+                if (confirmDelta <= 3) {
+                    logInfo("RTC: zapis podtverzhdena.");
+                } else {
+                    logWarn("RTC: zapis ne podtverdilas.");
+                }
+            } else {
+                logWarn("RTC: zapis ne podtverdilas.");
+            }
         }
     }
 
@@ -404,6 +424,10 @@ void SystemClock::scheduleRetry(unsigned long delayMs) {
         return;
     }
 
+    const unsigned long base = scheduler ? scheduler->nowMs() : millis();
+    nextRetryMillis = base + delayMs;
+    retryPending = true;
+
     if (scheduler) {
         scheduler->scheduleDelayed("SystemClockRetry", delayMs, [this]() { this->handleRetry(); });
         char dbg[64];
@@ -412,8 +436,6 @@ void SystemClock::scheduleRetry(unsigned long delayMs) {
         return;
     }
 
-    nextRetryMillis = millis() + delayMs;
-    retryPending = true;
     char dbg[64];
     snprintf(dbg, sizeof(dbg), "schedule retry %lu ms", delayMs);
     debugLog(dbg);
@@ -424,6 +446,10 @@ void SystemClock::scheduleResync(unsigned long delayMs) {
         return;
     }
 
+    const unsigned long base = scheduler ? scheduler->nowMs() : millis();
+    nextResyncMillis = base + delayMs;
+    resyncPending = true;
+
     if (scheduler) {
         scheduler->scheduleDelayed("SystemClockResync", delayMs, [this]() { this->handleResync(); });
         char dbg[64];
@@ -432,14 +458,14 @@ void SystemClock::scheduleResync(unsigned long delayMs) {
         return;
     }
 
-    nextResyncMillis = millis() + delayMs;
-    resyncPending = true;
     char dbg[64];
     snprintf(dbg, sizeof(dbg), "schedule resync %lu ms", delayMs);
     debugLog(dbg);
 }
 
 void SystemClock::handleRetry() {
+    retryPending = false;
+    nextRetryMillis = 0;
     if (attemptNtpSync("scheduled retry")) {
         scheduleResync(NTP_RESYNC_INTERVAL_MS);
     } else {
@@ -448,6 +474,8 @@ void SystemClock::handleRetry() {
 }
 
 void SystemClock::handleResync() {
+    resyncPending = false;
+    nextResyncMillis = 0;
     if (attemptNtpSync("scheduled resync")) {
         scheduleResync(NTP_RESYNC_INTERVAL_MS);
     } else {
@@ -479,8 +507,12 @@ void SystemClock::debugLog(const char* message) const {
     if (!message) {
         return;
     }
+#if defined(ARDUINO) || defined(ESP_PLATFORM)
     Serial.print("[CLOCK] ");
     Serial.println(message);
+#else
+    std::printf("[CLOCK] %s\n", message);
+#endif
 #else
     (void)message;
 #endif

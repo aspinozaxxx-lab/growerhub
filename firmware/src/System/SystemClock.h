@@ -1,13 +1,14 @@
 #pragma once
 
 #ifndef GH_CLOCK_DEBUG
-#define GH_CLOCK_DEBUG 0
+#define GH_CLOCK_DEBUG 1
 #endif
 
 #include <Arduino.h>
 #include <ctime>
 #include <memory>
 #include "System/Time/DS3231RTCAdapter.h"
+#include "System/Time/INTPClient.h"
 constexpr uint32_t NTP_RETRY_INTERVAL_MS = 30000; // Povtor cherez 30 sekund
 constexpr uint32_t NTP_RESYNC_INTERVAL_MS = 21600000; // Povtornaya sinhronizacia kazhdyh 6 chasov
 constexpr uint32_t SUSPICIOUS_THRESHOLD_SEC = 31U * 24U * 3600U; // Porog podozritelnego sdviga
@@ -57,6 +58,7 @@ private:
     ILogger* logger;
     IScheduler* scheduler;
     std::unique_ptr<DS3231RTCAdapter> internalRtcAdapter;
+    std::unique_ptr<INTPClient> internalNtpAdapter;
 
     mutable time_t cachedUtc;
     mutable bool timeValid;

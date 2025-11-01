@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2025-11-01
+- Усилена работа с DS3231: корректная инициализация EOSC/OSF, надёжное чтение/запись BCD, подтверждение записи после NTP и дамп регистров в отладке.
+- Dobavlen defoltniy NTP-klient dlya SystemClock (ESP32), vklyucheny retry/resync bez DI; dobavlen I2C-skaner v debug dlya proverki DS3231.
 - Dobavleny konstanty intervalov NTP i pinov RTC; dobavlen fail dokumentacii po nastroike RTC/NTP.
 - Dobavlen adapter RTC (DS3231), SystemClock sam inicializiruet RTC; pri otsutstvii modulya - bezopasnyi folbek.
 - Obedineny testy WiFi i SystemClock v odnom okruzhenii PlatformIO (wifi_service_test).
