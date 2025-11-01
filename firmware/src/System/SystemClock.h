@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef GH_CLOCK_DEBUG
-#define GH_CLOCK_DEBUG 1
+#define GH_CLOCK_DEBUG 0
 #endif
 
 #include <Arduino.h>
