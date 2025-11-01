@@ -8,8 +8,7 @@
 
 
 
-<p align="center">
-  <img src="https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/firmware-tests.yml/badge.svg" />
+<p>  
   <img src="https://img.shields.io/github/v/release/aspinozaxxx-lab/growerhub?include_prereleases&logo=github" /><br>
   <img src="https://img.shields.io/badge/platformio-ESP32-orange?logo=platformio" />
   <img src="https://img.shields.io/badge/platformio-ESP8266-blue?logo=platformio" /><br>
