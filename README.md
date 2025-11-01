@@ -3,19 +3,15 @@
 ![Build Status](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-cd.yml/badge.svg)<br>
 ![PlatformIO](https://img.shields.io/badge/platformio-ESP32-orange?logo=platformio)
 ![PlatformIO](https://img.shields.io/badge/platformio-ESP8266-blue?logo=platformio)<br>
-![C++](https://img.shields.io/badge/language-C++17-blue?logo=c%2B%2B)<br>
-![Lines of code](https://tokei.rs/b1/github/aspinozaxxx-lab/growerhub?category=code)
+![C++](https://img.shields.io/badge/language-C++17-blue?logo=c%2B%2B)
+![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white)
+![Lines of code](https://tokei.rs/b1/github/aspinozaxxx-lab/growerhub?category=code)<br>
+![Ansible](https://img.shields.io/badge/ansible-automation-black?logo=ansible)<br>
 ![Last Commit](https://img.shields.io/github/last-commit/aspinozaxxx-lab/growerhub)
 
 
 
-<p>  
-  <img src="https://img.shields.io/github/v/release/aspinozaxxx-lab/growerhub?include_prereleases&logo=github" /><br>
-  <img src="https://img.shields.io/badge/platformio-ESP32-orange?logo=platformio" />
-  <img src="https://img.shields.io/badge/platformio-ESP8266-blue?logo=platformio" /><br>
-  <img src="https://img.shields.io/badge/language-C++17-blue?logo=c%2B%2B" />
-  <img src="https://img.shields.io/github/license/aspinozaxxx-lab/growerhub?color=brightgreen" />
-</p>
+
 
 ## 📚 Оглавление
 
