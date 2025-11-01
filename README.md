@@ -7,6 +7,16 @@
 ![Last Commit](https://img.shields.io/github/last-commit/aspinozaxxx-lab/growerhub)
 
 
+
+<p align="center">
+  <img src="https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/firmware-tests.yml/badge.svg" />
+  <img src="https://img.shields.io/github/v/release/aspinozaxxx-lab/growerhub?include_prereleases&logo=github" /><br>
+  <img src="https://img.shields.io/badge/platformio-ESP32-orange?logo=platformio" />
+  <img src="https://img.shields.io/badge/platformio-ESP8266-blue?logo=platformio" /><br>
+  <img src="https://img.shields.io/badge/language-C++17-blue?logo=c%2B%2B" />
+  <img src="https://img.shields.io/github/license/aspinozaxxx-lab/growerhub?color=brightgreen" />
+</p>
+
 ## 📚 Оглавление
 
 - [Описание проекта](#описание-проекта)
