@@ -22,13 +22,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def _create_tables() -> None:
-    """╨а╨░╨╖╨▓╨╛╤А╨░╤З╨╕╨▓╨░╨╡╨╝ in-memory SQLite, ╤З╤В╨╛╨▒╤Л ╤В╨╡╤Б╤В╤Л ╨╜╨╡ ╨╖╨░╨▓╨╕╤Б╨╡╨╗╨╕ ╨╛╤В ╨╜╨░╤Б╤В╨╛╤П╤Й╨╡╨╣ ╨С╨Ф."""
+    """Sozdaet sqlite shemu v pamyati dlya testov ack."""
 
     Base.metadata.create_all(bind=engine)
 
 
 def _get_db():
-    """╨Ю╤В╨┤╨░╤С╨╝ ╤Б╨╡╤Б╤Б╨╕╤О SQLAlchemy ╨╕ ╨│╨░╤А╨░╨╜╤В╨╕╤А╨╛╨▓╨░╨╜╨╜╨╛ ╨╖╨░╨║╤А╤Л╨▓╨░╨╡╨╝ ╨╡╤С ╨┐╨╛╤Б╨╗╨╡ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╨╜╨╕╤П."""
+    """Generator s testovoy sessiyey SQLAlchemy."""
 
     db = SessionLocal()
     try:
@@ -54,15 +54,15 @@ class _DummySubscriber:
     """╨Ч╨░╨│╨╗╤Г╤И╨║╨░ ╨┤╨╗╤П MQTT-╤Б╨░╨▒╤Б╨║╤А╨░╨╣╨▒╨╡╤А╨╛╨▓: ╨╜╨╡ ╨┤╨╡╨╗╨░╨╡╤В ╨╜╨╕╤З╨╡╨│╨╛, ╨╜╨╛ ╤Г╨┤╨╛╨▓╨╗╨╡╤В╨▓╨╛╤А╤П╨╡╤В ╨╕╨╜╤В╨╡╤А╤Д╨╡╨╣╤Б."""
 
     def start(self) -> None:
-        """╨Э╨╕╤З╨╡╨│╨╛ ╨╜╨╡ ╨┤╨╡╨╗╨░╨╡╨╝ ╨╜╨░ ╤Б╤В╨░╤А╤В╨╡ тАФ ╤В╨╡╤Б╤В╤Л ╨╜╨╡ ╨╜╤Г╨╢╨┤╨░╤О╤В╤Б╤П ╨▓ ╤А╨╡╨░╨╗╤М╨╜╨╛╨╝ ╨▒╤А╨╛╨║╨╡╤А╨╡."""
+        """Zaglushka start: nichego ne delaet v testovom MQTT kliente."""
 
     def stop(self) -> None:
-        """╨в╨░╨║╨╢╨╡ ╨╜╨╕╤З╨╡╨│╨╛ ╨╜╨╡ ╨┤╨╡╨╗╨░╨╡╨╝ ╨╜╨░ ╨╛╤Б╤В╨░╨╜╨╛╨▓╨║╨╡, ╤З╤В╨╛╨▒╤Л ╨╖╨░╨▓╨╡╤А╤И╨╡╨╜╨╕╨╡ ╨▒╤Л╨╗╨╛ ╨╝╨│╨╜╨╛╨▓╨╡╨╜╨╜╤Л╨╝."""
+        """Zaglushka stop: nichego ne delaet v testovom MQTT kliente."""
 
 
 @contextmanager
 def wait_ack_client(store: AckStore) -> Iterator[TestClient]:
-    """╨б╨╛╨╖╨┤╨░╤С╨╝ TestClient ╤Б ╨┐╨╛╨┤╨╝╨╡╨╜╤С╨╜╨╜╤Л╨╝╨╕ ╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╤П╨╝╨╕ ╨╕ ╨╖╨░╤А╨░╨╜╨╡╨╡ ╨┐╨╛╨┤╨│╨╛╤В╨╛╨▓╨╗╨╡╨╜╨╜╤Л╨╝ AckStore."""
+    """Kontextnyi manager sozdaet TestClient s zaglushkami ack store i MQTT."""
 
     stack = ExitStack()
     dummy_state = _DummySubscriber()
@@ -78,7 +78,7 @@ def wait_ack_client(store: AckStore) -> Iterator[TestClient]:
     stack.enter_context(patch("app.mqtt.lifecycle.shutdown_publisher", lambda: None))
 
     def _init_ack_store_stub() -> None:
-        """╨Я╤А╨╕ ╤Б╤В╨░╤А╤В╨╡ ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╤П ╨┐╤А╨╕╨▓╤П╨╖╤Л╨▓╨░╨╡╨╝ ╨│╨╗╨╛╨▒╨░╨╗╤М╨╜╤Л╨╣ AckStore ╨║ ╨╜╨░╤И╨╡╨╝╤Г in-memory ╤Н╨║╨╖╨╡╨╝╨┐╨╗╤П╤А╤Г."""
+        """Privyazyvaet globalnyy ack store k testovomu instansu."""
 
         ack_store_module._ack_store = store
 
@@ -98,13 +98,13 @@ def wait_ack_client(store: AckStore) -> Iterator[TestClient]:
 
 
 def _make_ack(correlation_id: str, *, result: AckResult = AckResult.accepted) -> Ack:
-    """╨б╨╛╨╖╨┤╨░╤С╨╝ ╨╝╨╕╨╜╨╕╨╝╨░╨╗╤М╨╜╤Л╨╣ ACK ╤Б ╨╖╨░╨┤╨░╨╜╨╜╤Л╨╝ ╤А╨╡╨╖╤Г╨╗╤М╤В╨░╤В╨╛╨╝."""
+    """Sozdaet prostoy ack obekt s ukazannym rezultatом."""
 
     return Ack(correlation_id=correlation_id, result=result)
 
 
 def test_wait_ack_returns_existing_ack() -> None:
-    """╨Х╤Б╨╗╨╕ ACK ╤Г╨╢╨╡ ╨╗╨╡╨╢╨╕╤В ╨▓ ╤Б╤В╨╛╤А╨╡, ╤А╤Г╤З╨║╨░ ╨┤╨╛╨╗╨╢╨╜╨░ ╨▓╨╡╤А╨╜╤Г╤В╤М ╨╡╨│╨╛ ╨╝╨│╨╜╨╛╨▓╨╡╨╜╨╜╨╛."""
+    """Proveryaet chto uzhe dostupnyi ack vozvrashchaetsya bez ozhidaniya."""
 
     store = AckStore()
     correlation_id = "ack-immediate"
@@ -123,13 +123,13 @@ def test_wait_ack_returns_existing_ack() -> None:
 
 
 def test_wait_ack_returns_when_ack_delayed() -> None:
-    """ACK ╨╝╨╛╨╢╨╡╤В ╨┐╨╛╤П╨▓╨╕╤В╤М╤Б╤П ╤Б ╨╖╨░╨┤╨╡╤А╨╢╨║╨╛╨╣ тАФ ╨┐╤А╨╛╨▓╨╡╤А╤П╨╡╨╝, ╤З╤В╨╛ long-poll ╨┤╨╛╨╢╨╕╨┤╨░╨╡╤В╤Б╤П ╨╛╤В╨▓╨╡╤В╨░."""
+    """Proveryaet long-poll pri zaderzhannom ack."""
 
     store = AckStore()
     correlation_id = "ack-delayed"
 
     def _delayed_put() -> None:
-        """╨Ш╨╝╨╕╤В╨░╤Ж╨╕╤П ╤Г╤Б╤В╤А╨╛╨╣╤Б╤В╨▓╨░: ╤З╨╡╤А╨╡╨╖ ╤Б╨╡╨║╤Г╨╜╨┤╤Г ╨╖╨░╨┐╨╕╤Б╤Л╨▓╨░╨╡╨╝ ACK ╨▓ ╤Б╤В╨╛╤А."""
+        """Imitiruet otlozhennuyu zapis ack v store."""
 
         time.sleep(1)
         store.put("dev-2", _make_ack(correlation_id))
@@ -150,7 +150,7 @@ def test_wait_ack_returns_when_ack_delayed() -> None:
 
 
 def test_wait_ack_returns_timeout_when_ack_missing() -> None:
-    """╨Х╤Б╨╗╨╕ ╨┐╨╛╨┤╤В╨▓╨╡╤А╨╢╨┤╨╡╨╜╨╕╨╡ ╤В╨░╨║ ╨╕ ╨╜╨╡ ╨┐╤А╨╕╤И╨╗╨╛, ╤А╤Г╤З╨║╨░ ╨╛╤В╨▓╨╡╤З╨░╨╡╤В 408 ╤Б ╨┐╨╛╨╜╤П╤В╨╜╤Л╨╝ detail."""
+    """Proveryaet chto pri otsutstvii ack vozvrashaetsya HTTP 408."""
 
     store = AckStore()
 

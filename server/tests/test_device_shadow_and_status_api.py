@@ -26,13 +26,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def _create_tables() -> None:
-    """Разворачиваем in-memory SQLite, чтобы не трогать настоящую базу."""
+    """Sozdaet sqlite shemu v pamyati dlya testov statusa ustroystv."""
 
     Base.metadata.create_all(bind=engine)
 
 
 def _get_db():
-    """Отдаём сессию SQLAlchemy и аккуратно закрываем её после использования."""
+    """Generator s testovoy sessiyey SQLAlchemy."""
 
     db = SessionLocal()
     try:
@@ -51,7 +51,7 @@ sys.modules["app.core.database"] = stub_database
 
 @pytest.fixture(autouse=True)
 def ensure_debug_enabled(monkeypatch):
-    """В тестах включаем DEBUG, чтобы использовать сервисный эндпоинт подготовки состояния."""
+    """Ukazyvaet DEBUG=TRUE chtoby debug endpointy byli dostupny v testah."""
 
     monkeypatch.setenv("DEBUG", "true")
     config.get_settings.cache_clear()
@@ -61,20 +61,20 @@ def ensure_debug_enabled(monkeypatch):
 
 
 def _iso_utc(dt: datetime) -> str:
-    """Форматируем timestamp в ISO 8601 с суффиксом Z."""
+    """Formatiruet datetime v ISO UTC bez mikrosekund."""
 
     return dt.replace(tzinfo=timezone.utc, microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _post_shadow_state(client: TestClient, payload: dict) -> None:
-    """Вспомогательная запись в стор через отладочный эндпоинт."""
+    """Otpravlyaet sostoyanie ustroystva v shadow debug endpoint."""
 
     response = client.post("/_debug/shadow/state", json=payload)
     assert response.status_code == 200, response.text
 
 
 def test_status_idle_returns_idle_and_no_remaining() -> None:
-    """Idle: нет таймера, устройство онлайн и offline_reason отсутствует."""
+    """Proveryaet otrabotku idle statusa bez vremeni ozhidaniya."""
 
     with TestClient(app) as client:
         _post_shadow_state(
@@ -106,7 +106,7 @@ def test_status_idle_returns_idle_and_no_remaining() -> None:
 
 
 def test_status_running_calculates_remaining_seconds() -> None:
-    """Running: трекаем оставшееся время и подтверждаем, что устройство онлайн."""
+    """Proveryaet raschet ostavshegosya vremeni pri running."""
 
     started_at = datetime.utcnow() - timedelta(seconds=5)
 
@@ -140,7 +140,7 @@ def test_status_running_calculates_remaining_seconds() -> None:
 
 
 def test_status_running_expired_returns_zero() -> None:
-    """Когда таймер истёк, offline_reason сообщает, что устройство считается оффлайн."""
+    """Proveryaet chto po istechenii vremeni ostavshiesya sekundy raven nulju i offline_reason ustanovlen."""
 
     started_at = datetime.utcnow() - timedelta(seconds=20)
 
@@ -175,7 +175,7 @@ def test_status_running_expired_returns_zero() -> None:
 
 
 def test_status_without_state_returns_placeholder() -> None:
-    """Если сервер ещё ни разу не видел state от устройства — приходят заглушки."""
+    """Proveryaet placeholder pri otsutstvii shadow dannyh."""
 
     with TestClient(app) as client:
         response = client.get("/api/manual-watering/status", params={"device_id": "unknown"})
@@ -188,7 +188,7 @@ def test_status_without_state_returns_placeholder() -> None:
 
 
 def test_debug_shadow_state_disabled_when_debug_false(monkeypatch) -> None:
-    """Если DEBUG=False, сервисный эндпоинт регистрации стейта недоступен."""
+    """Proveryaet chto debug endpoint nedostupen kogda DEBUG=FALSE."""
 
     monkeypatch.setenv("DEBUG", "false")
     config.get_settings.cache_clear()

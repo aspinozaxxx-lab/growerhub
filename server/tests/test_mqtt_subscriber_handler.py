@@ -8,13 +8,13 @@ from app.mqtt.store import DeviceShadowStore
 
 
 def test_extract_device_id_from_state_topic_valid():
-    """╨Ъ╨╛╤А╤А╨╡╨║╤В╨╜╤Л╨╣ ╤В╨╛╨┐╨╕╨║ ╨▓╨╛╨╖╨▓╤А╨░╤Й╨░╨╡╤В device_id."""
+    """Proveryaet izvlechenie device_id iz state topika."""
 
     assert extract_device_id_from_state_topic("gh/dev/abc123/state") == "abc123"
 
 
 def test_extract_device_id_from_state_topic_invalid():
-    """╨Э╨╡╨║╨╛╤А╤А╨╡╨║╤В╨╜╤Л╨╡ ╤В╨╛╨┐╨╕╨║╨╕ ╨┤╨░╤О╤В None, ╤З╤В╨╛╨▒╤Л ╨╛╨▒╤А╨░╨▒╨╛╤В╤З╨╕╨║ ╨╕╤Е ╨╕╨│╨╜╨╛╤А╨╕╤А╨╛╨▓╨░╨╗."""
+    """Proveryaet vozvrat None dlya nevernyh state topikov."""
 
     assert extract_device_id_from_state_topic("gh/dev//state") is None
     assert extract_device_id_from_state_topic("gh/dev/abc123/status") is None
@@ -30,7 +30,7 @@ class FakeMessage:
 
 
 def _make_state_payload(status: ManualWateringStatus, duration: int, started_at: datetime, correlation_id: str) -> bytes:
-    """╨д╨╛╤А╨╝╨╕╤А╤Г╨╡╨╝ JSON payload ╤В╨░╨║ ╨╢╨╡, ╨║╨░╨║ ╨╡╨│╨╛ ╨╛╤В╨┐╤А╨░╨▓╨╕╤В ╤Г╤Б╤В╤А╨╛╨╣╤Б╤В╨▓╨╛."""
+    """Sobiraet JSON payload sostoyaniya kak ego otpravit ustroystvo."""
 
     state = DeviceState(
         manual_watering=ManualWateringState(
@@ -44,7 +44,7 @@ def _make_state_payload(status: ManualWateringStatus, duration: int, started_at:
 
 
 def test_on_message_updates_store_running_state():
-    """╨Я╤А╨╕ ╨┐╨╛╨╗╤Г╤З╨╡╨╜╨╕╨╕ ╨▓╨░╨╗╨╕╨┤╨╜╨╛╨│╨╛ state ╤Б╤В╨╛╤А ╨┤╨╛╨╗╨╢╨╡╨╜ ╨╛╨▒╨╜╨╛╨▓╨╕╤В╤М╤Б╤П."""
+    """Proveryaet chto soobshchenie running obnovlyaet shadow store."""
 
     store = DeviceShadowStore()
     subscriber = MqttStateSubscriber(store, client_factory=lambda: None)  # ╤Д╨░╨▒╤А╨╕╨║╨░ ╨╜╨╡ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╤Г╨╡╤В╤Б╤П ╨▓ ╤В╨╡╤Б╤В╨╡
@@ -63,7 +63,7 @@ def test_on_message_updates_store_running_state():
 
 
 def test_on_message_invalid_json_does_not_crash():
-    """╨Э╨╡╨▓╨░╨╗╨╕╨┤╨╜╤Л╨╣ JSON ╨╕╨│╨╜╨╛╤А╨╕╤А╤Г╨╡╤В╤Б╤П ╨╕ ╤Б╤В╨╛╤А ╨╜╨╡ ╨╝╨╡╨╜╤П╨╡╤В╤Б╤П."""
+    """Proveryaet ignorirovanie nevernogo JSON bez sloma."""
 
     store = DeviceShadowStore()
     subscriber = MqttStateSubscriber(store, client_factory=lambda: None)
@@ -75,7 +75,7 @@ def test_on_message_invalid_json_does_not_crash():
 
 
 def test_on_message_wrong_topic_ignored():
-    """╨б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╨╡ ╨╕╨╖ ╨┤╤А╤Г╨│╨╛╨│╨╛ ╤В╨╛╨┐╨╕╨║╨░ ╨╜╨╡ ╨┤╨╛╨╗╨╢╨╜╨╛ ╨╝╨╡╨╜╤П╤В╤М ╤Б╤В╨╛╤А."""
+    """Proveryaet chto soobshcheniya iz drugih topikov ignoriruyutsya."""
 
     store = DeviceShadowStore()
     subscriber = MqttStateSubscriber(store, client_factory=lambda: None)

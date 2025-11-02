@@ -18,7 +18,7 @@ from app.models.database_models import Base
 
 @pytest.fixture(autouse=True)
 def enable_debug(monkeypatch):
-    """╨Т╨║╨╗╤О╤З╨░╨╡╨╝ DEBUG, ╤З╤В╨╛╨▒╤Л ╤Б╨╡╤А╨▓╨╕╤Б╨╜╤Л╨╣ ╤Н╨╜╨┤╨┐╨╛╨╕╨╜╤В /_debug/shadow/state ╨▒╤Л╨╗ ╨┤╨╛╤Б╤В╤Г╨┐╨╡╨╜ ╨▓ ╤В╨╡╤Б╤В╨░╤Е."""
+    """Vklyuchaet DEBUG dlya dostupnosti debug endpointov v testah."""
 
     monkeypatch.setenv("DEBUG", "true")
     config.get_settings.cache_clear()
@@ -31,13 +31,13 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def _create_tables() -> None:
-    """╨а╨░╨╖╨▓╨╛╤А╨░╤З╨╕╨▓╨░╨╡╨╝ in-memory SQLite, ╤З╤В╨╛╨▒╤Л FastAPI ╨╜╨╡ ╤В╤П╨╜╤Г╨╗ ╤А╨╡╨░╨╗╤М╨╜╤Л╨╣ Postgres."""
+    """Sozdaet sqlite shemu v pamyati dlya testov."""
 
     Base.metadata.create_all(bind=engine)
 
 
 def _get_db():
-    """╨Ю╤В╨┤╨░╤С╨╝ ╤В╨╡╤Б╤В╨╛╨▓╤Г╤О ╤Б╨╡╤Б╤Б╨╕╤О SQLAlchemy ╨╕ ╨░╨║╨║╤Г╤А╨░╤В╨╜╨╛ ╨╖╨░╨║╤А╤Л╨▓╨░╨╡╨╝ ╨╡╤С ╨┐╨╛╤Б╨╗╨╡ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╨╜╨╕╤П."""
+    """Generator, vozvrashchayushchiy sessiyu SQLAlchemy i zakryvayushchiy ee posle ispolzovaniya."""
 
     db = SessionLocal()
     try:
@@ -66,7 +66,7 @@ class FakePublisher(IMqttPublisher):
         self.published: list[tuple[str, CmdPumpStart | CmdPumpStop]] = []
 
     def publish_cmd(self, device_id: str, cmd: CmdPumpStart | CmdPumpStop) -> None:
-        """╨б╨╛╤Е╤А╨░╨╜╤П╨╡╨╝ ╨║╨╛╨╝╨░╨╜╨┤╤Г ╨▓ ╤Б╨┐╨╕╤Б╨╛╨║, ╤З╤В╨╛╨▒╤Л ╤В╨╡╤Б╤В╤Л ╨╝╨╛╨│╨╗╨╕ ╨┐╤А╨╛╨▓╨╡╤А╨╕╤В╤М ╤Д╨░╨║╤В ╨┐╤Г╨▒╨╗╨╕╨║╨░╤Ж╨╕╨╕."""
+        """Sohranyaet komandu v spiske dlya proverok v teste."""
 
         self.published.append((device_id, cmd))
 
@@ -75,15 +75,15 @@ class _DummySubscriber:
     """╨Ч╨░╨│╨╗╤Г╤И╨║╨░ ╨┤╨╗╤П MQTT-╨┐╨╛╨┤╨┐╨╕╤Б╤З╨╕╨║╨╛╨▓, ╤З╤В╨╛╨▒╤Л ╨▓╤Л╨║╨╗╤О╤З╨╕╤В╤М ╤А╨╡╨░╨╗╤М╨╜╤Л╨╡ ╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╕╤П ╨╜╨░ ╤Б╤В╨░╤А╤В╨╡ ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╤П."""
 
     def start(self) -> None:
-        """╨Э╨╕╤З╨╡╨│╨╛ ╨╜╨╡ ╨┤╨╡╨╗╨░╨╡╨╝, ╨╜╨╛ ╤Б╨╛╤Е╤А╨░╨╜╤П╨╡╨╝ ╤Б╨╛╨▓╨╝╨╡╤Б╤В╨╕╨╝╨╛╤Б╤В╤М ╤Б ╨╛╨╢╨╕╨┤╨░╨╜╨╕╤П╨╝╨╕ app.main."""
+        """Zaglushka start: nichego ne delaet v testovom kliente."""
 
     def stop(self) -> None:
-        """╨Э╨╕╤З╨╡╨│╨╛ ╨╜╨╡ ╨┤╨╡╨╗╨░╨╡╨╝ ╨┐╤А╨╕ ╨╛╤Б╤В╨░╨╜╨╛╨▓╨║╨╡, ╤З╤В╨╛╨▒╤Л ╤В╨╡╤Б╤В╤Л ╨╖╨░╨▓╨╡╤А╤И╨░╨╗╨╕╤Б╤М ╨╝╨│╨╜╨╛╨▓╨╡╨╜╨╜╨╛."""
+        """Zaglushka stop: nichego ne delaet v testovom kliente."""
 
 
 @contextmanager
 def manual_watering_client(fake_publisher: FakePublisher) -> Iterator[TestClient]:
-    """╨б╨╛╨╖╨┤╨░╤С╨╝ TestClient ╤Б ╨┐╨╛╨┤╨╝╨╡╨╜╤С╨╜╨╜╤Л╨╝╨╕ ╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╤П╨╝╨╕, ╨╛╤Б╤В╨░╨▓╨╗╤П╤П ╤А╨░╨▒╨╛╤З╨╕╨╝ ╤В╨╛╨╗╤М╨║╨╛ DeviceShadowStore."""
+    """Sozdaet TestClient s zaglushkami MQTT dlya scenariev manual watering."""
 
     stack = ExitStack()
     dummy_state = _DummySubscriber()
@@ -112,7 +112,7 @@ def manual_watering_client(fake_publisher: FakePublisher) -> Iterator[TestClient
 
 
 def _push_shadow_state(client: TestClient, device_id: str, status: str, *, duration: int | None = None, started_at: str | None = None, correlation_id: str | None = None) -> None:
-    """╨Ю╤В╨┐╤А╨░╨▓╨╗╤П╨╡╨╝ ╤Б╨╛╤Б╤В╨╛╤П╨╜╨╕╨╡ ╨▓ DeviceShadowStore ╤З╨╡╤А╨╡╨╖ ╨┐╤Г╨▒╨╗╨╕╤З╨╜╤Л╨╣ debug-╤Н╨╜╨┤╨┐╨╛╨╣╨╜╤В."""
+    """Otpravlyaet ten' ustroystva cherez debug endpoint dlya testov."""
 
     manual_watering: dict[str, object] = {"status": status}
     if duration is not None:
@@ -135,13 +135,13 @@ def _push_shadow_state(client: TestClient, device_id: str, status: str, *, durat
 
 
 def _iso_now() -> str:
-    """╨У╨╡╨╜╨╡╤А╨╕╤А╤Г╨╡╨╝ ISO-╨▓╤А╨╡╨╝╤П ╨▒╨╡╨╖ ╨╝╨╕╨║╤А╨╛╤Б╨╡╨║╤Г╨╜╨┤ ╨┤╨╗╤П started_at."""
+    """Vozvrashaet ISO vremya bez mikrosekund dlya sravneniy."""
 
     return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
 
 
 def test_manual_watering_start_conflict_when_running() -> None:
-    """╨Я╨╛╨▓╤В╨╛╤А╨╜╤Л╨╣ ╤Б╤В╨░╤А╤В ╨┐╤А╨╕ ╤Б╤В╨░╤В╤Г╤Б╨╡ running ╨┤╨╛╨╗╨╢╨╡╨╜ ╨▒╨╗╨╛╨║╨╕╤А╨╛╨▓╨░╤В╤М╤Б╤П ╤Б 409 ╨╕ ╨▒╨╡╨╖ ╨┐╤Г╨▒╨╗╨╕╨║╨░╤Ж╨╕╨╕ ╨║╨╛╨╝╨░╨╜╨┤╤Л."""
+    """Proveryaet chto povtornyi start pri status running vozvrashaet HTTP 409 i ne publikuet komandу."""
 
     fake = FakePublisher()
     device_id = "guard-start-running"
@@ -168,7 +168,7 @@ def test_manual_watering_start_conflict_when_running() -> None:
 
 
 def test_manual_watering_stop_conflict_when_idle() -> None:
-    """╨б╤В╨╛╨┐ ╨┐╤А╨╕ ╤Б╤В╨░╤В╤Г╤Б╨╡ idle ╨┤╨╛╨╗╨╢╨╡╨╜ ╨▓╨╛╨╖╨▓╤А╨░╤Й╨░╤В╤М 409 ╨╕ ╨╜╨╡ ╨╛╤В╨┐╤А╨░╨▓╨╗╤П╤В╤М ╨║╨╛╨╝╨░╨╜╨┤╤Г."""
+    """Proveryaet chto stop pri idle vozvrashaet HTTP 409 i komandа ne uhodit."""
 
     fake = FakePublisher()
     device_id = "guard-stop-idle"
@@ -192,7 +192,7 @@ def test_manual_watering_stop_conflict_when_idle() -> None:
 
 
 def test_manual_watering_start_allowed_after_idle() -> None:
-    """╨Я╤А╨╕ ╤Б╤В╨░╤В╤Г╤Б╨╡ idle ╨╖╨░╨┐╤Г╤Б╨║ ╤А╨░╨╖╤А╨╡╤И╤С╨╜: ╨▓╨╕╨┤╨╕╨╝ 200, ╨║╨╛╨╝╨░╨╜╨┤╤Г pump.start ╨╕ ╨║╨╛╤А╤А╨╡╨║╤В╨╜╤Л╨╣ correlation_id."""
+    """Proveryaet uspeshnyi start pri idle i publikaciyu pump.start."""
 
     fake = FakePublisher()
     device_id = "guard-start-idle"
@@ -224,7 +224,7 @@ def test_manual_watering_start_allowed_after_idle() -> None:
 
 
 def test_manual_watering_stop_allowed_after_running() -> None:
-    """╨Х╤Б╨╗╨╕ ╤В╨╡╨╜╤М ╤Б╨╛╨╛╨▒╤Й╨░╨╡╤В running, ╤Б╤В╨╛╨┐ ╨┐╤А╨╛╤Е╨╛╨┤╨╕╤В ╤Г╤Б╨┐╨╡╤И╨╜╨╛ ╨╕ ╨┐╤Г╨▒╨╗╨╕╨║╤Г╨╡╤В pump.stop."""
+    """Proveryaet uspeshnyi stop pri running i publikaciyu pump.stop."""
 
     fake = FakePublisher()
     device_id = "guard-stop-running"

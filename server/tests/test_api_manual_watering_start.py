@@ -11,12 +11,12 @@ engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def _create_tables() -> None:
-    """╨б╨╛╨╖╨┤╨░╤С╨╝ ╤В╨░╨▒╨╗╨╕╤Ж╤Л ╨▓ ╨╕╨╖╨╛╨╗╨╕╤А╨╛╨▓╨░╨╜╨╜╨╛╨╣ in-memory ╨С╨Ф ╨┤╨╗╤П ╤В╨╡╤Б╤В╨╛╨▓."""
+    """Sozdaet sqlite shemu v pamyati dlya testov."""
     Base.metadata.create_all(bind=engine)
 
 
 def _get_db():
-    """╨Т╤Л╨┤╨░╤С╨╝ ╤Б╨╡╤Б╤Б╨╕╤О SQLAlchemy ╨╕ ╨│╨░╤А╨░╨╜╤В╨╕╤А╨╛╨▓╨░╨╜╨╜╨╛ ╨╖╨░╨║╤А╤Л╨▓╨░╨╡╨╝ ╨╡╤С ╨┐╨╛╤Б╨╗╨╡ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╨╜╨╕╤П."""
+    """Generator s testovoy sessiyey SQLAlchemy."""
     db = SessionLocal()
     try:
         yield db
@@ -48,7 +48,7 @@ class FakePublisher(IMqttPublisher):
 
 
 def test_manual_watering_start_endpoint():
-    """╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝, ╤З╤В╨╛ ╤Н╨╜╨┤╨┐╨╛╨╕╨╜╤В ╨╖╨░╨┐╤Г╤Б╨║╨░ ╨┐╨╛╨╗╨╕╨▓╨░ ╨┐╤Г╨▒╨╗╨╕╨║╤Г╨╡╤В pump.start ╨╕ ╨▓╨╛╨╖╨▓╤А╨░╤Й╨░╨╡╤В correlation_id."""
+    """Proveryaet chto endpoint start publikuet pump.start i vozvrashaet correlation_id."""
 
     # ╨Я╨╛╨┤╨╝╨╡╨╜╤П╨╡╨╝ ╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╤М ╨╜╨░ ╨╜╨░╤И ╤Д╨╡╨╣╨║╨╛╨▓╤Л╨╣ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А, ╤З╤В╨╛╨▒╤Л ╨╜╨╡ ╨╛╨▒╤А╨░╤Й╨░╤В╤М╤Б╤П ╨║ ╤А╨╡╨░╨╗╤М╨╜╨╛╨╝╤Г ╨▒╤А╨╛╨║╨╡╤А╤Г.
     fake = FakePublisher()

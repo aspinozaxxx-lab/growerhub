@@ -17,7 +17,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @pytest.fixture(autouse=True)
 def enable_debug(monkeypatch):
-    """╨Т╨║╨╗╤О╤З╨░╨╡╨╝ DEBUG, ╤З╤В╨╛╨▒╤Л ╤Б╨╡╤А╨▓╨╕╤Б╨╜╤Л╨╣ ╤Н╨╜╨┤╨┐╨╛╨╕╨╜╤В /_debug/shadow/state ╨▒╤Л╨╗ ╨┤╨╛╤Б╤В╤Г╨┐╨╡╨╜ ╨▓ ╤В╨╡╤Б╤В╨░╤Е."""
+    """Vklyuchaet DEBUG dlya dostupnosti debug endpointov v testah."""
 
     monkeypatch.setenv("DEBUG", "true")
     config.get_settings.cache_clear()
@@ -27,13 +27,13 @@ def enable_debug(monkeypatch):
 
 
 def _create_tables() -> None:
-    """╨б╨╛╨╖╨┤╨░╤С╨╝ ╤Б╤Е╨╡╨╝╤Г ╨С╨Ф (╤В╨░╨▒╨╗╨╕╤Ж╤Л) ╨▓ ╨┐╨░╨╝╤П╤В╨╕ ╨┐╨╡╤А╨╡╨┤ ╨╖╨░╨┐╤Г╤Б╨║╨╛╨╝ ╤В╨╡╤Б╤В╨╛╨▓."""
+    """Sozdaet sqlite shemu v pamyati dlya testov."""
 
     Base.metadata.create_all(bind=engine)
 
 
 def _get_db():
-    """╨Т╤Л╨┤╨░╤С╨╝ ╤Б╨╡╤Б╤Б╨╕╤О SQLAlchemy ╨╕ ╨╖╨░╨║╤А╤Л╨▓╨░╨╡╨╝ ╨╡╤С ╨┐╨╛╤Б╨╗╨╡ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╨╛╨▓╨░╨╜╨╕╤П."""
+    """Generator s testovoy sessiyey SQLAlchemy."""
 
     db = SessionLocal()
     try:
@@ -63,13 +63,13 @@ class FakePublisher(IMqttPublisher):
         self.published: list[tuple[str, CmdPumpStop]] = []
 
     def publish_cmd(self, device_id: str, cmd: CmdPumpStop) -> None:
-        """╨б╨╛╤Е╤А╨░╨╜╤П╨╡╨╝ ╨║╨╛╨╝╨░╨╜╨┤╤Г ╨▓ ╤Б╨┐╨╕╤Б╨╛╨║, ╤З╤В╨╛╨▒╤Л ╨╖╨░╤В╨╡╨╝ ╨┐╤А╨╛╨▓╨╡╤А╨╕╤В╤М ╤Б╨╛╨┤╨╡╤А╨╢╨╕╨╝╨╛╨╡."""
+        """Sohranyaet komandу stop dlya proverki v teste."""
 
         self.published.append((device_id, cmd))
 
 
 def test_manual_watering_stop_endpoint():
-    """╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝, ╤З╤В╨╛ ╤Н╨╜╨┤╨┐╨╛╨╕╨╜╤В ╨╛╤Б╤В╨░╨╜╨╛╨▓╨║╨╕ ╨┐╨╛╨╗╨╕╨▓╨░ ╨┐╤Г╨▒╨╗╨╕╨║╤Г╨╡╤В pump.stop ╨╕ ╨╛╤В╨┤╨░╤С╤В correlation_id."""
+    """Proveryaet chto endpoint stop vozvrashaet correlation_id i publikuet pump.stop."""
 
     # ╨Я╨╛╨┤╨╝╨╡╨╜╤П╨╡╨╝ ╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╤М FastAPI ╨╜╨░ ╤Д╨╡╨╣╨║╨╛╨▓╤Л╨╣ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А: ╨╛╨╜ ╨╜╨╡ ╤Е╨╛╨┤╨╕╤В ╨▓ ╤Б╨╡╤В╤М.
     fake = FakePublisher()
