@@ -10,7 +10,7 @@ from app.api.routers import firmware as firmware_router
 from app.api.routers import history as history_router
 from app.api.routers import manual_watering as manual_watering_router
 from app.core.database import create_tables
-from service.mqtt.lifecycle import (
+from app.api.routers.mqtt.lifecycle import (
     init_ack_subscriber,
     init_mqtt_stores,
     init_publisher,

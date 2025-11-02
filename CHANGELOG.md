@@ -1,5 +1,11 @@
 # Changelog
 
+## [2025-11-02] MQTT modules relocate
+- refactor(server/mqtt): perenos v app/api/routers/mqtt s prokladkami dlya sovmestimosti
+- peremeshcheny: mqtt/{__init__.py,config.py,interfaces.py,topics.py,serialization.py,store.py,client.py,router.py,lifecycle.py}; mqtt/handlers/{__init__.py,ack.py,device_state.py}
+- obnovleny prokladki v server/service/mqtt/* i server/device_shadow.py dlya sokhraneniya staryh importov bez lomki API
+- riski: global'nye singltony init/shutdown i dvoinaya inic., mitigaciya cherez aliasy sys.modules + pytest 32 testa
+
 ## [2025-11-01] Cleanup warnings and improve API docs
 - Устранены или подавлены 44 предупреждения (Deprecation/SQLAlchemy/Pydantic/Pytest).
 - Добавлен pytest.ini с фильтрацией лишних предупреждений.
@@ -100,4 +106,3 @@
 - Добавлено базовое подключение ESP32 к Wi-Fi (STA) и MQTT, использованы логин/пароль Mosquitto и clientId `ESP32_2C294C`.
 - Устройство подписывается на командный топик `gh/dev/ESP32_2C294C/cmd` (QoS=1), логирует входящие сообщения в Serial и автоматически переподключается при обрыве.
 - Управление насосом и публикация ack/state намечены на последующие шаги.
-

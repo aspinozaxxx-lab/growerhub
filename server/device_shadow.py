@@ -1,8 +1,7 @@
-﻿"""Compatibility wrapper for DeviceShadowStore (TODO: remove after migration)."""
-
-from config import get_settings
-from service.mqtt.store import (
+# vremennaya prokladka dlya obratnoi sovmestimosti so store
+from app.api.routers.mqtt.store import (
     DeviceShadowStore,
+    get_settings,
     get_shadow_store,
     init_shadow_store,
     shutdown_shadow_store,
@@ -15,3 +14,4 @@ __all__ = [
     "shutdown_shadow_store",
     "get_settings",
 ]
+

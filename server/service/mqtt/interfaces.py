@@ -1,17 +1,6 @@
-"""Интерфейсы и протоколы MQTT-уровня сервиса."""
+# vremennaya prokladka dlya obratnoi sovmestimosti
+import sys
 
-from __future__ import annotations
+from app.api.routers.mqtt import interfaces as _interfaces
 
-from typing import Protocol, Union
-
-from .serialization import CmdPumpStart, CmdPumpStop
-
-__all__ = ["IMqttPublisher"]
-
-
-class IMqttPublisher(Protocol):
-    """Интерфейс MQTT-публикатора для команд ручного полива."""
-
-    def publish_cmd(self, device_id: str, cmd: Union[CmdPumpStart, CmdPumpStop]) -> None:
-        """Опубликовать команду с QoS1, retain=False."""
-
+sys.modules[__name__] = _interfaces
