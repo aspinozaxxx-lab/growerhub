@@ -178,23 +178,13 @@
         let availableFirmware = ['1.0.0', '1.1.0', '1.2.0'];
 
         const formatMoscowTime = (isoString) => {
-            if (!isoString) {
-                return null;
-            }
-
+            if (!isoString) return null;
             const addUtcSuffix = (value) => {
-                if (typeof value !== 'string') {
-                    return value;
-                }
-                // Treat backend naive datetimes as UTC if they do not carry timezone info.
+                if (typeof value !== 'string') return value;
                 return /[zZ]|[+-]\d{2}:?\d{2}$/.test(value) ? value : value + 'Z';
             };
-
             const date = new Date(addUtcSuffix(isoString));
-            if (Number.isNaN(date.getTime())) {
-                return null;
-            }
-
+            if (Number.isNaN(date.getTime())) return null;
             return date.toLocaleString('ru-RU', {
                 timeZone: 'Europe/Moscow',
                 day: '2-digit',
@@ -206,28 +196,44 @@
             });
         };
 
+        const numOrNull = v => (typeof v === 'number' && isFinite(v) ? v : null);
+        const fmt1 = v => {
+            const n = numOrNull(v);
+            return n === null ? '—' : n.toFixed(1);
+        };
+        const clampPercent = v => {
+            const n = numOrNull(v);
+            if (n === null) return 0;
+            return Math.min(Math.max(n, 0), 100);
+        };
+
         async function loadDevices() {
             try {
                 const response = await fetch('/api/devices');
                 const devices = await response.json();
-                
                 const devicesDiv = document.getElementById('devices');
-                
-                if (devices.length === 0) {
+
+                if (!Array.isArray(devices) || devices.length === 0) {
                     devicesDiv.innerHTML = '<p>Устройства не найдены. Подключите устройство Grovika к системе.</p>';
                     return;
                 }
-                
+
                 devicesDiv.innerHTML = '';
-                
+
                 devices.forEach(device => {
                     const deviceClass = device.is_watering ? 'watering' : (device.is_light_on ? 'light-on' : '');
                     const deviceDiv = document.createElement('div');
                     deviceDiv.className = `device ${deviceClass}`;
-                    
-                    const moisturePercent = Math.min(Math.max(device.soil_moisture, 0), 100);
+
+                    const moisturePercent = clampPercent(device.soil_moisture);
+                    const t = numOrNull(device.air_temperature);
+                    const h = numOrNull(device.air_humidity);
+                    const tempColor = t === null ? '#666' : (t > 25 ? '#e74c3c' : (t < 18 ? '#3498db' : '#27ae60'));
+                    const tempLabel = t === null ? 'н/д' : (t > 25 ? 'Жарко' : (t < 18 ? 'Прохладно' : 'Нормально'));
+                    const humColor = h === null ? '#666' : (h > 70 ? '#e74c3c' : (h < 40 ? '#3498db' : '#27ae60'));
+                    const humLabel = h === null ? 'н/д' : (h > 70 ? 'Высокая' : (h < 40 ? 'Низкая' : 'Нормальная'));
                     const lastUpdate = formatMoscowTime(device.last_seen) || 'н/д';
-                    
+
                     deviceDiv.innerHTML = `
                         <div class="device-header">
                             <h3>${device.name} (${device.device_id})</h3>
@@ -246,7 +252,7 @@
                         <div class="sensor-grid">
                             <div class="sensor-card">
                                 <div class="sensor-label">🌱 Влажность почвы</div>
-                                <div class="sensor-value">${device.soil_moisture.toFixed(1)}%</div>
+                                <div class="sensor-value">${fmt1(device.soil_moisture)}%</div>
                                 <div class="moisture-bar">
                                     <div class="moisture-fill" style="width: ${moisturePercent}%"></div>
                                 </div>
@@ -254,18 +260,14 @@
                             
                             <div class="sensor-card">
                                 <div class="sensor-label">🌡️ Температура воздуха</div>
-                                <div class="sensor-value">${device.air_temperature.toFixed(1)}°C</div>
-                                <div style="color: ${device.air_temperature > 25 ? '#e74c3c' : device.air_temperature < 18 ? '#3498db' : '#27ae60'}">
-                                    ${device.air_temperature > 25 ? 'Жарко' : device.air_temperature < 18 ? 'Прохладно' : 'Нормально'}
-                                </div>
+                                <div class="sensor-value">${fmt1(device.air_temperature)}°C</div>
+                                <div style="color: ${tempColor}">${tempLabel}</div>
                             </div>
                             
                             <div class="sensor-card">
                                 <div class="sensor-label">💧 Влажность  воздуха</div>
-                                <div class="sensor-value">${device.air_humidity.toFixed(1)}%</div>
-                                <div style="color: ${device.air_humidity > 70 ? '#e74c3c' : device.air_humidity < 40 ? '#3498db' : '#27ae60'}">
-                                    ${device.air_humidity > 70 ? 'Высокая' : device.air_humidity < 40 ? 'Низкая' : 'Нормальная'}
-                                </div>
+                                <div class="sensor-value">${fmt1(device.air_humidity)}%</div>
+                                <div style="color: ${humColor}">${humLabel}</div>
                             </div>
                         </div>
                         
@@ -277,33 +279,27 @@
                                 <input type="number" id="target-${device.device_id}" value="${device.target_moisture}" step="0.1" min="0" max="100"> 
                                 Целевая влажность (%)
                             </label><br>
-                            
                             <label>
                                 <input type="number" id="duration-${device.device_id}" value="${device.watering_duration}" min="1"> 
                                 Длительность полива (сек)
                             </label><br>
-                            
                             <label>
                                 <input type="number" id="timeout-${device.device_id}" value="${device.watering_timeout}" min="1"> 
                                 Таймаут после полива (сек)
                             </label><br>
-                            
                             <h4>💡 Настройки освещения:</h4>
                             <label>
                                 <input type="number" id="light-on-${device.device_id}" value="${device.light_on_hour}" min="0" max="23"> 
                                 Включение света (час)
                             </label><br>
-                            
                             <label>
                                 <input type="number" id="light-off-${device.device_id}" value="${device.light_off_hour}" min="0" max="23"> 
                                 Выключение света (час)
                             </label><br>
-                            
                             <label>
                                 <input type="number" id="light-duration-${device.device_id}" value="${device.light_duration}" min="1" max="24"> 
                                 Длительность света (часов)
                             </label><br>
-                            
                             <button onclick="updateSettings('${device.device_id}')">💾 Сохранить все настройки</button>
                         </div>
                         
@@ -317,7 +313,6 @@
                             ${device.update_available ? '<span style="color: orange;">⚠️ Доступно обновление!</span>' : ''}
                         </div>
                     `;
-                    
                     devicesDiv.appendChild(deviceDiv);
                 });
             } catch (error) {
@@ -327,19 +322,14 @@
         }
 
         async function deleteDevice(deviceId) {
-            if (!confirm('Удалить устройство?')) {
-                return;
-            }
-
+            if (!confirm('Удалить устройство?')) return;
             try {
                 const response = await fetch(`/api/device/${deviceId}`, { method: 'DELETE' });
-
                 if (response.ok) {
                     alert('Устройство удалено');
                     loadDevices();
                     return;
                 }
-
                 const error = await response.json();
                 alert(error.detail || 'Ошибка при удалении устройства');
             } catch (error) {
@@ -357,14 +347,12 @@
                 light_off_hour: parseInt(document.getElementById(`light-off-${deviceId}`).value),
                 light_duration: parseInt(document.getElementById(`light-duration-${deviceId}`).value)
             };
-
             try {
                 const response = await fetch(`/api/device/${deviceId}/settings`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(settings)
                 });
-
                 if (response.ok) {
                     alert('✅ Настройки обновлены!');
                     loadDevices();
@@ -378,22 +366,15 @@
         async function uploadFirmware() {
             const fileInput = document.getElementById('firmwareFile');
             const versionInput = document.getElementById('firmwareVersion');
-            
             if (!fileInput.files[0] || !versionInput.value) {
                 alert('Выберите файл и укажите версию');
                 return;
             }
-
             const formData = new FormData();
             formData.append('file', fileInput.files[0]);
             formData.append('version', versionInput.value);
-
             try {
-                const response = await fetch('/api/upload-firmware', {
-                    method: 'POST',
-                    body: formData
-                });
-
+                const response = await fetch('/api/upload-firmware', { method: 'POST', body: formData });
                 if (response.ok) {
                     alert('✅ Прошивка загружена!');
                     availableFirmware.push(versionInput.value);
@@ -408,22 +389,16 @@
         async function triggerOTAUpdate(deviceId) {
             const select = document.getElementById(`firmware-select-${deviceId}`);
             const version = select.value;
-
             if (!version) {
                 alert('Выберите версию прошивки');
                 return;
             }
-
             try {
                 const response = await fetch(`/api/device/${deviceId}/trigger-update`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        device_id: deviceId,
-                        firmware_version: version
-                    })
+                    body: JSON.stringify({ device_id: deviceId, firmware_version: version })
                 });
-
                 if (response.ok) {
                     alert('✅ OTA обновление запущено!');
                     loadDevices();
@@ -434,7 +409,6 @@
             }
         }
 
-        // Обновляем каждые 10 секунд
         setInterval(loadDevices, 10000);
         loadDevices();
     </script>
