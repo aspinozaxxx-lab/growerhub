@@ -1,4 +1,4 @@
-name: Firmware Tests
+name: CI Firmware
 
 on:
   push:
