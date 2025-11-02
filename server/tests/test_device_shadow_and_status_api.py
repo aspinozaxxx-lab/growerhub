@@ -193,7 +193,7 @@ def test_debug_shadow_state_disabled_when_debug_false(monkeypatch) -> None:
     monkeypatch.setenv("DEBUG", "false")
     config.get_settings.cache_clear()
 
-    module_path = Path(__file__).resolve().parents[1] / "app" / "api" / "routers" / "manual_watering.py"
+    module_path = Path(__file__).resolve().parents[1] / "app" / "fastapi" / "routers" / "manual_watering.py"
     spec = util.spec_from_file_location("manual_watering_temp", module_path)
     module = util.module_from_spec(spec)
     spec.loader.exec_module(module)  # type: ignore[union-attr]

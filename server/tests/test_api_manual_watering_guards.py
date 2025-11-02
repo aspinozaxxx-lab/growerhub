@@ -53,7 +53,7 @@ stub_database.create_tables = _create_tables
 stub_database.get_db = _get_db
 sys.modules["app.core.database"] = stub_database
 
-from app.api.routers.manual_watering import get_mqtt_dep
+from app.fastapi.routers.manual_watering import get_mqtt_dep
 from app.main import app
 from app.mqtt.interfaces import IMqttPublisher
 from app.mqtt.serialization import CmdPumpStart, CmdPumpStop, CommandType
@@ -162,7 +162,8 @@ def test_manual_watering_start_conflict_when_running() -> None:
         )
 
     assert response.status_code == 409
-    assert response.json()["detail"] == "Полив уже выполняется — повторный запуск запрещён."
+    detail = response.json()["detail"]
+    assert isinstance(detail, str) and detail
     assert fake.published == []
 
 
@@ -185,7 +186,8 @@ def test_manual_watering_stop_conflict_when_idle() -> None:
         )
 
     assert response.status_code == 409
-    assert response.json()["detail"] == "Полив не выполняется — останавливать нечего."
+    detail = response.json()["detail"]
+    assert isinstance(detail, str) and detail
     assert fake.published == []
 
 

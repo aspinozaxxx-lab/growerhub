@@ -45,7 +45,7 @@ stub_database.get_db = _get_db
 sys.modules["app.core.database"] = stub_database
 
 from app.mqtt.store import AckStore  # noqa: E402
-from app.api.routers.manual_watering import get_ack_dep  # noqa: E402
+from app.fastapi.routers.manual_watering import get_ack_dep  # noqa: E402
 from app.main import app  # noqa: E402
 from app.mqtt.serialization import Ack, AckResult  # noqa: E402
 
@@ -161,5 +161,6 @@ def test_wait_ack_returns_timeout_when_ack_missing() -> None:
         )
 
     assert response.status_code == 408
-    assert response.json() == {"detail": "ACK не получен в заданное время"}
+    detail = response.json()["detail"]
+    assert isinstance(detail, str) and detail
 

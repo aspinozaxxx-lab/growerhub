@@ -31,7 +31,7 @@ stub_database.create_tables = _create_tables
 stub_database.get_db = _get_db
 sys.modules["app.core.database"] = stub_database
 
-from app.api.routers.manual_watering import get_mqtt_dep
+from app.fastapi.routers.manual_watering import get_mqtt_dep
 from app.main import app
 from app.mqtt.serialization import CmdPumpStart, CommandType
 from app.mqtt.interfaces import IMqttPublisher

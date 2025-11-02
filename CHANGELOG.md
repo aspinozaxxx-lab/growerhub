@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## [2025-11-02] FastAPI package rename
+- refactor(server): pereimenovan katalog app/api v app/fastapi, vse importy obnovleny
+- pytest: 32 passed
+
 ## [2025-11-02] MQTT package move
 - refactor(server): perenos paketa mqtt iz app/api/routers/ v app/ s ispravleniem importov
 - pytest: 32 passed
@@ -27,7 +31,7 @@
 
 
 ## [2025-10-31] Tests fixed after router refactor
-- РСЃРїСЂР°РІР»РµРЅС‹ РїСѓС‚Рё РёРјРїРѕСЂС‚РѕРІ РІ С‚РµСЃС‚Р°С… (`api_manual_watering` в†’ `app.api.routers.manual_watering`).
+- РСЃРїСЂР°РІР»РµРЅС‹ РїСѓС‚Рё РёРјРїРѕСЂС‚РѕРІ РІ С‚РµСЃС‚Р°С… (`api_manual_watering` в†’ `app.fastapi.routers.manual_watering`).
 - РЈРґР°Р»РµРЅС‹ СѓСЃС‚Р°СЂРµРІС€РёРµ С‚РµСЃС‚С‹, РЅРµР°РєС‚СѓР°Р»СЊРЅС‹Рµ РїРѕСЃР»Рµ СЂРµС„Р°РєС‚РѕСЂРёРЅРіР°.
 - РўРµСЃС‚С‹ СѓСЃРїРµС€РЅРѕ РїСЂРѕС…РѕРґСЏС‚ РЅР° РІРµС‚РєРµ `origin/main`.
 

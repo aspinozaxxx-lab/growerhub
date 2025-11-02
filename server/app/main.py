@@ -5,10 +5,10 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routers import devices as devices_router
-from app.api.routers import firmware as firmware_router
-from app.api.routers import history as history_router
-from app.api.routers import manual_watering as manual_watering_router
+from app.fastapi.routers import devices as devices_router
+from app.fastapi.routers import firmware as firmware_router
+from app.fastapi.routers import history as history_router
+from app.fastapi.routers import manual_watering as manual_watering_router
 from app.core.database import create_tables
 from app.mqtt.lifecycle import (
     init_ack_subscriber,
