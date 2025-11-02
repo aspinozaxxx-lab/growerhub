@@ -1,4 +1,4 @@
-﻿"""In-memory stores used by the MQTT service (ACKs and device shadow)."""
+"""Modul hranit in-memory storagi ACK i shadow dlya MQTT integracii API."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from typing import Dict, Optional, Tuple
 
 from .config import get_mqtt_settings
 
+# Publikuem obshchie klassy i helpery dlya drugih modulей
 __all__ = [
     "AckStore",
     "DeviceShadowStore",
@@ -22,21 +23,23 @@ __all__ = [
 
 
 class AckStore:
-    """In-memory storage for ACK messages indexed by correlation_id."""
+    """Potokobezopasnyy sklad ACK-soobshcheniy po correlation_id."""
 
     def __init__(self) -> None:
+        """Inicializiruet pamyat s RLock dlya bezopasnogo dostupa iz raznyh potokov."""
+
         self._lock = RLock()
         self._storage: Dict[str, Tuple[str, "Ack", datetime]] = {}
 
     def put(self, device_id: str, ack: "Ack") -> None:
-        """Store ACK together with device id and insertion timestamp."""
+        """Zapisyvaet ACK s privyazkoy k ustroystvu i metke vremeni."""
 
         inserted_at = datetime.utcnow()
         with self._lock:
             self._storage[ack.correlation_id] = (device_id, ack, inserted_at)
 
     def get(self, correlation_id: str) -> Optional["Ack"]:
-        """Return ACK by correlation id or None when missing."""
+        """Vozvrashaet ACK po correlation_id ili None, esli on ne nayden."""
 
         with self._lock:
             entry = self._storage.get(correlation_id)
@@ -45,7 +48,7 @@ class AckStore:
             return entry[1]
 
     def cleanup(self, max_age_seconds: int = 300) -> int:
-        """Remove ACK records older than max_age_seconds, return count."""
+        """Udalyayet ustarevshie ACK starше max_age_seconds i vozvrashaet kolichestvo."""
 
         threshold = datetime.utcnow() - timedelta(seconds=max_age_seconds)
         removed = 0
@@ -61,11 +64,12 @@ class AckStore:
         return removed
 
 
+# Singleton dlya obshchego dostupа k AckStore
 _ack_store: Optional[AckStore] = None
 
 
 def init_ack_store() -> None:
-    """Ensure singleton AckStore is created."""
+    """Sozdaet globalnyy AckStore, esli on eshche ne initsializirovan."""
 
     global _ack_store
     if _ack_store is None:
@@ -73,7 +77,7 @@ def init_ack_store() -> None:
 
 
 def get_ack_store() -> AckStore:
-    """Return singleton AckStore or raise if not initialised."""
+    """Vozvrashaet globalnyy AckStore ili podnimaet oshibku esli ego net."""
 
     if _ack_store is None:
         raise RuntimeError("Ack store not initialised")
@@ -81,27 +85,29 @@ def get_ack_store() -> AckStore:
 
 
 def shutdown_ack_store() -> None:
-    """Dispose singleton AckStore."""
+    """Sbrosyvaet singleton AckStore dlya chistoy zaversheniya testov/servisa."""
 
     global _ack_store
     _ack_store = None
 
 
 class DeviceShadowStore:
-    """In-memory storage for device shadow states."""
+    """Potokobezopasnyy sklad device shadow sostoyanii s RLock."""
 
     def __init__(self) -> None:
+        """Inicializiruet pamat i blokirovku dlya sostoyanii ustroystv."""
+
         self._lock = RLock()
         self._storage: Dict[str, Tuple["DeviceState", datetime]] = {}
 
     def update_from_state(self, device_id: str, state: "DeviceState") -> None:
-        """Store latest DeviceState and timestamp."""
+        """Sohranyaet poslednee sostoyanie ustroystva i vremya obnovleniya."""
 
         with self._lock:
             self._storage[device_id] = (state, datetime.utcnow())
 
     def get_last_state(self, device_id: str) -> Optional["DeviceState"]:
-        """Return last DeviceState for device or None."""
+        """Vozvrashaet poslednee sostoyanie ustroystva ili None, esli dannyh net."""
 
         with self._lock:
             entry = self._storage.get(device_id)
@@ -110,7 +116,7 @@ class DeviceShadowStore:
             return entry[0]
 
     def debug_dump(self, device_id: str) -> Optional[dict]:
-        """Return raw state snapshot for debug endpoints."""
+        """Formiruet syroe sostoyanie dlya debug-endpointov (JSON + vremya)."""
 
         with self._lock:
             entry = self._storage.get(device_id)
@@ -127,7 +133,7 @@ class DeviceShadowStore:
         device_id: str,
         now: Optional[datetime] = None,
     ) -> Optional[dict]:
-        """Prepare presentation for manual-watering status endpoint."""
+        """Sobiraet prezentacionnye dannye dlya REST-endpointa statusa poliva."""
 
         with self._lock:
             entry = self._storage.get(device_id)
@@ -187,11 +193,12 @@ class DeviceShadowStore:
         }
 
 
+# Singleton dlya obshchego dostupа k DeviceShadowStore
 _shadow_store: Optional[DeviceShadowStore] = None
 
 
 def init_shadow_store() -> None:
-    """Ensure singleton DeviceShadowStore exists."""
+    """Sozdaet globalnyy DeviceShadowStore, esli on ne byl sozdan ran'she."""
 
     global _shadow_store
     if _shadow_store is None:
@@ -199,7 +206,7 @@ def init_shadow_store() -> None:
 
 
 def get_shadow_store() -> DeviceShadowStore:
-    """Return shadow store singleton or raise."""
+    """Vozvrashaet globalnyy shadow store ili podnimaet oshibku pri otsutstvii."""
 
     if _shadow_store is None:
         raise RuntimeError("Device shadow store not initialised")
@@ -207,14 +214,14 @@ def get_shadow_store() -> DeviceShadowStore:
 
 
 def shutdown_shadow_store() -> None:
-    """Dispose shadow store singleton."""
+    """Sbrosyvaet singleton DeviceShadowStore dlya chistoy ostanovki servisa."""
 
     global _shadow_store
     _shadow_store = None
 
 
 def get_settings():  # pragma: no cover - compatibility shim for old patches
-    """Return MQTT settings object (legacy alias)."""
+    """Vozvrashaet obekt nastroek MQTT (legacy alias dlya starogo koda)."""
 
     return get_mqtt_settings()
 
@@ -223,10 +230,15 @@ from .serialization import Ack, DeviceState, ManualWateringStatus  # noqa: E402
 
 
 def _as_utc(dt: datetime) -> datetime:
+    """Privodit datetime k UTC s sohraneniem informacii o vremeni."""
+
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
 
 
 def _isoformat_utc(dt: datetime) -> str:
+    """Prevrashchaet datetime v stroku ISO-8601 bez mikrosekund i so znakom Z."""
+
     return _as_utc(dt).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+

@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## [2025-11-02] MQTT docs refresh
+- docs(server/mqtt): dobavleny kommentarii i dokstringi bez izmeneniya logiki
+- zachem: povyshenie chitaemosti, snizhenie bus-factora
+- pytest: 32 passed
+
 ## [2025-11-02] MQTT cleanup
 - ochistka prokladok MQTT, vse importy perevedeny na novyy paket
 - pytest: 32 passed

@@ -1,4 +1,4 @@
-"""Обработчики ACK-сообщений из MQTT."""
+"""Modul obrabatyvaet MQTT ACK soobshcheniya i zapisывает ih v AckStore."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from ..store import AckStore
 from ..config import MqttSettings
 from ..serialization import Ack
 
+# Publikuem konstanty i helpery dlya raboty s ACK
 __all__ = [
     "ACK_TOPIC_FILTER",
     "make_ack_topic_filter",
@@ -19,19 +20,21 @@ __all__ = [
     "handle_ack_message",
 ]
 
+# Logger dlya kontrolya poluchennyh ACK
 logger = logging.getLogger(__name__)
 
+# MQTT topic filter dlya vsekh ACK ot ustroystv
 ACK_TOPIC_FILTER = "gh/dev/+/ack"
 
 
 def make_ack_topic_filter() -> str:
-    """Вернуть MQTT-фильтр для ACK-топиков."""
+    """Vozvrashaet topic filter dlya podpiski na vse ACK soobshcheniya."""
 
     return ACK_TOPIC_FILTER
 
 
 def extract_device_id_from_ack_topic(topic: str) -> Optional[str]:
-    """Выделить device_id из топика ACK, иначе вернуть None."""
+    """Vydelyaet device_id iz ack-topika ili vozvrashaet None pri nevernom formate."""
 
     parts = topic.split("/")
     if len(parts) != 4:
@@ -48,14 +51,14 @@ def handle_ack_message(
     topic: str,
     payload: bytes,
 ) -> None:
-    """Разобрать ACK и сохранить его в хранилище."""
+    """Dekodiruet ACK iz payload, validiruet i sohranyaet v AckStore."""
 
     if settings.debug:
         try:
             raw = payload.decode("utf-8", errors="replace")
         except Exception:
             raw = "<decode error>"
-        print(f"[MQTT DEBUG] (ack) входящее сообщение: topic={topic} payload={raw}")
+        print(f"[MQTT DEBUG] (ack) prinyato soobshchenie: topic={topic} payload={raw}")
 
     logger.info(
         "MQTT ack message: topic=%s payload=%s",
@@ -65,21 +68,20 @@ def handle_ack_message(
 
     device_id = extract_device_id_from_ack_topic(topic)
     if not device_id:
-        logger.warning("Топик %s не соответствует шаблону gh/dev/<id>/ack", topic)
+        logger.warning("%s ne sootvetstvuet shablonu gh/dev/<id>/ack", topic)
         return
 
     try:
         payload_text = payload.decode("utf-8")
         ack = Ack.model_validate_json(payload_text)
     except (UnicodeDecodeError, ValueError, json.JSONDecodeError, ValidationError) as exc:
-        logger.warning("Не удалось разобрать ACK от %s: %s", device_id, exc)
+        logger.warning("Ne udalos razobrat ACK ot %s: %s", device_id, exc)
         if settings.debug:
-            print(f"[MQTT DEBUG] (ack) ошибка парсинга ACK: {exc}")
+            print(f"[MQTT DEBUG] (ack) oshibka dekodirovaniya ACK: {exc}")
         return
 
     store.put(device_id, ack)
     if settings.debug:
-        print(f"[MQTT DEBUG] (ack) сохранён ACK correlation_id={ack.correlation_id}")
-    logger.info("Сохранён ACK с correlation_id=%s", ack.correlation_id)
-
+        print(f"[MQTT DEBUG] (ack) sohranili ACK correlation_id={ack.correlation_id}")
+    logger.info("Sohranili ACK s correlation_id=%s", ack.correlation_id)
 

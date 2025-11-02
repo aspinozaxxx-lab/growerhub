@@ -1,4 +1,4 @@
-﻿"""Управление жизненным циклом компонентов MQTT-сервиса."""
+"""Modul upravlyaet zhiznennym ciklom MQTT publishera i subscriberov."""
 
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ from .client import PahoMqttPublisher
 from .interfaces import IMqttPublisher
 from .router import MqttAckSubscriber, MqttStateSubscriber
 
+# Publikuem API dlya zarubezhnyh komponentov (startup/shutdown)
 __all__ = [
     "init_publisher",
     "shutdown_publisher",
@@ -46,8 +47,10 @@ __all__ = [
     "shutdown_mqtt_stores",
 ]
 
+# Logger dlya fiksacii usloviy starta i ostanovki
 logger = logging.getLogger(__name__)
 
+# Globalnye singltony ispolzuyutsya kak lazivye zavisimosti v FastAPI
 _publisher: Optional[PahoMqttPublisher] = None
 _publisher_error: Optional[Exception] = None
 _state_subscriber: Optional[MqttStateSubscriber] = None
@@ -55,21 +58,21 @@ _ack_subscriber: Optional[MqttAckSubscriber] = None
 
 
 def init_mqtt_stores() -> None:
-    """Инициализировать in-memory сторы ACK и shadow."""
+    """Garantiruet, chto in-memory storagi dlya ACK i shadow sozdany."""
 
     init_ack_store()
     init_shadow_store()
 
 
 def shutdown_mqtt_stores() -> None:
-    """Освободить in-memory сторы ACK и shadow."""
+    """Chisto zakryvaet storagi ACK i shadow posle raboty servisa/testov."""
 
     shutdown_shadow_store()
     shutdown_ack_store()
 
 
 def init_publisher() -> None:
-    """Создать singleton публикатора и подключиться к брокеру."""
+    """Sozdaet singleton publisher i podklyuchaet ego k brokeru (fonovyj loop)."""
 
     global _publisher, _publisher_error
     if _publisher:
@@ -78,7 +81,7 @@ def init_publisher() -> None:
     publisher = PahoMqttPublisher()
     try:
         publisher.connect()
-    except Exception as exc:  # pragma: no cover - логирование ошибок сети
+    except Exception as exc:  # pragma: no cover - slozhno vosproizvesti v testah
         _publisher = None
         _publisher_error = exc
         logger.warning("MQTT publisher initialisation failed: %s", exc)
@@ -88,7 +91,7 @@ def init_publisher() -> None:
 
 
 def shutdown_publisher() -> None:
-    """Остановить публикатор и забыть singleton."""
+    """Otklyuchaet publisher i ochishaet singlton pered ostanovkoy prilozheniya."""
 
     global _publisher, _publisher_error
     if _publisher:
@@ -98,7 +101,7 @@ def shutdown_publisher() -> None:
 
 
 def get_publisher() -> IMqttPublisher:
-    """Вернуть готовый публикатор либо поднять RuntimeError."""
+    """Vozvrashaet gotovyy publisher ili podnimaet RuntimeError pri oshibke init."""
 
     if _publisher:
         return _publisher
@@ -111,7 +114,7 @@ def init_state_subscriber(
     store: Optional[DeviceShadowStore] = None,
     client_factory: Optional[Callable[[], Client]] = None,
 ) -> None:
-    """Создать singleton подписчика retained state."""
+    """Sozdaet singleton state-subscriber s peredannym store ili globalnym."""
 
     global _state_subscriber
     if _state_subscriber is None:
@@ -122,24 +125,32 @@ def init_state_subscriber(
 
 
 def get_state_subscriber() -> MqttStateSubscriber:
+    """Vozvrashaet lazivo sozdannyj state-subscriber ili podnimaet oshibku."""
+
     if _state_subscriber is None:
         raise RuntimeError("MQTT state subscriber not initialised")
     return _state_subscriber
 
 
 def start_state_subscriber() -> None:
+    """Zapusk loop_start dlya state-subscriber (sozdaya ego pri neobhodimosti)."""
+
     if _state_subscriber is None:
         init_state_subscriber()
     get_state_subscriber().start()
 
 
 def stop_state_subscriber() -> None:
+    """Ostanavlivaet loop state-subscriber, esli on byl zapushchen."""
+
     subscriber = _state_subscriber
     if subscriber:
         subscriber.stop()
 
 
 def shutdown_state_subscriber() -> None:
+    """Polnostyu ochishaet singleton state-subscriber i resetit shadow store."""
+
     global _state_subscriber
     stop_state_subscriber()
     _state_subscriber = None
@@ -150,7 +161,7 @@ def init_ack_subscriber(
     store: Optional[AckStore] = None,
     client_factory: Optional[Callable[[], Client]] = None,
 ) -> None:
-    """Создать singleton подписчика ACK."""
+    """Sozdaet singleton ack-subscriber s peredannym store ili globalnym."""
 
     global _ack_subscriber
     if _ack_subscriber is None:
@@ -161,30 +172,34 @@ def init_ack_subscriber(
 
 
 def get_ack_subscriber() -> MqttAckSubscriber:
+    """Vozvrashaet lazivo sozdannyj ack-subscriber ili podnimaet oshibku."""
+
     if _ack_subscriber is None:
         raise RuntimeError("MQTT ack subscriber not initialised")
     return _ack_subscriber
 
 
 def start_ack_subscriber() -> None:
+    """Zapusk loop_start dlya ack-subscriber (sozdaya ego pri neobhodimosti)."""
+
     if _ack_subscriber is None:
         init_ack_subscriber()
     get_ack_subscriber().start()
 
 
 def stop_ack_subscriber() -> None:
+    """Ostanavlivaet loop ack-subscriber, esli on aktivnyj."""
+
     subscriber = _ack_subscriber
     if subscriber:
         subscriber.stop()
 
 
 def shutdown_ack_subscriber() -> None:
+    """Polnostyu ochishaet singleton ack-subscriber i resetit ack store."""
+
     global _ack_subscriber
     stop_ack_subscriber()
     _ack_subscriber = None
     shutdown_ack_store()
-
-
-
-
 

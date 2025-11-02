@@ -1,4 +1,4 @@
-"""Обработчики retained state сообщений устройств."""
+"""Modul obrabatyvaet retained-state soobshcheniya MQTT i obnovlyaet shadow."""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from ..store import DeviceShadowStore
 from ..config import MqttSettings
 from ..serialization import DeviceState
 
+# Publikuem konstanty i helpery dlya sostoyaniy
 __all__ = [
     "STATE_TOPIC_FILTER",
     "make_state_topic_filter",
@@ -19,19 +20,21 @@ __all__ = [
     "handle_state_message",
 ]
 
+# Logger dlya fiksacii sostoyaniy ot ustroystv
 logger = logging.getLogger(__name__)
 
+# MQTT topic filter dlya retained state topikov
 STATE_TOPIC_FILTER = "gh/dev/+/state"
 
 
 def make_state_topic_filter() -> str:
-    """Вернуть MQTT-фильтр для retained state."""
+    """Vozvrashaet topic filter dlya podpiski na sostoyaniya ustroystv."""
 
     return STATE_TOPIC_FILTER
 
 
 def extract_device_id_from_state_topic(topic: str) -> Optional[str]:
-    """Выделить device_id из топика retained state."""
+    """Dobyvaet device_id iz state-topika ili vozvrashaet None pri nevernom formate."""
 
     parts = topic.split("/")
     if len(parts) != 4:
@@ -48,14 +51,14 @@ def handle_state_message(
     topic: str,
     payload: bytes,
 ) -> None:
-    """Разобрать retained state и обновить shadow."""
+    """Dekodiruet sostoyanie ustroystva i peredayet ego v DeviceShadowStore."""
 
     if settings.debug:
         try:
             raw = payload.decode("utf-8", errors="replace")
         except Exception:
             raw = "<decode error>"
-        print(f"[MQTT DEBUG] (state) входящее сообщение: topic={topic} payload={raw}")
+        print(f"[MQTT DEBUG] (state) prinyato soobshchenie: topic={topic} payload={raw}")
 
     logger.info(
         "MQTT state message: topic=%s payload=%s",
@@ -65,21 +68,20 @@ def handle_state_message(
 
     device_id = extract_device_id_from_state_topic(topic)
     if not device_id:
-        logger.warning("Топик %s не соответствует шаблону gh/dev/<id>/state", topic)
+        logger.warning("%s ne sootvetstvuet shablonu gh/dev/<id>/state", topic)
         return
 
     try:
         payload_text = payload.decode("utf-8")
         state = DeviceState.model_validate_json(payload_text)
     except (UnicodeDecodeError, ValueError, json.JSONDecodeError, ValidationError) as exc:
-        logger.warning("Не удалось разобрать state от %s: %s", device_id, exc)
+        logger.warning("Ne udalos razobrat state ot %s: %s", device_id, exc)
         if settings.debug:
-            print(f"[MQTT DEBUG] (state) ошибка парсинга state: {exc}")
+            print(f"[MQTT DEBUG] (state) oshibka dekodirovaniya state: {exc}")
         return
 
     store.update_from_state(device_id, state)
     if settings.debug:
-        print(f"[MQTT DEBUG] (state) обновлён shadow для {device_id}")
-    logger.info("Обновлён shadow устройства %s", device_id)
-
+        print(f"[MQTT DEBUG] (state) obnovili shadow dlya {device_id}")
+    logger.info("Obnovili shadow dlya %s", device_id)
 

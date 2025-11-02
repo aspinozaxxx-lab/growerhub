@@ -1,4 +1,4 @@
-﻿"""Pydantic models and helpers for MQTT payloads."""
+"""Modul opisывает Pydantic-shemy dlya MQTT soobshcheniy i utilitu serialize."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from typing import Optional, Union
 
 from pydantic import BaseModel, Field, conint
 
+# Publikuem spisok kluchevyh modeley i helpers
 __all__ = [
     "CommandType",
     "AckResult",
@@ -23,14 +24,14 @@ __all__ = [
 
 
 class CommandType(str, Enum):
-    """Supported manual watering command types."""
+    """Tipy komand manual watering, kotorye otpravljayutsya brokeru."""
 
     pump_start = "pump.start"
     pump_stop = "pump.stop"
 
 
 class AckResult(str, Enum):
-    """Possible acknowledgement statuses."""
+    """Vozmozhnye rezul'taty ACK ot ustroystva (uspeshno, otkaz, oshibka)."""
 
     accepted = "accepted"
     rejected = "rejected"
@@ -38,7 +39,7 @@ class AckResult(str, Enum):
 
 
 class ManualWateringStatus(str, Enum):
-    """Manual watering state-machine statuses."""
+    """Statusy sostoyaniya poliva, kotorie otpravlyaet ustroystvo."""
 
     idle = "idle"
     running = "running"
@@ -46,7 +47,7 @@ class ManualWateringStatus(str, Enum):
 
 
 class CmdBase(BaseModel):
-    """Base schema for MQTT commands."""
+    """Bazovaya shema dlya lyuboy komandy MQTT (tip, korelaciya, vremya)."""
 
     type: str
     correlation_id: str = Field(..., min_length=1)
@@ -54,17 +55,17 @@ class CmdBase(BaseModel):
 
 
 class CmdPumpStart(CmdBase):
-    """Command to start the pump for a fixed duration."""
+    """Komanda zapuska nasosa s ukazaniem dlitelnosti v sekundah."""
 
     duration_s: conint(ge=1, le=3600)  # type: ignore[valid-type]
 
 
 class CmdPumpStop(CmdBase):
-    """Command to stop the pump."""
+    """Komanda ostanovki nasosa bez dopolnitelnyh poley."""
 
 
 class Ack(BaseModel):
-    """Acknowledgement payload."""
+    """ACK payload ot ustroystva s korelaciey i opisaniem rezul'tata."""
 
     correlation_id: str = Field(..., min_length=1)
     result: AckResult
@@ -75,7 +76,7 @@ class Ack(BaseModel):
 
 
 class ManualWateringState(BaseModel):
-    """Manual watering state reported by a device."""
+    """Sostoyanie manual watering dlya retained-topika ustroystva."""
 
     status: ManualWateringStatus
     duration_s: Optional[int] = Field(default=None, ge=0)
@@ -85,13 +86,14 @@ class ManualWateringState(BaseModel):
 
 
 class DeviceState(BaseModel):
-    """Device state payload for retained topic."""
+    """Aggregirovannoe sostoyanie ustroystva (manual watering i firmware)."""
 
     manual_watering: ManualWateringState
     fw: Optional[str] = None
 
 
 def serialize(model: BaseModel) -> bytes:
-    """Serialize a Pydantic model to UTF-8 JSON bytes."""
+    """Preobrazuet Pydantic-model v JSON bytes UTF-8 bez None poley."""
 
     return model.model_dump_json(by_alias=True, exclude_none=True).encode("utf-8")
+

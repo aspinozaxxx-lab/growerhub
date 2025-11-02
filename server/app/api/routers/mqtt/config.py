@@ -1,4 +1,4 @@
-﻿"""Centralised MQTT configuration access."""
+"""Modul otvechaet za dostup k nastroikam MQTT dlya API-urovnya."""
 
 from __future__ import annotations
 
@@ -8,12 +8,13 @@ from typing import Optional
 
 from config import get_settings
 
+# Eksportiruem obyazatelnye obekty konfiguracii MQTT
 __all__ = ["MqttSettings", "get_mqtt_settings"]
 
 
 @dataclass(frozen=True)
 class MqttSettings:
-    """Configuration subset used by the MQTT service layer."""
+    """Opisanie nastroek MQTT, kotorye nuzhny servisnomu sloyu API."""
 
     host: str
     port: int
@@ -26,14 +27,14 @@ class MqttSettings:
 
     @property
     def DEVICE_ONLINE_THRESHOLD_S(self) -> int:  # pragma: no cover - compatibility shim
-        """Backward-compatible accessor for legacy code/tests."""
+        """Vozvrashaet znachenie poroga onlayn statusa (legacy alias)."""
 
         return self.device_online_threshold_s
 
 
 @lru_cache()
 def get_mqtt_settings() -> MqttSettings:
-    """Return cached MQTT-related configuration."""
+    """Vozvrashchaet zakeshirovannye nastroiki MQTT iz globalnyh settings."""
 
     settings = get_settings()
     return MqttSettings(
@@ -46,3 +47,4 @@ def get_mqtt_settings() -> MqttSettings:
         debug=settings.DEBUG,
         device_online_threshold_s=settings.DEVICE_ONLINE_THRESHOLD_S,
     )
+
