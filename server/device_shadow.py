@@ -1,6 +1,6 @@
 """Compatibility wrapper exposing DeviceShadowStore helpers after MQTT refactor."""
 
-from app.api.routers.mqtt.store import (
+from app.mqtt.store import (
     DeviceShadowStore,
     get_settings,
     get_shadow_store,

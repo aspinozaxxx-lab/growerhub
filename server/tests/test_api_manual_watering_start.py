@@ -33,8 +33,8 @@ sys.modules["app.core.database"] = stub_database
 
 from app.api.routers.manual_watering import get_mqtt_dep
 from app.main import app
-from app.api.routers.mqtt.serialization import CmdPumpStart, CommandType
-from app.api.routers.mqtt.interfaces import IMqttPublisher
+from app.mqtt.serialization import CmdPumpStart, CommandType
+from app.mqtt.interfaces import IMqttPublisher
 
 
 class FakePublisher(IMqttPublisher):

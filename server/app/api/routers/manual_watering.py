@@ -10,12 +10,12 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, conint
 
-from app.api.routers.mqtt.store import AckStore, get_ack_store
+from app.mqtt.store import AckStore, get_ack_store
 from config import get_settings
-from app.api.routers.mqtt.store import DeviceShadowStore, get_shadow_store
-from app.api.routers.mqtt.interfaces import IMqttPublisher
-from app.api.routers.mqtt.lifecycle import get_publisher
-from app.api.routers.mqtt.serialization import Ack, CmdPumpStart, CmdPumpStop, CommandType, DeviceState
+from app.mqtt.store import DeviceShadowStore, get_shadow_store
+from app.mqtt.interfaces import IMqttPublisher
+from app.mqtt.lifecycle import get_publisher
+from app.mqtt.serialization import Ack, CmdPumpStart, CmdPumpStop, CommandType, DeviceState
 
 router = APIRouter()
 

@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## [2025-11-02] MQTT package move
+- refactor(server): perenos paketa mqtt iz app/api/routers/ v app/ s ispravleniem importov
+- pytest: 32 passed
+
 ## [2025-11-02] MQTT docs refresh
 - docs(server/mqtt): dobavleny kommentarii i dokstringi bez izmeneniya logiki
 - zachem: povyshenie chitaemosti, snizhenie bus-factora
@@ -59,8 +63,8 @@
 - Р¦РµР»СЊ: Р·Р°РІРµСЂС€РёС‚СЊ РјРёРіСЂР°С†РёСЋ MQTT-СЃР»РѕСЏ, РѕСЃС‚Р°РІРёС‚СЊ РµРґРёРЅС‹Р№ СЃРµСЂРІРёСЃРЅС‹Р№ С„Р°СЃР°Рґ Рё Р°РєС‚СѓР°Р»СЊРЅСѓСЋ РґРѕРєСѓРјРµРЅС‚Р°С†РёСЋ.
 
 ## [2025-10-26] FastAPI MQTT lifecycle integration
-- FastAPI startup/shutdown С‚РµРїРµСЂСЊ РёСЃРїРѕР»СЊР·СѓСЋС‚ С„Р°СЃР°РґС‹ app.api.routers.mqtt.lifecycle РІРјРµСЃС‚Рѕ СЂСѓС‡РЅРѕРіРѕ РІС‹Р·РѕРІР° РїРѕРґРїРёСЃС‡РёРєРѕРІ.
-- API manual_watering РїРµСЂРµРІРµРґС‘РЅ РЅР° app.api.routers.mqtt.interfaces.IMqttPublisher Рё РЅРѕРІС‹Рµ СЃС‚РѕСЂР°Р¶Рё; С‚РµСЃС‚С‹ РїР°С‚С‡Р°С‚ lifecycle/store.
+- FastAPI startup/shutdown С‚РµРїРµСЂСЊ РёСЃРїРѕР»СЊР·СѓСЋС‚ С„Р°СЃР°РґС‹ app.mqtt.lifecycle РІРјРµСЃС‚Рѕ СЂСѓС‡РЅРѕРіРѕ РІС‹Р·РѕРІР° РїРѕРґРїРёСЃС‡РёРєРѕРІ.
+- API manual_watering РїРµСЂРµРІРµРґС‘РЅ РЅР° app.mqtt.interfaces.IMqttPublisher Рё РЅРѕРІС‹Рµ СЃС‚РѕСЂР°Р¶Рё; С‚РµСЃС‚С‹ РїР°С‚С‡Р°С‚ lifecycle/store.
 
 ## [2025-10-26] MQTT serialization cleanup
 - РЈРґР°Р»РµРЅС‹ РёР·Р±С‹С‚РѕС‡РЅС‹Рµ С„СѓРЅРєС†РёРё deserialize_* Рё С‚РµСЃС‚С‹ РїРµСЂРµРІРµРґРµРЅС‹ РЅР° РїСЂСЏРјРѕР№ model_validate_json.
@@ -86,7 +90,7 @@
 ## [2025-10-26] MQTT lifecycle refactor (publisher)
 
 - Р РµР°Р»РёР·РѕРІР°РЅС‹ app/api/routers/mqtt/client.py (Р°РґР°РїС‚РµСЂ PahoMqttPublisher) Рё app/api/routers/mqtt/lifecycle.py СЃ С„Р°СЃР°РґРѕРј init/get/shutdown.
-- server/mqtt_publisher.py Р·Р°РјРµРЅС‘РЅ С‚РѕРЅРєРѕР№ РїСЂРѕРєР»Р°РґРєРѕР№ СЃ TODO РЅР° СѓРґР°Р»РµРЅРёРµ; РїСЂРёР»РѕР¶РµРЅРёРµ Рё С‚РµСЃС‚С‹ РёСЃРїРѕР»СЊР·СѓСЋС‚ app.api.routers.mqtt.lifecycle.
+- server/mqtt_publisher.py Р·Р°РјРµРЅС‘РЅ С‚РѕРЅРєРѕР№ РїСЂРѕРєР»Р°РґРєРѕР№ СЃ TODO РЅР° СѓРґР°Р»РµРЅРёРµ; РїСЂРёР»РѕР¶РµРЅРёРµ Рё С‚РµСЃС‚С‹ РёСЃРїРѕР»СЊР·СѓСЋС‚ app.mqtt.lifecycle.
 - РџРѕРІРµРґРµРЅРёРµ РїСѓР±Р»РёРєР°С†РёРё РєРѕРјР°РЅРґ, QoS Рё РѕР±СЂР°Р±РѕС‚РєР° РѕС€РёР±РѕРє РїРѕРґРєР»СЋС‡РµРЅРёСЏ СЃРѕС…СЂР°РЅРµРЅС‹, pytest РѕСЃС‚Р°С‘С‚СЃСЏ Р·РµР»С‘РЅС‹Рј.
 
 ## [2025-10-24] MQTT step 4
