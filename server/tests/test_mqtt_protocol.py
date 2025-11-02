@@ -2,7 +2,7 @@
 
 import pytest
 
-from service.mqtt.serialization import (
+from app.api.routers.mqtt.serialization import (
     Ack,
     AckResult,
     CmdPumpStart,
@@ -13,7 +13,7 @@ from service.mqtt.serialization import (
     ManualWateringStatus,
     serialize,
 )
-from service.mqtt.topics import ack_topic, cmd_topic, state_topic
+from app.api.routers.mqtt.topics import ack_topic, cmd_topic, state_topic
 
 
 def _loads(payload: bytes) -> str:

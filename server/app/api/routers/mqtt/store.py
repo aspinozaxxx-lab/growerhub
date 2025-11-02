@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from threading import RLock
 from typing import Dict, Optional, Tuple
 
-from service.mqtt.config import get_mqtt_settings
+from .config import get_mqtt_settings
 
 __all__ = [
     "AckStore",
@@ -219,7 +219,7 @@ def get_settings():  # pragma: no cover - compatibility shim for old patches
     return get_mqtt_settings()
 
 
-from service.mqtt.serialization import Ack, DeviceState, ManualWateringStatus  # noqa: E402
+from .serialization import Ack, DeviceState, ManualWateringStatus  # noqa: E402
 
 
 def _as_utc(dt: datetime) -> datetime:

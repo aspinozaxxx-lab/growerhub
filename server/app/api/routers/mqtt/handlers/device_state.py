@@ -8,9 +8,9 @@ from typing import Optional
 
 from pydantic import ValidationError
 
-from service.mqtt.store import DeviceShadowStore
-from service.mqtt.config import MqttSettings
-from service.mqtt.serialization import DeviceState
+from ..store import DeviceShadowStore
+from ..config import MqttSettings
+from ..serialization import DeviceState
 
 __all__ = [
     "STATE_TOPIC_FILTER",

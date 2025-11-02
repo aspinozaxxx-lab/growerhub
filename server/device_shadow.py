@@ -1,4 +1,5 @@
-# vremennaya prokladka dlya obratnoi sovmestimosti so store
+"""Compatibility wrapper exposing DeviceShadowStore helpers after MQTT refactor."""
+
 from app.api.routers.mqtt.store import (
     DeviceShadowStore,
     get_settings,
@@ -14,4 +15,3 @@ __all__ = [
     "shutdown_shadow_store",
     "get_settings",
 ]
-

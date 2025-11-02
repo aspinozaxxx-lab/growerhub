@@ -52,8 +52,8 @@ sys.modules["app.core.database"] = stub_database
 
 from app.api.routers.manual_watering import get_mqtt_dep  # noqa: E402  # ╨╕╨╝╨┐╨╛╤А╤В ╨┐╨╛╤Б╨╗╨╡ ╨┐╨╛╨┤╨╝╨╡╨╜╤Л ╨С╨Ф
 from app.main import app  # noqa: E402
-from service.mqtt.serialization import CmdPumpStop, CommandType  # noqa: E402
-from service.mqtt.interfaces import IMqttPublisher  # noqa: E402
+from app.api.routers.mqtt.serialization import CmdPumpStop, CommandType  # noqa: E402
+from app.api.routers.mqtt.interfaces import IMqttPublisher  # noqa: E402
 
 
 class FakePublisher(IMqttPublisher):
