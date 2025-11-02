@@ -4,6 +4,12 @@
 #include <cstdio>
 #include <memory>
 
+#if defined(ESP_PLATFORM) || defined(ARDUINO)
+#include <WiFi.h>
+#else
+#include "Network/WiFiShim.h"
+#endif
+
 #include "System/Time/IRTC.h"
 #include "System/Time/INTPClient.h"
 #include "System/Time/ILogger.h"
@@ -83,6 +89,22 @@ void SystemClock::begin() {
     }
 
     ntp->begin();
+
+#if !defined(UNIT_TEST)
+    #if defined(ESP_PLATFORM) || defined(ARDUINO)
+    const bool wifiConnected = WiFi.status() == WL_CONNECTED;
+    #else
+    const bool wifiConnected = WiFi.status() == WL_CONNECTED;
+    #endif
+    if (!wifiConnected) {
+        debugLog("Ozhidanie WiFi pered NTP");
+        lastNtpSyncOk = false;
+        lastNtpDelta = 0;
+        lastNtpMillis = millis();
+        scheduleRetry(NTP_RETRY_INTERVAL_MS);
+        return;
+    }
+#endif
 
     bool synced = false;
     for (unsigned long attempt = 0; attempt < STARTUP_ATTEMPTS; ++attempt) {

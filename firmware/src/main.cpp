@@ -35,8 +35,6 @@ void setup() {
     Serial.println();
     Serial.println(F("GrowerHub Grovika ManualWatering v0.1 (MQTT step4)"));
     app.setSystemClock(&systemClock);
-    systemClock.begin();
-    systemClock.dumpStatusToSerial();
     app.begin();
     settings.begin();
     
@@ -49,6 +47,8 @@ void setup() {
     // Передаём HTTP клиенту флаг доступности сети из WiFiService.
     WateringHTTPClient::setWiFiOnlineProvider([]() { return wifi.isOnline(); });
     wifi.connectSync();
+    systemClock.begin();
+    systemClock.dumpStatusToSerial();
     wifi.startAsyncReconnectIfNeeded();
 
     mqttClientManager.begin();
