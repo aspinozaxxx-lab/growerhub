@@ -1,4 +1,4 @@
-name: CI firmware
+name: CI Firmware
 
 on:
   push:
