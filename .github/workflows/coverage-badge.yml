@@ -1,0 +1,80 @@
+name: Coverage Badge
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - ".github/metrics/**"
+      - ".github/workflows/coverage-badge.yml"
+  schedule:
+    - cron: "23 3 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f server/requirements.txt ]; then pip install -r server/requirements.txt; fi
+          # тестовые зависимости (на случай, если их нет в requirements.txt)
+          pip install pytest pytest-cov coverage[toml] anybadge jq
+
+      - name: Run tests with coverage
+        run: |
+          cd server
+          pytest -q --maxfail=1 --disable-warnings \
+            --cov=app --cov-report=term-missing --cov-report=xml:coverage.xml
+          cd -
+
+      - name: Extract coverage percent
+        id: cov
+        run: |
+          # Берём линийный процент из coverage.xml
+          pct=$(python - <<'PY'
+import xml.etree.ElementTree as ET, sys
+tree = ET.parse("server/coverage.xml")
+r = tree.getroot().attrib
+missed = int(r.get("lines-valid","0")) - int(r.get("lines-covered","0"))
+valid = int(r.get("lines-valid","0"))
+pct = 0 if valid==0 else round(100*(valid-missed)/valid,1)
+print(pct)
+PY
+)
+          echo "pct=${pct}" >> $GITHUB_OUTPUT
+
+      - name: Make Shields endpoint JSON
+        run: |
+          mkdir -p .github/metrics
+          m=$(printf "%.1f%%" "${{ steps.cov.outputs.pct }}")
+          # JSON через jq -n, безопасно для YAML
+          jq -n --arg m "$m" \
+            '{schemaVersion:1,label:"coverage",message:$m,color:"success"}' \
+            > .github/metrics/coverage-badge.json
+          echo "Preview:" && cat .github/metrics/coverage-badge.json
+
+      - name: (optional) Make SVG fallback
+        run: |
+          mkdir -p .github/metrics
+          anybadge --label "coverage" --value "${{ steps.cov.outputs.pct }}%" \
+            --file .github/metrics/coverage-badge.svg
+
+      - name: Commit badges
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(metrics): update coverage badge [skip ci]"
+          file_pattern: ".github/metrics/coverage-badge.*"
