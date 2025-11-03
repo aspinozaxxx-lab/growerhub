@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ]
     paths-ignore:
-      - ".github/metrics/**"
+      - ".github/metrics/**"           # чтобы автокоммит бейджа не триггерил цикл
       - ".github/workflows/loc-badge.yml"
   schedule:
     - cron: "17 3 * * 1-5"
@@ -21,10 +21,40 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
+
       - name: Install cloc (portable) & jq
         run: |
           curl -L https://github.com/AlDanial/cloc/releases/download/v1.98/cloc-1.98.pl -o cloc
           chmod +x cloc
           sudo mv cloc /usr/local/bin/cloc
           sudo apt-get update && sudo apt-get install -y --no-install-recommends jq
+
+      - name: Compute LOC (cloc)
+        run: |
+          mkdir -p .github/metrics
+          cloc --json --vcs=git . > .github/metrics/cloc.json
+          echo "cloc.json created:"
+          ls -la .github/metrics
+
+      - name: Build badge JSON
+        run: |
+          total=$(jq '.SUM.code // 0' .github/metrics/cloc.json)
+          msg=$(python3 - "$total" <<'PY'
+import sys
+n = int(float(sys.argv[1] or 0))
+print(f"{n/1_000_000:.1f}M" if n >= 1_000_000 else (f"{n/1_000:.1f}k" if n >= 1_000 else str(n)))
+PY
+)
+          cat > .github/metrics/loc-badge.json <<EOF
+{ "schemaVersion": 1, "label": "lines of code", "message": "${msg}", "color": "informational" }
+EOF
+          echo "loc-badge.json created:"
+          ls -la .github/metrics
+          echo "Preview:"
+          cat .github/metrics/loc-badge.json
+
+      - name: Commit badge
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(metrics): update LOC badge [skip ci]"
+          file_pattern: ".github/metrics/*.json"
