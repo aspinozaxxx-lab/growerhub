@@ -9,8 +9,6 @@
 ![Ansible](https://img.shields.io/badge/ansible-automation-black?logo=ansible)
 ![FastAPI](https://img.shields.io/badge/fastapi-uvicorn%2Bgunicorn-009688?logo=fastapi)<br>
 ![Last Commit](https://img.shields.io/github/last-commit/aspinozaxxx-lab/growerhub)
-
-
 ![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faspinozaxxx-lab%2Fgrowerhub%2Fmain%2F.github%2Fmetrics%2Fcoverage-badge.json)
 
 
