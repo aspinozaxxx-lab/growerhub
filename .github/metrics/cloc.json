@@ -1,0 +1,68 @@
+{"header" : {
+  "cloc_url"           : "github.com/AlDanial/cloc",
+  "cloc_version"       : "1.98",
+  "elapsed_seconds"    : 0.111361980438232,
+  "n_files"            : 137,
+  "n_lines"            : 11388,
+  "files_per_second"   : 1230.22237446637,
+  "lines_per_second"   : 102261.112411847},
+"C++" :{
+  "nFiles": 27,
+  "blank": 601,
+  "comment": 158,
+  "code": 3048},
+"Python" :{
+  "nFiles": 33,
+  "blank": 824,
+  "comment": 310,
+  "code": 2366},
+"YAML" :{
+  "nFiles": 26,
+  "blank": 163,
+  "comment": 65,
+  "code": 926},
+"C/C++ Header" :{
+  "nFiles": 32,
+  "blank": 226,
+  "comment": 65,
+  "code": 905},
+"HTML" :{
+  "nFiles": 2,
+  "blank": 79,
+  "comment": 0,
+  "code": 736},
+"Markdown" :{
+  "nFiles": 8,
+  "blank": 142,
+  "comment": 0,
+  "code": 543},
+"Ruby" :{
+  "nFiles": 1,
+  "blank": 17,
+  "comment": 9,
+  "code": 94},
+"INI" :{
+  "nFiles": 4,
+  "blank": 9,
+  "comment": 4,
+  "code": 60},
+"Text" :{
+  "nFiles": 2,
+  "blank": 0,
+  "comment": 0,
+  "code": 15},
+"Bourne Shell" :{
+  "nFiles": 1,
+  "blank": 2,
+  "comment": 1,
+  "code": 10},
+"make" :{
+  "nFiles": 1,
+  "blank": 3,
+  "comment": 0,
+  "code": 7},
+"SUM": {
+  "blank": 2066,
+  "comment": 612,
+  "code": 8710,
+  "nFiles": 137} }
