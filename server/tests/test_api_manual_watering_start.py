@@ -38,7 +38,7 @@ from app.mqtt.interfaces import IMqttPublisher
 
 
 class FakePublisher(IMqttPublisher):
-    """╨в╨╡╤Б╤В╨╛╨▓╤Л╨╣ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А, ╨║╨╛╤В╨╛╤А╤Л╨╣ ╨┐╤А╨╛╤Б╤В╨╛ ╨╜╨░╨║╨░╨┐╨╗╨╕╨▓╨░╨╡╤В ╨╛╨┐╤Г╨▒╨╗╨╕╨║╨╛╨▓╨░╨╜╨╜╤Л╨╡ ╨║╨╛╨╝╨░╨╜╨┤╤Л."""
+    """Feikovyi MQTT-pablisher dlya testa starta manual watering."""
 
     def __init__(self) -> None:
         self.published: list[tuple[str, CmdPumpStart]] = []
@@ -50,11 +50,11 @@ class FakePublisher(IMqttPublisher):
 def test_manual_watering_start_endpoint():
     """Proveryaet chto endpoint start publikuet pump.start i vozvrashaet correlation_id."""
 
-    # ╨Я╨╛╨┤╨╝╨╡╨╜╤П╨╡╨╝ ╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╤М ╨╜╨░ ╨╜╨░╤И ╤Д╨╡╨╣╨║╨╛╨▓╤Л╨╣ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А, ╤З╤В╨╛╨▒╤Л ╨╜╨╡ ╨╛╨▒╤А╨░╤Й╨░╤В╤М╤Б╤П ╨║ ╤А╨╡╨░╨╗╤М╨╜╨╛╨╝╤Г ╨▒╤А╨╛╨║╨╡╤А╤Г.
+    # Podmenyaem zavisimost na nash feikovyi publisher, chtoby ne obraschatsya k realnomu brokeru.
     fake = FakePublisher()
     app.dependency_overrides[get_mqtt_dep] = lambda: fake
 
-    # ╨Ю╤В╨┐╤А╨░╨▓╨╗╤П╨╡╨╝ ╨╖╨░╨┐╤А╨╛╤Б ╨╜╨░ ╨╖╨░╨┐╤Г╤Б╨║ ╨┐╨╛╨╗╨╕╨▓╨░ ╨╕ ╤Б╨╛╤Е╤А╨░╨╜╤П╨╡╨╝ ╨╛╤В╨▓╨╡╤В.
+    # Otpravlyaem zapros na start poliva i poluchaem otvet.
     with TestClient(app) as client:
         response = client.post(
             "/api/manual-watering/start",
@@ -63,13 +63,13 @@ def test_manual_watering_start_endpoint():
 
     app.dependency_overrides.clear()
 
-    # ╨Я╤А╨╛╨▓╨╡╤А╤П╨╡╨╝, ╤З╤В╨╛ ╤Б╨╡╤А╨▓╨╡╤А ╨▓╨╡╤А╨╜╤Г╨╗ ╤Г╤Б╨┐╨╡╤И╨╜╤Л╨╣ ╤Б╤В╨░╤В╤Г╤Б ╨╕ ╨▓╤Л╨┤╨░╨╗ ╨║╨╛╤А╤А╨╡╨╗╤П╤Ж╨╕╨╛╨╜╨╜╤Л╨╣ ╨╕╨┤╨╡╨╜╤В╨╕╤Д╨╕╨║╨░╤В╨╛╤А.
+    # Ubezhdaemsya chto otvet uspeshnyi i vydan correlation_id.
     assert response.status_code == 200
     data = response.json()
     correlation_id = data.get("correlation_id")
     assert isinstance(correlation_id, str) and correlation_id
 
-    # ╨г╨▒╨╡╨╢╨┤╨░╨╡╨╝╤Б╤П, ╤З╤В╨╛ ╨┐╤Г╨▒╨╗╨╕╨║╨░╤Ж╨╕╤П ╤А╨╛╨▓╨╜╨╛ ╨╛╨┤╨╜╨░ ╨╕ ╨▓ ╨╜╨╡╤С ╨┐╨╛╨┐╨░╨╗ ╨╛╨╢╨╕╨┤╨░╨╡╨╝╤Л╨╣ ╨╜╨░╨▒╨╛╤А ╨┤╨░╨╜╨╜╤Л╤Е.
+    # Proveryaem chto publikaciya rovno odna i s ozhidaemymi dannymi.
     assert len(fake.published) == 1
     device_id, cmd = fake.published[0]
     assert device_id == "abc123"

@@ -22,7 +22,7 @@ def test_extract_device_id_from_state_topic_invalid():
 
 
 class FakeMessage:
-    """╨Ь╨╕╨╜╨╕╨╝╨░╨╗╤М╨╜╨░╤П ╨╖╨░╨│╨╗╤Г╤И╨║╨░ MQTT-╤Б╨╛╨╛╨▒╤Й╨╡╨╜╨╕╤П ╨┤╨╗╤П ╨▓╤Л╨╖╨╛╨▓╨░ on_message."""
+    """Minimalnyy analog MQTT soobshcheniya dlya vyzova on_message."""
 
     def __init__(self, topic: str, payload: bytes) -> None:
         self.topic = topic
@@ -47,7 +47,7 @@ def test_on_message_updates_store_running_state():
     """Proveryaet chto soobshchenie running obnovlyaet shadow store."""
 
     store = DeviceShadowStore()
-    subscriber = MqttStateSubscriber(store, client_factory=lambda: None)  # ╤Д╨░╨▒╤А╨╕╨║╨░ ╨╜╨╡ ╨╕╤Б╨┐╨╛╨╗╤М╨╖╤Г╨╡╤В╤Б╤П ╨▓ ╤В╨╡╤Б╤В╨╡
+    subscriber = MqttStateSubscriber(store, client_factory=lambda: None)  # Fabrika ne ispolzuetsya v teste
 
     started_at = datetime.now(timezone.utc) - timedelta(seconds=5)
     payload = _make_state_payload(ManualWateringStatus.running, 20, started_at, "corr-1")

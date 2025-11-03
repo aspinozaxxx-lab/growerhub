@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## [2025-11-02] Tests translit cleanup
+- docs(tests, manual_watering): kommentarii i dokstringi perevedeny v russkiy translit; logika bez izmeneniy
+- pytest: 32 passed
+
 ## [2025-11-02] FastAPI package rename
 - refactor(server): pereimenovan katalog app/api v app/fastapi, vse importy obnovleny
 - pytest: 32 passed

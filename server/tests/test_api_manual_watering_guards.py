@@ -60,7 +60,7 @@ from app.mqtt.serialization import CmdPumpStart, CmdPumpStop, CommandType
 
 
 class FakePublisher(IMqttPublisher):
-    """╨д╨╡╨╣╨║╨╛╨▓╤Л╨╣ MQTT-╨┐╨░╨▒╨╗╨╕╤И╨╡╤А: ╨╖╨░╨┐╨╛╨╝╨╕╨╜╨░╨╡╤В ╨┐╤Г╨▒╨╗╨╕╨║╤Г╨╡╨╝╤Л╨╡ ╨║╨╛╨╝╨░╨╜╨┤╤Л ╨▓╨╝╨╡╤Б╤В╨╛ ╤А╨╡╨░╨╗╤М╨╜╨╛╨│╨╛ ╨▒╤А╨╛╨║╨╡╤А╨░."""
+    """Feikovyi MQTT-pablisher: zapominaet publikuyemye komandy vmesto realnogo brokera."""
 
     def __init__(self) -> None:
         self.published: list[tuple[str, CmdPumpStart | CmdPumpStop]] = []
@@ -72,7 +72,7 @@ class FakePublisher(IMqttPublisher):
 
 
 class _DummySubscriber:
-    """╨Ч╨░╨│╨╗╤Г╤И╨║╨░ ╨┤╨╗╤П MQTT-╨┐╨╛╨┤╨┐╨╕╤Б╤З╨╕╨║╨╛╨▓, ╤З╤В╨╛╨▒╤Л ╨▓╤Л╨║╨╗╤О╤З╨╕╤В╤М ╤А╨╡╨░╨╗╤М╨╜╤Л╨╡ ╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╕╤П ╨╜╨░ ╤Б╤В╨░╤А╤В╨╡ ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╤П."""
+    """Zaglushka dlya MQTT-podpischikov na starte prilozheniya bez realnogo podklyucheniya."""
 
     def start(self) -> None:
         """Zaglushka start: nichego ne delaet v testovom kliente."""
@@ -89,8 +89,8 @@ def manual_watering_client(fake_publisher: FakePublisher) -> Iterator[TestClient
     dummy_state = _DummySubscriber()
     dummy_ack = _DummySubscriber()
 
-    # ╨Э╨░ ╤Н╤В╨░╨┐╨╡ ╤Б╤В╨░╤А╤В╨░ FastAPI ╨╕╨╜╨╕╤Ж╨╕╨░╨╗╨╕╨╖╨╕╤А╤Г╨╡╤В MQTT-╨┐╨╛╨┤╨┐╨╕╤Б╤З╨╕╨║╨╛╨▓ ╨╕ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А тАФ ╨┐╨╛╨┤╨╝╨╡╨╜╤П╨╡╨╝ ╨╜╨░ ╨╖╨░╨│╨╗╤Г╤И╨║╨╕,
-    # ╤З╤В╨╛╨▒╤Л ╤В╨╡╤Б╤В╤Л ╨╜╨╡ ╤Е╨╛╨┤╨╕╨╗╨╕ ╨▓ ╤Б╨╡╤В╤М ╨╕ ╨╜╨╡ ╨╖╨░╨▓╨╕╤Б╨╡╨╗╨╕ ╨╛╤В ╨▒╤А╨╛╨║╨╡╤А╨░.
+    # Na etape starta FastAPI inicializiruet MQTT-podpischikov i publisher, patchim na zaglushki,
+    # chtoby testy ne delali realnoe podklyuchenie i ne zaviseli ot brokera.
     stack.enter_context(patch("app.main.init_publisher", lambda: None))
     stack.enter_context(patch("app.mqtt.lifecycle.init_state_subscriber", lambda store: None))
     stack.enter_context(patch("app.mqtt.lifecycle.get_state_subscriber", lambda: dummy_state))
@@ -100,7 +100,7 @@ def manual_watering_client(fake_publisher: FakePublisher) -> Iterator[TestClient
     stack.enter_context(patch("app.mqtt.lifecycle.shutdown_ack_subscriber", lambda: None))
     stack.enter_context(patch("app.mqtt.lifecycle.shutdown_publisher", lambda: None))
 
-    # ╨Я╨╛╨┤╨╝╨╡╨╜╤П╨╡╨╝ MQTT-╨╖╨░╨▓╨╕╤Б╨╕╨╝╨╛╤Б╤В╤М ╨▓ ╤А╨╛╤Г╤В╨╡╤А╨╡ ╨╜╨░ ╨╜╨░╤И ╤Д╨╡╨╣╨║╨╛╨▓╤Л╨╣ ╨┐╨░╨▒╨╗╨╕╤И╨╡╤А.
+    # Podmenyaem MQTT-zavisimost v routere na nash feikovyi pablisher.
     app.dependency_overrides[get_mqtt_dep] = lambda: fake_publisher
 
     try:
@@ -141,7 +141,7 @@ def _iso_now() -> str:
 
 
 def test_manual_watering_start_conflict_when_running() -> None:
-    """Proveryaet chto povtornyi start pri status running vozvrashaet HTTP 409 i ne publikuet komandу."""
+    """Proveryaet chto povtornyi start pri status running vozvrashaet HTTP 409 i ne publikuet komandu."""
 
     fake = FakePublisher()
     device_id = "guard-start-running"
@@ -168,7 +168,7 @@ def test_manual_watering_start_conflict_when_running() -> None:
 
 
 def test_manual_watering_stop_conflict_when_idle() -> None:
-    """Proveryaet chto stop pri idle vozvrashaet HTTP 409 i komandа ne uhodit."""
+    """Proveryaet chto stop pri idle vozvrashaet HTTP 409 i komanda ne uhodit."""
 
     fake = FakePublisher()
     device_id = "guard-stop-idle"

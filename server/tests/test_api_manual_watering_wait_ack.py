@@ -1,4 +1,4 @@
-﻿"""ACK не получен в заданное время"""
+﻿"""ACK ne poluchen v zadannoe vremya"""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ from app.mqtt.serialization import Ack, AckResult  # noqa: E402
 
 
 class _DummySubscriber:
-    """╨Ч╨░╨│╨╗╤Г╤И╨║╨░ ╨┤╨╗╤П MQTT-╤Б╨░╨▒╤Б╨║╤А╨░╨╣╨▒╨╡╤А╨╛╨▓: ╨╜╨╡ ╨┤╨╡╨╗╨░╨╡╤В ╨╜╨╕╤З╨╡╨│╨╛, ╨╜╨╛ ╤Г╨┤╨╛╨▓╨╗╨╡╤В╨▓╨╛╤А╤П╨╡╤В ╨╕╨╜╤В╨╡╤А╤Д╨╡╨╣╤Б."""
+    """Zaglushka dlya MQTT-podpischikov v testah ack: nichego ne delaet."""
 
     def start(self) -> None:
         """Zaglushka start: nichego ne delaet v testovom MQTT kliente."""
@@ -98,7 +98,7 @@ def wait_ack_client(store: AckStore) -> Iterator[TestClient]:
 
 
 def _make_ack(correlation_id: str, *, result: AckResult = AckResult.accepted) -> Ack:
-    """Sozdaet prostoy ack obekt s ukazannym rezultatом."""
+    """Sozdaet prostoy ack obekt s ukazannym rezultatom."""
 
     return Ack(correlation_id=correlation_id, result=result)
 

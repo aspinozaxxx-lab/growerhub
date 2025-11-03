@@ -24,7 +24,7 @@ def test_extract_device_id_from_ack_topic_invalid():
 
 
 class FakeAckMessage:
-    """??????????? ???????? MQTT-????????? ??? ???????????? on_message."""
+    """Minimalnyy analog MQTT-soobshcheniya dlya vyzova on_message."""
 
     def __init__(self, topic: str, payload: bytes) -> None:
         self.topic = topic
@@ -63,11 +63,11 @@ def test_ack_api_returns_data_when_present():
     """Proveryaet HTTP API ack kogda dannye dostupny."""
 
     with TestClient(app) as client:
-        # ??????????? correlation_id -> 404
+        # Proveryaem chto otsutstvuyushchiy correlation_id daet 404
         response = client.get("/api/manual-watering/ack", params={"correlation_id": "missing"})
         assert response.status_code == 404
 
-        # ????? ACK ? ???? ? ????????? JSON-?????
+        # Dobavlyaem ACK v store i proveryaem JSON-otvet
         store = get_ack_store()
         ack = Ack(
             correlation_id="corr-2",
@@ -85,7 +85,7 @@ def test_ack_api_returns_data_when_present():
         assert data["reason"] == "pump jammed"
         assert data["status"] == ManualWateringStatus.idle.value
 
-        # ???????, ????? ?? ?????? ?? ?????? ?????.
+        # Chistim store chtoby ne povtorno ispolzovat dannye
         store.cleanup(max_age_seconds=0)
 
 
@@ -99,7 +99,7 @@ def test_ack_store_cleanup_removes_old_entries():
     store.put("dev", recent_ack)
     store.put("dev", old_ack)
 
-    # ????????????? ?????? ?????? ??????
+    # Starim zapisi v store dlya proverki ochistki
     threshold = datetime.utcnow() - timedelta(seconds=10)
     store._storage["old"] = (  # type: ignore[attr-defined]
         store._storage["old"][0],  # type: ignore[attr-defined]

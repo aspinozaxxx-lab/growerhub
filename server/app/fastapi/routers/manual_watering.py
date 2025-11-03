@@ -277,15 +277,15 @@ if settings.DEBUG:
         device_id: str,
         store: DeviceShadowStore = Depends(get_shadow_dep),
     ) -> dict:
-        """Vozvrashaet syroe i agregirovannoe sostoyanie manualnogo poliva dlya otladki."""
+        """Vozvrashaet syroe i agregirovannoe sostoyanie manualnogo poliva dlya otladki.
+
+        offline_reason pomogaet frontendu prinyat reshenie:
+        * None - ustroystvo onlayn, knopki mozhno nazimat.
+        * "device_offline" - ustroystvo izvestno, no seychas ne na svyazi.
+        * "no_state_yet" - server eshche ne videl state ot ustroystva, zhdem pervogo podklyucheniya.
+        """
 
         raw_data = store.debug_dump(device_id)
         view = store.get_manual_watering_view(device_id)
         return {"raw": raw_data, "view": view}
 
-    """Vozvrashaet dannye dlya progress-bara i statusa ustroystva.
-
-    offline_reason pomogaet frontendu prinyat reshenie:
-      * None - ustroystvo onlayn, knopki mozhno nazimat.
-      * "device_offline" - ustroystvo izvestno, no seychas ne na svyazi.
-      * "no_state_yet" - server eshche ne videl state ot ustroystva, zhdyom pervogo podklyucheniya.

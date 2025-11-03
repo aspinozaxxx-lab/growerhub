@@ -1,4 +1,4 @@
-﻿"""Тесты API статуса ручного полива: заботимся о прогрессе и признаке онлайна."""
+﻿"""Testy API statusa ruchnogo poliva: zabotimsya o progresse i priznake onlayna."""
 
 from __future__ import annotations
 
