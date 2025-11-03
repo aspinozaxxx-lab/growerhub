@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 ## [2025-11-02] Tests translit cleanup
 - docs(tests, manual_watering): kommentarii i dokstringi perevedeny v russkiy translit; logika bez izmeneniy
@@ -24,106 +24,106 @@
 ## [2025-11-02] MQTT modules relocate
 - refactor(server/mqtt): perenos v app/api/routers/mqtt s prokladkami dlya sovmestimosti
 - peremeshcheny: mqtt/{__init__.py,config.py,interfaces.py,topics.py,serialization.py,store.py,client.py,router.py,lifecycle.py}; mqtt/handlers/{__init__.py,ack.py,device_state.py}
-- obnovleny prokladki v server/app/api/routers/mqtt/* i server/device_shadow.py dlya sokhraneniya staryh importov bez lomki API
+- obnovleny prokladki v server/service/mqtt/* i server/device_shadow.py dlya sokhraneniya staryh importov bez lomki API
 - riski: global'nye singltony init/shutdown i dvoinaya inic., mitigaciya cherez aliasy sys.modules + pytest 32 testa
 
 ## [2025-11-01] Cleanup warnings and improve API docs
-- РЈСЃС‚СЂР°РЅРµРЅС‹ РёР»Рё РїРѕРґР°РІР»РµРЅС‹ 44 РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёСЏ (Deprecation/SQLAlchemy/Pydantic/Pytest).
-- Р”РѕР±Р°РІР»РµРЅ pytest.ini СЃ С„РёР»СЊС‚СЂР°С†РёРµР№ Р»РёС€РЅРёС… РїСЂРµРґСѓРїСЂРµР¶РґРµРЅРёР№.
-- README_API.md РґРѕРїРѕР»РЅРµРЅ С‚Р°Р±Р»РёС†РµР№ В«endpoint в†’ С„Р°Р№Р» СЂРѕСѓС‚РµСЂР°В».
-- РўРµСЃС‚С‹ СѓСЃРїРµС€РЅРѕ РїСЂРѕС…РѕРґСЏС‚ Р±РµР· РІР°СЂРЅРёРЅРіРѕРІ.
+- Ustraneny ili podavleny 44 preduprezhdeniya (Deprecation/SQLAlchemy/Pydantic/Pytest).
+- Dobavlen pytest.ini s filtratsiey lishnikh preduprezhdeniy.
+- README_API.md dopolnen tablitsey "endpoint -> fayl routera".
+- Testy uspeshno prokhodyat bez varningov.
 
 
 ## [2025-10-31] Tests fixed after router refactor
-- РСЃРїСЂР°РІР»РµРЅС‹ РїСѓС‚Рё РёРјРїРѕСЂС‚РѕРІ РІ С‚РµСЃС‚Р°С… (`api_manual_watering` в†’ `app.fastapi.routers.manual_watering`).
-- РЈРґР°Р»РµРЅС‹ СѓСЃС‚Р°СЂРµРІС€РёРµ С‚РµСЃС‚С‹, РЅРµР°РєС‚СѓР°Р»СЊРЅС‹Рµ РїРѕСЃР»Рµ СЂРµС„Р°РєС‚РѕСЂРёРЅРіР°.
-- РўРµСЃС‚С‹ СѓСЃРїРµС€РЅРѕ РїСЂРѕС…РѕРґСЏС‚ РЅР° РІРµС‚РєРµ `origin/main`.
+- Ispravleny puti importov v testakh (`api_manual_watering` -> `app.api.routers.manual_watering`).
+- Udaleny ustarevshie testy, neaktualnye posle refaktoringa.
+- Testy uspeshno prokhodyat na vetke `origin/main`.
 
 ## [2025-10-31] FastAPI main cleanup
-- Р—Р°РІРµСЂС€РµРЅР° С‡РёСЃС‚РєР° main.py: РёРјРїРѕСЂС‚-С‚Р°Р№Рј create_tables() СѓРґР°Р»С‘РЅ, РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Р‘Р” С‚РµРїРµСЂСЊ РїСЂРѕРёСЃС…РѕРґРёС‚ РІ startup. РџРѕРІРµРґРµРЅРёРµ API Рё URL РЅРµРёР·РјРµРЅРЅС‹.
+- Zavershena chistka main.py: import-taym create_tables() udalyon, initsializatsiya BD teper proiskhodit v startup. Povedenie API i URL neizmenny.
 
 
 ## [2025-10-31] FastAPI routers layout
-- Р’С‹РЅРµСЃРµРЅС‹ HTTP-СЌРЅРґРїРѕР№РЅС‚С‹ РІ РѕС‚РґРµР»СЊРЅС‹Рµ СЂРѕСѓС‚РµСЂС‹: manual_watering.py, devices.py, history.py, firmware.py. Р’ main.py РѕСЃС‚Р°Р»РёСЃСЊ С‚РѕР»СЊРєРѕ С‚РѕС‡РєР° РІС…РѕРґР°, СЃРѕР±С‹С‚РёСЏ Рё СЃС‚Р°С‚РёРєР°. РљРѕРЅС‚СЂР°РєС‚С‹ Рё URL Р±РµР· РёР·РјРµРЅРµРЅРёР№.
+- Vyneseny HTTP-endpoynty v otdelnye routery: manual_watering.py, devices.py, history.py, firmware.py. V main.py ostalis tolko tochka vkhoda, sobytiya i statika. Kontrakty i URL bez izmeneniy.
 
 ## [2025-10-31] FastAPI smoke checks and docs
-- РџСЂРѕРІРµСЂРµРЅС‹ С‚РµСЃС‚С‹/СЃРјРѕСѓРє-РїСЂРѕРІРµСЂРєР° РїРѕСЃР»Рµ РІС‹РЅРѕСЃР° СЂРѕСѓС‚РµСЂРѕРІ; РґРѕР±Р°РІР»РµРЅС‹ OpenAPI-С‚РµРіРё РґР»СЏ РіСЂСѓРїРїРёСЂРѕРІРєРё; РґРѕР±Р°РІР»РµРЅ README_API.md. РљРѕРЅС‚СЂР°РєС‚С‹ РЅРµ РёР·РјРµРЅСЏР»РёСЃСЊ.
+- Provereny testy/smouk-proverka posle vynosa routerov; dobavleny OpenAPI-tegi dlya gruppirovki; dobavlen README_API.md. Kontrakty ne izmenyalis.
 
 ## [2025-10-31] FastAPI startup safety net
-- Р¦РµР»СЊ: РїРѕРґРіРѕС‚РѕРІРёС‚СЊ РїРµСЂРµРЅРѕСЃ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё Р‘Р” РІ `startup`, РЅРµ Р»РѕРјР°СЏ С‚РµРєСѓС‰РёРµ С‚РµСЃС‚С‹ Рё РѕРєСЂСѓР¶РµРЅРёРµ.
-- Р’СЃС‚Р°РІР»РµРЅ РґСѓР±Р»РёСЂСѓСЋС‰РёР№ РІС‹Р·РѕРІ `create_tables()` РІ `@app.on_event("startup")` СЃ Р±РµР·РѕРїР°СЃРЅС‹Рј Р»РѕРіРёСЂРѕРІР°РЅРёРµРј РїСЂРё РїРѕРІС‚РѕСЂРµ; РёРјРїРѕСЂС‚-time РІС‹Р·РѕРІ РѕСЃС‚Р°РІР»РµРЅ Р±РµР· РёР·РјРµРЅРµРЅРёР№.
-- РЎРѕРІРјРµСЃС‚РёРјРѕСЃС‚СЊ API Рё С‚РµСЃС‚РѕРІ СЃРѕС…СЂР°РЅРµРЅР°.
+- Tsel: podgotovit perenos initsializatsii BD v `startup`, ne lomaya tekuschie testy i okruzhenie.
+- Vstavlen dubliruyuschiy vyzov `create_tables()` v `@app.on_event("startup")` s bezopasnym logirovaniem pri povtore; import-time vyzov ostavlen bez izmeneniy.
+- Sovmestimost API i testov sokhranena.
 
-## [2025-10-30] MQTT refactor вЂ” summary
-- РџСЂРѕРІРµРґС‘РЅ РїРѕР»РЅС‹Р№ СЂРµС„Р°РєС‚РѕСЂРёРЅРі MQTT-РїРѕРґСЃРёСЃС‚РµРјС‹: РєРѕРґ РїРµСЂРµРЅРµСЃС‘РЅ РІ `server/app/api/routers/mqtt/`.
-- Р Р°Р·РґРµР»РµРЅС‹ СѓСЂРѕРІРЅРё:
-  - `topics.py`, `serialization.py`, `interfaces.py`, `config.py` вЂ” РїСЂРѕС‚РѕРєРѕР» Рё Р±Р°Р·РѕРІС‹Рµ С‚РёРїС‹.
-  - `client.py`, `lifecycle.py` вЂ” РїСѓР±Р»РёРєР°С†РёСЏ Рё Р¶РёР·РЅРµРЅРЅС‹Р№ С†РёРєР» РєР»РёРµРЅС‚Р°.
-  - `router.py`, `handlers/` вЂ” РјР°СЂС€СЂСѓС‚РёР·Р°С†РёСЏ Рё РѕР±СЂР°Р±РѕС‚С‡РёРєРё РїРѕРґРїРёСЃРѕРє.
-  - `store.py` вЂ” СЃС‚РѕСЂС‹ РґР»СЏ ACK Рё С‚РµРЅРµРІС‹С… СЃРѕСЃС‚РѕСЏРЅРёР№.
-- РћР±РЅРѕРІР»РµРЅС‹ РёРјРїРѕСЂС‚С‹ Рё С‚РµСЃС‚С‹, РґРѕРєСѓРјРµРЅС‚Р°С†РёСЏ `docs/manual_watering_protocol.md`.
-- РџСЂРѕС‚РѕРєРѕР» MQTT Рё С„РѕСЂРјР°С‚С‹ JSON РЅРµ РёР·РјРµРЅСЏР»РёСЃСЊ.
-- Р’СЃРµ С‚РµСЃС‚С‹ СѓСЃРїРµС€РЅРѕ РїСЂРѕС…РѕРґСЏС‚ (`pytest -q` Р·РµР»С‘РЅС‹Р№).
+## [2025-10-30] MQTT refactor - summary
+- Provedyon polnyy refaktoring MQTT-podsistemy: kod perenesyon v `server/service/mqtt/`.
+- Razdeleny urovni:
+  - `topics.py`, `serialization.py`, `interfaces.py`, `config.py` - protokol i bazovye tipy.
+  - `client.py`, `lifecycle.py` - publikatsiya i zhiznennyy tsikl klienta.
+  - `router.py`, `handlers/` - marshrutizatsiya i obrabotchiki podpisok.
+  - `store.py` - story dlya ACK i tenevykh sostoyaniy.
+- Obnovleny importy i testy, dokumentatsiya `docs/manual_watering_protocol.md`.
+- Protokol MQTT i formaty JSON ne izmenyalis.
+- Vse testy uspeshno prokhodyat (`pytest -q` zelyonyy).
 
-## [2025-10-30] MQTT refactor вЂ” step 8
-- РЈРґР°Р»РµРЅС‹ СЃРѕРІРјРµСЃС‚РёРјС‹Рµ РјРѕРґСѓР»Рё server/mqtt_*.py, РІСЃРµ РёРјРїРѕСЂС‚С‹ РїРµСЂРµРІРµРґРµРЅС‹ РЅР° server/app/api/routers/mqtt.
-- РћР±РЅРѕРІР»РµРЅС‹ server/app/main.py, С‚РµСЃС‚С‹ Рё РґРѕРєСѓРјРµРЅС‚Р°С†РёСЏ manual_watering РЅР° РЅРѕРІСѓСЋ Р°СЂС…РёС‚РµРєС‚СѓСЂСѓ.
-- Р¦РµР»СЊ: Р·Р°РІРµСЂС€РёС‚СЊ РјРёРіСЂР°С†РёСЋ MQTT-СЃР»РѕСЏ, РѕСЃС‚Р°РІРёС‚СЊ РµРґРёРЅС‹Р№ СЃРµСЂРІРёСЃРЅС‹Р№ С„Р°СЃР°Рґ Рё Р°РєС‚СѓР°Р»СЊРЅСѓСЋ РґРѕРєСѓРјРµРЅС‚Р°С†РёСЋ.
+## [2025-10-30] MQTT refactor - step 8
+- Udaleny sovmestimye moduli server/mqtt_*.py, vse importy perevedeny na server/service/mqtt.
+- Obnovleny server/app/main.py, testy i dokumentatsiya manual_watering na novuyu arkhitekturu.
+- Tsel: zavershit migratsiyu MQTT-sloya, ostavit edinyy servisnyy fasad i aktualnuyu dokumentatsiyu.
 
 ## [2025-10-26] FastAPI MQTT lifecycle integration
-- FastAPI startup/shutdown С‚РµРїРµСЂСЊ РёСЃРїРѕР»СЊР·СѓСЋС‚ С„Р°СЃР°РґС‹ app.mqtt.lifecycle РІРјРµСЃС‚Рѕ СЂСѓС‡РЅРѕРіРѕ РІС‹Р·РѕРІР° РїРѕРґРїРёСЃС‡РёРєРѕРІ.
-- API manual_watering РїРµСЂРµРІРµРґС‘РЅ РЅР° app.mqtt.interfaces.IMqttPublisher Рё РЅРѕРІС‹Рµ СЃС‚РѕСЂР°Р¶Рё; С‚РµСЃС‚С‹ РїР°С‚С‡Р°С‚ lifecycle/store.
+- FastAPI startup/shutdown teper ispolzuyut fasady service.mqtt.lifecycle vmesto ruchnogo vyzova podpischikov.
+- API manual_watering perevedyon na service.mqtt.interfaces.IMqttPublisher i novye storazhi; testy patchat lifecycle/store.
 
 ## [2025-10-26] MQTT serialization cleanup
-- РЈРґР°Р»РµРЅС‹ РёР·Р±С‹С‚РѕС‡РЅС‹Рµ С„СѓРЅРєС†РёРё deserialize_* Рё С‚РµСЃС‚С‹ РїРµСЂРµРІРµРґРµРЅС‹ РЅР° РїСЂСЏРјРѕР№ model_validate_json.
-- РЎРѕРІРјРµСЃС‚РёРјС‹Р№ РјРѕРґСѓР»СЊ mqtt_protocol.py Рё С‚РµСЃС‚С‹ РїСЂРёРІРµРґРµРЅС‹ Рє РЅРѕРІС‹Рј API, СЃС‚СЂРѕРєРё РѕС‚РІРµС‚РѕРІ РЅРѕСЂРјР°Р»РёР·РѕРІР°РЅС‹.
+- Udaleny izbytochnye funktsii deserialize_* i testy perevedeny na pryamoy model_validate_json.
+- Sovmestimyy modul mqtt_protocol.py i testy privedeny k novym API, stroki otvetov normalizovany.
 
 ## [2025-10-26] MQTT store refactor (Ack/Shadow)
-- AckStore Рё DeviceShadowStore РїРµСЂРµРЅРµСЃРµРЅС‹ РІ app/api/routers/mqtt/store.py СЃ РµРґРёРЅС‹Рј СѓРїСЂР°РІР»РµРЅРёРµРј РёРЅРёС†РёР°Р»РёР·Р°С†РёРµР№.
-- lifecycle С‚РµРїРµСЂСЊ СѓРїСЂР°РІР»СЏРµС‚ Р·Р°РїСѓСЃРєРѕРј/РѕСЃС‚Р°РЅРѕРІРєРѕР№ СЃС‚РѕСЂР°Р¶РµР№ Рё РїРѕРґРїРёСЃС‡РёРєРѕРІ, API Рё С‚РµСЃС‚С‹ РїРµСЂРµРІРµРґРµРЅС‹ РЅР° РЅРѕРІС‹Рµ РёРјРїРѕСЂС‚С‹.
-- Р”РѕРєС‚РµСЃС‚С‹/РѕР¶РёРґР°РЅРёСЏ РѕР±РЅРѕРІР»РµРЅС‹ РЅР° РЅРѕСЂРјР°Р»СЊРЅС‹Рµ СЃС‚СЂРѕРєРё РѕС€РёР±РѕРє Рё СЃРѕРІРјРµСЃС‚РёРјС‹Рµ РїР°С‚С‡Рё.
+- AckStore i DeviceShadowStore pereneseny v service/mqtt/store.py s edinym upravleniem initsializatsiey.
+- lifecycle teper upravlyaet zapuskom/ostanovkoy storazhey i podpischikov, API i testy perevedeny na novye importy.
+- Doktesty/ozhidaniya obnovleny na normalnye stroki oshibok i sovmestimye patchi.
 
 ## [2025-10-26] MQTT router refactor (subscribers)
 
-- Р›РѕРіРёРєР° РїРѕРґРїРёСЃС‡РёРєРѕРІ Рё РѕР±СЂР°Р±РѕС‚С‡РёРєРѕРІ РІС‹РЅРµСЃРµРЅР° РІ app/api/routers/mqtt/router.py Рё app/api/routers/mqtt/handlers/ (ACK/state, РїР°СЂСЃРёРЅРі С‚РѕРїРёРєРѕРІ Рё payload).
-- app/api/routers/mqtt/lifecycle.py С‚РµРїРµСЂСЊ СѓРїСЂР°РІР»СЏРµС‚ Р·Р°РїСѓСЃРєРѕРј/РѕСЃС‚Р°РЅРѕРІРєРѕР№ РїРѕРґРїРёСЃС‡РёРєРѕРІ С‡РµСЂРµР· СЃС‚Р°СЂС‚/СЃС‚РѕРї С„Р°СЃР°РґС‹.
-- server/mqtt_subscriber.py РѕСЃС‚Р°РІР»РµРЅ РєР°Рє СЃРѕРІРјРµСЃС‚РёРјР°СЏ РїСЂРѕРєР»Р°РґРєР° РґР»СЏ СЃС‚Р°СЂС‹С… РёРјРїРѕСЂС‚РѕРІ Рё С‚РµСЃС‚РѕРІ.
+- Logika podpischikov i obrabotchikov vynesena v service/mqtt/router.py i service/mqtt/handlers/ (ACK/state, parsing topikov i payload).
+- service/mqtt/lifecycle.py teper upravlyaet zapuskom/ostanovkoy podpischikov cherez start/stop fasady.
+- server/mqtt_subscriber.py ostavlen kak sovmestimaya prokladka dlya starykh importov i testov.
 
 ## [2025-10-26] MQTT service refactor (topics/serialization)
 
-- Р’С‹РЅРµСЃР»Рё С€Р°Р±Р»РѕРЅС‹ С‚РѕРїРёРєРѕРІ, РјРѕРґРµР»Рё Рё СЃРµСЂРёР°Р»РёР·Р°С†РёСЋ MQTT РІ server/app/api/routers/mqtt/ (topics/serialization/interfaces/config), СЃРѕС…СЂР°РЅРёРІ С„РѕСЂРјР°С‚ payload.
-- mqtt_subscriber, API Рё С‚РµСЃС‚С‹ РїРµСЂРµРІРµРґРµРЅС‹ РЅР° РЅРѕРІС‹Рµ РёРјРїРѕСЂС‚С‹, РґРѕР±Р°РІР»РµРЅ СЃРѕРІРјРµСЃС‚РёРјС‹Р№ СЂРµСЌРєСЃРїРѕСЂС‚ server/mqtt_protocol.py.
-- РћР±РЅРѕРІРёР»Рё РґРѕСЃС‚СѓРї Рє MQTT-РЅР°СЃС‚СЂРѕР№РєР°Рј С‡РµСЂРµР· СЃРµСЂРІРёСЃРЅСѓСЋ РѕР±С‘СЂС‚РєСѓ Р±РµР· РёР·РјРµРЅРµРЅРёСЏ РїРѕРІРµРґРµРЅРёСЏ РёРЅРёС†РёР°Р»РёР·Р°С†РёРё.
+- Vynesli shablony topikov, modeli i serializatsiyu MQTT v server/service/mqtt/ (topics/serialization/interfaces/config), sokhraniv format payload.
+- mqtt_subscriber, API i testy perevedeny na novye importy, dobavlen sovmestimyy reeksport server/mqtt_protocol.py.
+- Obnovili dostup k MQTT-nastroykam cherez servisnuyu obyortku bez izmeneniya povedeniya initsializatsii.
 
 ## [2025-10-26] MQTT lifecycle refactor (publisher)
 
-- Р РµР°Р»РёР·РѕРІР°РЅС‹ app/api/routers/mqtt/client.py (Р°РґР°РїС‚РµСЂ PahoMqttPublisher) Рё app/api/routers/mqtt/lifecycle.py СЃ С„Р°СЃР°РґРѕРј init/get/shutdown.
-- server/mqtt_publisher.py Р·Р°РјРµРЅС‘РЅ С‚РѕРЅРєРѕР№ РїСЂРѕРєР»Р°РґРєРѕР№ СЃ TODO РЅР° СѓРґР°Р»РµРЅРёРµ; РїСЂРёР»РѕР¶РµРЅРёРµ Рё С‚РµСЃС‚С‹ РёСЃРїРѕР»СЊР·СѓСЋС‚ app.mqtt.lifecycle.
-- РџРѕРІРµРґРµРЅРёРµ РїСѓР±Р»РёРєР°С†РёРё РєРѕРјР°РЅРґ, QoS Рё РѕР±СЂР°Р±РѕС‚РєР° РѕС€РёР±РѕРє РїРѕРґРєР»СЋС‡РµРЅРёСЏ СЃРѕС…СЂР°РЅРµРЅС‹, pytest РѕСЃС‚Р°С‘С‚СЃСЏ Р·РµР»С‘РЅС‹Рј.
+- Realizovany service/mqtt/client.py (adapter PahoMqttPublisher) i service/mqtt/lifecycle.py s fasadom init/get/shutdown.
+- server/mqtt_publisher.py zamenyon tonkoy prokladkoy s TODO na udalenie; prilozhenie i testy ispolzuyut service.mqtt.lifecycle.
+- Povedenie publikatsii komand, QoS i obrabotka oshibok podklyucheniya sokhraneny, pytest ostayotsya zelyonym.
 
 ## [2025-10-24] MQTT step 4
 
-- РљРѕРЅС‚СЂРѕР»Р»РµСЂ РїСѓР±Р»РёРєСѓРµС‚ С‚РµРєСѓС‰РµРµ СЃРѕСЃС‚РѕСЏРЅРёРµ СѓСЃС‚СЂРѕР№СЃС‚РІР° РІ С‚РѕРїРёРє `gh/dev/ESP32_2C294C/state` СЃ `retain=true`: С‚СѓРґР° РїРѕРїР°РґР°РµС‚ Р±Р»РѕРє `manual_watering` (status, duration_s, started_at, correlation_id) Рё РІРµСЂСЃРёСЏ РїСЂРѕС€РёРІРєРё.
-- РЎРѕСЃС‚РѕСЏРЅРёРµ РѕС‚РїСЂР°РІР»СЏРµС‚СЃСЏ РїРѕСЃР»Рµ Р·Р°РїСѓСЃРєР° Рё РѕСЃС‚Р°РЅРѕРІРєРё РїРѕР»РёРІР°, РїРѕСЃР»Рµ Р°РІС‚Рѕ-С‚Р°Р№РјР°СѓС‚Р° Рё РїСЂРё СѓСЃРїРµС€РЅРѕРј СЂРµРєРѕРЅРЅРµРєС‚Рµ MQTT, С‡С‚РѕР±С‹ СЃРµСЂРІРµСЂ РІСЃРµРіРґР° РІРёРґРµР» Р°РєС‚СѓР°Р»СЊРЅС‹Р№ СЃРЅРёРјРѕРє Рё РѕС‚РјРµС‡Р°Р» СѓСЃС‚СЂРѕР№СЃС‚РІРѕ РєР°Рє РѕРЅР»Р°Р№РЅ.
-- РџРѕР»Рµ `started_at` РїРѕРєР° СЃРѕРґРµСЂР¶РёС‚ Р·Р°РіР»СѓС€РєСѓ `"1970-01-01T00:00:00Z"` РґРѕ РёРЅС‚РµРіСЂР°С†РёРё СЂРµР°Р»СЊРЅРѕРіРѕ UTC РІСЂРµРјРµРЅРё (NTP/RTC), Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅРЅРѕР№ РЅР° Р±СѓРґСѓС‰РёРµ С€Р°РіРё.
-- Retained state РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЃРµСЂРІРµСЂРѕРј Рё С„СЂРѕРЅС‚РµРЅРґРѕРј (`/api/manual-watering/status`), С‡С‚РѕР±С‹ СЂР°Р·Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ РєРЅРѕРїРєРё Рё РѕС‚РѕР±СЂР°Р¶Р°С‚СЊ РїСЂРѕРіСЂРµСЃСЃ СЂСѓС‡РЅРѕРіРѕ РїРѕР»РёРІР°.
+- Kontroller publikuet tekuschee sostoyanie ustroystva v topik `gh/dev/ESP32_2C294C/state` s `retain=true`: tuda popadaet blok `manual_watering` (status, duration_s, started_at, correlation_id) i versiya proshivki.
+- Sostoyanie otpravlyaetsya posle zapuska i ostanovki poliva, posle avto-taymauta i pri uspeshnom rekonnekte MQTT, chtoby server vsegda videl aktualnyy snimok i otmechal ustroystvo kak onlayn.
+- Pole `started_at` poka soderzhit zaglushku `"1970-01-01T00:00:00Z"` do integratsii realnogo UTC vremeni (NTP/RTC), zaplanirovannoy na buduschie shagi.
+- Retained state ispolzuetsya serverom i frontendom (`/api/manual-watering/status`), chtoby razblokirovat knopki i otobrazhat progress ruchnogo poliva.
 
 ## [2025-10-24] MQTT step 3
 
-- Р”РѕР±Р°РІР»РµРЅР° РїСѓР±Р»РёРєР°С†РёСЏ ACK РІ MQTT-С‚РѕРїРёРє СѓСЃС‚СЂРѕР№СЃС‚РІР° `gh/dev/ESP32_2C294C/ack` РїРѕСЃР»Рµ РѕР±СЂР°Р±РѕС‚РєРё РєРѕРјР°РЅРґ СЂСѓС‡РЅРѕРіРѕ РїРѕР»РёРІР°.
-- РџРѕСЃР»Рµ `pump.start` Рё `pump.stop` РєРѕРЅС‚СЂРѕР»Р»РµСЂ РѕС‚РІРµС‡Р°РµС‚ СЃ `correlation_id`, `result` Рё `status`, С‡С‚Рѕ РґР°С‘С‚ СЃРµСЂРІРµСЂСѓ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РґР»СЏ С„СЂРѕРЅС‚РµРЅРґР° С‡РµСЂРµР· `/api/manual-watering/wait-ack`.
-- РћС€РёР±РєРё С„РѕСЂРјР°С‚Р° (РЅР°РїСЂРёРјРµСЂ, РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ `duration_s` РёР»Рё `type`) С‚РµРїРµСЂСЊ РІРѕР·РІСЂР°С‰Р°СЋС‚ `result=error` Рё РїРѕР»Рµ `reason` СЃ РѕРїРёСЃР°РЅРёРµРј РїСЂРѕР±Р»РµРјС‹.
-- ACK РїСѓР±Р»РёРєСѓРµС‚СЃСЏ Р±РµР· retain, С‚Р°Рє РєР°Рє СЌС‚Рѕ РѕРґРЅРѕСЂР°Р·РѕРІРѕРµ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ; РїСѓР±Р»РёРєР°С†РёСЏ СЃРѕСЃС‚РѕСЏРЅРёСЏ СѓСЃС‚СЂРѕР№СЃС‚РІР° (state СЃ retain) Р±СѓРґРµС‚ РґРѕР±Р°РІР»РµРЅР° РЅР° СЃР»РµРґСѓСЋС‰РµРј С€Р°РіРµ.
+- Dobavlena publikatsiya ACK v MQTT-topik ustroystva `gh/dev/ESP32_2C294C/ack` posle obrabotki komand ruchnogo poliva.
+- Posle `pump.start` i `pump.stop` kontroller otvechaet s `correlation_id`, `result` i `status`, chto dayot serveru podtverzhdenie dlya frontenda cherez `/api/manual-watering/wait-ack`.
+- Oshibki formata (naprimer, otsutstvuet `duration_s` ili `type`) teper vozvraschayut `result=error` i pole `reason` s opisaniem problemy.
+- ACK publikuetsya bez retain, tak kak eto odnorazovoe podtverzhdenie; publikatsiya sostoyaniya ustroystva (state s retain) budet dobavlena na sleduyuschem shage.
 
 ## [2025-10-24] MQTT step 2
 
-- Р РµР°Р»РёР·РѕРІР°РЅ СЂР°Р·Р±РѕСЂ JSON-РєРѕРјР°РЅРґ `pump.start` Рё `pump.stop`, РґРѕР±Р°РІР»РµРЅС‹ РїРѕРґСЂРѕР±РЅС‹Рµ Р»РѕРіРё РґР»СЏ РѕС‚Р»Р°РґРєРё С†РµРїРѕС‡РєРё СЃРµСЂРІРµСЂ в†’ СѓСЃС‚СЂРѕР№СЃС‚РІРѕ.
-- РќР°СЃРѕСЃ СѓРїСЂР°РІР»СЏРµС‚СЃСЏ С‡РµСЂРµР· СЃСѓС‰РµСЃС‚РІСѓСЋС‰РёР№ РєРѕРЅС‚СЂРѕР»Р»РµСЂ СЂРµР»Рµ, СЃРѕС…СЂР°РЅСЏРµС‚СЃСЏ Р»РѕРєР°Р»СЊРЅРѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ (running/idle, duration_s, correlation_id) РґР»СЏ Р±СѓРґСѓС‰РёС… ACK/state.
-- Р’ `loop()` РґРѕР±Р°РІР»РµРЅ Р°РІС‚РѕСЃС‚РѕРї РїРѕ С‚Р°Р№РјРµСЂСѓ `duration_s`, С‡С‚РѕР±С‹ РёСЃРєР»СЋС‡РёС‚СЊ Р·Р°С‚СЏР¶РЅРѕР№ РїРѕР»РёРІ РїСЂРё РїРѕС‚РµСЂРµ СЃРІСЏР·Рё.
-- РџСѓР±Р»РёРєР°С†РёСЏ ACK Рё state Р·Р°РїР»Р°РЅРёСЂРѕРІР°РЅР° РЅР° СЃР»РµРґСѓСЋС‰РёРµ С€Р°РіРё (С€Р°Рі 3+).
+- Realizovan razbor JSON-komand `pump.start` i `pump.stop`, dobavleny podrobnye logi dlya otladki tsepochki server -> ustroystvo.
+- Nasos upravlyaetsya cherez suschestvuyuschiy kontroller rele, sokhranyaetsya lokalnoe sostoyanie (running/idle, duration_s, correlation_id) dlya buduschikh ACK/state.
+- V `loop()` dobavlen avtostop po taymeru `duration_s`, chtoby isklyuchit zatyazhnoy poliv pri potere svyazi.
+- Publikatsiya ACK i state zaplanirovana na sleduyuschie shagi (shag 3+).
 
 ## [2025-10-24] MQTT step 1
 
-- Р”РѕР±Р°РІР»РµРЅРѕ Р±Р°Р·РѕРІРѕРµ РїРѕРґРєР»СЋС‡РµРЅРёРµ ESP32 Рє Wi-Fi (STA) Рё MQTT, РёСЃРїРѕР»СЊР·РѕРІР°РЅС‹ Р»РѕРіРёРЅ/РїР°СЂРѕР»СЊ Mosquitto Рё clientId `ESP32_2C294C`.
-- РЈСЃС‚СЂРѕР№СЃС‚РІРѕ РїРѕРґРїРёСЃС‹РІР°РµС‚СЃСЏ РЅР° РєРѕРјР°РЅРґРЅС‹Р№ С‚РѕРїРёРє `gh/dev/ESP32_2C294C/cmd` (QoS=1), Р»РѕРіРёСЂСѓРµС‚ РІС…РѕРґСЏС‰РёРµ СЃРѕРѕР±С‰РµРЅРёСЏ РІ Serial Рё Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё РїРµСЂРµРїРѕРґРєР»СЋС‡Р°РµС‚СЃСЏ РїСЂРё РѕР±СЂС‹РІРµ.
-- РЈРїСЂР°РІР»РµРЅРёРµ РЅР°СЃРѕСЃРѕРј Рё РїСѓР±Р»РёРєР°С†РёСЏ ack/state РЅР°РјРµС‡РµРЅС‹ РЅР° РїРѕСЃР»РµРґСѓСЋС‰РёРµ С€Р°РіРё.
+- Dobavleno bazovoe podklyuchenie ESP32 k Wi-Fi (STA) i MQTT, ispolzovany login/parol Mosquitto i clientId `ESP32_2C294C`.
+- Ustroystvo podpisyvaetsya na komandnyy topik `gh/dev/ESP32_2C294C/cmd` (QoS=1), logiruet vkhodyaschie soobscheniya v Serial i avtomaticheski perepodklyuchaetsya pri obryve.
+- Upravlenie nasosom i publikatsiya ack/state namecheny na posleduyuschie shagi.
