@@ -1,17 +1,17 @@
-name: LOC Badge
+name: Coverage Badge
 
 on:
   push:
     branches: [ "main" ]
     paths-ignore:
       - ".github/metrics/**"
-      - ".github/workflows/loc-badge.yml"
+      - ".github/workflows/coverage-badge.yml"
   schedule:
-    - cron: "17 3 * * 1-5"
+    - cron: "23 3 * * 1-5"
   workflow_dispatch:
 
 jobs:
-  build:
+  coverage:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -22,34 +22,52 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install cloc (portable) & jq
-        run: |
-          curl -L https://github.com/AlDanial/cloc/releases/download/v1.98/cloc-1.98.pl -o cloc
-          chmod +x cloc
-          sudo mv cloc /usr/local/bin/cloc
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends jq
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-      - name: Compute LOC (cloc)
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f server/requirements.txt ]; then pip install -r server/requirements.txt; fi
+          pip install pytest pytest-cov coverage[toml] anybadge jq
+
+      - name: Run tests with coverage
+        run: |
+          cd server
+          pytest -q --maxfail=1 --disable-warnings --cov=app --cov-report=xml:coverage.xml
+          cd ..
+
+      - name: Extract coverage percent
+        id: cov
+        run: |
+          pct=$(python -c "import xml.etree.ElementTree as ET; r=ET.parse('server/coverage.xml').getroot().attrib; v=int(r.get('lines-valid',0)); c=int(r.get('lines-covered',0)); print(round(100*c/v,1) if v else 0)")
+          echo "pct=$pct" >> $GITHUB_OUTPUT
+
+      - name: Make Shields endpoint JSON
         run: |
           mkdir -p .github/metrics
-          cloc --json --vcs=git . > .github/metrics/cloc.json
-          echo "cloc.json created:"
-          ls -la .github/metrics
+          m=$(printf '%.1f%%' "${{ steps.cov.outputs.pct }}")
+          jq -n --arg m "$m" '{schemaVersion:1,label:"coverage",message:$m,color:"success"}' > .github/metrics/coverage-badge.json
+          echo "Preview:" && cat .github/metrics/coverage-badge.json
 
-      - name: Build badge JSON (no heredoc)
+      - name: (optional) Make SVG fallback
         run: |
-          total=$(jq '.SUM.code // 0' .github/metrics/cloc.json)
-          msg=$(python3 -c 'import sys; n=int(float(sys.argv[1] or 0)); print(f"{n/1_000_000:.1f}M" if n>=1_000_000 else (f"{n/1_000:.1f}k" if n>=1_000 else str(n)))' "$total")
-          jq -n --arg m "$msg" \
-            '{schemaVersion:1,label:"lines of code",message:$m,color:"informational"}' \
-            > .github/metrics/loc-badge.json
-          echo "loc-badge.json created:"
-          ls -la .github/metrics
-          echo "Preview:" && cat .github/metrics/loc-badge.json
+          mkdir -p .github/metrics
+          anybadge --label "coverage" --value "${{ steps.cov.outputs.pct }}%" --file .github/metrics/coverage-badge.svg
 
-      - name: Commit badge
+      - name: Rebase on latest main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git rebase origin/main || (echo "Rebase failed, trying merge..." && git merge --no-edit origin/main || true)
+
+      - name: Commit badges
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore(metrics): update LOC badge [skip ci]"
-          file_pattern: ".github/metrics/*.json"
+          branch: main
+          commit_message: "chore(metrics): update coverage badge [skip ci]"
+          file_pattern: ".github/metrics/coverage-badge.*"
+          # push_options: "--force-with-lease"
