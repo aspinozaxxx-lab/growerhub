@@ -11,6 +11,8 @@
 ![Last Commit](https://img.shields.io/github/last-commit/aspinozaxxx-lab/growerhub)
 
 
+![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faspinozaxxx-lab%2Fgrowerhub%2Fmain%2F.github%2Fmetrics%2Fcoverage-badge.json)
+
 
 
 
