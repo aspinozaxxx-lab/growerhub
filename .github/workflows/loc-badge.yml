@@ -4,17 +4,17 @@ on:
   push:
     branches: [ "main" ]
     paths-ignore:
-      - '.github/metrics/**'
-      - '.github/workflows/loc-badge.yml'
+      - ".github/metrics/**"
+      - ".github/workflows/loc-badge.yml"
   schedule:
-    - cron: '17 3 * * 1-5'  # обновление по будням
+    - cron: "17 3 * * 1-5"
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # важно для автокоммита
+      contents: write
 
     steps:
       - name: Checkout
@@ -25,32 +25,4 @@ jobs:
       - name: Install cloc & jq
         run: |
           sudo apt-get update
-          sudo apt-get install -y cloc jq
-
-      - name: Compute LOC (cloc)
-        run: |
-          mkdir -p .github/metrics
-          cloc --json --vcs=git . > .github/metrics/cloc.json
-
-      - name: Build badge JSON
-        id: badge
-        run: |
-          total=$(jq '.SUM.code // 0' .github/metrics/cloc.json)
-          msg=$(python3 - "$total" << 'PY'
-import sys
-n = int(float(sys.argv[1]))
-def short(n):
-    return f"{n/1_000_000:.1f}M" if n>=1_000_000 else (f"{n/1_000:.1f}k" if n>=1_000 else str(n))
-print(short(n))
-PY
-)
-          cat > .github/metrics/loc-badge.json <<EOF
-{ "schemaVersion": 1, "label": "lines of code", "message": "${msg}", "color": "informational" }
-EOF
-          echo "lines=${msg}" >> $GITHUB_OUTPUT
-
-      - name: Commit badge
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "chore(metrics): update LOC badge [skip ci]"
-          file_pattern: ".github/metrics/*.json"
+          sudo apt
