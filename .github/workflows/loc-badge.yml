@@ -37,16 +37,10 @@ jobs:
           echo "cloc.json created:"
           ls -la .github/metrics
 
-      - name: Build badge JSON (YAML-safe)
+      - name: Build badge JSON (no heredoc)
         run: |
           total=$(jq '.SUM.code // 0' .github/metrics/cloc.json)
-          msg=$(python3 - "$total" <<'PY'
-import sys
-n = int(float(sys.argv[1] or 0))
-print(f"{n/1_000_000:.1f}M" if n >= 1_000_000 else (f"{n/1_000:.1f}k" if n >= 1_000 else str(n)))
-PY
-)
-          # Формируем JSON через jq -n, чтобы избежать кавычек/экранирований
+          msg=$(python3 -c 'import sys; n=int(float(sys.argv[1] or 0)); print(f"{n/1_000_000:.1f}M" if n>=1_000_000 else (f"{n/1_000:.1f}k" if n>=1_000 else str(n)))' "$total")
           jq -n --arg m "$msg" \
             '{schemaVersion:1,label:"lines of code",message:$m,color:"informational"}' \
             > .github/metrics/loc-badge.json
