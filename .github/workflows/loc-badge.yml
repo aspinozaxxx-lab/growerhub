@@ -23,6 +23,8 @@ jobs:
           fetch-depth: 0
 
       - name: Install cloc & jq
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
           sudo apt-get update
-          sudo apt
+          sudo apt-get install -y --no-install-recommends cloc jq
