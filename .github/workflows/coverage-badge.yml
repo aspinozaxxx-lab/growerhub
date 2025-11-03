@@ -12,6 +12,8 @@ on:
 
 jobs:
   coverage:
+    # НЕ запускать, если это push от самого бота
+    if: ${{ !(github.event_name == 'push' && github.actor == 'github-actions[bot]') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -57,8 +59,16 @@ jobs:
           mkdir -p .github/metrics
           anybadge --label "coverage" --value "${{ steps.cov.outputs.pct }}%" --file .github/metrics/coverage-badge.svg
 
+      - name: Rebase on latest main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git rebase origin/main || (echo "Rebase failed, trying merge..." && git merge --no-edit origin/main || true)
+
       - name: Commit badges
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
+          branch: main
           commit_message: "chore(metrics): update coverage badge [skip ci]"
           file_pattern: ".github/metrics/coverage-badge.*"
