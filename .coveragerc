@@ -1,0 +1,14 @@
+[run]
+source = server/app
+omit =
+    */tests/*
+    */__init__.py
+    */migrations/*
+    */.venv/*
+    */venv/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    if __name__ == .__main__.:
