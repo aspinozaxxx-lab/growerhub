@@ -5,7 +5,7 @@
 ![PlatformIO](https://img.shields.io/badge/platformio-ESP8266-blue?logo=platformio)<br>
 ![C++](https://img.shields.io/badge/language-C++17-blue?logo=c%2B%2B)
 ![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white)
-![Lines of code](https://tokei.rs/b1/github/aspinozaxxx-lab/growerhub?category=code)<br>
+![Lines of code](https://img.shields.io/tokei/lines/github/aspinozaxxx-lab/growerhub)<br>
 ![Ansible](https://img.shields.io/badge/ansible-automation-black?logo=ansible)
 ![FastAPI](https://img.shields.io/badge/fastapi-uvicorn%2Bgunicorn-009688?logo=fastapi)<br>
 ![Last Commit](https://img.shields.io/github/last-commit/aspinozaxxx-lab/growerhub)
