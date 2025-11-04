@@ -3,6 +3,7 @@
 ## [2025-11-04] Manual watering status fallback
 - fix(manual_watering): dobavlen db fallback v /api/manual-watering/status, chtoby obogatit status onlayna i poslednee nablyudenie pri otsutstvii teni
 - tests: dobavleny sluchai bez teni (online/offline) dlya verifikacii db_fallback logiki
+- fix: privedena metka source k `db_fallback` pri ottyazhnom statuse iz DeviceDB
 
 ## [2025-11-02] Tests translit cleanup
 - docs(tests, manual_watering): kommentarii i dokstringi perevedeny v russkiy translit; logika bez izmeneniy

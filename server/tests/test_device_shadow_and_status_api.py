@@ -68,6 +68,14 @@ def ensure_debug_enabled(monkeypatch):
     config.get_settings.cache_clear()
 
 
+@pytest.fixture(autouse=True)
+def override_db_dependency():
+    """Garantiruet povtornoe podmenenie get_db pered kazhdym testom posle vozmozhnyh clear."""
+
+    app.dependency_overrides[manual_watering_router.get_db] = _get_db
+    yield
+
+
 def _iso_utc(dt: datetime) -> str:
     """Formatiruet datetime v ISO UTC bez mikrosekund."""
 
