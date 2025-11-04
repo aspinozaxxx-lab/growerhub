@@ -1,10 +1,10 @@
-"""Modul opisывает Pydantic-shemy dlya MQTT soobshcheniy i utilitu serialize."""
+﻿"""Modul opisС‹РІР°РµС‚ Pydantic-shemy dlya MQTT soobshcheniy i utilitu serialize."""
 
 from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 from pydantic import BaseModel, Field, conint
 
@@ -16,6 +16,7 @@ __all__ = [
     "CmdBase",
     "CmdPumpStart",
     "CmdPumpStop",
+    "CmdReboot",
     "Ack",
     "ManualWateringState",
     "DeviceState",
@@ -28,6 +29,7 @@ class CommandType(str, Enum):
 
     pump_start = "pump.start"
     pump_stop = "pump.stop"
+    reboot = "reboot"  # komandnyj tip dlya reboot komandy ustroystva
 
 
 class AckResult(str, Enum):
@@ -62,6 +64,14 @@ class CmdPumpStart(CmdBase):
 
 class CmdPumpStop(CmdBase):
     """Komanda ostanovki nasosa bez dopolnitelnyh poley."""
+
+
+class CmdReboot(BaseModel):
+    """Komanda perezagruzki ustroystva cherez MQTT."""
+
+    type: Literal[CommandType.reboot.value] = CommandType.reboot.value  # fiksiruem literal reboot chtoby broker prinyal TIP
+    correlation_id: str = Field(..., min_length=1)  # korelaciya dlya ozhidaniya ACK ot ustroystva
+    issued_at: int = Field(..., ge=0)  # epoch seconds kogda komanda sformirovana
 
 
 class Ack(BaseModel):

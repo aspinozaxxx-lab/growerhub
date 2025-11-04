@@ -7,6 +7,7 @@ from app.mqtt.serialization import (
     AckResult,
     CmdPumpStart,
     CmdPumpStop,
+    CmdReboot,
     CommandType,
     DeviceState,
     ManualWateringState,
@@ -60,6 +61,22 @@ def test_serialize_deserialize_cmd_pump_stop():
     assert isinstance(restored, CmdPumpStop)
     assert restored.correlation_id == command.correlation_id
     assert restored.ts == command.ts
+
+
+def test_serialize_deserialize_cmd_reboot():
+    command = CmdReboot(
+        correlation_id="corr-reboot",
+        issued_at=1_732_000_000,
+    )
+
+    payload = serialize(command)
+    decoded = _loads(payload)
+    restored = CmdReboot.model_validate_json(decoded)
+
+    assert restored.type == CommandType.reboot.value
+    assert restored.correlation_id == command.correlation_id
+    assert restored.issued_at == command.issued_at
+    assert "null" not in decoded
 
 
 def test_deserialize_cmd_invalid():

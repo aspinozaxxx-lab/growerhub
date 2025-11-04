@@ -1,5 +1,8 @@
 # Changelog
 
+## [2025-11-05] MQTT reboot command
+- feat(mqtt): dobavlen komandnyj tip reboot i model dlya serialize protokola
+
 ## [2025-11-04] Manual watering status fallback
 - fix(manual_watering): dobavlen db fallback v /api/manual-watering/status, chtoby obogatit status onlayna i poslednee nablyudenie pri otsutstvii teni
 - tests: dobavleny sluchai bez teni (online/offline) dlya verifikacii db_fallback logiki
