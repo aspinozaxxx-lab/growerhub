@@ -106,6 +106,7 @@
     <div class="inline-group">
         <button id="startBtn">Полить</button>
         <button id="stopBtn">Остановить</button>
+        <button id="rebootBtn" class="btn btn-warning">Перезагрузить устройство</button>
     </div>
 
     <div id="onlineStatus">Введите ID устройства</div>
@@ -121,6 +122,7 @@
         const durationSelect = document.getElementById("duration");
         const startBtn = document.getElementById("startBtn");
         const stopBtn = document.getElementById("stopBtn");
+        const rebootBtn = document.getElementById("rebootBtn");
         const onlineStatusBlock = document.getElementById("onlineStatus");
         const ackResultBlock = document.getElementById("ackResult");
         const progressBar = document.getElementById("progressBar");
@@ -135,6 +137,7 @@
         function setButtonsDisabled(disabled) {
             startBtn.disabled = disabled;
             stopBtn.disabled = disabled;
+            rebootBtn.disabled = disabled;
         }
 
         function resetProgress() {
@@ -191,6 +194,8 @@
             stopWatering();
         });
 
+        rebootBtn.addEventListener("click", onRebootClick);
+
         function validateDeviceId() {
             if (!deviceInput.value.trim()) {
                 showAck("Нужно указать ID устройства ❗");
@@ -235,25 +240,27 @@
             const offlineReason = data.offline_reason;
             const lastSeenText = data.last_seen_at ? describeLastSeen(data.last_seen_at) : "—";
 
-            if (isOnline) {
-                onlineStatusBlock.textContent = `Статус устройства: Онлайн ✅ (последняя активность: ${lastSeenText})`;
-                startBtn.disabled = false;
-                stopBtn.disabled = false;
-                updateProgressBar(data);
-                if (data.status === "running") {
-                    startFastPoll();
-                } else {
-                    stopFastPoll();
+        if (isOnline) {
+            onlineStatusBlock.textContent = `Статус устройства: Онлайн ✅ (последняя активность: ${lastSeenText})`;
+            startBtn.disabled = false;
+            stopBtn.disabled = false;
+            rebootBtn.disabled = false;
+            updateProgressBar(data);
+            if (data.status === "running") {
+                startFastPoll();
+            } else {
+                stopFastPoll();
                 }
                 return;
             }
 
-            stopFastPoll();
+        stopFastPoll();
+        setButtonsDisabled(true);
 
-            if (offlineReason === "device_offline") {
-                onlineStatusBlock.textContent = "Статус устройства: Оффлайн ❌ (устройство было на связи, но сейчас недоступно)";
-                showAck("Устройство оффлайн — кнопки блокируем.");
-            } else if (offlineReason === "no_state_yet") {
+        if (offlineReason === "device_offline") {
+            onlineStatusBlock.textContent = "Статус устройства: Оффлайн ❌ (устройство было на связи, но сейчас недоступно)";
+            showAck("Устройство оффлайн — кнопки блокируем.");
+        } else if (offlineReason === "no_state_yet") {
                 onlineStatusBlock.textContent = "Статус устройства: нет данных ❓ (устройство ещё ни разу не выходило на связь)";
                 showAck("Ждём первое подключение устройства — кнопки заблокированы.");
             } else {
@@ -364,6 +371,88 @@
             }
         }
 
+        async function onRebootClick() {
+            if (!validateDeviceId()) {
+                return;
+            }
+
+            const deviceId = deviceInput.value.trim();
+            setButtonsDisabled(true);
+            showAck("Отправляем команду перезагрузки...");
+
+            try {
+                const response = await fetch("/api/manual-watering/reboot", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ device_id: deviceId })
+                });
+
+                if (!response.ok) {
+                    const errorPayload = await response.json().catch(() => ({}));
+                    const detailRaw = errorPayload.detail;
+                    const detail =
+                        Array.isArray(detailRaw)
+                            ? detailRaw.map((item) => item.msg || JSON.stringify(item)).join("; ")
+                            : detailRaw;
+                    throw new Error(detail || `HTTP ${response.status}`);
+                }
+
+                const payload = await response.json();
+                showAck("Команда перезагрузки отправлена, ждём подтверждение...");
+
+                const ackMessage = await waitAckForReboot(payload.correlation_id);
+                showAck(ackMessage);
+
+                fetchStatus().catch(console.error);
+            } catch (error) {
+                console.error("Ошибка перезагрузки устройства", error);
+                const rawMessage =
+                    error && typeof error === "object" && "message" in error
+                        ? error.message
+                        : String(error);
+                const message = typeof rawMessage === "string" ? rawMessage : JSON.stringify(rawMessage);
+                const errorName =
+                    error && typeof error === "object" && "name" in error ? error.name : "";
+
+                if (message.includes("MQTT publisher unavailable") || message.includes("503")) {
+                    showAck("Сервис недоступен, попробуйте позже ❌");
+                } else if (
+                    message.includes("Failed to fetch") ||
+                    message.includes("NetworkError") ||
+                    errorName === "TypeError"
+                ) {
+                    showAck("Сеть недоступна ❌");
+                } else {
+                    showAck(`Не удалось перезагрузить устройство ❌ (${message})`);
+                }
+            } finally {
+                setButtonsDisabled(false);
+            }
+        }
+
+        async function waitAckForReboot(correlationId) {
+            try {
+                const response = await fetch(`/api/manual-watering/wait-ack?correlation_id=${encodeURIComponent(correlationId)}&timeout_s=5`);
+                if (response.status === 408) {
+                    return "Перезагрузка не подтверждена: превышено время ожидания ❌";
+                }
+                if (!response.ok) {
+                    const errorPayload = await response.json().catch(() => ({}));
+                    const detail = errorPayload.detail || `HTTP ${response.status}`;
+                    return `Перезагрузка не подтверждена: ${detail} ❌`;
+                }
+                const payload = await response.json();
+                if (payload.result === "accepted") {
+                    return "Перезагрузка подтверждена устройством ✅";
+                }
+                const reason = payload.reason || payload.result || "неизвестная причина";
+                return `Перезагрузка не подтверждена: ${reason} ❌`;
+            } catch (error) {
+                console.error("Ошибка ожидания ACK для перезагрузки", error);
+                return "Перезагрузка не подтверждена: сеть недоступна ❌";
+            }
+        }
+
         async function waitAck(correlationId) {
             try {
                 const response = await fetch(`/api/manual-watering/wait-ack?correlation_id=${encodeURIComponent(correlationId)}&timeout_s=5`);
@@ -390,6 +479,7 @@
 
         function init() {
             stopBtn.disabled = true;
+            rebootBtn.disabled = true;
             fetchStatus().catch(console.error);
         }
 
