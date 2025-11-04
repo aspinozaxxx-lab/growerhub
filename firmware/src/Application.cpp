@@ -214,21 +214,20 @@ bool WateringApplication::manualStop(const String& correlationId) {
 }
 
 bool WateringApplication::manualLoop() {
-    // Наблюдаем за длительностью manual watering и выключаем насос по таймауту.
-    if (!manualWateringActive || manualWateringDurationSec == 0) {
-        return false;
+    bool stateChanged = false;
+
+    if (manualWateringActive && manualWateringDurationSec > 0) {
+        const unsigned long elapsedMs = millis() - manualWateringStartMillis;
+        const unsigned long plannedMs = static_cast<unsigned long>(manualWateringDurationSec) * 1000UL;
+        if (elapsedMs >= plannedMs) {
+            Serial.println(F("auto-timeout manual watering: otklyuchaem nasos posle duration_s."));
+            manualStop(String("auto-timeout"));
+            stateChanged = true;
+        }
     }
 
-    const unsigned long elapsedMs = millis() - manualWateringStartMillis;
-    const unsigned long plannedMs = static_cast<unsigned long>(manualWateringDurationSec) * 1000UL;
-    if (elapsedMs < plannedMs) {
-        return false;
-    }
-
-    Serial.println(F("Полив завершился по duration_s, выключаем насос (auto-timeout)."));
-    manualStop(String("auto-timeout"));
-    // TODO: проанализировать повторные публикации ACK/state при автоостановке, договориться со стороной сервера.
-    return true;
+    processRebootIfNeeded();
+    return stateChanged;
 }
 
 bool WateringApplication::isManualWatering() const {
@@ -305,6 +304,46 @@ void WateringApplication::stateHeartbeatLoop(bool mqttConnected) {
 
 void WateringApplication::resetHeartbeatTimer() {
     lastHeartbeatMillis = millis();
+}
+
+void WateringApplication::requestReboot(const String& correlationId) {
+    rebootPending_ = true;
+    rebootCorrelationId_ = correlationId;
+    rebootRequestedAtMs_ = 0;
+    Serial.println(F("reboot zaproshen: gotovim sistemu k restartu"));
+    processRebootIfNeeded();
+}
+
+void WateringApplication::processRebootIfNeeded() {
+    if (!rebootPending_) {
+        return;
+    }
+
+    if (manualWateringActive) {
+        Serial.println(F("reboot: ostanavlivaem nasos pered restartom"));
+        const String stopCorrelation = rebootCorrelationId_.length() ? rebootCorrelationId_ : String("reboot");
+        manualStop(stopCorrelation);
+        statePublishNow(false);
+        rebootRequestedAtMs_ = millis();
+        return;
+    }
+
+    if (rebootRequestedAtMs_ == 0) {
+        Serial.println(F("reboot: otpravlyaem zaklyuchitel'nyj state pered restartom"));
+        statePublishNow(false);
+        rebootRequestedAtMs_ = millis();
+        return;
+    }
+
+    if (millis() - rebootRequestedAtMs_ < REBOOT_GRACE_DELAY_MS) {
+        return;
+    }
+
+    Serial.println(F("reboot: restart ESP"));
+    rebootPending_ = false;
+    rebootCorrelationId_.clear();
+    rebootRequestedAtMs_ = 0;
+    ESP.restart();
 }
 
 void WateringApplication::testSensors() {

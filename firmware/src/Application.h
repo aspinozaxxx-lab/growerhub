@@ -48,6 +48,13 @@ private:
     PubSubClient* mqttClient;
     SystemClock* systemClock;
     static constexpr unsigned long HEARTBEAT_INTERVAL_MS = 20000UL;
+    // Flag sohranyaem zapros na reboot, poka ne gotovy ego vypolnit'.
+    bool rebootPending_ = false;
+    // Zapominaem correlation_id dlya reboot, chtoby prologirovat' pered restartom.
+    String rebootCorrelationId_;
+    // Metka millis, s kotoroy otschityvaem pauzu pered restartom.
+    unsigned long rebootRequestedAtMs_ = 0;
+    static constexpr unsigned long REBOOT_GRACE_DELAY_MS = 250UL;
     
 public:
     WateringApplication();
@@ -85,6 +92,7 @@ public:
     void statePublishNow(bool retained = true);
     void stateHeartbeatLoop(bool mqttConnected);
     void resetHeartbeatTimer();
+    void requestReboot(const String& correlationId);
     
     // Тестирование
     void testSensors();
@@ -108,4 +116,5 @@ private:
     void checkLight();
     void updateServer();
     void printDebugInfo();
+    void processRebootIfNeeded();
 };

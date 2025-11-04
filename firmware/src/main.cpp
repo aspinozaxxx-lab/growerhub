@@ -60,6 +60,8 @@ void setup() {
         } else if (commandType == "pump.stop") {
             app.manualStop(correlationId);
             app.statePublishNow();
+        } else if (commandType == "reboot") {
+            app.requestReboot(correlationId);
         }
     });
     mqttClientManager.setConnectedHandler([&]() {

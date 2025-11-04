@@ -13,7 +13,8 @@ namespace Network {
 
 class MQTTClient {
 public:
-    using CommandHandler = std::function<void(const String& commandType, const JsonDocument& doc, const String& correlationId)>;
+    using CommandHandler = std::function<void(const String& commandType, const JsonDocument& doc, const String& correlationId)>; // podderzhivaem komandy pump.start, pump.stop, reboot
+
     using ConnectedHandler = std::function<void()>;
 
     MQTTClient(SettingsManager& settings, WiFiClient& wifiClient);

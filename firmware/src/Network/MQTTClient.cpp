@@ -139,7 +139,7 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
     }
 
     if (commandType == "pump.stop") {
-        Serial.print(F("Разбор pump.stop, correlation_id="));
+        Serial.print(F("������ pump.stop, correlation_id="));
         Serial.println(correlationId);
 
         if (commandHandler) {
@@ -149,13 +149,32 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
         if (correlationId.length() > 0) {
             publishAckAccepted(correlationId, "idle");
         } else {
-            Serial.println(F("pump.stop без correlation_id — насос остановлен, но ответа без идентификатора недостаточно."));
+            Serial.println(F("pump.stop ��� correlation_id - ���� ��⠭�����, �� �⢥� ��� �����䨪��� �������筮."));
             publishAckError(String(""), "bad command format: correlation_id missing");
         }
         return;
     }
 
-    Serial.print(F("Нераспознанная команда type="));
+    if (commandType == "reboot") {
+        // Komanda reboot trebuet korektnogo correlation_id dlya otveta serveru.
+        if (correlationId.length() == 0) {
+            Serial.println(F("reboot ��� correlation_id - nevozmozhno vypolnit' komandу."));
+            publishAckError(String(""), "bad-correlation-id");
+            return;
+        }
+
+        Serial.print(F("������ reboot, correlation_id="));
+        Serial.println(correlationId);
+
+        if (commandHandler) {
+            commandHandler(commandType, doc, correlationId);
+        }
+
+        // Srazu otvechaem accepted, chtoby backend znal: komanda prinjata i budet vypolnena.
+        publishAckAccepted(correlationId, "reboot");
+        return;
+    }
+
     Serial.println(commandType);
     publishAckError(correlationId, "unsupported command type");
 }
