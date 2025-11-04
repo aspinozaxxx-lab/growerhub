@@ -1,4 +1,4 @@
-"""Modul obrabatyvaet MQTT ACK soobshcheniya i zapisывает ih v AckStore."""
+"""Modul obrabatyvaet MQTT ACK soobshcheniya i zapisyvaet ih v AckStore."""
 
 from __future__ import annotations
 
