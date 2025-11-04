@@ -3,6 +3,9 @@ ansible/roles/mosquitto/files/passwd
 ansible/roles/mosquitto/files/*.secret
 *.vault
 
+# Metrics
+.github/metrics/
+
 # PlatformIO
 .pio/
 .pioenvs/ 
