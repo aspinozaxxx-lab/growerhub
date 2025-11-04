@@ -1,0 +1,61 @@
+name: LOC Badge
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - ".github/metrics/**"
+      - ".github/workflows/loc-badge.yml"
+  schedule:
+    - cron: "17 3 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  build:
+    # НЕ запускать, если это push от самого бота
+    if: ${{ !(github.event_name == 'push' && github.actor == 'github-actions[bot]') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install cloc (portable) & jq
+        run: |
+          curl -L https://github.com/AlDanial/cloc/releases/download/v1.98/cloc-1.98.pl -o cloc
+          chmod +x cloc
+          sudo mv cloc /usr/local/bin/cloc
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends jq
+
+      - name: Compute LOC (cloc)
+        run: |
+          mkdir -p .github/metrics
+          cloc --json --vcs=git . > .github/metrics/cloc.json
+          echo "cloc.json created:"
+          ls -la .github/metrics
+
+      - name: Build badge JSON
+        run: |
+          total=$(jq '.SUM.code // 0' .github/metrics/cloc.json)
+          msg=$(python -c "n=int(float('${total}' or 0)); print(f'{n/1_000_000:.1f}M' if n>=1_000_000 else (f'{n/1_000:.1f}k' if n>=1_000 else str(n)))")
+          jq -n --arg m "$msg" '{schemaVersion:1,label:"lines of code",message:$m,color:"informational"}' > .github/metrics/loc-badge.json
+          echo "Preview:" && cat .github/metrics/loc-badge.json
+
+      - name: Rebase on latest main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git rebase origin/main || (echo "Rebase failed, trying merge..." && git merge --no-edit origin/main || true)
+
+      - name: Commit badge
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          branch: main
+          commit_message: "chore(metrics): update LOC badge [skip ci]"
+          file_pattern: ".github/metrics/*.json"
