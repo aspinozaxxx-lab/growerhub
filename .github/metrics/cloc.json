@@ -1,11 +1,11 @@
 {"header" : {
   "cloc_url"           : "github.com/AlDanial/cloc",
   "cloc_version"       : "1.98",
-  "elapsed_seconds"    : 0.101001024246216,
-  "n_files"            : 139,
-  "n_lines"            : 11460,
-  "files_per_second"   : 1376.22366740709,
-  "lines_per_second"   : 113464.195888383},
+  "elapsed_seconds"    : 0.111257076263428,
+  "n_files"            : 141,
+  "n_lines"            : 11503,
+  "files_per_second"   : 1267.3351191267,
+  "lines_per_second"   : 103391.17642067},
 "C++" :{
   "nFiles": 27,
   "blank": 601,
@@ -18,9 +18,9 @@
   "code": 2366},
 "YAML" :{
   "nFiles": 27,
-  "blank": 173,
-  "comment": 65,
-  "code": 980},
+  "blank": 175,
+  "comment": 67,
+  "code": 992},
 "C/C++ Header" :{
   "nFiles": 32,
   "blank": 226,
@@ -33,7 +33,7 @@
   "code": 736},
 "Markdown" :{
   "nFiles": 8,
-  "blank": 143,
+  "blank": 141,
   "comment": 0,
   "code": 544},
 "Ruby" :{
@@ -46,11 +46,21 @@
   "blank": 9,
   "comment": 4,
   "code": 60},
+"SVG" :{
+  "nFiles": 1,
+  "blank": 0,
+  "comment": 0,
+  "code": 23},
 "Text" :{
   "nFiles": 2,
   "blank": 0,
   "comment": 0,
   "code": 15},
+"JSON" :{
+  "nFiles": 2,
+  "blank": 0,
+  "comment": 0,
+  "code": 12},
 "Bourne Shell" :{
   "nFiles": 1,
   "blank": 2,
@@ -61,13 +71,8 @@
   "blank": 3,
   "comment": 0,
   "code": 7},
-"JSON" :{
-  "nFiles": 1,
-  "blank": 0,
-  "comment": 0,
-  "code": 6},
 "SUM": {
   "blank": 2077,
-  "comment": 612,
-  "code": 8771,
-  "nFiles": 139} }
+  "comment": 614,
+  "code": 8812,
+  "nFiles": 141} }
