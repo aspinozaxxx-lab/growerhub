@@ -1,4 +1,4 @@
-# 🌱 GrowerHub - Интеллектуальная система ухода за растениями
+# 🌱 GrowerHub - Интеллектуальная система ухода за растениями1
 ![Firmware CI](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-firmware.yml/badge.svg) 
 ![Server CI/CD](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-cd.yml/badge.svg)<br>
 ![PlatformIO](https://img.shields.io/badge/platformio-ESP32-orange?logo=platformio)
