@@ -2,6 +2,7 @@
 
 ## [2025-11-05] MQTT reboot command
 - feat(mqtt): dobavlen komandnyj tip reboot i model dlya serialize protokola
+- feat(api): dobavlen REST endpoint /api/manual-watering/reboot s vydachej correlation_id i publikaciej komandy reboot v MQTT
 
 ## [2025-11-04] Manual watering status fallback
 - fix(manual_watering): dobavlen db fallback v /api/manual-watering/status, chtoby obogatit status onlayna i poslednee nablyudenie pri otsutstvii teni

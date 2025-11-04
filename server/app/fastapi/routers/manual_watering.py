@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, conint
+from pydantic import BaseModel, Field, conint
 from sqlalchemy.orm import Session
 
 from app.mqtt.store import AckStore, get_ack_store
@@ -16,7 +16,7 @@ from config import get_settings
 from app.mqtt.store import DeviceShadowStore, get_shadow_store
 from app.mqtt.interfaces import IMqttPublisher
 from app.mqtt.lifecycle import get_publisher
-from app.mqtt.serialization import Ack, CmdPumpStart, CmdPumpStop, CommandType, DeviceState
+from app.mqtt.serialization import Ack, CmdPumpStart, CmdPumpStop, CmdReboot, CommandType, DeviceState
 from app.core.database import get_db
 from app.models.database_models import DeviceDB
 
@@ -125,6 +125,19 @@ class ManualWateringAckOut(BaseModel):
     status: str | None = None
 
 
+class ManualRebootIn(BaseModel):
+    """Vhodnye dannye dlya zaprosa reboot komandy."""
+
+    device_id: str = Field(..., min_length=1)  # identifikator ustroystva dlya publikacii komandy
+
+
+class ManualRebootOut(BaseModel):
+    """Otvet posle publikacii reboot komandy v MQTT."""
+
+    correlation_id: str  # korelaciya dlya sledyashego ozhidaniya ACK
+    message: str  # kratkij tekst ob uspeshnoj otpravke komandy
+
+
 @router.post("/api/manual-watering/start", response_model=ManualWateringStartOut)
 async def manual_watering_start(
     payload: ManualWateringStartIn,
@@ -180,6 +193,27 @@ async def manual_watering_stop(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to publish manual watering command") from exc
 
     return ManualWateringStopOut(correlation_id=correlation_id)
+
+
+@router.post("/api/manual-watering/reboot", response_model=ManualRebootOut)
+async def manual_watering_reboot(
+    payload: ManualRebootIn,
+    publisher: IMqttPublisher = Depends(get_mqtt_dep),
+) -> ManualRebootOut:
+    """Publikuet komandу reboot dlya ukazannogo ustroystva."""
+
+    correlation_id = uuid4().hex
+    cmd = CmdReboot(
+        correlation_id=correlation_id,
+        issued_at=int(time.time()),
+    )
+
+    try:
+        publisher.publish_cmd(payload.device_id, cmd)
+    except Exception as exc:  # pragma: no cover - proizvodstvennye 502 obrabatyvayutsya vysshe
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to publish manual reboot command") from exc
+
+    return ManualRebootOut(correlation_id=correlation_id, message="reboot command published")
 
 
 @router.get("/api/manual-watering/status", response_model=ManualWateringStatusOut)

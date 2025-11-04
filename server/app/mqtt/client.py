@@ -10,7 +10,7 @@ from paho.mqtt.client import CallbackAPIVersion, Client, MQTT_ERR_SUCCESS
 
 from .config import get_mqtt_settings
 from .interfaces import IMqttPublisher
-from .serialization import CmdPumpStart, CmdPumpStop, serialize
+from .serialization import CmdPumpStart, CmdPumpStop, CmdReboot, serialize
 from .topics import cmd_topic
 
 # Publikuemyi adapter dlya zavisimostey
@@ -70,7 +70,7 @@ class PahoMqttPublisher(IMqttPublisher):
             self._client.disconnect()
             self._connected = False
 
-    def publish_cmd(self, device_id: str, cmd: Union[CmdPumpStart, CmdPumpStop]) -> None:
+    def publish_cmd(self, device_id: str, cmd: Union[CmdPumpStart, CmdPumpStop, CmdReboot]) -> None:
         """Otpravlyaet komandnoe soobshchenie v topik ustroystva s QoS1 bez retain."""
 
         if not self._connected:
