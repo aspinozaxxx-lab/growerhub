@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, conint
+from sqlalchemy.orm import Session
 
 from app.mqtt.store import AckStore, get_ack_store
 from config import get_settings
@@ -16,6 +17,8 @@ from app.mqtt.store import DeviceShadowStore, get_shadow_store
 from app.mqtt.interfaces import IMqttPublisher
 from app.mqtt.lifecycle import get_publisher
 from app.mqtt.serialization import Ack, CmdPumpStart, CmdPumpStop, CommandType, DeviceState
+from app.core.database import get_db
+from app.models.database_models import DeviceDB
 
 router = APIRouter()
 
@@ -183,28 +186,86 @@ async def manual_watering_stop(
 async def manual_watering_status(
     device_id: str,
     store: DeviceShadowStore = Depends(get_shadow_dep),
+    db: Session = Depends(get_db),
 ) -> ManualWateringStatusOut:
     """Vozvrashaet tekushchee sostoyanie poliva iz shadow po device_id."""
 
+    # Algoritm: s nachala probuem poluchit polnyy nabor poley iz teni, a pri otsutstvii ili probelakh dozapolnyaem dannymi iz Bazy.
+    cfg = get_settings()
+    threshold = getattr(cfg, "DEVICE_ONLINE_THRESHOLD_S", None)
+    if threshold is None:
+        threshold = getattr(cfg, "device_online_threshold_s", None)
+    if threshold is None:
+        threshold = 180
+
     view = store.get_manual_watering_view(device_id)
     if view is None:
-        # Vozvrashaem 200 i zapolnyaem pustoy otvet, chtoby frontend mog zablokirovat knopki
-        # do pervogo poyavleniya ustroystva, ne polagayas na 404.
+        # Vetka fallback: teni net, proveryaem, est li ustroystvo v Baze.
+        device = db.query(DeviceDB).filter(DeviceDB.device_id == device_id).first()
+        if device is None:
+            # Vozvrashaem 200 i zapolnyaem pustoy otvet, chtoby frontend mog zablokirovat knopki
+            # do pervogo poyavleniya ustroystva, ne polagayas na 404.
+            return ManualWateringStatusOut(
+                status="idle",
+                duration_s=None,
+                started_at=None,
+                remaining_s=None,
+                correlation_id=None,
+                updated_at=None,
+                last_seen_at=None,
+                is_online=False,
+                offline_reason="no_state_yet",
+                source="fallback",
+            )
+
+        last_seen = device.last_seen
+        last_seen_iso = _isoformat_utc(last_seen) if last_seen else None
+        now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+        is_online = False
+        if last_seen is not None:
+            is_online = (now_utc - _as_utc(last_seen)).total_seconds() <= threshold
+        offline_reason = None if is_online else "device_offline"
         return ManualWateringStatusOut(
             status="idle",
             duration_s=None,
             started_at=None,
             remaining_s=None,
             correlation_id=None,
-            updated_at=None,
-            last_seen_at=None,
-            is_online=False,
-            offline_reason="no_state_yet",
-            source="fallback",
+            updated_at=last_seen_iso,
+            last_seen_at=last_seen_iso,
+            is_online=is_online,
+            offline_reason=offline_reason,
+            source="db_fallback",
         )
 
-    offline_reason = None if view.get("is_online") else "device_offline"
     enriched = dict(view)
+    has_last_seen = "last_seen_at" in enriched and enriched["last_seen_at"] is not None
+    has_is_online = "is_online" in enriched and enriched["is_online"] is not None
+    if not has_last_seen or not has_is_online:
+        # Dopolnyaem ten dannymi iz Bazy, chtoby offline/online indikator i last_seen sovpadali s osnovnym UI.
+        device = db.query(DeviceDB).filter(DeviceDB.device_id == device_id).first()
+        if device is not None:
+            last_seen = device.last_seen
+            if not has_last_seen:
+                enriched["last_seen_at"] = _isoformat_utc(last_seen) if last_seen else None
+                if "updated_at" not in enriched or enriched["updated_at"] is None:
+                    enriched["updated_at"] = enriched["last_seen_at"]
+            if not has_is_online:
+                if last_seen is not None:
+                    now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+                    enriched["is_online"] = (now_utc - _as_utc(last_seen)).total_seconds() <= threshold
+                else:
+                    enriched["is_online"] = False
+            if "updated_at" not in enriched:
+                enriched["updated_at"] = enriched.get("last_seen_at")
+        else:
+            if not has_last_seen:
+                enriched["last_seen_at"] = None
+            if not has_is_online:
+                enriched["is_online"] = False
+            enriched.setdefault("updated_at", enriched.get("last_seen_at"))
+
+    offline_reason = None if enriched.get("is_online") else "device_offline"
     enriched.setdefault("updated_at", None)
     enriched.setdefault("last_seen_at", None)
     enriched["offline_reason"] = offline_reason
@@ -288,4 +349,17 @@ if settings.DEBUG:
         raw_data = store.debug_dump(device_id)
         view = store.get_manual_watering_view(device_id)
         return {"raw": raw_data, "view": view}
+
+
+def _as_utc(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def _isoformat_utc(dt: datetime | None) -> str | None:
+    if dt is None:
+        return None
+    value = _as_utc(dt).replace(microsecond=0)
+    return value.isoformat().replace("+00:00", "Z")
 

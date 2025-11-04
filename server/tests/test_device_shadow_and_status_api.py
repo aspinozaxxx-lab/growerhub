@@ -16,12 +16,18 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from app.models.database_models import Base
+from app.models.database_models import Base, DeviceDB
 from app.main import app
 from app.mqtt.store import get_shadow_store
+from app.fastapi.routers import manual_watering as manual_watering_router
 
-engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+engine = create_engine(
+    "sqlite:///:memory:",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -34,6 +40,7 @@ def _create_tables() -> None:
 def _get_db():
     """Generator s testovoy sessiyey SQLAlchemy."""
 
+    _create_tables()
     db = SessionLocal()
     try:
         yield db
@@ -47,6 +54,7 @@ stub_database.SessionLocal = SessionLocal
 stub_database.create_tables = _create_tables
 stub_database.get_db = _get_db
 sys.modules["app.core.database"] = stub_database
+app.dependency_overrides[manual_watering_router.get_db] = _get_db
 
 
 @pytest.fixture(autouse=True)
@@ -71,6 +79,21 @@ def _post_shadow_state(client: TestClient, payload: dict) -> None:
 
     response = client.post("/_debug/shadow/state", json=payload)
     assert response.status_code == 200, response.text
+
+
+def _insert_device(device_id: str, *, last_seen: datetime | None) -> None:
+    """Dobavlyaet ali obnovlyaet zapis ustroystva v sqlite dlya fallback stsenariev."""
+
+    _create_tables()
+    session = SessionLocal()
+    try:
+        session.query(DeviceDB).filter(DeviceDB.device_id == device_id).delete()
+        device = DeviceDB(device_id=device_id)
+        device.last_seen = last_seen
+        session.add(device)
+        session.commit()
+    finally:
+        session.close()
 
 
 def test_status_idle_returns_idle_and_no_remaining() -> None:
@@ -185,6 +208,44 @@ def test_status_without_state_returns_placeholder() -> None:
     assert data["is_online"] is False
     assert data["offline_reason"] == "no_state_yet"
     assert data["status"] == "idle"
+
+
+def test_status_db_fallback_uses_device_record_for_online_state() -> None:
+    """Proveryaet chto pri otsutstvii teni, no so svyazannoy zapisyu v Baze, vozvrashaetsya db_fallback."""
+
+    device_id = "db-fallback-online"
+    last_seen = datetime.utcnow().replace(microsecond=0)
+    with TestClient(app) as client:
+        _insert_device(device_id, last_seen=last_seen)
+        response = client.get("/api/manual-watering/status", params={"device_id": device_id})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["source"] == "db_fallback"
+    assert data["status"] == "idle"
+    assert data["duration_s"] is None
+    assert data["is_online"] is True
+    assert data["offline_reason"] is None
+    assert data["last_seen_at"] == _iso_utc(last_seen)
+    assert data["updated_at"] == data["last_seen_at"]
+
+
+def test_status_db_fallback_marks_offline_for_stale_device() -> None:
+    """Proveryaet chto pri starom last_seen fallback stroit offline otvet s prichinoy."""
+
+    device_id = "db-fallback-offline"
+    last_seen = datetime.utcnow().replace(microsecond=0) - timedelta(minutes=5)
+    with TestClient(app) as client:
+        _insert_device(device_id, last_seen=last_seen)
+        response = client.get("/api/manual-watering/status", params={"device_id": device_id})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["source"] == "db_fallback"
+    assert data["status"] == "idle"
+    assert data["is_online"] is False
+    assert data["offline_reason"] == "device_offline"
+    assert data["last_seen_at"] == _iso_utc(last_seen)
 
 
 def test_debug_shadow_state_disabled_when_debug_false(monkeypatch) -> None:
