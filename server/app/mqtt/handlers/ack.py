@@ -91,5 +91,11 @@ def handle_ack_message(
     store.put(device_id, ack)
     if settings.debug:
         print(f"[MQTT DEBUG] (ack) sohranili ACK correlation_id={ack.correlation_id}")
-    logger.info("Sohranili ACK s correlation_id=%s", ack.correlation_id)
+    logger.info(
+        "Ack stored: device_id=%s correlation_id=%s result=%s status=%s",
+        device_id,
+        ack.correlation_id,
+        getattr(ack.result, "value", ack.result),
+        getattr(ack.status, "value", ack.status),
+    )  # TRANSLIT: chtoby v logah videt, chto ACK doehali i kakie polya prisli
 

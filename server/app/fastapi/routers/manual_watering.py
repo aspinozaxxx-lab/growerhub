@@ -384,6 +384,21 @@ if settings.DEBUG:
         view = store.get_manual_watering_view(device_id)
         return {"raw": raw_data, "view": view}
 
+# Vremennyj diagnosticheskij endpoint dlya analiza ACK (udalim posle otladki).
+@router.get("/api/debug/ack")
+async def debug_ack_lookup(
+    correlation_id: str,
+    store: AckStore = Depends(get_ack_dep),
+) -> dict:
+    """Vozvrashaet informaciyu po ACK iz store dlya ukazannogo correlation_id."""
+
+    ack = store.get(correlation_id)
+    if ack is None:
+        return {"found": False, "ack": None}
+
+    ack_payload = ack.model_dump(mode="json") if hasattr(ack, "model_dump") else ack.dict()  # type: ignore[attr-defined]
+    return {"found": True, "ack": ack_payload}
+
 
 def _as_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:
