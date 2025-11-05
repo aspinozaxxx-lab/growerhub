@@ -1,6 +1,7 @@
 ﻿# Changelog
 
 ## 2025-11-05
+- fix(firmware): vyrovnyan ACK topic na gh/dev/<id>/state/ack dlya sovmestimosti s serverom
 - feat(firmware): dobavlena komanda reboot; bezopasnyj ostan nasosa i restart ESP posle otpravki state/ACK
 
 ## 2025-11-01

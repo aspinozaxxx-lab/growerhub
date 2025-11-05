@@ -232,7 +232,7 @@ void MQTTClient::publishAckAccepted(const String& correlationId, const char* sta
 
     Serial.print(F("Отправляем ACK (accepted) в брокер: "));
     Serial.println(payload);
-    const String ackTopic = buildDeviceTopic("ack");
+    const String ackTopic = buildDeviceTopic("state/ack"); // server slushaet state/ack; vyrovnyali protokol
     mqttClient.publish(ackTopic.c_str(), payload.c_str(), false);
 }
 
@@ -249,7 +249,7 @@ void MQTTClient::publishAckError(const String& correlationId, const char* reason
 
     Serial.print(F("Отправляем ACK (error) в брокер: "));
     Serial.println(payload);
-    const String ackTopic = buildDeviceTopic("ack");
+    const String ackTopic = buildDeviceTopic("state/ack"); // server slushaet state/ack; vyrovnyali protokol
     mqttClient.publish(ackTopic.c_str(), payload.c_str(), false);
 }
 
