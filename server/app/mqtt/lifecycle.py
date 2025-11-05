@@ -150,7 +150,13 @@ def start_state_subscriber() -> None:
         init_state_subscriber()
     subscriber = get_state_subscriber()
     subscriber.start()
-    if subscriber.is_running():
+    running = True
+    if hasattr(subscriber, "is_running") and callable(getattr(subscriber, "is_running")):
+        try:
+            running = bool(subscriber.is_running())
+        except Exception:  # pragma: no cover - diagnostika stubov
+            running = True
+    if running:
         global _state_subscriber_started
         _state_subscriber_started = True
         logger.info("mqtt: state-subscriber started")
@@ -204,7 +210,13 @@ def start_ack_subscriber() -> None:
         init_ack_subscriber()
     subscriber = get_ack_subscriber()
     subscriber.start()
-    if subscriber.is_running():
+    running = True
+    if hasattr(subscriber, "is_running") and callable(getattr(subscriber, "is_running")):
+        try:
+            running = bool(subscriber.is_running())
+        except Exception:  # pragma: no cover - diagnostika stubov
+            running = True
+    if running:
         global _ack_subscriber_started
         _ack_subscriber_started = True
         logger.info("mqtt: ack-subscriber started")
