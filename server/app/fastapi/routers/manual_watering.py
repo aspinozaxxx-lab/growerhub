@@ -15,7 +15,12 @@ from app.mqtt.store import AckStore, get_ack_store
 from config import get_settings
 from app.mqtt.store import DeviceShadowStore, get_shadow_store
 from app.mqtt.interfaces import IMqttPublisher
-from app.mqtt.lifecycle import get_publisher
+from app.mqtt.lifecycle import (
+    get_publisher,
+    is_ack_subscriber_started,
+    is_publisher_started,
+    is_state_subscriber_started,
+)
 from app.mqtt.serialization import Ack, CmdPumpStart, CmdPumpStop, CmdReboot, CommandType, DeviceState
 from app.core.database import get_db
 from app.models.database_models import DeviceDB
@@ -398,6 +403,17 @@ async def debug_ack_lookup(
 
     ack_payload = ack.model_dump(mode="json") if hasattr(ack, "model_dump") else ack.dict()  # type: ignore[attr-defined]
     return {"found": True, "ack": ack_payload}
+
+
+@router.get("/api/debug/mqtt")
+async def debug_mqtt_status() -> dict:
+    """Vozvrashaet tekushchie flagi zapuska MQTT komponentov (vremenny diagnosticheskiy endpoint)."""
+
+    return {
+        "publisher_started": is_publisher_started(),
+        "ack_subscriber_started": is_ack_subscriber_started(),
+        "state_subscriber_started": is_state_subscriber_started(),
+    }
 
 
 def _as_utc(dt: datetime) -> datetime:

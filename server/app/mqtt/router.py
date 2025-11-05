@@ -88,7 +88,9 @@ class MqttStateSubscriber:
             if result != MQTT_ERR_SUCCESS:
                 raise RuntimeError(f"MQTT connect returned rc={result}")
             client.loop_start()
-            client.subscribe(make_state_topic_filter(), qos=1)
+            topic_filter = make_state_topic_filter()
+            client.subscribe(topic_filter, qos=1)
+            logger.info("mqtt: subscribed to %s qos=1", topic_filter)  # TRANSLIT: fiksiruem podpisku state
             self._client = client
             self._running = True
         except Exception as exc:  # pragma: no cover - kriticheskie oshibki slozhno smodelirovat
@@ -210,7 +212,9 @@ class MqttAckSubscriber:
             if result != MQTT_ERR_SUCCESS:
                 raise RuntimeError(f"MQTT connect returned rc={result}")
             client.loop_start()
-            client.subscribe(make_ack_topic_filter(), qos=1)
+            topic_filter = make_ack_topic_filter()
+            client.subscribe(topic_filter, qos=1)
+            logger.info("mqtt: subscribed to %s qos=1", topic_filter)  # TRANSLIT: fiksiruem podpisku ack
             self._client = client
             self._running = True
         except Exception as exc:  # pragma: no cover - kriticheskie oshibki slozhno smodelirovat
