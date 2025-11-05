@@ -24,7 +24,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 # MQTT topic filter dlya vsekh ACK ot ustroystv
-ACK_TOPIC_FILTER = "gh/dev/+/ack"
+ACK_TOPIC_FILTER = "gh/dev/+/state/ack"
 
 
 def make_ack_topic_filter() -> str:
@@ -37,10 +37,16 @@ def extract_device_id_from_ack_topic(topic: str) -> Optional[str]:
     """Vydelyaet device_id iz ack-topika ili vozvrashaet None pri nevernom formate."""
 
     parts = topic.split("/")
-    if len(parts) != 4:
+    if len(parts) != 5:
         return None
-    prefix, middle, device_id, suffix = parts
-    if prefix != "gh" or middle != "dev" or suffix != "ack" or not device_id:
+    prefix, middle, device_id, state_segment, suffix = parts
+    if (
+        prefix != "gh"
+        or middle != "dev"
+        or state_segment != "state"
+        or suffix != "ack"
+        or not device_id
+    ):
         return None
     return device_id
 
@@ -68,14 +74,16 @@ def handle_ack_message(
 
     device_id = extract_device_id_from_ack_topic(topic)
     if not device_id:
-        logger.warning("%s ne sootvetstvuet shablonu gh/dev/<id>/ack", topic)
+        logger.warning("%s ne sootvetstvuet shablonu gh/dev/<id>/state/ack", topic)
         return
 
     try:
         payload_text = payload.decode("utf-8")
         ack = Ack.model_validate_json(payload_text)
     except (UnicodeDecodeError, ValueError, json.JSONDecodeError, ValidationError) as exc:
+        raw_payload = payload.decode("utf-8", errors="replace")
         logger.warning("Ne udalos razobrat ACK ot %s: %s", device_id, exc)
+        logger.info("Otkidaem nekorrektnyj ACK ot %s: %s", device_id, raw_payload)
         if settings.debug:
             print(f"[MQTT DEBUG] (ack) oshibka dekodirovaniya ACK: {exc}")
         return

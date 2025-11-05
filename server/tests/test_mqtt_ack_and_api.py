@@ -12,13 +12,13 @@ from app.mqtt.store import AckStore, get_ack_store, init_ack_store, shutdown_ack
 def test_extract_device_id_from_ack_topic_valid():
     """Proveryaet izvlechenie device_id iz korrektnogo ack topika."""
 
-    assert extract_device_id_from_ack_topic("gh/dev/xyz/ack") == "xyz"
+    assert extract_device_id_from_ack_topic("gh/dev/xyz/state/ack") == "xyz"
 
 
 def test_extract_device_id_from_ack_topic_invalid():
     """Proveryaet chto nevernye topiki vozvrashchayut None."""
 
-    assert extract_device_id_from_ack_topic("gh/dev//ack") is None
+    assert extract_device_id_from_ack_topic("gh/dev//state/ack") is None
     assert extract_device_id_from_ack_topic("gh/dev/xyz/state") is None
     assert extract_device_id_from_ack_topic("bad/topic") is None
 
@@ -31,7 +31,11 @@ class FakeAckMessage:
         self.payload = payload
 
 
-def _make_ack_payload(correlation_id: str, result: AckResult, status: ManualWateringStatus | None = None) -> bytes:
+def _make_ack_payload(
+    correlation_id: str,
+    result: AckResult,
+    status: ManualWateringStatus | str | None = None,
+) -> bytes:
     """Formiruet JSON payload ack dlya testov."""
 
     ack = Ack(
@@ -49,7 +53,7 @@ def test_ack_subscriber_on_message_stores_ack():
     subscriber = MqttAckSubscriber(store, client_factory=lambda: None)
 
     payload = _make_ack_payload("corr-1", AckResult.accepted, ManualWateringStatus.running)
-    message = FakeAckMessage("gh/dev/abc123/ack", payload)
+    message = FakeAckMessage("gh/dev/abc123/state/ack", payload)
 
     subscriber._on_message(None, None, message)  # type: ignore[attr-defined]
 
@@ -111,4 +115,26 @@ def test_ack_store_cleanup_removes_old_entries():
     assert removed == 1
     assert store.get("old") is None
     assert store.get("recent") is not None
+
+
+def test_ack_wait_endpoint_accepts_reboot_status() -> None:
+    """Proveryaet chto wait-ack vozvrashaet status reboot bez validacionnyh oshibok."""
+
+    init_ack_store()
+    store = get_ack_store()
+    reboot_ack = Ack(correlation_id="abc", result=AckResult.accepted, status="reboot")
+    store.put("device-1", reboot_ack)
+
+    with TestClient(app) as client:
+        response = client.get(
+            "/api/manual-watering/wait-ack",
+            params={"correlation_id": "abc", "timeout_s": 1},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["result"] == AckResult.accepted.value
+    assert data["status"] == "reboot"
+    store.cleanup(max_age_seconds=0)
+
 

@@ -80,7 +80,9 @@ class Ack(BaseModel):
     correlation_id: str = Field(..., min_length=1)
     result: AckResult
     reason: Optional[str] = None
-    status: Optional[ManualWateringStatus] = None
+    status: Optional[Union[ManualWateringStatus, Literal["reboot"]]] = (
+        None  # status= "reboot" teper' dopuskaetsya dlya komandy reboot
+    )
     duration_s: Optional[int] = Field(default=None, ge=0)
     started_at: Optional[datetime] = None
 

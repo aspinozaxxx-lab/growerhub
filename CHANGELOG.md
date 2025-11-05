@@ -1,6 +1,7 @@
 # Changelog
 
 ## [2025-11-05] MQTT reboot command
+- fix(firmware): vyrovnyan ACK topic na gh/dev/<id>/state/ack dlya sovmestimosti s serverom
 - feat(mqtt): dobavlen komandnyj tip reboot i model dlya serialize protokola
 - feat(api): dobavlen REST endpoint /api/manual-watering/reboot s vydachej correlation_id i publikaciej komandy reboot v MQTT
 - feat(ui): dobavlena knopka "Peregruzit' ustrojstvo" na manual_watering s ozhidaniem ACK
