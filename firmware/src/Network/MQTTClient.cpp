@@ -139,7 +139,7 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
     }
 
     if (commandType == "pump.stop") {
-        Serial.print(F("������ pump.stop, correlation_id="));
+        Serial.print(F("obrabotka pump.stop, correlation_id="));
         Serial.println(correlationId);
 
         if (commandHandler) {
@@ -149,7 +149,7 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
         if (correlationId.length() > 0) {
             publishAckAccepted(correlationId, "idle");
         } else {
-            Serial.println(F("pump.stop ��� correlation_id - ���� ��⠭�����, �� �⢥� ��� �����䨪��� �������筮."));
+            Serial.println(F("pump.stop bez correlation_id - server ne poluchit svyazannyj ACK."));
             publishAckError(String(""), "bad command format: correlation_id missing");
         }
         return;
@@ -158,12 +158,12 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
     if (commandType == "reboot") {
         // Komanda reboot trebuet korektnogo correlation_id dlya otveta serveru.
         if (correlationId.length() == 0) {
-            Serial.println(F("reboot ��� correlation_id - nevozmozhno vypolnit' komandу."));
+            Serial.println(F("reboot bez correlation_id - otklonyaem komandу."));
             publishAckError(String(""), "bad-correlation-id");
             return;
         }
 
-        Serial.print(F("������ reboot, correlation_id="));
+        Serial.print(F("obrabotka reboot, correlation_id="));
         Serial.println(correlationId);
 
         if (commandHandler) {
