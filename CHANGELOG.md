@@ -1,6 +1,7 @@
 # Changelog
 
 ## [2025-11-05] MQTT reboot command
+- fix(firmware): ACK dlya reboot teper' ispol'zuet status 'running'|'idle' kak u manual; udalen status 'reboot'
 - fix(server): vklyuchen i zalogirovan ACK-subscriber; dobavlen debug status endpoint
 - fix(firmware): vyrovnyan ACK topic na gh/dev/<id>/state/ack dlya sovmestimosti s serverom
 - feat(mqtt): dobavlen komandnyj tip reboot i model dlya serialize protokola

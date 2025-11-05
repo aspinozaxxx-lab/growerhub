@@ -175,8 +175,9 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
             commandHandler(commandType, doc, correlationId);
         }
 
-        // Srazu otvechaem accepted, chtoby backend znal: komanda prinjata i budet vypolnena.
-        publishAckAccepted(correlationId, "reboot");
+        const bool pumpRunning = pumpStatusProvider ? pumpStatusProvider() : false;
+        const char* ackStatus = pumpRunning ? "running" : "idle";
+        publishAckAccepted(correlationId, ackStatus);
         return;
     }
 
