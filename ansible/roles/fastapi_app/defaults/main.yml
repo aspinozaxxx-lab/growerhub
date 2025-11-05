@@ -22,7 +22,7 @@ app_object: app
 # Параметры хоста и порта FastAPI
 app_host: 127.0.0.1
 app_port: 8000
-app_workers: 2
+app_workers: 1
 app_reload: false
 
 # Необходимые системные пакеты
