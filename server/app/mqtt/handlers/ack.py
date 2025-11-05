@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from typing import Optional
 
 from pydantic import ValidationError
@@ -92,7 +93,8 @@ def handle_ack_message(
     if settings.debug:
         print(f"[MQTT DEBUG] (ack) sohranili ACK correlation_id={ack.correlation_id}")
     logger.info(
-        "Ack stored: device_id=%s correlation_id=%s result=%s status=%s",
+        "Ack stored: pid=%s device_id=%s correlation_id=%s result=%s status=%s",
+        os.getpid(),
         device_id,
         ack.correlation_id,
         getattr(ack.result, "value", ack.result),

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -427,4 +428,12 @@ def _isoformat_utc(dt: datetime | None) -> str | None:
         return None
     value = _as_utc(dt).replace(microsecond=0)
     return value.isoformat().replace("+00:00", "Z")
+
+
+
+@router.get("/api/debug/pid")
+async def debug_pid() -> dict:
+    """Vozvrashaet pid procesa dlya diagnostiki."""
+
+    return {"pid": os.getpid()}
 
