@@ -14,7 +14,8 @@ MQTTClient::MQTTClient(SettingsManager& settingsRef, WiFiClient& wifiClientRef)
       mqttClient(wifiClientRef),
       lastReconnectAttempt(0),
       commandHandler(nullptr),
-      connectedHandler(nullptr) {}
+      connectedHandler(nullptr),
+      pumpStatusProvider([]() { return false; }) {}
 
 void MQTTClient::begin() {
     activeInstance = this;
@@ -61,6 +62,10 @@ void MQTTClient::setCommandHandler(CommandHandler handler) {
 
 void MQTTClient::setConnectedHandler(ConnectedHandler handler) {
     connectedHandler = std::move(handler);
+}
+
+void MQTTClient::setPumpStatusProvider(std::function<bool()> provider) {
+    pumpStatusProvider = std::move(provider);
 }
 
 void MQTTClient::mqttCallbackRouter(char* topic, byte* payload, unsigned int length) {

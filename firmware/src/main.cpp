@@ -64,6 +64,9 @@ void setup() {
             app.requestReboot(correlationId);
         }
     });
+    mqttClientManager.setPumpStatusProvider([&]() {
+        return app.isManualPumpRunning();
+    });
     mqttClientManager.setConnectedHandler([&]() {
         app.statePublishNow();
         app.resetHeartbeatTimer();

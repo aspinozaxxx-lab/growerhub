@@ -14,7 +14,6 @@ namespace Network {
 class MQTTClient {
 public:
     using CommandHandler = std::function<void(const String& commandType, const JsonDocument& doc, const String& correlationId)>; // podderzhivaem komandy pump.start, pump.stop, reboot
-
     using ConnectedHandler = std::function<void()>;
 
     MQTTClient(SettingsManager& settings, WiFiClient& wifiClient);
@@ -27,6 +26,7 @@ public:
 
     void setCommandHandler(CommandHandler handler);
     void setConnectedHandler(ConnectedHandler handler);
+    void setPumpStatusProvider(std::function<bool()> provider);
 
 private:
     static void mqttCallbackRouter(char* topic, byte* payload, unsigned int length);
@@ -44,6 +44,7 @@ private:
     unsigned long lastReconnectAttempt;
     CommandHandler commandHandler;
     ConnectedHandler connectedHandler;
+    std::function<bool()> pumpStatusProvider;
 
     static MQTTClient* activeInstance;
     static constexpr unsigned long MQTT_RECONNECT_INTERVAL_MS = 5000UL;
