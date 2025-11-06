@@ -65,6 +65,27 @@ class DeviceStateLastRepository:
                 "updated_at": record.updated_at,
             }
 
+    def touch(self, device_id: str, now_utc: datetime | None = None) -> None:
+        """Translitem: obnovlyaem tol'ko updated_at kak puls zhizni, sozdaem zaglushku esli zapisi net."""
+
+        instant = now_utc or datetime.utcnow()
+        with _session_scope() as session:
+            record = session.execute(
+                select(DeviceStateLastDB).where(DeviceStateLastDB.device_id == device_id)
+            ).scalar_one_or_none()
+            if record:
+                # Translitem: pri nalichii zapisi tol'ko perestavlyaem updated_at.
+                record.updated_at = instant
+            else:
+                # Translitem: sozdaem minimal'nyj state chtoby otmetit poslednee MQTT-sobytie.
+                session.add(
+                    DeviceStateLastDB(
+                        device_id=device_id,
+                        state_json="{}",
+                        updated_at=instant,
+                    )
+                )
+
     def list_states(self, device_ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Translitem: vozvrashaem spisok sostoyanii, filtr po device_ids esli nuzhen."""
 

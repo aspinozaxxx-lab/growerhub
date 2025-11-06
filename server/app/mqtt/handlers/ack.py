@@ -12,7 +12,7 @@ from pydantic import ValidationError
 from ..store import AckStore
 from ..config import MqttSettings
 from ..serialization import Ack
-from app.repositories.state_repo import MqttAckRepository
+from app.repositories.state_repo import DeviceStateLastRepository, MqttAckRepository
 
 # Publikuem konstanty i helpery dlya raboty s ACK
 __all__ = [
@@ -27,6 +27,8 @@ logger = logging.getLogger(__name__)
 
 # Repo dlya sohraneniya ACK v BD
 _ack_repo = MqttAckRepository()
+# Repo dlya obnovleniya updated_at po MQTT sobytiyam
+_state_repo = DeviceStateLastRepository()
 
 # MQTT topic filter dlya vsekh ACK ot ustroystv
 ACK_TOPIC_FILTER = "gh/dev/+/state/ack"
@@ -117,4 +119,9 @@ def handle_ack_message(
             ack.correlation_id,
             settings.ack_ttl_seconds,
         )
+        # Translitem: probyvaem puls ustroystva chtoby ACK prodlil okno onlayna.
+        try:
+            _state_repo.touch(device_id=device_id, now_utc=received_at)
+        except Exception as exc:  # pragma: no cover - translitem: ne blokiruem potok pri oshibke BD
+            logger.warning("Ne udalos obnovit puls dlya %s posle ACK: %s", device_id, exc)
 

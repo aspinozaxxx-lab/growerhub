@@ -1,3 +1,28 @@
+## 2025-11-06 — Uchet MQTT soobshcheniy (ACK) v online-status
+
+**Chto sdelano**
+- Dobavlen metod `touch()` v `DeviceStateLastRepository` dlya probytiya "pul'sa" ustroystva cherez `device_state_last.updated_at` bez izmeneniya `state_json`.
+- ACK-hendler (`server/app/mqtt/handlers/ack.py`) posle uspeshnogo `put_ack` vyzyvaet `touch(device_id)`, chtoby ACK prodleval onlayn-okno.
+- Dobavleny testy, podtverzhdayushchie, chto ACK obnavlyaet `updated_at` i vliyaet na `is_online` v `/api/devices` i `/api/manual-watering/status`.
+
+**Pochemu eto nuzhno**
+- Ranee onlayn-status uchityvalsya glavno po HTTP i `state`. Teper' lyuboe prinyatoe ACK vydajot priznak zhizni, chtoby ne lomat' UX pri komandnyh scenariyah.
+
+**Detali realizacii**
+- `DeviceDB.last_seen` iz MQTT ne izmenyaetsya — vse okruzheno vokrug `device_state_last.updated_at`.
+- TTL/okna onlajna ne menyalis' (3 min v `/api/devices`, znachenie iz `config` v manual-watering).
+- Migracii shemy ne trebuetsya.
+
+**Testy**
+- `server/tests/test_ack_affects_online_status.py`:
+  - `test_ack_updates_device_state_last_when_no_prior_state`
+  - `test_ack_extends_online_window_in_devices_endpoint`
+  - `test_ack_extends_online_in_manual_watering_status`
+
+**Riski i zametki**
+- Pri otkaze BD pri obrabotke ACK online-status mojet ne obnovit'sya, hotya ACK budet prinyat.
+- Parallel'nye testy trebuyut akkurnogo reseta in-memory storov (ustraneno fixtures).
+
 ## [Feature] Persist device state and ACK in DB
 
 - Dobavleny modeli i tablicy device_state_last i mqtt_ack.
