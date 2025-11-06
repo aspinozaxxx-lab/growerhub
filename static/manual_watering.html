@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
-    <title>Р СѓС‡РЅРѕР№ РїРѕР»РёРІ</title>
+    <title>Ручной полив</title>
     <style>
         body {
             font-family: "Segoe UI", sans-serif;
@@ -90,32 +90,32 @@
     </style>
 </head>
 <body>
-    <h1>Р СѓС‡РЅРѕР№ РїРѕР»РёРІ</h1>
+    <h1>Ручной полив</h1>
 
-    <label for="device_id">ID СѓСЃС‚СЂРѕР№СЃС‚РІР°</label>
-    <input id="device_id" type="text" placeholder="РќР°РїСЂРёРјРµСЂ, abc123" />
+    <label for="device_id">ID устройства</label>
+    <input id="device_id" type="text" placeholder="Например, abc123" />
 
-    <label for="duration">Р”Р»РёС‚РµР»СЊРЅРѕСЃС‚СЊ РїРѕР»РёРІР°</label>
+    <label for="duration">Длительность полива</label>
     <select id="duration">
-        <option value="10">10 СЃРµРєСѓРЅРґ</option>
-        <option value="20" selected>20 СЃРµРєСѓРЅРґ</option>
-        <option value="30">30 СЃРµРєСѓРЅРґ</option>
-        <option value="60">60 СЃРµРєСѓРЅРґ</option>
+        <option value="10">10 секунд</option>
+        <option value="20" selected>20 секунд</option>
+        <option value="30">30 секунд</option>
+        <option value="60">60 секунд</option>
     </select>
 
     <div class="inline-group">
-        <button id="startBtn">РџРѕР»РёС‚СЊ</button>
-        <button id="stopBtn">РћСЃС‚Р°РЅРѕРІРёС‚СЊ</button>
-        <button id="rebootBtn" class="btn btn-warning">РџРµСЂРµР·Р°РіСЂСѓР·РёС‚СЊ СѓСЃС‚СЂРѕР№СЃС‚РІРѕ</button>
+        <button id="startBtn">Полить</button>
+        <button id="stopBtn">Остановить</button>
+        <button id="rebootBtn" class="btn btn-warning">Перезагрузить устройство</button>
     </div>
 
-    <div id="onlineStatus">Р’РІРµРґРёС‚Рµ ID СѓСЃС‚СЂРѕР№СЃС‚РІР°</div>
+    <div id="onlineStatus">Введите ID устройства</div>
     <div id="ackResult"></div>
 
     <div id="progressContainer">
         <div id="progressBar"></div>
     </div>
-    <div id="progressText">РќРµС‚ Р°РєС‚РёРІРЅРѕРіРѕ РїРѕР»РёРІР°</div>
+    <div id="progressText">Нет активного полива</div>
     <div id="debugPanel" style="display: none; margin-top: 24px; padding: 12px; border: 1px dashed #ced6e0; background: #f1f2f6; font-size: 13px;">
         <div style="font-weight: 600; margin-bottom: 6px;">Debug</div>
         <div>Last corr_id: <span id="debugCorrId">&mdash;</span></div>
@@ -253,7 +253,7 @@
 
         function resetProgress() {
             progressBar.style.width = "0%";
-            progressText.textContent = "РќРµС‚ Р°РєС‚РёРІРЅРѕРіРѕ РїРѕР»РёРІР°";
+            progressText.textContent = "Нет активного полива";
         }
 
         function cancelSlowPoll() {
@@ -309,7 +309,7 @@
 
         function validateDeviceId() {
             if (!deviceInput.value.trim()) {
-                showAck("РќСѓР¶РЅРѕ СѓРєР°Р·Р°С‚СЊ ID СѓСЃС‚СЂРѕР№СЃС‚РІР° вќ—");
+                showAck("Нужно указать ID устройства ❗");
                 return false;
             }
             return true;
@@ -319,25 +319,25 @@
             cancelSlowPoll();
             const deviceId = deviceInput.value.trim();
             if (!deviceId) {
-                onlineStatusBlock.textContent = "Р’РІРµРґРёС‚Рµ ID СѓСЃС‚СЂРѕР№СЃС‚РІР°";
-                showAck("Р”Р»СЏ РѕРїСЂРѕСЃР° СЃС‚Р°С‚СѓСЃР° РЅСѓР¶РЅРѕ СѓРєР°Р·Р°С‚СЊ ID." );
+                onlineStatusBlock.textContent = "Введите ID устройства";
+                showAck("Для опроса статуса нужно указать ID." );
                 setButtonsDisabled(true);
                 resetProgress();
                 return;
             }
 
             try {
-                // РџРµСЂРµРґ РєР°Р¶РґС‹Рј Р·Р°РїСЂРѕСЃРѕРј РїРѕРґС‡РёС‰Р°РµРј ID Рё РєРѕРґРёСЂСѓРµРј РµРіРѕ РІ URL: СЂРµР°Р»СЊРЅС‹Рµ РёРґРµРЅС‚РёС„РёРєР°С‚РѕСЂС‹ С‡Р°СЃС‚Рѕ РєРѕРїРёСЂСѓСЋС‚СЃСЏ СЃ РїСЂРѕР±РµР»Р°РјРё Рё СЃС‚СЂРѕРєР°РјРё.
+                // Перед каждым запросом подчищаем ID и кодируем его в URL: реальные идентификаторы часто копируются с пробелами и строками.
                 const response = await fetch(`/api/manual-watering/status?device_id=${encodeURIComponent(deviceId)}`);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
                 const data = await response.json();
-                console.log("[РЎРўРђРўРЈРЎ РћРў РЎР•Р Р’Р•Р Рђ]", data);
+                console.log("[СТАТУС ОТ СЕРВЕРА]", data);
                 renderStatus(data);
             } catch (error) {
-                console.error("РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ СЃС‚Р°С‚СѓСЃ", error);
-                showAck("РћС€РёР±РєР° Р·Р°РїСЂРѕСЃР° СЃС‚Р°С‚СѓСЃР° вќЊ");
+                console.error("Не удалось получить статус", error);
+                showAck("Ошибка запроса статуса ❌");
                 setButtonsDisabled(true);
                 resetProgress();
                 stopFastPoll();
@@ -349,10 +349,10 @@
         function renderStatus(data) {
             const isOnline = Boolean(data.is_online);
             const offlineReason = data.offline_reason;
-            const lastSeenText = data.last_seen_at ? describeLastSeen(data.last_seen_at) : "вЂ”";
+            const lastSeenText = data.last_seen_at ? describeLastSeen(data.last_seen_at) : "—";
 
         if (isOnline) {
-            onlineStatusBlock.textContent = `РЎС‚Р°С‚СѓСЃ СѓСЃС‚СЂРѕР№СЃС‚РІР°: РћРЅР»Р°Р№РЅ вњ… (РїРѕСЃР»РµРґРЅСЏСЏ Р°РєС‚РёРІРЅРѕСЃС‚СЊ: ${lastSeenText})`;
+            onlineStatusBlock.textContent = `Статус устройства: Онлайн ✅ (последняя активность: ${lastSeenText})`;
             startBtn.disabled = false;
             stopBtn.disabled = false;
             rebootBtn.disabled = false;
@@ -369,13 +369,13 @@
         setButtonsDisabled(true);
 
         if (offlineReason === "device_offline") {
-            onlineStatusBlock.textContent = "РЎС‚Р°С‚СѓСЃ СѓСЃС‚СЂРѕР№СЃС‚РІР°: РћС„С„Р»Р°Р№РЅ вќЊ (СѓСЃС‚СЂРѕР№СЃС‚РІРѕ Р±С‹Р»Рѕ РЅР° СЃРІСЏР·Рё, РЅРѕ СЃРµР№С‡Р°СЃ РЅРµРґРѕСЃС‚СѓРїРЅРѕ)";
-            showAck("РЈСЃС‚СЂРѕР№СЃС‚РІРѕ РѕС„С„Р»Р°Р№РЅ вЂ” РєРЅРѕРїРєРё Р±Р»РѕРєРёСЂСѓРµРј.");
+            onlineStatusBlock.textContent = "Статус устройства: Оффлайн ❌ (устройство было на связи, но сейчас недоступно)";
+            showAck("Устройство оффлайн — кнопки блокируем.");
         } else if (offlineReason === "no_state_yet") {
-                onlineStatusBlock.textContent = "РЎС‚Р°С‚СѓСЃ СѓСЃС‚СЂРѕР№СЃС‚РІР°: РЅРµС‚ РґР°РЅРЅС‹С… вќ“ (СѓСЃС‚СЂРѕР№СЃС‚РІРѕ РµС‰С‘ РЅРё СЂР°Р·Сѓ РЅРµ РІС‹С…РѕРґРёР»Рѕ РЅР° СЃРІСЏР·СЊ)";
-                showAck("Р–РґС‘Рј РїРµСЂРІРѕРµ РїРѕРґРєР»СЋС‡РµРЅРёРµ СѓСЃС‚СЂРѕР№СЃС‚РІР° вЂ” РєРЅРѕРїРєРё Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅС‹.");
+                onlineStatusBlock.textContent = "Статус устройства: нет данных ❓ (устройство ещё ни разу не выходило на связь)";
+                showAck("Ждём первое подключение устройства — кнопки заблокированы.");
             } else {
-                onlineStatusBlock.textContent = "РЎС‚Р°С‚СѓСЃ СѓСЃС‚СЂРѕР№СЃС‚РІР°: РћС„С„Р»Р°Р№РЅ вќЊ (РїСЂРёС‡РёРЅР° РЅРµРёР·РІРµСЃС‚РЅР°)";
+                onlineStatusBlock.textContent = "Статус устройства: Оффлайн ❌ (причина неизвестна)";
             }
 
             setButtonsDisabled(true);
@@ -393,20 +393,20 @@
             const elapsed = Math.max(0, duration - remaining);
             const percent = Math.min(100, Math.max(0, (elapsed / duration) * 100));
             progressBar.style.width = `${percent}%`;
-            progressText.textContent = `РћСЃС‚Р°Р»РѕСЃСЊ ${remaining} СЃ РёР· ${duration}`;
+            progressText.textContent = `Осталось ${remaining} с из ${duration}`;
         }
 
         function describeLastSeen(lastSeenIso) {
             const seen = new Date(lastSeenIso);
             if (Number.isNaN(seen.getTime())) {
-                return "РІСЂРµРјСЏ РЅРµРёР·РІРµСЃС‚РЅРѕ";
+                return "время неизвестно";
             }
             const now = new Date();
             const diffSeconds = Math.max(0, Math.floor((now - seen) / 1000));
             if (diffSeconds < 1) {
-                return "РјРµРЅРµРµ СЃРµРєСѓРЅРґС‹ РЅР°Р·Р°Рґ";
+                return "менее секунды назад";
             }
-            return `${diffSeconds} СЃ РЅР°Р·Р°Рґ`;
+            return `${diffSeconds} с назад`;
         }
 
         function showAck(message) {
@@ -418,7 +418,7 @@
             const duration = Number(durationSelect.value);
 
             setButtonsDisabled(true);
-            showAck("РћС‚РїСЂР°РІР»СЏРµРј РєРѕРјР°РЅРґСѓ РЅР° Р·Р°РїСѓСЃРє...");
+            showAck("Отправляем команду на запуск...");
 
             try {
                 const response = await fetch("/api/manual-watering/start", {
@@ -441,17 +441,17 @@
                     timeout_s: WAIT_ACK_TIMEOUT_S,
                     ts: Date.now()
                 });
-                showAck("пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅа ўпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅвўҐа¦¤пїЅпїЅпїЅпїЅ...");
+                showAck("������� ��ࠢ����, ��� ���⢥ত����...");
 
                 const ackMessage = await waitAck(payload.correlation_id, deviceId);
                 showAck(ackMessage);
 
                 fetchStatus().catch(console.error);
-                // Р§С‚РѕР±С‹ UI С‚РѕС‡РЅРѕ РѕР±РЅРѕРІРёР»СЃСЏ Рё РЅРµ РѕСЃС‚Р°РІР°Р»СЃСЏ РІ СЃРѕСЃС‚РѕСЏРЅРёРё "РЅРµС‚ РґР°РЅРЅС‹С…", С‡РµСЂРµР· СЃРµРєСѓРЅРґСѓ РѕРїСЂР°С€РёРІР°РµРј СЃС‚Р°С‚СѓСЃ РµС‰С‘ СЂР°Р·.
+                // Чтобы UI точно обновился и не оставался в состоянии "нет данных", через секунду опрашиваем статус ещё раз.
                 setTimeout(() => fetchStatus().catch(console.error), 1000);
             } catch (error) {
-                console.error("РћС€РёР±РєР° Р·Р°РїСѓСЃРєР° РїРѕР»РёРІР°", error);
-                showAck(`РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РїСѓСЃС‚РёС‚СЊ РїРѕР»РёРІ вќЊ (${error.message})`);
+                console.error("Ошибка запуска полива", error);
+                showAck(`Не удалось запустить полив ❌ (${error.message})`);
             } finally {
                 setButtonsDisabled(false);
             }
@@ -461,7 +461,7 @@
             const deviceId = deviceInput.value.trim();
 
             setButtonsDisabled(true);
-            showAck("РћС‚РїСЂР°РІР»СЏРµРј РєРѕРјР°РЅРґСѓ РѕСЃС‚Р°РЅРѕРІРєРё...");
+            showAck("Отправляем команду остановки...");
 
             try {
                 const response = await fetch("/api/manual-watering/stop", {
@@ -484,15 +484,15 @@
                     timeout_s: WAIT_ACK_TIMEOUT_S,
                     ts: Date.now()
                 });
-                showAck("пїЅпїЅпїЅ пїЅпїЅпїЅвўҐа¦¤пїЅпїЅпїЅпїЅ пїЅпїЅв ­пїЅпїЅпїЅпїЅ...");
+                showAck("��� ���⢥ত���� ��⠭����...");
 
                 const ackMessage = await waitAck(payload.correlation_id, deviceId);
                 showAck(ackMessage);
 
                 fetchStatus().catch(console.error);
             } catch (error) {
-                console.error("РћС€РёР±РєР° РѕСЃС‚Р°РЅРѕРІРєРё РїРѕР»РёРІР°", error);
-                showAck(`РќРµ СѓРґР°Р»РѕСЃСЊ РѕСЃС‚Р°РЅРѕРІРёС‚СЊ РїРѕР»РёРІ вќЊ (${error.message})`);
+                console.error("Ошибка остановки полива", error);
+                showAck(`Не удалось остановить полив ❌ (${error.message})`);
             } finally {
                 setButtonsDisabled(false);
             }
@@ -505,7 +505,7 @@
 
             const deviceId = deviceInput.value.trim();
             setButtonsDisabled(true);
-            showAck("РћС‚РїСЂР°РІР»СЏРµРј РєРѕРјР°РЅРґСѓ РїРµСЂРµР·Р°РіСЂСѓР·РєРё...");
+            showAck("Отправляем команду перезагрузки...");
 
             try {
                 const response = await fetch("/api/manual-watering/reboot", {
@@ -533,14 +533,14 @@
                     timeout_s: WAIT_ACK_TIMEOUT_S,
                     ts: Date.now()
                 });
-                showAck("пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅаҐ§пїЅпїЅпїЅг§ЄпїЅ пїЅпїЅа ўпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅ пїЅпїЅпїЅвўҐа¦¤пїЅпїЅпїЅпїЅ...");
+                showAck("������� ��१���㧪� ��ࠢ����, ��� ���⢥ত����...");
 
                 const ackMessage = await waitAckForReboot(payload.correlation_id, deviceId);
                 showAck(ackMessage);
 
                 fetchStatus().catch(console.error);
             } catch (error) {
-                console.error("РћС€РёР±РєР° РїРµСЂРµР·Р°РіСЂСѓР·РєРё СѓСЃС‚СЂРѕР№СЃС‚РІР°", error);
+                console.error("Ошибка перезагрузки устройства", error);
                 const rawMessage =
                     error && typeof error === "object" && "message" in error
                         ? error.message
@@ -550,15 +550,15 @@
                     error && typeof error === "object" && "name" in error ? error.name : "";
 
                 if (message.includes("MQTT publisher unavailable") || message.includes("503")) {
-                    showAck("РЎРµСЂРІРёСЃ РЅРµРґРѕСЃС‚СѓРїРµРЅ, РїРѕРїСЂРѕР±СѓР№С‚Рµ РїРѕР·Р¶Рµ вќЊ");
+                    showAck("Сервис недоступен, попробуйте позже ❌");
                 } else if (
                     message.includes("Failed to fetch") ||
                     message.includes("NetworkError") ||
                     errorName === "TypeError"
                 ) {
-                    showAck("РЎРµС‚СЊ РЅРµРґРѕСЃС‚СѓРїРЅР° вќЊ");
+                    showAck("Сеть недоступна ❌");
                 } else {
-                    showAck(`РќРµ СѓРґР°Р»РѕСЃСЊ РїРµСЂРµР·Р°РіСЂСѓР·РёС‚СЊ СѓСЃС‚СЂРѕР№СЃС‚РІРѕ вќЊ (${message})`);
+                    showAck(`Не удалось перезагрузить устройство ❌ (${message})`);
                 }
             } finally {
                 setButtonsDisabled(false);
@@ -578,14 +578,14 @@
                 if (response.status === 408) {
                     debugLogWarn("WAIT_ACK TIMEOUT", { correlation_id: correlationId });
                     setLastAckSummary("408 timeout");
-                    return "пїЅпїЅаҐ§пїЅпїЅпїЅг§ЄпїЅ пїЅпїЅ пїЅпїЅпїЅвўҐа¦¤пїЅпїЅпїЅ: пїЅаҐўпїЅиҐ­пїЅ пїЅаҐ¬пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ ?";
+                    return "��१���㧪� �� ���⢥ত���: �ॢ�襭� �६� �������� ?";
                 }
                 if (!response.ok) {
                     const errorPayload = await response.json().catch(() => ({}));
                     const detail = errorPayload.detail || `HTTP ${response.status}`;
                     debugLogError("WAIT_ACK ERROR", { correlation_id: correlationId, detail });
                     setLastAckSummary(`${response.status} error`);
-                    return `пїЅпїЅаҐ§пїЅпїЅпїЅг§ЄпїЅ пїЅпїЅ пїЅпїЅпїЅвўҐа¦¤пїЅпїЅпїЅ: ${detail} ?`;
+                    return `��१���㧪� �� ���⢥ত���: ${detail} ?`;
                 }
                 const payload = await response.json();
                 debugLogInfo("WAIT_ACK OK", {
@@ -593,21 +593,21 @@
                     result: payload.result,
                     status: payload.status
                 });
-                setLastAckSummary(`${payload.result}/${payload.status ?? "вЂ”"}`);
+                setLastAckSummary(`${payload.result}/${payload.status ?? "—"}`);
                 if (payload.result === "accepted") {
-                    return "пїЅпїЅаҐ§пїЅпїЅпїЅг§ЄпїЅ пїЅпїЅпїЅвўҐа¦¤пїЅпїЅпїЅ пїЅпїЅпїЅа®©пїЅвў®пїЅ ?";
+                    return "��१���㧪� ���⢥ত��� ���ன�⢮� ?";
                 }
-                const reason = payload.reason || payload.result || "пїЅпїЅпїЅпїЅпїЅпїЅпїЅв­ пїЅ пїЅпїЅзЁ­пїЅ";
+                const reason = payload.reason || payload.result || "�������⭠� ��稭�";
                 setLastAckSummary(reason);
-                return `пїЅпїЅаҐ§пїЅпїЅпїЅг§ЄпїЅ пїЅпїЅ пїЅпїЅпїЅвўҐа¦¤пїЅпїЅпїЅ: ${reason} ?`;
+                return `��१���㧪� �� ���⢥ত���: ${reason} ?`;
             } catch (error) {
-                console.error("пїЅиЁЎпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ ACK пїЅпїЅпїЅ пїЅпїЅаҐ§пїЅпїЅпїЅг§ЄпїЅ", error);
+                console.error("�訡�� �������� ACK ��� ��१���㧪�", error);
                 debugLogError("WAIT_ACK ERROR", {
                     correlation_id: correlationId,
                     message: error && error.message ? error.message : String(error)
                 });
                 setLastAckSummary("network error");
-                return "пїЅпїЅаҐ§пїЅпїЅпїЅг§ЄпїЅ пїЅпїЅ пїЅпїЅпїЅвўҐа¦¤пїЅпїЅпїЅ: пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅгЇ­пїЅ ?";
+                return "��१���㧪� �� ���⢥ত���: ��� ������㯭� ?";
             }
         }
 
@@ -624,14 +624,14 @@
                 if (response.status === 408) {
                     debugLogWarn("WAIT_ACK TIMEOUT", { correlation_id: correlationId });
                     setLastAckSummary("408 timeout");
-                    return "ACK пїЅпїЅ пїЅпїЅпїЅпїЅзҐ­ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅаҐ¬пїЅ ?";
+                    return "ACK �� ����祭 � �������� �६� ?";
                 }
                 if (!response.ok) {
                     const errorPayload = await response.json().catch(() => ({}));
                     const detail = errorPayload.detail || `HTTP ${response.status}`;
                     debugLogError("WAIT_ACK ERROR", { correlation_id: correlationId, detail });
                     setLastAckSummary(`${response.status} error`);
-                    return errorPayload.detail || "пїЅиЁЎпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ ACK ?";
+                    return errorPayload.detail || "�訡�� �������� ACK ?";
                 }
                 const payload = await response.json();
                 debugLogInfo("WAIT_ACK OK", {
@@ -639,23 +639,23 @@
                     result: payload.result,
                     status: payload.status
                 });
-                setLastAckSummary(`${payload.result}/${payload.status ?? "вЂ”"}`);
+                setLastAckSummary(`${payload.result}/${payload.status ?? "—"}`);
                 if (payload.result === "accepted") {
-                    return "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅвўҐа¦¤пїЅпїЅпїЅ ?";
+                    return "������� ���⢥ত��� ?";
                 }
                 if (payload.result === "rejected") {
-                    return "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅвЄ«пїЅпїЅпїЅпїЅпїЅ ?";
+                    return "������� �⪫����� ?";
                 }
                 setLastAckSummary(payload.result);
-                return `пїЅвўҐпїЅ пїЅпїЅ пїЅпїЅпїЅа®©пїЅвў : ${payload.result}`;
+                return `�⢥� �� ���ன�⢠: ${payload.result}`;
             } catch (error) {
-                console.error("пїЅиЁЎпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ ACK", error);
+                console.error("�訡�� �������� ACK", error);
                 debugLogError("WAIT_ACK ERROR", {
                     correlation_id: correlationId,
                     message: error && error.message ? error.message : String(error)
                 });
                 setLastAckSummary("network error");
-                return "пїЅпїЅ г¤ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ ACK ?";
+                return "�� 㤠���� ��������� ACK ?";
             }
         }
 
