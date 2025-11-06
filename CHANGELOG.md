@@ -148,3 +148,4 @@
 - fix(ui): restore utf-8 text on manual watering frontend
 - fix(ui): convert manual_watering text to utf-8
 - fix(ui): manual_watering page restored to proper utf-8 text
+- fix(ui): rewrite manual_watering.html with clean utf-8 content
