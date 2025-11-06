@@ -15,12 +15,14 @@ from app.mqtt.lifecycle import (
     init_mqtt_stores,
     init_publisher,
     init_state_subscriber,
+    start_ack_cleanup_loop,
     shutdown_ack_subscriber,
     shutdown_mqtt_stores,
     shutdown_publisher,
     shutdown_state_subscriber,
     start_ack_subscriber,
     start_state_subscriber,
+    stop_ack_cleanup_loop,
     stop_ack_subscriber,
     stop_state_subscriber,
 )
@@ -58,6 +60,7 @@ async def _startup_mqtt() -> None:
     except RuntimeError:
         logger.warning("MQTT ack subscriber is not initialised")
     init_publisher()
+    await start_ack_cleanup_loop()
 
 
 @app.on_event("shutdown")
@@ -69,6 +72,7 @@ async def _shutdown_mqtt() -> None:
     shutdown_ack_subscriber()
     shutdown_publisher()
     shutdown_mqtt_stores()
+    await stop_ack_cleanup_loop()
 
 
 # === Маршруты для статики и прошивок ===

@@ -42,6 +42,8 @@ class Settings:
     MQTT_CLIENT_ID_PREFIX: str = "growerhub-api"
     DEVICE_ONLINE_THRESHOLD_S: int = 60  # интервал проверки состояния устройства
     DEBUG: bool = True
+    ACK_TTL_SECONDS: int = 180  # Translitem: skolko hranim ack v BD do ochistki
+    ACK_CLEANUP_PERIOD_SECONDS: int = 60  # Translitem: chastota fonovoy ochistki ack
 
 
 @lru_cache()
@@ -58,4 +60,6 @@ def get_settings() -> Settings:
         DEVICE_ONLINE_THRESHOLD_S=Settings.DEVICE_ONLINE_THRESHOLD_S,
         #DEVICE_ONLINE_THRESHOLD_S=_env_int("DEVICE_ONLINE_THRESHOLD_S", Settings.DEVICE_ONLINE_THRESHOLD_S),
         DEBUG=_env_bool("DEBUG", Settings.DEBUG),
+        ACK_TTL_SECONDS=_env_int("ACK_TTL_SECONDS", Settings.ACK_TTL_SECONDS),
+        ACK_CLEANUP_PERIOD_SECONDS=_env_int("ACK_CLEANUP_PERIOD_SECONDS", Settings.ACK_CLEANUP_PERIOD_SECONDS),
     )

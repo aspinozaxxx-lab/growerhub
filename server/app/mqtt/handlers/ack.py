@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime
 from typing import Optional
 
 from pydantic import ValidationError
@@ -11,6 +12,7 @@ from pydantic import ValidationError
 from ..store import AckStore
 from ..config import MqttSettings
 from ..serialization import Ack
+from app.repositories.state_repo import MqttAckRepository
 
 # Publikuem konstanty i helpery dlya raboty s ACK
 __all__ = [
@@ -22,6 +24,9 @@ __all__ = [
 
 # Logger dlya kontrolya poluchennyh ACK
 logger = logging.getLogger(__name__)
+
+# Repo dlya sohraneniya ACK v BD
+_ack_repo = MqttAckRepository()
 
 # MQTT topic filter dlya vsekh ACK ot ustroystv
 ACK_TOPIC_FILTER = "gh/dev/+/state/ack"
@@ -92,4 +97,24 @@ def handle_ack_message(
     if settings.debug:
         print(f"[MQTT DEBUG] (ack) sohranili ACK correlation_id={ack.correlation_id}")
     logger.info("Sohranili ACK s correlation_id=%s", ack.correlation_id)
+
+    # Translitem: sohranyaem ack v BD s TTL, chtoby pri restarte ne terять poslednie podtverzhdeniya.
+    ack_dict = ack.model_dump(mode="json")
+    received_at = datetime.utcnow()
+    try:
+        _ack_repo.put_ack(
+            correlation_id=ack.correlation_id,
+            device_id=device_id,
+            ack_dict=ack_dict,
+            received_at=received_at,
+            ttl_seconds=settings.ack_ttl_seconds,
+        )
+    except Exception as exc:  # pragma: no cover - translitem: ne padaem esli BD nedostupna
+        logger.warning("Ne udalos sohranit ACK %s v BD: %s", ack.correlation_id, exc)
+    else:
+        logger.debug(
+            "Sohranili ACK v BD dlya %s s TTL %s",
+            ack.correlation_id,
+            settings.ack_ttl_seconds,
+        )
 

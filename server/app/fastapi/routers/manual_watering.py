@@ -19,6 +19,7 @@ from app.mqtt.lifecycle import get_publisher
 from app.mqtt.serialization import Ack, CmdPumpStart, CmdPumpStop, CmdReboot, CommandType, DeviceState
 from app.core.database import get_db
 from app.models.database_models import DeviceDB
+from app.repositories.state_repo import DeviceStateLastRepository
 
 router = APIRouter()
 
@@ -235,6 +236,40 @@ async def manual_watering_status(
 
     view = store.get_manual_watering_view(device_id)
     if view is None:
+        # Translitem: esli ten pustaya, probuem vosstanovit state iz BD kak osnovnogo hranilishcha.
+        state_repo = DeviceStateLastRepository()
+        stored_state = state_repo.get_state(device_id)
+        if stored_state is not None:
+            state_payload = stored_state["state"]
+            updated_at = stored_state["updated_at"]
+            manual = state_payload.get("manual_watering", {})
+            status_value = manual.get("status", "idle")
+            duration_s = manual.get("duration_s")
+            started_at = manual.get("started_at")
+            correlation_id = manual.get("correlation_id")
+            remaining_s = manual.get("remaining_s")
+            last_seen_iso = _isoformat_utc(updated_at) if updated_at else None
+            offline_reason = None
+            is_online = False
+            if updated_at is not None:
+                now_utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+                is_online = (now_utc - _as_utc(updated_at)).total_seconds() <= threshold
+                offline_reason = None if is_online else "device_offline"
+            if not is_online and offline_reason is None:
+                offline_reason = "device_offline"
+            return ManualWateringStatusOut(
+                status=status_value,
+                duration_s=duration_s,
+                started_at=started_at,
+                remaining_s=remaining_s,
+                correlation_id=correlation_id,
+                updated_at=last_seen_iso,
+                last_seen_at=last_seen_iso,
+                is_online=is_online,
+                offline_reason=offline_reason,
+                source="db_state",
+            )
+
         # Vetka fallback: teni net, proveryaem, est li ustroystvo v Baze.
         device = db.query(DeviceDB).filter(DeviceDB.device_id == device_id).first()
         if device is None:

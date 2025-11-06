@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from datetime import datetime
 from typing import Callable, Optional
 
 from paho.mqtt.client import Client
 
+from app.repositories.state_repo import MqttAckRepository
+from .config import get_mqtt_settings
 from .store import (
     AckStore,
     DeviceShadowStore,
@@ -48,6 +52,8 @@ __all__ = [
     "is_publisher_started",
     "is_state_subscriber_started",
     "is_ack_subscriber_started",
+    "start_ack_cleanup_loop",
+    "stop_ack_cleanup_loop",
 ]
 
 # Logger dlya fiksacii usloviy starta i ostanovki
@@ -61,6 +67,60 @@ _ack_subscriber: Optional[MqttAckSubscriber] = None
 _publisher_started: bool = False
 _state_subscriber_started: bool = False
 _ack_subscriber_started: bool = False
+_ack_cleanup_task: Optional[asyncio.Task] = None
+_ack_cleanup_stop_event: Optional[asyncio.Event] = None
+
+
+async def _ack_cleanup_worker(period_seconds: int) -> None:
+    """Translitem: fonovyy loop udaleniya prosrochennyh ACK iz BD."""
+
+    repo = MqttAckRepository()
+    logger.info("mqtt: ack-cleanup worker zapushchen s periodom %s s", period_seconds)
+    try:
+        while True:
+            if _ack_cleanup_stop_event is None:
+                break
+            try:
+                await asyncio.wait_for(_ack_cleanup_stop_event.wait(), timeout=period_seconds)
+                break
+            except asyncio.TimeoutError:
+                deleted = repo.cleanup_expired(datetime.utcnow())
+                if deleted:
+                    logger.info("Ochisli prosrochennye ACK: udaleno %s zap.", deleted)
+                else:
+                    logger.debug("Cleanup prosrochennyh ACK: net zapisej dlya udaleniya")
+    finally:
+        logger.info("mqtt: ack-cleanup worker ostanovlen")
+
+
+async def start_ack_cleanup_loop(period_seconds: Optional[int] = None) -> None:
+    """Translitem: startuem asinhronnyy cleanup ack, esli on eshche ne zapushchen."""
+
+    global _ack_cleanup_task, _ack_cleanup_stop_event
+    if _ack_cleanup_task and not _ack_cleanup_task.done():
+        return
+
+    if period_seconds is None:
+        period_seconds = get_mqtt_settings().ack_cleanup_period_seconds
+
+    _ack_cleanup_stop_event = asyncio.Event()
+    loop = asyncio.get_running_loop()
+    _ack_cleanup_task = loop.create_task(_ack_cleanup_worker(period_seconds))
+
+
+async def stop_ack_cleanup_loop() -> None:
+    """Translitem: okazhno ostanavlivaem cleanup loop i zhdyom ego zaversheniya."""
+
+    global _ack_cleanup_task, _ack_cleanup_stop_event
+    if _ack_cleanup_stop_event is not None:
+        _ack_cleanup_stop_event.set()
+
+    if _ack_cleanup_task is not None:
+        try:
+            await _ack_cleanup_task
+        finally:
+            _ack_cleanup_task = None
+            _ack_cleanup_stop_event = None
 
 
 def init_mqtt_stores() -> None:

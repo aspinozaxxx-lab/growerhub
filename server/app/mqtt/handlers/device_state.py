@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime
 from typing import Optional
 
 from pydantic import ValidationError
@@ -11,6 +12,7 @@ from pydantic import ValidationError
 from ..store import DeviceShadowStore
 from ..config import MqttSettings
 from ..serialization import DeviceState
+from app.repositories.state_repo import DeviceStateLastRepository
 
 # Publikuem konstanty i helpery dlya sostoyaniy
 __all__ = [
@@ -22,6 +24,9 @@ __all__ = [
 
 # Logger dlya fiksacii sostoyaniy ot ustroystv
 logger = logging.getLogger(__name__)
+
+# Repo dlya sohraneniya poslednih sostoyanii v BD
+_state_repo = DeviceStateLastRepository()
 
 # MQTT topic filter dlya retained state topikov
 STATE_TOPIC_FILTER = "gh/dev/+/state"
@@ -84,4 +89,14 @@ def handle_state_message(
     if settings.debug:
         print(f"[MQTT DEBUG] (state) obnovili shadow dlya {device_id}")
     logger.info("Obnovili shadow dlya %s", device_id)
+
+    # Translitem: BD hranit iskhodnyy json kak istochnik istiny, shadow nuzhen dlya bystrogo otklika API.
+    state_dict = state.model_dump(mode="json")
+    updated_at = datetime.utcnow()
+    try:
+        _state_repo.upsert_state(device_id, state_dict, updated_at)
+    except Exception as exc:  # pragma: no cover - translitem: ne blokiruem potok pri oshibke BD
+        logger.warning("Ne udalos sohranit state v BD dlya %s: %s", device_id, exc)
+    else:
+        logger.info("Sohranili state v BD dlya %s", device_id)
 

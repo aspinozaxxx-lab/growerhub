@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -15,6 +15,7 @@ from app.models.database_models import (
     SensorDataPoint,
     WateringLogDB,
 )
+from app.repositories.state_repo import DeviceStateLastRepository
 
 router = APIRouter()
 
@@ -111,18 +112,49 @@ async def get_all_devices(db: Session = Depends(get_db)):
     devices = db.query(DeviceDB).all()
     current_time = datetime.utcnow()
     online_window = timedelta(minutes=3)
+    state_repo = DeviceStateLastRepository()
+
     return [
-        DeviceInfo(
+        _merge_device_state(device, state_repo, current_time, online_window)
+        for device in devices
+    ]
+
+
+def _merge_device_state(
+    device: DeviceDB,
+    state_repo: DeviceStateLastRepository,
+    current_time: datetime,
+    online_window: timedelta,
+) -> DeviceInfo:
+    """Translitem: dopolnyaem informaciyu iz device_state_last kak osnovnogo istochnika."""
+
+    stored_state = state_repo.get_state(device.device_id)
+    if stored_state:
+        payload = stored_state["state"]
+        manual = payload.get("manual_watering", {})
+        status_value = manual.get("status")
+        is_watering = status_value == "running" if status_value else device.is_watering
+        updated_at = stored_state["updated_at"]
+        last_seen = updated_at or device.last_seen
+        if last_seen is not None:
+            is_online = bool(
+                (datetime.utcnow().replace(tzinfo=timezone.utc) - _as_utc(last_seen)).total_seconds()
+                <= online_window.total_seconds()
+            )
+        else:
+            is_online = bool(device.last_seen and (current_time - device.last_seen) <= online_window)
+
+        return DeviceInfo(
             device_id=device.device_id,
             name=device.name,
             soil_moisture=device.soil_moisture,
             air_temperature=device.air_temperature,
             air_humidity=device.air_humidity,
-            is_watering=device.is_watering,
+            is_watering=is_watering,
             is_light_on=device.is_light_on,
-            is_online=bool(device.last_seen and (current_time - device.last_seen) <= online_window),
+            is_online=is_online,
             last_watering=device.last_watering,
-            last_seen=device.last_seen,
+            last_seen=last_seen or device.last_seen,
             target_moisture=device.target_moisture,
             watering_duration=device.watering_duration,
             watering_timeout=device.watering_timeout,
@@ -132,8 +164,36 @@ async def get_all_devices(db: Session = Depends(get_db)):
             current_version=device.current_version,
             update_available=device.update_available,
         )
-        for device in devices
-    ]
+
+    # Translitem: net zapisi v device_state_last, ispolzuem dannye DeviceDB kak ran'she.
+    return DeviceInfo(
+        device_id=device.device_id,
+        name=device.name,
+        soil_moisture=device.soil_moisture,
+        air_temperature=device.air_temperature,
+        air_humidity=device.air_humidity,
+        is_watering=device.is_watering,
+        is_light_on=device.is_light_on,
+        is_online=bool(device.last_seen and (current_time - device.last_seen) <= online_window),
+        last_watering=device.last_watering,
+        last_seen=device.last_seen,
+        target_moisture=device.target_moisture,
+        watering_duration=device.watering_duration,
+        watering_timeout=device.watering_timeout,
+        light_on_hour=device.light_on_hour,
+        light_off_hour=device.light_off_hour,
+        light_duration=device.light_duration,
+        current_version=device.current_version,
+        update_available=device.update_available,
+    )
+
+
+def _as_utc(dt: datetime) -> datetime:
+    """Translitem: privodim datetime k UTC dlya sravneniy."""
+
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 
 @router.delete("/api/device/{device_id}")

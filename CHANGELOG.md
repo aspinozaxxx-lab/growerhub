@@ -1,3 +1,11 @@
+## [Feature] Persist device state and ACK in DB
+
+- Dobavleny modeli i tablicy device_state_last i mqtt_ack.
+- MQTT state i ack teper sohranyayutsya v BD s TTL i fonovoy ochistkoy.
+- API manual-watering i devices vosstanavlivayut sostoyaniya iz BD posle restarta.
+- Dobavlen test persistence i repo testy.
+- Front teper vidit statusy bez ozhidaniya MQTT.
+
 ﻿# Changelog
 
 ## [2025-11-05] MQTT reboot command
