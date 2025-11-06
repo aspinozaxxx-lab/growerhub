@@ -1,6 +1,7 @@
-# Changelog
+﻿# Changelog
 
 ## [2025-11-05] MQTT reboot command
+- chore(server): ubrany debug-endpointy i vremennoe logirovanie po ACK
 - fix(firmware): ACK dlya reboot teper' ispol'zuet status 'running'|'idle' kak u manual; udalen status 'reboot'
 - fix(server): vklyuchen i zalogirovan ACK-subscriber; dobavlen debug status endpoint
 - fix(firmware): vyrovnyan ACK topic na gh/dev/<id>/state/ack dlya sovmestimosti s serverom
@@ -140,3 +141,5 @@
 - Dobavleno bazovoe podklyuchenie ESP32 k Wi-Fi (STA) i MQTT, ispolzovany login/parol Mosquitto i clientId `ESP32_2C294C`.
 - Ustroystvo podpisyvaetsya na komandnyy topik `gh/dev/ESP32_2C294C/cmd` (QoS=1), logiruet vkhodyaschie soobscheniya v Serial i avtomaticheski perepodklyuchaetsya pri obryve.
 - Upravlenie nasosom i publikatsiya ack/state namecheny na posleduyuschie shagi.
+
+

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import time
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -16,12 +15,7 @@ from app.mqtt.store import AckStore, get_ack_store
 from config import get_settings
 from app.mqtt.store import DeviceShadowStore, get_shadow_store
 from app.mqtt.interfaces import IMqttPublisher
-from app.mqtt.lifecycle import (
-    get_publisher,
-    is_ack_subscriber_started,
-    is_publisher_started,
-    is_state_subscriber_started,
-)
+from app.mqtt.lifecycle import get_publisher
 from app.mqtt.serialization import Ack, CmdPumpStart, CmdPumpStop, CmdReboot, CommandType, DeviceState
 from app.core.database import get_db
 from app.models.database_models import DeviceDB
@@ -390,33 +384,6 @@ if settings.DEBUG:
         view = store.get_manual_watering_view(device_id)
         return {"raw": raw_data, "view": view}
 
-# Vremennyj diagnosticheskij endpoint dlya analiza ACK (udalim posle otladki).
-@router.get("/api/debug/ack")
-async def debug_ack_lookup(
-    correlation_id: str,
-    store: AckStore = Depends(get_ack_dep),
-) -> dict:
-    """Vozvrashaet informaciyu po ACK iz store dlya ukazannogo correlation_id."""
-
-    ack = store.get(correlation_id)
-    if ack is None:
-        return {"found": False, "ack": None}
-
-    ack_payload = ack.model_dump(mode="json") if hasattr(ack, "model_dump") else ack.dict()  # type: ignore[attr-defined]
-    return {"found": True, "ack": ack_payload}
-
-
-@router.get("/api/debug/mqtt")
-async def debug_mqtt_status() -> dict:
-    """Vozvrashaet tekushchie flagi zapuska MQTT komponentov (vremenny diagnosticheskiy endpoint)."""
-
-    return {
-        "publisher_started": is_publisher_started(),
-        "ack_subscriber_started": is_ack_subscriber_started(),
-        "state_subscriber_started": is_state_subscriber_started(),
-    }
-
-
 def _as_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
@@ -428,12 +395,4 @@ def _isoformat_utc(dt: datetime | None) -> str | None:
         return None
     value = _as_utc(dt).replace(microsecond=0)
     return value.isoformat().replace("+00:00", "Z")
-
-
-
-@router.get("/api/debug/pid")
-async def debug_pid() -> dict:
-    """Vozvrashaet pid procesa dlya diagnostiki."""
-
-    return {"pid": os.getpid()}
 
