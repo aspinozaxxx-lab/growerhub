@@ -115,6 +115,12 @@
 - server/mqtt_publisher.py zamenyon tonkoy prokladkoy s TODO na udalenie; prilozhenie i testy ispolzuyut service.mqtt.lifecycle.
 - Povedenie publikatsii komand, QoS i obrabotka oshibok podklyucheniya sokhraneny, pytest ostayotsya zelyonym.
 
+## [2025-11-06] DB state persistence
+
+- Dobavleny ORM modeli `device_state_last` i `mqtt_ack` dlya sohraneniya poslednih sostoyanii i ACK v baze bez izmeneniy API.
+- Sozdan repository sloy s upsert/cleanup logikoy i modulnymi testami na in-memory SQLite (repo pokryty bazovymi scenariyami).
+- Startup prodolzhaet sozdat tablicy cherez `Base.metadata.create_all`, povedenie MQTT/REST ne menyalos.
+
 ## [2025-10-24] MQTT step 4
 
 - Kontroller publikuet tekuschee sostoyanie ustroystva v topik `gh/dev/ESP32_2C294C/state` s `retain=true`: tuda popadaet blok `manual_watering` (status, duration_s, started_at, correlation_id) i versiya proshivki.

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, UniqueConstraint, Index
 from sqlalchemy.orm import declarative_base
 from pydantic import BaseModel
 from datetime import datetime
@@ -57,6 +57,38 @@ class WateringLogDB(Base):
     start_time = Column(DateTime, default=datetime.utcnow)
     duration = Column(Integer, nullable=True)
     water_used = Column(Float, nullable=True)
+
+
+class DeviceStateLastDB(Base):
+    __tablename__ = "device_state_last"
+    __table_args__ = (
+        UniqueConstraint("device_id", name="uq_device_state_last_device_id"),
+        Index("ix_device_state_last_updated_at", "updated_at"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(String, nullable=False)
+    state_json = Column(Text, nullable=False)  # Translitem: syroy json sostoyaniya dlya vosstanovleniya
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow)  # Translitem: kogda state poluchili
+
+
+class MqttAckDB(Base):
+    __tablename__ = "mqtt_ack"
+    __table_args__ = (
+        UniqueConstraint("correlation_id", name="uq_mqtt_ack_correlation_id"),
+        Index("ix_mqtt_ack_device_id", "device_id"),
+        Index("ix_mqtt_ack_received_at", "received_at"),
+        Index("ix_mqtt_ack_expires_at", "expires_at"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    correlation_id = Column(String, nullable=False)
+    device_id = Column(String, nullable=False)
+    result = Column(String, nullable=False)
+    status = Column(String, nullable=True)
+    payload_json = Column(Text, nullable=False)  # Translitem: syroy payload ack dlya audit logov
+    received_at = Column(DateTime, nullable=False, default=datetime.utcnow)  # Translitem: metka polucheniya ack
+    expires_at = Column(DateTime, nullable=True)  # Translitem: kogda ack nado ochistit TTL mehanizmom
 
 # Pydantic модели
 class DeviceSettings(BaseModel):
