@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -23,6 +24,9 @@ from app.models.database_models import DeviceDB
 router = APIRouter()
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
+if settings.DEBUG:
+    logger.setLevel(logging.DEBUG)
 
 
 def get_mqtt_dep() -> IMqttPublisher:
@@ -152,6 +156,11 @@ async def manual_watering_start(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="РџРѕР»РёРІ СѓР¶Рµ РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ вЂ” РїРѕРІС‚РѕСЂРЅС‹Р№ Р·Р°РїСѓСЃРє Р·Р°РїСЂРµС‰С‘РЅ.")
 
     correlation_id = uuid4().hex
+    logger.info(
+        "[ACKDBG] publish action=manual_watering.start device_id=%s correlation_id=%s",
+        payload.device_id,
+        correlation_id,
+    )
     cmd = CmdPumpStart(
         type=CommandType.pump_start.value,
         correlation_id=correlation_id,
@@ -181,6 +190,11 @@ async def manual_watering_stop(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="РџРѕР»РёРІ РЅРµ РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ вЂ” РѕСЃС‚Р°РЅР°РІР»РёРІР°С‚СЊ РЅРµС‡РµРіРѕ.")
 
     correlation_id = uuid4().hex
+    logger.info(
+        "[ACKDBG] publish action=manual_watering.stop device_id=%s correlation_id=%s",
+        payload.device_id,
+        correlation_id,
+    )
     cmd = CmdPumpStop(
         type=CommandType.pump_stop.value,
         correlation_id=correlation_id,
@@ -203,9 +217,16 @@ async def manual_watering_reboot(
     """Publikuet komandу reboot dlya ukazannogo ustroystva."""
 
     correlation_id = uuid4().hex
+    issued_at = int(time.time())
+    logger.info(
+        "[ACKDBG] publish action=manual_watering.reboot device_id=%s correlation_id=%s issued_at=%s",
+        payload.device_id,
+        correlation_id,
+        issued_at,
+    )
     cmd = CmdReboot(
         correlation_id=correlation_id,
-        issued_at=int(time.time()),
+        issued_at=issued_at,
     )
 
     try:
@@ -335,12 +356,50 @@ async def manual_watering_wait_ack(
 
     # Takoy podhod pozvolyaet frontu vyzvat endpoint srazu posle otpravki komandy i spokoyno dozhdatsya rezultata,
     # ne zanimaya ochered postoyannymi oprosami.
-    deadline = time.monotonic() + timeout_s
+    sleep_step = 0.5
+
+    def _peek_device_id() -> str | None:
+        # TRANSLIT: dostupaemsya do vnutrennego sklada tolko dlya logirovaniya
+        storage = getattr(store, "_storage", {})
+        entry = storage.get(correlation_id)
+        if not entry:
+            return None
+        return entry[0]
+
+    start_monotonic = time.monotonic()
+    deadline = start_monotonic + timeout_s
+    logger.debug(
+        "[ACKDBG] wait-ack start correlation_id=%s device_id=%s now_monotonic=%.6f deadline=%.6f sleep_step=%.1f timeout_s=%s",
+        correlation_id,
+        _peek_device_id(),
+        start_monotonic,
+        deadline,
+        sleep_step,
+        timeout_s,
+    )
     # Ogranichenie v 15 sekund uderzhivaet soedinenie v razumnyh ramkah: dalshe frontu proshe povtorit zapros.
 
     while True:
         ack = store.get(correlation_id)
+        device_id = _peek_device_id()
+        now_monotonic = time.monotonic()
+        logger.debug(
+            "[ACKDBG] wait-ack poll correlation_id=%s device_id=%s now_monotonic=%.6f deadline=%.6f sleep_step=%.1f timeout_s=%s",
+            correlation_id,
+            device_id,
+            now_monotonic,
+            deadline,
+            sleep_step,
+            timeout_s,
+        )
         if ack is not None:
+            logger.info(
+                "[ACKDBG] wait-ack success correlation_id=%s device_id=%s result=%s status=%s",
+                ack.correlation_id,
+                device_id,
+                ack.result.value if hasattr(ack.result, "value") else ack.result,
+                ack.status.value if ack.status is not None and hasattr(ack.status, "value") else (ack.status if ack.status is not None else None),
+            )
             return ManualWateringAckOut(
                 correlation_id=ack.correlation_id,
                 result=ack.result.value if hasattr(ack.result, "value") else ack.result,
@@ -348,11 +407,20 @@ async def manual_watering_wait_ack(
                 status=ack.status.value if ack.status is not None and hasattr(ack.status, "value") else (ack.status if ack.status is not None else None),
             )
 
-        if time.monotonic() >= deadline:
-            raise HTTPException(status_code=status.HTTP_408_REQUEST_TIMEOUT, detail="ACK РЅРµ РїРѕР»СѓС‡РµРЅ РІ Р·Р°РґР°РЅРЅРѕРµ РІСЂРµРјСЏ")
+        if now_monotonic >= deadline:
+            logger.warning(
+                "[ACKDBG] wait-ack timeout correlation_id=%s device_id=%s now_monotonic=%.6f deadline=%.6f sleep_step=%.1f timeout_s=%s",
+                correlation_id,
+                device_id,
+                now_monotonic,
+                deadline,
+                sleep_step,
+                timeout_s,
+            )
+            raise HTTPException(status_code=status.HTTP_408_REQUEST_TIMEOUT, detail="ACK ??%?' ???? ?????>?????? ?? ???????????????? ?????????")
 
         # Shag ozhidaniya 0.5 s: dostatochno chasto chtoby ne podvisat, no dostatochno redko chtoby ne zhech CPU vpustuyu.
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(sleep_step)
 
 
 if settings.DEBUG:

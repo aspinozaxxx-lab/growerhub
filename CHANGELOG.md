@@ -143,3 +143,4 @@
 - Upravlenie nasosom i publikatsiya ack/state namecheny na posleduyuschie shagi.
 
 
+- chore(debug): vremennye logi po cepochke ACK manual_watering

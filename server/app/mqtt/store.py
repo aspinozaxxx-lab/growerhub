@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from threading import RLock
 from typing import Dict, Optional, Tuple
 
 from .config import get_mqtt_settings
+
+logger = logging.getLogger(__name__)
+try:
+    if get_mqtt_settings().debug:
+        logger.setLevel(logging.DEBUG)
+except Exception:
+    pass
 
 # Publikuem obshchie klassy i helpery dlya drugih modulей
 __all__ = [
@@ -35,6 +43,12 @@ class AckStore:
         """Zapisyvaet ACK s privyazkoy k ustroystvu i metke vremeni."""
 
         inserted_at = datetime.utcnow()
+        logger.debug(
+            "[ACKDBG] ack-store put correlation_id=%s device_id=%s inserted_at=%s",
+            ack.correlation_id,
+            device_id,
+            inserted_at.isoformat(),
+        )
         with self._lock:
             self._storage[ack.correlation_id] = (device_id, ack, inserted_at)
 
@@ -44,12 +58,24 @@ class AckStore:
         with self._lock:
             entry = self._storage.get(correlation_id)
             if not entry:
+                logger.debug(
+                    "[ACKDBG] ack-store get correlation_id=%s found=%s",
+                    correlation_id,
+                    False,
+                )
                 return None
+            logger.debug(
+                "[ACKDBG] ack-store get correlation_id=%s found=%s",
+                correlation_id,
+                True,
+            )
             return entry[1]
 
     def cleanup(self, max_age_seconds: int = 300) -> int:
-        """Udalyayet ustarevshie ACK starше max_age_seconds i vozvrashaet kolichestvo."""
+        """Udalyayet ustarevshie ACK starshe max_age_seconds i vozvrashaet kolichestvo."""
 
+        with self._lock:
+            before_count = len(self._storage)
         threshold = datetime.utcnow() - timedelta(seconds=max_age_seconds)
         removed = 0
         with self._lock:
@@ -61,6 +87,13 @@ class AckStore:
             for correlation_id in keys_to_remove:
                 self._storage.pop(correlation_id, None)
                 removed += 1
+            after_count = len(self._storage)
+        logger.debug(
+            "[ACKDBG] ack-store cleanup before=%s after=%s ttl_s=%s",
+            before_count,
+            after_count,
+            max_age_seconds,
+        )
         return removed
 
 

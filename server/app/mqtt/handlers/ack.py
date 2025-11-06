@@ -59,6 +59,20 @@ def handle_ack_message(
 ) -> None:
     """Dekodiruet ACK iz payload, validiruet i sohranyaet v AckStore."""
 
+    if settings.debug and logger.level > logging.DEBUG:
+        logger.setLevel(logging.DEBUG)
+
+    raw_payload_text = payload.decode("utf-8", errors="replace")
+    if len(raw_payload_text) > 500:
+        raw_payload_preview = f"{raw_payload_text[:500]}...<truncated>"
+    else:
+        raw_payload_preview = raw_payload_text
+    logger.info(
+        "[ACKDBG] inbound raw_topic=%s raw_payload=%s",
+        topic,
+        raw_payload_preview,
+    )
+
     if settings.debug:
         try:
             raw = payload.decode("utf-8", errors="replace")
@@ -88,8 +102,33 @@ def handle_ack_message(
             print(f"[MQTT DEBUG] (ack) oshibka dekodirovaniya ACK: {exc}")
         return
 
+    logger.info(
+        "[ACKDBG] ack parsed device_id=%s correlation_id=%s result=%s status=%s",
+        device_id,
+        ack.correlation_id,
+        ack.result,
+        ack.status,
+    )
+    storage = getattr(store, "_storage", {})
+    existing_keys = list(storage.keys())
+    existing_preview = existing_keys[:5]
+    ttl_hint = 300
+    logger.debug(
+        "[ACKDBG] ack store pre-put correlation_id=%s device_id=%s existing_keys=%s ttl_s=%s",
+        ack.correlation_id,
+        device_id,
+        existing_preview,
+        ttl_hint,
+    )
     store.put(device_id, ack)
     if settings.debug:
         print(f"[MQTT DEBUG] (ack) sohranili ACK correlation_id={ack.correlation_id}")
     logger.info("Sohranili ACK s correlation_id=%s", ack.correlation_id)
+    logger.info(
+        "[ACKDBG] ACK saved correlation_id=%s device_id=%s result=%s status=%s",
+        ack.correlation_id,
+        device_id,
+        ack.result,
+        ack.status,
+    )
 
