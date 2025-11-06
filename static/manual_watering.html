@@ -116,6 +116,12 @@
         <div id="progressBar"></div>
     </div>
     <div id="progressText">Нет активного полива</div>
+    <div id="debugPanel" style="display: none; margin-top: 24px; padding: 12px; border: 1px dashed #ced6e0; background: #f1f2f6; font-size: 13px;">
+        <div style="font-weight: 600; margin-bottom: 6px;">Debug</div>
+        <div>Last corr_id: <span id="debugCorrId">&mdash;</span></div>
+        <div>Last wait-ack URL: <span id="debugWaitAckUrl">&mdash;</span></div>
+        <div>Last ack: <span id="debugAckInfo">&mdash;</span></div>
+    </div>
 
     <script>
         const deviceInput = document.getElementById("device_id");
@@ -127,12 +133,117 @@
         const ackResultBlock = document.getElementById("ackResult");
         const progressBar = document.getElementById("progressBar");
         const progressText = document.getElementById("progressText");
+        const debugPanel = document.getElementById("debugPanel");
+        const debugCorrId = document.getElementById("debugCorrId");
+        const debugWaitAckUrl = document.getElementById("debugWaitAckUrl");
+        const debugAckInfo = document.getElementById("debugAckInfo");
 
         const slowPollIntervalMs = 5000;
         const fastPollIntervalMs = 2000;
 
         let slowPollTimer = null;
         let fastPollTimer = null;
+
+        const DEBUG_PREFIX = "[ACKDBG-FE]";
+        const WAIT_ACK_TIMEOUT_S = 5;
+        const debugState = {
+            enabled:
+                (typeof process !== "undefined" &&
+                    process.env &&
+                    process.env.NODE_ENV &&
+                    process.env.NODE_ENV !== "production") ||
+                false,
+            lastCorrelationId: "\u2014",
+            lastWaitAckUrl: "\u2014",
+            lastAck: "\u2014"
+        };
+
+        function debugLogInfo(message, data) {
+            if (!debugState.enabled) {
+                return;
+            }
+            console.info(`${DEBUG_PREFIX} ${message}`, data);
+        }
+
+        function debugLogDebug(message, data) {
+            if (!debugState.enabled) {
+                return;
+            }
+            console.debug(`${DEBUG_PREFIX} ${message}`, data);
+        }
+
+        function debugLogWarn(message, data) {
+            if (!debugState.enabled) {
+                return;
+            }
+            console.warn(`${DEBUG_PREFIX} ${message}`, data);
+        }
+
+        function debugLogError(message, data) {
+            if (!debugState.enabled) {
+                return;
+            }
+            console.error(`${DEBUG_PREFIX} ${message}`, data);
+        }
+
+        function updateDebugPanel() {
+            if (!debugState.enabled || !debugPanel) {
+                return;
+            }
+            debugPanel.style.display = "block";
+            if (debugCorrId) {
+                debugCorrId.textContent = debugState.lastCorrelationId ?? "\u2014";
+            }
+            if (debugWaitAckUrl) {
+                debugWaitAckUrl.textContent = debugState.lastWaitAckUrl ?? "\u2014";
+            }
+            if (debugAckInfo) {
+                debugAckInfo.textContent = debugState.lastAck ?? "\u2014";
+            }
+        }
+
+        async function ensureDebugEnabled() {
+            if (debugState.enabled) {
+                updateDebugPanel();
+                return;
+            }
+            try {
+                // TRANSLIT: proveryaem nalichie debug endpointa chtoby vkluchit panel
+                const response = await fetch("/_debug/manual-watering/config", { method: "GET" });
+                if (response.ok) {
+                    debugState.enabled = true;
+                    updateDebugPanel();
+                }
+            } catch (error) {
+                // TRANSLIT: pri oshibke prosto ostavlyaem debug vykluchennym
+                void error;
+            }
+        }
+
+        function setLastCorrelationId(correlationId) {
+            if (!debugState.enabled) {
+                return;
+            }
+            debugState.lastCorrelationId = correlationId ?? "\u2014";
+            debugState.lastAck = "\u2014";
+            updateDebugPanel();
+        }
+
+        function setLastWaitAckUrl(url) {
+            if (!debugState.enabled) {
+                return;
+            }
+            debugState.lastWaitAckUrl = url ?? "\u2014";
+            updateDebugPanel();
+        }
+
+        function setLastAckSummary(summary) {
+            if (!debugState.enabled) {
+                return;
+            }
+            debugState.lastAck = summary ?? "\u2014";
+            updateDebugPanel();
+        }
 
         function setButtonsDisabled(disabled) {
             startBtn.disabled = disabled;
@@ -322,9 +433,17 @@
                 }
 
                 const payload = await response.json();
-                showAck("Команда отправлена, ждём подтверждение...");
+                setLastCorrelationId(payload.correlation_id);
+                debugLogInfo("publish complete", {
+                    action: "manual_watering.start",
+                    device_id: deviceId,
+                    correlation_id: payload.correlation_id,
+                    timeout_s: WAIT_ACK_TIMEOUT_S,
+                    ts: Date.now()
+                });
+                showAck("������� ��ࠢ����, ��� ���⢥ত����...");
 
-                const ackMessage = await waitAck(payload.correlation_id);
+                const ackMessage = await waitAck(payload.correlation_id, deviceId);
                 showAck(ackMessage);
 
                 fetchStatus().catch(console.error);
@@ -357,9 +476,17 @@
                 }
 
                 const payload = await response.json();
-                showAck("Ждём подтверждение остановки...");
+                setLastCorrelationId(payload.correlation_id);
+                debugLogInfo("publish complete", {
+                    action: "manual_watering.stop",
+                    device_id: deviceId,
+                    correlation_id: payload.correlation_id,
+                    timeout_s: WAIT_ACK_TIMEOUT_S,
+                    ts: Date.now()
+                });
+                showAck("��� ���⢥ত���� ��⠭����...");
 
-                const ackMessage = await waitAck(payload.correlation_id);
+                const ackMessage = await waitAck(payload.correlation_id, deviceId);
                 showAck(ackMessage);
 
                 fetchStatus().catch(console.error);
@@ -398,9 +525,17 @@
                 }
 
                 const payload = await response.json();
-                showAck("Команда перезагрузки отправлена, ждём подтверждение...");
+                setLastCorrelationId(payload.correlation_id);
+                debugLogInfo("publish complete", {
+                    action: "manual_watering.reboot",
+                    device_id: deviceId,
+                    correlation_id: payload.correlation_id,
+                    timeout_s: WAIT_ACK_TIMEOUT_S,
+                    ts: Date.now()
+                });
+                showAck("������� ��१���㧪� ��ࠢ����, ��� ���⢥ত����...");
 
-                const ackMessage = await waitAckForReboot(payload.correlation_id);
+                const ackMessage = await waitAckForReboot(payload.correlation_id, deviceId);
                 showAck(ackMessage);
 
                 fetchStatus().catch(console.error);
@@ -430,56 +565,104 @@
             }
         }
 
-        async function waitAckForReboot(correlationId) {
+        async function waitAckForReboot(correlationId, deviceId) {
+            const url = `/api/manual-watering/wait-ack?correlation_id=${encodeURIComponent(correlationId)}&timeout_s=${WAIT_ACK_TIMEOUT_S}`;
+            setLastWaitAckUrl(url);
+            debugLogDebug("WAIT_ACK request", {
+                device_id: deviceId || deviceInput.value.trim(),
+                correlation_id: correlationId,
+                url
+            });
             try {
-                const response = await fetch(`/api/manual-watering/wait-ack?correlation_id=${encodeURIComponent(correlationId)}&timeout_s=5`);
+                const response = await fetch(url);
                 if (response.status === 408) {
-                    return "Перезагрузка не подтверждена: превышено время ожидания ❌";
+                    debugLogWarn("WAIT_ACK TIMEOUT", { correlation_id: correlationId });
+                    setLastAckSummary("408 timeout");
+                    return "��१���㧪� �� ���⢥ত���: �ॢ�襭� �६� �������� ?";
                 }
                 if (!response.ok) {
                     const errorPayload = await response.json().catch(() => ({}));
                     const detail = errorPayload.detail || `HTTP ${response.status}`;
-                    return `Перезагрузка не подтверждена: ${detail} ❌`;
+                    debugLogError("WAIT_ACK ERROR", { correlation_id: correlationId, detail });
+                    setLastAckSummary(`${response.status} error`);
+                    return `��१���㧪� �� ���⢥ত���: ${detail} ?`;
                 }
                 const payload = await response.json();
+                debugLogInfo("WAIT_ACK OK", {
+                    correlation_id: correlationId,
+                    result: payload.result,
+                    status: payload.status
+                });
+                setLastAckSummary(`${payload.result}/${payload.status ?? "—"}`);
                 if (payload.result === "accepted") {
-                    return "Перезагрузка подтверждена устройством ✅";
+                    return "��१���㧪� ���⢥ত��� ���ன�⢮� ?";
                 }
-                const reason = payload.reason || payload.result || "неизвестная причина";
-                return `Перезагрузка не подтверждена: ${reason} ❌`;
+                const reason = payload.reason || payload.result || "�������⭠� ��稭�";
+                setLastAckSummary(reason);
+                return `��१���㧪� �� ���⢥ত���: ${reason} ?`;
             } catch (error) {
-                console.error("Ошибка ожидания ACK для перезагрузки", error);
-                return "Перезагрузка не подтверждена: сеть недоступна ❌";
+                console.error("�訡�� �������� ACK ��� ��१���㧪�", error);
+                debugLogError("WAIT_ACK ERROR", {
+                    correlation_id: correlationId,
+                    message: error && error.message ? error.message : String(error)
+                });
+                setLastAckSummary("network error");
+                return "��१���㧪� �� ���⢥ত���: ��� ������㯭� ?";
             }
         }
 
-        async function waitAck(correlationId) {
+        async function waitAck(correlationId, deviceId) {
+            const url = `/api/manual-watering/wait-ack?correlation_id=${encodeURIComponent(correlationId)}&timeout_s=${WAIT_ACK_TIMEOUT_S}`;
+            setLastWaitAckUrl(url);
+            debugLogDebug("WAIT_ACK request", {
+                device_id: deviceId || deviceInput.value.trim(),
+                correlation_id: correlationId,
+                url
+            });
             try {
-                const response = await fetch(`/api/manual-watering/wait-ack?correlation_id=${encodeURIComponent(correlationId)}&timeout_s=5`);
+                const response = await fetch(url);
                 if (response.status === 408) {
-                    return "ACK не получен в заданное время ❌";
+                    debugLogWarn("WAIT_ACK TIMEOUT", { correlation_id: correlationId });
+                    setLastAckSummary("408 timeout");
+                    return "ACK �� ����祭 � �������� �६� ?";
                 }
                 if (!response.ok) {
                     const errorPayload = await response.json().catch(() => ({}));
-                    return errorPayload.detail || "Ошибка ожидания ACK ❌";
+                    const detail = errorPayload.detail || `HTTP ${response.status}`;
+                    debugLogError("WAIT_ACK ERROR", { correlation_id: correlationId, detail });
+                    setLastAckSummary(`${response.status} error`);
+                    return errorPayload.detail || "�訡�� �������� ACK ?";
                 }
                 const payload = await response.json();
+                debugLogInfo("WAIT_ACK OK", {
+                    correlation_id: correlationId,
+                    result: payload.result,
+                    status: payload.status
+                });
+                setLastAckSummary(`${payload.result}/${payload.status ?? "—"}`);
                 if (payload.result === "accepted") {
-                    return "Команда подтверждена ✅";
+                    return "������� ���⢥ত��� ?";
                 }
                 if (payload.result === "rejected") {
-                    return "Команда отклонена ❌";
+                    return "������� �⪫����� ?";
                 }
-                return `Ответ от устройства: ${payload.result}`;
+                setLastAckSummary(payload.result);
+                return `�⢥� �� ���ன�⢠: ${payload.result}`;
             } catch (error) {
-                console.error("Ошибка ожидания ACK", error);
-                return "Не удалось дождаться ACK ❌";
+                console.error("�訡�� �������� ACK", error);
+                debugLogError("WAIT_ACK ERROR", {
+                    correlation_id: correlationId,
+                    message: error && error.message ? error.message : String(error)
+                });
+                setLastAckSummary("network error");
+                return "�� 㤠���� ��������� ACK ?";
             }
         }
 
         function init() {
             stopBtn.disabled = true;
             rebootBtn.disabled = true;
+            ensureDebugEnabled().catch(() => {});
             fetchStatus().catch(console.error);
         }
 

@@ -144,3 +144,4 @@
 
 
 - chore(debug): vremennye logi po cepochke ACK manual_watering
+- chore(debug): vremennye logi na stranice manual_watering
