@@ -149,4 +149,5 @@
 - fix(ui): convert manual_watering text to utf-8
 - fix(ui): manual_watering page restored to proper utf-8 text
 - chore(debug): ubrany vremennye logi po ACK i debug-blok na stranice manual_watering
+- fix(front): vosstanovleno obyavlenie WAIT_ACK_TIMEOUT_S na stranice manual_watering (defolt 5s)
 - fix(ui): rewrite manual_watering.html with clean utf-8 content

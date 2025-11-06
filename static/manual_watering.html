@@ -127,6 +127,8 @@
         const ackResultBlock = document.getElementById("ackResult");
         const progressBar = document.getElementById("progressBar");
         const progressText = document.getElementById("progressText");
+        const WAIT_ACK_TIMEOUT_S =
+            (window.APP_SETTINGS && Number(window.APP_SETTINGS.waitAckTimeoutSec)) || 5;
 
         const slowPollIntervalMs = 5000;
         const fastPollIntervalMs = 2000;
