@@ -145,3 +145,4 @@
 
 - chore(debug): vremennye logi po cepochke ACK manual_watering
 - chore(debug): vremennye logi na stranice manual_watering
+- fix(ui): restore utf-8 text on manual watering frontend
