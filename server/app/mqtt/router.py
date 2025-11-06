@@ -120,7 +120,7 @@ class MqttStateSubscriber:
 
         return self._running
 
-    def _on_connect(self, client: Client, _userdata, _flags, rc):  # type: ignore[override]
+    def _on_connect(self, client: Client, _userdata, _flags, rc, properties=None):  # type: ignore[override]
         """Obrabatyvaet sobytie podklyucheniya, povtorya podpisku na topic filter."""
 
         settings = self._settings
@@ -244,7 +244,7 @@ class MqttAckSubscriber:
 
         return self._running
 
-    def _on_connect(self, client: Client, _userdata, _flags, rc):  # type: ignore[override]
+    def _on_connect(self, client: Client, _userdata, _flags, rc, properties=None):  # type: ignore[override]
         """Obrabatyvaet podklyuchenie i vozobnovlyaet podpisku na ack topik."""
 
         settings = self._settings
