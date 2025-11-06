@@ -147,3 +147,4 @@
 - chore(debug): vremennye logi na stranice manual_watering
 - fix(ui): restore utf-8 text on manual watering frontend
 - fix(ui): convert manual_watering text to utf-8
+- fix(ui): manual_watering page restored to proper utf-8 text
