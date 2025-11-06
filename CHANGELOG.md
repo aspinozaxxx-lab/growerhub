@@ -148,4 +148,5 @@
 - fix(ui): restore utf-8 text on manual watering frontend
 - fix(ui): convert manual_watering text to utf-8
 - fix(ui): manual_watering page restored to proper utf-8 text
+- chore(debug): ubrany vremennye logi po ACK i debug-blok na stranice manual_watering
 - fix(ui): rewrite manual_watering.html with clean utf-8 content
