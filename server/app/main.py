@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.routing import Mount
 
 from app.fastapi.routers import devices as devices_router
 from app.fastapi.routers import firmware as firmware_router
@@ -26,16 +27,13 @@ from app.mqtt.lifecycle import (
     stop_ack_subscriber,
     stop_state_subscriber,
 )
+from config import Settings, get_settings
 
 logger = logging.getLogger(__name__)
 
 # === Базовые пути приложения ===
 BASE_DIR = Path(__file__).resolve().parent.parent  # -> ~/growerhub/server/app -> parent -> server
 SITE_DIR = (BASE_DIR.parent / "static").resolve()  # -> ~/growerhub/static
-FIRMWARE_DIR = BASE_DIR / "firmware_binaries"
-
-# Создаём каталог с прошивками, если его ещё нет
-FIRMWARE_DIR.mkdir(exist_ok=True, parents=True)
 
 app = FastAPI(title="GrowerHub")
 
@@ -77,7 +75,6 @@ async def _shutdown_mqtt() -> None:
 
 # === Маршруты для статики и прошивок ===
 app.mount("/static", StaticFiles(directory=SITE_DIR), name="static")
-app.mount("/firmware", StaticFiles(directory=FIRMWARE_DIR), name="firmware")
 
 app.include_router(manual_watering_router.router, tags=["Manual watering"])
 app.include_router(devices_router.router, tags=["Devices"])
@@ -85,6 +82,31 @@ app.include_router(history_router.router, tags=["History"])
 app.include_router(firmware_router.router, tags=["Firmware"])
 
 
+def remount_firmware_static(settings: Settings | None = None) -> None:
+    """Perepodvesit' /firmware s uchetom aktualnyh nastroek."""
+
+    cfg = settings or get_settings()
+    _mount_firmware_static(app, cfg)
+
+
+def _mount_firmware_static(app_obj: FastAPI, settings: Settings) -> None:
+    firmware_dir = Path(settings.FIRMWARE_BINARIES_DIR)
+    firmware_dir.mkdir(exist_ok=True, parents=True)
+    app_obj.router.routes = [
+        route
+        for route in app_obj.router.routes
+        if not (isinstance(route, Mount) and route.path == "/firmware")
+    ]
+    app_obj.mount(
+        "/firmware",
+        StaticFiles(directory=str(firmware_dir)),
+        name="firmware",
+    )
+
+
 @app.get("/")
 async def read_root():
     return FileResponse(SITE_DIR / "index.html")
+
+
+remount_firmware_static()

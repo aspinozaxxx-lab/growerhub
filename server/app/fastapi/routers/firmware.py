@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import hashlib
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -17,6 +18,7 @@ from app.mqtt.serialization import CmdOta
 from config import Settings, get_settings
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class TriggerFirmwareUpdateRequest(BaseModel):
@@ -61,7 +63,7 @@ async def check_firmware_update(device_id: str, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/api/upload-firmware")
+@router.post("/api/upload-firmware", status_code=status.HTTP_201_CREATED)
 async def upload_firmware(
     file: UploadFile = File(...),
     version: str = "1.0.0",
@@ -70,10 +72,37 @@ async def upload_firmware(
     # settings peredaem cherez Depends chtoby testi podmenyali put' k firmware.
     firmware_dir = _get_firmware_dir(settings)
     file_path = firmware_dir / f"{version}.bin"
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    try:
+        firmware_dir.mkdir(parents=True, exist_ok=True)
+        with file_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except PermissionError:
+        logger.error("upload: permission denied: %s", file_path)
+        raise HTTPException(status_code=500, detail="permission denied")
+    except OSError as exc:
+        logger.error(
+            "upload: write error (%s) dlya %s",
+            getattr(exc, "errno", "?"),
+            file_path,
+        )
+        raise HTTPException(status_code=500, detail="write failed") from exc
 
-    return {"message": f"Firmware {version} uploaded successfully", "file_path": file_path}
+    try:
+        size = file_path.stat().st_size
+    except OSError as exc:
+        logger.error(
+            "upload: ne udalos poluchit' stat (%s) dlya %s",
+            getattr(exc, "errno", "?"),
+            file_path,
+        )
+        raise HTTPException(status_code=500, detail="write failed") from exc
+
+    if size <= 0:
+        logger.error("upload: poluchilsya pustoj fail %s", file_path)
+        raise HTTPException(status_code=500, detail="empty file")
+
+    logger.info("upload: zapisali firmware %s (%d bytes)", file_path, size)
+    return {"message": "firmware uploaded", "path": str(file_path), "size": size}
 
 
 @router.post("/api/device/{device_id}/trigger-update", status_code=status.HTTP_202_ACCEPTED)
@@ -132,6 +161,5 @@ def _get_firmware_dir(settings: Settings) -> Path:
     """Vozvrashaet katalog s .bin iz nastroek i sozdaet ego pri neobhodimosti."""
 
     path = Path(settings.FIRMWARE_BINARIES_DIR)
-    path.mkdir(exist_ok=True, parents=True)
     return path
 

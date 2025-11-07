@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 from functools import lru_cache
 from typing import Optional
 
@@ -45,7 +46,7 @@ class Settings:
     ACK_TTL_SECONDS: int = 180  # Translitem: skolko hranim ack v BD do ochistki
     ACK_CLEANUP_PERIOD_SECONDS: int = 60  # Translitem: chastota fonovoy ochistki ack
     SERVER_PUBLIC_BASE_URL: str = "https://growerhub.ru"  # Translitem: bazovyj https dlya firmware URL (pereopredelyaetsya cherez env)
-    FIRMWARE_BINARIES_DIR: str = "server/firmware_binaries"  # Translitem: lokalnyj katalog .bin (pereopredelyaetsya cherez env FIRMWARE_BINARIES_DIR)
+    FIRMWARE_BINARIES_DIR: str = str((Path(__file__).resolve().parent.parent / "firmware_binaries").resolve())  # Translitem: absolyutnyj katalog .bin (pereopredelyaetsya FIRMWARE_BINARIES_DIR)
 
 
 @lru_cache()
@@ -65,5 +66,13 @@ def get_settings() -> Settings:
         ACK_TTL_SECONDS=_env_int("ACK_TTL_SECONDS", Settings.ACK_TTL_SECONDS),
         ACK_CLEANUP_PERIOD_SECONDS=_env_int("ACK_CLEANUP_PERIOD_SECONDS", Settings.ACK_CLEANUP_PERIOD_SECONDS),
         SERVER_PUBLIC_BASE_URL=os.getenv("SERVER_PUBLIC_BASE_URL", Settings.SERVER_PUBLIC_BASE_URL),
-        FIRMWARE_BINARIES_DIR=os.getenv("FIRMWARE_BINARIES_DIR", Settings.FIRMWARE_BINARIES_DIR),
+        FIRMWARE_BINARIES_DIR=_resolve_firmware_dir(os.getenv("FIRMWARE_BINARIES_DIR")),
     )
+
+
+def _resolve_firmware_dir(custom_path: Optional[str]) -> str:
+    """Vozvraschaet absolyutnyj katalog firmware, zadaem cherez env."""
+
+    if custom_path:
+        return str(Path(custom_path).expanduser().resolve())
+    return Settings.FIRMWARE_BINARIES_DIR
