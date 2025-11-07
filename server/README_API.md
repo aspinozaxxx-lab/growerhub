@@ -46,3 +46,6 @@ uvicorn app.main:app --reload
 
 Все эндпойнты зарегистрированы в `app.main` через `include_router(...)`, а теги OpenAPI помогают быстро найти соответствующий раздел в Swagger UI.
 
+## OTA trigger-update
+
+POST `/api/device/{device_id}/trigger-update` теперь принимает тело `{"version":"1.2.3"}` (старая форма `firmware_version` совместима). Эндпоинт проверяет наличие `server/firmware_binaries/<ver>.bin`, считает SHA256, собирает публичный HTTPS URL (`SERVER_PUBLIC_BASE_URL/firmware/<ver>.bin`) и публикует в MQTT топик `gh/dev/<device_id>/cmd` команду `{"type":"ota","url":...,"version":...,"sha256":...}`. Ответ сервера — `202 Accepted` с теми же полями, MQTT-сообщение посылается с QoS1, без retain. Ошибки: `404 firmware not found`, `503 mqtt publish failed`.

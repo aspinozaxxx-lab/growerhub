@@ -17,6 +17,7 @@ __all__ = [
     "CmdPumpStart",
     "CmdPumpStop",
     "CmdReboot",
+    "CmdOta",
     "Ack",
     "ManualWateringState",
     "DeviceState",
@@ -30,6 +31,7 @@ class CommandType(str, Enum):
     pump_start = "pump.start"
     pump_stop = "pump.stop"
     reboot = "reboot"  # komandnyj tip dlya reboot komandy ustroystva
+    ota = "ota"
 
 
 class AckResult(str, Enum):
@@ -72,6 +74,15 @@ class CmdReboot(BaseModel):
     type: Literal[CommandType.reboot.value] = CommandType.reboot.value  # fiksiruem literal reboot chtoby broker prinyal TIP
     correlation_id: str = Field(..., min_length=1)  # korelaciya dlya ozhidaniya ACK ot ustroystva
     issued_at: int = Field(..., ge=0)  # epoch seconds kogda komanda sformirovana
+
+
+class CmdOta(BaseModel):
+    """Komanda OTA zagruzki s https-url i kontrollnoj summoj."""
+
+    type: Literal[CommandType.ota.value] = CommandType.ota.value
+    url: str
+    version: str
+    sha256: str
 
 
 class Ack(BaseModel):

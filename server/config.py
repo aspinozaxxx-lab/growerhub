@@ -44,6 +44,7 @@ class Settings:
     DEBUG: bool = True
     ACK_TTL_SECONDS: int = 180  # Translitem: skolko hranim ack v BD do ochistki
     ACK_CLEANUP_PERIOD_SECONDS: int = 60  # Translitem: chastota fonovoy ochistki ack
+    SERVER_PUBLIC_BASE_URL: str = "https://growerhub.ru"  # Translitem: bazovyj https dlya firmware URL (pereopredelyaetsya cherez env)
 
 
 @lru_cache()
@@ -62,4 +63,5 @@ def get_settings() -> Settings:
         DEBUG=_env_bool("DEBUG", Settings.DEBUG),
         ACK_TTL_SECONDS=_env_int("ACK_TTL_SECONDS", Settings.ACK_TTL_SECONDS),
         ACK_CLEANUP_PERIOD_SECONDS=_env_int("ACK_CLEANUP_PERIOD_SECONDS", Settings.ACK_CLEANUP_PERIOD_SECONDS),
+        SERVER_PUBLIC_BASE_URL=os.getenv("SERVER_PUBLIC_BASE_URL", Settings.SERVER_PUBLIC_BASE_URL),
     )

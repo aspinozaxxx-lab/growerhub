@@ -1,3 +1,9 @@
+## 2025-11-07 — OTA trigger cherez MQTT
+
+- feat(server): trigger-update teper' publikuet MQTT `cmd/ota` s HTTPS-url i sha256 kontrol'noj summoj.
+- tests(server): dobavleny testy na 202/404/503 dlya firmware trigger-update.
+- docs: README_API dopolnen opisaniem zapuska OTA.
+
 ## 2025-11-06 — Uchet MQTT soobshcheniy (ACK) v online-status
 
 **Chto sdelano**
