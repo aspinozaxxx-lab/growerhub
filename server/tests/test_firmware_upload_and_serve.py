@@ -1,12 +1,28 @@
-import os
+import hashlib
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from app.fastapi.routers.firmware import get_mqtt_dep
+from app.fastapi.routers import firmware as firmware_router
 from app.main import app, remount_firmware_static
+from app.models.database_models import Base, DeviceDB
+from app.core.database import get_db
+from app.mqtt.serialization import CmdOta
 from config import Settings, get_settings
+
+
+class RecordingPublisher:
+    """Fiksiruet otpavlennye OTA komandy."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, CmdOta]] = []
+
+    def publish_cmd(self, device_id: str, cmd: CmdOta) -> None:
+        self.calls.append((device_id, cmd))
 
 
 @pytest.fixture()
@@ -25,32 +41,76 @@ def client_with_fs(tmp_path):
     remount_firmware_static()
 
 
-@pytest.fixture(autouse=True)
-def no_mqtt_publish(monkeypatch):
-    """Zaglushka publishera, chtoby upload ne trebogal broker."""
+@pytest.fixture()
+def sqlite_db_override():
+    """Sozdaet sqlite v pamyati i pereopredelyaet get_db."""
 
-    def _dummy_publisher():  # pragma: no cover - ne dolzhen vyzyvat'sya
-        raise RuntimeError("MQTT should not be called in upload tests")
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
 
-    app.dependency_overrides[get_mqtt_dep] = _dummy_publisher
-    yield
-    app.dependency_overrides.pop(get_mqtt_dep, None)
+    def _override_db():
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[firmware_router.get_db] = _override_db
+    yield SessionLocal
+    app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(firmware_router.get_db, None)
 
 
-def test_upload_and_serve_file(client_with_fs):
-    """Proveryaem uspeshnuyu zapis' i vozvrat statiki iz /firmware."""
+def test_upload_trigger_and_serve(client_with_fs, sqlite_db_override):
+    """Proveryaem polnyj cikl: upload -> trigger-update -> vydacha statiki."""
 
     client, settings = client_with_fs
     version = "9.9.9"
     data = b"firmware-bytes"
     files = {"file": ("firmware.bin", data, "application/octet-stream")}
 
-    resp = client.post("/api/upload-firmware", files=files, params={"version": version})
+    resp = client.post("/api/upload-firmware", files=files, data={"version": version})
     assert resp.status_code == 201
     payload = resp.json()
     dst = Path(payload["path"])
     assert dst.exists()
     assert dst.read_bytes() == data
+
+    # Sozdaem ustroistvo v sqlite-baze
+    session_factory = sqlite_db_override
+    session = session_factory()
+    session.add(DeviceDB(device_id="dev-001"))
+    session.commit()
+    session.close()
+
+    expected_sha = hashlib.sha256(data).hexdigest()
+    publisher = RecordingPublisher()
+    app.dependency_overrides[firmware_router.get_mqtt_dep] = lambda: publisher
+
+    resp_trigger = client.post("/api/device/dev-001/trigger-update", json={"version": version})
+    app.dependency_overrides.pop(firmware_router.get_mqtt_dep, None)
+
+    assert resp_trigger.status_code == 202
+    trigger_payload = resp_trigger.json()
+    assert trigger_payload == {
+        "result": "accepted",
+        "version": version,
+        "url": f"https://example.com/firmware/{version}.bin",
+        "sha256": expected_sha,
+    }
+    assert len(publisher.calls) == 1
+    device_id, cmd = publisher.calls[0]
+    assert device_id == "dev-001"
+    assert isinstance(cmd, CmdOta)
+    assert cmd.sha256 == expected_sha
+    assert cmd.url == f"https://example.com/firmware/{version}.bin"
 
     resp_static = client.get(f"/firmware/{version}.bin")
     assert resp_static.status_code == 200
@@ -72,8 +132,10 @@ def test_upload_permission_error_returns_500(client_with_fs, monkeypatch):
 
     monkeypatch.setattr(Path, "open", _deny_open)
 
+    app.dependency_overrides[firmware_router.get_mqtt_dep] = lambda: RecordingPublisher()
     files = {"file": ("firmware.bin", b"data", "application/octet-stream")}
-    resp = client.post("/api/upload-firmware", files=files, params={"version": version})
+    resp = client.post("/api/upload-firmware", files=files, data={"version": version})
+    app.dependency_overrides.pop(firmware_router.get_mqtt_dep, None)
     assert resp.status_code == 500
     assert resp.json()["detail"] == "permission denied"
     assert not target.exists()

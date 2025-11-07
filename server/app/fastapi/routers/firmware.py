@@ -6,7 +6,7 @@ import os
 import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, root_validator
 from sqlalchemy.orm import Session
 
@@ -66,7 +66,7 @@ async def check_firmware_update(device_id: str, db: Session = Depends(get_db)):
 @router.post("/api/upload-firmware", status_code=status.HTTP_201_CREATED)
 async def upload_firmware(
     file: UploadFile = File(...),
-    version: str = "1.0.0",
+    version: str = Form(...),
     settings: Settings = Depends(get_settings),
 ):
     # settings peredaem cherez Depends chtoby testi podmenyali put' k firmware.
@@ -102,7 +102,7 @@ async def upload_firmware(
         raise HTTPException(status_code=500, detail="empty file")
 
     logger.info("upload: zapisali firmware %s (%d bytes)", file_path, size)
-    return {"message": "firmware uploaded", "path": str(file_path), "size": size}
+    return {"result": "created", "version": version, "path": str(file_path)}
 
 
 @router.post("/api/device/{device_id}/trigger-update", status_code=status.HTTP_202_ACCEPTED)
