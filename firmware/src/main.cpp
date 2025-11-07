@@ -70,6 +70,22 @@ void setup() {
             app.statePublishNow();
         } else if (commandType == "reboot") {
             app.requestReboot(correlationId);
+        } else if (commandType == "ota") {
+            const char* urlPtr = doc.containsKey("url") && doc["url"].is<const char*>()
+                ? doc["url"].as<const char*>()
+                : nullptr;
+            const char* versionPtr = doc.containsKey("version") && doc["version"].is<const char*>()
+                ? doc["version"].as<const char*>()
+                : "";
+            const char* shaPtr = doc.containsKey("sha256") && doc["sha256"].is<const char*>()
+                ? doc["sha256"].as<const char*>()
+                : "";
+            const String url = urlPtr ? String(urlPtr) : String("");
+            const String version = versionPtr ? String(versionPtr) : String("");
+            const String sha = shaPtr ? String(shaPtr) : String("");
+            if (!app.startPullOta(url, version, sha)) {
+                Serial.println(F("OTA(PULL): komanda ne zapushchena."));
+            }
         }
     });
     mqttClientManager.setPumpStatusProvider([&]() {

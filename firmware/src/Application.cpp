@@ -347,6 +347,10 @@ SystemMonitor& WateringApplication::getSystemMonitor() {
     return systemMonitor;
 }
 
+bool WateringApplication::startPullOta(const String& url, const String& version, const String& sha256Hex) {
+    return otaUpdater.beginPull(url, version, sha256Hex);
+}
+
 void WateringApplication::testSensors() {
     Serial.println("=== TESTING SENSORS ===");
     sensorManager.printDiagnostics();
@@ -423,6 +427,7 @@ void WateringApplication::setupNetwork() {
     wifiManager.reconnect();
     
     otaUpdater.begin(settingsManager.getDeviceID());
+    otaUpdater.setServerCert(settingsManager.getServerCAPem());
     
     // ВКЛЮЧАЕМ HTTP клиент с правильными настройками
     httpClient.begin(

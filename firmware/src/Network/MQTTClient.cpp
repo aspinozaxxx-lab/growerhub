@@ -177,6 +177,14 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
         return;
     }
 
+    if (commandType == "ota") {
+        Serial.println(F("obrabotka ota komandy."));
+        if (commandHandler) {
+            commandHandler(commandType, doc, correlationId);
+        }
+        return;
+    }
+
     Serial.println(commandType);
     publishAckError(correlationId, "unsupported command type");
 }

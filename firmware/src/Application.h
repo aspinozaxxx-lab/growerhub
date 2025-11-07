@@ -94,6 +94,7 @@ public:
     void resetHeartbeatTimer();
     void requestReboot(const String& correlationId);
     SystemMonitor& getSystemMonitor();
+    bool startPullOta(const String& url, const String& version, const String& sha256Hex);
     
     // Тестирование
     void testSensors();
