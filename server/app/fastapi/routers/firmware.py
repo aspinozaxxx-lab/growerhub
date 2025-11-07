@@ -18,10 +18,6 @@ from config import get_settings
 
 router = APIRouter()
 
-SERVER_DIR = Path(__file__).resolve().parents[3]
-FIRMWARE_DIR = SERVER_DIR / "firmware_binaries"
-FIRMWARE_DIR.mkdir(exist_ok=True, parents=True)
-
 
 class TriggerFirmwareUpdateRequest(BaseModel):
     """Payload dlya zapuska OTA: novyj format version + sovmestimost s firmware_version."""
@@ -67,7 +63,8 @@ async def check_firmware_update(device_id: str, db: Session = Depends(get_db)):
 
 @router.post("/api/upload-firmware")
 async def upload_firmware(file: UploadFile = File(...), version: str = "1.0.0"):
-    file_path = FIRMWARE_DIR / f"{version}.bin"
+    firmware_dir = _get_firmware_dir()
+    file_path = firmware_dir / f"{version}.bin"
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
@@ -86,7 +83,8 @@ async def trigger_ota_update(
         raise HTTPException(status_code=404, detail="Device not found")
 
     version = update_request.resolved_version
-    firmware_path = FIRMWARE_DIR / f"{version}.bin"
+    firmware_dir = _get_firmware_dir()
+    firmware_path = firmware_dir / f"{version}.bin"
     if not firmware_path.exists():
         raise HTTPException(status_code=404, detail="firmware not found")
 
@@ -123,4 +121,13 @@ def _build_firmware_url(base_url: str, version: str) -> str:
 
     prefix = base_url.rstrip("/")
     return f"{prefix}/firmware/{version}.bin"
+
+
+def _get_firmware_dir() -> Path:
+    """Vozvrashaet katalog s .bin iz nastroek i sozdaet ego pri neobhodimosti."""
+
+    cfg = get_settings()
+    path = Path(cfg.FIRMWARE_BINARIES_DIR)
+    path.mkdir(exist_ok=True, parents=True)
+    return path
 

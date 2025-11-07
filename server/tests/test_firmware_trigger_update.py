@@ -77,11 +77,14 @@ def setup_db():
 def firmware_dir(tmp_path, monkeypatch):
     """Pereopredelyaet katalog firmware i bazovyj public URL."""
 
-    monkeypatch.setattr(firmware_router, "FIRMWARE_DIR", tmp_path)
+    tmp_path.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(
         firmware_router,
         "get_settings",
-        lambda: SimpleNamespace(SERVER_PUBLIC_BASE_URL="https://example.com"),
+        lambda: SimpleNamespace(
+            SERVER_PUBLIC_BASE_URL="https://example.com",
+            FIRMWARE_BINARIES_DIR=str(tmp_path),
+        ),
     )
     return tmp_path
 
