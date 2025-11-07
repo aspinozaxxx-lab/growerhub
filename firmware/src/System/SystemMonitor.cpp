@@ -1,13 +1,21 @@
-﻿// firmware/src/System/SystemMonitor.cpp
+// firmware/src/System/SystemMonitor.cpp
 #include "SystemMonitor.h"
 
 SystemMonitor::SystemMonitor() 
     : startTime(millis()), lastHeapCheck(0), 
-      minFreeHeap(UINT32_MAX), maxUsedHeap(0), restartCount(0) {}
+      minFreeHeap(UINT32_MAX), maxUsedHeap(0), restartCount(0),
+      pumpStatusProvider(nullptr),
+      ackPublisher(nullptr),
+      statePublisher(nullptr),
+      rebooter(&defaultRebooter)
+#ifdef UNIT_TEST
+      , lastRebootCalled_(false)
+#endif
+{}
 
 void SystemMonitor::begin() {
     Serial.println("SystemMonitor: Started");
-    // Здесь можно загрузить restartCount из EEPROM
+    // ����� ����� ����㧨�� restartCount �� EEPROM
 }
 
 void SystemMonitor::update() {
@@ -64,8 +72,47 @@ void SystemMonitor::printSystemInfo() {
     Serial.println("==========================");
 }
 
+bool SystemMonitor::rebootIfSafe(const String& reason, const String& correlationId) {
+    const bool pumpRunning = pumpStatusProvider ? pumpStatusProvider() : false;
+    const char* statusText = pumpRunning ? "running" : "idle";
+    const String reasonText = reason.length() > 0 ? reason : String("unspecified");
+
+    if (pumpRunning) {
+        Serial.println(F("[SYS] reboot declined: pump running"));
+        if (ackPublisher && correlationId.length() > 0) {
+            ackPublisher(correlationId, statusText, false);
+        }
+        return false;
+    }
+
+    Serial.print(F("[SYS] reboot accepted: "));
+    Serial.println(reasonText);
+    if (ackPublisher && correlationId.length() > 0) {
+        ackPublisher(correlationId, statusText, true);
+    }
+
+    if (statePublisher) {
+        statePublisher(false);
+    }
+
+    const unsigned long waitStart = millis();
+    // Zdes' horosho by pokrutit' MQTT loop, no prjamogo dostupa net, poetomu zhdy pauzu.
+    while (millis() - waitStart < REBOOT_GRACE_DELAY_MS) {
+        delay(1);
+    }
+
+    if (rebooter) {
+#ifdef UNIT_TEST
+        lastRebootCalled_ = true;
+#endif
+        rebooter->restart();
+    }
+
+    return true;
+}
+
 void SystemMonitor::checkMemory() {
-    if (millis() - lastHeapCheck >= 5000) { // Каждые 5 секунд
+    if (millis() - lastHeapCheck >= 5000) { // ����� 5 ᥪ㭤
         unsigned long freeHeap = getFreeHeap();
         unsigned long usedHeap = ESP.getHeapSize() - freeHeap;
         
@@ -78,7 +125,7 @@ void SystemMonitor::checkMemory() {
         
         lastHeapCheck = millis();
         
-        // Предупреждение при низкой памяти
+        // �।�०����� �� ������ �����
         if (freeHeap < 10000) {
             Serial.println("WARNING: Low heap memory! " + String(freeHeap) + " bytes free");
         }
@@ -86,6 +133,22 @@ void SystemMonitor::checkMemory() {
 }
 
 void SystemMonitor::checkWatchdog() {
-    // Сбрасываем watchdog
+    // ����뢠�� watchdog
     yield();
+}
+
+void SystemMonitor::setPumpStatusProvider(std::function<bool(void)> fn) {
+    pumpStatusProvider = fn;
+}
+
+void SystemMonitor::setAckPublisher(std::function<void(const String&, const char*, bool)> fn) {
+    ackPublisher = fn;
+}
+
+void SystemMonitor::setStatePublisher(std::function<void(bool)> fn) {
+    statePublisher = fn;
+}
+
+void SystemMonitor::setRebooter(IRebooter* r) {
+    rebooter = r ? r : &defaultRebooter;
 }

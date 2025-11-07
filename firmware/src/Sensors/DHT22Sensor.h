@@ -20,6 +20,7 @@ public:
     float read() override; // Возвращает влажность воздуха
     float readTemperature(); // Дополнительный метод для температуры
     bool isAvailable() override;
+    bool isAvailable() const; // Vozvrashaet poslednij status dostupnosti datchika.
     String getName() override;
     String getStatus() override;
     

@@ -33,6 +33,10 @@ bool DHT22Sensor::isAvailable() {
     return available;
 }
 
+bool DHT22Sensor::isAvailable() const {
+    return available;
+}
+
 String DHT22Sensor::getName() {
     return name;
 }

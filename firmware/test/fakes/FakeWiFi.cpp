@@ -16,7 +16,6 @@ namespace {
 }
 
 FakeWiFiClass WiFi;
-FakeSerialClass Serial;
 
 FakeWiFiMulti::FakeWiFiMulti() = default;
 

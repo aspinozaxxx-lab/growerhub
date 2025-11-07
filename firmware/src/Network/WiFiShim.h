@@ -2,12 +2,10 @@
 
 #if defined(UNIT_TEST) || defined(PIO_UNIT_TESTING)
 
+#include "Arduino.h"
 #include <cstdint>
-#include <string>
 #include <utility>
 #include <vector>
-
-using String = std::string;
 
 #ifndef F
 #define F(str) str
@@ -91,6 +89,7 @@ private:
 
 using WiFiMulti = FakeWiFiMulti;
 
+ #ifndef FAKE_SERIAL_DEFINED
 class FakeSerialClass {
 public:
     template<typename T>
@@ -103,6 +102,8 @@ public:
 };
 
 extern FakeSerialClass Serial;
+#define FAKE_SERIAL_DEFINED
+#endif
 
 namespace FakeWiFiShim {
     void reset();

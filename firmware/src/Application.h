@@ -48,13 +48,13 @@ private:
     PubSubClient* mqttClient;
     SystemClock* systemClock;
     static constexpr unsigned long HEARTBEAT_INTERVAL_MS = 20000UL;
-    // Flag sohranyaem zapros na reboot, poka ne gotovy ego vypolnit'.
-    bool rebootPending_ = false;
-    // Zapominaem correlation_id dlya reboot, chtoby prologirovat' pered restartom.
-    String rebootCorrelationId_;
-    // Metka millis, s kotoroy otschityvaem pauzu pered restartom.
-    unsigned long rebootRequestedAtMs_ = 0;
-    static constexpr unsigned long REBOOT_GRACE_DELAY_MS = 250UL;
+    // Kol-vo podryad oshibok DHT22 dlya zapuska bezopasnogo reboot.
+    static constexpr uint8_t DHT22_FAIL_THRESHOLD = 3;
+    // Kuldaun mezhdu reboot po DHT22, chtoby izbezhat' petli (ms).
+    static constexpr unsigned long DHT22_REBOOT_COOLDOWN_MS = 300000UL; // 5 min
+    // Sostoyanie dlya monitoringa oshibok DHT22.
+    uint8_t dht22ConsecutiveFails_ = 0;
+    unsigned long lastDht22RebootAtMs_ = 0;
     
 public:
     WateringApplication();
@@ -93,6 +93,7 @@ public:
     void stateHeartbeatLoop(bool mqttConnected);
     void resetHeartbeatTimer();
     void requestReboot(const String& correlationId);
+    SystemMonitor& getSystemMonitor();
     
     // Тестирование
     void testSensors();
@@ -116,5 +117,4 @@ private:
     void checkLight();
     void updateServer();
     void printDebugInfo();
-    void processRebootIfNeeded();
 };

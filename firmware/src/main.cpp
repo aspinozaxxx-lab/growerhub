@@ -8,6 +8,13 @@
 #include "Network/WiFiService.h"
 #include "System/SystemClock.h"
 
+class EspRebooter : public SystemMonitor::IRebooter {
+public:
+    void restart() override {
+        ESP.restart();
+    }
+};
+
 // Уникальный идентификатор устройства = MQTT clientId. Сервер и брокер используют его,
 // чтобы понять, какое железо получило команду и кто должен вернуть ACK/state.
 // Версия прошивки, публикуемая в state, чтобы фронтенд видел активную сборку.
@@ -25,6 +32,7 @@ WiFiService wifi(settings);
 WiFiClient espClient;
 Network::MQTTClient mqttClientManager(settings, espClient);
 SystemClock systemClock(nullptr, nullptr, nullptr, nullptr);
+EspRebooter espRebooter;
 
 // --- Периодическая отправка state (heartbeat) ---
 
@@ -72,6 +80,18 @@ void setup() {
         app.resetHeartbeatTimer();
     });
     app.setMqttClient(&mqttClientManager.client());
+
+    SystemMonitor& monitor = app.getSystemMonitor();
+    monitor.setPumpStatusProvider([&]() {
+        return app.isManualPumpRunning();
+    });
+    monitor.setAckPublisher([&](const String& correlationId, const char* status, bool accepted) {
+        mqttClientManager.publishAckStatus(correlationId, status, accepted);
+    });
+    monitor.setStatePublisher([&](bool retained) {
+        app.statePublishNow(retained);
+    });
+    monitor.setRebooter(&espRebooter);
     
     delay(3000);
     app.checkRelayStates(); // TODO: сверить вывод с MQTT state и убрать после стабилизации схемы.

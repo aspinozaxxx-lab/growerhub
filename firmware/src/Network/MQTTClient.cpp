@@ -1,4 +1,4 @@
-﻿// Реализация MQTTClient: удерживает соединение и передаёт pump-команды/ACK/state между брокером и приложением.
+// Реализация MQTTClient: удерживает соединение и передаёт pump-команды/ACK/state между брокером и приложением.
 #include "Network/MQTTClient.h"
 
 #include <WiFi.h>
@@ -174,10 +174,6 @@ void MQTTClient::handleMessage(char* topic, byte* payload, unsigned int length) 
         if (commandHandler) {
             commandHandler(commandType, doc, correlationId);
         }
-
-        const bool pumpRunning = pumpStatusProvider ? pumpStatusProvider() : false;
-        const char* ackStatus = pumpRunning ? "running" : "idle";
-        publishAckAccepted(correlationId, ackStatus);
         return;
     }
 
@@ -225,26 +221,31 @@ String MQTTClient::buildDeviceTopic(const char* suffix) const {
     return topic;
 }
 
-void MQTTClient::publishAckAccepted(const String& correlationId, const char* statusText) {
+void MQTTClient::publishAckStatus(const String& correlationId, const char* statusText, bool accepted) {
     if (!mqttClient.connected()) {
-        Serial.println(F("Не удалось отправить ACK (accepted): MQTT не подключён, сообщение потеряно."));
+        Serial.println(F("�� 㤠���� ��ࠢ��� ACK (status): MQTT �� ��������, ᮮ�饭�� ����ﭮ."));
         return;
     }
 
     const String status = statusText ? String(statusText) : String("");
+    const char* resultText = accepted ? "accepted" : "declined";
     const String payload =
         String("{\"correlation_id\":\"") + correlationId +
-        "\",\"result\":\"accepted\",\"status\":\"" + status + "\"}";
+        "\",\"result\":\"" + String(resultText) + "\",\"status\":\"" + status + "\"}";
 
-    Serial.print(F("Отправляем ACK (accepted) в брокер: "));
+    Serial.print(F("��ࠢ�塞 ACK (status) � �ப��: "));
     Serial.println(payload);
     const String ackTopic = buildDeviceTopic("state/ack"); // server slushaet state/ack; vyrovnyali protokol
     mqttClient.publish(ackTopic.c_str(), payload.c_str(), false);
 }
 
+void MQTTClient::publishAckAccepted(const String& correlationId, const char* statusText) {
+    publishAckStatus(correlationId, statusText, true);
+}
+
 void MQTTClient::publishAckError(const String& correlationId, const char* reasonText) {
     if (!mqttClient.connected()) {
-        Serial.println(F("Не удалось отправить ACK (error): MQTT не подключён, сообщение потеряно."));
+        Serial.println(F("�� 㤠���� ��ࠢ��� ACK (error): MQTT �� ��������, ᮮ�饭�� ����ﭮ."));
         return;
     }
 
@@ -253,7 +254,7 @@ void MQTTClient::publishAckError(const String& correlationId, const char* reason
         String("{\"correlation_id\":\"") + correlationId +
         "\",\"result\":\"error\",\"reason\":\"" + reason + "\"}";
 
-    Serial.print(F("Отправляем ACK (error) в брокер: "));
+    Serial.print(F("��ࠢ�塞 ACK (error) � �ப��: "));
     Serial.println(payload);
     const String ackTopic = buildDeviceTopic("state/ack"); // server slushaet state/ack; vyrovnyali protokol
     mqttClient.publish(ackTopic.c_str(), payload.c_str(), false);

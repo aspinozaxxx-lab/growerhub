@@ -3,6 +3,7 @@
 #include "Application.h"
 #include <PubSubClient.h>
 #include "System/SystemClock.h"
+#include "System/Dht22RebootHelper.h"
 
 extern const char* FW_VERSION;
 
@@ -66,14 +67,39 @@ void WateringApplication::update() {
         if (soilSensor && dhtSensor) {
             bool pumpState = actuatorManager.isWaterPumpRunning();
             bool lightState = actuatorManager.isLightOn();
+            const float soilMoisture = soilSensor->read();
+            const float temperature = dhtSensor->readTemperature();
+            const float humidity = dhtSensor->read();
+            const bool dhtAvailable = dhtSensor->isAvailable();
+            const unsigned long nowMs = millis();
+
+            const auto rebootDecision = Dht22RebootHelper::evaluateSample(
+                dht22ConsecutiveFails_,
+                lastDht22RebootAtMs_,
+                dhtAvailable,
+                nowMs,
+                DHT22_FAIL_THRESHOLD,
+                DHT22_REBOOT_COOLDOWN_MS);
+
+            if (rebootDecision == Dht22RebootDecision::ReadyToTrigger) {
+                Serial.println(F("[SYS] dht22 reboot trigger: fail-threshold reached"));
+                if (systemMonitor.rebootIfSafe(String("dht22_error"), String(""))) {
+                    lastDht22RebootAtMs_ = nowMs;
+                    dht22ConsecutiveFails_ = 0;
+                } else {
+                    Serial.println(F("[SYS] dht22 reboot declined: pump running"));
+                }
+            } else if (rebootDecision == Dht22RebootDecision::CooldownActive) {
+                Serial.println(F("[SYS] dht22 reboot skipped: cooldown active"));
+            }
             
             Serial.println("Sending to server - Pump: " + String(pumpState ? "ON" : "OFF") + 
                           ", Light: " + String(lightState ? "ON" : "OFF"));
             
             httpClient.sendSensorData(
-                soilSensor->read(),
-                dhtSensor->readTemperature(),
-                dhtSensor->read(),
+                soilMoisture,
+                temperature,
+                humidity,
                 pumpState,
                 lightState
             );
@@ -226,7 +252,6 @@ bool WateringApplication::manualLoop() {
         }
     }
 
-    processRebootIfNeeded();
     return stateChanged;
 }
 
@@ -307,43 +332,11 @@ void WateringApplication::resetHeartbeatTimer() {
 }
 
 void WateringApplication::requestReboot(const String& correlationId) {
-    rebootPending_ = true;
-    rebootCorrelationId_ = correlationId;
-    rebootRequestedAtMs_ = 0;
-    Serial.println(F("reboot zaproshen: gotovim sistemu k restartu"));
-    processRebootIfNeeded();
+    systemMonitor.rebootIfSafe(String("server_command"), correlationId);
 }
 
-void WateringApplication::processRebootIfNeeded() {
-    if (!rebootPending_) {
-        return;
-    }
-
-    if (manualWateringActive) {
-        Serial.println(F("reboot: ostanavlivaem nasos pered restartom"));
-        const String stopCorrelation = rebootCorrelationId_.length() ? rebootCorrelationId_ : String("reboot");
-        manualStop(stopCorrelation);
-        statePublishNow(false);
-        rebootRequestedAtMs_ = millis();
-        return;
-    }
-
-    if (rebootRequestedAtMs_ == 0) {
-        Serial.println(F("reboot: otpravlyaem zaklyuchitel'nyj state pered restartom"));
-        statePublishNow(false);
-        rebootRequestedAtMs_ = millis();
-        return;
-    }
-
-    if (millis() - rebootRequestedAtMs_ < REBOOT_GRACE_DELAY_MS) {
-        return;
-    }
-
-    Serial.println(F("reboot: restart ESP"));
-    rebootPending_ = false;
-    rebootCorrelationId_.clear();
-    rebootRequestedAtMs_ = 0;
-    ESP.restart();
+SystemMonitor& WateringApplication::getSystemMonitor() {
+    return systemMonitor;
 }
 
 void WateringApplication::testSensors() {

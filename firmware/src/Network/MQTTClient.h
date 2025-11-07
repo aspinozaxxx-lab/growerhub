@@ -27,6 +27,8 @@ public:
     void setCommandHandler(CommandHandler handler);
     void setConnectedHandler(ConnectedHandler handler);
     void setPumpStatusProvider(std::function<bool()> provider);
+    // Public helper dlya status-ACK (accepted/declined) sohranyaem edinuyu logiku.
+    void publishAckStatus(const String& correlationId, const char* statusText, bool accepted);
 
 private:
     static void mqttCallbackRouter(char* topic, byte* payload, unsigned int length);
