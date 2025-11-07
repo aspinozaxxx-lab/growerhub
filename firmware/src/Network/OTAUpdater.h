@@ -2,6 +2,7 @@
 #pragma once
 #include <ArduinoOTA.h>
 #include <Arduino.h>
+#include <functional>
 
 class OTAUpdater {
 private:
@@ -18,6 +19,9 @@ public:
     void disable();
     
     String getStatus();
+
+    // Ustanavlivaet kolbek, kotoryj budet publikovat JSON v MQTT ACK topik.
+    void setAckPublisher(std::function<void(const String&)> publisher);
     
 private:
     void setupOTA();
@@ -25,4 +29,9 @@ private:
     void onEnd();
     void onProgress(unsigned int progress, unsigned int total);
     void onError(ota_error_t error);
+
+    void publishAck(const String& payload);
+
+    std::function<void(const String&)> ackPublisher;
+    int lastPublishedProgress;
 };

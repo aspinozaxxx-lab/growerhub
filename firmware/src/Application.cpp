@@ -273,6 +273,14 @@ const String& WateringApplication::getManualWateringStartIso8601() const {
 
 void WateringApplication::setMqttClient(PubSubClient* client) {
     mqttClient = client;
+    otaUpdater.setAckPublisher([this](const String& payload) {
+        if (!mqttClient || !mqttClient->connected()) {
+            Serial.println(F("OTA: ACK propushchen (MQTT offline)."));
+            return;
+        }
+        String topic = "gh/dev/" + settingsManager.getDeviceID() + "/state/ack";
+        mqttClient->publish(topic.c_str(), payload.c_str(), false);
+    });
 }
 
 void WateringApplication::setSystemClock(SystemClock* clock) {
