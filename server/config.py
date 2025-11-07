@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from functools import lru_cache
@@ -26,6 +27,12 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+logger = logging.getLogger(__name__)
+DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_FIRMWARE_DIR = (DEFAULT_PROJECT_ROOT / "server" / "firmware_binaries").resolve()
+_logged_firmware_dir = False
+
+
 @dataclass(frozen=True)
 class Settings:
     """Настройки приложения: отвечают за подключение бэкенда к MQTT и сопутствующие пороги для UI.
@@ -46,14 +53,14 @@ class Settings:
     ACK_TTL_SECONDS: int = 180  # Translitem: skolko hranim ack v BD do ochistki
     ACK_CLEANUP_PERIOD_SECONDS: int = 60  # Translitem: chastota fonovoy ochistki ack
     SERVER_PUBLIC_BASE_URL: str = "https://growerhub.ru"  # Translitem: bazovyj https dlya firmware URL (pereopredelyaetsya cherez env)
-    FIRMWARE_BINARIES_DIR: str = str((Path(__file__).resolve().parent.parent / "firmware_binaries").resolve())  # Translitem: absolyutnyj katalog .bin (pereopredelyaetsya FIRMWARE_BINARIES_DIR)
+    FIRMWARE_BINARIES_DIR: str = str(DEFAULT_FIRMWARE_DIR)  # Translitem: absolyutnyj katalog .bin (pereopredelyaetsya FIRMWARE_BINARIES_DIR)
 
 
 @lru_cache()
 def get_settings() -> Settings:
     """Возвращает кэшированные настройки, считанные из окружения."""
 
-    return Settings(
+    settings = Settings(
         MQTT_HOST=os.getenv("MQTT_HOST", Settings.MQTT_HOST),
         MQTT_PORT=_env_int("MQTT_PORT", Settings.MQTT_PORT),
         MQTT_USERNAME=os.getenv("MQTT_USERNAME"),
@@ -68,6 +75,8 @@ def get_settings() -> Settings:
         SERVER_PUBLIC_BASE_URL=os.getenv("SERVER_PUBLIC_BASE_URL", Settings.SERVER_PUBLIC_BASE_URL),
         FIRMWARE_BINARIES_DIR=_resolve_firmware_dir(os.getenv("FIRMWARE_BINARIES_DIR")),
     )
+    _log_firmware_dir(settings.FIRMWARE_BINARIES_DIR)
+    return settings
 
 
 def _resolve_firmware_dir(custom_path: Optional[str]) -> str:
@@ -75,4 +84,19 @@ def _resolve_firmware_dir(custom_path: Optional[str]) -> str:
 
     if custom_path:
         return str(Path(custom_path).expanduser().resolve())
-    return Settings.FIRMWARE_BINARIES_DIR
+    return str(DEFAULT_FIRMWARE_DIR)
+
+
+def _log_firmware_dir(path_str: str) -> None:
+    global _logged_firmware_dir
+    if _logged_firmware_dir:
+        return
+    _logged_firmware_dir = True
+    logger.info("Firmware dir (effective): %s", path_str)
+    legacy_dir = (DEFAULT_PROJECT_ROOT / "firmware_binaries").resolve()
+    if legacy_dir.exists() and str(legacy_dir) != path_str:
+        logger.warning(
+            "Obnaruzhen staryy katalog firmware_binaries v korne (%s); ispol'zuem novyy put' %s",
+            legacy_dir,
+            path_str,
+        )

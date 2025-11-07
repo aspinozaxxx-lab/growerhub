@@ -97,6 +97,7 @@ def _mount_firmware_static(app_obj: FastAPI, settings: Settings) -> None:
         for route in app_obj.router.routes
         if not (isinstance(route, Mount) and route.path == "/firmware")
     ]
+    logger.info("Mounting /firmware from %s", firmware_dir)
     app_obj.mount(
         "/firmware",
         StaticFiles(directory=str(firmware_dir)),

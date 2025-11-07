@@ -7,6 +7,7 @@
 - tests(server): dobavleny testy na 202/404/503 dlya firmware trigger-update.
 - docs: README_API dopolnen opisaniem zapuska OTA.
 - fix(server): upload_firmware pishet v absolyutnyj katalog iz nastroek, dobavleny logi/proverki i testy servinga.
+- fix(server): perenesen defoltnyy katalog firmware v server/firmware_binaries; logiruem effektivnyy put' i mount.
 
 ## 2025-11-06 — Uchet MQTT soobshcheniy (ACK) v online-status
 
