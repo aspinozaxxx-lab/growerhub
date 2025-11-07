@@ -14,7 +14,7 @@ from app.models.database_models import DeviceDB
 from app.mqtt.interfaces import IMqttPublisher
 from app.mqtt.lifecycle import get_publisher
 from app.mqtt.serialization import CmdOta
-from config import get_settings
+from config import Settings, get_settings
 
 router = APIRouter()
 
@@ -62,8 +62,13 @@ async def check_firmware_update(device_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/api/upload-firmware")
-async def upload_firmware(file: UploadFile = File(...), version: str = "1.0.0"):
-    firmware_dir = _get_firmware_dir()
+async def upload_firmware(
+    file: UploadFile = File(...),
+    version: str = "1.0.0",
+    settings: Settings = Depends(get_settings),
+):
+    # settings peredaem cherez Depends chtoby testi podmenyali put' k firmware.
+    firmware_dir = _get_firmware_dir(settings)
     file_path = firmware_dir / f"{version}.bin"
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -77,20 +82,20 @@ async def trigger_ota_update(
     update_request: TriggerFirmwareUpdateRequest,
     db: Session = Depends(get_db),
     publisher: IMqttPublisher = Depends(get_mqtt_dep),
+    settings: Settings = Depends(get_settings),
 ):
     device = db.query(DeviceDB).filter(DeviceDB.device_id == device_id).first()
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
 
     version = update_request.resolved_version
-    firmware_dir = _get_firmware_dir()
+    firmware_dir = _get_firmware_dir(settings)
     firmware_path = firmware_dir / f"{version}.bin"
     if not firmware_path.exists():
         raise HTTPException(status_code=404, detail="firmware not found")
 
     sha256_hex = _sha256_file(firmware_path)
-    base_url = getattr(get_settings(), "SERVER_PUBLIC_BASE_URL", "https://growerhub.ru")
-    firmware_url = _build_firmware_url(base_url, version)
+    firmware_url = _build_firmware_url(settings, version)
 
     cmd = CmdOta(url=firmware_url, version=version, sha256=sha256_hex)
     try:
@@ -116,18 +121,17 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _build_firmware_url(base_url: str, version: str) -> str:
-    """Formiruet absolyutnyj HTTPS URL do firmware."""
+def _build_firmware_url(settings: Settings, version: str) -> str:
+    """Formiruet absolyutnyj HTTPS URL do firmware iz nastroek."""
 
-    prefix = base_url.rstrip("/")
+    prefix = settings.SERVER_PUBLIC_BASE_URL.rstrip("/")
     return f"{prefix}/firmware/{version}.bin"
 
 
-def _get_firmware_dir() -> Path:
+def _get_firmware_dir(settings: Settings) -> Path:
     """Vozvrashaet katalog s .bin iz nastroek i sozdaet ego pri neobhodimosti."""
 
-    cfg = get_settings()
-    path = Path(cfg.FIRMWARE_BINARIES_DIR)
+    path = Path(settings.FIRMWARE_BINARIES_DIR)
     path.mkdir(exist_ok=True, parents=True)
     return path
 

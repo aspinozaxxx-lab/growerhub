@@ -1,6 +1,7 @@
 ## 2025-11-07 — OTA trigger cherez MQTT
 
 - fix(server): ispol'zovan FIRMWARE_BINARIES_DIR iz nastroek v trigger-update; testy obnovleny dlya novogo puti.
+- fix(server): firmware router teper' poluchaet nastrojki cherez Depends(get_settings), testi podmenyayut zavisimost'.
 
 - feat(server): trigger-update teper' publikuet MQTT `cmd/ota` s HTTPS-url i sha256 kontrol'noj summoj.
 - tests(server): dobavleny testy na 202/404/503 dlya firmware trigger-update.

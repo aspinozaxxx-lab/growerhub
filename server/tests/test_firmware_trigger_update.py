@@ -2,7 +2,6 @@ import hashlib
 import os
 import sys
 import types
-from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.models.database_models import Base, DeviceDB
+from config import Settings, get_settings
 
 
 engine = create_engine(
@@ -50,6 +50,7 @@ from app.fastapi.routers.firmware import get_mqtt_dep
 from app.main import app
 from app.mqtt.interfaces import IMqttPublisher
 from app.mqtt.serialization import CmdOta
+from app.core.database import get_db as app_get_db
 
 
 class FakePublisher(IMqttPublisher):
@@ -70,23 +71,29 @@ def setup_db():
     """Ochishchaet i sozdaet tablicy pered kazhdym testom."""
 
     _create_tables()
-    yield
+    app.dependency_overrides[app_get_db] = _get_db
+    app.dependency_overrides[firmware_router.get_db] = _get_db
+    try:
+        yield
+    finally:
+        app.dependency_overrides.pop(app_get_db, None)
+        app.dependency_overrides.pop(firmware_router.get_db, None)
 
 
 @pytest.fixture()
-def firmware_dir(tmp_path, monkeypatch):
-    """Pereopredelyaet katalog firmware i bazovyj public URL."""
+def firmware_dir(tmp_path):
+    """Pereopredelyaet katalog firmware i public URL cherez dependency_override."""
 
     tmp_path.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setattr(
-        firmware_router,
-        "get_settings",
-        lambda: SimpleNamespace(
-            SERVER_PUBLIC_BASE_URL="https://example.com",
-            FIRMWARE_BINARIES_DIR=str(tmp_path),
-        ),
+    test_settings = Settings(
+        SERVER_PUBLIC_BASE_URL="https://example.com",
+        FIRMWARE_BINARIES_DIR=str(tmp_path),
     )
-    return tmp_path
+    app.dependency_overrides[get_settings] = lambda: test_settings
+    try:
+        yield tmp_path
+    finally:
+        app.dependency_overrides.pop(get_settings, None)
 
 
 def _insert_device(device_id: str = "dev-001") -> None:
@@ -104,7 +111,7 @@ def _build_client(fake: IMqttPublisher) -> TestClient:
 
 def _cleanup_client(client: TestClient) -> None:
     client.close()
-    app.dependency_overrides.clear()
+    app.dependency_overrides.pop(get_mqtt_dep, None)
 
 
 def test_trigger_update_happy_path(firmware_dir):
