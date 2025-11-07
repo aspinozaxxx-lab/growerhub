@@ -105,3 +105,21 @@ server {
     access_log /var/log/nginx/growerhub.ru_ssl_access.log;
     error_log  /var/log/nginx/growerhub.ru_ssl_error.log;
 }
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name growerhub.ru www.growerhub.ru;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type "text/plain";
+        try_files $uri =404;
+        access_log off;
+        log_not_found off;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
