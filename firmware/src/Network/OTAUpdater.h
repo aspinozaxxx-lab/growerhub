@@ -24,6 +24,8 @@ public:
     void setAckPublisher(std::function<void(const String&)> publisher);
     // Ustanavlivaet PEM sertifikat servera dlya HTTPS OTA.
     void setServerCert(const String& certPem);
+    // Pozvolyaet izvne opublikovat gotovy ACK payload.
+    void publishImmediateAck(const String& payload);
 
     // Startuet pull-OTA po HTTPS; vozvrashaet true esli nachato uspeshno.
     bool beginPull(const String& url, const String& version, const String& sha256Hex);

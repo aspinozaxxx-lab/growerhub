@@ -348,6 +348,11 @@ SystemMonitor& WateringApplication::getSystemMonitor() {
 }
 
 bool WateringApplication::startPullOta(const String& url, const String& version, const String& sha256Hex) {
+    if (!WiFi.isConnected()) {
+        Serial.println(F("OTA(PULL): wifi offline, otklonyaem."));
+        otaUpdater.publishImmediateAck(String("{\"type\":\"ota\",\"result\":\"rejected\",\"status\":\"error\",\"error\":\"wifi_offline\"}"));
+        return false;
+    }
     return otaUpdater.beginPull(url, version, sha256Hex);
 }
 
