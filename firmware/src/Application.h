@@ -55,6 +55,10 @@ private:
     // Sostoyanie dlya monitoringa oshibok DHT22.
     uint8_t dht22ConsecutiveFails_ = 0;
     unsigned long lastDht22RebootAtMs_ = 0;
+    bool fwInfoAvailable = false;
+    String fwVersion;
+    String fwName;
+    String fwBuild;
     
 public:
     WateringApplication();
@@ -95,6 +99,7 @@ public:
     void requestReboot(const String& correlationId);
     SystemMonitor& getSystemMonitor();
     bool startPullOta(const String& url, const String& version, const String& sha256Hex);
+    void publishPendingOtaAckIfAny();
     
     // Тестирование
     void testSensors();
@@ -112,6 +117,7 @@ private:
     void setupActuators();
     void setupNetwork();
     void setupTasks();
+    void loadFirmwareInfo();
     
     // Автоматические задачи
     void checkWatering();

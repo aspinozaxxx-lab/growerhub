@@ -7,6 +7,7 @@
 #include "Network/MQTTClient.h"
 #include "Network/WiFiService.h"
 #include "System/SystemClock.h"
+#include <nvs_flash.h>
 
 class EspRebooter : public SystemMonitor::IRebooter {
 public:
@@ -41,7 +42,18 @@ WateringApplication app;
 void setup() {
     Serial.begin(115200);
     Serial.println();
-    Serial.println(F("GrowerHub Grovika ManualWatering v0.1 (MQTT step4)"));
+    Serial.println(F("GrowerHub Grovika ManualWatering v0.2 (OTA)"));
+    // Gotovim NVS dlya markerov OTA/diagnostiki.
+    esp_err_t nvsErr = nvs_flash_init();
+    if (nvsErr == ESP_ERR_NVS_NO_FREE_PAGES || nvsErr == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        nvs_flash_erase();
+        nvsErr = nvs_flash_init();
+    }
+    if (nvsErr != ESP_OK) {
+        Serial.printf("NVS: init fail err=%d\n", nvsErr);
+    } else {
+        Serial.println(F("NVS: init ok."));
+    }
     app.setSystemClock(&systemClock);
     app.begin();
     settings.begin();
@@ -94,6 +106,7 @@ void setup() {
     mqttClientManager.setConnectedHandler([&]() {
         app.statePublishNow();
         app.resetHeartbeatTimer();
+        app.publishPendingOtaAckIfAny();
     });
     app.setMqttClient(&mqttClientManager.client());
 

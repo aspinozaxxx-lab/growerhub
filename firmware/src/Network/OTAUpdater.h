@@ -26,6 +26,8 @@ public:
     void setServerCert(const String& certPem);
     // Pozvolyaet izvne opublikovat gotovy ACK payload.
     void publishImmediateAck(const String& payload);
+    // Vozvrashaet i ochishchaet pending zapisi ob uspeshnom OTA iz NVS.
+    bool consumeStoredOtaResult(String& resultOut);
 
     // Startuet pull-OTA po HTTPS; vozvrashaet true esli nachato uspeshno.
     bool beginPull(const String& url, const String& version, const String& sha256Hex);
@@ -39,6 +41,7 @@ private:
 
     void publishAck(const String& payload);
     void publishProgressPercent(int percent);
+    void storeSuccessfulOtaRecord(const String& version);
 
     std::function<void(const String&)> ackPublisher;
     int lastPublishedProgress;

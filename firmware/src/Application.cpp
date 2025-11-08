@@ -4,6 +4,7 @@
 #include <PubSubClient.h>
 #include "System/SystemClock.h"
 #include "System/Dht22RebootHelper.h"
+#include <esp_ota_ops.h>
 
 extern const char* FW_VERSION;
 
@@ -35,6 +36,7 @@ void WateringApplication::begin() {
     setupSensors();
     setupNetwork();
     setupTasks();
+    loadFirmwareInfo();
 
     Serial.println("\n=== GrowerHub Ready ===\n");
 }
@@ -315,6 +317,12 @@ void WateringApplication::statePublishNow(bool retained) {
     payload += "\"correlation_id\":" + correlationField;
     payload += "},";
     payload += "\"fw\":\"" + String(FW_VERSION) + "\"";
+    if (fwInfoAvailable) {
+        // Dobavlyaem rasvernutuyu informaciyu o firmware dlya dokazuyushchego OTA.
+        payload += ",\"fw_ver\":\"" + fwVersion + "\"";
+        payload += ",\"fw_name\":\"" + fwName + "\"";
+        payload += ",\"fw_build\":\"" + fwBuild + "\"";
+    }
     payload += "}";
 
     Serial.print(F("Отправляем state (retained) в брокер: "));
@@ -354,6 +362,21 @@ bool WateringApplication::startPullOta(const String& url, const String& version,
         return false;
     }
     return otaUpdater.beginPull(url, version, sha256Hex);
+}
+
+void WateringApplication::publishPendingOtaAckIfAny() {
+    String storedRecord;
+    if (!otaUpdater.consumeStoredOtaResult(storedRecord)) {
+        return;
+    }
+    Serial.print(F("OTA: nayden pending marker v NVS, soderzhimoe="));
+    Serial.println(storedRecord);
+    String payload = String("{\"type\":\"ota\",\"result\":\"accepted\",\"status\":\"done\"");
+    if (fwInfoAvailable && fwVersion.length() > 0) {
+        payload += ",\"fw_ver\":\"" + fwVersion + "\"";
+    }
+    payload += "}";
+    otaUpdater.publishImmediateAck(payload);
 }
 
 void WateringApplication::testSensors() {
@@ -445,6 +468,24 @@ void WateringApplication::setupNetwork() {
 void WateringApplication::setupTasks() {
     Serial.println("Setting up tasks...");
     // Пока пусто - добавим позже
+}
+
+void WateringApplication::loadFirmwareInfo() {
+    const esp_app_desc_t* desc = esp_ota_get_app_description();
+    if (!desc) {
+        Serial.println(F("FW: descriptor nedostupen, propuskaem."));
+        return;
+    }
+    fwInfoAvailable = true;
+    fwVersion = String(desc->version ? desc->version : "");
+    fwName = String(desc->project_name ? desc->project_name : "");
+    fwBuild = String(desc->date ? desc->date : "") + " " + String(desc->time ? desc->time : "");
+    Serial.print(F("FW: ver="));
+    Serial.print(fwVersion);
+    Serial.print(F(" name="));
+    Serial.print(fwName);
+    Serial.print(F(" build="));
+    Serial.println(fwBuild);
 }
 
 void WateringApplication::checkWatering() {

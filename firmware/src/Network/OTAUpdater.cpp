@@ -7,6 +7,10 @@
 #include <esp_tls.h>
 #include <esp_timer.h>
 #include <lwip/netdb.h>
+#include <nvs_flash.h>
+#include <nvs.h>
+#include <time.h>
+#include <vector>
 
 #ifndef OTA_PASSWORD
 #define OTA_PASSWORD "growerhub-ota"
@@ -52,6 +56,59 @@ void OTAUpdater::setAckPublisher(std::function<void(const String&)> publisher) {
 }
 
 namespace {
+
+constexpr const char* OTA_NVS_NAMESPACE = "gh_ota";
+constexpr const char* OTA_NVS_LAST_KEY = "last";
+
+bool writeLastOtaRecord(const String& value) {
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open(OTA_NVS_NAMESPACE, NVS_READWRITE, &handle);
+    if (err != ESP_OK) {
+        Serial.printf("OTA(PULL): NVS open fail err=%d\n", err);
+        return false;
+    }
+    err = nvs_set_str(handle, OTA_NVS_LAST_KEY, value.c_str());
+    if (err == ESP_OK) {
+        err = nvs_commit(handle);
+    }
+    nvs_close(handle);
+    if (err != ESP_OK) {
+        Serial.printf("OTA(PULL): NVS write fail err=%d\n", err);
+        return false;
+    }
+    return true;
+}
+
+bool readAndEraseLastOtaRecord(String& out) {
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open(OTA_NVS_NAMESPACE, NVS_READWRITE, &handle);
+    if (err != ESP_OK) {
+        return false;
+    }
+    size_t required = 0;
+    err = nvs_get_str(handle, OTA_NVS_LAST_KEY, nullptr, &required);
+    if (err != ESP_OK || required == 0) {
+        nvs_close(handle);
+        return false;
+    }
+    std::vector<char> buffer(required);
+    err = nvs_get_str(handle, OTA_NVS_LAST_KEY, buffer.data(), &required);
+    if (err != ESP_OK) {
+        nvs_close(handle);
+        return false;
+    }
+    err = nvs_erase_key(handle, OTA_NVS_LAST_KEY);
+    if (err == ESP_OK) {
+        err = nvs_commit(handle);
+    }
+    nvs_close(handle);
+    if (err != ESP_OK) {
+        Serial.printf("OTA(PULL): NVS erase fail err=%d\n", err);
+        return false;
+    }
+    out = String(buffer.data());
+    return true;
+}
 
 bool parseHostAndPort(const String& url, String& hostOut, uint16_t& portOut) {
     if (url.length() == 0) {
@@ -117,6 +174,10 @@ void OTAUpdater::setServerCert(const String& certPem) {
 
 void OTAUpdater::publishImmediateAck(const String& payload) {
     publishAck(payload);
+}
+
+bool OTAUpdater::consumeStoredOtaResult(String& resultOut) {
+    return readAndEraseLastOtaRecord(resultOut);
 }
 
 void OTAUpdater::setupOTA() {
@@ -204,6 +265,17 @@ void OTAUpdater::publishProgressPercent(int percent) {
     String payload = String("{\"type\":\"ota\",\"result\":\"accepted\",\"status\":\"running\",\"progress\":") +
                      String(percent) + "}";
     publishAck(payload);
+}
+
+void OTAUpdater::storeSuccessfulOtaRecord(const String& version) {
+    const time_t now = time(nullptr);
+    const uint32_t epoch = now > 0 ? static_cast<uint32_t>(now) : 0;
+    String record = String("{\"version\":\"") + version + "\",\"ok\":true,\"ts\":" + String(epoch) + "}";
+    if (writeLastOtaRecord(record)) {
+        Serial.println(F("OTA(PULL): marker uspeshnogo OTA zapisali v NVS."));
+    } else {
+        Serial.println(F("OTA(PULL): oshibka zapisi markera OTA v NVS."));
+    }
 }
 
 bool OTAUpdater::beginPull(const String& url, const String& version, const String& sha256Hex) {
@@ -317,6 +389,7 @@ bool OTAUpdater::beginPull(const String& url, const String& version, const Strin
         : (FW_VERSION ? String(FW_VERSION) : String("unknown"));
     String payload = String("{\"type\":\"ota\",\"result\":\"accepted\",\"status\":\"done\",\"fw\":\"") +
                      reportedVersion + "\"}";
+    storeSuccessfulOtaRecord(reportedVersion);
     publishAck(payload);
     Serial.println(F("OTA(PULL): ok, restart."));
     delay(500);
