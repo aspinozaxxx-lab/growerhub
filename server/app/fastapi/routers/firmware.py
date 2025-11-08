@@ -6,7 +6,9 @@ import os
 import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, Response, status
 from pydantic import BaseModel, root_validator
 from sqlalchemy.orm import Session
 
@@ -162,4 +164,35 @@ def _get_firmware_dir(settings: Settings) -> Path:
 
     path = Path(settings.FIRMWARE_BINARIES_DIR)
     return path
+
+
+@router.get("/api/firmware/versions")
+async def list_firmware_versions(
+    response: Response,
+    settings: Settings = Depends(get_settings),
+):
+    """Vozvrashaet dostupnye .bin s metadannymi (bez rekurcii)."""
+
+    response.headers["Cache-Control"] = "no-store"
+    base_dir = _get_firmware_dir(settings)
+    if not base_dir.exists():
+        return []
+
+    items: list[dict] = []
+    for bin_path in base_dir.glob("*.bin"):
+        try:
+            stat = bin_path.stat()
+        except OSError:
+            continue
+        items.append(
+            {
+                "version": bin_path.stem,
+                "size": stat.st_size,
+                "sha256": _sha256_file(bin_path),
+                "mtime": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat().replace("+00:00", "Z"),
+            }
+        )
+
+    items.sort(key=lambda item: item["mtime"], reverse=True)
+    return items
 

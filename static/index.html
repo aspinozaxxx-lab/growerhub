@@ -175,7 +175,7 @@
     </div>
 
     <script>
-        let availableFirmware = ['1.0.0', '1.1.0', '1.2.0'];
+        let availableFirmware = [];
 
         const formatMoscowTime = (isoString) => {
             if (!isoString) return null;
@@ -205,6 +205,27 @@
             const n = numOrNull(v);
             if (n === null) return 0;
             return Math.min(Math.max(n, 0), 100);
+        };
+
+        async function loadFirmwareVersions() {
+            try {
+                const resp = await fetch('/api/firmware/versions', { cache: 'no-store' });
+                if (!resp.ok) throw new Error('bad status');
+                availableFirmware = await resp.json();
+            } catch (error) {
+                console.error('ota-spisok: oshibka zagruzki', error);
+                availableFirmware = [];
+            }
+        }
+
+        const renderFirmwareOptions = () => {
+            if (!Array.isArray(availableFirmware) || availableFirmware.length === 0) {
+                return '<option value="">Нет доступных прошивок</option>';
+            }
+            return availableFirmware.map(fw => {
+                const kb = fw.size ? (fw.size / 1024).toFixed(1) : '0.0';
+                return `<option value="${fw.version}">${fw.version} (${kb} KB)</option>`;
+            }).join('');
         };
 
         async function loadDevices() {
@@ -306,10 +327,10 @@
                         <div class="ota-section">
                             <h4>🔄 OTA Обновление:</h4>
                             <select id="firmware-select-${device.device_id}">
-                                <option value="">Выберите версию прошивки</option>
-                                ${availableFirmware.map(fw => `<option value="${fw}">${fw}</option>`).join('')}
+                                ${renderFirmwareOptions()}
                             </select>
-                            <button class="btn-ota" onclick="triggerOTAUpdate('${device.device_id}')">Запустить OTA обновление</button>
+                            <button class="btn-ota" onclick="triggerOTAUpdate('${device.device_id}')" ${availableFirmware.length === 0 ? 'disabled' : ''}>Запустить OTA обновление</button>
+                            ${availableFirmware.length === 0 ? '<span style="color:#888;">Нет прошивок для OTA</span>' : ''}
                             ${device.update_available ? '<span style="color: orange;">⚠️ Доступно обновление!</span>' : ''}
                         </div>
                     `;
@@ -377,11 +398,11 @@
                 const response = await fetch('/api/upload-firmware', { method: 'POST', body: formData });
                 if (response.ok) {
                     alert('✅ Прошивка загружена!');
-                    availableFirmware.push(versionInput.value);
-                    loadDevices();
+                    await loadFirmwareVersions();
+                    await loadDevices();
                 }
             } catch (error) {
-                console.error('Error uploading firmware:', error);
+                console.error('ota-upload: oshibka', error);
                 alert('❌ Ошибка соединения с сервером');
             }
         }
@@ -404,13 +425,18 @@
                     loadDevices();
                 }
             } catch (error) {
-                console.error('Error triggering OTA:', error);
+                console.error('ota-trigger: oshibka', error);
                 alert('❌ Ошибка соединения с сервером');
             }
         }
 
-        setInterval(loadDevices, 10000);
-        loadDevices();
+        async function initPage() {
+            await loadFirmwareVersions();
+            await loadDevices();
+            setInterval(loadDevices, 10000);
+        }
+
+        initPage();
     </script>
 </body>
 </html>

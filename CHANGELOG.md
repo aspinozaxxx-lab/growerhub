@@ -8,6 +8,7 @@
 - docs: README_API dopolnen opisaniem zapuska OTA.
 - fix(server): upload_firmware pishet v absolyutnyj katalog iz nastroek, dobavleny logi/proverki i testy servinga.
 - fix(server): perenesen defoltnyy katalog firmware v server/firmware_binaries; logiruem effektivnyy put' i mount.
+- feat(server): dobavlen API `/api/firmware/versions` i UI zagruka realnyh versij bez hardkoda; dobavleny testi.
 
 ## 2025-11-06 — Uchet MQTT soobshcheniy (ACK) v online-status
 
