@@ -126,6 +126,11 @@
         .status-indicator.online {
             background-color: #2ecc71;
         }
+        .fw-ver {
+            color: #888;
+            font-size: 0.9em;
+            margin-left: 8px;
+        }
         .status-indicator.offline {
             background-color: #e74c3c;
         }
@@ -257,7 +262,7 @@
 
                     deviceDiv.innerHTML = `
                         <div class="device-header">
-                            <h3>${device.name} (${device.device_id})</h3>
+                            <h3>${device.name} <span class="dev-id">${device.device_id}</span><span class="fw-ver" title="Firmware version">${device.firmware_version || 'old'}</span></h3>
                             <button class="btn-delete" onclick="deleteDevice('${device.device_id}')">Удалить</button>
                         </div>
                         <div class="status">
