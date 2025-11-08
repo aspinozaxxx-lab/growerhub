@@ -212,6 +212,12 @@
             return Math.min(Math.max(n, 0), 100);
         };
 
+        const escapeHtml = (value = '') => {
+            // Translitem: bazovoe ekranirovanie specialnyh simvolov.
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+            return String(value).replace(/[&<>"']/g, ch => map[ch]);
+        };
+
         async function loadFirmwareVersions() {
             try {
                 const resp = await fetch('/api/firmware/versions', { cache: 'no-store' });
@@ -260,9 +266,22 @@
                     const humLabel = h === null ? 'н/д' : (h > 70 ? 'Высокая' : (h < 40 ? 'Низкая' : 'Нормальная'));
                     const lastUpdate = formatMoscowTime(device.last_seen) || 'н/д';
 
+                    // russkim translitom: ubiraem dubl' ID esli name sovpadaet
+                    const devId = (device.device_id || device.id || '').trim();
+                    const nameRaw = (device.name || '').trim();
+                    const lowerName = nameRaw.toLowerCase();
+                    const lowerId = devId.toLowerCase();
+                    const same = devId ? (lowerName.includes(lowerId) || lowerName === lowerId) : false;
+                    const devIdEsc = escapeHtml(devId);
+                    const titleLeft = same || !nameRaw
+                        ? `<span class="dev-id">${devIdEsc}</span>`
+                        : `${escapeHtml(nameRaw)} <span class="dev-id">${devIdEsc}</span>`;
+                    const fwv = (device.firmware_version && String(device.firmware_version).trim()) || 'old';
+                    const fwvEsc = escapeHtml(fwv);
+
                     deviceDiv.innerHTML = `
                         <div class="device-header">
-                            <h3>${device.name} <span class="dev-id">${device.device_id}</span><span class="fw-ver" title="Firmware version">${device.firmware_version || 'old'}</span></h3>
+                            <h3>Watering Device ${titleLeft} <span class="fw-ver" title="Firmware version">${fwvEsc}</span></h3>
                             <button class="btn-delete" onclick="deleteDevice('${device.device_id}')">Удалить</button>
                         </div>
                         <div class="status">
