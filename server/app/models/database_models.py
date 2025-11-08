@@ -127,6 +127,7 @@ class DeviceInfo(BaseModel):
     light_duration: int
     current_version: str
     update_available: bool
+    firmware_version: str
 
 class SensorDataPoint(BaseModel):
     timestamp: datetime

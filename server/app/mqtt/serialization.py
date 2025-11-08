@@ -112,7 +112,11 @@ class DeviceState(BaseModel):
     """Aggregirovannoe sostoyanie ustroystva (manual watering i firmware)."""
 
     manual_watering: ManualWateringState
+    # Translitem: dobavlyaem rasshirennye polya proshivki iz heartbeat.
     fw: Optional[str] = None
+    fw_ver: Optional[str] = None
+    fw_name: Optional[str] = None
+    fw_build: Optional[str] = None
 
 
 def serialize(model: BaseModel) -> bytes:

@@ -129,8 +129,10 @@ def _merge_device_state(
     """Translitem: dopolnyaem informaciyu iz device_state_last kak osnovnogo istochnika."""
 
     stored_state = state_repo.get_state(device.device_id)
+    firmware_version = "old"
     if stored_state:
         payload = stored_state["state"]
+        firmware_version = payload.get("fw_ver") or "old"
         manual = payload.get("manual_watering", {})
         status_value = manual.get("status")
         is_watering = status_value == "running" if status_value else device.is_watering
@@ -163,6 +165,7 @@ def _merge_device_state(
             light_duration=device.light_duration,
             current_version=device.current_version,
             update_available=device.update_available,
+            firmware_version=firmware_version,
         )
 
     # Translitem: net zapisi v device_state_last, ispolzuem dannye DeviceDB kak ran'she.
@@ -185,6 +188,7 @@ def _merge_device_state(
         light_duration=device.light_duration,
         current_version=device.current_version,
         update_available=device.update_available,
+        firmware_version="old",
     )
 
 

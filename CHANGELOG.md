@@ -1,3 +1,5 @@
+feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
+
 ## 2025-11-07 — OTA trigger cherez MQTT
 
 - fix(server): ispol'zovan FIRMWARE_BINARIES_DIR iz nastroek v trigger-update; testy obnovleny dlya novogo puti.
