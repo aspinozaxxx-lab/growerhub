@@ -1,0 +1,94 @@
+- name: Base configuration for all GH nodes
+  hosts: gh_all
+  become: true
+
+  vars:
+    gh_timezone: "Europe/Moscow"
+    gh_locale_default: "en_US.UTF-8"
+    gh_locale_extra:
+      - "ru_RU.UTF-8"
+    gh_base_packages:
+      - htop
+      - git
+      - curl
+      - wget
+      - nano
+      - mc
+      - net-tools
+      - ca-certificates
+      - apt-transport-https
+
+  tasks:
+    - name: Ensure APT cache is up to date
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages
+      ansible.builtin.apt:
+        upgrade: dist
+        autoremove: yes
+
+    - name: Set system timezone
+      ansible.builtin.command: timedatectl set-timezone {{ gh_timezone }}
+      changed_when: false
+
+    - name: Install language packs
+      ansible.builtin.apt:
+        name:
+          - language-pack-en
+          - language-pack-ru
+        state: present
+
+    - name: Generate locales
+      ansible.builtin.command: >
+        locale-gen {{ gh_locale_default }} {{ gh_locale_extra | join(' ') }}
+      changed_when: false
+
+    - name: Set default locale
+      ansible.builtin.command: update-locale LANG={{ gh_locale_default }}
+      changed_when: false
+
+    - name: Install base utility packages
+      ansible.builtin.apt:
+        name: "{{ gh_base_packages }}"
+        state: present
+
+    - name: Disable root login over SSH
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin no'
+        create: no
+        backup: yes
+      notify: Restart ssh
+
+    - name: Ensure PasswordAuthentication is not disabled yet (keep safe)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication yes'
+        create: no
+        backup: yes
+      notify: Restart ssh
+
+    - name: Install ufw
+      ansible.builtin.apt:
+        name: ufw
+        state: present
+
+    - name: Allow SSH in ufw
+      ansible.builtin.ufw:
+        rule: allow
+        name: OpenSSH
+
+    - name: Enable ufw
+      ansible.builtin.ufw:
+        state: enabled
+        logging: on
+
+  handlers:
+    - name: Restart ssh
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
