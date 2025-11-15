@@ -7,10 +7,8 @@ pg_hba_conf_path: "{{ postgresql_conf_dir }}/pg_hba.conf"
 # Основные параметры базы данных
 gh_db_name: "gh_db"
 gh_db_admin_user: "db-admin"
-# postgresql_conf_path: "/etc/postgresql/16/main/postgresql.conf"
-# postgresql_hba_path: "/etc/postgresql/16/main/pg_hba.conf"
 # TODO: перенести пароль gh_db_admin_password в защищённое хранилище
-gh_db_admin_password: "ЗАГЛУШКА_СЮДА_ПАРОЛЬ_ПОТОМ_ПОМЕНЯЕМ"
+gh_db_admin_password: "gh_db_admin_dev_1234"
 
 gh_db_timezone: "Europe/Moscow"
 
