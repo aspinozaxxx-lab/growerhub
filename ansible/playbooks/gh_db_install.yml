@@ -1,0 +1,22 @@
+- name: Install PostgreSQL on gh-db
+  hosts: gh_db
+  become: true
+
+  tasks:
+    - name: Ensure APT cache is up to date
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install PostgreSQL server
+      ansible.builtin.apt:
+        name:
+          - postgresql
+          - postgresql-contrib
+        state: present
+
+    - name: Ensure PostgreSQL service is enabled and running
+      ansible.builtin.service:
+        name: postgresql
+        state: started
+        enabled: yes
