@@ -1,3 +1,5 @@
+- Dobavlena ansible-rol dlya nastrojki PostgreSQL na gh-db (db-admin, baza gh_db, pg_hba i UFW).
+
 feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 
 ## 2025-11-07 — OTA trigger cherez MQTT

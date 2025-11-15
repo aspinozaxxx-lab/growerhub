@@ -20,3 +20,12 @@
         name: postgresql
         state: started
         enabled: yes
+
+  roles:
+    - gh_db_postgresql
+
+  post_tasks:
+    - name: Ensure PostgreSQL service is running after configuration
+      ansible.builtin.service:
+        name: postgresql
+        state: started

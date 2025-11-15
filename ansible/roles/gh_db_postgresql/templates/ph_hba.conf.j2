@@ -1,0 +1,12 @@
+# Lokalnye soedinenija cherez Unix-socket
+local   all             postgres                                peer
+local   all             all                                     peer
+
+# Loopback soedinenija ostavlyaem dostupnymi
+host    all             all             127.0.0.1/32            scram-sha-256
+host    all             all             ::1/128                 scram-sha-256
+
+# Dostup k baze gh_db tolko s doverennyh hostov
+{% for cidr in gh_db_trusted_clients %}
+host    {{ gh_db_name }}    {{ gh_db_admin_user }}    {{ cidr }}    scram-sha-256
+{% endfor %}
