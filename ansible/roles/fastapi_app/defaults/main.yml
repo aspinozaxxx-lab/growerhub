@@ -44,7 +44,7 @@ apt_packages:
 # отладочные флаги для FastAPI (читаются через config.py).
 # ----------------------------------------------------------
 
-app_env:
+app_env_base:
   # Настройки MQTT-клиента (используются и паблишером, и подписчиками)
   MQTT_HOST: "127.0.0.1"
   MQTT_PORT: "1883"
@@ -60,3 +60,7 @@ app_env:
 
   # Дополнительно можно прокидывать другие переменные,
   # если их читает config.py, например URL БД, токены и т.п.
+
+# DATABASE_URL dobavlyaetsya iz gh_db_url tol'ko pri nalichii hostovoy peremennoy
+app_env_database_overrides: "{{ {'DATABASE_URL': gh_db_url} if (gh_db_url is defined) else {} }}"
+app_env: "{{ app_env_base | combine(app_env_database_overrides) }}"

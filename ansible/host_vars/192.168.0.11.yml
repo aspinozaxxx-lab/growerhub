@@ -12,3 +12,5 @@ app_workers: 2
 app_env_file: /etc/growerhub.env
 python_cmd: /usr/bin/python3
 
+# TODO: perenesti parol' iz gh_db_url v zashchishchennoye mesto
+gh_db_url: "postgresql://db-admin:gh_db_admin_dev_1234@192.168.0.81:5432/gh_db"
