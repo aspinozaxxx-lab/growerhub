@@ -50,11 +50,11 @@
   become: true
   become_user: postgres
 
-- name: Ensure UFW denies PostgreSQL port by default
-  community.general.ufw:
-    rule: deny
-    port: '5432'
-    proto: tcp
+#- name: Ensure UFW denies PostgreSQL port by default
+#  community.general.ufw:
+#    rule: deny
+#    port: '5432'
+#    proto: tcp
 
 - name: Allow PostgreSQL port for trusted hosts
   community.general.ufw:
