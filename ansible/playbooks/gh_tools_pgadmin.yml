@@ -1,0 +1,7 @@
+﻿---
+# Etot playbook nastroivaet pgAdmin na gh-tools
+- name: Deploy pgAdmin to gh-tools
+  hosts: gh_tools
+  become: true
+  roles:
+    - pgadmin

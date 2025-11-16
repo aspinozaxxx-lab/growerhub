@@ -1,0 +1,18 @@
+﻿---
+# Nash obraz pgAdmin i bazovye diry
+pgadmin_image: "dpage/pgadmin4:latest"
+pgadmin_port: 5050
+pgadmin_data_dir: "/opt/pgadmin/data"
+pgadmin_config_dir: "/opt/pgadmin/config"
+pgadmin_container_name: "pgadmin4"
+
+# Defaultnye uchetki pgAdmin (v boiu nado perenesti v vault, seichas zhestko po TZ)
+pgadmin_default_email: "admin@growerhub.local"
+pgadmin_default_password: "admin"
+
+# Vremennye nastroiki dlya gh_db (nebezopasno, nujno budet unesti v vault)
+pgadmin_db_host: "192.168.0.81"
+pgadmin_db_port: 5432
+pgadmin_db_name: "gh_db"
+pgadmin_db_user: "db-admin"
+pgadmin_db_password: "gh_db_admin_dev_1234"

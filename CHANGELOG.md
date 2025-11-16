@@ -1,3 +1,7 @@
+- dobavlena ansible-rol dlya ustanovki pgAdmin na gh-tools.
+- sozdan playbook dlya gruppy gh_tools.
+- zahardkozhena dev-konfiguraciya podklyucheniya k gh_db.
+
 - dlya prod-fastapi dobavlen postgresql-drajver psycopg2-binary v server/requirements.txt.
 - dlya prod-fastapi teper' ispol'zuetsya novyj PostgreSQL host gh-db i peremennaya DATABASE_URL prokladyvaetsya cherez ansible.
 - Dobavlena ansible-rol dlya nastrojki PostgreSQL na gh-db (db-admin, baza gh_db, pg_hba i UFW).

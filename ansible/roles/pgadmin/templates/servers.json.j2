@@ -1,0 +1,15 @@
+﻿{
+  "Servers": {
+    "1": {
+      "Name": "gh-db ({{ pgadmin_db_host }})",
+      "Group": "Servers",
+      "Host": "{{ pgadmin_db_host }}",
+      "Port": {{ pgadmin_db_port }},
+      "MaintenanceDB": "{{ pgadmin_db_name }}",
+      "Username": "{{ pgadmin_db_user }}",
+      "SSLMode": "prefer",
+      "PassFile": "",
+      "Password": "{{ pgadmin_db_password }}"
+    }
+  }
+}

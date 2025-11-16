@@ -1,0 +1,83 @@
+﻿---
+- name: Obnovit' apt kesh pered ustanovkoi docker
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ustanovit' bazovye pakety dlya docker (tol'ko dlya etoi roli)
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+    state: present
+
+- name: Prostaia ustanovka docker engine dlya pgadmin (docker.io iz repo)
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - python3-docker
+    state: present
+
+- name: Ubedit'sya chto servis docker vklyuchen
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Sozdat' direktoriyu dlya dannyh pgAdmin
+  ansible.builtin.file:
+    path: "{{ pgadmin_data_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Sozdat' direktoriyu dlya konfiguracii pgAdmin
+  ansible.builtin.file:
+    path: "{{ pgadmin_config_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Razvernut' servers.json s predna stroennym gh-db
+  ansible.builtin.template:
+    src: servers.json.j2
+    dest: "{{ pgadmin_config_dir }}/servers.json"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart pgadmin container
+
+- name: Zapustit' ili obnovit' kontener pgAdmin
+  community.docker.docker_container:
+    name: "{{ pgadmin_container_name }}"
+    image: "{{ pgadmin_image }}"
+    restart_policy: always
+    published_ports:
+      - "{{ pgadmin_port }}:80"
+    env:
+      PGADMIN_DEFAULT_EMAIL: "{{ pgadmin_default_email }}"
+      PGADMIN_DEFAULT_PASSWORD: "{{ pgadmin_default_password }}"
+    volumes:
+      - "{{ pgadmin_data_dir }}:/var/lib/pgadmin"
+      - "{{ pgadmin_config_dir }}/servers.json:/pgadmin4/servers.json"
+    state: started
+    pull: true
+
+- name: Proverit' sostoyanie kontenera pgAdmin
+  community.docker.docker_container_info:
+    name: "{{ pgadmin_container_name }}"
+  register: pgadmin_info
+
+- name: Soobshit' ob uspeshnom starte pgAdmin
+  ansible.builtin.debug:
+    msg: "Kontener {{ pgadmin_container_name }} zapushchen i dostupen po portu {{ pgadmin_port }}"
+  when: pgadmin_info.exists and pgadmin_info.container.State.Running | default(false)
+
+- name: Ostanovit' vypolnenie esli kontener ne zapushchen
+  ansible.builtin.fail:
+    msg: "Kontener {{ pgadmin_container_name }} ne zapustilsya, prover' ustanovku Docker i nastroiki roli"
+  when: not (pgadmin_info.exists and pgadmin_info.container.State.Running | default(false))

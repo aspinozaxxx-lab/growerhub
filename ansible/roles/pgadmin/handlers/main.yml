@@ -1,0 +1,6 @@
+﻿---
+- name: restart pgadmin container
+  community.docker.docker_container:
+    name: "{{ pgadmin_container_name }}"
+    state: started
+    restart: true
