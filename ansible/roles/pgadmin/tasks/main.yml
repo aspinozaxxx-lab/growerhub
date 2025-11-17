@@ -34,6 +34,14 @@
     group: root
     mode: "0755"
 
+- name: Ustanovit' pravy na dannye pgAdmin
+  ansible.builtin.file:
+    path: "{{ pgadmin_data_dir }}"
+    # UID/GID 5050 - eto polzovatel pgadmin v kontejnere, chtoby on mog pisat v /var/lib/pgadmin
+    owner: 5050
+    group: 5050
+    recurse: true
+
 - name: Sozdat' direktoriyu dlya konfiguracii pgAdmin
   ansible.builtin.file:
     path: "{{ pgadmin_config_dir }}"
