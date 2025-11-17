@@ -75,6 +75,41 @@
     state: started
     pull: true
 
+- name: Avtoimport serverov dlya pgAdmin
+  block:
+    - name: Proverit' marker importa serverov
+      ansible.builtin.stat:
+        path: "{{ pgadmin_data_dir }}/.servers_imported"
+      register: pgadmin_servers_marker
+
+    - name: Zagruzit' servers.json v pgAdmin odin raz
+      community.docker.docker_container_exec:
+        container: "{{ pgadmin_container_name }}"
+        command: "python /pgadmin4/setup.py load-servers /pgadmin4/servers.json"
+      register: pgadmin_servers_import
+      changed_when: pgadmin_servers_import.rc == 0
+      failed_when: false
+      when: not pgadmin_servers_marker.stat.exists
+
+    - name: Soobshit' ob oshibke importa serverov
+      ansible.builtin.fail:
+        msg: "Import serverov v pgAdmin ne udalsya: {{ pgadmin_servers_import.stderr | default(pgadmin_servers_import.msg) | default('neizvestnaya oshibka') }}"
+      when:
+        - not pgadmin_servers_marker.stat.exists
+        - pgadmin_servers_import is defined
+        - pgadmin_servers_import.rc != 0
+
+    - name: Sozdat' marker posle importa serverov
+      ansible.builtin.file:
+        path: "{{ pgadmin_data_dir }}/.servers_imported"
+        state: touch
+        owner: 5050
+        group: 5050
+      when:
+        - not pgadmin_servers_marker.stat.exists
+        - pgadmin_servers_import is defined
+        - pgadmin_servers_import.rc == 0
+
 - name: Proverit' sostoyanie kontenera pgAdmin
   community.docker.docker_container_info:
     name: "{{ pgadmin_container_name }}"
