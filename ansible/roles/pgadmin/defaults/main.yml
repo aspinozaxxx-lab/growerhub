@@ -7,7 +7,7 @@ pgadmin_config_dir: "/opt/pgadmin/config"
 pgadmin_container_name: "pgadmin4"
 
 # Defaultnye uchetki pgAdmin (v boiu nado perenesti v vault, seichas zhestko po TZ)
-pgadmin_default_email: "admin@growerhub.local"
+pgadmin_default_email: "admin@growerhub.dev"
 pgadmin_default_password: "admin"
 
 # Vremennye nastroiki dlya gh_db (nebezopasno, nujno budet unesti v vault)
