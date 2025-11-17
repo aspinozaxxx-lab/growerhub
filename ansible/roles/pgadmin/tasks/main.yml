@@ -85,7 +85,7 @@
     - name: Zagruzit' servers.json v pgAdmin odin raz
       community.docker.docker_container_exec:
         container: "{{ pgadmin_container_name }}"
-        command: "python /pgadmin4/setup.py load-servers /pgadmin4/servers.json"
+        command: "/venv/bin/python /pgadmin4/setup.py load-servers /pgadmin4/servers.json --user {{ pgadmin_default_email }}"
       register: pgadmin_servers_import
       changed_when: pgadmin_servers_import.rc == 0
       failed_when: false
