@@ -131,13 +131,21 @@ Password: gh_db_admin_dev_1234
 ## 📁 Структура проекта
 
 growerhub/
+
 ├── firmware/
+
 ├── server/
+
 ├── ansible/
+
 ├── web/
+
 ├── docs/
+
 ├── scripts/
+
 ├── deploy.sh
+
 └── deploy_agent.py
 
 ---
