@@ -182,8 +182,6 @@ DeviceID из MAC
 Новые статические страницы
 
 📞 Контакты
-Сервер: http://192.168.0.11
-
-Веб: https://growerhub.ru
-
+email: wizi1@yandex.ru, aspinoza.xxx@gmail.com<br>
+Веб: https://growerhub.ru<br>
 Репозиторий: https://github.com/aspinozaxxx-lab/growerhub
