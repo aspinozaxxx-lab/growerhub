@@ -143,45 +143,38 @@ growerhub/<br>
 ---
 
 ## ⚡ Быстрый старт
-cd firmware && pio run --target upload
-sudo systemctl status growerhub growerhub-deploy-agent<br>
-🔧 Системные сервисы
-growerhub.service
+cd firmware && pio run --target upload<br>
+sudo systemctl status growerhub growerhub-deploy-agent
 
+🔧 Системные сервисы<br>
+growerhub.service<br>
 growerhub-deploy-agent.service<br>
 
 ⚙️ Запуск плейбуков Ansible
-ansible-playbook -i inventory/hosts.ini playbooks/gh_tools_pgadmin.yml<br>
+ansible-playbook -i inventory/hosts.ini playbooks/gh_tools_pgadmin.yml
+
 🔒 Переменные окружения
 sudo systemctl edit watering-deploy-agent.service
 
 [Service]
-Environment=GITHUB_TOKEN="secret token"<br>
-📝 Последние изменения
-Настроен Ansible
+Environment=GITHUB_TOKEN="secret token"
 
-Добавлены плейбуки Nginx / FastAPI
-
-DeviceID из MAC
-
-Добавлен DHT22
-
-Инвертирована логика реле
-
+📝 Последние изменения<br>
+Настроен Ansible<br>
+Добавлены плейбуки Nginx / FastAPI<br>
+DeviceID из MAC<br>
+Добавлен DHT22<br>
+Инвертирована логика реле<br>
 Рефакторинг сервера + авто-деплой
 
-🎯 Планы развития
-Отладка датчиков
-
-Журнал действий
-
-Графики
-
-Личный кабинет
-
+🎯 Планы развития<br>
+Отладка датчиков<br>
+Журнал действий<br>
+Графики<br>
+Личный кабинет<br>
 Новые статические страницы
 
-📞 Контакты
+📞 Контакты<br>
 email: wizi1@yandex.ru, aspinoza.xxx@gmail.com<br>
 Веб: https://growerhub.ru<br>
 Репозиторий: https://github.com/aspinozaxxx-lab/growerhub
