@@ -118,9 +118,6 @@ Maintenance DB: gh_db
 Username: db-admin
 Password: gh_db_admin_dev_1234
 
-yaml
-Копировать код
-
 ---
 
 ### pgAdmin (gh-tools)
@@ -143,14 +140,9 @@ growerhub/
 ├── deploy.sh
 └── deploy_agent.py
 
-yaml
-Копировать код
-
 ---
 
 ## ⚡ Быстрый старт
-
-```bash
 cd firmware && pio run --target upload
 sudo systemctl status growerhub growerhub-deploy-agent
 🔧 Системные сервисы
@@ -159,12 +151,8 @@ growerhub.service
 growerhub-deploy-agent.service
 
 ⚙️ Запуск плейбуков Ansible
-bash
-Копировать код
 ansible-playbook -i inventory/hosts.ini playbooks/gh_tools_pgadmin.yml
 🔒 Переменные окружения
-bash
-Копировать код
 sudo systemctl edit watering-deploy-agent.service
 
 [Service]
