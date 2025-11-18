@@ -144,19 +144,19 @@ growerhub/<br>
 
 ## ⚡ Быстрый старт
 cd firmware && pio run --target upload
-sudo systemctl status growerhub growerhub-deploy-agent
+sudo systemctl status growerhub growerhub-deploy-agent<br>
 🔧 Системные сервисы
 growerhub.service
 
-growerhub-deploy-agent.service
+growerhub-deploy-agent.service<br>
 
 ⚙️ Запуск плейбуков Ansible
-ansible-playbook -i inventory/hosts.ini playbooks/gh_tools_pgadmin.yml
+ansible-playbook -i inventory/hosts.ini playbooks/gh_tools_pgadmin.yml<br>
 🔒 Переменные окружения
 sudo systemctl edit watering-deploy-agent.service
 
 [Service]
-Environment=GITHUB_TOKEN="secret token"
+Environment=GITHUB_TOKEN="secret token"<br>
 📝 Последние изменения
 Настроен Ansible
 
