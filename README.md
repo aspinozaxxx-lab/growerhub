@@ -130,22 +130,14 @@ Password: gh_db_admin_dev_1234
 
 ## 📁 Структура проекта
 
-growerhub/
-
-├── firmware/
-
-├── server/
-
-├── ansible/
-
-├── web/
-
-├── docs/
-
-├── scripts/
-
-├── deploy.sh
-
+growerhub/<br>
+├── firmware/<br>
+├── server/<br>
+├── ansible/<br>
+├── web/<br>
+├── docs/<br>
+├── scripts/<br>
+├── deploy.sh<br>
 └── deploy_agent.py
 
 ---
