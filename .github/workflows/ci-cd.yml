@@ -12,6 +12,20 @@ jobs:
   test:
     name: Test (pytest)
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: watering_db
+          POSTGRES_USER: watering_user
+          POSTGRES_PASSWORD: watering_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U watering_user -d watering_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,6 +50,15 @@ jobs:
           pip install -U pip
           pip install -r requirements.txt || true
           pip install pytest
+
+      - name: Set DATABASE_URL
+        run: echo "DATABASE_URL=postgresql+psycopg2://watering_user:watering_pass@postgres:5432/watering_db" >> $GITHUB_ENV
+
+      - name: Run Alembic migrations
+        working-directory: server
+        run: |
+          . .venv/bin/activate
+          alembic upgrade head
 
       - name: Run pytest
         working-directory: server
@@ -87,7 +110,7 @@ jobs:
             -e "ssh -p 6733 -o StrictHostKeyChecking=yes" \
             ./ watering-admin@growerhub.ru:/home/watering-admin/growerhub/
 
-      - name: Remote build & restart
+      - name: Remote install dependencies
         run: |
           ssh -p 6733 watering-admin@growerhub.ru <<'EOF'
           set -e
@@ -96,6 +119,22 @@ jobs:
           . .venv/bin/activate
           pip install -U pip
           pip install -r requirements.txt
+          EOF
+
+      - name: Remote Alembic upgrade
+        run: |
+          ssh -p 6733 watering-admin@growerhub.ru <<'EOF'
+          set -e
+          cd ~/growerhub/server
+          . .venv/bin/activate
+          alembic upgrade head
+          EOF
+
+      - name: Remote restart service
+        run: |
+          ssh -p 6733 watering-admin@growerhub.ru <<'EOF'
+          set -e
+          cd ~/growerhub/server
           sudo systemctl daemon-reload || true
           sudo systemctl restart growerhub.service
           systemctl status growerhub.service --no-pager || true
