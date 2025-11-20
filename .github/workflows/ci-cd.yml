@@ -52,7 +52,7 @@ jobs:
           pip install pytest
 
       - name: Set DATABASE_URL
-        run: echo "DATABASE_URL=postgresql+psycopg2://watering_user:watering_pass@postgres:5432/watering_db" >> $GITHUB_ENV
+        run: echo "DATABASE_URL=postgresql+psycopg2://watering_user:watering_pass@localhost:5432/watering_db" >> $GITHUB_ENV
 
       - name: Run Alembic migrations
         working-directory: server
@@ -127,6 +127,12 @@ jobs:
           set -e
           cd ~/growerhub/server
           . .venv/bin/activate
+          DATABASE_URL=$(sudo systemctl show --property=Environment growerhub.service | tr ' ' '\n' | sed -n 's/^DATABASE_URL=//p')
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL is not set in growerhub.service" >&2
+            exit 1
+          fi
+          export DATABASE_URL
           alembic upgrade head
           EOF
 
