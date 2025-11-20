@@ -10,7 +10,6 @@ from app.fastapi.routers import devices as devices_router
 from app.fastapi.routers import firmware as firmware_router
 from app.fastapi.routers import history as history_router
 from app.fastapi.routers import manual_watering as manual_watering_router
-from app.core.database import create_tables
 from app.mqtt.lifecycle import (
     init_ack_subscriber,
     init_mqtt_stores,
@@ -40,11 +39,7 @@ app = FastAPI(title="GrowerHub")
 
 @app.on_event("startup")
 async def _startup_mqtt() -> None:
-    # Инициализация БД перенесена в startup для безопасности импортов и тестов
-    try:
-        create_tables()
-    except Exception as exc:  # pragma: no cover - защитный вызов на случай гонок
-        logger.warning("create_tables skipped on startup (вероятно, таблицы уже существуют): %s", exc)
+    # Skhema BD teper' upravlyaetsya migraciyami Alembic
     # Настраиваем MQTT-компоненты: сторажи, подписчиков и паблишер
     init_mqtt_stores()
     init_state_subscriber()
