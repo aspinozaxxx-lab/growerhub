@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, UniqueConstraint, Index
+﻿from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, UniqueConstraint, Index, ForeignKey
 from sqlalchemy.orm import declarative_base
 from pydantic import BaseModel
 from datetime import datetime
@@ -6,7 +6,7 @@ from typing import Optional
 
 Base = declarative_base()
 
-# Основная модель устройства
+# РћСЃРЅРѕРІРЅР°СЏ РјРѕРґРµР»СЊ СѓСЃС‚СЂРѕР№СЃС‚РІР°
 class DeviceDB(Base):
     __tablename__ = "devices"
     
@@ -21,23 +21,23 @@ class DeviceDB(Base):
     last_watering = Column(DateTime, nullable=True)
     last_seen = Column(DateTime, default=datetime.utcnow)
     
-    # Настройки полива
+    # РќР°СЃС‚СЂРѕР№РєРё РїРѕР»РёРІР°
     target_moisture = Column(Float, default=40.0)
     watering_duration = Column(Integer, default=30)
     watering_timeout = Column(Integer, default=300)
     
-    # Настройки освещения
+    # РќР°СЃС‚СЂРѕР№РєРё РѕСЃРІРµС‰РµРЅРёСЏ
     light_on_hour = Column(Integer, default=6)
     light_off_hour = Column(Integer, default=22)
     light_duration = Column(Integer, default=16)
     
-    # OTA обновления
+    # OTA РѕР±РЅРѕРІР»РµРЅРёСЏ
     current_version = Column(String, default="1.0.0")
     latest_version = Column(String, default="1.0.0")
     update_available = Column(Boolean, default=False)
     firmware_url = Column(String, nullable=True)
 
-# Модель для данных сенсоров
+# РњРѕРґРµР»СЊ РґР»СЏ РґР°РЅРЅС‹С… СЃРµРЅСЃРѕСЂРѕРІ
 class SensorDataDB(Base):
     __tablename__ = "sensor_data"
     
@@ -48,7 +48,7 @@ class SensorDataDB(Base):
     air_temperature = Column(Float)
     air_humidity = Column(Float)
 
-# Модель для логов полива
+# РњРѕРґРµР»СЊ РґР»СЏ Р»РѕРіРѕРІ РїРѕР»РёРІР°
 class WateringLogDB(Base):
     __tablename__ = "watering_logs"
     
@@ -90,7 +90,42 @@ class MqttAckDB(Base):
     received_at = Column(DateTime, nullable=False, default=datetime.utcnow)  # Translitem: metka polucheniya ack
     expires_at = Column(DateTime, nullable=True)  # Translitem: kogda ack nado ochistit TTL mehanizmom
 
-# Pydantic модели
+
+class UserDB(Base):
+    """Translitem: tablitsa polzovateley sistemy."""
+
+    __tablename__ = "users"
+    __table_args__ = (
+        UniqueConstraint("email", name="uq_users_email"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    email = Column(String, nullable=False, unique=True)  # Translitem: unikalnyj email dlya vhoda
+    username = Column(String, nullable=True)
+    role = Column(String, nullable=False, default="user")  # Translitem: rol polzovatelya (user/admin i t.d.)
+    is_active = Column(Boolean, nullable=False, default=True)  # Translitem: priznak aktivnosti akkaunta
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class UserAuthIdentityDB(Base):
+    """Translitem: svyaz polzovatelya s istochnikom autentifikatsii."""
+
+    __tablename__ = "user_auth_identities"
+    __table_args__ = (
+        UniqueConstraint("provider", "provider_subject", name="uq_user_auth_identities_provider_subject"),
+        UniqueConstraint("user_id", "provider", name="uq_user_auth_identities_user_provider"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    provider = Column(String, nullable=False)  # Translitem: tip provajdera (local/google/yandex/gosuslugi ...)
+    provider_subject = Column(String, nullable=True)  # Translitem: vneshnij identifikator/sub ot provajdera
+    password_hash = Column(String, nullable=True)  # Translitem: heslennyj parol tolko dlya provider=local
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# Pydantic РјРѕРґРµР»Рё
 class DeviceSettings(BaseModel):
     target_moisture: float
     watering_duration: int
@@ -138,3 +173,4 @@ class SensorDataPoint(BaseModel):
 class OTAUpdateRequest(BaseModel):
     device_id: str
     firmware_version: str
+
