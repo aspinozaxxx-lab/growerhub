@@ -50,9 +50,7 @@ def setup_db(monkeypatch):
 
     original_session_local = state_repo.SessionLocal
     state_repo.SessionLocal = TestingSessionLocal
-
-    # Podmenyaem create_tables v main, chtoby startup sozdaval shemu v testovoy baze.
-    monkeypatch.setattr(app.main, "create_tables", _create_tables)
+    _create_tables()
 
     # Override FastAPI zavisimosti get_db na nas testovyy generator
     app.main.app.dependency_overrides[manual_watering_router.get_db] = _get_db
