@@ -43,12 +43,11 @@ def _get_db():
 
 @pytest.fixture(autouse=True)
 def setup_db(monkeypatch):
-    """Translitem: zamena SessionLocal i FastAPI zavisimostey na testovye."""
+    """Translitem: zamena SessionLocal i FastAPI zavisimostey na testovye, sozdanie tablits."""
 
     original_session_local = state_repo.SessionLocal
     state_repo.SessionLocal = TestingSessionLocal
-
-    monkeypatch.setattr(app.main, "create_tables", _create_tables)
+    _create_tables()
 
     app.main.app.dependency_overrides[manual_watering_router.get_db] = _get_db
     app.main.app.dependency_overrides[devices_router.get_db] = _get_db
