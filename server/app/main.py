@@ -6,10 +6,12 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.routing import Mount
 
+from app.fastapi.routers import auth as auth_router
 from app.fastapi.routers import devices as devices_router
 from app.fastapi.routers import firmware as firmware_router
 from app.fastapi.routers import history as history_router
 from app.fastapi.routers import manual_watering as manual_watering_router
+from app.fastapi.routers import users as users_router
 from app.mqtt.lifecycle import (
     init_ack_subscriber,
     init_mqtt_stores,
@@ -71,6 +73,8 @@ async def _shutdown_mqtt() -> None:
 # === Маршруты для статики и прошивок ===
 app.mount("/static", StaticFiles(directory=SITE_DIR), name="static")
 
+app.include_router(auth_router.router, tags=["Auth"])
+app.include_router(users_router.router, tags=["Users"])
 app.include_router(manual_watering_router.router, tags=["Manual watering"])
 app.include_router(devices_router.router, tags=["Devices"])
 app.include_router(history_router.router, tags=["History"])
