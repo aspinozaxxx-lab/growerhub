@@ -381,3 +381,39 @@ def test_non_admin_forbidden_for_users_api(client: TestClient):
         },
     )
     assert create_resp.status_code == 403
+
+
+def test_diag_authenticate_local_user_steps():
+    """Translitem: diagnostika shagov authenticate_local_user dlya lokal'nogo polzovatelya."""
+
+    # 1. Sozdaem polzovatelya cherez helper
+    user = _create_user("diag-ci@example.com", "secret", role="admin")
+
+    # 2. Otkryvaem sessiyu ispolzuya tot zhe TestingSessionLocal
+    session = TestingSessionLocal()
+    try:
+        from app.repositories.users import authenticate_local_user, get_user_by_email
+        from app.models.database_models import UserAuthIdentityDB
+
+        # 2.1. Proveryaem, chto polzovatel' nayden po email
+        db_user = get_user_by_email(session, "diag-ci@example.com")
+        assert db_user is not None, "DB ne vidit polzovatelya po email posle _create_user"
+
+        # 2.2. Proveryaem nalichie identity s provider='local'
+        identity = (
+            session.query(UserAuthIdentityDB)
+            .filter(
+                UserAuthIdentityDB.user_id == db_user.id,
+                UserAuthIdentityDB.provider == "local",
+            )
+            .first()
+        )
+        assert identity is not None, "Identity s provider='local' ne naydena dlya etogo polzovatelya"
+        assert identity.password_hash, "V identity pustoj password_hash"
+
+        # 2.3. Polnyj vyzov authenticate_local_user
+        authed = authenticate_local_user(session, "diag-ci@example.com", "secret")
+        assert authed is not None, "authenticate_local_user vernul None pri korrektnyh dannyh"
+        assert authed.id == user.id, "authenticate_local_user vernul drugogo polzovatelya"
+    finally:
+        session.close()
