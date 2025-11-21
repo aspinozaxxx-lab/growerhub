@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from contextlib import ExitStack, contextmanager
+from pathlib import Path
 from typing import Iterator
 from unittest.mock import patch
 
@@ -8,7 +9,6 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 import app.main
 from app.core.database import get_db
@@ -16,12 +16,11 @@ from app.core.security import create_access_token
 from app.models.database_models import Base, UserDB
 from app.repositories.users import create_local_user
 
-
 engine = create_engine(
-    "sqlite:///:memory:",
+    "sqlite:///./test_auth.db",
     connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
 )
+
 TestingSessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
@@ -31,7 +30,14 @@ TestingSessionLocal = sessionmaker(
 
 
 def _reset_db() -> None:
-    """Translitem: polnostyu peresoedinyaet shemu v testovoj SQLite v pamyati."""
+    """Translitem: polnostyu peresozdaet shemu v lokal'nom fayle SQLite."""
+
+    db_path = Path("test_auth.db")
+    if db_path.exists():
+        try:
+            db_path.unlink()
+        except OSError:
+            pass
 
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
