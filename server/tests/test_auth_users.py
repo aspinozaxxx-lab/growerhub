@@ -137,7 +137,7 @@ def test_login_returns_bearer_token(client: TestClient):
         json={"email": "admin@example.com", "password": "secret"},
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, f"status={response.status_code}, body={response.text}"
     data = response.json()
     assert "access_token" in data and data["access_token"]
     assert data.get("token_type") == "bearer"
@@ -167,6 +167,24 @@ def test_login_inactive_user_returns_401(client: TestClient):
     )
 
     assert response.status_code == 401
+
+
+def test_diag_authenticate_local_user_and_create_user_use_same_db():
+    """Translitem: diagnosika — proverit chto authenticate_local_user vidit sozdannogo polzovatelya."""
+
+    # sozdaem polzovatelya cherez helper
+    user = _create_user("diag@example.com", "secret", role="admin")
+
+    # otkryvaem sessiyu cherez tot zhe TestingSessionLocal i proveryaem identity
+    session = TestingSessionLocal()
+    try:
+        from app.repositories.users import authenticate_local_user
+
+        authed = authenticate_local_user(session, "diag@example.com", "secret")
+        assert authed is not None, "authenticate_local_user vernul None dlja sushchestvuyushchego polzovatelya"
+        assert authed.id == user.id
+    finally:
+        session.close()
 
 
 # --- B. /api/auth/me ---
