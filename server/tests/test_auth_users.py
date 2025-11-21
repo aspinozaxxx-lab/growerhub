@@ -74,25 +74,19 @@ def _patched_client() -> Iterator[TestClient]:
         stack.close()
 
 
-@pytest.fixture(autouse=True)
-def setup_db():
-    """Translitem: sbrasivaet bazu i podmenyaet get_db dlya kajdogo testa."""
-
-    _reset_db()
-    app.main.app.dependency_overrides[get_db] = _get_db
-    try:
-        yield
-    finally:
-        app.main.app.dependency_overrides.pop(get_db, None)
-        _reset_db()
-
-
 @pytest.fixture
 def client() -> Iterator[TestClient]:
     """Translitem: vozvrashaet TestClient s otklyuchennym MQTT startom."""
 
-    with _patched_client() as client:
-        yield client
+    _reset_db()
+    app.main.app.dependency_overrides[get_db] = _get_db
+
+    try:
+        with _patched_client() as client:
+            yield client
+    finally:
+        app.main.app.dependency_overrides.pop(get_db, None)
+        _reset_db()
 
 
 def _create_user(email: str, password: str, role: str = "user", is_active: bool = True) -> UserDB:
