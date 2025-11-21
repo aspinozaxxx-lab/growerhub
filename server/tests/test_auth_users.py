@@ -1,52 +1,29 @@
 ﻿from __future__ import annotations
 
 from contextlib import ExitStack, contextmanager
-from pathlib import Path
 from typing import Iterator
 from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 import app.main
-from app.core.database import get_db
+from app.core.database import engine as app_engine, SessionLocal, get_db
 from app.core.security import create_access_token
 from app.models.database_models import Base, UserDB
 from app.repositories.users import create_local_user
 
-engine = create_engine(
-    "sqlite:///./test_auth.db",
-    connect_args={"check_same_thread": False},
-)
-
-TestingSessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    expire_on_commit=False,
-    bind=engine,
-)
-
-
 def _reset_db() -> None:
-    """Translitem: polnostyu peresozdaet shemu v lokal'nom fayle SQLite."""
+    """Translitem: polnostyu peresozdaet shemu v testovoj baze prilozheniya."""
 
-    db_path = Path("test_auth.db")
-    if db_path.exists():
-        try:
-            db_path.unlink()
-        except OSError:
-            pass
-
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.drop_all(bind=app_engine)
+    Base.metadata.create_all(bind=app_engine)
 
 
 def _get_db():
-    """Translitem: zavisimost get_db, vozvrashchaet sessiyu s nashim engine."""
+    """Translitem: zavisimost get_db dlya testov, ispol'zuet tot zhe engine, chto i prilozhenie."""
 
-    db = TestingSessionLocal()
+    db = SessionLocal()
     try:
         yield db
     finally:
@@ -98,7 +75,7 @@ def client() -> Iterator[TestClient]:
 def _create_user(email: str, password: str, role: str = "user", is_active: bool = True) -> UserDB:
     """Translitem: helper dlya sozdaniya polzovatelya cherez repo."""
 
-    session = TestingSessionLocal()
+    session = SessionLocal()
     try:
         user = create_local_user(session, email, None, role, password)
         if not is_active:
@@ -176,13 +153,13 @@ def test_login_inactive_user_returns_401(client: TestClient):
 
 
 def test_diag_authenticate_local_user_and_create_user_use_same_db():
-    """Translitem: diagnosika — proverit chto authenticate_local_user vidit sozdannogo polzovatelya."""
+    """Translitem: diagnosika - proverit chto authenticate_local_user vidit sozdannogo polzovatelya."""
 
     # sozdaem polzovatelya cherez helper
     user = _create_user("diag@example.com", "secret", role="admin")
 
-    # otkryvaem sessiyu cherez tot zhe TestingSessionLocal i proveryaem identity
-    session = TestingSessionLocal()
+    # otkryvaem sessiyu cherez tot zhe SessionLocal i proveryaem identity
+    session = SessionLocal()
     try:
         from app.repositories.users import authenticate_local_user
 
@@ -395,8 +372,8 @@ def test_diag_authenticate_local_user_steps():
     # 1. Sozdaem polzovatelya cherez helper
     user = _create_user("diag-ci@example.com", "secret", role="admin")
 
-    # 2. Otkryvaem sessiyu ispolzuya tot zhe TestingSessionLocal
-    session = TestingSessionLocal()
+    # 2. Otkryvaem sessiyu ispolzuya tot zhe SessionLocal
+    session = SessionLocal()
     try:
         from app.repositories.users import authenticate_local_user, get_user_by_email
         from app.models.database_models import UserAuthIdentityDB
