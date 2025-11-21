@@ -59,8 +59,10 @@ def authenticate_local_user(db: Session, email: str, password: str) -> Optional[
 
     user = get_user_by_email(db, email)
     if not user:
+        print(f"[AUTH DIAG] user not found for email={email}")
         return None
     if not user.is_active:
+        print(f"[AUTH DIAG] user inactive id={user.id} email={user.email}")
         return None
 
     identity = (
@@ -72,9 +74,12 @@ def authenticate_local_user(db: Session, email: str, password: str) -> Optional[
         .first()
     )
     if not identity:
+        print(f"[AUTH DIAG] no local identity for user_id={user.id}")
         return None
 
     if not verify_password(password, identity.password_hash):
+        print(f"[AUTH DIAG] bad password for user_id={user.id} email={user.email}")
         return None
 
+    print(f"[AUTH DIAG] success for user_id={user.id} email={user.email}")
     return user
