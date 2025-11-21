@@ -50,6 +50,9 @@ class Settings:
     MQTT_CLIENT_ID_PREFIX: str = "growerhub-api"
     DEVICE_ONLINE_THRESHOLD_S: int = 60  # интервал проверки состояния устройства
     DEBUG: bool = True
+    SECRET_KEY: str = "change-me-in-prod"  # Translitem: v boe obyazatel'no zadat' cherez env
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # Translitem: vremya zhizni JWT tokena v minutah
+    AUTH_JWT_ALGORITHM: str = "HS256"  # Translitem: algoritm podpisaniya JWT
     ACK_TTL_SECONDS: int = 180  # Translitem: skolko hranim ack v BD do ochistki
     ACK_CLEANUP_PERIOD_SECONDS: int = 60  # Translitem: chastota fonovoy ochistki ack
     SERVER_PUBLIC_BASE_URL: str = "https://growerhub.ru"  # Translitem: bazovyj https dlya firmware URL (pereopredelyaetsya cherez env)
@@ -70,6 +73,9 @@ def get_settings() -> Settings:
         DEVICE_ONLINE_THRESHOLD_S=Settings.DEVICE_ONLINE_THRESHOLD_S,
         #DEVICE_ONLINE_THRESHOLD_S=_env_int("DEVICE_ONLINE_THRESHOLD_S", Settings.DEVICE_ONLINE_THRESHOLD_S),
         DEBUG=_env_bool("DEBUG", Settings.DEBUG),
+        SECRET_KEY=os.getenv("SECRET_KEY", Settings.SECRET_KEY),
+        ACCESS_TOKEN_EXPIRE_MINUTES=_env_int("ACCESS_TOKEN_EXPIRE_MINUTES", Settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        AUTH_JWT_ALGORITHM=os.getenv("AUTH_JWT_ALGORITHM", Settings.AUTH_JWT_ALGORITHM),
         ACK_TTL_SECONDS=_env_int("ACK_TTL_SECONDS", Settings.ACK_TTL_SECONDS),
         ACK_CLEANUP_PERIOD_SECONDS=_env_int("ACK_CLEANUP_PERIOD_SECONDS", Settings.ACK_CLEANUP_PERIOD_SECONDS),
         SERVER_PUBLIC_BASE_URL=os.getenv("SERVER_PUBLIC_BASE_URL", Settings.SERVER_PUBLIC_BASE_URL),

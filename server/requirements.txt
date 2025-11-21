@@ -11,3 +11,5 @@ paho-mqtt>=2.1.0
 # NOTE: psycopg2-binary treboval sistemnye biblioteki, poetomu ran'she ego propuskali v testovom CI.
 # Dlya prod-razvertki na gh-db vse zavisimosti ustanavlivayutsya cherez Ansible, poetomu dobavlyaem ego zdes'.
 psycopg2-binary==2.9.9  # Vremennoe reshenie dlya prod-servera gh-db
+passlib[bcrypt]
+python-jose[cryptography]
