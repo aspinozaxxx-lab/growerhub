@@ -3,6 +3,7 @@ uvicorn==0.24.0
 sqlalchemy==2.0.23
 alembic>=1.13.1
 pydantic==2.5.0
+email-validator
 python-multipart==0.0.6
 httpx<0.28
 pytest-asyncio
