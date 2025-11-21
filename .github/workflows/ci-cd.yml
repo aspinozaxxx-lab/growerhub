@@ -60,11 +60,11 @@ jobs:
           . .venv/bin/activate
           alembic upgrade head
 
-      - name: Run pytest DEBUG
-        working-directory: server
-        run: |
-          . .venv/bin/activate
-          pytest tests/test_auth_users.py::test_diag_authenticate_local_user_steps -q
+      #- name: Run pytest DEBUG
+      #  working-directory: server
+      #  run: |
+      #    . .venv/bin/activate
+      #    pytest tests/test_auth_users.py::test_diag_authenticate_local_user_steps -q
           
       - name: Run pytest
         working-directory: server
