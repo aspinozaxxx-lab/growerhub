@@ -7,12 +7,53 @@ import uuid
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 import app.main
-from app.core.database import SessionLocal, create_tables
+from app.core.database import get_db
 from app.core.security import create_access_token
-from app.models.database_models import UserDB
+from app.models.database_models import Base, UserDB
 from app.repositories.users import authenticate_local_user, create_local_user, get_user_by_email
+
+# Translitem: otdelnyj in-memory engine dlya auth-testov, chtoby ne zaviset' ot prod-bazy.
+TEST_DATABASE_URL = "sqlite+pysqlite:///:memory:"
+
+test_engine = create_engine(
+    TEST_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+    future=True,
+)
+
+TestingSessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=test_engine,
+)
+
+
+def _test_db_create_schema() -> None:
+    """Translitem: sozdaet vse tablitsy v testovoj SQLite sheme."""
+
+    Base.metadata.create_all(bind=test_engine)
+
+
+def _test_db_drop_schema() -> None:
+    """Translitem: udalyaet vse tablitsy v testovoj SQLite sheme."""
+
+    Base.metadata.drop_all(bind=test_engine)
+
+
+def _override_get_db():
+    """Translitem: override FastAPI get_db dlya raboty s testovoj in-memory bazoj."""
+
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 @contextmanager
@@ -42,43 +83,32 @@ def _patched_client() -> Iterator[TestClient]:
         stack.close()
 
 
-@pytest.fixture(scope="module", autouse=True)
-def ensure_tables():
-    """Translitem: garantiruet nalichie vsekh tablic pered zapuskom auth-testov."""
-
-    create_tables()
-    yield
-
-
 @pytest.fixture
 def client() -> Iterator[TestClient]:
-    """Translitem: vozvrashaet TestClient s otklyuchennym MQTT startom, ispol'zuya real'nuyu bazu prilozheniya."""
+    """Translitem: TestClient s otklyuchennym MQTT, rabotaet s otdelnoj in-memory bazoj."""
 
-    with _patched_client() as client:
-        yield client
+    _test_db_drop_schema()
+    _test_db_create_schema()
+    app.main.app.dependency_overrides[get_db] = _override_get_db
+
+    try:
+        with _patched_client() as client:
+            yield client
+    finally:
+        app.main.app.dependency_overrides.pop(get_db, None)
+        _test_db_drop_schema()
 
 
 def _create_user(email: str, password: str, role: str = "user", is_active: bool = True) -> UserDB:
-    """Translitem: helper dlya sozdaniya polzovatelya cherez repo v boevoj baze."""
+    """Translitem: sozdanie polzovatelya v testovoj in-memory baze."""
 
-    session = SessionLocal()
+    session = TestingSessionLocal()
     try:
-        existing = get_user_by_email(session, email)
-        if existing:
-            # obnavlyaem bazovye svoystva pri neobhodimosti
-            if existing.role != role:
-                existing.role = role
-            if existing.is_active != is_active:
-                existing.is_active = is_active
-            session.commit()
-            session.refresh(existing)
-            return existing
-
         user = create_local_user(session, email, None, role, password)
-        if not is_active:
-            user.is_active = False
-            session.commit()
-            session.refresh(user)
+        user.is_active = is_active
+        session.add(user)
+        session.commit()
+        session.refresh(user)
         return user
     finally:
         session.close()
@@ -156,14 +186,14 @@ def test_login_inactive_user_returns_401(client: TestClient):
     assert response.status_code == 401
 
 
-def test_diag_authenticate_local_user_and_create_user_use_same_db():
+def test_diag_authenticate_local_user_and_create_user_use_same_db(client: TestClient):
     """Translitem: diagnosika - proverit chto authenticate_local_user vidit sozdannogo polzovatelya."""
 
     # sozdaem polzovatelya cherez helper
     user = _create_user("diag@example.com", "secret", role="admin")
 
-    # otkryvaem sessiyu cherez tot zhe SessionLocal i proveryaem identity
-    session = SessionLocal()
+    # otkryvaem sessiyu cherez tot zhe TestingSessionLocal i proveryaem identity
+    session = TestingSessionLocal()
     try:
         from app.repositories.users import authenticate_local_user
 
