@@ -165,7 +165,10 @@
 </head>
 <body>
     <div class="container">
-        <h1>🌱 Система умного полива</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <h1 style="margin: 0;">🌱 Система умного полива</h1>
+            <button id="logoutBtn" style="background-color: #e74c3c;">Выйти</button>
+        </div>
         
         <div class="upload-section">
             <h3>📤 Загрузка прошивки OTA</h3>
@@ -180,6 +183,30 @@
     </div>
 
     <script>
+        const TOKEN_KEY = 'gh_access_token';
+        const accessToken = localStorage.getItem(TOKEN_KEY);
+
+        if (!accessToken) {
+            window.location.href = '/static/login.html';
+            throw new Error('no token');
+        }
+
+        const redirectToLogin = () => {
+            localStorage.removeItem(TOKEN_KEY);
+            window.location.href = '/static/login.html';
+        };
+
+        const authFetch = async (url, options = {}) => {
+            // Translitem: dobavlyaem Authorization ko vsem zaprosam i obrabatyvaem 401/403.
+            const opts = { ...options };
+            opts.headers = { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` };
+            const response = await fetch(url, opts);
+            if (response.status === 401 || response.status === 403) {
+                redirectToLogin();
+            }
+            return response;
+        };
+
         let availableFirmware = [];
 
         const formatMoscowTime = (isoString) => {
@@ -220,7 +247,7 @@
 
         async function loadFirmwareVersions() {
             try {
-                const resp = await fetch('/api/firmware/versions', { cache: 'no-store' });
+                const resp = await authFetch('/api/firmware/versions', { cache: 'no-store' });
                 if (!resp.ok) throw new Error('bad status');
                 availableFirmware = await resp.json();
             } catch (error) {
@@ -241,7 +268,7 @@
 
         async function loadDevices() {
             try {
-                const response = await fetch('/api/devices');
+                const response = await authFetch('/api/devices');
                 const devices = await response.json();
                 const devicesDiv = document.getElementById('devices');
 
@@ -369,7 +396,7 @@
         async function deleteDevice(deviceId) {
             if (!confirm('Удалить устройство?')) return;
             try {
-                const response = await fetch(`/api/device/${deviceId}`, { method: 'DELETE' });
+                const response = await authFetch(`/api/device/${deviceId}`, { method: 'DELETE' });
                 if (response.ok) {
                     alert('Устройство удалено');
                     loadDevices();
@@ -393,7 +420,7 @@
                 light_duration: parseInt(document.getElementById(`light-duration-${deviceId}`).value)
             };
             try {
-                const response = await fetch(`/api/device/${deviceId}/settings`, {
+                const response = await authFetch(`/api/device/${deviceId}/settings`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(settings)
@@ -419,7 +446,7 @@
             formData.append('file', fileInput.files[0]);
             formData.append('version', versionInput.value);
             try {
-                const response = await fetch('/api/upload-firmware', { method: 'POST', body: formData });
+                const response = await authFetch('/api/upload-firmware', { method: 'POST', body: formData });
                 if (response.ok) {
                     alert('✅ Прошивка загружена!');
                     await loadFirmwareVersions();
@@ -439,7 +466,7 @@
                 return;
             }
             try {
-                const response = await fetch(`/api/device/${deviceId}/trigger-update`, {
+                const response = await authFetch(`/api/device/${deviceId}/trigger-update`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ device_id: deviceId, firmware_version: version })
@@ -459,6 +486,11 @@
             await loadDevices();
             setInterval(loadDevices, 10000);
         }
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            // Translitem: pri vyhode ochishchaem token i vedem na login.
+            redirectToLogin();
+        });
 
         initPage();
     </script>
