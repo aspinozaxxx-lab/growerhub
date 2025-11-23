@@ -129,6 +129,30 @@
     <div id="progressText">Нет активного полива</div>
 
     <script>
+        const TOKEN_KEY = 'gh_access_token';
+        const accessToken = localStorage.getItem(TOKEN_KEY);
+
+        if (!accessToken) {
+            window.location.href = '/static/login.html';
+            throw new Error('no token');
+        }
+
+        const redirectToLogin = () => {
+            localStorage.removeItem(TOKEN_KEY);
+            window.location.href = '/static/login.html';
+        };
+
+        const authFetch = async (url, options = {}) => {
+            // Translitem: universal'nyj fetch s dobavleniem Bearer i obrabotkoj 401/403.
+            const opts = { ...options };
+            opts.headers = { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` };
+            const response = await fetch(url, opts);
+            if (response.status === 401 || response.status === 403) {
+                redirectToLogin();
+            }
+            return response;
+        };
+
         const deviceInput = document.getElementById("device_id");
         const durationSelect = document.getElementById("duration");
         const startBtn = document.getElementById("startBtn");
@@ -236,7 +260,7 @@
             }
 
             try {
-                const response = await fetch(`/api/manual-watering/status?device_id=${encodeURIComponent(deviceId)}`);
+                const response = await authFetch(`/api/manual-watering/status?device_id=${encodeURIComponent(deviceId)}`);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
@@ -326,7 +350,7 @@
             showAck("Отправляем команду запуска...");
 
             try {
-                const response = await fetch("/api/manual-watering/start", {
+                const response = await authFetch("/api/manual-watering/start", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ device_id: deviceId, duration_s: duration })
@@ -359,7 +383,7 @@
             showAck("Отправляем команду остановки...");
 
             try {
-                const response = await fetch("/api/manual-watering/stop", {
+                const response = await authFetch("/api/manual-watering/stop", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ device_id: deviceId })
@@ -390,7 +414,7 @@
             showAck("Отправляем команду перезагрузки...");
 
             try {
-                const response = await fetch("/api/manual-watering/reboot", {
+                const response = await authFetch("/api/manual-watering/reboot", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ device_id: deviceId })
@@ -434,7 +458,7 @@
         async function waitAckForReboot(correlationId, deviceId) {
             const url = `/api/manual-watering/wait-ack?correlation_id=${encodeURIComponent(correlationId)}&timeout_s=${WAIT_ACK_TIMEOUT_S}`;
             try {
-                const response = await fetch(url);
+                const response = await authFetch(url);
                 if (response.status === 408) {
                     return "Перезагрузка не подтверждена: превышено время ожидания ❌";
                 }
@@ -457,7 +481,7 @@
         async function waitAck(correlationId, deviceId) {
             const url = `/api/manual-watering/wait-ack?correlation_id=${encodeURIComponent(correlationId)}&timeout_s=${WAIT_ACK_TIMEOUT_S}`;
             try {
-                const response = await fetch(url);
+                const response = await authFetch(url);
                 if (response.status === 408) {
                     return "ACK не получен в заданное время ❌";
                 }
