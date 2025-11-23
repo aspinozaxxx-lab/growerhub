@@ -92,8 +92,7 @@
 <body>
     <h1>Ручной полив</h1>
 
-    <label for="device_id">ID устройства</label>
-    <input id="device_id" type="text" placeholder="Например, abc123" />
+    <div id="deviceInfo" style="margin-bottom: 12px; font-weight: 600;"></div>
 
     <label for="duration">Длительность полива</label>
     <select id="duration">
@@ -153,7 +152,7 @@
             return response;
         };
 
-        const deviceInput = document.getElementById("device_id");
+        const deviceInfo = document.getElementById("deviceInfo");
         const durationSelect = document.getElementById("duration");
         const startBtn = document.getElementById("startBtn");
         const stopBtn = document.getElementById("stopBtn");
@@ -162,8 +161,16 @@
         const ackResultBlock = document.getElementById("ackResult");
         const progressBar = document.getElementById("progressBar");
         const progressText = document.getElementById("progressText");
+        const params = new URLSearchParams(window.location.search);
+        const deviceId = params.get('device_id');
         const WAIT_ACK_TIMEOUT_S =
             (window.APP_SETTINGS && Number(window.APP_SETTINGS.waitAckTimeoutSec)) || 5;
+
+        if (deviceId) {
+            deviceInfo.textContent = `Устройство: ${deviceId}`;
+        } else {
+            deviceInfo.innerHTML = 'Не указано устройство для полива. <a href="/static/index.html">Вернуться на главную</a>';
+        }
 
         const slowPollIntervalMs = 5000;
         const fastPollIntervalMs = 2000;
@@ -211,14 +218,6 @@
             }
         }
 
-        document.addEventListener("input", (event) => {
-            if (event.target === deviceInput) {
-                cancelSlowPoll();
-                stopFastPoll();
-                fetchStatus().catch(() => {});
-            }
-        });
-
         startBtn.addEventListener("click", () => {
             if (!validateDeviceId()) {
                 return;
@@ -241,8 +240,8 @@
         });
 
         function validateDeviceId() {
-            if (!deviceInput.value.trim()) {
-                showAck("Укажите ID устройства ❗");
+            if (!deviceId) {
+                showAck("Не указано устройство для полива ❗");
                 return false;
             }
             return true;
@@ -250,10 +249,9 @@
 
         async function fetchStatus() {
             cancelSlowPoll();
-            const deviceId = deviceInput.value.trim();
             if (!deviceId) {
-                onlineStatusBlock.textContent = "Введите ID устройства";
-                showAck("Для опроса статуса нужно указать ID.");
+                onlineStatusBlock.textContent = "Не указано устройство для полива";
+                showAck("Ne ukazano ustrojstvo dlja poliva.");
                 setButtonsDisabled(true);
                 resetProgress();
                 return;
@@ -343,7 +341,6 @@
         }
 
         async function startWatering() {
-            const deviceId = deviceInput.value.trim();
             const duration = Number(durationSelect.value);
 
             setButtonsDisabled(true);
@@ -377,8 +374,6 @@
         }
 
         async function stopWatering() {
-            const deviceId = deviceInput.value.trim();
-
             setButtonsDisabled(true);
             showAck("Отправляем команду остановки...");
 
@@ -409,7 +404,6 @@
         }
 
         async function onRebootClick() {
-            const deviceId = deviceInput.value.trim();
             setButtonsDisabled(true);
             showAck("Отправляем команду перезагрузки...");
 
@@ -505,6 +499,13 @@
         function init() {
             stopBtn.disabled = true;
             rebootBtn.disabled = true;
+            if (!deviceId) {
+                setButtonsDisabled(true);
+                onlineStatusBlock.textContent = "Не указано устройство для полива";
+                showAck("Ne ukazano ustrojstvo dlja poliva");
+                resetProgress();
+                return;
+            }
             fetchStatus().catch(() => {});
         }
 
