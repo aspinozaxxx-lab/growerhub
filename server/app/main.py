@@ -37,7 +37,10 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent.parent  # -> ~/growerhub/server/app -> parent -> server
 SITE_DIR = (BASE_DIR.parent / "static").resolve()  # -> ~/growerhub/static
 
-app = FastAPI(title="GrowerHub")
+app = FastAPI(
+    title="GrowerHub",
+    redoc_url=None,
+)
 
 
 @app.on_event("startup")
@@ -118,5 +121,5 @@ async def overridden_redoc():
     return get_redoc_html(
         openapi_url=app.openapi_url,
         title=f"{app.title} - ReDoc",
-        redoc_js_url="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js",
+        redoc_js_url="/static/vendor/redoc.standalone.js",
     )
