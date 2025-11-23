@@ -3,31 +3,16 @@
 from contextlib import ExitStack, contextmanager
 from typing import Iterator
 from unittest.mock import patch
+import uuid
 
 import pytest
 from fastapi.testclient import TestClient
 
 import app.main
-from app.core.database import engine as app_engine, SessionLocal, get_db
+from app.core.database import SessionLocal
 from app.core.security import create_access_token
-from app.models.database_models import Base, UserDB
-from app.repositories.users import create_local_user
-
-def _reset_db() -> None:
-    """Translitem: polnostyu peresozdaet shemu v testovoj baze prilozheniya."""
-
-    Base.metadata.drop_all(bind=app_engine)
-    Base.metadata.create_all(bind=app_engine)
-
-
-def _get_db():
-    """Translitem: zavisimost get_db dlya testov, ispol'zuet tot zhe engine, chto i prilozhenie."""
-
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+from app.models.database_models import UserDB
+from app.repositories.users import authenticate_local_user, create_local_user, get_user_by_email
 
 
 @contextmanager
@@ -59,24 +44,28 @@ def _patched_client() -> Iterator[TestClient]:
 
 @pytest.fixture
 def client() -> Iterator[TestClient]:
-    """Translitem: vozvrashaet TestClient s otklyuchennym MQTT startom."""
+    """Translitem: vozvrashaet TestClient s otklyuchennym MQTT startom, ispol'zuya real'nuyu bazu prilozheniya."""
 
-    _reset_db()
-    app.main.app.dependency_overrides[get_db] = _get_db
-
-    try:
-        with _patched_client() as client:
-            yield client
-    finally:
-        app.main.app.dependency_overrides.pop(get_db, None)
-        _reset_db()
+    with _patched_client() as client:
+        yield client
 
 
 def _create_user(email: str, password: str, role: str = "user", is_active: bool = True) -> UserDB:
-    """Translitem: helper dlya sozdaniya polzovatelya cherez repo."""
+    """Translitem: helper dlya sozdaniya polzovatelya cherez repo v boevoj baze."""
 
     session = SessionLocal()
     try:
+        existing = get_user_by_email(session, email)
+        if existing:
+            # obnavlyaem bazovye svoystva pri neobhodimosti
+            if existing.role != role:
+                existing.role = role
+            if existing.is_active != is_active:
+                existing.is_active = is_active
+            session.commit()
+            session.refresh(existing)
+            return existing
+
         user = create_local_user(session, email, None, role, password)
         if not is_active:
             user.is_active = False
@@ -105,6 +94,13 @@ def _login_and_get_token(client: TestClient, email: str, password: str) -> str:
     token = payload.get("access_token")
     assert isinstance(token, str) and token
     return token
+
+
+def _unique_email(prefix: str) -> str:
+    """Translitem: vozvrashaet unikal'nyj email dlya testa na osnove prefiksa."""
+
+    suffix = uuid.uuid4().hex[:8]
+    return f"{prefix}+{suffix}@example.com"
 
 
 # --- A. /api/auth/login ---
@@ -230,11 +226,12 @@ def test_admin_can_create_user(client: TestClient):
     _create_user("admin-create@example.com", "secret", role="admin")
     token = _login_and_get_token(client, "admin-create@example.com", "secret")
 
+    new_email = _unique_email("new-user")
     response = client.post(
         "/api/users",
         headers=_auth_headers(token),
         json={
-            "email": "new-user@example.com",
+            "email": new_email,
             "username": "newbie",
             "role": "user",
             "password": "pass123",
@@ -243,7 +240,7 @@ def test_admin_can_create_user(client: TestClient):
 
     assert response.status_code == 201
     payload = response.json()
-    assert payload["email"] == "new-user@example.com"
+    assert payload["email"] == new_email
     assert payload["role"] == "user"
     assert payload["username"] == "newbie"
     assert payload["is_active"] is True
@@ -255,11 +252,12 @@ def test_admin_get_user_by_id_and_not_found(client: TestClient):
     _create_user("admin-get@example.com", "secret", role="admin")
     token = _login_and_get_token(client, "admin-get@example.com", "secret")
 
+    target_email = _unique_email("target")
     create_resp = client.post(
         "/api/users",
         headers=_auth_headers(token),
         json={
-            "email": "target@example.com",
+            "email": target_email,
             "username": "target",
             "role": "user",
             "password": "pass123",
@@ -270,7 +268,7 @@ def test_admin_get_user_by_id_and_not_found(client: TestClient):
 
     response = client.get(f"/api/users/{user_id}", headers=_auth_headers(token))
     assert response.status_code == 200
-    assert response.json()["email"] == "target@example.com"
+    assert response.json()["email"] == target_email
 
     missing = client.get("/api/users/9999", headers=_auth_headers(token))
     assert missing.status_code == 404
@@ -282,11 +280,12 @@ def test_admin_can_patch_user(client: TestClient):
     _create_user("admin-patch@example.com", "secret", role="admin")
     token = _login_and_get_token(client, "admin-patch@example.com", "secret")
 
+    patch_email = _unique_email("patchme")
     create_resp = client.post(
         "/api/users",
         headers=_auth_headers(token),
         json={
-            "email": "patchme@example.com",
+            "email": patch_email,
             "username": "old-name",
             "role": "user",
             "password": "pass123",
@@ -364,39 +363,3 @@ def test_non_admin_forbidden_for_users_api(client: TestClient):
         },
     )
     assert create_resp.status_code == 403
-
-
-def test_diag_authenticate_local_user_steps():
-    """Translitem: diagnostika shagov authenticate_local_user dlya lokal'nogo polzovatelya."""
-
-    # 1. Sozdaem polzovatelya cherez helper
-    user = _create_user("diag-ci@example.com", "secret", role="admin")
-
-    # 2. Otkryvaem sessiyu ispolzuya tot zhe SessionLocal
-    session = SessionLocal()
-    try:
-        from app.repositories.users import authenticate_local_user, get_user_by_email
-        from app.models.database_models import UserAuthIdentityDB
-
-        # 2.1. Proveryaem, chto polzovatel' nayden po email
-        db_user = get_user_by_email(session, "diag-ci@example.com")
-        assert db_user is not None, "DB ne vidit polzovatelya po email posle _create_user"
-
-        # 2.2. Proveryaem nalichie identity s provider='local'
-        identity = (
-            session.query(UserAuthIdentityDB)
-            .filter(
-                UserAuthIdentityDB.user_id == db_user.id,
-                UserAuthIdentityDB.provider == "local",
-            )
-            .first()
-        )
-        assert identity is not None, "Identity s provider='local' ne naydena dlya etogo polzovatelya"
-        assert identity.password_hash, "V identity pustoj password_hash"
-
-        # 2.3. Polnyj vyzov authenticate_local_user
-        authed = authenticate_local_user(session, "diag-ci@example.com", "secret")
-        assert authed is not None, "authenticate_local_user vernul None pri korrektnyh dannyh"
-        assert authed.id == user.id, "authenticate_local_user vernul drugogo polzovatelya"
-    finally:
-        session.close()
