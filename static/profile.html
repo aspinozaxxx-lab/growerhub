@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Личный кабинет</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input, button {
+            padding: 8px;
+            margin-top: 6px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            cursor: pointer;
+            background: #27ae60;
+            color: #fff;
+            border: none;
+        }
+        button.secondary {
+            background: #2980b9;
+        }
+        button.danger {
+            background: #c0392b;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #f0f0f0;
+        }
+        .error { color: #c0392b; margin-top: 8px; }
+        .success { color: #27ae60; margin-top: 8px; }
+        .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="actions" style="justify-content: space-between;">
+        <h1 style="margin: 0;">Личный кабинет</h1>
+        <div class="actions">
+            <a href="/" style="text-decoration:none;"><button class="secondary" type="button">Главная</button></a>
+            <button id="logoutBtn" class="danger" type="button">Выйти</button>
+        </div>
+    </div>
+
+    <div id="userInfo" style="margin: 10px 0; color: #555;"></div>
+
+    <div class="grid">
+        <div>
+            <h2>Профиль</h2>
+            <form id="profileForm">
+                <label for="email">Email</label>
+                <input id="email" type="email" required>
+
+                <label for="username">Имя пользователя</label>
+                <input id="username" type="text">
+
+                <button type="submit">Сохранить профиль</button>
+                <div id="profileMessage" class="error"></div>
+            </form>
+        </div>
+        <div>
+            <h2>Смена пароля</h2>
+            <form id="passwordForm">
+                <label for="currentPassword">Текущий пароль</label>
+                <input id="currentPassword" type="password" required>
+
+                <label for="newPassword">Новый пароль</label>
+                <input id="newPassword" type="password" required>
+
+                <label for="confirmPassword">Подтверждение</label>
+                <input id="confirmPassword" type="password" required>
+
+                <button type="submit">Обновить пароль</button>
+                <div id="passwordMessage" class="error"></div>
+            </form>
+        </div>
+    </div>
+
+    <h2>Мои устройства</h2>
+    <div id="devicesMessage" class="error"></div>
+    <table id="devicesTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Device ID</th>
+                <th>Название</th>
+                <th>Статус</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <h3>Добавить устройство по ID</h3>
+    <form id="assignForm" class="actions">
+        <input id="assignDeviceId" type="number" placeholder="ID устройства" required style="max-width: 200px;">
+        <button type="submit">Добавить</button>
+        <div id="assignMessage" class="error"></div>
+    </form>
+</div>
+
+<script>
+    const TOKEN_KEY = 'gh_access_token';
+    const accessToken = localStorage.getItem(TOKEN_KEY);
+
+    if (!accessToken) {
+        window.location.href = '/static/login.html';
+    }
+
+    const redirectToLogin = () => {
+        localStorage.removeItem(TOKEN_KEY);
+        window.location.href = '/static/login.html';
+    };
+
+    const authFetch = async (url, options = {}) => {
+        const opts = { ...options };
+        opts.headers = { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` };
+        const response = await fetch(url, opts);
+        if (response.status === 401 || response.status === 403) {
+            redirectToLogin();
+        }
+        return response;
+    };
+
+    const userInfo = document.getElementById('userInfo');
+    const profileForm = document.getElementById('profileForm');
+    const profileMessage = document.getElementById('profileMessage');
+    const passwordForm = document.getElementById('passwordForm');
+    const passwordMessage = document.getElementById('passwordMessage');
+    const devicesTableBody = document.querySelector('#devicesTable tbody');
+    const devicesMessage = document.getElementById('devicesMessage');
+    const assignForm = document.getElementById('assignForm');
+    const assignDeviceId = document.getElementById('assignDeviceId');
+    const assignMessage = document.getElementById('assignMessage');
+
+    document.getElementById('logoutBtn').addEventListener('click', redirectToLogin);
+
+    let currentUser = null;
+
+    async function loadProfile() {
+        const resp = await authFetch('/api/auth/me');
+        if (!resp.ok) return redirectToLogin();
+        currentUser = await resp.json();
+        userInfo.textContent = `${currentUser.email} • роль: ${currentUser.role}`;
+        document.getElementById('email').value = currentUser.email || '';
+        document.getElementById('username').value = currentUser.username || '';
+    }
+
+    async function loadDevices() {
+        const resp = await authFetch('/api/devices/my');
+        devicesTableBody.innerHTML = '';
+        devicesMessage.textContent = '';
+        if (!resp.ok) {
+            devicesMessage.textContent = 'Не удалось загрузить устройства';
+            return;
+        }
+        const devices = await resp.json();
+        if (!Array.isArray(devices) || devices.length === 0) {
+            devicesTableBody.innerHTML = '<tr><td colspan="5">Нет привязанных устройств</td></tr>';
+            return;
+        }
+        devices.forEach((device) => {
+            const tr = document.createElement('tr');
+            const status = device.is_online ? 'В сети' : 'Не в сети';
+            tr.innerHTML = `
+                <td>${device.id}</td>
+                <td>${device.device_id}</td>
+                <td>${device.name || ''}</td>
+                <td>${status}</td>
+                <td><button type="button" onclick="unassignDevice(${device.id})">Отвязать</button></td>
+            `;
+            devicesTableBody.appendChild(tr);
+        });
+    }
+
+    profileForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        profileMessage.textContent = '';
+        const payload = {
+            email: document.getElementById('email').value.trim(),
+            username: document.getElementById('username').value.trim(),
+        };
+        const resp = await authFetch('/api/auth/me', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (!resp.ok) {
+            const data = await resp.json().catch(() => ({}));
+            profileMessage.textContent = data.detail || 'Ошибка обновления профиля';
+            return;
+        }
+        profileMessage.textContent = '';
+        await loadProfile();
+    });
+
+    passwordForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        passwordMessage.textContent = '';
+        passwordMessage.className = 'error';
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        if (newPassword !== confirm) {
+            passwordMessage.textContent = 'Новый пароль не совпадает с подтверждением';
+            return;
+        }
+        const resp = await authFetch('/api/auth/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+        });
+        if (!resp.ok) {
+            const data = await resp.json().catch(() => ({}));
+            passwordMessage.textContent = data.detail || 'Ошибка смены пароля';
+            return;
+        }
+        passwordMessage.textContent = 'Пароль обновлен';
+        passwordMessage.className = 'success';
+        passwordForm.reset();
+    });
+
+    assignForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        assignMessage.textContent = '';
+        const deviceId = Number(assignDeviceId.value);
+        const resp = await authFetch('/api/devices/assign-to-me', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ device_id: deviceId }),
+        });
+        if (!resp.ok) {
+            const data = await resp.json().catch(() => ({}));
+            assignMessage.textContent = data.detail || 'Не удалось привязать устройство';
+            return;
+        }
+        assignForm.reset();
+        await loadDevices();
+    });
+
+    window.unassignDevice = async (deviceId) => {
+        assignMessage.textContent = '';
+        const resp = await authFetch(`/api/devices/${deviceId}/unassign`, { method: 'POST' });
+        if (!resp.ok) {
+            const data = await resp.json().catch(() => ({}));
+            assignMessage.textContent = data.detail || 'Не удалось отвязать устройство';
+            return;
+        }
+        await loadDevices();
+    };
+
+    async function init() {
+        await loadProfile();
+        await loadDevices();
+    }
+
+    init();
+</script>
+</body>
+</html>

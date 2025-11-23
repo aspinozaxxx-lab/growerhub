@@ -3,6 +3,9 @@
 from datetime import datetime
 from typing import Optional
 
+from datetime import datetime
+from typing import Optional
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -32,6 +35,13 @@ class UserOut(BaseModel):
     updated_at: Optional[datetime] = None
 
 
+class UserProfileUpdate(BaseModel):
+    """Translitem: payload dlya obnovleniya profilya tekushchego polzovatelya."""
+
+    email: Optional[EmailStr] = None
+    username: Optional[str] = None
+
+
 class UserCreate(BaseModel):
     """Translitem: payload dlya sozdaniya lokal'nogo polzovatelya."""
 
@@ -47,3 +57,10 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
+
+
+class PasswordChangeIn(BaseModel):
+    """Translitem: payload dlya smeny parolya tekushchego polzovatelya."""
+
+    current_password: str
+    new_password: str

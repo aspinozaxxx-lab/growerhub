@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, conint
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user
 from app.mqtt.store import AckStore, get_ack_store
 from config import get_settings
 from app.mqtt.store import DeviceShadowStore, get_shadow_store
@@ -18,7 +19,7 @@ from app.mqtt.interfaces import IMqttPublisher
 from app.mqtt.lifecycle import get_publisher
 from app.mqtt.serialization import Ack, CmdPumpStart, CmdPumpStop, CmdReboot, CommandType, DeviceState
 from app.core.database import get_db
-from app.models.database_models import DeviceDB
+from app.models.database_models import DeviceDB, UserDB
 from app.repositories.state_repo import DeviceStateLastRepository
 
 router = APIRouter()
@@ -51,6 +52,19 @@ def get_ack_dep() -> AckStore:
         return get_ack_store()
     except RuntimeError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Ack store unavailable") from exc
+
+
+def _ensure_device_access(device_id: str, db: Session, current_user: UserDB) -> DeviceDB:
+    """Translitem: proverka prav dostupa k ustrojstvu dlya poliva."""
+
+    device = db.query(DeviceDB).filter(DeviceDB.device_id == device_id).first()
+    if device is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ustrojstvo ne najdeno")
+
+    if current_user.role != "admin" and device.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="nedostatochno prav dlya etogo ustrojstva")
+
+    return device
 
 
 if settings.DEBUG:
@@ -144,8 +158,12 @@ async def manual_watering_start(
     payload: ManualWateringStartIn,
     publisher: IMqttPublisher = Depends(get_mqtt_dep),
     store: DeviceShadowStore = Depends(get_shadow_dep),
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
 ) -> ManualWateringStartOut:
     """Zapusk manualnogo poliva, proverki sostoyaniya i otpravka komandy."""
+
+    _ensure_device_access(payload.device_id, db, current_user)
 
     # Ten - istochnik istiny: esli vidim status running, ustroystvo uzhe zanato i povtornyi start narushit biznes-pravilo.
     view = store.get_manual_watering_view(payload.device_id)
@@ -173,8 +191,12 @@ async def manual_watering_stop(
     payload: ManualWateringStopIn,
     publisher: IMqttPublisher = Depends(get_mqtt_dep),
     store: DeviceShadowStore = Depends(get_shadow_dep),
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
 ) -> ManualWateringStopOut:
     """Ostanovka manualnogo poliva i otpravka komandy stop."""
+
+    _ensure_device_access(payload.device_id, db, current_user)
 
     # Bez statusa running v teni net smysla otpravlyat stop: operator libo oshibsya, libo komanda uzhe vypolnilas.
     view = store.get_manual_watering_view(payload.device_id)
@@ -200,8 +222,12 @@ async def manual_watering_stop(
 async def manual_watering_reboot(
     payload: ManualRebootIn,
     publisher: IMqttPublisher = Depends(get_mqtt_dep),
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
 ) -> ManualRebootOut:
     """Publikuet komandу reboot dlya ukazannogo ustroystva."""
+
+    _ensure_device_access(payload.device_id, db, current_user)
 
     correlation_id = uuid4().hex
     issued_at = int(time.time())
@@ -223,8 +249,11 @@ async def manual_watering_status(
     device_id: str,
     store: DeviceShadowStore = Depends(get_shadow_dep),
     db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
 ) -> ManualWateringStatusOut:
     """Vozvrashaet tekushchee sostoyanie poliva iz shadow po device_id."""
+
+    _ensure_device_access(device_id, db, current_user)
 
     # Algoritm: s nachala probuem poluchit polnyy nabor poley iz teni, a pri otsutstvii ili probelakh dozapolnyaem dannymi iz Bazy.
     cfg = get_settings()
@@ -346,6 +375,7 @@ async def manual_watering_status(
 async def manual_watering_ack(
     correlation_id: str,
     store: AckStore = Depends(get_ack_dep),
+    current_user: UserDB = Depends(get_current_user),
 ) -> ManualWateringAckOut:
     """Vozvrashaet dannye ack iz store po correlation_id."""
 
@@ -366,6 +396,7 @@ async def manual_watering_wait_ack(
     correlation_id: str,
     timeout_s: conint(ge=1, le=15) = 5,
     store: AckStore = Depends(get_ack_dep),
+    current_user: UserDB = Depends(get_current_user),
 ) -> ManualWateringAckOut:
     """Ozhidanie ack v stile long-poll s pereborom do deadline."""
 

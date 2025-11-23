@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Админка пользователей</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 20px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h1 { margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f0f0f0; }
+        input, select, button { padding: 8px; margin: 4px 0; border: 1px solid #ccc; border-radius: 6px; }
+        button { cursor: pointer; background: #3498db; color: #fff; border: none; }
+        button.danger { background: #c0392b; }
+        .error { color: #c0392b; margin-top: 6px; }
+        .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="actions" style="justify-content: space-between;">
+        <h1 style="margin:0;">Пользователи</h1>
+        <div class="actions">
+            <a href="/" style="text-decoration:none;"><button type="button">Главная</button></a>
+            <a href="/static/admin_devices.html" style="text-decoration:none;"><button type="button">Устройства</button></a>
+            <button id="logoutBtn" class="danger" type="button">Выйти</button>
+        </div>
+    </div>
+
+    <div id="errorBox" class="error"></div>
+
+    <h3>Создать пользователя</h3>
+    <form id="createForm" class="actions">
+        <input type="email" id="createEmail" placeholder="Email" required>
+        <input type="text" id="createUsername" placeholder="Username">
+        <select id="createRole">
+            <option value="user">user</option>
+            <option value="admin">admin</option>
+        </select>
+        <input type="password" id="createPassword" placeholder="Пароль" required>
+        <button type="submit">Создать</button>
+    </form>
+
+    <table id="usersTable">
+        <thead>
+            <tr>
+                <th>ID</th><th>Email</th><th>Username</th><th>Роль</th><th>Активен</th><th>Действия</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+<script>
+    const TOKEN_KEY = 'gh_access_token';
+    const accessToken = localStorage.getItem(TOKEN_KEY);
+    if (!accessToken) { window.location.href = '/static/login.html'; }
+
+    const redirectToLogin = () => { localStorage.removeItem(TOKEN_KEY); window.location.href = '/static/login.html'; };
+    const authFetch = async (url, options = {}) => {
+        const opts = { ...options };
+        opts.headers = { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` };
+        const resp = await fetch(url, opts);
+        if (resp.status === 401 || resp.status === 403) redirectToLogin();
+        return resp;
+    };
+
+    const errorBox = document.getElementById('errorBox');
+    const usersTableBody = document.querySelector('#usersTable tbody');
+    document.getElementById('logoutBtn').addEventListener('click', redirectToLogin);
+
+    async function ensureAdmin() {
+        const resp = await authFetch('/api/auth/me');
+        if (!resp.ok) return redirectToLogin();
+        const me = await resp.json();
+        if (me.role !== 'admin') {
+            errorBox.textContent = 'Доступ запрещен';
+            throw new Error('not admin');
+        }
+    }
+
+    function renderUsers(users) {
+        usersTableBody.innerHTML = '';
+        users.forEach(user => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${user.id}</td>
+                <td>${user.email}</td>
+                <td><input type="text" value="${user.username || ''}" data-field="username"></td>
+                <td>
+                    <select data-field="role">
+                        <option value="user" ${user.role === 'user' ? 'selected' : ''}>user</option>
+                        <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>admin</option>
+                    </select>
+                </td>
+                <td style="text-align:center;"><input type="checkbox" data-field="is_active" ${user.is_active ? 'checked' : ''}></td>
+                <td>
+                    <div class="actions">
+                        <button type="button" data-action="save">Сохранить</button>
+                        <button type="button" class="danger" data-action="delete">Удалить</button>
+                    </div>
+                </td>
+            `;
+            tr.dataset.userId = user.id;
+            usersTableBody.appendChild(tr);
+        });
+    }
+
+    async function loadUsers() {
+        const resp = await authFetch('/api/users');
+        if (!resp.ok) { errorBox.textContent = 'Не удалось загрузить список'; return; }
+        const users = await resp.json();
+        renderUsers(users);
+    }
+
+    usersTableBody.addEventListener('click', async (event) => {
+        const action = event.target.dataset.action;
+        if (!action) return;
+        const tr = event.target.closest('tr');
+        const userId = Number(tr.dataset.userId);
+        if (action === 'delete') {
+            const resp = await authFetch(`/api/users/${userId}`, { method: 'DELETE' });
+            if (!resp.ok) {
+                errorBox.textContent = 'Не удалось удалить пользователя';
+                return;
+            }
+            await loadUsers();
+            return;
+        }
+        if (action === 'save') {
+            const username = tr.querySelector('input[data-field="username"]').value;
+            const role = tr.querySelector('select[data-field="role"]').value;
+            const isActive = tr.querySelector('input[data-field="is_active"]').checked;
+            const resp = await authFetch(`/api/users/${userId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, role, is_active: isActive }),
+            });
+            if (!resp.ok) {
+                errorBox.textContent = 'Не удалось сохранить изменения';
+            } else {
+                errorBox.textContent = '';
+            }
+        }
+    });
+
+    document.getElementById('createForm').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        errorBox.textContent = '';
+        const payload = {
+            email: document.getElementById('createEmail').value.trim(),
+            username: document.getElementById('createUsername').value.trim(),
+            role: document.getElementById('createRole').value,
+            password: document.getElementById('createPassword').value,
+        };
+        const resp = await authFetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (!resp.ok) {
+            const data = await resp.json().catch(() => ({}));
+            errorBox.textContent = data.detail || 'Ошибка создания пользователя';
+            return;
+        }
+        event.target.reset();
+        await loadUsers();
+    });
+
+    async function init() {
+        await ensureAdmin();
+        await loadUsers();
+    }
+
+    init();
+</script>
+</body>
+</html>
