@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Админка устройств</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 20px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h1 { margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f0f0f0; }
+        input, button { padding: 8px; margin: 4px 0; border: 1px solid #ccc; border-radius: 6px; }
+        button { background: #27ae60; color: #fff; border: none; cursor: pointer; }
+        button.secondary { background: #3498db; }
+        button.danger { background: #c0392b; }
+        .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .error { color: #c0392b; margin-top: 6px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="actions" style="justify-content: space-between;">
+        <h1 style="margin:0;">Устройства</h1>
+        <div class="actions">
+            <a href="/" style="text-decoration:none;"><button type="button" class="secondary">Главная</button></a>
+            <a href="/static/admin_users.html" style="text-decoration:none;"><button type="button" class="secondary">Пользователи</button></a>
+            <button id="logoutBtn" class="danger" type="button">Выйти</button>
+        </div>
+    </div>
+
+    <div id="errorBox" class="error"></div>
+
+    <table id="devicesTable">
+        <thead>
+            <tr>
+                <th>ID</th><th>Device ID</th><th>Название</th><th>Владелец</th><th>Действия</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+<script>
+    const TOKEN_KEY = 'gh_access_token';
+    const accessToken = localStorage.getItem(TOKEN_KEY);
+    if (!accessToken) { window.location.href = '/static/login.html'; }
+    const redirectToLogin = () => { localStorage.removeItem(TOKEN_KEY); window.location.href = '/static/login.html'; };
+    const authFetch = async (url, options = {}) => {
+        const opts = { ...options };
+        opts.headers = { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` };
+        const resp = await fetch(url, opts);
+        if (resp.status === 401 || resp.status === 403) redirectToLogin();
+        return resp;
+    };
+
+    const errorBox = document.getElementById('errorBox');
+    const tableBody = document.querySelector('#devicesTable tbody');
+    document.getElementById('logoutBtn').addEventListener('click', redirectToLogin);
+
+    async function ensureAdmin() {
+        const resp = await authFetch('/api/auth/me');
+        if (!resp.ok) return redirectToLogin();
+        const me = await resp.json();
+        if (me.role !== 'admin') {
+            errorBox.textContent = 'Доступ запрещен';
+            throw new Error('not admin');
+        }
+    }
+
+    function renderDevices(devices) {
+        tableBody.innerHTML = '';
+        devices.forEach(device => {
+            const tr = document.createElement('tr');
+            const ownerText = device.owner ? `${device.owner.email} (id=${device.owner.id})` : '—';
+            tr.innerHTML = `
+                <td>${device.id}</td>
+                <td>${device.device_id}</td>
+                <td>${device.name || ''}</td>
+                <td>${ownerText}</td>
+                <td>
+                    <div class="actions">
+                        <input type="number" placeholder="user_id" data-field="user_id" style="width:120px;">
+                        <button type="button" data-action="assign">Привязать</button>
+                        <button type="button" class="danger" data-action="unassign">Отвязать</button>
+                    </div>
+                </td>
+            `;
+            tr.dataset.deviceId = device.id;
+            tableBody.appendChild(tr);
+        });
+    }
+
+    async function loadDevices() {
+        const resp = await authFetch('/api/admin/devices');
+        if (!resp.ok) { errorBox.textContent = 'Не удалось загрузить устройства'; return; }
+        const devices = await resp.json();
+        renderDevices(devices);
+    }
+
+    tableBody.addEventListener('click', async (event) => {
+        const action = event.target.dataset.action;
+        if (!action) return;
+        const tr = event.target.closest('tr');
+        const deviceId = Number(tr.dataset.deviceId);
+        if (action === 'assign') {
+            const userIdInput = tr.querySelector('input[data-field="user_id"]');
+            const userId = Number(userIdInput.value);
+            if (!userId) { errorBox.textContent = 'Укажите user_id'; return; }
+            const resp = await authFetch(`/api/admin/devices/${deviceId}/assign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId }),
+            });
+            if (!resp.ok) { errorBox.textContent = 'Не удалось привязать устройство'; return; }
+            errorBox.textContent = '';
+            await loadDevices();
+            return;
+        }
+        if (action === 'unassign') {
+            const resp = await authFetch(`/api/admin/devices/${deviceId}/unassign`, { method: 'POST' });
+            if (!resp.ok) { errorBox.textContent = 'Не удалось отвязать устройство'; return; }
+            errorBox.textContent = '';
+            await loadDevices();
+        }
+    });
+
+    async function init() {
+        await ensureAdmin();
+        await loadDevices();
+    }
+
+    init();
+</script>
+</body>
+</html>

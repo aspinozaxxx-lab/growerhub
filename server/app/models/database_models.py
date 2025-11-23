@@ -13,6 +13,11 @@ class DeviceDB(Base):
     id = Column(Integer, primary_key=True, index=True)
     device_id = Column(String, unique=True, index=True)
     name = Column(String, default="Grovika Device")
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )  # Translitem: eto vladelec ustrojstva
     soil_moisture = Column(Float, default=0.0)
     air_temperature = Column(Float, default=0.0)
     air_humidity = Column(Float, default=0.0)

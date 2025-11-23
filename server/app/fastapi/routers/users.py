@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_admin
-from app.models.database_models import UserAuthIdentityDB, UserDB
+from app.models.database_models import DeviceDB, UserAuthIdentityDB, UserDB
 from app.models.user_schemas import UserCreate, UserOut, UserUpdate
 from app.repositories.users import create_local_user, get_user_by_id
 
@@ -112,6 +112,11 @@ def delete_user(
     user = get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Polzovatel' ne najden")
+
+    devices = db.query(DeviceDB).filter(DeviceDB.user_id == user_id).all()
+    for device in devices:
+        device.user_id = None
+    db.commit()  # Translitem: pri udalenii polzovatelja ego ustrojstva ostajutsja v sisteme, no bez vladelca
 
     db.query(UserAuthIdentityDB).filter(UserAuthIdentityDB.user_id == user_id).delete()
     db.delete(user)
