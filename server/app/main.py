@@ -2,6 +2,7 @@
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.openapi.docs import get_redoc_html
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.routing import Mount
@@ -110,3 +111,12 @@ async def read_root():
 
 
 remount_firmware_static()
+
+
+@app.get("/redoc", include_in_schema=False)
+async def overridden_redoc():
+    return get_redoc_html(
+        openapi_url=app.openapi_url,
+        title=f"{app.title} - ReDoc",
+        redoc_js_url="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js",
+    )
