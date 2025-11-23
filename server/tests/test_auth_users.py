@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import app.main
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal, create_tables
 from app.core.security import create_access_token
 from app.models.database_models import UserDB
 from app.repositories.users import authenticate_local_user, create_local_user, get_user_by_email
@@ -40,6 +40,14 @@ def _patched_client() -> Iterator[TestClient]:
             yield client
     finally:
         stack.close()
+
+
+@pytest.fixture(scope="module", autouse=True)
+def ensure_tables():
+    """Translitem: garantiruet nalichie vsekh tablic pered zapuskom auth-testov."""
+
+    create_tables()
+    yield
 
 
 @pytest.fixture
