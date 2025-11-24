@@ -204,10 +204,9 @@ def sso_callback(
 
     mode = state_data.get("mode")
     if mode == "login":
-        if not redirect_path or redirect_path == "/":
-            redirect_path = "/static/login.html"
         user = get_or_create_user_from_sso(db, provider, subject, email)
         token = create_access_token({"user_id": user.id})
+        redirect_path = "/static/login.html"
         sep = "#" if "#" not in redirect_path else "&"
         return RedirectResponse(
             url=f"{redirect_path}{sep}access_token={token}&token_type=bearer",
