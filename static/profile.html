@@ -143,12 +143,12 @@
     const accessToken = localStorage.getItem(TOKEN_KEY);
 
     if (!accessToken) {
-        window.location.href = '/static/login.html';
+        window.location.href = '/login.html';
     }
 
     const redirectToLogin = () => {
         localStorage.removeItem(TOKEN_KEY);
-        window.location.href = '/static/login.html';
+        window.location.href = '/login.html';
     };
 
     const authFetch = async (url, options = {}) => {
@@ -175,7 +175,7 @@
 
     document.getElementById('logoutBtn').addEventListener('click', redirectToLogin);
     btnAdmin.addEventListener('click', function () {
-        window.location.href = '/static/admin_devices.html';
+        window.location.href = '/admin_devices.html';
     });
 
     let currentUser = null;

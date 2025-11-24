@@ -162,7 +162,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
             <h1 style="margin: 0;">🌱 Система умного полива</h1>
             <div style="display:flex; gap:10px; flex-wrap: wrap; align-items:center;">
-                <button type="button" onclick="window.location.href='/static/profile.html'">Профиль</button>
+                <button type="button" onclick="window.location.href='/profile.html'">Профиль</button>
                 <button id="logoutBtn" style="background-color: #e74c3c;">Выйти</button>
             </div>
         </div>
@@ -184,13 +184,13 @@
         const accessToken = localStorage.getItem(TOKEN_KEY);
 
         if (!accessToken) {
-            window.location.href = '/static/login.html';
+            window.location.href = '/login.html';
             throw new Error('no token');
         }
 
         const redirectToLogin = () => {
             localStorage.removeItem(TOKEN_KEY);
-            window.location.href = '/static/login.html';
+            window.location.href = '/login.html';
         };
 
         const authFetch = async (url, options = {}) => {
@@ -391,7 +391,7 @@
         }
 
         function goToManualWatering(deviceId) {
-            window.location.href = `/static/manual_watering.html?device_id=${encodeURIComponent(deviceId)}`;
+            window.location.href = `/manual_watering.html?device_id=${encodeURIComponent(deviceId)}`;
         }
 
         async function updateSettings(deviceId) {

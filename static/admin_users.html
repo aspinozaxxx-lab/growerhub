@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -23,7 +23,7 @@
         <h1 style="margin:0;">Пользователи</h1>
         <div class="actions">
             <a href="/" style="text-decoration:none;"><button type="button">Главная</button></a>
-            <a href="/static/admin_devices.html" style="text-decoration:none;"><button type="button">Устройства</button></a>
+            <a href="/admin_devices.html" style="text-decoration:none;"><button type="button">Устройства</button></a>
             <button id="logoutBtn" class="danger" type="button">Выйти</button>
         </div>
     </div>
@@ -54,9 +54,9 @@
 <script>
     const TOKEN_KEY = 'gh_access_token';
     const accessToken = localStorage.getItem(TOKEN_KEY);
-    if (!accessToken) { window.location.href = '/static/login.html'; }
+    if (!accessToken) { window.location.href = '/login.html'; }
 
-    const redirectToLogin = () => { localStorage.removeItem(TOKEN_KEY); window.location.href = '/static/login.html'; };
+    const redirectToLogin = () => { localStorage.removeItem(TOKEN_KEY); window.location.href = '/login.html'; };
     const authFetch = async (url, options = {}) => {
         const opts = { ...options };
         opts.headers = { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` };
