@@ -17,20 +17,20 @@ depends_on = None
 
 
 def upgrade():
-    with op.batch_alter_table("devices") as batch_op:
-        batch_op.add_column(sa.Column("user_id", sa.Integer(), nullable=True))
-        batch_op.create_foreign_key(
-            "fk_devices_user_id_users",
-            "users",
-            ["user_id"],
-            ["id"],
-            ondelete="SET NULL",
-        )
+    op.add_column(
+        "devices",
+        sa.Column("user_id", sa.Integer(), nullable=True),
+    )
+    op.create_foreign_key(
+        "fk_devices_user_id_users",
+        "devices",
+        "users",
+        ["user_id"],
+        ["id"],
+        ondelete="SET NULL",
+    )
 
 
 def downgrade():
-    with op.batch_alter_table("devices") as batch_op:
-        batch_op.drop_constraint(
-            "fk_devices_user_id_users", table_name="devices", type_="foreignkey"
-        )
-        batch_op.drop_column("user_id")
+    op.drop_constraint("fk_devices_user_id_users", "devices", type_="foreignkey")
+    op.drop_column("devices", "user_id")
