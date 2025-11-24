@@ -97,12 +97,16 @@ def client() -> Iterator[TestClient]:
     _test_db_drop_schema()
     _test_db_create_schema()
     app.main.app.dependency_overrides[get_db] = _override_get_db
+    import app.core.security as security_module  # noqa: WPS433
+
+    app.main.app.dependency_overrides[security_module.get_db] = _override_get_db
 
     try:
         with _patched_client() as client:
             yield client
     finally:
         app.main.app.dependency_overrides.pop(get_db, None)
+        app.main.app.dependency_overrides.pop(security_module.get_db, None)
         _test_db_drop_schema()
 
 

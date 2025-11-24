@@ -7,6 +7,7 @@ from app.mqtt.handlers.ack import extract_device_id_from_ack_topic
 from app.mqtt.router import MqttAckSubscriber
 from app.mqtt.serialization import Ack, AckResult, ManualWateringStatus
 from app.mqtt.store import AckStore, get_ack_store, init_ack_store, shutdown_ack_store
+from tests.utils_auth import auth_headers, ensure_user
 
 
 def test_extract_device_id_from_ack_topic_valid():
@@ -67,8 +68,10 @@ def test_ack_api_returns_data_when_present():
     """Proveryaet HTTP API ack kogda dannye dostupny."""
 
     with TestClient(app) as client:
+        ensure_user("owner@example.com", "secret")
+        headers = auth_headers(client, "owner@example.com", "secret")
         # Proveryaem chto otsutstvuyushchiy correlation_id daet 404
-        response = client.get("/api/manual-watering/ack", params={"correlation_id": "missing"})
+        response = client.get("/api/manual-watering/ack", params={"correlation_id": "missing"}, headers=headers)
         assert response.status_code == 404
 
         # Dobavlyaem ACK v store i proveryaem JSON-otvet
@@ -81,7 +84,7 @@ def test_ack_api_returns_data_when_present():
         )
         store.put("abc123", ack)
 
-        response = client.get("/api/manual-watering/ack", params={"correlation_id": "corr-2"})
+        response = client.get("/api/manual-watering/ack", params={"correlation_id": "corr-2"}, headers=headers)
         assert response.status_code == 200
         data = response.json()
         assert data["correlation_id"] == "corr-2"
@@ -126,9 +129,12 @@ def test_ack_wait_endpoint_accepts_reboot_status() -> None:
     store.put("device-1", reboot_ack)
 
     with TestClient(app) as client:
+        ensure_user("owner@example.com", "secret")
+        headers = auth_headers(client, "owner@example.com", "secret")
         response = client.get(
             "/api/manual-watering/wait-ack",
             params={"correlation_id": "abc", "timeout_s": 1},
+            headers=headers,
         )
 
     assert response.status_code == 200

@@ -92,6 +92,9 @@ def client():
     _test_db_drop_schema()
     _test_db_create_schema()
     app.main.app.dependency_overrides[get_db] = _override_get_db
+    import app.core.security as security_module  # noqa: WPS433
+
+    app.main.app.dependency_overrides[security_module.get_db] = _override_get_db
     app.main.app.dependency_overrides[manual_watering_router.get_mqtt_dep] = lambda: DummyPublisher()
     app.main.app.dependency_overrides[manual_watering_router.get_shadow_dep] = lambda: DummyShadowStore()
     app.main.app.dependency_overrides[manual_watering_router.get_ack_dep] = lambda: DummyAckStore()
@@ -104,6 +107,7 @@ def client():
             yield client
     finally:
         app.main.app.dependency_overrides.pop(get_db, None)
+        app.main.app.dependency_overrides.pop(security_module.get_db, None)
         app.main.app.dependency_overrides.pop(manual_watering_router.get_mqtt_dep, None)
         app.main.app.dependency_overrides.pop(manual_watering_router.get_shadow_dep, None)
         app.main.app.dependency_overrides.pop(manual_watering_router.get_ack_dep, None)

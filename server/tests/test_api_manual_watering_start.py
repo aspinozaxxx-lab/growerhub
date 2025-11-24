@@ -1,13 +1,19 @@
 ﻿import sys
 import types
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.models.database_models import Base
+from app.core.security import create_access_token
+from app.models.database_models import Base, DeviceDB
+from app.repositories.users import create_local_user
 
-engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+engine = create_engine(
+    "sqlite:///./test_manual_watering_start.db",
+    connect_args={"check_same_thread": False},
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def _create_tables() -> None:
@@ -17,6 +23,8 @@ def _create_tables() -> None:
 
 def _get_db():
     """Generator s testovoy sessiyey SQLAlchemy."""
+
+    _create_tables()
     db = SessionLocal()
     try:
         yield db
@@ -35,6 +43,43 @@ from app.fastapi.routers.manual_watering import get_mqtt_dep
 from app.main import app
 from app.mqtt.serialization import CmdPumpStart, CommandType
 from app.mqtt.interfaces import IMqttPublisher
+
+
+def _create_user(email: str, password: str) -> int:
+    _create_tables()
+    session = SessionLocal()
+    try:
+        user = create_local_user(session, email, None, "user", password)
+        session.refresh(user)
+        return user.id
+    finally:
+        session.close()
+
+
+def _insert_device(device_id: str, user_id: int) -> None:
+    _create_tables()
+    session = SessionLocal()
+    try:
+        session.query(DeviceDB).filter(DeviceDB.device_id == device_id).delete()
+        device = DeviceDB(device_id=device_id, user_id=user_id)
+        session.add(device)
+        session.commit()
+    finally:
+        session.close()
+
+
+@pytest.fixture(autouse=True)
+def override_db_dependencies():
+    import app.core.database as database_module  # noqa: WPS433
+    import app.core.security as security_module  # noqa: WPS433
+
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    app.dependency_overrides[database_module.get_db] = _get_db
+    app.dependency_overrides[security_module.get_db] = _get_db
+    yield
+    app.dependency_overrides.pop(database_module.get_db, None)
+    app.dependency_overrides.pop(security_module.get_db, None)
 
 
 class FakePublisher(IMqttPublisher):
@@ -56,9 +101,15 @@ def test_manual_watering_start_endpoint():
 
     # Otpravlyaem zapros na start poliva i poluchaem otvet.
     with TestClient(app) as client:
+        _create_tables()
+        user_id = _create_user("owner@example.com", "secret")
+        _insert_device("abc123", user_id=user_id)
+        token = create_access_token({"user_id": user_id})
+        headers = {"Authorization": f"Bearer {token}"}
         response = client.post(
             "/api/manual-watering/start",
             json={"device_id": "abc123", "duration_s": 20},
+            headers=headers,
         )
 
     app.dependency_overrides.clear()

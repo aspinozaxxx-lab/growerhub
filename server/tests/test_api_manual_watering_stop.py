@@ -7,11 +7,18 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from app.models.database_models import Base
+from app.core.security import create_access_token
+from app.models.database_models import Base, DeviceDB
+from app.repositories.users import create_local_user
 
 # --- Sozdaem izolirovannyy in-memory DB, chtoby testy ne zaviseli ot realnoy bazy. ---
-engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+engine = create_engine(
+    "sqlite:///:memory:",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -56,6 +63,43 @@ from app.mqtt.serialization import CmdPumpStop, CommandType  # noqa: E402
 from app.mqtt.interfaces import IMqttPublisher  # noqa: E402
 
 
+def _create_user(email: str, password: str) -> int:
+    Base.metadata.create_all(bind=engine)
+    session = SessionLocal()
+    try:
+        user = create_local_user(session, email, None, "user", password)
+        session.refresh(user)
+        return user.id
+    finally:
+        session.close()
+
+
+def _insert_device(device_id: str, user_id: int) -> None:
+    Base.metadata.create_all(bind=engine)
+    session = SessionLocal()
+    try:
+        session.query(DeviceDB).filter(DeviceDB.device_id == device_id).delete()
+        device = DeviceDB(device_id=device_id, name=f"Device {device_id}", user_id=user_id)
+        session.add(device)
+        session.commit()
+    finally:
+        session.close()
+
+
+@pytest.fixture(autouse=True)
+def override_db_dependencies():
+    import app.core.database as database_module  # noqa: WPS433
+    import app.core.security as security_module  # noqa: WPS433
+
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    app.dependency_overrides[database_module.get_db] = _get_db
+    app.dependency_overrides[security_module.get_db] = _get_db
+    yield
+    app.dependency_overrides.pop(database_module.get_db, None)
+    app.dependency_overrides.pop(security_module.get_db, None)
+
+
 class FakePublisher(IMqttPublisher):
     """Feikovyi MQTT-pablisher dlya testa stop manual watering."""
 
@@ -77,6 +121,10 @@ def test_manual_watering_stop_endpoint():
 
     # Vypolnyaem POST-zapros na ostanovku poliva.
     with TestClient(app) as client:
+        user_id = _create_user("owner@example.com", "secret")
+        _insert_device("abc123", user_id=user_id)
+        token = create_access_token({"user_id": user_id})
+        headers = {"Authorization": f"Bearer {token}"}
         seed_state = {
             "device_id": "abc123",
             "state": {
@@ -94,6 +142,7 @@ def test_manual_watering_stop_endpoint():
         response = client.post(
             "/api/manual-watering/stop",
             json={"device_id": "abc123"},
+            headers=headers,
         )
 
     # Vozvrashaem zavisimosti v iskhodnoe sostoyanie, chtoby ne vliyat na drugie testy.

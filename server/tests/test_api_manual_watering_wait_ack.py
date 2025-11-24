@@ -10,14 +10,22 @@ from contextlib import ExitStack, contextmanager
 from typing import Iterator
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 import app.mqtt.store as ack_store_module
 from app.models.database_models import Base
+from app.repositories.users import create_local_user
+from app.core.security import create_access_token
 
-engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+engine = create_engine(
+    "sqlite:///:memory:",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -27,9 +35,23 @@ def _create_tables() -> None:
     Base.metadata.create_all(bind=engine)
 
 
+def _create_user(email: str, password: str) -> int:
+    """Translitem: sozdanie polzovatelya v lokalnoj test-baze."""
+
+    _create_tables()
+    session = SessionLocal()
+    try:
+        user = create_local_user(session, email, None, "user", password)
+        session.refresh(user)
+        return user.id
+    finally:
+        session.close()
+
+
 def _get_db():
     """Generator s testovoy sessiyey SQLAlchemy."""
 
+    _create_tables()
     db = SessionLocal()
     try:
         yield db
@@ -48,6 +70,20 @@ from app.mqtt.store import AckStore  # noqa: E402
 from app.fastapi.routers.manual_watering import get_ack_dep  # noqa: E402
 from app.main import app  # noqa: E402
 from app.mqtt.serialization import Ack, AckResult  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def override_db_dependencies():
+    import app.core.database as database_module  # noqa: WPS433
+    import app.core.security as security_module  # noqa: WPS433
+
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    app.dependency_overrides[database_module.get_db] = _get_db
+    app.dependency_overrides[security_module.get_db] = _get_db
+    yield
+    app.dependency_overrides.pop(database_module.get_db, None)
+    app.dependency_overrides.pop(security_module.get_db, None)
 
 
 class _DummySubscriber:
@@ -111,9 +147,13 @@ def test_wait_ack_returns_existing_ack() -> None:
     store.put("dev-1", _make_ack(correlation_id))
 
     with wait_ack_client(store) as client:
+        user_id = _create_user("owner@example.com", "secret")
+        token = create_access_token({"user_id": user_id})
+        headers = {"Authorization": f"Bearer {token}"}
         response = client.get(
             "/api/manual-watering/wait-ack",
             params={"correlation_id": correlation_id, "timeout_s": 5},
+            headers=headers,
         )
 
     assert response.status_code == 200
@@ -138,9 +178,13 @@ def test_wait_ack_returns_when_ack_delayed() -> None:
     worker.start()
 
     with wait_ack_client(store) as client:
+        user_id = _create_user("owner@example.com", "secret")
+        token = create_access_token({"user_id": user_id})
+        headers = {"Authorization": f"Bearer {token}"}
         response = client.get(
             "/api/manual-watering/wait-ack",
             params={"correlation_id": correlation_id, "timeout_s": 5},
+            headers=headers,
         )
 
     assert response.status_code == 200
@@ -155,9 +199,13 @@ def test_wait_ack_returns_timeout_when_ack_missing() -> None:
     store = AckStore()
 
     with wait_ack_client(store) as client:
+        user_id = _create_user("owner@example.com", "secret")
+        token = create_access_token({"user_id": user_id})
+        headers = {"Authorization": f"Bearer {token}"}
         response = client.get(
             "/api/manual-watering/wait-ack",
             params={"correlation_id": "not-found", "timeout_s": 1},
+            headers=headers,
         )
 
     assert response.status_code == 408

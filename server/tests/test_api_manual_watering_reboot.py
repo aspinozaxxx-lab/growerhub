@@ -1,14 +1,23 @@
 import sys
 import types
 
+import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from app.models.database_models import Base
+from app.core.security import create_access_token
+from app.models.database_models import Base, DeviceDB
+from app.repositories.users import create_local_user
+from tests.utils_auth import auth_headers, ensure_device, ensure_user
 
-engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+engine = create_engine(
+    "sqlite:///:memory:",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -41,6 +50,43 @@ from app.mqtt.interfaces import IMqttPublisher  # noqa: E402
 from app.mqtt.serialization import CmdReboot, CommandType  # noqa: E402
 
 
+def _create_user(email: str, password: str) -> int:
+    Base.metadata.create_all(bind=engine)
+    session = SessionLocal()
+    try:
+        user = create_local_user(session, email, None, "user", password)
+        session.refresh(user)
+        return user.id
+    finally:
+        session.close()
+
+
+def _insert_device(device_id: str, user_id: int) -> None:
+    Base.metadata.create_all(bind=engine)
+    session = SessionLocal()
+    try:
+        session.query(DeviceDB).filter(DeviceDB.device_id == device_id).delete()
+        device = DeviceDB(device_id=device_id, name=f"Device {device_id}", user_id=user_id)
+        session.add(device)
+        session.commit()
+    finally:
+        session.close()
+
+
+@pytest.fixture(autouse=True)
+def override_db_dependencies():
+    import app.core.database as database_module  # noqa: WPS433
+    import app.core.security as security_module  # noqa: WPS433
+
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    app.dependency_overrides[database_module.get_db] = _get_db
+    app.dependency_overrides[security_module.get_db] = _get_db
+    yield
+    app.dependency_overrides.pop(database_module.get_db, None)
+    app.dependency_overrides.pop(security_module.get_db, None)
+
+
 class FakePublisher(IMqttPublisher):
     """Feikovyy MQTT publisher dlya otdachi komandy reboot."""
 
@@ -60,9 +106,14 @@ def test_manual_watering_reboot_endpoint() -> None:
     app.dependency_overrides[get_mqtt_dep] = lambda: fake
 
     with TestClient(app) as client:
+        user_id = _create_user("owner@example.com", "secret")
+        _insert_device("abc123", user_id=user_id)
+        token = create_access_token({"user_id": user_id})
+        headers = {"Authorization": f"Bearer {token}"}
         response = client.post(
             "/api/manual-watering/reboot",
             json={"device_id": "abc123"},
+            headers=headers,
         )
 
     app.dependency_overrides.clear()
@@ -91,9 +142,14 @@ def test_manual_watering_reboot_returns_503_when_publisher_unavailable() -> None
     app.dependency_overrides[get_mqtt_dep] = _raise_unavailable
 
     with TestClient(app) as client:
+        user_id = _create_user("owner@example.com", "secret")
+        _insert_device("abc123", user_id=user_id)
+        token = create_access_token({"user_id": user_id})
+        headers = {"Authorization": f"Bearer {token}"}
         response = client.post(
             "/api/manual-watering/reboot",
             json={"device_id": "abc123"},
+            headers=headers,
         )
 
     app.dependency_overrides.clear()
@@ -109,9 +165,13 @@ def test_manual_watering_reboot_validates_device_id() -> None:
     app.dependency_overrides[get_mqtt_dep] = lambda: fake
 
     with TestClient(app) as client:
+        user_id = _create_user("owner@example.com", "secret")
+        token = create_access_token({"user_id": user_id})
+        headers = {"Authorization": f"Bearer {token}"}
         response = client.post(
             "/api/manual-watering/reboot",
             json={"device_id": ""},
+            headers=headers,
         )
 
     app.dependency_overrides.clear()

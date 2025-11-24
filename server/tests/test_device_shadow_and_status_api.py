@@ -22,6 +22,8 @@ from app.models.database_models import Base, DeviceDB
 from app.main import app
 from app.mqtt.store import get_shadow_store
 from app.fastapi.routers import manual_watering as manual_watering_router
+from app.repositories.users import create_local_user
+from app.core.security import create_access_token
 
 engine = create_engine(
     "sqlite:///:memory:",
@@ -72,8 +74,27 @@ def ensure_debug_enabled(monkeypatch):
 def override_db_dependency():
     """Garantiruet povtornoe podmenenie get_db pered kazhdym testom posle vozmozhnyh clear."""
 
+    import app.core.database as database_module  # noqa: WPS433
+    import app.core.security as security_module  # noqa: WPS433
+
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    from app.repositories import state_repo  # noqa: WPS433
+
+    state_repo.SessionLocal = SessionLocal
+    from app.mqtt.store import init_shadow_store, shutdown_shadow_store  # noqa: WPS433
+
+    shutdown_shadow_store()
+    init_shadow_store()
     app.dependency_overrides[manual_watering_router.get_db] = _get_db
+    app.dependency_overrides[database_module.get_db] = _get_db
+    app.dependency_overrides[security_module.get_db] = _get_db
     yield
+    shutdown_shadow_store()
+    init_shadow_store()
+    app.dependency_overrides.pop(manual_watering_router.get_db, None)
+    app.dependency_overrides.pop(database_module.get_db, None)
+    app.dependency_overrides.pop(security_module.get_db, None)
 
 
 def _iso_utc(dt: datetime) -> str:
@@ -89,7 +110,7 @@ def _post_shadow_state(client: TestClient, payload: dict) -> None:
     assert response.status_code == 200, response.text
 
 
-def _insert_device(device_id: str, *, last_seen: datetime | None) -> None:
+def _insert_device(device_id: str, *, last_seen: datetime | None, user_id: int | None = None) -> None:
     """Dobavlyaet ali obnovlyaet zapis ustroystva v sqlite dlya fallback stsenariev."""
 
     _create_tables()
@@ -98,16 +119,38 @@ def _insert_device(device_id: str, *, last_seen: datetime | None) -> None:
         session.query(DeviceDB).filter(DeviceDB.device_id == device_id).delete()
         device = DeviceDB(device_id=device_id)
         device.last_seen = last_seen
+        device.user_id = user_id
         session.add(device)
         session.commit()
     finally:
         session.close()
 
 
+def _create_user(email: str, password: str) -> int:
+    """Translitem: sozdaet polzovatelya v lokalnoj testovoj baze."""
+
+    _create_tables()
+    session = SessionLocal()
+    try:
+        user = create_local_user(session, email, None, "user", password)
+        session.refresh(user)
+        return user.id
+    finally:
+        session.close()
+
+
+def _owner_headers(client: TestClient, device_id: str, *, last_seen: datetime | None = None) -> dict[str, str]:
+    owner_id = _create_user("owner@example.com", "secret")
+    _insert_device(device_id, last_seen=last_seen, user_id=owner_id)
+    token = create_access_token({"user_id": owner_id})
+    return {"Authorization": f"Bearer {token}"}
+
+
 def test_status_idle_returns_idle_and_no_remaining() -> None:
     """Proveryaet otrabotku idle statusa bez vremeni ozhidaniya."""
 
     with TestClient(app) as client:
+        headers = _owner_headers(client, "abc123")
         _post_shadow_state(
             client,
             {
@@ -123,7 +166,7 @@ def test_status_idle_returns_idle_and_no_remaining() -> None:
             },
         )
 
-        response = client.get("/api/manual-watering/status", params={"device_id": "abc123"})
+        response = client.get("/api/manual-watering/status", params={"device_id": "abc123"}, headers=headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -142,6 +185,7 @@ def test_status_running_calculates_remaining_seconds() -> None:
     started_at = datetime.utcnow() - timedelta(seconds=5)
 
     with TestClient(app) as client:
+        headers = _owner_headers(client, "abc123")
         _post_shadow_state(
             client,
             {
@@ -157,7 +201,7 @@ def test_status_running_calculates_remaining_seconds() -> None:
             },
         )
 
-        response = client.get("/api/manual-watering/status", params={"device_id": "abc123"})
+        response = client.get("/api/manual-watering/status", params={"device_id": "abc123"}, headers=headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -180,6 +224,7 @@ def test_status_running_expired_returns_zero() -> None:
 
     with patch("config.get_settings", return_value=custom_settings), patch("app.mqtt.store.get_settings", return_value=custom_settings):
         with TestClient(app) as client:
+            headers = _owner_headers(client, "abc123")
             _post_shadow_state(
                 client,
                 {
@@ -195,7 +240,7 @@ def test_status_running_expired_returns_zero() -> None:
                 },
             )
 
-            response = client.get("/api/manual-watering/status", params={"device_id": "abc123"})
+            response = client.get("/api/manual-watering/status", params={"device_id": "abc123"}, headers=headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -209,13 +254,19 @@ def test_status_without_state_returns_placeholder() -> None:
     """Proveryaet placeholder pri otsutstvii shadow dannyh."""
 
     with TestClient(app) as client:
-        response = client.get("/api/manual-watering/status", params={"device_id": "unknown"})
+        headers = _owner_headers(
+            client,
+            "unknown",
+            last_seen=datetime.utcnow() - timedelta(minutes=10),
+        )
+        response = client.get("/api/manual-watering/status", params={"device_id": "unknown"}, headers=headers)
 
     assert response.status_code == 200
     data = response.json()
     assert data["is_online"] is False
-    assert data["offline_reason"] == "no_state_yet"
+    assert data["offline_reason"] == "device_offline"
     assert data["status"] == "idle"
+    assert data["source"] in {"db_fallback", "fallback"}
 
 
 def test_status_db_fallback_uses_device_record_for_online_state() -> None:
@@ -224,8 +275,8 @@ def test_status_db_fallback_uses_device_record_for_online_state() -> None:
     device_id = "db-fallback-online"
     last_seen = datetime.utcnow().replace(microsecond=0)
     with TestClient(app) as client:
-        _insert_device(device_id, last_seen=last_seen)
-        response = client.get("/api/manual-watering/status", params={"device_id": device_id})
+        headers = _owner_headers(client, device_id, last_seen=last_seen)
+        response = client.get("/api/manual-watering/status", params={"device_id": device_id}, headers=headers)
 
     assert response.status_code == 200
     data = response.json()
@@ -244,8 +295,8 @@ def test_status_db_fallback_marks_offline_for_stale_device() -> None:
     device_id = "db-fallback-offline"
     last_seen = datetime.utcnow().replace(microsecond=0) - timedelta(minutes=5)
     with TestClient(app) as client:
-        _insert_device(device_id, last_seen=last_seen)
-        response = client.get("/api/manual-watering/status", params={"device_id": device_id})
+        headers = _owner_headers(client, device_id, last_seen=last_seen)
+        response = client.get("/api/manual-watering/status", params={"device_id": device_id}, headers=headers)
 
     assert response.status_code == 200
     data = response.json()

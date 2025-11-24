@@ -18,6 +18,8 @@ from app.mqtt.serialization import Ack, AckResult
 from app.mqtt.store import AckStore, init_shadow_store, shutdown_shadow_store
 from app.repositories import state_repo
 from app.repositories.state_repo import DeviceStateLastRepository
+from app.repositories.users import create_local_user
+from app.core.security import create_access_token
 
 
 engine = create_engine(
@@ -34,6 +36,19 @@ def _create_tables() -> None:
     Base.metadata.create_all(bind=engine)
 
 
+def _create_user(email: str, password: str) -> int:
+    """Translitem: lokalnoe sozdanie polzovatelya v testovoy baze."""
+
+    _create_tables()
+    session = TestingSessionLocal()
+    try:
+        user = create_local_user(session, email, None, "user", password)
+        session.refresh(user)
+        return user.id
+    finally:
+        session.close()
+
+
 def _get_db():
     """Translitem: dependency override na in-memory sessiyu."""
 
@@ -45,24 +60,28 @@ def _get_db():
         db.close()
 
 
-def _insert_device(device_id: str, last_seen: datetime | None = None) -> None:
+def _insert_device(device_id: str, last_seen: datetime | None = None, user_id: int | None = None) -> None:
     """Translitem: dobavlyaem ustroystvo v testovuyu bazu."""
 
     _create_tables()
     session = TestingSessionLocal()
     try:
-        device = DeviceDB(
-            device_id=device_id,
-            name=f"Device {device_id}",
-            soil_moisture=0.0,
-            air_temperature=0.0,
-            air_humidity=0.0,
-            is_watering=False,
-            is_light_on=False,
-            last_watering=None,
-            last_seen=last_seen,
-        )
-        session.merge(device)
+        device = session.query(DeviceDB).filter(DeviceDB.device_id == device_id).first()
+        if device is None:
+            device = DeviceDB(
+                device_id=device_id,
+                name=f"Device {device_id}",
+                soil_moisture=0.0,
+                air_temperature=0.0,
+                air_humidity=0.0,
+                is_watering=False,
+                is_light_on=False,
+                last_watering=None,
+                last_seen=last_seen,
+            )
+            session.add(device)
+        device.last_seen = last_seen
+        device.user_id = user_id
         session.commit()
     finally:
         session.close()
@@ -109,8 +128,15 @@ def setup_db(monkeypatch):
     state_repo.SessionLocal = TestingSessionLocal
     _create_tables()
 
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
     app.main.app.dependency_overrides[manual_watering_router.get_db] = _get_db
     app.main.app.dependency_overrides[devices_router.get_db] = _get_db
+    import app.core.database as database_module  # noqa: WPS433
+    import app.core.security as security_module  # noqa: WPS433
+
+    app.main.app.dependency_overrides[database_module.get_db] = _get_db
+    app.main.app.dependency_overrides[security_module.get_db] = _get_db
 
     shutdown_shadow_store()
     init_shadow_store()
@@ -121,6 +147,8 @@ def setup_db(monkeypatch):
         state_repo.SessionLocal = original_session_local
         app.main.app.dependency_overrides.pop(manual_watering_router.get_db, None)
         app.main.app.dependency_overrides.pop(devices_router.get_db, None)
+        app.main.app.dependency_overrides.pop(database_module.get_db, None)
+        app.main.app.dependency_overrides.pop(security_module.get_db, None)
         shutdown_shadow_store()
         init_shadow_store()
 
@@ -149,7 +177,8 @@ def test_ack_extends_online_window_in_devices_endpoint():
 
     device_id = "ack-devices-online"
     stale_seen = datetime.utcnow() - timedelta(minutes=10)
-    _insert_device(device_id, last_seen=stale_seen)
+    owner_id = _create_user("owner@example.com", "secret")
+    _insert_device(device_id, last_seen=stale_seen, user_id=owner_id)
 
     _fire_ack(device_id=device_id, correlation_id="corr-devices")
 
@@ -168,12 +197,15 @@ def test_ack_extends_online_in_manual_watering_status():
     """Translitem: ACK probyvaet puls dlya endpointa /api/manual-watering/status."""
 
     device_id = "ack-manual-online"
-    _insert_device(device_id)
+    owner_id = _create_user("owner@example.com", "secret")
+    _insert_device(device_id, user_id=owner_id)
 
     _fire_ack(device_id=device_id, correlation_id="corr-manual")
 
     with TestClient(app.main.app) as client:
-        response = client.get("/api/manual-watering/status", params={"device_id": device_id})
+        token = create_access_token({"user_id": owner_id})
+        headers = {"Authorization": f"Bearer {token}"}
+        response = client.get("/api/manual-watering/status", params={"device_id": device_id}, headers=headers)
 
     assert response.status_code == 200
     data = response.json()

@@ -12,8 +12,11 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
-from app.models.database_models import Base
+from app.core.security import create_access_token
+from app.models.database_models import Base, DeviceDB
+from app.repositories.users import create_local_user
 
 
 @pytest.fixture(autouse=True)
@@ -26,7 +29,11 @@ def enable_debug(monkeypatch):
     yield
     config.get_settings.cache_clear()
 
-engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+engine = create_engine(
+    "sqlite:///:memory:",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -39,6 +46,7 @@ def _create_tables() -> None:
 def _get_db():
     """Generator, vozvrashchayushchiy sessiyu SQLAlchemy i zakryvayushchiy ee posle ispolzovaniya."""
 
+    _create_tables()
     db = SessionLocal()
     try:
         yield db
@@ -57,6 +65,43 @@ from app.fastapi.routers.manual_watering import get_mqtt_dep
 from app.main import app
 from app.mqtt.interfaces import IMqttPublisher
 from app.mqtt.serialization import CmdPumpStart, CmdPumpStop, CommandType
+
+
+def _create_user(email: str, password: str) -> int:
+    Base.metadata.create_all(bind=engine)
+    session = SessionLocal()
+    try:
+        user = create_local_user(session, email, None, "user", password)
+        session.refresh(user)
+        return user.id
+    finally:
+        session.close()
+
+
+def _insert_device(device_id: str, user_id: int) -> None:
+    Base.metadata.create_all(bind=engine)
+    session = SessionLocal()
+    try:
+        session.query(DeviceDB).filter(DeviceDB.device_id == device_id).delete()
+        device = DeviceDB(device_id=device_id, name=f"Device {device_id}", user_id=user_id)
+        session.add(device)
+        session.commit()
+    finally:
+        session.close()
+
+
+@pytest.fixture(autouse=True)
+def override_db_dependencies():
+    import app.core.database as database_module  # noqa: WPS433
+    import app.core.security as security_module  # noqa: WPS433
+
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    app.dependency_overrides[database_module.get_db] = _get_db
+    app.dependency_overrides[security_module.get_db] = _get_db
+    yield
+    app.dependency_overrides.pop(database_module.get_db, None)
+    app.dependency_overrides.pop(security_module.get_db, None)
 
 
 class FakePublisher(IMqttPublisher):
@@ -111,6 +156,13 @@ def manual_watering_client(fake_publisher: FakePublisher) -> Iterator[TestClient
         stack.close()
 
 
+def _owner_headers(client: TestClient, device_id: str) -> dict[str, str]:
+    user_id = _create_user("owner@example.com", "secret")
+    _insert_device(device_id, user_id=user_id)
+    token = create_access_token({"user_id": user_id})
+    return {"Authorization": f"Bearer {token}"}
+
+
 def _push_shadow_state(client: TestClient, device_id: str, status: str, *, duration: int | None = None, started_at: str | None = None, correlation_id: str | None = None) -> None:
     """Otpravlyaet ten' ustroystva cherez debug endpoint dlya testov."""
 
@@ -147,6 +199,7 @@ def test_manual_watering_start_conflict_when_running() -> None:
     device_id = "guard-start-running"
 
     with manual_watering_client(fake) as client:
+        headers = _owner_headers(client, device_id)
         _push_shadow_state(
             client,
             device_id=device_id,
@@ -159,6 +212,7 @@ def test_manual_watering_start_conflict_when_running() -> None:
         response = client.post(
             "/api/manual-watering/start",
             json={"device_id": device_id, "duration_s": 20},
+            headers=headers,
         )
 
     assert response.status_code == 409
@@ -174,6 +228,7 @@ def test_manual_watering_stop_conflict_when_idle() -> None:
     device_id = "guard-stop-idle"
 
     with manual_watering_client(fake) as client:
+        headers = _owner_headers(client, device_id)
         _push_shadow_state(
             client,
             device_id=device_id,
@@ -183,6 +238,7 @@ def test_manual_watering_stop_conflict_when_idle() -> None:
         response = client.post(
             "/api/manual-watering/stop",
             json={"device_id": device_id},
+            headers=headers,
         )
 
     assert response.status_code == 409
@@ -198,6 +254,7 @@ def test_manual_watering_start_allowed_after_idle() -> None:
     device_id = "guard-start-idle"
 
     with manual_watering_client(fake) as client:
+        headers = _owner_headers(client, device_id)
         _push_shadow_state(
             client,
             device_id=device_id,
@@ -207,6 +264,7 @@ def test_manual_watering_start_allowed_after_idle() -> None:
         response = client.post(
             "/api/manual-watering/start",
             json={"device_id": device_id, "duration_s": 45},
+            headers=headers,
         )
 
     assert response.status_code == 200
@@ -230,6 +288,7 @@ def test_manual_watering_stop_allowed_after_running() -> None:
     device_id = "guard-stop-running"
 
     with manual_watering_client(fake) as client:
+        headers = _owner_headers(client, device_id)
         _push_shadow_state(
             client,
             device_id=device_id,
@@ -242,6 +301,7 @@ def test_manual_watering_stop_allowed_after_running() -> None:
         response = client.post(
             "/api/manual-watering/stop",
             json={"device_id": device_id},
+            headers=headers,
         )
 
     assert response.status_code == 200
