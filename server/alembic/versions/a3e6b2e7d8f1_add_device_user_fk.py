@@ -17,20 +17,24 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column(
-        "devices",
-        sa.Column("user_id", sa.Integer(), nullable=True),
-    )
-    op.create_foreign_key(
-        "fk_devices_user_id_users",
-        "devices",
-        "users",
-        ["user_id"],
-        ["id"],
-        ondelete="SET NULL",
-    )
+    # dobavlyaem kolonku user_id i vneshnij kljuch cherez batch režim,
+    # chtoby rabotalo v SQLite
+    with op.batch_alter_table("devices") as batch_op:
+        batch_op.add_column(sa.Column("user_id", sa.Integer(), nullable=True))
+        batch_op.create_foreign_key(
+            "fk_devices_user_id_users",
+            "users",
+            ["user_id"],
+            ["id"],
+            ondelete="SET NULL",
+        )
 
 
 def downgrade():
-    op.drop_constraint("fk_devices_user_id_users", "devices", type_="foreignkey")
-    op.drop_column("devices", "user_id")
+    # udaljajem ogranichenie i kolonku v tom zhe batch režime
+    with op.batch_alter_table("devices") as batch_op:
+        batch_op.drop_constraint(
+            "fk_devices_user_id_users",
+            type_="foreignkey",
+        )
+        batch_op.drop_column("user_id")
