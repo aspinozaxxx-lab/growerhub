@@ -113,6 +113,28 @@
                 <div id="passwordMessage" class="error"></div>
             </form>
         </div>
+        <div>
+            <h2>Способы входа</h2>
+            <div id="methodsStatus" class="error"></div>
+            <div id="methodsList" style="margin: 8px 0; color: #555;"></div>
+            <button type="button" id="btnToggleLocal">Добавить/изменить вход по почте</button>
+            <form id="localMethodForm" style="display:none; margin-top: 10px;">
+                <label for="localEmail">Email для входа</label>
+                <input id="localEmail" type="email" required>
+                <label for="localPassword">Пароль</label>
+                <input id="localPassword" type="password" required>
+                <button type="submit">Сохранить способ</button>
+                <div id="localMethodMessage" class="error"></div>
+            </form>
+            <div class="actions" style="margin-top: 12px;">
+                <button type="button" class="secondary" id="btnLinkGoogle">Привязать Google</button>
+                <button type="button" class="secondary" id="btnLinkYandex">Привязать Yandex</button>
+            </div>
+            <div class="actions" style="margin-top: 8px;">
+                <button type="button" class="danger" id="btnUnlinkGoogle" style="display:none;">Удалить Google</button>
+                <button type="button" class="danger" id="btnUnlinkYandex" style="display:none;">Удалить Yandex</button>
+            </div>
+        </div>
     </div>
 
     <h2>Мои устройства</h2>
@@ -140,7 +162,23 @@
 
 <script>
     const TOKEN_KEY = 'gh_access_token';
-    const accessToken = localStorage.getItem(TOKEN_KEY);
+    let accessToken = localStorage.getItem(TOKEN_KEY);
+
+    const applyTokenFromHash = () => {
+        const hash = window.location.hash || '';
+        if (!hash) return;
+        const params = new URLSearchParams(hash.replace(/^#/, ''));
+        const token = params.get('access_token');
+        const type = params.get('token_type');
+        const isBearer = !type || String(type).toLowerCase() === 'bearer';
+        if (token && isBearer) {
+            accessToken = token;
+            localStorage.setItem(TOKEN_KEY, token);
+            window.location.hash = '';
+        }
+    };
+
+    applyTokenFromHash();
 
     if (!accessToken) {
         window.location.href = '/login.html';
@@ -148,12 +186,14 @@
 
     const redirectToLogin = () => {
         localStorage.removeItem(TOKEN_KEY);
+        accessToken = null;
         window.location.href = '/login.html';
     };
 
     const authFetch = async (url, options = {}) => {
+        const token = accessToken || localStorage.getItem(TOKEN_KEY);
         const opts = { ...options };
-        opts.headers = { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` };
+        opts.headers = { ...(options.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) };
         const response = await fetch(url, opts);
         if (response.status === 401 || response.status === 403) {
             redirectToLogin();
@@ -172,6 +212,17 @@
     const assignDeviceId = document.getElementById('assignDeviceId');
     const assignMessage = document.getElementById('assignMessage');
     const btnAdmin = document.getElementById('btn-admin');
+    const methodsStatus = document.getElementById('methodsStatus');
+    const methodsList = document.getElementById('methodsList');
+    const btnToggleLocal = document.getElementById('btnToggleLocal');
+    const localMethodForm = document.getElementById('localMethodForm');
+    const localEmail = document.getElementById('localEmail');
+    const localPassword = document.getElementById('localPassword');
+    const localMethodMessage = document.getElementById('localMethodMessage');
+    const btnLinkGoogle = document.getElementById('btnLinkGoogle');
+    const btnLinkYandex = document.getElementById('btnLinkYandex');
+    const btnUnlinkGoogle = document.getElementById('btnUnlinkGoogle');
+    const btnUnlinkYandex = document.getElementById('btnUnlinkYandex');
 
     document.getElementById('logoutBtn').addEventListener('click', redirectToLogin);
     btnAdmin.addEventListener('click', function () {
@@ -217,6 +268,59 @@
             `;
             devicesTableBody.appendChild(tr);
         });
+    }
+
+    function renderMethods(data) {
+        methodsStatus.textContent = '';
+        localMethodMessage.textContent = '';
+        methodsList.innerHTML = `
+            <p>Локальный вход: ${data.local.active ? 'настроен' : 'не настроен'} (${data.local.email || ''})</p>
+            <p>Google: ${data.google.linked ? 'привязан' : 'не привязан'}</p>
+            <p>Yandex: ${data.yandex.linked ? 'привязан' : 'не привязан'}</p>
+        `;
+        btnToggleLocal.textContent = data.local.active ? 'Изменить вход по почте' : 'Добавить вход по почте';
+        btnUnlinkGoogle.style.display = data.google.linked && data.google.can_delete ? 'inline-block' : 'none';
+        btnUnlinkYandex.style.display = data.yandex.linked && data.yandex.can_delete ? 'inline-block' : 'none';
+        btnLinkGoogle.disabled = data.google.linked;
+        btnLinkYandex.disabled = data.yandex.linked;
+        localEmail.value = data.local.email || '';
+    }
+
+    async function loadMethods() {
+        const resp = await authFetch('/api/auth/methods');
+        if (!resp.ok) {
+            methodsStatus.textContent = 'Не удалось загрузить способы входа';
+            return;
+        }
+        const data = await resp.json();
+        renderMethods(data);
+    }
+
+    async function startLink(provider) {
+        methodsStatus.textContent = '';
+        const resp = await authFetch(`/api/auth/sso/${provider}/login`, { method: 'GET', redirect: 'manual' });
+        const location = resp.headers.get('Location');
+        if (location) {
+            window.location.href = location;
+            return;
+        }
+        if (resp.redirected) {
+            window.location.href = resp.url;
+            return;
+        }
+        methodsStatus.textContent = 'Не удалось начать привязку';
+    }
+
+    async function deleteMethod(provider) {
+        methodsStatus.textContent = '';
+        const resp = await authFetch(`/api/auth/methods/${provider}`, { method: 'DELETE' });
+        if (!resp.ok) {
+            const data = await resp.json().catch(() => ({}));
+            methodsStatus.textContent = data.detail || 'Не удалось удалить способ входа';
+            return;
+        }
+        const data = await resp.json();
+        renderMethods(data);
     }
 
     profileForm.addEventListener('submit', async (event) => {
@@ -266,6 +370,37 @@
         passwordForm.reset();
     });
 
+    btnToggleLocal.addEventListener('click', () => {
+        localMethodMessage.textContent = '';
+        localMethodForm.style.display = localMethodForm.style.display === 'none' ? 'block' : 'none';
+    });
+
+    localMethodForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        localMethodMessage.textContent = '';
+        const email = localEmail.value.trim();
+        const password = localPassword.value;
+        const resp = await authFetch('/api/auth/methods/local', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+        if (!resp.ok) {
+            const data = await resp.json().catch(() => ({}));
+            localMethodMessage.textContent = data.detail || 'Не удалось сохранить способ';
+            return;
+        }
+        const data = await resp.json();
+        renderMethods(data);
+        localPassword.value = '';
+        localMethodForm.style.display = 'none';
+    });
+
+    btnLinkGoogle.addEventListener('click', () => startLink('google'));
+    btnLinkYandex.addEventListener('click', () => startLink('yandex'));
+    btnUnlinkGoogle.addEventListener('click', () => deleteMethod('google'));
+    btnUnlinkYandex.addEventListener('click', () => deleteMethod('yandex'));
+
     assignForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         assignMessage.textContent = '';
@@ -298,6 +433,7 @@
     async function init() {
         await loadProfile();
         await loadDevices();
+        await loadMethods();
     }
 
     init();

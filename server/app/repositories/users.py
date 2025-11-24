@@ -10,6 +10,9 @@ __all__ = [
     "get_user_by_email",
     "create_local_user",
     "authenticate_local_user",
+    "get_identities_by_user",
+    "get_identity_by_provider",
+    "find_identity_by_subject",
 ]
 
 
@@ -78,3 +81,39 @@ def authenticate_local_user(db: Session, email: str, password: str) -> Optional[
         return None
 
     return user
+
+
+def get_identities_by_user(db: Session, user_id: int) -> list[UserAuthIdentityDB]:
+    """Translitem: vozvrashchaet vse identity polzovatelya."""
+
+    return (
+        db.query(UserAuthIdentityDB)
+        .filter(UserAuthIdentityDB.user_id == user_id)
+        .all()
+    )
+
+
+def get_identity_by_provider(db: Session, user_id: int, provider: str) -> Optional[UserAuthIdentityDB]:
+    """Translitem: poluchaem identity opredelennogo provajdera dlya polzovatelya."""
+
+    return (
+        db.query(UserAuthIdentityDB)
+        .filter(
+            UserAuthIdentityDB.user_id == user_id,
+            UserAuthIdentityDB.provider == provider,
+        )
+        .first()
+    )
+
+
+def find_identity_by_subject(db: Session, provider: str, provider_subject: str) -> Optional[UserAuthIdentityDB]:
+    """Translitem: poiski identity po subject dlya proverki konfliktov SSO."""
+
+    return (
+        db.query(UserAuthIdentityDB)
+        .filter(
+            UserAuthIdentityDB.provider == provider,
+            UserAuthIdentityDB.provider_subject == provider_subject,
+        )
+        .first()
+    )

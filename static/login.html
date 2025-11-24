@@ -54,6 +54,24 @@
         button:hover {
             background: #219150;
         }
+        .sso-buttons {
+            display: grid;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .sso-btn {
+            background: #ffffff;
+            color: #2c3e50;
+            border: 1px solid #dfe6e9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: bold;
+        }
+        .sso-btn:hover {
+            border-color: #b0bec5;
+        }
         .error {
             color: #c0392b;
             margin-bottom: 10px;
@@ -81,6 +99,10 @@
 
             <button type="submit">Войти</button>
         </form>
+        <div class="sso-buttons">
+            <button type="button" class="sso-btn" id="btnGoogle">Войти через Google</button>
+            <button type="button" class="sso-btn" id="btnYandex">Войти через Yandex</button>
+        </div>
         <div class="note">Введите email и пароль для получения доступа</div>
     </div>
 
@@ -108,6 +130,22 @@
                 return false;
             }
         };
+
+        const applyTokenFromHash = () => {
+            const hash = window.location.hash || '';
+            if (!hash) return;
+            const params = new URLSearchParams(hash.replace(/^#/, ''));
+            const token = params.get('access_token');
+            const type = params.get('token_type');
+            const isBearer = !type || String(type).toLowerCase() === 'bearer';
+            if (token && isBearer) {
+                localStorage.setItem(TOKEN_KEY, token);
+                window.location.hash = '';
+                redirectHome();
+            }
+        };
+
+        applyTokenFromHash();
 
         const existingToken = localStorage.getItem(TOKEN_KEY);
         if (existingToken) {
@@ -153,6 +191,13 @@
                 clearToken();
                 showError('Неверный email или пароль');
             }
+        });
+
+        document.getElementById('btnGoogle').addEventListener('click', () => {
+            window.location.href = '/api/auth/sso/google/login';
+        });
+        document.getElementById('btnYandex').addEventListener('click', () => {
+            window.location.href = '/api/auth/sso/yandex/login';
         });
     </script>
 </body>

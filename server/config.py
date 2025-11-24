@@ -57,6 +57,17 @@ class Settings:
     ACK_CLEANUP_PERIOD_SECONDS: int = 60  # Translitem: chastota fonovoy ochistki ack
     SERVER_PUBLIC_BASE_URL: str = "https://growerhub.ru"  # Translitem: bazovyj https dlya firmware URL (pereopredelyaetsya cherez env)
     FIRMWARE_BINARIES_DIR: str = str(DEFAULT_FIRMWARE_DIR)  # Translitem: absolyutnyj katalog .bin (pereopredelyaetsya FIRMWARE_BINARIES_DIR)
+    AUTH_SSO_REDIRECT_BASE: Optional[str] = None  # Translitem: bazovyj URL dlya formirovaniya redirect_uri v SSO
+    AUTH_GOOGLE_CLIENT_ID: str = ""
+    AUTH_GOOGLE_CLIENT_SECRET: str = ""
+    AUTH_GOOGLE_AUTH_URL: str = "https://accounts.google.com/o/oauth2/v2/auth"
+    AUTH_GOOGLE_TOKEN_URL: str = "https://oauth2.googleapis.com/token"
+    AUTH_GOOGLE_USERINFO_URL: str = "https://openidconnect.googleapis.com/v1/userinfo"
+    AUTH_YANDEX_CLIENT_ID: str = ""
+    AUTH_YANDEX_CLIENT_SECRET: str = ""
+    AUTH_YANDEX_AUTH_URL: str = "https://oauth.yandex.ru/authorize"
+    AUTH_YANDEX_TOKEN_URL: str = "https://oauth.yandex.ru/token"
+    AUTH_YANDEX_USERINFO_URL: str = "https://login.yandex.ru/info"
 
 
 @lru_cache()
@@ -80,6 +91,17 @@ def get_settings() -> Settings:
         ACK_CLEANUP_PERIOD_SECONDS=_env_int("ACK_CLEANUP_PERIOD_SECONDS", Settings.ACK_CLEANUP_PERIOD_SECONDS),
         SERVER_PUBLIC_BASE_URL=os.getenv("SERVER_PUBLIC_BASE_URL", Settings.SERVER_PUBLIC_BASE_URL),
         FIRMWARE_BINARIES_DIR=_resolve_firmware_dir(os.getenv("FIRMWARE_BINARIES_DIR")),
+        AUTH_SSO_REDIRECT_BASE=os.getenv("AUTH_SSO_REDIRECT_BASE", Settings.AUTH_SSO_REDIRECT_BASE),
+        AUTH_GOOGLE_CLIENT_ID=os.getenv("AUTH_GOOGLE_CLIENT_ID", Settings.AUTH_GOOGLE_CLIENT_ID),
+        AUTH_GOOGLE_CLIENT_SECRET=os.getenv("AUTH_GOOGLE_CLIENT_SECRET", Settings.AUTH_GOOGLE_CLIENT_SECRET),
+        AUTH_GOOGLE_AUTH_URL=os.getenv("AUTH_GOOGLE_AUTH_URL", Settings.AUTH_GOOGLE_AUTH_URL),
+        AUTH_GOOGLE_TOKEN_URL=os.getenv("AUTH_GOOGLE_TOKEN_URL", Settings.AUTH_GOOGLE_TOKEN_URL),
+        AUTH_GOOGLE_USERINFO_URL=os.getenv("AUTH_GOOGLE_USERINFO_URL", Settings.AUTH_GOOGLE_USERINFO_URL),
+        AUTH_YANDEX_CLIENT_ID=os.getenv("AUTH_YANDEX_CLIENT_ID", Settings.AUTH_YANDEX_CLIENT_ID),
+        AUTH_YANDEX_CLIENT_SECRET=os.getenv("AUTH_YANDEX_CLIENT_SECRET", Settings.AUTH_YANDEX_CLIENT_SECRET),
+        AUTH_YANDEX_AUTH_URL=os.getenv("AUTH_YANDEX_AUTH_URL", Settings.AUTH_YANDEX_AUTH_URL),
+        AUTH_YANDEX_TOKEN_URL=os.getenv("AUTH_YANDEX_TOKEN_URL", Settings.AUTH_YANDEX_TOKEN_URL),
+        AUTH_YANDEX_USERINFO_URL=os.getenv("AUTH_YANDEX_USERINFO_URL", Settings.AUTH_YANDEX_USERINFO_URL),
     )
     _log_firmware_dir(settings.FIRMWARE_BINARIES_DIR)
     return settings

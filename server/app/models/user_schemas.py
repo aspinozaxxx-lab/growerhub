@@ -64,3 +64,10 @@ class PasswordChangeIn(BaseModel):
 
     current_password: str
     new_password: str
+
+
+class AuthMethodLocalIn(BaseModel):
+    """Translitem: payload dlya podklyucheniya/izmeneniya lokal'nogo vhoda."""
+
+    email: EmailStr
+    password: str

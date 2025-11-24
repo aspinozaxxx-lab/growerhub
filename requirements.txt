@@ -5,3 +5,4 @@ python-multipart==0.0.6
 passlib[bcrypt]
 python-jose[cryptography]
 email-validator
+httpx

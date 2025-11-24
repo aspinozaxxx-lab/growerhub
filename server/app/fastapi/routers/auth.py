@@ -1,24 +1,45 @@
 ﻿from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import (
     create_access_token,
+    decode_access_token,
     get_current_user,
     hash_password,
     verify_password,
 )
+from app.core.sso import (
+    SUPPORTED_PROVIDERS,
+    build_auth_url,
+    build_sso_state,
+    exchange_code_for_tokens,
+    fetch_user_profile,
+    get_or_create_user_from_sso,
+    verify_sso_state,
+)
 from app.models.database_models import UserAuthIdentityDB, UserDB
 from app.models.user_schemas import (
+    AuthMethodLocalIn,
     LoginRequest,
     PasswordChangeIn,
     Token,
     UserOut,
     UserProfileUpdate,
 )
-from app.repositories.users import authenticate_local_user
+from app.repositories.users import (
+    authenticate_local_user,
+    find_identity_by_subject,
+    get_identities_by_user,
+    get_identity_by_provider,
+    get_user_by_id,
+)
+from config import get_settings
 
 router = APIRouter()
 
@@ -37,6 +58,69 @@ def _user_to_out(user: UserDB) -> UserOut:
     )
 
 
+def _optional_current_user(
+    db: Session = Depends(get_db),
+    authorization: Optional[str] = Header(None),
+) -> Optional[UserDB]:
+    """Translitem: neobyazatel'nyj tekushchij user dlya rezhima link SSO."""
+
+    if not authorization:
+        return None
+    try:
+        scheme, token = authorization.split(" ", 1)
+    except ValueError:
+        return None
+    if scheme.lower() != "bearer":
+        return None
+    try:
+        payload = decode_access_token(token)
+        user_id = int(payload.get("user_id"))
+    except Exception:
+        return None
+    return get_user_by_id(db, user_id)
+
+
+def _build_callback_uri(provider: str) -> str:
+    """Translitem: sobiraet redirect_uri s uchetom bazovogo hosta iz nastroek."""
+
+    settings = get_settings()
+    path = f"/api/auth/sso/{provider}/callback"
+    if settings.AUTH_SSO_REDIRECT_BASE:
+        return settings.AUTH_SSO_REDIRECT_BASE.rstrip("/") + path
+    return path
+
+
+def _auth_methods_response(db: Session, user: UserDB) -> dict:
+    """Translitem: statys sposobov vhoda dlya profilya."""
+
+    identities = get_identities_by_user(db, user.id)
+    total = len(identities)
+    local_identity = next((i for i in identities if i.provider == "local"), None)
+    google_identity = next((i for i in identities if i.provider == "google"), None)
+    yandex_identity = next((i for i in identities if i.provider == "yandex"), None)
+
+    local_active = bool(local_identity and local_identity.password_hash)
+    can_delete = total > 1
+
+    return {
+        "local": {
+            "active": local_active,
+            "email": user.email,
+            "can_delete": can_delete if local_identity else False,
+        },
+        "google": {
+            "linked": google_identity is not None,
+            "provider_subject": google_identity.provider_subject if google_identity else None,
+            "can_delete": can_delete if google_identity else False,
+        },
+        "yandex": {
+            "linked": yandex_identity is not None,
+            "provider_subject": yandex_identity.provider_subject if yandex_identity else None,
+            "can_delete": can_delete if yandex_identity else False,
+        },
+    }
+
+
 @router.post("/api/auth/login", response_model=Token)
 def login(form: LoginRequest, db: Session = Depends(get_db)) -> Token:
     """Translitem: login po email i parolyu, vozvrashchaet JWT."""
@@ -51,6 +135,112 @@ def login(form: LoginRequest, db: Session = Depends(get_db)) -> Token:
 
     token = create_access_token({"user_id": user.id})
     return Token(access_token=token, token_type="bearer")
+
+
+@router.get("/api/auth/sso/{provider}/login")
+def sso_login(
+    provider: str,
+    redirect_path: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: Optional[UserDB] = Depends(_optional_current_user),
+):
+    """Translitem: start OAuth2 potoka dlya login ili link."""
+
+    if provider not in SUPPORTED_PROVIDERS:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Provider not found")
+
+    mode = "login"
+    current_user_id: Optional[int] = None
+    if current_user:
+        mode = "link"
+        current_user_id = current_user.id
+
+    if not redirect_path:
+        redirect_path = "/static/profile.html" if mode == "link" else "/"
+
+    redirect_uri = _build_callback_uri(provider)
+    try:
+        state = build_sso_state(provider, mode, redirect_path, current_user_id)
+        auth_url = build_auth_url(provider, redirect_uri, state)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid SSO request")
+
+    return RedirectResponse(url=auth_url, status_code=status.HTTP_302_FOUND)
+
+
+@router.get("/api/auth/sso/{provider}/callback")
+def sso_callback(
+    provider: str,
+    code: str,
+    state: str,
+    db: Session = Depends(get_db),
+):
+    """Translitem: obrabotka callbacka ot provajdera SSO."""
+
+    if provider not in SUPPORTED_PROVIDERS:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Provider not found")
+
+    try:
+        state_data = verify_sso_state(state)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid state")
+
+    if state_data.get("provider") != provider:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Provider mismatch")
+
+    redirect_path = state_data.get("redirect_path") or "/"
+    redirect_uri = _build_callback_uri(provider)
+
+    try:
+        tokens = exchange_code_for_tokens(provider, code, redirect_uri)
+        profile = fetch_user_profile(provider, tokens)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    subject = profile.get("subject")
+    email = profile.get("email")
+    if not subject:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No subject from provider")
+
+    mode = state_data.get("mode")
+    if mode == "login":
+        user = get_or_create_user_from_sso(db, provider, subject, email)
+        token = create_access_token({"user_id": user.id})
+        sep = "#" if "#" not in redirect_path else "&"
+        return RedirectResponse(
+            url=f"{redirect_path}{sep}access_token={token}&token_type=bearer",
+            status_code=status.HTTP_302_FOUND,
+        )
+
+    current_user_id = state_data.get("current_user_id")
+    try:
+        current_user_id_int = int(current_user_id)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User required for link")
+
+    current_user = get_user_by_id(db, current_user_id_int)
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    identity_same_subject = find_identity_by_subject(db, provider, subject)
+    if identity_same_subject and identity_same_subject.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Identity already linked")
+
+    identity_for_user = get_identity_by_provider(db, current_user.id, provider)
+    if not identity_for_user:
+        identity_for_user = UserAuthIdentityDB(
+            user_id=current_user.id,
+            provider=provider,
+            provider_subject=subject,
+            password_hash=None,
+        )
+        db.add(identity_for_user)
+    else:
+        identity_for_user.provider_subject = subject
+        identity_for_user.password_hash = None
+
+    db.commit()
+    return RedirectResponse(url=redirect_path, status_code=status.HTTP_302_FOUND)
 
 
 @router.get("/api/auth/me", response_model=UserOut)
@@ -118,3 +308,72 @@ def change_password(
     db.commit()
 
     return {"message": "password updated"}
+
+
+@router.get("/api/auth/methods")
+def auth_methods(
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
+    """Translitem: vozvrashchaet status dostupnyh sposobov vhoda tekushchego polzovatelya."""
+
+    return _auth_methods_response(db, current_user)
+
+
+@router.post("/api/auth/methods/local")
+def configure_local_method(
+    payload: AuthMethodLocalIn,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
+    """Translitem: vklyuchaet ili obnovlyaet lokal'nyj email/parol' dlya vhoda."""
+
+    existing = (
+        db.query(UserDB)
+        .filter(UserDB.email == payload.email, UserDB.id != current_user.id)
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email uzhe zanyat")
+
+    current_user.email = payload.email
+    identity = get_identity_by_provider(db, current_user.id, "local")
+    password_hash = hash_password(payload.password)
+    if identity:
+        identity.password_hash = password_hash
+    else:
+        identity = UserAuthIdentityDB(
+            user_id=current_user.id,
+            provider="local",
+            provider_subject=None,
+            password_hash=password_hash,
+        )
+        db.add(identity)
+
+    db.commit()
+    db.refresh(current_user)
+    return _auth_methods_response(db, current_user)
+
+
+@router.delete("/api/auth/methods/{provider}")
+def delete_auth_method(
+    provider: str,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
+    """Translitem: udalяет sposob vhoda, esli on ne poslednij."""
+
+    if provider not in {"local", "google", "yandex"}:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Provider not supported")
+
+    identities = get_identities_by_user(db, current_user.id)
+    if len(identities) <= 1:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Nelzya udalit's poslednij sposob vhoda")
+
+    identity = next((i for i in identities if i.provider == provider), None)
+    if not identity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sposob vhoda ne najden")
+
+    db.delete(identity)
+    db.commit()
+    return _auth_methods_response(db, current_user)
