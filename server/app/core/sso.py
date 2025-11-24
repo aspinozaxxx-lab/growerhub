@@ -91,7 +91,7 @@ def _provider_settings(provider: str) -> Dict[str, str]:
             "auth_url": settings.AUTH_YANDEX_AUTH_URL,
             "token_url": settings.AUTH_YANDEX_TOKEN_URL,
             "userinfo_url": settings.AUTH_YANDEX_USERINFO_URL,
-            "scope": "login:email login:info",
+            "scope": "login:email",
         }
     raise ValueError("Unsupported provider")
 
