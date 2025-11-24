@@ -14,3 +14,7 @@ python_cmd: /usr/bin/python3
 
 # TODO: perenesti parol' iz gh_db_url v zashchishchennoye mesto
 gh_db_url: "postgresql://db-admin:gh_db_admin_dev_1234@192.168.0.81:5432/gh_db"
+google_client_id: "{{ lookup('env', 'GH_GOOGLE_CLIENT_ID') }}"
+google_client_secret: "{{ lookup('env', 'GH_GOOGLE_CLIENT_SECRET') }}"
+yandex_client_id: "{{ lookup('env', 'GH_YANDEX_CLIENT_ID') }}"
+yandex_client_secret: "{{ lookup('env', 'GH_YANDEX_CLIENT_SECRET') }}"

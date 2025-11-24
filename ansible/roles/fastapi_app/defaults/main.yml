@@ -1,31 +1,31 @@
 # ==========================================================
-# Роль fastapi_app — настройки по умолчанию
+# Defaulty roli fastapi_app dlya servisa GrowerHub
 # ==========================================================
 
-# Имя приложения и systemd-сервиса
+# Baza dannyh dlya systemd-unita
 app_name: growerhub
 service_name: "{{ app_name }}"
 
-# Пользователь, от которого запускается FastAPI
+# Uchetka pod kotoroj kрутится FastAPI
 app_user: watering-admin
 app_group: "{{ app_user }}"
 
-# Пути к проекту и виртуальному окружению
+# Rabochij katalog servisa i virtualenv
 app_workdir: /home/watering-admin/growerhub/server
 app_venv: "/home/watering-admin/growerhub/server/.venv"
 app_requirements: "{{ app_workdir }}/requirements.txt"
 
-# Основной модуль приложения (run:app)
+# Zapuskayemyj modul/obekt FastAPI (run:app)
 app_module: run
 app_object: app
 
-# Параметры хоста и порта FastAPI
+# Binde i worker dla uvicorn
 app_host: 127.0.0.1
 app_port: 8000
 app_workers: 1
 app_reload: false
 
-# Необходимые системные пакеты
+# Pakety neobhodimye dlya hosta
 apt_packages:
   - python3-venv
   - python3-pip
@@ -34,33 +34,46 @@ apt_packages:
   - procps
   - psmisc
 
-# ----------------------------------------------------------
-# Переменные окружения приложения (env)
-# ----------------------------------------------------------
-# Этот словарь будет развёрнут в systemd unit-файле как:
-#   Environment=KEY=VALUE
-#
-# Здесь задаются параметры подключения к брокеру MQTT и
-# отладочные флаги для FastAPI (читаются через config.py).
-# ----------------------------------------------------------
-
+# Peremennye okruzheniya dlya systemd (Environment=)
 app_env_base:
-  # Настройки MQTT-клиента (используются и паблишером, и подписчиками)
+  # MQTT
   MQTT_HOST: "127.0.0.1"
   MQTT_PORT: "1883"
   MQTT_USERNAME: "mosquitto-admin"
   MQTT_PASSWORD: "qazwsxedc"
   MQTT_TLS: "false"
 
-  # Флаг отладки (в продакшене следует выключить)
+  # Rezhim logirovaniya
   DEBUG: "true"
 
-  # Порог "онлайн" устройства в секундах
+  # Porog online dlya ustrojstv
   DEVICE_ONLINE_THRESHOLD_S: "10"
 
-  # Дополнительно можно прокидывать другие переменные,
-  # если их читает config.py, например URL БД, токены и т.п.
+  # SSO bazovyj redirect
+  AUTH_SSO_REDIRECT_BASE: "https://growerhub.ru"
 
-# DATABASE_URL dobavlyaetsya iz gh_db_url tol'ko pri nalichii hostovoy peremennoy
+  # Google SSO
+  AUTH_GOOGLE_CLIENT_ID: "{{ google_client_id }}"
+  AUTH_GOOGLE_CLIENT_SECRET: "{{ google_client_secret }}"
+  AUTH_GOOGLE_AUTH_URL: "https://accounts.google.com/o/oauth2/v2/auth"
+  AUTH_GOOGLE_TOKEN_URL: "https://oauth2.googleapis.com/token"
+  AUTH_GOOGLE_USERINFO_URL: "https://openidconnect.googleapis.com/v1/userinfo"
+
+  # Yandex SSO
+  AUTH_YANDEX_CLIENT_ID: "{{ yandex_client_id }}"
+  AUTH_YANDEX_CLIENT_SECRET: "{{ yandex_client_secret }}"
+  AUTH_YANDEX_AUTH_URL: "https://oauth.yandex.ru/authorize"
+  AUTH_YANDEX_TOKEN_URL: "https://oauth.yandex.ru/token"
+  AUTH_YANDEX_USERINFO_URL: "https://login.yandex.ru/info"
+
+  # Ostalnye peremennye mozhno dobavit' esli nuzhno (sm. server/config.py)
+
+# Zagotovki dlya secretov (pereopredelyayutsya v host_vars/vault)
+google_client_id: ""
+google_client_secret: ""
+yandex_client_id: ""
+yandex_client_secret: ""
+
+# DATABASE_URL dobavlyaetsya iz gh_db_url tolko pri nalichii hostovoj peremennoj
 app_env_database_overrides: "{{ {'DATABASE_URL': gh_db_url} if (gh_db_url is defined) else {} }}"
 app_env: "{{ app_env_base | combine(app_env_database_overrides) }}"
