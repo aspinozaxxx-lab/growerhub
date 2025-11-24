@@ -1,7 +1,7 @@
 """add device user fk
 
 Revision ID: a3e6b2e7d8f1
-Revises: c5d1b1b5d0ea_add_users_and_auth_identities
+Revises: c5d1b1b5d0ea
 Create Date: 2025-02-03 00:00:00.000000
 """
 
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "a3e6b2e7d8f1"
-down_revision = "c5d1b1b5d0ea_add_users_and_auth_identities"
+down_revision = "c5d1b1b5d0ea"
 branch_labels = None
 depends_on = None
 
