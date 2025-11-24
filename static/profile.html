@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -76,6 +76,7 @@
         <h1 style="margin: 0;">Личный кабинет</h1>
         <div class="actions">
             <a href="/" style="text-decoration:none;"><button class="secondary" type="button">Главная</button></a>
+            <button id="btn-admin" class="secondary" type="button" style="display:none;">Администрирование</button>
             <button id="logoutBtn" class="danger" type="button">Выйти</button>
         </div>
     </div>
@@ -170,8 +171,12 @@
     const assignForm = document.getElementById('assignForm');
     const assignDeviceId = document.getElementById('assignDeviceId');
     const assignMessage = document.getElementById('assignMessage');
+    const btnAdmin = document.getElementById('btn-admin');
 
     document.getElementById('logoutBtn').addEventListener('click', redirectToLogin);
+    btnAdmin.addEventListener('click', function () {
+        window.location.href = '/static/admin_devices.html';
+    });
 
     let currentUser = null;
 
@@ -182,6 +187,9 @@
         userInfo.textContent = `${currentUser.email} • роль: ${currentUser.role}`;
         document.getElementById('email').value = currentUser.email || '';
         document.getElementById('username').value = currentUser.username || '';
+        if (currentUser.role === "admin") {
+            btnAdmin.style.display = "inline-block";
+        }
     }
 
     async function loadDevices() {
@@ -296,3 +304,4 @@
 </script>
 </body>
 </html>
+
