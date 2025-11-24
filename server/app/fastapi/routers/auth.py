@@ -3,7 +3,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -206,12 +206,26 @@ def sso_callback(
     if mode == "login":
         user = get_or_create_user_from_sso(db, provider, subject, email)
         token = create_access_token({"user_id": user.id})
-        redirect_path = "/static/login.html"
-        sep = "#" if "#" not in redirect_path else "&"
-        return RedirectResponse(
-            url=f"{redirect_path}{sep}access_token={token}&token_type=bearer",
-            status_code=status.HTTP_302_FOUND,
-        )
+        html = f"""
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Signing in...</title>
+  </head>
+  <body>
+    <script>
+      try {{
+        localStorage.setItem('gh_access_token', '{token}');
+        window.location.href = '/';
+      }} catch (e) {{
+        window.location.href = '/static/login.html#token_error=1';
+      }}
+    </script>
+  </body>
+</html>
+"""
+        return HTMLResponse(content=html)
 
     current_user_id = state_data.get("current_user_id")
     try:
