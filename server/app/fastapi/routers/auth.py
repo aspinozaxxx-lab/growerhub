@@ -2,8 +2,8 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -138,8 +138,9 @@ def login(form: LoginRequest, db: Session = Depends(get_db)) -> Token:
 
 
 @router.get("/api/auth/sso/{provider}/login")
-def sso_login(
+async def sso_login(
     provider: str,
+    request: Request,
     redirect_path: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: Optional[UserDB] = Depends(_optional_current_user),
@@ -165,6 +166,9 @@ def sso_login(
     except ValueError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid SSO request")
 
+    accept = request.headers.get("accept", "")
+    if "application/json" in accept.lower():
+        return JSONResponse({"url": auth_url})
     return RedirectResponse(url=auth_url, status_code=status.HTTP_302_FOUND)
 
 

@@ -298,17 +298,23 @@
 
     async function startLink(provider) {
         methodsStatus.textContent = '';
-        const resp = await authFetch(`/api/auth/sso/${provider}/login`, { method: 'GET', redirect: 'manual' });
-        const location = resp.headers.get('Location');
-        if (location) {
-            window.location.href = location;
-            return;
+        try {
+            const resp = await authFetch(`/api/auth/sso/${provider}/login`, {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+            });
+            if (!resp.ok) {
+                throw new Error(`HTTP ${resp.status}`);
+            }
+            const data = await resp.json();
+            if (!data.url) {
+                throw new Error('No url in response');
+            }
+            window.location.href = data.url;
+        } catch (error) {
+            console.error('Failed to start link', error);
+            methodsStatus.textContent = 'Не удалось начать привязку';
         }
-        if (resp.redirected) {
-            window.location.href = resp.url;
-            return;
-        }
-        methodsStatus.textContent = 'Не удалось начать привязку';
     }
 
     async function deleteMethod(provider) {
