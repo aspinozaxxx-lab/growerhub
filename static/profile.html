@@ -137,6 +137,20 @@
         </div>
     </div>
 
+    <h2>Мои растения</h2>
+    <div id="plantsMessage" class="error"></div>
+    <table id="plantsTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Название</th>
+                <th>Группа</th>
+                <th>Дата посадки</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
     <h2>Мои устройства</h2>
     <div id="devicesMessage" class="error"></div>
     <table id="devicesTable">
@@ -146,6 +160,7 @@
                 <th>Device ID</th>
                 <th>Название</th>
                 <th>Статус</th>
+                <th>Привязано к (ID растений)</th>
                 <th>Действия</th>
             </tr>
         </thead>
@@ -223,6 +238,8 @@
     const btnLinkYandex = document.getElementById('btnLinkYandex');
     const btnUnlinkGoogle = document.getElementById('btnUnlinkGoogle');
     const btnUnlinkYandex = document.getElementById('btnUnlinkYandex');
+    const plantsTableBody = document.querySelector('#plantsTable tbody');
+    const plantsMessage = document.getElementById('plantsMessage');
 
     document.getElementById('logoutBtn').addEventListener('click', redirectToLogin);
     btnAdmin.addEventListener('click', function () {
@@ -230,6 +247,8 @@
     });
 
     let currentUser = null;
+    let userPlants = [];
+    let userDevices = [];
 
     async function loadProfile() {
         const resp = await authFetch('/api/auth/me');
@@ -243,6 +262,37 @@
         }
     }
 
+    function renderPlantsList(plants) {
+        plantsTableBody.innerHTML = '';
+        plantsMessage.textContent = '';
+        if (!plants.length) {
+            plantsTableBody.innerHTML = '<tr><td colspan="4">Нет добавленных растений</td></tr>';
+            return;
+        }
+        plants.forEach((plant) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${plant.id}</td>
+                <td>${plant.name}</td>
+                <td>${plant.plant_group ? plant.plant_group.name : ''}</td>
+                <td>${new Date(plant.planted_at).toLocaleDateString()}</td>
+            `;
+            plantsTableBody.appendChild(tr);
+        });
+    }
+
+    async function loadPlants() {
+        const resp = await authFetch('/api/plants');
+        plantsTableBody.innerHTML = '';
+        plantsMessage.textContent = '';
+        if (!resp.ok) {
+            plantsMessage.textContent = 'Не удалось загрузить растения';
+            return;
+        }
+        userPlants = await resp.json();
+        renderPlantsList(userPlants);
+    }
+
     async function loadDevices() {
         const resp = await authFetch('/api/devices/my');
         devicesTableBody.innerHTML = '';
@@ -251,24 +301,161 @@
             devicesMessage.textContent = 'Не удалось загрузить устройства';
             return;
         }
-        const devices = await resp.json();
-        if (!Array.isArray(devices) || devices.length === 0) {
-            devicesTableBody.innerHTML = '<tr><td colspan="5">Нет привязанных устройств</td></tr>';
+        userDevices = await resp.json();
+        renderDevices();
+    }
+
+    function renderPlantCell(cell, device) {
+        const plantIdsText = device.plant_ids && device.plant_ids.length ? device.plant_ids.join(', ') : '—';
+        cell.dataset.mode = 'view';
+        cell.innerHTML = `
+            <span class="plant-ids" title="Формат: ID rastenij cherez zapjatuju, naprimer: 1,2,5">${plantIdsText}</span>
+            <button type="button" class="secondary" data-action="edit-plants">Ред.</button>
+        `;
+    }
+
+    function renderDevices() {
+        devicesTableBody.innerHTML = '';
+        if (!Array.isArray(userDevices) || userDevices.length === 0) {
+            devicesTableBody.innerHTML = '<tr><td colspan="6">Нет привязанных устройств</td></tr>';
             return;
         }
-        devices.forEach((device) => {
+
+        userDevices.forEach((device) => {
             const tr = document.createElement('tr');
+            tr.dataset.deviceId = device.id;
             const status = device.is_online ? 'В сети' : 'Не в сети';
+
+            const plantCell = document.createElement('td');
+            renderPlantCell(plantCell, device);
+
             tr.innerHTML = `
                 <td>${device.id}</td>
                 <td>${device.device_id}</td>
                 <td>${device.name || ''}</td>
                 <td>${status}</td>
-                <td><button type="button" onclick="unassignDevice(${device.id})">Отвязать</button></td>
+                <td></td>
+                <td><button type="button" data-action="unassign">Отвязать</button></td>
             `;
+
+            tr.children[4].replaceWith(plantCell);
             devicesTableBody.appendChild(tr);
         });
     }
+
+    function getDeviceById(deviceId) {
+        return userDevices.find((item) => item.id === deviceId);
+    }
+
+    function enterEditMode(plantCell, device) {
+        const currentValue = device.plant_ids && device.plant_ids.length ? device.plant_ids.join(', ') : '';
+        plantCell.dataset.mode = 'edit';
+        plantCell.innerHTML = `
+            <input type="text" value="${currentValue}" placeholder="1,2,5" title="Формат: ID rastenij cherez zapjatuju, naprimer: 1,2,5">
+            <div class="actions">
+                <button type="button" data-action="save-plants">Сохранить</button>
+                <button type="button" class="secondary" data-action="cancel-plants">Отмена</button>
+            </div>
+        `;
+    }
+
+    function parsePlantIds(value) {
+        if (!value.trim()) return [];
+        const parts = value.split(',').map((item) => item.trim()).filter(Boolean);
+        const ids = parts.map((item) => Number(item));
+        if (ids.some((id) => Number.isNaN(id) || !Number.isInteger(id))) {
+            throw new Error('ID dolzhny byt celami chislamy');
+        }
+        const unique = [];
+        ids.forEach((id) => {
+            if (!unique.includes(id)) {
+                unique.push(id);
+            }
+        });
+        return unique;
+    }
+
+    function validatePlantIds(ids) {
+        if (!ids.length) return true;
+        if (!userPlants.length) {
+            return false;
+        }
+        const known = new Set(userPlants.map((plant) => plant.id));
+        return ids.every((id) => known.has(id));
+    }
+
+    devicesTableBody.addEventListener('click', async (event) => {
+        const action = event.target.dataset.action;
+        if (!action) return;
+        const tr = event.target.closest('tr');
+        if (!tr) return;
+        const deviceId = Number(tr.dataset.deviceId);
+        const device = getDeviceById(deviceId);
+        if (!device) return;
+
+        if (action === 'unassign') {
+            assignMessage.textContent = '';
+            const resp = await authFetch(`/api/devices/${deviceId}/unassign`, { method: 'POST' });
+            if (!resp.ok) {
+                const data = await resp.json().catch(() => ({}));
+                assignMessage.textContent = data.detail || 'Не удалось отвязать устройство';
+                return;
+            }
+            await loadDevices();
+            return;
+        }
+
+        const plantCell = tr.children[4];
+        if (action === 'edit-plants') {
+            enterEditMode(plantCell, device);
+            return;
+        }
+        if (action === 'cancel-plants') {
+            renderPlantCell(plantCell, device);
+            return;
+        }
+        if (action === 'save-plants') {
+            const input = plantCell.querySelector('input');
+            const value = input ? input.value : '';
+            let newIds = [];
+            try {
+                newIds = parsePlantIds(value);
+            } catch (error) {
+                alert(error.message || 'Некорректные ID растений');
+                return;
+            }
+            if (!validatePlantIds(newIds)) {
+                alert('Указаны несуществующие ID растений. Проверьте список в таблице выше.');
+                return;
+            }
+
+            const oldIds = Array.isArray(device.plant_ids) ? device.plant_ids : [];
+            const toAdd = newIds.filter((id) => !oldIds.includes(id));
+            const toRemove = oldIds.filter((id) => !newIds.includes(id));
+
+            try {
+                for (const plantId of toAdd) {
+                    const resp = await authFetch(`/api/plants/${plantId}/devices/${deviceId}`, { method: 'POST' });
+                    if (!resp.ok) {
+                        throw new Error('attach-failed');
+                    }
+                }
+                for (const plantId of toRemove) {
+                    const resp = await authFetch(`/api/plants/${plantId}/devices/${deviceId}`, { method: 'DELETE' });
+                    if (!resp.ok) {
+                        throw new Error('detach-failed');
+                    }
+                }
+            } catch (error) {
+                alert('Не удалось обновить привязки устройств к растениям');
+                renderPlantCell(plantCell, device);
+                return;
+            }
+
+            device.plant_ids = newIds;
+            renderPlantCell(plantCell, device);
+        }
+    });
 
     function renderMethods(data) {
         methodsStatus.textContent = '';
@@ -425,19 +612,9 @@
         await loadDevices();
     });
 
-    window.unassignDevice = async (deviceId) => {
-        assignMessage.textContent = '';
-        const resp = await authFetch(`/api/devices/${deviceId}/unassign`, { method: 'POST' });
-        if (!resp.ok) {
-            const data = await resp.json().catch(() => ({}));
-            assignMessage.textContent = data.detail || 'Не удалось отвязать устройство';
-            return;
-        }
-        await loadDevices();
-    };
-
     async function init() {
         await loadProfile();
+        await loadPlants();
         await loadDevices();
         await loadMethods();
     }

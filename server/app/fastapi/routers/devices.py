@@ -15,6 +15,7 @@ from app.models.database_models import (
     SensorDataPoint,
     UserDB,
     WateringLogDB,
+    PlantDeviceDB,
 )
 from app.models.device_schemas import (
     AdminAssignIn,
@@ -123,7 +124,7 @@ async def get_all_devices(db: Session = Depends(get_db)):
     state_repo = DeviceStateLastRepository()
 
     return [
-        _device_to_out(device, state_repo, current_time, online_window).model_dump()
+        _device_to_out(device, state_repo, current_time, online_window, db).model_dump()
         for device in devices
     ]
 
@@ -139,7 +140,7 @@ async def get_my_devices(
     state_repo = DeviceStateLastRepository()
 
     return [
-        _device_to_out(device, state_repo, current_time, online_window)
+        _device_to_out(device, state_repo, current_time, online_window, db)
         for device in devices
     ]
 
@@ -160,7 +161,7 @@ async def admin_list_devices(
 
     result: list[AdminDeviceOut] = []
     for device, owner in rows:
-        device_payload = _device_to_out(device, state_repo, current_time, online_window)
+        device_payload = _device_to_out(device, state_repo, current_time, online_window, db)
         owner_payload = (
             DeviceOwnerInfo(id=owner.id, email=owner.email, username=owner.username)
             if owner
@@ -194,7 +195,7 @@ async def assign_device_to_me(
     current_time = datetime.utcnow()
     online_window = timedelta(minutes=3)
     state_repo = DeviceStateLastRepository()
-    return _device_to_out(device, state_repo, current_time, online_window)
+    return _device_to_out(device, state_repo, current_time, online_window, db)
 
 
 @router.post("/api/devices/{device_id}/unassign", response_model=DeviceOut)
@@ -217,7 +218,7 @@ async def unassign_device(
     current_time = datetime.utcnow()
     online_window = timedelta(minutes=3)
     state_repo = DeviceStateLastRepository()
-    return _device_to_out(device, state_repo, current_time, online_window)
+    return _device_to_out(device, state_repo, current_time, online_window, db)
 
 
 @router.post("/api/admin/devices/{device_id}/assign", response_model=AdminDeviceOut)
@@ -242,7 +243,7 @@ async def admin_assign_device(
     current_time = datetime.utcnow()
     online_window = timedelta(minutes=3)
     state_repo = DeviceStateLastRepository()
-    device_payload = _device_to_out(device, state_repo, current_time, online_window)
+    device_payload = _device_to_out(device, state_repo, current_time, online_window, db)
     owner_payload = DeviceOwnerInfo(id=user.id, email=user.email, username=user.username)
     return AdminDeviceOut(**device_payload.model_dump(), owner=owner_payload)
 
@@ -264,7 +265,7 @@ async def admin_unassign_device(
     current_time = datetime.utcnow()
     online_window = timedelta(minutes=3)
     state_repo = DeviceStateLastRepository()
-    device_payload = _device_to_out(device, state_repo, current_time, online_window)
+    device_payload = _device_to_out(device, state_repo, current_time, online_window, db)
     return AdminDeviceOut(**device_payload.model_dump(), owner=None)
 
 
@@ -273,6 +274,7 @@ def _device_to_out(
     state_repo: DeviceStateLastRepository,
     current_time: datetime,
     online_window: timedelta,
+    db: Session,
 ) -> DeviceOut:
     """Translitem: dopolnyaem dannye ustrojstva state iz osnovnogo hranilishcha."""
 
@@ -296,6 +298,11 @@ def _device_to_out(
                 <= online_window.total_seconds()
             )
 
+    plant_links = (
+        db.query(PlantDeviceDB.plant_id).filter(PlantDeviceDB.device_id == device.id).all()
+    )
+    plant_ids = [row.plant_id for row in plant_links]
+
     return DeviceOut(
         id=device.id,
         device_id=device.device_id,
@@ -318,6 +325,7 @@ def _device_to_out(
         update_available=device.update_available,
         firmware_version=firmware_version,
         user_id=device.user_id,
+        plant_ids=plant_ids,
     )
 
 

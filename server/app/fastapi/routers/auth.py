@@ -210,26 +210,10 @@ def sso_callback(
     if mode == "login":
         user = get_or_create_user_from_sso(db, provider, subject, email)
         token = create_access_token({"user_id": user.id})
-        html = f"""
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Signing in...</title>
-  </head>
-  <body>
-    <script>
-      try {{
-        localStorage.setItem('gh_access_token', '{token}');
-        window.location.href = '/';
-      }} catch (e) {{
-        window.location.href = '/static/login.html#token_error=1';
-      }}
-    </script>
-  </body>
-</html>
-"""
-        return HTMLResponse(content=html)
+        redirect_target = redirect_path or "/"
+        separator = "&" if "?" in redirect_target else "?"
+        redirect_with_token = f"{redirect_target}{separator}access_token={token}"
+        return RedirectResponse(url=redirect_with_token, status_code=status.HTTP_302_FOUND)
 
     current_user_id = state_data.get("current_user_id")
     try:

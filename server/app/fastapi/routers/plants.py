@@ -375,7 +375,8 @@ def _build_plant_out(
         .all()
     )
     devices_out: list[DeviceOut] = [
-        _device_to_out(device, state_repo, current_time, online_window) for device in device_links
+        _device_to_out(device, state_repo, current_time, online_window, db)
+        for device in device_links
     ]
 
     return PlantOut(

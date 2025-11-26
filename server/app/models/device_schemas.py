@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DeviceOwnerInfo(BaseModel):
@@ -36,6 +36,7 @@ class DeviceOut(BaseModel):
     update_available: bool
     firmware_version: str
     user_id: Optional[int] = None
+    plant_ids: list[int] = Field(default_factory=list)
 
 
 class AdminDeviceOut(DeviceOut):
