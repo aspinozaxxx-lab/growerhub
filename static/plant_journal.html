@@ -1,0 +1,149 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Журнал растения</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f7f9fb; }
+        .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .entry { border-bottom: 1px solid #eee; padding: 10px 0; }
+        .entry:last-child { border-bottom: none; }
+        .photos img { max-width: 120px; margin-right: 10px; border-radius: 6px; }
+        .form-row { margin: 10px 0; display: flex; gap: 10px; flex-wrap: wrap; }
+        label { display: flex; flex-direction: column; gap: 4px; }
+        input, textarea, select, button { padding: 8px; border: 1px solid #ddd; border-radius: 6px; }
+        button { background: #4CAF50; color: #fff; cursor: pointer; }
+        button:hover { background: #43a047; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div style="display:flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <h1 id="plant-title">Журнал растения</h1>
+            <button onclick="window.location.href='index.html'">На главную</button>
+        </div>
+        <p id="plant-meta"></p>
+        <div id="journal-list"></div>
+
+        <h3>Добавить запись</h3>
+        <div class="form-row">
+            <label>Тип события
+                <select id="entry-type">
+                    <option value="watering">Полив</option>
+                    <option value="feeding">Удобрения</option>
+                    <option value="note">Заметка</option>
+                    <option value="photo">Фото</option>
+                    <option value="other">Другое</option>
+                </select>
+            </label>
+            <label>Дата и время
+                <input type="datetime-local" id="entry-date">
+            </label>
+        </div>
+        <label>Текст
+            <textarea id="entry-text" rows="3" placeholder="Комментарий"></textarea>
+        </label>
+        <label>Ссылки на фото (через запятую)
+            <input type="text" id="entry-photos" placeholder="https://...">
+        </label>
+        <button onclick="createEntry()">Сохранить</button>
+    </div>
+
+    <script>
+        const TOKEN_KEY = 'gh_access_token';
+        const accessToken = localStorage.getItem(TOKEN_KEY);
+        if (!accessToken) {
+            window.location.href = '/login.html';
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const plantId = urlParams.get('plant_id');
+        if (!plantId) {
+            document.getElementById('journal-list').innerHTML = '<p>Не указан plant_id</p>';
+            throw new Error('no plant id');
+        }
+
+        const authFetch = async (url, options = {}) => {
+            const opts = { ...options };
+            opts.headers = { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` };
+            const resp = await fetch(url, opts);
+            if (resp.status === 401 || resp.status === 403) {
+                localStorage.removeItem(TOKEN_KEY);
+                window.location.href = '/login.html';
+            }
+            return resp;
+        };
+
+        const formatDate = (value) => {
+            if (!value) return '';
+            const date = new Date(value);
+            return date.toLocaleString('ru-RU');
+        };
+
+        async function loadPlantInfo() {
+            const resp = await authFetch(`/api/plants/${plantId}`);
+            if (!resp.ok) return;
+            const plant = await resp.json();
+            document.getElementById('plant-title').innerText = `Журнал: ${plant.name}`;
+            document.getElementById('plant-meta').innerText = plant.plant_group ? `Группа: ${plant.plant_group.name}` : 'Без группы';
+        }
+
+        async function loadJournal() {
+            const resp = await authFetch(`/api/plants/${plantId}/journal`);
+            const entries = await resp.json();
+            renderJournal(entries);
+        }
+
+        function renderJournal(entries) {
+            const container = document.getElementById('journal-list');
+            if (!Array.isArray(entries) || entries.length === 0) {
+                container.innerHTML = '<p>Записей нет</p>';
+                return;
+            }
+            container.innerHTML = '';
+            entries.forEach(entry => {
+                const div = document.createElement('div');
+                div.className = 'entry';
+                const photos = (entry.photos || []).map(p => `<img src="${p.url}" alt="photo">`).join('');
+                div.innerHTML = `
+                    <div><strong>${formatDate(entry.event_at)}</strong> — ${entry.type}</div>
+                    <div>${entry.text || ''}</div>
+                    <div class="photos">${photos}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function createEntry() {
+            const type = document.getElementById('entry-type').value;
+            const text = document.getElementById('entry-text').value;
+            const dateValue = document.getElementById('entry-date').value;
+            const photoInput = document.getElementById('entry-photos').value;
+            const payload = { type, text: text || null };
+            if (dateValue) payload.event_at = new Date(dateValue).toISOString();
+            if (photoInput.trim()) {
+                payload.photo_urls = photoInput.split(',').map(v => v.trim()).filter(Boolean);
+            }
+            const resp = await authFetch(`/api/plants/${plantId}/journal`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (resp.ok) {
+                document.getElementById('entry-text').value = '';
+                document.getElementById('entry-date').value = '';
+                document.getElementById('entry-photos').value = '';
+                await loadJournal();
+            }
+        }
+
+        async function init() {
+            await loadPlantInfo();
+            await loadJournal();
+        }
+
+        init();
+    </script>
+</body>
+</html>

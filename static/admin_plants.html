@@ -1,0 +1,55 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ: растения</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        table { width: 100%; border-collapse: collapse; background: #fff; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>Админ: растения</h1>
+    <p><a href="admin_devices.html">К устройствам</a></p>
+    <table>
+        <thead>
+            <tr><th>ID</th><th>Имя</th><th>Владелец</th><th>Группа</th></tr>
+        </thead>
+        <tbody id="plants-body"></tbody>
+    </table>
+
+    <script>
+        const TOKEN_KEY = 'gh_access_token';
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (!token) { window.location.href = '/login.html'; }
+
+        const authFetch = async (url, options = {}) => {
+            const opts = { ...options };
+            opts.headers = { ...(options.headers || {}), Authorization: `Bearer ${token}` };
+            const resp = await fetch(url, opts);
+            if (resp.status === 401 || resp.status === 403) {
+                localStorage.removeItem(TOKEN_KEY);
+                window.location.href = '/login.html';
+            }
+            return resp;
+        };
+
+        async function loadPlants() {
+            const resp = await authFetch('/api/admin/plants');
+            const plants = await resp.json();
+            const tbody = document.getElementById('plants-body');
+            tbody.innerHTML = '';
+            plants.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${p.id}</td><td>${p.name}</td><td>${p.owner_email || ''} (${p.owner_username || ''})</td><td>${p.group_name || ''}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        loadPlants();
+    </script>
+</body>
+</html>
