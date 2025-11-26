@@ -130,6 +130,87 @@ class UserAuthIdentityDB(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+
+class PlantGroupDB(Base):
+    """Translitem: gruppa rastenij dlja organizacii po polkam/boksam."""
+
+    __tablename__ = "plant_groups"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    name = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PlantDB(Base):
+    """Translitem: model' rastenija s privyazkoj k polzovatelyu i gruppe."""
+
+    __tablename__ = "plants"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    name = Column(String, nullable=False)
+    planted_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    plant_group_id = Column(
+        Integer,
+        ForeignKey("plant_groups.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PlantDeviceDB(Base):
+    """Translitem: svyaz rastenija s ustrojstvami."""
+
+    __tablename__ = "plant_devices"
+    __table_args__ = (
+        UniqueConstraint("plant_id", "device_id", name="uq_plant_device_pair"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    plant_id = Column(Integer, ForeignKey("plants.id", ondelete="CASCADE"), nullable=False)
+    device_id = Column(Integer, ForeignKey("devices.id", ondelete="CASCADE"), nullable=False)
+
+
+class PlantJournalEntryDB(Base):
+    """Translitem: zapis' zhurnala aktivnosti rastenija."""
+
+    __tablename__ = "plant_journal_entries"
+
+    id = Column(Integer, primary_key=True)
+    plant_id = Column(Integer, ForeignKey("plants.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    type = Column(String, nullable=False)
+    text = Column(Text, nullable=True)
+    event_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PlantJournalPhotoDB(Base):
+    """Translitem: foto-prilozhenie k zapisjam zhurnala."""
+
+    __tablename__ = "plant_journal_photos"
+
+    id = Column(Integer, primary_key=True)
+    journal_entry_id = Column(
+        Integer,
+        ForeignKey("plant_journal_entries.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    url = Column(String, nullable=False)
+    caption = Column(String, nullable=True)
+
 # Pydantic РјРѕРґРµР»Рё
 class DeviceSettings(BaseModel):
     target_moisture: float

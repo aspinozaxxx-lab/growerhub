@@ -12,6 +12,7 @@ from app.fastapi.routers import devices as devices_router
 from app.fastapi.routers import firmware as firmware_router
 from app.fastapi.routers import history as history_router
 from app.fastapi.routers import manual_watering as manual_watering_router
+from app.fastapi.routers import plants as plants_router
 from app.fastapi.routers import users as users_router
 from app.mqtt.lifecycle import (
     init_ack_subscriber,
@@ -83,6 +84,7 @@ app.include_router(manual_watering_router.router, tags=["Manual watering"])
 app.include_router(devices_router.router, tags=["Devices"])
 app.include_router(history_router.router, tags=["History"])
 app.include_router(firmware_router.router, tags=["Firmware"])
+app.include_router(plants_router.router, tags=["Plants"])
 
 
 def remount_firmware_static(settings: Settings | None = None) -> None:

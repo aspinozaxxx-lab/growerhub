@@ -155,6 +155,71 @@
             color: #888;
             text-align: right;
         }
+        .plant-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            background: #fdfdfd;
+        }
+        .plant-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .group-badge {
+            background: #e0f7fa;
+            color: #006064;
+            padding: 4px 8px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .group-badge button {
+            background: transparent;
+            color: #006064;
+            border: none;
+            padding: 0 4px;
+            cursor: pointer;
+        }
+        .plant-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .plant-devices {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        .group-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+        .group-pill {
+            background: #eef2f7;
+            padding: 6px 10px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .group-pill button {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #c0392b;
+        }
+        .journal-link {
+            background: #1976D2;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
@@ -173,7 +238,23 @@
             <input type="text" id="firmwareVersion" placeholder="Версия (например: 1.1.0)">
             <button onclick="uploadFirmware()">Загрузить прошивку</button>
         </div>
-        
+
+        <div id="plants-section">
+            <h2>Мои растения</h2>
+            <div class="plant-actions">
+                <input type="text" id="new-plant-name" placeholder="Название растения">
+                <input type="datetime-local" id="new-plant-date">
+                <button onclick="createPlant()">Добавить растение</button>
+            </div>
+            <div class="plant-actions">
+                <input type="text" id="new-group-name" placeholder="Название группы">
+                <button onclick="createGroupFromInput()">Создать группу</button>
+            </div>
+            <div id="group-list" class="group-list"></div>
+            <div id="plants"></div>
+        </div>
+
+        <h2>Свободные устройства</h2>
         <div id="devices">
             <p>Загрузка устройств...</p>
         </div>
@@ -242,6 +323,162 @@
             return String(value).replace(/[&<>"']/g, ch => map[ch]);
         };
 
+        let plants = [];
+        let plantGroups = [];
+        let assignedDeviceIds = new Set();
+
+        async function loadPlantGroups() {
+            try {
+                const resp = await authFetch('/api/plant-groups');
+                plantGroups = await resp.json();
+                renderGroupList();
+            } catch (error) {
+                console.error('gruppy: oshibka zagruzki', error);
+            }
+        }
+
+        async function loadPlants() {
+            try {
+                const resp = await authFetch('/api/plants');
+                plants = await resp.json();
+                assignedDeviceIds = new Set();
+                plants.forEach(p => {
+                    (p.devices || []).forEach(d => assignedDeviceIds.add(d.id));
+                });
+                renderPlants();
+            } catch (error) {
+                console.error('rasteniya: oshibka zagruzki', error);
+            }
+        }
+
+        function renderGroupList() {
+            const list = document.getElementById('group-list');
+            if (!list) return;
+            if (!plantGroups.length) {
+                list.innerHTML = '<span>Группы не созданы</span>';
+                return;
+            }
+            list.innerHTML = '';
+            plantGroups.forEach(group => {
+                const pill = document.createElement('div');
+                pill.className = 'group-pill';
+                pill.innerHTML = `${escapeHtml(group.name)} <button title="Удалить группу" onclick="deleteGroup(${group.id})">✖</button>`;
+                list.appendChild(pill);
+            });
+        }
+
+        async function createGroupFromInput() {
+            const nameInput = document.getElementById('new-group-name');
+            if (!nameInput.value.trim()) return alert('Введите имя группы');
+            await createGroup(nameInput.value.trim());
+            nameInput.value = '';
+        }
+
+        async function createGroup(name) {
+            try {
+                const resp = await authFetch('/api/plant-groups', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                if (resp.ok) {
+                    await loadPlantGroups();
+                }
+            } catch (error) {
+                console.error('sozdanie gruppy: oshibka', error);
+            }
+        }
+
+        async function deleteGroup(groupId) {
+            if (!confirm('Удалить группу и отвязать растения?')) return;
+            try {
+                const resp = await authFetch(`/api/plant-groups/${groupId}`, { method: 'DELETE' });
+                if (resp.ok) {
+                    await refreshData();
+                }
+            } catch (error) {
+                console.error('udalit gruppu: oshibka', error);
+            }
+        }
+
+        async function createPlant() {
+            const nameInput = document.getElementById('new-plant-name');
+            const dateInput = document.getElementById('new-plant-date');
+            if (!nameInput.value.trim()) return alert('Введите название растения');
+            const payload = { name: nameInput.value.trim() };
+            if (dateInput.value) {
+                payload.planted_at = new Date(dateInput.value).toISOString();
+            }
+            try {
+                const resp = await authFetch('/api/plants', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (resp.ok) {
+                    nameInput.value = '';
+                    dateInput.value = '';
+                    await refreshData();
+                }
+            } catch (error) {
+                console.error('sozdanie rastenija: oshibka', error);
+            }
+        }
+
+        function renderPlants() {
+            const container = document.getElementById('plants');
+            if (!container) return;
+            if (!plants.length) {
+                container.innerHTML = '<p>Растения не найдены. Добавьте первое растение.</p>';
+                return;
+            }
+            container.innerHTML = '';
+            plants.forEach(plant => {
+                const card = document.createElement('div');
+                card.className = 'plant-card';
+                const groupLabel = plant.plant_group ? `<span class="group-badge">${escapeHtml(plant.plant_group.name)} <button title="Убрать из группы" onclick="setPlantGroup(${plant.id}, null)">✖</button></span>` : '<span style="color:#888;">Без группы</span>';
+                const devices = (plant.devices || []).map(d => `<li>${escapeHtml(d.name || d.device_id)} — ${d.is_online ? 'онлайн' : 'офлайн'}</li>`).join('') || '<li>Нет привязанных устройств</li>';
+                const selectOptions = ['<option value="">Без группы</option>', ...plantGroups.map(g => `<option value="${g.id}" ${plant.plant_group && g.id === plant.plant_group.id ? 'selected' : ''}>${escapeHtml(g.name)}</option>`)].join('');
+                card.innerHTML = `
+                    <div class="plant-header">
+                        <h3>${escapeHtml(plant.name)}</h3>
+                        <div>${groupLabel}</div>
+                    </div>
+                    <div class="plant-actions">
+                        <label>Группа:
+                            <select onchange="setPlantGroup(${plant.id}, this.value || null)">${selectOptions}</select>
+                        </label>
+                        <button class="journal-link" onclick="goToJournal(${plant.id})">Журнал</button>
+                    </div>
+                    <div class="plant-devices">
+                        <strong>Устройства:</strong>
+                        <ul>${devices}</ul>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function setPlantGroup(plantId, groupId) {
+            const payload = { plant_group_id: groupId === null || groupId === '' ? null : Number(groupId) };
+            try {
+                const resp = await authFetch(`/api/plants/${plantId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (resp.ok) {
+                    await refreshData();
+                }
+            } catch (error) {
+                console.error('ustanovka gruppy: oshibka', error);
+            }
+        }
+
+        function goToJournal(plantId) {
+            window.location.href = `plant_journal.html?plant_id=${encodeURIComponent(plantId)}`;
+        }
+
         async function loadFirmwareVersions() {
             try {
                 const resp = await authFetch('/api/firmware/versions', { cache: 'no-store' });
@@ -267,16 +504,17 @@
             try {
                 const response = await authFetch('/api/devices/my');
                 const devices = await response.json();
+                const freeDevices = devices.filter(d => !assignedDeviceIds.has(d.id));
                 const devicesDiv = document.getElementById('devices');
 
-                if (!Array.isArray(devices) || devices.length === 0) {
-                    devicesDiv.innerHTML = '<p>Устройства не найдены. Подключите устройство Grovika к системе.</p>';
+                if (!Array.isArray(freeDevices) || freeDevices.length === 0) {
+                    devicesDiv.innerHTML = '<p>Свободных устройств нет. Освободите или добавьте устройство.</p>';
                     return;
                 }
 
                 devicesDiv.innerHTML = '';
 
-                devices.forEach(device => {
+                freeDevices.forEach(device => {
                     const deviceClass = device.is_watering ? 'watering' : (device.is_light_on ? 'light-on' : '');
                     const deviceDiv = document.createElement('div');
                     deviceDiv.className = `device ${deviceClass}`;
@@ -467,8 +705,14 @@
 
         async function initPage() {
             await loadFirmwareVersions();
+            await refreshData();
+            setInterval(refreshData, 10000);
+        }
+
+        async function refreshData() {
+            await loadPlantGroups();
+            await loadPlants();
             await loadDevices();
-            setInterval(loadDevices, 10000);
         }
 
         document.getElementById('logoutBtn').addEventListener('click', () => {
