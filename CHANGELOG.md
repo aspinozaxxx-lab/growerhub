@@ -213,3 +213,9 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - chore(debug): ubrany vremennye logi po ACK i debug-blok na stranice manual_watering
 - fix(front): vosstanovleno obyavlenie WAIT_ACK_TIMEOUT_S na stranice manual_watering (defolt 5s)
 - fix(ui): rewrite manual_watering.html with clean utf-8 content
+## 2025-11-27 — Novyj frontend i Markdown statji
+- dobavlen novyj frontend na React (Vite) v `frontend/` s marshrutami `/`, `/articles`, `/articles/:slug`, `/about` i linken na staroe prilozhenie cherez `/static/index.html`.
+- vvedena struktura kontenta: `frontend/content/pages/` dlya leninga i about, `frontend/content/articles/` s Markdown statyami.
+- statji pereneseny iz JSON v Markdown (YAML front matter + markdown telo), zagruzka cherez import.meta.glob s parserom front matter.
+- nginx perenastroen: kornevoy `root` teper' `~/growerhub/frontend/dist`, spa-fallback `index.html`, `/static/` ostalsya alias na staroe prilozhenie.
+- CI/CD: v job `deploy` dobavlena sborka fronta (Node 18, `npm ci`, `npm run build` v `frontend/` pered rsync), dist uezhaet na server v `~/growerhub/frontend/dist`.

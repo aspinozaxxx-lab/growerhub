@@ -95,8 +95,8 @@ server {
         access_log off;
     }
 
-    # 2) SPA (лендинг/кабинет). Всё остальное
-    root /home/watering-admin/growerhub/static;
+    # 2) SPA landing (novyj React front iz frontend/dist, fallback na index.html)
+    root /home/watering-admin/growerhub/frontend/dist;
     index index.html;
 
     location / {
