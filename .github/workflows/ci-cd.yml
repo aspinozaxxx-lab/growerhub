@@ -6,6 +6,7 @@ on:
     paths:
       - "server/**"
       - "static/**"
+      - "frontend/**"
   workflow_dispatch:
 
 jobs:
