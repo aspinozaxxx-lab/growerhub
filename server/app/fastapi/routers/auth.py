@@ -231,8 +231,6 @@ def sso_callback(
 """
         return HTMLResponse(content=html)
 
-
-
         #redirect_target = redirect_path or "/"
         #separator = "&" if "?" in redirect_target else "?"
         #redirect_with_token = f"{redirect_target}{separator}access_token={token}"
