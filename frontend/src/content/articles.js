@@ -1,21 +1,66 @@
-﻿import matter from 'gray-matter';
 import { marked } from 'marked';
 
-// Sobiraem markdown stat'i i fron-matter v obychnye ob'ekty
+// Prostyj parser front matter bez Buffer/gray-matter (tol'ko dlya nashih md-fajlov)
 const markdownModules = import.meta.glob('../../content/articles/*.md', { eager: true, as: 'raw' });
+
+const parseFrontMatter = (raw) => {
+  const result = { meta: {}, body: '' };
+  const trimmed = raw.trimStart();
+  if (!trimmed.startsWith('---')) {
+    result.body = raw;
+    return result;
+  }
+  const end = trimmed.indexOf('\n---', 3);
+  if (end === -1) {
+    result.body = raw;
+    return result;
+  }
+  const fmBlock = trimmed.slice(3, end).trim();
+  const bodyStart = end + '\n---'.length;
+  result.body = trimmed.slice(bodyStart).trim();
+
+  const lines = fmBlock.split(/\r?\n/);
+  let currentKey = null;
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (!trimmedLine) continue;
+    if (trimmedLine.startsWith('- ')) {
+      // element massiva tags pri tekuschem kljuche
+      if (currentKey) {
+        result.meta[currentKey] = result.meta[currentKey] || [];
+        result.meta[currentKey].push(trimmedLine.slice(2).trim());
+      }
+      continue;
+    }
+    const [key, ...rest] = trimmedLine.split(':');
+    const valueRaw = rest.join(':').trim();
+    const value = valueRaw.replace(/^"|"$/g, '').replace(/^'|'$/g, '');
+    currentKey = key.trim();
+    if (value.startsWith('[') && value.endsWith(']')) {
+      result.meta[currentKey] = value
+        .slice(1, -1)
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
+      continue;
+    }
+    result.meta[currentKey] = value;
+  }
+
+  return result;
+};
 
 const parsedArticles = Object.values(markdownModules)
   .map((raw) => {
-    const { data, content } = matter(raw);
-    const body = content.trim();
-    const bodyHtml = marked.parse(body);
+    const { meta, body } = parseFrontMatter(raw);
+    const bodyHtml = marked.parse(body || '');
 
     return {
-      slug: data.slug,
-      title: data.title,
-      summary: data.summary,
-      created_at: data.created_at,
-      tags: data.tags || [],
+      slug: meta.slug,
+      title: meta.title,
+      summary: meta.summary,
+      created_at: meta.created_at,
+      tags: meta.tags || [],
       body,
       bodyHtml,
     };
