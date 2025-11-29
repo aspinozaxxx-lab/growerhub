@@ -2,25 +2,44 @@
 import { articles } from '../content/articles';
 import { homeContent } from '../content/pages';
 
+const fallbackHome = {
+  hero: {
+    title: 'GrowerHub ? ???????? ?????? ? ???????????? ??????',
+    subtitle: '??????? ?? ?????????? ?????, ???????????? ? ???????? ???? ? ????? ????. ??????????????? ????? ? ????????? ???????????.',
+    cta: '??????? ??????????',
+  },
+  secondary: {
+    title: '???????? ? ???, ??? ??? ????',
+    text: '???????????? ??????? ?????????, ???????? ??????? ? ??????????? ????. ??? ???????????? ????? ?????????? GrowerHub.',
+    points: [],
+  },
+  features: { title: '???????????', items: [] },
+};
+
 function HomePage() {
-  const recentArticles = articles.slice(0, 2);
+  const data = homeContent || fallbackHome;
+  const hero = data.hero || fallbackHome.hero;
+  const secondary = data.secondary || fallbackHome.secondary;
+  const features = data.features || fallbackHome.features;
+
+  const recentArticles = (articles || []).slice(0, 2);
 
   return (
     <div className="section">
       <div className="hero">
         <div>
-          <div className="badge">GrowerHub · умный полив</div>
-          <h1>{homeContent.hero.title}</h1>
-          <p>{homeContent.hero.subtitle}</p>
+          <div className="badge">GrowerHub ? ????? ?????</div>
+          <h1>{hero.title}</h1>
+          <p>{hero.subtitle}</p>
           <a className="hero-cta" href="/static/index.html">
-            {homeContent.hero.cta}
+            {hero.cta}
           </a>
         </div>
         <div className="card">
-          <h3>{homeContent.secondary.title}</h3>
-          <p>{homeContent.secondary.text}</p>
+          <h3>{secondary.title}</h3>
+          <p>{secondary.text}</p>
           <div className="card-grid">
-            {homeContent.secondary.points.map((point) => (
+            {(secondary.points || []).map((point) => (
               <div key={point.title} className="info-block">
                 <strong>{point.title}</strong>
                 <p>{point.text}</p>
@@ -31,9 +50,9 @@ function HomePage() {
       </div>
 
       <div className="section" style={{ marginTop: 24 }}>
-        <h2>{homeContent.features.title}</h2>
+        <h2>{features.title}</h2>
         <div className="card-grid">
-          {homeContent.features.items.map((item) => (
+          {(features.items || []).map((item) => (
             <div className="card" key={item.title}>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
@@ -43,21 +62,21 @@ function HomePage() {
       </div>
 
       <div className="section" style={{ marginTop: 24 }}>
-        <h2>Свежие статьи</h2>
+        <h2>?????? ??????</h2>
         <div className="articles-list">
           {recentArticles.map((article) => (
             <div className="article-card" key={article.slug}>
               <div className="article-meta">
                 {new Date(article.created_at).toLocaleDateString('ru-RU')}
               </div>
-              <Link to={/articles/}>{article.title}</Link>
+              <Link to={`/articles/${article.slug}`}>{article.title}</Link>
               <p>{article.summary}</p>
             </div>
           ))}
         </div>
         <div style={{ marginTop: 14 }}>
           <Link to="/articles" className="hero-cta" style={{ padding: '10px 14px' }}>
-            Все статьи
+            ??? ??????
           </Link>
         </div>
       </div>
