@@ -1,4 +1,4 @@
-﻿import { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getArticleBySlug } from '../content/articles';
 
@@ -9,10 +9,10 @@ function ArticlePage() {
   if (!article) {
     return (
       <div className="section">
-        <h1>?????? ?? ???????</h1>
-        <p>????????? ?????? ??? ????????? ? ??????.</p>
+        <h1>Статья не найдена</h1>
+        <p>Проверьте ссылку или вернитесь к списку.</p>
         <Link to="/articles" className="hero-cta">
-          ? ?????? ??????
+          К списку статей
         </Link>
       </div>
     );
@@ -32,7 +32,7 @@ function ArticlePage() {
       />
       <div style={{ marginTop: 16 }}>
         <Link to="/articles" className="hero-cta" style={{ padding: '10px 14px' }}>
-          ????? ? ???????
+          Назад к статьям
         </Link>
       </div>
     </div>
