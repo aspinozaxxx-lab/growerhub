@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -21,7 +21,7 @@
     <div class="container">
         <div style="display:flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
             <h1 id="plant-title">Журнал растения</h1>
-            <button onclick="window.location.href='index.html'">На главную</button>
+            <button onclick="window.location.href='/static/index.html'">На главную</button>
         </div>
         <p id="plant-meta"></p>
         <div id="journal-list"></div>
@@ -54,7 +54,7 @@
         const TOKEN_KEY = 'gh_access_token';
         const accessToken = localStorage.getItem(TOKEN_KEY);
         if (!accessToken) {
-            window.location.href = '/login.html';
+            window.location.href = '/static/login.html';
         }
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -70,7 +70,7 @@
             const resp = await fetch(url, opts);
             if (resp.status === 401 || resp.status === 403) {
                 localStorage.removeItem(TOKEN_KEY);
-                window.location.href = '/login.html';
+                window.location.href = '/static/login.html';
             }
             return resp;
         };

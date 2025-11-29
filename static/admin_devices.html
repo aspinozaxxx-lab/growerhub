@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -23,10 +23,10 @@
     <div class="actions" style="justify-content: space-between;">
         <h1 style="margin:0;">Устройства</h1>
         <div class="actions">
-            <a href="/admin_users.html" style="text-decoration:none;"><button type="button" class="secondary">Пользователи</button></a>
-            <a href="/admin_devices.html" style="text-decoration:none;"><button type="button" class="secondary">Устройства</button></a>
-            <a href="/admin_plants.html" style="text-decoration:none;"><button type="button" class="secondary">Растения</button></a>
-            <a href="/" style="text-decoration:none;"><button type="button" class="secondary">Главная</button></a>
+            <a href="/static/admin_users.html" style="text-decoration:none;"><button type="button" class="secondary">Пользователи</button></a>
+            <a href="/static/admin_devices.html" style="text-decoration:none;"><button type="button" class="secondary">Устройства</button></a>
+            <a href="/static/admin_plants.html" style="text-decoration:none;"><button type="button" class="secondary">Растения</button></a>
+            <a href="/static/index.html" style="text-decoration:none;"><button type="button" class="secondary">Главная</button></a>
             <button id="logoutBtn" class="danger" type="button">Выйти</button>
         </div>
     </div>
@@ -45,8 +45,8 @@
 <script>
     const TOKEN_KEY = 'gh_access_token';
     const accessToken = localStorage.getItem(TOKEN_KEY);
-    if (!accessToken) { window.location.href = '/login.html'; }
-    const redirectToLogin = () => { localStorage.removeItem(TOKEN_KEY); window.location.href = '/login.html'; };
+    if (!accessToken) { window.location.href = '/static/login.html'; }
+    const redirectToLogin = () => { localStorage.removeItem(TOKEN_KEY); window.location.href = '/static/login.html'; };
     const authFetch = async (url, options = {}) => {
         const opts = { ...options };
         opts.headers = { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` };

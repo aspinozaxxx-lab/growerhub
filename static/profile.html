@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -75,7 +75,7 @@
     <div class="actions" style="justify-content: space-between;">
         <h1 style="margin: 0;">Личный кабинет</h1>
         <div class="actions">
-            <a href="/" style="text-decoration:none;"><button class="secondary" type="button">Главная</button></a>
+            <a href="/static/index.html" style="text-decoration:none;"><button class="secondary" type="button">Главная</button></a>
             <button id="btn-admin" class="secondary" type="button" style="display:none;">Администрирование</button>
             <button id="logoutBtn" class="danger" type="button">Выйти</button>
         </div>
@@ -196,13 +196,13 @@
     applyTokenFromHash();
 
     if (!accessToken) {
-        window.location.href = '/login.html';
+        window.location.href = '/static/login.html';
     }
 
     const redirectToLogin = () => {
         localStorage.removeItem(TOKEN_KEY);
         accessToken = null;
-        window.location.href = '/login.html';
+        window.location.href = '/static/login.html';
     };
 
     const authFetch = async (url, options = {}) => {
@@ -243,7 +243,7 @@
 
     document.getElementById('logoutBtn').addEventListener('click', redirectToLogin);
     btnAdmin.addEventListener('click', function () {
-        window.location.href = '/admin_devices.html';
+        window.location.href = '/static/admin_devices.html';
     });
 
     let currentUser = null;

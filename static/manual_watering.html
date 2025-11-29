@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8" />
@@ -132,13 +132,13 @@
         const accessToken = localStorage.getItem(TOKEN_KEY);
 
         if (!accessToken) {
-            window.location.href = '/login.html';
+            window.location.href = '/static/login.html';
             throw new Error('no token');
         }
 
         const redirectToLogin = () => {
             localStorage.removeItem(TOKEN_KEY);
-            window.location.href = '/login.html';
+            window.location.href = '/static/login.html';
         };
 
         const authFetch = async (url, options = {}) => {
@@ -169,7 +169,7 @@
         if (deviceId) {
             deviceInfo.textContent = `Устройство: ${deviceId}`;
         } else {
-            deviceInfo.innerHTML = 'Не указано устройство для полива. <a href="/index.html">Вернуться на главную</a>';
+            deviceInfo.innerHTML = 'Не указано устройство для полива. <a href="/static/index.html">Вернуться на главную</a>';
         }
 
         const slowPollIntervalMs = 5000;
