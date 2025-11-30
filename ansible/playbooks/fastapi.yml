@@ -2,5 +2,9 @@
 - name: Deploy FastAPI app as a systemd service
   hosts: app
   become: true
+
+  vars_files:
+    - /home/gh/ansible_secrets.yml
+    
   roles:
     - role: fastapi_app
