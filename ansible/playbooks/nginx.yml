@@ -1,6 +1,10 @@
 - name: Apply Nginx config with HTTPS
   hosts: app
   become: true
+
+  vars_files:
+    - /home/gh/ansible_secrets.yml
+    
   roles:
     - role: nginx
       vars:
