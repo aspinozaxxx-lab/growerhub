@@ -128,3 +128,76 @@ def test_history_missing_device_returns_empty_list(client: TestClient) -> None:
     assert watering_resp.status_code == 200
     assert sensor_resp.json() == []
     assert watering_resp.json() == []
+
+
+def test_sensor_history_downsamples_to_200_points(client: TestClient) -> None:
+    now = datetime.utcnow()
+    session = TestingSessionLocal()
+    try:
+        bulk = [
+            SensorDataDB(
+                device_id="device-many-points",
+                timestamp=now - timedelta(minutes=i),
+                soil_moisture=30.0 + (i % 5),
+                air_temperature=20.0 + (i % 3),
+                air_humidity=50.0 + (i % 4),
+            )
+            for i in range(1000)
+        ]
+        session.add_all(bulk)
+        session.commit()
+    finally:
+        session.close()
+
+    resp = client.get("/api/device/device-many-points/sensor-history", params={"hours": 1000})
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert len(payload) <= 200
+    # chronological order preserved
+    timestamps = [_iso_to_datetime(item["timestamp"]) for item in payload]
+    assert timestamps == sorted(timestamps)
+
+
+def test_sensor_history_filters_outliers(client: TestClient) -> None:
+    now = datetime.utcnow()
+    session = TestingSessionLocal()
+    try:
+        normal = [
+            SensorDataDB(
+                device_id="device-outliers",
+                timestamp=now - timedelta(minutes=i),
+                soil_moisture=40.0,
+                air_temperature=22.0,
+                air_humidity=55.0,
+            )
+            for i in range(10)
+        ]
+        outliers = [
+            SensorDataDB(
+                device_id="device-outliers",
+                timestamp=now - timedelta(minutes=200),
+                soil_moisture=150.0,
+                air_temperature=-273.0,
+                air_humidity=1000.0,
+            ),
+            SensorDataDB(
+                device_id="device-outliers",
+                timestamp=now - timedelta(minutes=201),
+                soil_moisture=-10.0,
+                air_temperature=999.0,
+                air_humidity=-5.0,
+            ),
+        ]
+        session.add_all(normal + outliers)
+        session.commit()
+    finally:
+        session.close()
+
+    resp = client.get("/api/device/device-outliers/sensor-history", params={"hours": 500})
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert len(payload) == len(normal)  # все выбросы отфильтрованы
+    for point in payload:
+        assert -20.0 <= point["air_temperature"] <= 60.0
+        assert 0.0 <= point["air_humidity"] <= 100.0
+        assert 0.0 <= point["soil_moisture"] <= 100.0

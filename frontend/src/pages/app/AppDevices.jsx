@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
+import { formatSensorValue } from '../../utils/formatters';
 import './AppDevices.css';
 
 // Простая заглушка с примером открытия панели статистики по device_id.
@@ -27,13 +28,13 @@ function AppDevices() {
         </div>
         <div className="app-devices__metrics">
           <button type="button" onClick={() => openMetric('air_temperature')} className="app-devices__metric">
-            🌡 Температура
+            🌡 Температура ({formatSensorValue(22.3)})
           </button>
           <button type="button" onClick={() => openMetric('air_humidity')} className="app-devices__metric">
-            💧 Влажность воздуха
+            💧 Влажность воздуха ({formatSensorValue(48.7)})
           </button>
           <button type="button" onClick={() => openMetric('soil_moisture')} className="app-devices__metric">
-            🪴 Влажность почвы
+            🪴 Влажность почвы ({formatSensorValue(35.2)})
           </button>
           <button type="button" onClick={() => openMetric('watering')} className="app-devices__metric">
             🚰 История поливов

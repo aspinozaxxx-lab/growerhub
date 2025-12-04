@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { useSensorStats } from './useSensorStats';
 import { useSensorStatsContext } from './SensorStatsContext';
+import { formatSensorValue, formatTimestampLabel } from '../../utils/formatters';
 import './SensorStatsSidebar.css';
 
 const RANGE_OPTIONS = [
@@ -72,8 +73,10 @@ function SensorChart({ metric, range, data }) {
             }}
           />
           <Tooltip
-            formatter={(value) => [`${value} сек`, 'Полив']}
-            labelFormatter={(value) => new Date(value).toLocaleString()}
+            formatter={(value) => [formatSensorValue(value), 'Полив']}
+            labelFormatter={(value) => formatTimestampLabel(value)}
+            contentStyle={{ fontSize: '0.9rem' }}
+            labelStyle={{ color: '#0f172a', fontWeight: 600 }}
           />
           <Bar dataKey="value" fill="#6bdba8" radius={[6, 6, 0, 0]} />
         </BarChart>
@@ -92,16 +95,17 @@ function SensorChart({ metric, range, data }) {
         />
         <YAxis tick={{ fill: '#c7d7ef', fontSize: 12 }} />
         <Tooltip
-          formatter={(value) => [value, METRIC_LABELS[metric] || metric]}
-          labelFormatter={(value) => new Date(value).toLocaleString()}
+          formatter={(value) => [formatSensorValue(value), METRIC_LABELS[metric] || metric]}
+          labelFormatter={(value) => formatTimestampLabel(value)}
+          contentStyle={{ fontSize: '0.9rem' }}
+          labelStyle={{ color: '#0f172a', fontWeight: 600 }}
         />
         <Line
           type="monotone"
           dataKey="value"
           stroke="#6bdba8"
           strokeWidth={2}
-          dot={{ r: 3, fill: '#6bdba8', strokeWidth: 0 }}
-          activeDot={{ r: 5 }}
+          dot={false}
         />
       </LineChart>
     </ResponsiveContainer>

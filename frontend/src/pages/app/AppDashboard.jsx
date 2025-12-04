@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useDashboardData } from '../../features/dashboard/useDashboardData';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
+import { formatSensorValue } from '../../utils/formatters';
 import './AppDashboard.css';
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
@@ -19,8 +20,7 @@ function formatAge(plantedAt) {
 }
 
 function MetricPill({ label, value, metric, deviceId, onOpenStats, highlight = false }) {
-  const hasValue = value !== undefined && value !== null;
-  const display = hasValue ? value : '—';
+  const display = formatSensorValue(value);
   const handleClick = () => {
     if (deviceId && metric) {
       onOpenStats({ deviceId, metric });
