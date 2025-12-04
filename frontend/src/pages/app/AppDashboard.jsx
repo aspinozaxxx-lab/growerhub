@@ -44,49 +44,49 @@ function PlantCard({ plant, onOpenStats }) {
   return (
     <div className="plant-card">
       <div className="plant-card__header">
-        <div className="plant-card__title-row">
-          <div className="plant-card__avatar" aria-hidden="true">🌿</div>
-          <div>
-            <div className="plant-card__name">{plant.name}</div>
-            <div className="plant-card__group">
-              {plant.plant_group ? plant.plant_group.name : 'Без группы'}
-            </div>
+        <div>
+          <div className="plant-card__name">{plant.name}</div>
+          <div className="plant-card__group">
+            {plant.plant_group ? plant.plant_group.name : 'Без группы'}
           </div>
         </div>
         <div className="plant-card__age">{formatAge(plant.planted_at)}</div>
       </div>
 
       {primaryDevice ? (
-        <div className="plant-card__metrics">
-          <MetricPill
-            label="T, °C"
-            value={primaryDevice.air_temperature}
-            metric="air_temperature"
-            deviceId={primaryDevice.device_id}
-            onOpenStats={onOpenStats}
-          />
-          <MetricPill
-            label="Влажн. воздуха, %"
-            value={primaryDevice.air_humidity}
-            metric="air_humidity"
-            deviceId={primaryDevice.device_id}
-            onOpenStats={onOpenStats}
-          />
-          <MetricPill
-            label="Влажн. почвы, %"
-            value={primaryDevice.soil_moisture}
-            metric="soil_moisture"
-            deviceId={primaryDevice.device_id}
-            onOpenStats={onOpenStats}
-          />
-          <MetricPill
-            label="Полив"
-            value={primaryDevice.is_watering ? 'Выполняется' : 'Нет'}
-            metric="watering"
-            deviceId={primaryDevice.device_id}
-            onOpenStats={onOpenStats}
-            highlight={Boolean(primaryDevice.is_watering)}
-          />
+        <div className="plant-card__body">
+          <div className="plant-card__avatar-box" aria-hidden="true">🌿</div>
+          <div className="plant-card__metrics">
+            <MetricPill
+              label="T, °C"
+              value={primaryDevice.air_temperature}
+              metric="air_temperature"
+              deviceId={primaryDevice.device_id}
+              onOpenStats={onOpenStats}
+            />
+            <MetricPill
+              label="Вл.возд, %"
+              value={primaryDevice.air_humidity}
+              metric="air_humidity"
+              deviceId={primaryDevice.device_id}
+              onOpenStats={onOpenStats}
+            />
+            <MetricPill
+              label="Вл.почв, %"
+              value={primaryDevice.soil_moisture}
+              metric="soil_moisture"
+              deviceId={primaryDevice.device_id}
+              onOpenStats={onOpenStats}
+            />
+            <MetricPill
+              label="Полив"
+              value={primaryDevice.is_watering ? 'Выполняется' : 'Нет'}
+              metric="watering"
+              deviceId={primaryDevice.device_id}
+              onOpenStats={onOpenStats}
+              highlight={Boolean(primaryDevice.is_watering)}
+            />
+          </div>
         </div>
       ) : (
         <div className="plant-card__empty">Нет подключённых устройств</div>
@@ -156,27 +156,9 @@ function FreeDeviceCard({ device, onOpenStats }) {
 function AppDashboard() {
   const { plants, devices, freeDevices, isLoading, error } = useDashboardData();
   const { openSensorStats } = useSensorStatsContext();
-  const onlineCount = devices.filter((d) => d.is_online).length;
 
   return (
     <div className="dashboard">
-      <div className="dashboard__header">
-        <div>
-          <h1 className="dashboard__title">Моя ферма</h1>
-          <p className="dashboard__subtitle">Сводка по растениям и устройствам</p>
-        </div>
-        <div className="dashboard__summary">
-          <div className="summary-pill">
-            <span className="summary-pill__label">Растений</span>
-            <span className="summary-pill__value">{plants.length}</span>
-          </div>
-          <div className="summary-pill">
-            <span className="summary-pill__label">Устройств онлайн</span>
-            <span className="summary-pill__value">{onlineCount}</span>
-          </div>
-        </div>
-      </div>
-
       {isLoading && <div className="dashboard__state">Загрузка...</div>}
       {error && <div className="dashboard__state dashboard__state--error">{error}</div>}
 
