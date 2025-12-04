@@ -11,6 +11,8 @@ import AppPlants from './pages/app/AppPlants';
 import AppProfile from './pages/app/AppProfile';
 import LoginPage from './pages/app/LoginPage';
 import RequireAuth from './features/auth/RequireAuth';
+import { SensorStatsProvider } from './features/sensors/SensorStatsContext';
+import SensorStatsSidebar from './features/sensors/SensorStatsSidebar';
 
 function App() {
   return (
@@ -25,7 +27,12 @@ function App() {
           path="/app"
           element={(
             <RequireAuth>
-              <AppLayout />
+              <SensorStatsProvider>
+                <>
+                  <AppLayout />
+                  <SensorStatsSidebar />
+                </>
+              </SensorStatsProvider>
             </RequireAuth>
           )}
         >

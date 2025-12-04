@@ -1,0 +1,125 @@
+.sensor-sidebar {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.sensor-sidebar__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: all;
+  border: none;
+}
+
+.sensor-sidebar__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(420px, 100vw);
+  background: #0f1f35;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.35);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  gap: 12px;
+  pointer-events: all;
+}
+
+.sensor-sidebar.is-open .sensor-sidebar__panel {
+  transform: translateX(0);
+}
+
+.sensor-sidebar.is-open .sensor-sidebar__backdrop {
+  opacity: 1;
+}
+
+.sensor-sidebar__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.sensor-sidebar__metric {
+  font-weight: 700;
+  color: #f6fbff;
+  margin-bottom: 2px;
+}
+
+.sensor-sidebar__device {
+  font-size: 13px;
+  color: #8aa3c6;
+}
+
+.sensor-sidebar__close {
+  background: rgba(255, 255, 255, 0.06);
+  color: #eef3fb;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+}
+
+.sensor-sidebar__ranges {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sensor-sidebar__range-btn {
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #c7d7ef;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sensor-sidebar__range-btn.is-active {
+  background: linear-gradient(135deg, #5fd491, #43b674);
+  border-color: rgba(95, 212, 145, 0.4);
+  color: #0b1524;
+  font-weight: 700;
+}
+
+.sensor-sidebar__chart {
+  flex: 1;
+  min-height: 240px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 12px 10px;
+}
+
+.sensor-sidebar__state {
+  padding: 18px;
+  text-align: center;
+  color: #c7d7ef;
+}
+
+.sensor-sidebar__state--error {
+  color: #ffb3b3;
+}
+
+.sensor-chart__empty {
+  padding: 16px;
+  color: #c7d7ef;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .sensor-sidebar__panel {
+    width: 100%;
+    padding: 16px 14px;
+  }
+}
