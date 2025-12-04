@@ -157,7 +157,8 @@ async def sso_login(
         current_user_id = current_user.id
 
     if not redirect_path:
-        redirect_path = "/static/profile.html" if mode == "link" else "/"
+        # default redirect for both login and link -> new SPA dashboard
+        redirect_path = "/app/dashboard"
 
     redirect_uri = _build_callback_uri(provider)
     try:
@@ -192,7 +193,7 @@ def sso_callback(
     if state_data.get("provider") != provider:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Provider mismatch")
 
-    redirect_path = state_data.get("redirect_path") or "/"
+    redirect_path = state_data.get("redirect_path") or "/app/dashboard"
     redirect_uri = _build_callback_uri(provider)
 
     try:
@@ -221,9 +222,9 @@ def sso_callback(
     <script>
       try {{
         localStorage.setItem('gh_access_token', '{token}');
-        window.location.href = '/';
+        window.location.href = '{redirect_path}';
       }} catch (e) {{
-        window.location.href = '/static/login.html#token_error=1';
+        window.location.href = '/app/login#token_error=1';
       }}
     </script>
   </body>
@@ -231,10 +232,11 @@ def sso_callback(
 """
         return HTMLResponse(content=html)
 
-        #redirect_target = redirect_path or "/"
-        #separator = "&" if "?" in redirect_target else "?"
-        #redirect_with_token = f"{redirect_target}{separator}access_token={token}"
-        #return RedirectResponse(url=redirect_with_token, status_code=status.HTTP_302_FOUND)
+        # TODO: if old clients need token in URL, uncomment snippet below.
+        # redirect_target = redirect_path or "/app/dashboard"
+        # separator = "&" if "?" in redirect_target else "?"
+        # redirect_with_token = f"{redirect_target}{separator}access_token={token}"
+        # return RedirectResponse(url=redirect_with_token, status_code=status.HTTP_302_FOUND)
 
     current_user_id = state_data.get("current_user_id")
     try:

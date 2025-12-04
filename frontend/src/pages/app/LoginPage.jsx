@@ -1,27 +1,39 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
 import './LoginPage.css';
 
 function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     status,
     error,
     loginWithPassword,
     clearError,
     consumeRedirectAfterLogin,
+    setRedirectAfterLogin,
   } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   useEffect(() => {
+    clearError();
+    // pick redirect from query (?redirect=...) or location.state.from.pathname
+    const params = new URLSearchParams(location.search);
+    const queryRedirect = params.get('redirect');
+    const stateRedirect = location.state?.from?.pathname;
+    const candidate = queryRedirect || stateRedirect;
+    if (candidate && candidate.startsWith('/app')) {
+      setRedirectAfterLogin(candidate);
+    }
+
     if (status === 'authorized') {
       const target = consumeRedirectAfterLogin();
       navigate(target, { replace: true });
     }
-  }, [status, consumeRedirectAfterLogin, navigate]);
+  }, [status, consumeRedirectAfterLogin, navigate, location.search, location.state, setRedirectAfterLogin, clearError]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -33,12 +45,9 @@ function LoginPage() {
     }
   };
 
-  const handleGoogle = () => {
-    window.location.href = '/api/auth/sso/google/login?redirect_path=/app';
-  };
-
-  const handleYandex = () => {
-    window.location.href = '/api/auth/sso/yandex/login?redirect_path=/app';
+  const handleSSO = (provider) => {
+    const target = consumeRedirectAfterLogin();
+    window.location.href = `/api/auth/sso/${provider}/login?redirect_path=${encodeURIComponent(target)}`;
   };
 
   const isLoading = status === 'loading';
@@ -79,12 +88,12 @@ function LoginPage() {
           </button>
         </form>
 
-        <div className="login-divider">Или войти через</div>
+        <div className="login-divider">или продолжить через SSO</div>
         <div className="login-sso">
-          <button type="button" className="login-sso__btn" onClick={handleGoogle}>
+          <button type="button" className="login-sso__btn" onClick={() => handleSSO('google')}>
             Google
           </button>
-          <button type="button" className="login-sso__btn" onClick={handleYandex}>
+          <button type="button" className="login-sso__btn" onClick={() => handleSSO('yandex')}>
             Yandex
           </button>
         </div>
