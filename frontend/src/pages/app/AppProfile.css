@@ -1,0 +1,50 @@
+.app-profile {
+  display: grid;
+  gap: 14px;
+}
+
+.app-profile h2 {
+  margin: 0;
+}
+
+.profile-card {
+  background: #0f1f35;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #eef3fb;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.profile-row:last-of-type {
+  border-bottom: none;
+}
+
+.profile-label {
+  color: #8aa3c6;
+  font-size: 14px;
+}
+
+.logout-button {
+  justify-self: start;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #eef3fb;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  border-color: rgba(192, 57, 43, 0.4);
+  color: #f6c1b5;
+}

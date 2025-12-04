@@ -154,6 +154,12 @@ main {
   text-decoration: none;
 }
 
+.app-loading {
+  padding: 40px 16px;
+  text-align: center;
+  color: #c7d7ef;
+}
+
 @media (max-width: 600px) {
   .section {
     padding: 18px;
