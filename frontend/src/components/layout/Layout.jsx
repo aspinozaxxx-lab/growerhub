@@ -1,11 +1,11 @@
-﻿import { Link, NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { useState } from 'react';
 import './Layout.css';
 
 const navLinks = [
-  { to: '/', label: 'Р“Р»Р°РІРЅР°СЏ' },
-  { to: '/articles', label: 'РЎС‚Р°С‚СЊРё' },
-  { to: '/about', label: 'Рћ РїСЂРѕРµРєС‚Рµ' },
+  { to: '/', label: 'Главная' },
+  { to: '/articles', label: 'Статьи' },
+  { to: '/about', label: 'О проекте' },
 ];
 
 function Layout({ children }) {
@@ -20,15 +20,15 @@ function Layout({ children }) {
           <Link to="/" className="brand-link" onClick={closeMenu}>
             GrowerHub
           </Link>
-          <span className="brand-tagline">СѓРјРЅС‹Р№ РєРѕРЅС‚СЂРѕР»СЊ РїРѕР»РёРІР°</span>
+          <span className="brand-tagline">Умный контроль полива</span>
         </div>
         <button
           className="menu-toggle"
           type="button"
           onClick={() => setMenuOpen((prev) => !prev)}
-          aria-label="РџРµСЂРµРєР»СЋС‡РёС‚СЊ РјРµРЅСЋ"
+          aria-label="Переключить меню"
         >
-          в°
+          ≡
         </button>
         <nav className={`nav-links ${menuOpen ? 'nav-open' : ''}`}>
           {navLinks.map((item) => (
@@ -59,11 +59,10 @@ function Layout({ children }) {
       </header>
       <main className="app-main">{children}</main>
       <footer className="app-footer">
-        <p>В© {new Date().getFullYear()} GrowerHub. РђРІС‚РѕРјР°С‚РёР·Р°С†РёСЏ РїРѕР»РёРІР° Рё РјРѕРЅРёС‚РѕСЂРёРЅРі С‚РµРїР»РёС†.</p>
+        <p>© {new Date().getFullYear()} GrowerHub. Все права защищены.</p>
       </footer>
     </div>
   );
 }
 
 export default Layout;
-
