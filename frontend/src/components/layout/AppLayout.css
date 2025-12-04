@@ -7,7 +7,7 @@
 }
 
 .app-content {
-  padding-bottom: 72px; /* zaderzhka pod nizhnyu navigaciyu */
+  padding-bottom: 96px; /* zapas pod plavayushchiy tabbar */
 }
 
 .app-content__inner {
@@ -16,18 +16,11 @@
   padding: 16px;
 }
 
+/* Obshchie stili menyu */
 .app-nav {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
   align-items: center;
-  background: #ffffff;
-  border-top: 1px solid #e2e8f0;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 64px;
-  z-index: 10;
+  gap: 8px;
 }
 
 .app-nav__item {
@@ -37,14 +30,15 @@
   justify-content: center;
   gap: 4px;
   height: 100%;
+  padding: 8px 10px;
   font-size: 12px;
   color: #475569;
   text-decoration: none;
-  transition: color 0.2s ease, background-color 0.2s ease;
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
 }
 
 .app-nav__item:hover {
-  background: #f1f5f9;
+  color: #1f2937;
 }
 
 .app-nav__item.is-active {
@@ -55,6 +49,44 @@
 .app-nav__icon {
   font-size: 18px;
   line-height: 1;
+}
+
+/* Plavayushchaya pashka tabbara (mobile) */
+.app-nav-shell {
+  pointer-events: none;
+}
+
+.app-nav-shell--bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px 16px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+  z-index: 10;
+}
+
+.app-nav.app-nav--bottom {
+  pointer-events: auto;
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+  justify-content: space-around;
+  background: rgba(15, 23, 42, 0.96);
+  border-radius: 9999px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(16px);
+  height: 64px;
+  padding: 0 8px;
+}
+
+.app-nav--bottom .app-nav__item {
+  color: #cbd5e1;
+}
+
+.app-nav--bottom .app-nav__item.is-active {
+  color: #5fd491;
 }
 
 /* Sidebar dlya desktopa */
@@ -80,8 +112,7 @@
   letter-spacing: 0.2px;
 }
 
-.app-nav--sidebar {
-  display: flex;
+.app-nav.app-nav--sidebar {
   flex-direction: column;
   gap: 8px;
   background: transparent;
@@ -121,6 +152,7 @@
     top: 0;
   }
 
+  .app-nav-shell--bottom,
   .app-nav--bottom {
     display: none;
   }

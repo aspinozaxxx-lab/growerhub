@@ -9,7 +9,21 @@ const navItems = [
   { to: '/app/profile', label: 'Profile', icon: '👤' },
 ];
 
-// Layout dlya kabineta: mobilnaya nizhnyaya panel, na desktpe - levaya kolonka
+// Funkciya otobrazheniya punktov menyu, ispolzuetsya i v sidebar, i v nizhnej paneli
+const renderNavItems = () =>
+  navItems.map((item) => (
+    <NavLink
+      key={item.to}
+      to={item.to}
+      end={item.end}
+      className={({ isActive }) => (isActive ? 'app-nav__item is-active' : 'app-nav__item')}
+    >
+      <span className="app-nav__icon" aria-hidden="true">{item.icon}</span>
+      <span className="app-nav__label">{item.label}</span>
+    </NavLink>
+  ));
+
+// Layout dlya kabineta: mobilnaya nizhnyaya panel, na desktop - levaya kolonka
 function AppLayout() {
   return (
     <div className="app-layout">
@@ -17,17 +31,7 @@ function AppLayout() {
         <div className="app-sidebar__inner">
           <div className="app-sidebar__brand">GrowerHub</div>
           <nav className="app-nav app-nav--sidebar">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) => (isActive ? 'app-nav__item is-active' : 'app-nav__item')}
-              >
-                <span className="app-nav__icon" aria-hidden="true">{item.icon}</span>
-                <span className="app-nav__label">{item.label}</span>
-              </NavLink>
-            ))}
+            {renderNavItems()}
           </nav>
         </div>
       </aside>
@@ -38,19 +42,11 @@ function AppLayout() {
         </div>
       </main>
 
-      <nav className="app-nav app-nav--bottom" aria-label="Navigation">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) => (isActive ? 'app-nav__item is-active' : 'app-nav__item')}
-          >
-            <span className="app-nav__icon" aria-hidden="true">{item.icon}</span>
-            <span className="app-nav__label">{item.label}</span>
-          </NavLink>
-        ))}
-      </nav>
+      <div className="app-nav-shell app-nav-shell--bottom">
+        <nav className="app-nav app-nav--bottom" aria-label="Navigation">
+          {renderNavItems()}
+        </nav>
+      </div>
     </div>
   );
 }
