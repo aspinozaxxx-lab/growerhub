@@ -31,8 +31,11 @@ function HomePage() {
           <div className="badge">GrowerHub · умный полив</div>
           <h1>{hero.title}</h1>
           <p>{hero.subtitle}</p>
-          <a className="hero-cta" href="/static/index.html">
+          <a className="hero-cta" href="/app">
             {hero.cta}
+          </a>
+          <a className="hero-cta" href="/static/index.html">
+            Открыть старое приложение (legacy)
           </a>
         </div>
         <div className="card">
