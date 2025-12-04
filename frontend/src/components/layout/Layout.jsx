@@ -41,20 +41,20 @@ function Layout({ children }) {
               {item.label}
             </NavLink>
           ))}
-          <NavLink
-            to="/app"
-            className={({ isActive }) => (isActive ? 'nav-link is-active' : 'nav-link')}
-            onClick={closeMenu}
-          >
-            Новое приложение
-          </NavLink>
           <a
-            className="nav-link app-link"
+            className="nav-link"
             href="/static/index.html"
             onClick={closeMenu}
           >
             Старое приложение (legacy)
           </a>
+          <NavLink
+            to="/app"
+            className={({ isActive }) => (isActive ? 'nav-link app-link is-active' : 'nav-link app-link')}
+            onClick={closeMenu}
+          >
+            Новое приложение
+          </NavLink>
         </nav>
       </header>
       <main className="app-main">{children}</main>
