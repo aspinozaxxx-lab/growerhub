@@ -153,7 +153,8 @@ growerhub.service<br>
 growerhub-deploy-agent.service<br>
 
 ⚙️ Запуск плейбуков Ansible<br>
-ansible-playbook -i inventory/hosts.ini playbooks/gh_tools_pgadmin.yml
+ansible-playbook -i inventory/hosts.ini playbooks/gh_tools_pgadmin.yml<br>
+ansible-playbook -i inventory/hosts.ini playbooks/fastapi.yml -K --ask-vault-pass
 
 🔒 Переменные окружения<br>
 sudo systemctl edit watering-deploy-agent.service
