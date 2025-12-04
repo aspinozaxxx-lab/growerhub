@@ -55,7 +55,13 @@ function PlantCard({ plant, onOpenStats }) {
 
       {primaryDevice ? (
         <div className="plant-card__body">
-          <div className="plant-card__avatar-box" aria-hidden="true">🌿</div>
+          <div className="plant-card__avatar" aria-hidden="true">
+            <img
+              src={plant.avatarUrl || '/assets/plant-default.svg'}
+              alt={plant.name}
+              loading="lazy"
+            />
+          </div>
           <div className="plant-card__metrics">
             <MetricPill
               label="T, °C"
