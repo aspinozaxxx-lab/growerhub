@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useDashboardData } from '../../features/dashboard/useDashboardData';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
 import { formatSensorValue } from '../../utils/formatters';
+import plantPot from '../../assets/plant-pot.svg';
 import './AppDashboard.css';
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
@@ -57,7 +58,7 @@ function PlantCard({ plant, onOpenStats }) {
         <div className="plant-card__body">
           <div className="plant-card__avatar" aria-hidden="true">
             <img
-              src={plant.avatarUrl || '/assets/plant-default.svg'}
+              src={plant.avatarUrl || plantPot}
               alt={plant.name}
               loading="lazy"
             />
