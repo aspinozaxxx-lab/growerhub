@@ -1,4 +1,4 @@
-﻿﻿import React, { useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import {
   Bar,
   BarChart,
@@ -41,8 +41,6 @@ function formatAxisLabel(timestamp, range) {
   return `${day}.${month}`;
 }
 
-
-
 function WateringTooltip({ active, payload, label }) {
   if (!active || !payload || payload.length === 0) {
     return null;
@@ -58,14 +56,14 @@ function WateringTooltip({ active, payload, label }) {
     <div className="recharts-default-tooltip">
       <p className="recharts-tooltip-label">{formatTimestampLabel(label)}</p>
       {volume !== undefined && volume !== null && (
-        <p className="recharts-tooltip-item">{`?????: ${formatSensorValue(volume)} ?`}</p>
+        <p className="recharts-tooltip-item">{`Объём: ${formatSensorValue(volume)} л`}</p>
       )}
       {duration !== undefined && duration !== null && (
-        <p className="recharts-tooltip-item">{`????????????: ${duration} ?`}</p>
+        <p className="recharts-tooltip-item">{`Длительность: ${duration} c`}</p>
       )}
       {ph !== undefined && ph !== null && <p className="recharts-tooltip-item">{`pH: ${ph}`}</p>}
       {fertilizers ? (
-        <p className="recharts-tooltip-item">{`?????????: ${
+        <p className="recharts-tooltip-item">{`Удобрения: ${
           typeof fertilizers === 'string' ? fertilizers : JSON.stringify(fertilizers)
         }`}</p>
       ) : null}
@@ -77,7 +75,7 @@ function SensorChart({ metric, range, data }) {
   const empty = !data || data.length === 0;
 
   if (empty) {
-    return <div className="sensor-chart__empty">Нет данных за выбранный период</div>;
+    return <div className="sensor-chart__empty">Нет данных для выбранного периода</div>;
   }
 
   if (metric === 'watering') {
@@ -97,7 +95,7 @@ function SensorChart({ metric, range, data }) {
           <YAxis
             tick={{ fill: '#c7d7ef', fontSize: 12 }}
             label={{
-              value: 'Длительность',
+              value: 'Объём полива (л)',
               angle: -90,
               position: 'insideLeft',
               fill: '#c7d7ef',
