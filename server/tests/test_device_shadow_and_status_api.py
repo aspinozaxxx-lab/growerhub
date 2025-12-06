@@ -177,6 +177,8 @@ def test_status_idle_returns_idle_and_no_remaining() -> None:
     assert data["offline_reason"] is None
     assert data["updated_at"] == data["last_seen_at"]
     assert data["last_seen_at"].endswith("Z")
+    assert data["start_time"] is None
+    assert data["duration"] is None
 
 
 def test_status_running_calculates_remaining_seconds() -> None:
@@ -209,9 +211,11 @@ def test_status_running_calculates_remaining_seconds() -> None:
     assert data["status"] == "running"
     assert max(0, expected_remaining - 2) <= data["remaining_s"] <= expected_remaining + 2
     assert data["duration_s"] == 20
+    assert data["duration"] == 20
     assert data["correlation_id"] == "corr-running"
     assert data["is_online"] is True
     assert data["offline_reason"] is None
+    assert data["start_time"] == _iso_utc(started_at)
 
 
 def test_status_running_expired_returns_zero() -> None:
@@ -248,6 +252,8 @@ def test_status_running_expired_returns_zero() -> None:
     assert data["remaining_s"] == 0
     assert data["is_online"] is False
     assert data["offline_reason"] == "device_offline"
+    assert data["duration"] == 10
+    assert data["start_time"] == _iso_utc(started_at)
 
 
 def test_status_without_state_returns_placeholder() -> None:
@@ -267,6 +273,8 @@ def test_status_without_state_returns_placeholder() -> None:
     assert data["offline_reason"] == "device_offline"
     assert data["status"] == "idle"
     assert data["source"] in {"db_fallback", "fallback"}
+    assert data["start_time"] is None
+    assert data["duration"] in {0, None}
 
 
 def test_status_db_fallback_uses_device_record_for_online_state() -> None:
@@ -287,6 +295,8 @@ def test_status_db_fallback_uses_device_record_for_online_state() -> None:
     assert data["offline_reason"] is None
     assert data["last_seen_at"] == _iso_utc(last_seen)
     assert data["updated_at"] == data["last_seen_at"]
+    assert data["duration"] == 0
+    assert data["start_time"] is None
 
 
 def test_status_db_fallback_marks_offline_for_stale_device() -> None:
@@ -305,6 +315,8 @@ def test_status_db_fallback_marks_offline_for_stale_device() -> None:
     assert data["is_online"] is False
     assert data["offline_reason"] == "device_offline"
     assert data["last_seen_at"] == _iso_utc(last_seen)
+    assert data["duration"] == 0
+    assert data["start_time"] is None
 
 
 def test_debug_shadow_state_disabled_when_debug_false(monkeypatch) -> None:
@@ -340,3 +352,4 @@ def test_debug_shadow_state_disabled_when_debug_false(monkeypatch) -> None:
     config.get_settings.cache_clear()
     config.get_settings()
     sys.modules.pop("manual_watering_temp", None)
+

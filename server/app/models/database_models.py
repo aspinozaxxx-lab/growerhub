@@ -30,6 +30,7 @@ class DeviceDB(Base):
     target_moisture = Column(Float, default=40.0)
     watering_duration = Column(Integer, default=30)
     watering_timeout = Column(Integer, default=300)
+    watering_speed_lph = Column(Float, nullable=True)
     
     # РќР°СЃС‚СЂРѕР№РєРё РѕСЃРІРµС‰РµРЅРёСЏ
     light_on_hour = Column(Integer, default=6)
@@ -216,6 +217,7 @@ class DeviceSettings(BaseModel):
     target_moisture: float
     watering_duration: int
     watering_timeout: int
+    watering_speed_lph: Optional[float] = None
     light_on_hour: int
     light_off_hour: int
     light_duration: int
@@ -243,6 +245,7 @@ class DeviceInfo(BaseModel):
     target_moisture: float
     watering_duration: int
     watering_timeout: int
+    watering_speed_lph: Optional[float] = None
     light_on_hour: int
     light_off_hour: int
     light_duration: int
@@ -259,4 +262,5 @@ class SensorDataPoint(BaseModel):
 class OTAUpdateRequest(BaseModel):
     device_id: str
     firmware_version: str
+
 

@@ -61,6 +61,7 @@ stub_database.create_tables = _create_tables
 stub_database.get_db = _get_db
 sys.modules["app.core.database"] = stub_database
 
+import app.fastapi.routers.manual_watering as manual_watering_router
 from app.fastapi.routers.manual_watering import get_mqtt_dep
 from app.main import app
 from app.mqtt.interfaces import IMqttPublisher
@@ -99,9 +100,11 @@ def override_db_dependencies():
     Base.metadata.create_all(bind=engine)
     app.dependency_overrides[database_module.get_db] = _get_db
     app.dependency_overrides[security_module.get_db] = _get_db
+    app.dependency_overrides[manual_watering_router.get_db] = _get_db
     yield
     app.dependency_overrides.pop(database_module.get_db, None)
     app.dependency_overrides.pop(security_module.get_db, None)
+    app.dependency_overrides.pop(manual_watering_router.get_db, None)
 
 
 class FakePublisher(IMqttPublisher):
@@ -315,3 +318,4 @@ def test_manual_watering_stop_allowed_after_running() -> None:
     assert isinstance(command, CmdPumpStop)
     assert command.type == CommandType.pump_stop.value
     assert command.correlation_id == correlation_id
+

@@ -1,4 +1,4 @@
-from datetime import datetime
+﻿from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -29,6 +29,7 @@ class DeviceOut(BaseModel):
     target_moisture: float
     watering_duration: int
     watering_timeout: int
+    watering_speed_lph: Optional[float] = None
     light_on_hour: int
     light_off_hour: int
     light_duration: int
@@ -55,3 +56,4 @@ class AdminAssignIn(BaseModel):
     """Translitem: payload dlya adminskogo priznacheniya ustrojstva."""
 
     user_id: int
+

@@ -92,6 +92,7 @@ async def get_device_settings(device_id: str, db: Session = Depends(get_db)):
         "target_moisture": device.target_moisture,
         "watering_duration": device.watering_duration,
         "watering_timeout": device.watering_timeout,
+        "watering_speed_lph": device.watering_speed_lph,
         "light_on_hour": device.light_on_hour,
         "light_off_hour": device.light_off_hour,
         "light_duration": device.light_duration,
@@ -108,6 +109,8 @@ async def update_device_settings(device_id: str, settings: DeviceSettings, db: S
     device.target_moisture = settings.target_moisture
     device.watering_duration = settings.watering_duration
     device.watering_timeout = settings.watering_timeout
+    if settings.watering_speed_lph is not None:
+        device.watering_speed_lph = settings.watering_speed_lph
     device.light_on_hour = settings.light_on_hour
     device.light_off_hour = settings.light_off_hour
     device.light_duration = settings.light_duration
@@ -318,6 +321,7 @@ def _device_to_out(
         target_moisture=device.target_moisture,
         watering_duration=device.watering_duration,
         watering_timeout=device.watering_timeout,
+        watering_speed_lph=device.watering_speed_lph,
         light_on_hour=device.light_on_hour,
         light_off_hour=device.light_off_hour,
         light_duration=device.light_duration,
@@ -349,4 +353,5 @@ async def delete_device(device_id: str, db: Session = Depends(get_db)):
     db.delete(device)
     db.commit()
     return {"message": "Device deleted"}
+
 

@@ -1,4 +1,4 @@
-- dobavlena ansible-rol dlya ustanovki pgAdmin na gh-tools.
+﻿- dobavlena ansible-rol dlya ustanovki pgAdmin na gh-tools.
 - sozdan playbook dlya gruppy gh_tools.
 - zahardkozhena dev-konfiguraciya podklyucheniya k gh_db.
 
@@ -9,7 +9,7 @@
 
 feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 
-## 2025-11-07 — OTA trigger cherez MQTT
+## 2025-11-07 вЂ” OTA trigger cherez MQTT
 
 - fix(server): ispol'zovan FIRMWARE_BINARIES_DIR iz nastroek v trigger-update; testy obnovleny dlya novogo puti.
 - fix(server): firmware router teper' poluchaet nastrojki cherez Depends(get_settings), testi podmenyayut zavisimost'.
@@ -21,7 +21,7 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - fix(server): perenesen defoltnyy katalog firmware v server/firmware_binaries; logiruem effektivnyy put' i mount.
 - feat(server): dobavlen API `/api/firmware/versions` i UI zagruka realnyh versij bez hardkoda; dobavleny testi.
 
-## 2025-11-06 — Uchet MQTT soobshcheniy (ACK) v online-status
+## 2025-11-06 вЂ” Uchet MQTT soobshcheniy (ACK) v online-status
 
 **Chto sdelano**
 - Dobavlen metod `touch()` v `DeviceStateLastRepository` dlya probytiya "pul'sa" ustroystva cherez `device_state_last.updated_at` bez izmeneniya `state_json`.
@@ -32,7 +32,7 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - Ranee onlayn-status uchityvalsya glavno po HTTP i `state`. Teper' lyuboe prinyatoe ACK vydajot priznak zhizni, chtoby ne lomat' UX pri komandnyh scenariyah.
 
 **Detali realizacii**
-- `DeviceDB.last_seen` iz MQTT ne izmenyaetsya — vse okruzheno vokrug `device_state_last.updated_at`.
+- `DeviceDB.last_seen` iz MQTT ne izmenyaetsya вЂ” vse okruzheno vokrug `device_state_last.updated_at`.
 - TTL/okna onlajna ne menyalis' (3 min v `/api/devices`, znachenie iz `config` v manual-watering).
 - Migracii shemy ne trebuetsya.
 
@@ -54,7 +54,7 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - Dobavlen test persistence i repo testy.
 - Front teper vidit statusy bez ozhidaniya MQTT.
 
-﻿# Changelog
+п»ї# Changelog
 
 ## [2025-11-05] MQTT reboot command
 - chore(server): ubrany debug-endpointy i vremennoe logirovanie po ACK
@@ -213,9 +213,13 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - chore(debug): ubrany vremennye logi po ACK i debug-blok na stranice manual_watering
 - fix(front): vosstanovleno obyavlenie WAIT_ACK_TIMEOUT_S na stranice manual_watering (defolt 5s)
 - fix(ui): rewrite manual_watering.html with clean utf-8 content
-## 2025-11-27 — Novyj frontend i Markdown statji
+## 2025-11-27 вЂ” Novyj frontend i Markdown statji
 - dobavlen novyj frontend na React (Vite) v `frontend/` s marshrutami `/`, `/articles`, `/articles/:slug`, `/about` i linken na staroe prilozhenie cherez `/static/index.html`.
 - vvedena struktura kontenta: `frontend/content/pages/` dlya leninga i about, `frontend/content/articles/` s Markdown statyami.
 - statji pereneseny iz JSON v Markdown (YAML front matter + markdown telo), zagruzka cherez import.meta.glob s parserom front matter.
 - nginx perenastroen: kornevoy `root` teper' `~/growerhub/frontend/dist`, spa-fallback `index.html`, `/static/` ostalsya alias na staroe prilozhenie.
 - CI/CD: v job `deploy` dobavlena sborka fronta (Node 18, `npm ci`, `npm run build` v `frontend/` pered rsync), dist uezhaet na server v `~/growerhub/frontend/dist`.
+- dobavlena skorost' poliva watering_speed_lph v modeli/ API nastroek ustrojstv + migraciya.
+- manual-watering: raschet dlitel'nosti po obemu, zapis' v watering_logs i zhurnal rastenij, status vozvrashchaet start_time/duration.
+- sso callback: po umolchaniyu vozvrashchaet redirect s tokenom v URL, link-mode uhodit na `/static/profile.html`.
+

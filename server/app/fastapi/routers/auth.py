@@ -3,7 +3,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -157,8 +157,8 @@ async def sso_login(
         current_user_id = current_user.id
 
     if not redirect_path:
-        # default redirect for both login and link -> new SPA dashboard
-        redirect_path = "/app/dashboard"
+        # default redirect dlya login/link
+        redirect_path = "/static/profile.html" if mode == "link" else "/app/dashboard"
 
     redirect_uri = _build_callback_uri(provider)
     try:
@@ -211,32 +211,10 @@ def sso_callback(
     if mode == "login":
         user = get_or_create_user_from_sso(db, provider, subject, email)
         token = create_access_token({"user_id": user.id})
-        html = f"""
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Signing in...</title>
-  </head>
-  <body>
-    <script>
-      try {{
-        localStorage.setItem('gh_access_token', '{token}');
-        window.location.href = '{redirect_path}';
-      }} catch (e) {{
-        window.location.href = '/app/login#token_error=1';
-      }}
-    </script>
-  </body>
-</html>
-"""
-        return HTMLResponse(content=html)
-
-        # TODO: if old clients need token in URL, uncomment snippet below.
-        # redirect_target = redirect_path or "/app/dashboard"
-        # separator = "&" if "?" in redirect_target else "?"
-        # redirect_with_token = f"{redirect_target}{separator}access_token={token}"
-        # return RedirectResponse(url=redirect_with_token, status_code=status.HTTP_302_FOUND)
+        redirect_target = redirect_path or "/app/dashboard"
+        separator = "&" if "?" in redirect_target else "?"
+        redirect_with_token = f"{redirect_target}{separator}access_token={token}"
+        return RedirectResponse(url=redirect_with_token, status_code=status.HTTP_302_FOUND)
 
     current_user_id = state_data.get("current_user_id")
     try:
@@ -247,6 +225,8 @@ def sso_callback(
     current_user = get_user_by_id(db, current_user_id_int)
     if not current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    redirect_target = redirect_path or "/static/profile.html"
 
     identity_same_subject = find_identity_by_subject(db, provider, subject)
     if identity_same_subject and identity_same_subject.user_id != current_user.id:
@@ -266,7 +246,7 @@ def sso_callback(
         identity_for_user.password_hash = None
 
     db.commit()
-    return RedirectResponse(url=redirect_path, status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url=redirect_target, status_code=status.HTTP_302_FOUND)
 
 
 @router.get("/api/auth/me", response_model=UserOut)
@@ -403,3 +383,4 @@ def delete_auth_method(
     db.delete(identity)
     db.commit()
     return _auth_methods_response(db, current_user)
+

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import time
+import json
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -17,9 +19,18 @@ from config import get_settings
 from app.mqtt.store import DeviceShadowStore, get_shadow_store
 from app.mqtt.interfaces import IMqttPublisher
 from app.mqtt.lifecycle import get_publisher
-from app.mqtt.serialization import Ack, CmdPumpStart, CmdPumpStop, CmdReboot, CommandType, DeviceState
+from app.mqtt.serialization import (
+    Ack,
+    CmdPumpStart,
+    CmdPumpStop,
+    CmdReboot,
+    CommandType,
+    DeviceState,
+    ManualWateringState,
+    ManualWateringStatus,
+)
 from app.core.database import get_db
-from app.models.database_models import DeviceDB, UserDB
+from app.models.database_models import DeviceDB, DeviceStateLastDB, PlantDB, PlantDeviceDB, PlantJournalEntryDB, UserDB, WateringLogDB
 from app.repositories.state_repo import DeviceStateLastRepository
 
 router = APIRouter()
@@ -87,7 +98,10 @@ class ManualWateringStartIn(BaseModel):
         device_id - identifikator ustroystva, duration_s - dlitelnost v sekundah."""
 
     device_id: str
-    duration_s: conint(ge=1, le=3600)  # type: ignore[valid-type]
+    duration_s: conint(ge=1, le=3600) | None = None  # type: ignore[valid-type]
+    water_volume_l: float | None = Field(default=None, gt=0)
+    ph: float | None = None
+    fertilizers_per_liter: str | None = None
 
 
 class ManualWateringStartOut(BaseModel):
@@ -112,15 +126,16 @@ class ManualWateringStatusOut(BaseModel):
     """Model dlya otobrazheniya statusa manualnogo poliva i svyazannyh poley."""
 
     status: str
-    duration_s: int | None
-    started_at: str | None
-    remaining_s: int | None
-    correlation_id: str | None
-    updated_at: str | None
-    last_seen_at: str | None
+    duration_s: int | None = None
+    duration: int | None = None
+    started_at: str | None = None
+    start_time: str | None = None
+    remaining_s: int | None = None
+    correlation_id: str | None = None
+    updated_at: str | None = None
+    last_seen_at: str | None = None
     is_online: bool
     offline_reason: str | None = None
-    source: str
     source: str
 
 
@@ -163,25 +178,77 @@ async def manual_watering_start(
 ) -> ManualWateringStartOut:
     """Zapusk manualnogo poliva, proverki sostoyaniya i otpravka komandy."""
 
-    _ensure_device_access(payload.device_id, db, current_user)
+    device = _ensure_device_access(payload.device_id, db, current_user)
 
     # Ten - istochnik istiny: esli vidim status running, ustroystvo uzhe zanato i povtornyi start narushit biznes-pravilo.
     view = store.get_manual_watering_view(payload.device_id)
     if view is not None and view.get("status") == "running":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="РџРѕР»РёРІ СѓР¶Рµ РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ вЂ” РїРѕРІС‚РѕСЂРЅС‹Р№ Р·Р°РїСѓСЃРє Р·Р°РїСЂРµС‰С‘РЅ.")
 
+    duration_s = payload.duration_s
+    calculated_water_used = None
+    if payload.water_volume_l is not None and device.watering_speed_lph and device.watering_speed_lph > 0:
+        seconds = payload.water_volume_l / device.watering_speed_lph * 3600
+        duration_s = max(1, int(math.ceil(seconds)))
+        calculated_water_used = payload.water_volume_l
+
+    if duration_s is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ukazhite water_volume_l ili duration_s dlya starta poliva",
+        )
+
     correlation_id = uuid4().hex
+    started_at = datetime.utcnow()
     cmd = CmdPumpStart(
         type=CommandType.pump_start.value,
         correlation_id=correlation_id,
-        ts=datetime.utcnow(),
-        duration_s=payload.duration_s,
+        ts=started_at,
+        duration_s=duration_s,
     )
 
     try:
         publisher.publish_cmd(payload.device_id, cmd)
     except Exception as exc:  # pragma: no cover - produkcionnye 502 obrabatyvayutsya infra-strukturoy
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Failed to publish manual watering command") from exc
+
+    shadow_state = DeviceState(
+        manual_watering=ManualWateringState(
+            status=ManualWateringStatus.running,
+            duration_s=duration_s,
+            started_at=started_at,
+            remaining_s=duration_s,
+            correlation_id=correlation_id,
+        )
+    )
+    store.update_from_state(payload.device_id, shadow_state)
+    shadow_state_payload = shadow_state.model_dump(mode="json")
+    existing_state = (
+        db.query(DeviceStateLastDB).filter(DeviceStateLastDB.device_id == payload.device_id).first()
+    )
+    payload_json = json.dumps(shadow_state_payload, ensure_ascii=False)
+    if existing_state:
+        existing_state.state_json = payload_json
+        existing_state.updated_at = started_at
+    else:
+        db.add(
+            DeviceStateLastDB(
+                device_id=payload.device_id,
+                state_json=payload_json,
+                updated_at=started_at,
+            )
+        )
+
+    _create_watering_log_and_journal(
+        db,
+        device=device,
+        current_user=current_user,
+        started_at=started_at,
+        duration_s=duration_s,
+        water_used=calculated_water_used,
+        payload=payload,
+    )
+    db.commit()
 
     return ManualWateringStartOut(correlation_id=correlation_id)
 
@@ -274,7 +341,8 @@ async def manual_watering_status(
             manual = state_payload.get("manual_watering", {})
             status_value = manual.get("status", "idle")
             duration_s = manual.get("duration_s")
-            started_at = manual.get("started_at")
+            started_at_raw = manual.get("started_at")
+            started_at = _isoformat_utc(started_at_raw) if isinstance(started_at_raw, datetime) else started_at_raw
             correlation_id = manual.get("correlation_id")
             remaining_s = manual.get("remaining_s")
             last_seen_iso = _isoformat_utc(updated_at) if updated_at else None
@@ -289,7 +357,9 @@ async def manual_watering_status(
             return ManualWateringStatusOut(
                 status=status_value,
                 duration_s=duration_s,
+                duration=duration_s,
                 started_at=started_at,
+                start_time=started_at,
                 remaining_s=remaining_s,
                 correlation_id=correlation_id,
                 updated_at=last_seen_iso,
@@ -307,7 +377,9 @@ async def manual_watering_status(
             return ManualWateringStatusOut(
                 status="idle",
                 duration_s=None,
+                duration=0,
                 started_at=None,
+                start_time=None,
                 remaining_s=None,
                 correlation_id=None,
                 updated_at=None,
@@ -327,7 +399,9 @@ async def manual_watering_status(
         return ManualWateringStatusOut(
             status="idle",
             duration_s=None,
+            duration=0,
             started_at=None,
+            start_time=None,
             remaining_s=None,
             correlation_id=None,
             updated_at=last_seen_iso,
@@ -367,8 +441,69 @@ async def manual_watering_status(
     offline_reason = None if enriched.get("is_online") else "device_offline"
     enriched.setdefault("updated_at", None)
     enriched.setdefault("last_seen_at", None)
+    enriched.setdefault("start_time", enriched.get("started_at"))
+    enriched.setdefault("duration", enriched.get("duration_s"))
     enriched["offline_reason"] = offline_reason
     return ManualWateringStatusOut(**enriched)
+
+
+def _create_watering_log_and_journal(
+    db: Session,
+    device: DeviceDB,
+    current_user: UserDB,
+    started_at: datetime,
+    duration_s: int,
+    water_used: float | None,
+    payload: ManualWateringStartIn,
+) -> None:
+    """Translitem: sohranyaet watering_log i dobavlyaet zapisi v zhurnal rastenij."""
+
+    log_entry = WateringLogDB(
+        device_id=device.device_id,
+        start_time=started_at,
+        duration=duration_s,
+        water_used=water_used,
+    )
+    db.add(log_entry)
+
+    owner_user_id = device.user_id or current_user.id
+    query = (
+        db.query(PlantDB)
+        .join(PlantDeviceDB, PlantDeviceDB.plant_id == PlantDB.id)
+        .filter(PlantDeviceDB.device_id == device.id)
+    )
+    if owner_user_id:
+        query = query.filter(PlantDB.user_id == owner_user_id)
+    plants = query.all()
+
+    if not plants:
+        return
+
+    text = _build_watering_journal_text(duration_s, water_used, payload)
+    for plant in plants:
+        entry = PlantJournalEntryDB(
+            plant_id=plant.id,
+            user_id=owner_user_id,
+            type="watering",
+            text=text,
+            event_at=started_at,
+        )
+        db.add(entry)
+
+
+def _build_watering_journal_text(duration_s: int, water_used: float | None, payload: ManualWateringStartIn) -> str:
+    """Translitem: sobiraet opisanie poliva dlya zhurnala rastenij."""
+
+    parts: list[str] = []
+    volume = water_used if water_used is not None else payload.water_volume_l
+    if volume is not None:
+        parts.append(f"obem_vody={volume:.2f}l")
+    parts.append(f"dlitelnost={duration_s}s")
+    if payload.ph is not None:
+        parts.append(f"ph={payload.ph}")
+    if payload.fertilizers_per_liter:
+        parts.append(f"udobreniya_na_litr={payload.fertilizers_per_liter} (udobreniya ukazany na litr)")
+    return "; ".join(parts)
 
 
 @router.get("/api/manual-watering/ack", response_model=ManualWateringAckOut)
@@ -461,4 +596,7 @@ def _isoformat_utc(dt: datetime | None) -> str | None:
         return None
     value = _as_utc(dt).replace(microsecond=0)
     return value.isoformat().replace("+00:00", "Z")
+
+
+
 

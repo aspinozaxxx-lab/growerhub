@@ -1,4 +1,4 @@
-"""Modul hranit in-memory storagi ACK i shadow dlya MQTT integracii API."""
+﻿"""Modul hranit in-memory storagi ACK i shadow dlya MQTT integracii API."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Dict, Optional, Tuple
 
 from .config import get_mqtt_settings
 
-# Publikuem obshchie klassy i helpery dlya drugih modulей
+# Publikuem obshchie klassy i helpery dlya drugih modulРµР№
 __all__ = [
     "AckStore",
     "DeviceShadowStore",
@@ -64,7 +64,7 @@ class AckStore:
         return removed
 
 
-# Singleton dlya obshchego dostupа k AckStore
+# Singleton dlya obshchego dostupР° k AckStore
 _ack_store: Optional[AckStore] = None
 
 
@@ -183,7 +183,9 @@ class DeviceShadowStore:
         return {
             "status": status,
             "duration_s": duration_s,
+            "duration": duration_s,
             "started_at": started_iso,
+            "start_time": started_iso,
             "remaining_s": remaining_s,
             "correlation_id": correlation_id,
             "updated_at": last_seen_iso,
@@ -193,7 +195,7 @@ class DeviceShadowStore:
         }
 
 
-# Singleton dlya obshchego dostupа k DeviceShadowStore
+# Singleton dlya obshchego dostupР° k DeviceShadowStore
 _shadow_store: Optional[DeviceShadowStore] = None
 
 
@@ -241,4 +243,5 @@ def _isoformat_utc(dt: datetime) -> str:
     """Prevrashchaet datetime v stroku ISO-8601 bez mikrosekund i so znakom Z."""
 
     return _as_utc(dt).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
 

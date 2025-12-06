@@ -2,12 +2,14 @@
 import types
 
 import pytest
+from fastapi import status
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.security import create_access_token
-from app.models.database_models import Base, DeviceDB
+import app.fastapi.routers.manual_watering as manual_watering_router
+from app.models.database_models import Base, DeviceDB, PlantDB, PlantDeviceDB, PlantJournalEntryDB, WateringLogDB
 from app.repositories.users import create_local_user
 
 engine = create_engine(
@@ -56,13 +58,38 @@ def _create_user(email: str, password: str) -> int:
         session.close()
 
 
-def _insert_device(device_id: str, user_id: int) -> None:
+def _insert_device(device_id: str, user_id: int, watering_speed_lph: float | None = None) -> DeviceDB:
     _create_tables()
     session = SessionLocal()
     try:
         session.query(DeviceDB).filter(DeviceDB.device_id == device_id).delete()
-        device = DeviceDB(device_id=device_id, user_id=user_id)
+        device = DeviceDB(device_id=device_id, user_id=user_id, watering_speed_lph=watering_speed_lph)
         session.add(device)
+        session.commit()
+        session.refresh(device)
+        return device
+    finally:
+        session.close()
+
+
+def _create_plant(user_id: int, name: str) -> PlantDB:
+    _create_tables()
+    session = SessionLocal()
+    try:
+        plant = PlantDB(user_id=user_id, name=name)
+        session.add(plant)
+        session.commit()
+        session.refresh(plant)
+        return plant
+    finally:
+        session.close()
+
+
+def _link_plant_to_device(plant_id: int, device_db_id: int) -> None:
+    _create_tables()
+    session = SessionLocal()
+    try:
+        session.add(PlantDeviceDB(plant_id=plant_id, device_id=device_db_id))
         session.commit()
     finally:
         session.close()
@@ -77,9 +104,11 @@ def override_db_dependencies():
     Base.metadata.create_all(bind=engine)
     app.dependency_overrides[database_module.get_db] = _get_db
     app.dependency_overrides[security_module.get_db] = _get_db
+    app.dependency_overrides[manual_watering_router.get_db] = _get_db
     yield
     app.dependency_overrides.pop(database_module.get_db, None)
     app.dependency_overrides.pop(security_module.get_db, None)
+    app.dependency_overrides.pop(manual_watering_router.get_db, None)
 
 
 class FakePublisher(IMqttPublisher):
@@ -128,3 +157,110 @@ def test_manual_watering_start_endpoint():
     assert cmd.duration_s == 20
     assert cmd.correlation_id == correlation_id
     assert cmd.type == CommandType.pump_start.value
+
+
+def test_manual_watering_start_by_volume_calculates_duration_and_logs():
+    """Proveryaet raschet dlitelnosti po obemu i zapis v watering_log."""
+
+    fake = FakePublisher()
+    app.dependency_overrides[get_mqtt_dep] = lambda: fake
+
+    with TestClient(app) as client:
+        _create_tables()
+        user_id = _create_user("owner-volume@example.com", "secret")
+        _insert_device("vol-1", user_id=user_id, watering_speed_lph=2.0)
+        token = create_access_token({"user_id": user_id})
+        headers = {"Authorization": f"Bearer {token}"}
+        response = client.post(
+            "/api/manual-watering/start",
+            json={"device_id": "vol-1", "water_volume_l": 1.0},
+            headers=headers,
+        )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert len(fake.published) == 1
+    _, cmd = fake.published[0]
+    assert cmd.duration_s == 1800
+
+    session = SessionLocal()
+    try:
+        log_entry = session.query(WateringLogDB).filter(WateringLogDB.device_id == "vol-1").first()
+        assert log_entry is not None
+        assert log_entry.duration == 1800
+        assert log_entry.water_used == pytest.approx(1.0)
+    finally:
+        session.close()
+
+
+def test_manual_watering_start_requires_duration_or_volume():
+    """Proveryaet validaciyu na otsutstvie duration_s i water_volume_l."""
+
+    fake = FakePublisher()
+    app.dependency_overrides[get_mqtt_dep] = lambda: fake
+
+    with TestClient(app) as client:
+        _create_tables()
+        user_id = _create_user("owner-noval@example.com", "secret")
+        _insert_device("noval-1", user_id=user_id)
+        token = create_access_token({"user_id": user_id})
+        headers = {"Authorization": f"Bearer {token}"}
+        response = client.post(
+            "/api/manual-watering/start",
+            json={"device_id": "noval-1"},
+            headers=headers,
+        )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert fake.published == []
+
+
+def test_manual_watering_start_creates_journal_for_linked_plants():
+    """Proveryaet avto-sozdanie zapisej zhurnala dlya privyazannyh rastenij."""
+
+    fake = FakePublisher()
+    app.dependency_overrides[get_mqtt_dep] = lambda: fake
+
+    with TestClient(app) as client:
+        _create_tables()
+        user_id = _create_user("owner-plant@example.com", "secret")
+        device = _insert_device("plant-1", user_id=user_id, watering_speed_lph=1.0)
+        plant_one = _create_plant(user_id, "Rose")
+        plant_two = _create_plant(user_id, "Mint")
+        _link_plant_to_device(plant_one.id, device.id)
+        _link_plant_to_device(plant_two.id, device.id)
+        token = create_access_token({"user_id": user_id})
+        headers = {"Authorization": f"Bearer {token}"}
+        response = client.post(
+            "/api/manual-watering/start",
+            json={
+                "device_id": "plant-1",
+                "water_volume_l": 0.5,
+                "ph": 6.5,
+                "fertilizers_per_liter": "NPK 10-10-10",
+            },
+            headers=headers,
+        )
+
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    session = SessionLocal()
+    try:
+        journal_entries = session.query(PlantJournalEntryDB).order_by(PlantJournalEntryDB.id).all()
+        assert len(journal_entries) == 2
+        for entry in journal_entries:
+            assert entry.type == "watering"
+            assert "obem_vody=0.50l" in entry.text
+            assert "dlitelnost=" in entry.text
+            assert "udobreniya_na_litr=" in entry.text
+        log_entry = session.query(WateringLogDB).filter(WateringLogDB.device_id == "plant-1").first()
+        assert log_entry is not None
+        assert log_entry.water_used == pytest.approx(0.5)
+    finally:
+        session.close()
+
+
