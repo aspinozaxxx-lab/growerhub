@@ -161,6 +161,36 @@
   font-weight: 600;
 }
 
+.plant-card__actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.plant-card__action-btn {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+.plant-card__action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.plant-card__watering-badge {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(107, 219, 168, 0.12);
+  color: #6bdba8;
+  font-weight: 600;
+}
+
 .free-device-card__header {
   display: flex;
   justify-content: space-between;

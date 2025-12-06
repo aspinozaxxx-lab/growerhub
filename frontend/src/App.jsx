@@ -13,6 +13,8 @@ import LoginPage from './pages/app/LoginPage';
 import RequireAuth from './features/auth/RequireAuth';
 import { SensorStatsProvider } from './features/sensors/SensorStatsContext';
 import SensorStatsSidebar from './features/sensors/SensorStatsSidebar';
+import { WateringSidebarProvider } from './features/watering/WateringSidebarContext';
+import WateringSidebar from './features/watering/WateringSidebar';
 
 function App() {
   return (
@@ -27,12 +29,15 @@ function App() {
           path="/app"
           element={(
             <RequireAuth>
-              <SensorStatsProvider>
-                <>
-                  <AppLayout />
-                  <SensorStatsSidebar />
-                </>
-              </SensorStatsProvider>
+              <WateringSidebarProvider>
+                <SensorStatsProvider>
+                  <>
+                    <AppLayout />
+                    <SensorStatsSidebar />
+                    <WateringSidebar />
+                  </>
+                </SensorStatsProvider>
+              </WateringSidebarProvider>
             </RequireAuth>
           )}
         >

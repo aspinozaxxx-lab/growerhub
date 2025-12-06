@@ -1,0 +1,35 @@
+.sensor-sidebar__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-control {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-control input[type="number"],
+.form-control textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+}
+
+.form-control input[type="range"] {
+  width: 100%;
+}
+
+.form-control__label {
+  font-size: 0.9rem;
+  color: #c7d7ef;
+}
+
+.form-control__value {
+  font-size: 0.9rem;
+  color: #e2e8f0;
+}

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useDashboardData } from '../../features/dashboard/useDashboardData';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
+import { useWateringSidebar } from '../../features/watering/WateringSidebarContext';
 import { formatSensorValue } from '../../utils/formatters';
 import plantPot from '../../assets/plant-pot.svg';
 import './AppDashboard.css';
@@ -10,11 +11,11 @@ const MS_IN_DAY = 24 * 60 * 60 * 1000;
 
 function formatAge(plantedAt) {
   if (!plantedAt) {
-    return 'Возраст неизвестен';
+    return 'Дата неизвестна';
   }
   const date = new Date(plantedAt);
   if (Number.isNaN(date.getTime())) {
-    return 'Возраст неизвестен';
+    return 'Дата неизвестна';
   }
   const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / MS_IN_DAY));
   return `${days} дн.`;
@@ -40,8 +41,56 @@ function MetricPill({ label, value, metric, deviceId, onOpenStats, highlight = f
   );
 }
 
-function PlantCard({ plant, onOpenStats }) {
+function formatRemaining(seconds) {
+  if (seconds === null || seconds === undefined) {
+    return '';
+  }
+  const clamped = Math.max(0, Math.ceil(seconds));
+  const minutes = Math.floor(clamped / 60);
+  const secs = clamped % 60;
+  const parts = [];
+  if (minutes > 0) {
+    parts.push(`${minutes} мин`);
+  }
+  parts.push(`${secs} с`);
+  return parts.join(' ');
+}
+
+function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus }) {
   const primaryDevice = plant?.devices?.[0]; // TODO: заменить на выбор конкретного устройства, если их несколько.
+  const [remainingSeconds, setRemainingSeconds] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!wateringStatus || !wateringStatus.startTime || !wateringStatus.duration) {
+      setRemainingSeconds(null);
+      return undefined;
+    }
+    const startTs = new Date(wateringStatus.startTime).getTime();
+    if (!Number.isFinite(startTs)) {
+      setRemainingSeconds(null);
+      return undefined;
+    }
+    const durationMs = wateringStatus.duration * 1000;
+    const updateRemaining = () => {
+      const diffMs = startTs + durationMs - Date.now();
+      const next = diffMs <= 0 ? 0 : Math.ceil(diffMs / 1000);
+      setRemainingSeconds(next);
+    };
+    updateRemaining();
+    const interval = window.setInterval(updateRemaining, 1000);
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [wateringStatus]);
+
+  const showWateringBadge = wateringStatus && remainingSeconds !== null && remainingSeconds > 0;
+
+  const handleOpenWatering = () => {
+    if (primaryDevice?.device_id && onOpenWatering) {
+      onOpenWatering({ deviceId: primaryDevice.device_id, plantId: plant.id });
+    }
+  };
+
   return (
     <div className="plant-card">
       <div className="plant-card__header">
@@ -72,14 +121,14 @@ function PlantCard({ plant, onOpenStats }) {
               onOpenStats={onOpenStats}
             />
             <MetricPill
-              label="Вл.возд, %"
+              label="Влажн. воздуха, %"
               value={primaryDevice.air_humidity}
               metric="air_humidity"
               deviceId={primaryDevice.device_id}
               onOpenStats={onOpenStats}
             />
             <MetricPill
-              label="Вл.почв, %"
+              label="Влажн. почвы, %"
               value={primaryDevice.soil_moisture}
               metric="soil_moisture"
               deviceId={primaryDevice.device_id}
@@ -93,6 +142,11 @@ function PlantCard({ plant, onOpenStats }) {
               onOpenStats={onOpenStats}
               highlight={Boolean(primaryDevice.is_watering)}
             />
+            {showWateringBadge && (
+              <div className="plant-card__watering-badge">
+                Идёт полив · осталось {formatRemaining(remainingSeconds)}
+              </div>
+            )}
           </div>
         </div>
       ) : (
@@ -100,9 +154,22 @@ function PlantCard({ plant, onOpenStats }) {
       )}
 
       <div className="plant-card__footer">
-        <Link className="plant-card__link" to="/app/plants">
-          Журнал →
-        </Link>
+        <div className="plant-card__actions">
+          <button
+            type="button"
+            className="plant-card__action-btn"
+            onClick={handleOpenWatering}
+            disabled={!primaryDevice}
+          >
+            Полив
+          </button>
+          <Link className="plant-card__action-btn" to="/app/plants">
+            Журнал
+          </Link>
+          <Link className="plant-card__link" to="/app/plants">
+            Перейти →
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -163,6 +230,7 @@ function FreeDeviceCard({ device, onOpenStats }) {
 function AppDashboard() {
   const { plants, devices, freeDevices, isLoading, error } = useDashboardData();
   const { openSensorStats } = useSensorStatsContext();
+  const { openWateringSidebar, wateringByDevice } = useWateringSidebar();
 
   return (
     <div className="dashboard">
@@ -170,7 +238,7 @@ function AppDashboard() {
       {error && <div className="dashboard__state dashboard__state--error">{error}</div>}
 
       {!isLoading && !error && plants.length === 0 && freeDevices.length === 0 && (
-        <div className="dashboard__state">Пока здесь пусто. Добавьте устройство или растение.</div>
+        <div className="dashboard__state">Пока нет данных. Добавьте растения и подключите устройства.</div>
       )}
 
       {!isLoading && !error && plants.length > 0 && (
@@ -179,9 +247,18 @@ function AppDashboard() {
             <h2>Растения</h2>
           </div>
           <div className="cards-grid">
-            {plants.map((plant) => (
-              <PlantCard key={plant.id} plant={plant} onOpenStats={openSensorStats} />
-            ))}
+            {plants.map((plant) => {
+              const deviceKey = plant?.devices?.[0]?.device_id;
+              return (
+                <PlantCard
+                  key={plant.id}
+                  plant={plant}
+                  onOpenStats={openSensorStats}
+                  onOpenWatering={openWateringSidebar}
+                  wateringStatus={deviceKey ? wateringByDevice[deviceKey] : null}
+                />
+              );
+            })}
           </div>
         </section>
       )}
