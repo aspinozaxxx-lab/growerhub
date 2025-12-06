@@ -71,7 +71,7 @@ function AppDevices() {
     setSaveError(null);
   };
 
-  const handleSave = async ({ watering_speed_lph, plant_ids, error: validationError }) => {
+  const handleSave = async ({ watering_speed_lph, plant_ids, error: validationError, fullSettings }) => {
     if (validationError) {
       setSaveError(validationError);
       return;
@@ -82,10 +82,9 @@ function AppDevices() {
     setIsSaving(true);
     setSaveError(null);
     try {
-      // watering_speed_lph
-      const currentSpeed = modalDevice.watering_speed_lph ?? null;
-      if (watering_speed_lph !== currentSpeed) {
-        await updateDeviceSettings(modalDevice.device_id, { watering_speed_lph }, token);
+      // watering_speed_lph: polnyj payload nastroek
+      if (fullSettings) {
+        await updateDeviceSettings(modalDevice.device_id, fullSettings, token);
       }
       // plant diff
       const current = new Set(modalDevice.plant_ids || []);
@@ -138,6 +137,7 @@ function AppDevices() {
           onSave={handleSave}
           isSaving={isSaving}
           error={saveError}
+          token={token}
         />
       )}
     </div>

@@ -8,6 +8,17 @@ export async function fetchMyDevices(token) {
   return response.json();
 }
 
+export async function fetchDeviceSettings(deviceId, token) {
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const response = await fetch(`/api/device/${encodeURIComponent(deviceId)}/settings`, {
+    headers,
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to load device settings (${response.status})`);
+  }
+  return response.json();
+}
+
 export async function updateDeviceSettings(deviceId, settings, token) {
   const headers = {
     'Content-Type': 'application/json',
