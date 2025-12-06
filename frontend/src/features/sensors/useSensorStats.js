@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchSensorHistory, fetchWateringLogs } from '../../api/history';
 import { useAuth } from '../auth/AuthContext';
 
@@ -101,9 +101,11 @@ export function useSensorStats(deviceId, metric) {
           const safeDate = Number.isFinite(tsValue.getTime()) ? tsValue : new Date();
           return {
             timestamp: safeDate.toISOString(),
-            value: log.duration ?? log.water_used ?? 1, // простой столбик по duration/объёму
+            value: log.water_used ?? log.duration ?? 1, // ??????? ??????? ?? obem/duration fallback
             duration: log.duration,
             water_used: log.water_used,
+            ph: log.ph,
+            fertilizers_per_liter: log.fertilizers_per_liter ?? log.fertilizers,
           };
         });
     }

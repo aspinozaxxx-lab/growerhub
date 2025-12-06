@@ -157,6 +157,8 @@ async def get_watering_logs(device_id: str, days: int = 7, db: Session = Depends
                 "duration": details.duration_s,
                 "water_used": details.water_volume_l,
                 "plant_id": entry.plant_id,
+                "ph": details.ph,
+                "fertilizers_per_liter": details.fertilizers_per_liter,
             }
         )
     return result

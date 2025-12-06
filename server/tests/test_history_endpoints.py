@@ -120,8 +120,8 @@ def test_watering_logs_filters_by_days(client: TestClient) -> None:
             journal_entry_id=recent_entry.id,
             water_volume_l=0.5,
             duration_s=120,
-            ph=None,
-            fertilizers_per_liter=None,
+            ph=6.2,
+            fertilizers_per_liter="NPK 10-10-10",
         )
         old_details = PlantJournalWateringDetailsDB(
             journal_entry_id=old_entry.id,
@@ -144,10 +144,14 @@ def test_watering_logs_filters_by_days(client: TestClient) -> None:
     assert "start_time" in log
     assert "duration" in log
     assert "water_used" in log
+    assert "ph" in log
+    assert "fertilizers_per_liter" in log
     ts = _iso_to_datetime(log["start_time"])
     assert ts >= now - timedelta(days=7)
     assert log["duration"] == 120
     assert log["water_used"] == pytest.approx(0.5)
+    assert log["ph"] == pytest.approx(6.2)
+    assert log["fertilizers_per_liter"] == "NPK 10-10-10"
 
 
 def test_history_missing_device_returns_empty_list(client: TestClient) -> None:

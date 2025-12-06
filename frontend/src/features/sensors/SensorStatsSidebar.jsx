@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+﻿﻿import React, { useMemo } from 'react';
 import {
   Bar,
   BarChart,
@@ -41,6 +41,38 @@ function formatAxisLabel(timestamp, range) {
   return `${day}.${month}`;
 }
 
+
+
+function WateringTooltip({ active, payload, label }) {
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
+  const data = payload[0]?.payload || {};
+  const volume = data.water_used ?? data.value;
+  const duration = data.duration;
+  const ph = data.ph;
+  const fertilizers = data.fertilizers_per_liter;
+
+  return (
+    <div className="recharts-default-tooltip">
+      <p className="recharts-tooltip-label">{formatTimestampLabel(label)}</p>
+      {volume !== undefined && volume !== null && (
+        <p className="recharts-tooltip-item">{`?????: ${formatSensorValue(volume)} ?`}</p>
+      )}
+      {duration !== undefined && duration !== null && (
+        <p className="recharts-tooltip-item">{`????????????: ${duration} ?`}</p>
+      )}
+      {ph !== undefined && ph !== null && <p className="recharts-tooltip-item">{`pH: ${ph}`}</p>}
+      {fertilizers ? (
+        <p className="recharts-tooltip-item">{`?????????: ${
+          typeof fertilizers === 'string' ? fertilizers : JSON.stringify(fertilizers)
+        }`}</p>
+      ) : null}
+    </div>
+  );
+}
+
 function SensorChart({ metric, range, data }) {
   const empty = !data || data.length === 0;
 
@@ -72,12 +104,7 @@ function SensorChart({ metric, range, data }) {
               fontSize: 12,
             }}
           />
-          <Tooltip
-            formatter={(value) => [formatSensorValue(value), 'Полив']}
-            labelFormatter={(value) => formatTimestampLabel(value)}
-            contentStyle={{ fontSize: '0.9rem' }}
-            labelStyle={{ color: '#0f172a', fontWeight: 600 }}
-          />
+          <Tooltip content={<WateringTooltip />} />
           <Bar dataKey="value" fill="#6bdba8" radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
