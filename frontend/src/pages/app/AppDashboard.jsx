@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDashboardData } from '../../features/dashboard/useDashboardData';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
 import { useWateringSidebar } from '../../features/watering/WateringSidebarContext';
@@ -56,7 +56,7 @@ function formatRemaining(seconds) {
   return parts.join(' ');
 }
 
-function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus }) {
+function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJournal }) {
   const primaryDevice = plant?.devices?.[0]; // TODO: заменить на выбор конкретного устройства, если их несколько.
   const [remainingSeconds, setRemainingSeconds] = React.useState(null);
 
@@ -163,9 +163,13 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus }) {
           >
             Полив
           </button>
-          <Link className="plant-card__action-btn" to="/app/plants">
+          <button
+            type="button"
+            className="plant-card__action-btn"
+            onClick={() => onOpenJournal?.(plant.id)}
+          >
             Журнал
-          </Link>
+          </button>
           <Link className="plant-card__link" to="/app/plants">
             Перейти →
           </Link>
@@ -231,6 +235,11 @@ function AppDashboard() {
   const { plants, devices, freeDevices, isLoading, error } = useDashboardData();
   const { openSensorStats } = useSensorStatsContext();
   const { openWateringSidebar, wateringByDevice } = useWateringSidebar();
+  const navigate = useNavigate();
+
+  const handleOpenJournal = (plantId) => {
+    navigate(`/app/plants/${plantId}/journal`);
+  };
 
   return (
     <div className="dashboard">
@@ -255,6 +264,7 @@ function AppDashboard() {
                   plant={plant}
                   onOpenStats={openSensorStats}
                   onOpenWatering={openWateringSidebar}
+                  onOpenJournal={handleOpenJournal}
                   wateringStatus={deviceKey ? wateringByDevice[deviceKey] : null}
                 />
               );

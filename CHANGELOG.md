@@ -223,5 +223,6 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - manual-watering: raschet dlitel'nosti po obemu, zapis' v watering_logs i zhurnal rastenij, status vozvrashchaet start_time/duration.
 - manual-watering: detali poliva vyneseny v plant_journal_watering_details, watering_logs udaleny, istorija polivov stroit'sya po zhurnalu, poliv bez privyazki k rasteniyam zapreshchen.
 - Istorija polivov teper ispolzuet obem vody kak osnovnuyu metriku i v saidebare vidno ph i sostav udobrenij.
+- Dobavlena polnocennaja stranica zhurnala rastenija: prosmotr, dobavlenie, izmenenie, udalenie zhjurnalnyh zapisej. Fiks bitogo teksta v istorii polivov, normalnye podpisi.
 - sso callback: po umolchaniyu vozvrashchaet redirect s tokenom v URL, link-mode uhodit na `/static/profile.html`.
 

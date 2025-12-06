@@ -1,0 +1,125 @@
+﻿.plant-journal {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  color: #0f172a;
+}
+
+.plant-journal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.plant-journal__title {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.plant-journal__subtitle {
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.plant-journal__back {
+  border: 1px solid #94a3b8;
+  background: transparent;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.plant-journal__state {
+  margin: 12px 0;
+  padding: 10px;
+  border-radius: 6px;
+  background: #e2e8f0;
+}
+
+.plant-journal__state--error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.plant-journal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.plant-journal__form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plant-journal__form-row span {
+  font-weight: 600;
+}
+
+.plant-journal__form select,
+.plant-journal__form textarea {
+  padding: 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font: inherit;
+}
+
+.plant-journal__submit {
+  align-self: flex-start;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: #0ea5e9;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.plant-journal__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.plant-journal__item {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
+.plant-journal__item-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.plant-journal__item-type {
+  background: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.plant-journal__item-text {
+  margin: 6px 0;
+}
+
+.plant-journal__item-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.plant-journal__item-actions button {
+  border: 1px solid #cbd5e1;
+  background: transparent;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}

@@ -118,3 +118,38 @@ def test_create_journal_entry(client: TestClient):
         assert db_entry is not None
     finally:
         session.close()
+
+
+def test_update_journal_entry(client: TestClient):
+    user = _create_user("plant-journal-update@example.com", "secret")
+    token = _login_and_get_token(client, user.email, "secret")
+    headers = {"Authorization": f"Bearer {token}"}
+    plant_id = client.post("/api/plants", json={"name": "Lemon"}, headers=headers).json()["id"]
+
+    create_resp = client.post(
+        f"/api/plants/{plant_id}/journal",
+        json={"type": "note", "text": "old text"},
+        headers=headers,
+    )
+    assert create_resp.status_code == 200
+    entry_id = create_resp.json()["id"]
+
+    patch_resp = client.patch(
+        f"/api/plants/{plant_id}/journal/{entry_id}",
+        json={"text": "new text", "type": "other"},
+        headers=headers,
+    )
+    assert patch_resp.status_code == 200
+    payload = patch_resp.json()
+    assert payload["id"] == entry_id
+    assert payload["text"] == "new text"
+    assert payload["type"] == "other"
+
+    session = TestingSessionLocal()
+    try:
+        db_entry = session.query(PlantJournalEntryDB).filter(PlantJournalEntryDB.id == entry_id).first()
+        assert db_entry is not None
+        assert db_entry.text == "new text"
+        assert db_entry.type == "other"
+    finally:
+        session.close()

@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -28,9 +29,17 @@ from app.models.plant_schemas import (
     PlantOut,
     PlantUpdate,
 )
+from pydantic import BaseModel
 from app.repositories.state_repo import DeviceStateLastRepository
 
 router = APIRouter()
+
+
+class PlantJournalEntryUpdate(BaseModel):
+    """Translitem: obnovlenie zapisi zhurnala rastenija (type/text)."""
+
+    type: Optional[str] = None
+    text: Optional[str] = None
 
 
 @router.get("/api/plant-groups", response_model=list[PlantGroupOut])
@@ -267,6 +276,38 @@ async def create_journal_entry(
     if photo_urls:
         db.commit()
 
+    return _build_journal_out(entry, db)
+
+
+@router.patch("/api/plants/{plant_id}/journal/{entry_id}", response_model=PlantJournalEntryOut)
+async def update_journal_entry(
+    plant_id: int,
+    entry_id: int,
+    payload: PlantJournalEntryUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
+    _get_user_plant(db, plant_id, current_user)
+    entry = (
+        db.query(PlantJournalEntryDB)
+        .filter(
+            PlantJournalEntryDB.id == entry_id,
+            PlantJournalEntryDB.plant_id == plant_id,
+            PlantJournalEntryDB.user_id == current_user.id,
+        )
+        .first()
+    )
+    if not entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="zapis' ne najdena")
+
+    update_data = payload.model_dump(exclude_unset=True)
+    if "type" in update_data:
+        entry.type = update_data["type"]
+    if "text" in update_data:
+        entry.text = update_data["text"]
+    entry.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(entry)
     return _build_journal_out(entry, db)
 
 

@@ -9,6 +9,7 @@ import AppDashboard from './pages/app/AppDashboard';
 import AppDevices from './pages/app/AppDevices';
 import AppPlants from './pages/app/AppPlants';
 import AppProfile from './pages/app/AppProfile';
+import AppPlantJournal from './pages/app/AppPlantJournal';
 import LoginPage from './pages/app/LoginPage';
 import RequireAuth from './features/auth/RequireAuth';
 import { SensorStatsProvider } from './features/sensors/SensorStatsContext';
@@ -43,6 +44,7 @@ function App() {
         >
           <Route index element={<AppDashboard />} />
           <Route path="plants" element={<AppPlants />} />
+          <Route path="plants/:plantId/journal" element={<AppPlantJournal />} />
           <Route path="devices" element={<AppDevices />} />
           <Route path="profile" element={<AppProfile />} />
         </Route>
