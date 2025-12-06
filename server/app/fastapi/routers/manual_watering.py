@@ -30,7 +30,15 @@ from app.mqtt.serialization import (
     ManualWateringStatus,
 )
 from app.core.database import get_db
-from app.models.database_models import DeviceDB, DeviceStateLastDB, PlantDB, PlantDeviceDB, PlantJournalEntryDB, UserDB, WateringLogDB
+from app.models.database_models import (
+    DeviceDB,
+    DeviceStateLastDB,
+    PlantDB,
+    PlantDeviceDB,
+    PlantJournalEntryDB,
+    PlantJournalWateringDetailsDB,
+    UserDB,
+)
 from app.repositories.state_repo import DeviceStateLastRepository
 
 router = APIRouter()
@@ -179,6 +187,11 @@ async def manual_watering_start(
     """Zapusk manualnogo poliva, proverki sostoyaniya i otpravka komandy."""
 
     device = _ensure_device_access(payload.device_id, db, current_user)
+    owner_user_id = device.user_id or current_user.id
+    plants = _get_linked_plants(db, device, owner_user_id)
+    if not plants:
+        # Translitem: zapreshchaem poliv esli ustroystvo ne privyazano k rasteniyam.
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Устройство не привязано ни k odnomu rasteniyu")
 
     # Ten - istochnik istiny: esli vidim status running, ustroystvo uzhe zanato i povtornyi start narushit biznes-pravilo.
     view = store.get_manual_watering_view(payload.device_id)
@@ -197,6 +210,7 @@ async def manual_watering_start(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="ukazhite water_volume_l ili duration_s dlya starta poliva",
         )
+    water_volume_l = _resolve_water_volume_l(device, duration_s, calculated_water_used, payload)
 
     correlation_id = uuid4().hex
     started_at = datetime.utcnow()
@@ -239,13 +253,14 @@ async def manual_watering_start(
             )
         )
 
-    _create_watering_log_and_journal(
+    _create_watering_journal_and_details(
         db,
         device=device,
+        plants=plants,
         current_user=current_user,
         started_at=started_at,
         duration_s=duration_s,
-        water_used=calculated_water_used,
+        water_volume_l=water_volume_l,
         payload=payload,
     )
     db.commit()
@@ -447,26 +462,9 @@ async def manual_watering_status(
     return ManualWateringStatusOut(**enriched)
 
 
-def _create_watering_log_and_journal(
-    db: Session,
-    device: DeviceDB,
-    current_user: UserDB,
-    started_at: datetime,
-    duration_s: int,
-    water_used: float | None,
-    payload: ManualWateringStartIn,
-) -> None:
-    """Translitem: sohranyaet watering_log i dobavlyaet zapisi v zhurnal rastenij."""
+def _get_linked_plants(db: Session, device: DeviceDB, owner_user_id: int | None) -> list[PlantDB]:
+    """Translitem: vozvrashaet spisok rastenij, privyazannyh k ustrojstvu."""
 
-    log_entry = WateringLogDB(
-        device_id=device.device_id,
-        start_time=started_at,
-        duration=duration_s,
-        water_used=water_used,
-    )
-    db.add(log_entry)
-
-    owner_user_id = device.user_id or current_user.id
     query = (
         db.query(PlantDB)
         .join(PlantDeviceDB, PlantDeviceDB.plant_id == PlantDB.id)
@@ -474,12 +472,43 @@ def _create_watering_log_and_journal(
     )
     if owner_user_id:
         query = query.filter(PlantDB.user_id == owner_user_id)
-    plants = query.all()
+    return query.all()
+
+
+def _resolve_water_volume_l(
+    device: DeviceDB,
+    duration_s: int,
+    water_used: float | None,
+    payload: ManualWateringStartIn,
+) -> float:
+    """Translitem: opredelyaet obem vody na osnove payload i skorosti nasosa."""
+
+    if water_used is not None:
+        return water_used
+    if payload.water_volume_l is not None:
+        return payload.water_volume_l
+    if device.watering_speed_lph:
+        return device.watering_speed_lph * duration_s / 3600.0
+    return 0.0
+
+
+def _create_watering_journal_and_details(
+    db: Session,
+    device: DeviceDB,
+    plants: list[PlantDB],
+    current_user: UserDB,
+    started_at: datetime,
+    duration_s: int,
+    water_volume_l: float,
+    payload: ManualWateringStartIn,
+) -> None:
+    """Translitem: sohranyaet zapisi zhurnala poliva i detali po kazhdomu rasteniyu."""
 
     if not plants:
         return
 
-    text = _build_watering_journal_text(duration_s, water_used, payload)
+    owner_user_id = device.user_id or current_user.id
+    text = _build_watering_journal_text(duration_s, water_volume_l, payload)
     for plant in plants:
         entry = PlantJournalEntryDB(
             plant_id=plant.id,
@@ -489,15 +518,21 @@ def _create_watering_log_and_journal(
             event_at=started_at,
         )
         db.add(entry)
+        details = PlantJournalWateringDetailsDB(
+            journal_entry=entry,
+            water_volume_l=water_volume_l,
+            duration_s=duration_s,
+            ph=payload.ph,
+            fertilizers_per_liter=payload.fertilizers_per_liter,
+        )
+        db.add(details)
 
 
-def _build_watering_journal_text(duration_s: int, water_used: float | None, payload: ManualWateringStartIn) -> str:
+def _build_watering_journal_text(duration_s: int, water_volume_l: float, payload: ManualWateringStartIn) -> str:
     """Translitem: sobiraet opisanie poliva dlya zhurnala rastenij."""
 
     parts: list[str] = []
-    volume = water_used if water_used is not None else payload.water_volume_l
-    if volume is not None:
-        parts.append(f"obem_vody={volume:.2f}l")
+    parts.append(f"obem_vody={water_volume_l:.2f}l")
     parts.append(f"dlitelnost={duration_s}s")
     if payload.ph is not None:
         parts.append(f"ph={payload.ph}")

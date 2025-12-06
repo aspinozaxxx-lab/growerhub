@@ -15,7 +15,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.security import create_access_token
-from app.models.database_models import Base, DeviceDB
+from app.models.database_models import Base, DeviceDB, PlantDB, PlantDeviceDB
 from app.repositories.users import create_local_user
 
 
@@ -79,13 +79,38 @@ def _create_user(email: str, password: str) -> int:
         session.close()
 
 
-def _insert_device(device_id: str, user_id: int) -> None:
+def _insert_device(device_id: str, user_id: int) -> DeviceDB:
     Base.metadata.create_all(bind=engine)
     session = SessionLocal()
     try:
         session.query(DeviceDB).filter(DeviceDB.device_id == device_id).delete()
         device = DeviceDB(device_id=device_id, name=f"Device {device_id}", user_id=user_id)
         session.add(device)
+        session.commit()
+        session.refresh(device)
+        return device
+    finally:
+        session.close()
+
+
+def _create_plant(user_id: int, name: str) -> PlantDB:
+    Base.metadata.create_all(bind=engine)
+    session = SessionLocal()
+    try:
+        plant = PlantDB(user_id=user_id, name=name)
+        session.add(plant)
+        session.commit()
+        session.refresh(plant)
+        return plant
+    finally:
+        session.close()
+
+
+def _link_plant_to_device(plant_id: int, device_db_id: int) -> None:
+    Base.metadata.create_all(bind=engine)
+    session = SessionLocal()
+    try:
+        session.add(PlantDeviceDB(plant_id=plant_id, device_id=device_db_id))
         session.commit()
     finally:
         session.close()
@@ -161,7 +186,9 @@ def manual_watering_client(fake_publisher: FakePublisher) -> Iterator[TestClient
 
 def _owner_headers(client: TestClient, device_id: str) -> dict[str, str]:
     user_id = _create_user("owner@example.com", "secret")
-    _insert_device(device_id, user_id=user_id)
+    device = _insert_device(device_id, user_id=user_id)
+    plant = _create_plant(user_id, "Owner plant")
+    _link_plant_to_device(plant.id, device.id)
     token = create_access_token({"user_id": user_id})
     return {"Authorization": f"Bearer {token}"}
 

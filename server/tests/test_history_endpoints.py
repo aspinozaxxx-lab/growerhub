@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+﻿from datetime import datetime, timedelta
 from typing import Iterator
 
 import pytest
@@ -6,7 +6,14 @@ from fastapi.testclient import TestClient
 
 import app.main
 from app.core.database import get_db
-from app.models.database_models import SensorDataDB, WateringLogDB
+from app.models.database_models import (
+    DeviceDB,
+    PlantDB,
+    PlantDeviceDB,
+    PlantJournalEntryDB,
+    PlantJournalWateringDetailsDB,
+    SensorDataDB,
+)
 from tests.test_auth_users import (
     TestingSessionLocal,
     _override_get_db,
@@ -88,19 +95,42 @@ def test_watering_logs_filters_by_days(client: TestClient) -> None:
     now = datetime.utcnow()
     session = TestingSessionLocal()
     try:
-        recent = WateringLogDB(
-            device_id="test-device-2",
-            start_time=now - timedelta(days=1),
-            duration=120,
-            water_used=0.5,
+        device = DeviceDB(device_id="test-device-2", name="History Device")
+        plant = PlantDB(name="History Plant")
+        session.add_all([device, plant])
+        session.commit()
+        session.add(PlantDeviceDB(plant_id=plant.id, device_id=device.id))
+        recent_entry = PlantJournalEntryDB(
+            plant_id=plant.id,
+            user_id=None,
+            type="watering",
+            text="recent watering",
+            event_at=now - timedelta(days=1),
         )
-        old = WateringLogDB(
-            device_id="test-device-2",
-            start_time=now - timedelta(days=10),
-            duration=90,
-            water_used=0.3,
+        old_entry = PlantJournalEntryDB(
+            plant_id=plant.id,
+            user_id=None,
+            type="watering",
+            text="old watering",
+            event_at=now - timedelta(days=10),
         )
-        session.add_all([recent, old])
+        session.add_all([recent_entry, old_entry])
+        session.flush()
+        recent_details = PlantJournalWateringDetailsDB(
+            journal_entry_id=recent_entry.id,
+            water_volume_l=0.5,
+            duration_s=120,
+            ph=None,
+            fertilizers_per_liter=None,
+        )
+        old_details = PlantJournalWateringDetailsDB(
+            journal_entry_id=old_entry.id,
+            water_volume_l=0.3,
+            duration_s=90,
+            ph=None,
+            fertilizers_per_liter=None,
+        )
+        session.add_all([recent_details, old_details])
         session.commit()
     finally:
         session.close()

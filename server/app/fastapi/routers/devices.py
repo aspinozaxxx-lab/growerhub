@@ -14,7 +14,6 @@ from app.models.database_models import (
     SensorDataDB,
     SensorDataPoint,
     UserDB,
-    WateringLogDB,
     PlantDeviceDB,
 )
 from app.models.device_schemas import (
@@ -63,13 +62,6 @@ async def update_device_status(device_id: str, status: DeviceStatus, db: Session
         air_humidity=status.air_humidity,
     )
     db.add(sensor_data)
-
-    if status.is_watering and not device.is_watering:
-        watering_log = WateringLogDB(
-            device_id=device_id,
-            start_time=datetime.utcnow(),
-        )
-        db.add(watering_log)
 
     db.commit()
     return {"message": "Status updated"}
@@ -348,7 +340,6 @@ async def delete_device(device_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Device not found")
 
     db.query(SensorDataDB).filter(SensorDataDB.device_id == device_id).delete()
-    db.query(WateringLogDB).filter(WateringLogDB.device_id == device_id).delete()
 
     db.delete(device)
     db.commit()

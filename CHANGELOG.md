@@ -221,5 +221,6 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - CI/CD: v job `deploy` dobavlena sborka fronta (Node 18, `npm ci`, `npm run build` v `frontend/` pered rsync), dist uezhaet na server v `~/growerhub/frontend/dist`.
 - dobavlena skorost' poliva watering_speed_lph v modeli/ API nastroek ustrojstv + migraciya.
 - manual-watering: raschet dlitel'nosti po obemu, zapis' v watering_logs i zhurnal rastenij, status vozvrashchaet start_time/duration.
+- manual-watering: detali poliva vyneseny v plant_journal_watering_details, watering_logs udaleny, istorija polivov stroit'sya po zhurnalu, poliv bez privyazki k rasteniyam zapreshchen.
 - sso callback: po umolchaniyu vozvrashchaet redirect s tokenom v URL, link-mode uhodit na `/static/profile.html`.
 

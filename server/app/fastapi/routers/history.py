@@ -7,7 +7,14 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.database_models import SensorDataDB, SensorDataPoint, WateringLogDB
+from app.models.database_models import (
+    DeviceDB,
+    PlantDeviceDB,
+    PlantJournalEntryDB,
+    PlantJournalWateringDetailsDB,
+    SensorDataDB,
+    SensorDataPoint,
+)
 
 router = APIRouter()
 
@@ -118,10 +125,39 @@ async def get_sensor_history(device_id: str, hours: int = 24, db: Session = Depe
 @router.get("/api/device/{device_id}/watering-logs")
 async def get_watering_logs(device_id: str, days: int = 7, db: Session = Depends(get_db)):
     since = datetime.utcnow() - timedelta(days=days)
-    logs = db.query(WateringLogDB).filter(
-        WateringLogDB.device_id == device_id,
-        WateringLogDB.start_time >= since,
-    ).order_by(WateringLogDB.start_time.desc()).all()
+    device = db.query(DeviceDB).filter(DeviceDB.device_id == device_id).first()
+    if device is None:
+        return []
 
-    return logs
+    plant_links = db.query(PlantDeviceDB.plant_id).filter(PlantDeviceDB.device_id == device.id).all()
+    plant_ids = [row.plant_id for row in plant_links]
+    if not plant_ids:
+        return []
+
+    rows = (
+        db.query(PlantJournalEntryDB, PlantJournalWateringDetailsDB)
+        .join(
+            PlantJournalWateringDetailsDB,
+            PlantJournalWateringDetailsDB.journal_entry_id == PlantJournalEntryDB.id,
+        )
+        .filter(
+            PlantJournalEntryDB.type == "watering",
+            PlantJournalEntryDB.plant_id.in_(plant_ids),
+            PlantJournalEntryDB.event_at >= since,
+        )
+        .order_by(PlantJournalEntryDB.event_at.desc())
+        .all()
+    )
+
+    result: list[dict] = []
+    for entry, details in rows:
+        result.append(
+            {
+                "start_time": entry.event_at,
+                "duration": details.duration_s,
+                "water_used": details.water_volume_l,
+                "plant_id": entry.plant_id,
+            }
+        )
+    return result
 
