@@ -2,7 +2,6 @@
   display: grid;
   grid-template-columns: 1fr;
   min-height: 100vh;
-  background: #f8fafc;
   color: #0f172a;
 }
 
@@ -11,9 +10,8 @@
 }
 
 .app-content__inner {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 16px;
+  /* Ubirayem oshchushchenie uzkogo lista, ostavlyaem tolko legkie vnutrennie otrezy */
+  padding: 12px 10px;
 }
 
 /* Obshchie stili menyu */
@@ -102,8 +100,11 @@
   gap: 12px;
   padding: 24px 16px;
   min-height: 100vh;
-  background: #0f172a;
+  background: rgba(15, 23, 42, 0.92);
   color: #e2e8f0;
+  border-radius: 18px;
+  margin: 12px 10px 20px;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.24);
 }
 
 .app-sidebar__brand {

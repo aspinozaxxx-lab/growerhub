@@ -139,4 +139,9 @@
     align-items: center;
     justify-content: center;
   }
+
+  /* Umenshaem vertikalnyj otrez na mobile, chtoby karty nachinalis vyshe */
+  .app-main {
+    padding-top: 18px;
+  }
 }
