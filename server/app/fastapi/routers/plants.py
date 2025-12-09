@@ -3,10 +3,11 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.orm import Session
 import io
+from datetime import date, datetime
 
 from app.core.database import get_db
 from app.core.security import get_current_admin, get_current_user
@@ -253,6 +254,32 @@ async def list_plant_journal(
     return [_build_journal_out(entry, db) for entry in entries]
 
 
+@router.get("/api/plants/{plant_id}/journal/export")
+async def export_plant_journal(
+    plant_id: int,
+    format: str = Query("md"),
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
+    """Translitem: vygruzhaet zhurnal rastenija v Markdown bez foto."""
+
+    if format != "md":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="podderzhivaetsya tolko format=md")
+
+    plant = _get_user_plant(db, plant_id, current_user)
+    entries = (
+        db.query(PlantJournalEntryDB)
+        .filter(PlantJournalEntryDB.plant_id == plant.id)
+        .order_by(PlantJournalEntryDB.event_at.asc())
+        .all()
+    )
+
+    md_text = _build_journal_markdown(plant, entries, db)
+    filename = f'plant_journal_{plant_id}.md'
+    headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+    return Response(content=md_text, media_type="text/markdown; charset=utf-8", headers=headers)
+
+
 @router.post("/api/plants/{plant_id}/journal", response_model=PlantJournalEntryOut)
 async def create_journal_entry(
     plant_id: int,
@@ -442,6 +469,85 @@ def _build_journal_out(entry: PlantJournalEntryDB, db: Session) -> PlantJournalE
         ],
         watering_details=watering_details,
     )
+
+
+def _format_volume_liters(value: float | None) -> str | None:
+    """Translitem: krasivo formatuet obem l s zamenu tochki na zapyatuyu."""
+
+    if value is None:
+        return None
+    formatted = f"{value:.2f}".rstrip("0").rstrip(".")
+    return formatted.replace(".", ",") + " л"
+
+
+def _build_watering_text(details: PlantJournalWateringDetailsDB | None) -> str:
+    """Translitem: sborka tekstovogo opisaniya poliva iz detalej."""
+
+    if not details:
+        return ""
+    parts: list[str] = []
+    volume_str = _format_volume_liters(details.water_volume_l)
+    if volume_str:
+        parts.append(volume_str)
+    if details.fertilizers_per_liter:
+        parts.append(f"udobreniya: {details.fertilizers_per_liter}")
+    return "; ".join(parts)
+
+
+def _build_journal_markdown(plant: PlantDB, entries: list[PlantJournalEntryDB], db: Session) -> str:
+    """Translitem: generiruet Markdown-zhurnal bez foto/ssylok."""
+
+    planted_date = plant.planted_at.date() if plant.planted_at else date.today()
+    age_days = (date.today() - planted_date).days
+    lines: list[str] = []
+    lines.append("# Журнал растения")
+    lines.append("")
+    lines.append(f"Название: {plant.name}")
+    lines.append(f"Дата посадки: {planted_date.isoformat()}")
+    lines.append(f"Текущий возраст: {max(age_days, 0)} дней")
+    lines.append("")
+
+    # Gruppiruem po date, otsortirovannye zapisli prishli vzrastaющe
+    grouped: dict[date, list[PlantJournalEntryDB]] = {}
+    for entry in entries:
+        day = entry.event_at.date()
+        grouped.setdefault(day, []).append(entry)
+
+    for day in sorted(grouped.keys()):
+        lines.append(f"## {day.isoformat()}")
+        day_entries = sorted(grouped[day], key=lambda e: e.event_at)
+        for entry in day_entries:
+            time_part = entry.event_at.strftime("%H:%M")
+            icon = "👁"
+            label = "Наблюдение"
+            text = entry.text or ""
+
+            if entry.type == "watering":
+                icon = "💧"
+                label = "Полив"
+                details = (
+                    db.query(PlantJournalWateringDetailsDB)
+                    .filter(PlantJournalWateringDetailsDB.journal_entry_id == entry.id)
+                    .first()
+                )
+                details_text = _build_watering_text(details)
+                if details_text:
+                    text = details_text
+            elif entry.type == "feeding":
+                icon = "🧹"
+                label = "Уход"
+            elif entry.type == "photo":
+                icon = "📷"
+                label = "Фото"
+                if not text:
+                    text = "Фото"
+
+            text_suffix = f": {text}" if text else ""
+            lines.append(f"- {time_part} {icon} {label}{text_suffix}")
+
+        lines.append("")
+
+    return "\n".join(lines).strip() + "\n"
 
 
 def _build_plant_out(
