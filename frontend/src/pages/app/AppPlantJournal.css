@@ -73,10 +73,9 @@
 }
 
 .journal-calendar__month-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-start;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
   width: 100%;
 }
 
@@ -84,7 +83,7 @@
   background: #111827;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 10px;
-  padding: 4px 8px;
+  padding: 4px 6px;
   color: #e5e7eb;
   cursor: pointer;
   text-align: left;
@@ -92,9 +91,9 @@
   min-height: 32px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: auto;
-  min-width: 40px;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
 }
 
 .journal-calendar__day:hover {
@@ -112,12 +111,10 @@
 }
 
 .journal-calendar__icons {
-  display: flex;
+  display: inline-flex;
   gap: 4px;
   flex-wrap: nowrap;
   font-size: 14px;
-  min-width: 48px;
-  justify-content: flex-end;
 }
 
 .journal-entries-block {

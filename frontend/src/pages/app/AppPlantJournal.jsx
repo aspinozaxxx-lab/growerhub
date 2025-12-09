@@ -220,11 +220,13 @@ function CalendarGrid({ startDate, endDate, entries, plantedAt, selectedDate, on
                     onClick={() => onSelectDate(key)}
                   >
                     <span className="journal-calendar__date-number">{day.getDate()}</span>
-                    <span className="journal-calendar__icons">
-                      {iconList.map((icon) => (
-                        <span key={icon}>{icon}</span>
-                      ))}
-                    </span>
+                    {iconList.length > 0 && (
+                      <span className="journal-calendar__icons">
+                        {iconList.map((icon) => (
+                          <span key={icon}>{icon}</span>
+                        ))}
+                      </span>
+                    )}
                   </button>
                 );
               })}
