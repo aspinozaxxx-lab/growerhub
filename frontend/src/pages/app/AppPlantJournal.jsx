@@ -185,9 +185,15 @@ function CalendarGrid({ startDate, endDate, entries, plantedAt, selectedDate, on
               {days.map((day) => {
                 const key = dateKeyFromString(day);
                 const entriesForDay = entriesByDate[key] || [];
-                const iconList = entriesForDay
-                  .map((e) => JOURNAL_TYPE_CONFIG[e.type]?.icon || JOURNAL_TYPE_CONFIG.other.icon)
-                  .slice(0, 3);
+                const typeOrder = ['watering', 'feeding', 'note', 'other', 'photo'];
+                const uniqueIcons = [];
+                typeOrder.forEach((t) => {
+                  const hasType = entriesForDay.some((e) => e.type === t);
+                  if (hasType && JOURNAL_TYPE_CONFIG[t]) {
+                    uniqueIcons.push(JOURNAL_TYPE_CONFIG[t].icon);
+                  }
+                });
+                const iconList = uniqueIcons.slice(0, 3);
                 return (
                   <button
                     key={key}
@@ -298,8 +304,8 @@ function AppPlantJournal() {
       ? Math.max(
           0,
           Math.floor(
-            (new Date(`${selectedDate}T00:00:00`).getTime() -
-              new Date(dateKeyFromString(plant.planted_at)).getTime()) /
+            (new Date(`${selectedDate}T00:00:00`).setHours(0, 0, 0, 0) -
+              new Date(dateKeyFromString(plant.planted_at)).setHours(0, 0, 0, 0)) /
               (1000 * 60 * 60 * 24),
           ),
         )
@@ -402,6 +408,7 @@ function AppPlantJournal() {
       month: 'long',
       year: 'numeric',
     });
+  const plantedAtDate = plant?.planted_at ? new Date(dateKeyFromString(plant.planted_at)) : null;
 
   return (
     <div className="plant-journal-page">

@@ -71,11 +71,12 @@
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 4px;
+  width: 100%;
 }
 
 .journal-calendar__day {
   background: #111827;
-  border: 1px solid transparent;
+  border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 10px;
   padding: 6px 8px;
   color: #e5e7eb;
@@ -196,6 +197,26 @@
 
 .journal-entry__body {
   color: #e5e7eb;
+}
+
+.journal-entry__watering {
+  grid-column: 1 / span 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #e5e7eb;
+}
+
+.journal-entry__icon--big {
+  font-size: 22px;
+}
+
+.journal-entry__volume {
+  font-weight: 700;
+}
+
+.journal-entry__fertilizers {
+  color: #cbd5e1;
 }
 
 .journal-entry__text {
