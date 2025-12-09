@@ -1,4 +1,7 @@
-﻿- Dobavlen SVG-renderer s sloyami dlya PlantAvatar
+﻿- Dobavlena palitra yarkih cvetov dlya PlantAvatar (SVG)
+- Sloi gorshka, pochvy, steblya, list'ev i cvetov pererisovany v bolee vyrazitelnom SVG-stile s novoj palitroj
+
+- Dobavlen SVG-renderer s sloyami dlya PlantAvatar
 - PlantAvatar risuet uproshchennuyu SVG kompoziciyu v zavisimosti ot stadii
 - Dobavlen helper dlya opredeleniya stadii rasteniya po vozrastu
 - PlantAvatar na dashborde poluchaet stadiyu po vozrastu, a ne hardsodom
