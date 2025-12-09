@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { PLANT_AVATAR_PALETTE } from '../palette';
 
 // Sloj pochvy: myagkaya volna s tsvetom ot vlagi
@@ -44,20 +44,20 @@ const pickSoilColor = (moisture) => {
   return `rgb(${mixed.r}, ${mixed.g}, ${mixed.b})`;
 };
 
-function SoilLayer({ environment, width, height }) {
-  const potHeight = height * 0.28;
-  const soilHeight = potHeight * 0.22;
-  const soilTop = height - potHeight - soilHeight * 0.2;
-  const soilBase = soilTop + soilHeight;
-  const soilWidth = width * 0.76;
-  const soilX = (width - soilWidth) / 2;
-  const curveRise = soilHeight * 0.35;
+function SoilLayer({ environment, width, height, layout }) {
+  void width;
+  void height;
+  const soilTop = layout?.soil?.topY ?? height * 0.6;
+  const soilBase = layout?.soil?.bottomY ?? height * 0.7;
+  const soilWidth = (layout?.width ?? width) * 0.76;
+  const soilX = ((layout?.width ?? width) - soilWidth) / 2;
+  const curveRise = (soilBase - soilTop) * 0.5;
 
   const soilPath = `
     M ${soilX} ${soilBase}
-    L ${soilX} ${soilTop + soilHeight * 0.4}
+    L ${soilX} ${soilTop + (soilBase - soilTop) * 0.35}
     Q ${soilX + soilWidth * 0.25} ${soilTop - curveRise} ${soilX + soilWidth / 2} ${soilTop}
-    Q ${soilX + soilWidth * 0.75} ${soilTop - curveRise} ${soilX + soilWidth} ${soilTop + soilHeight * 0.4}
+    Q ${soilX + soilWidth * 0.75} ${soilTop - curveRise} ${soilX + soilWidth} ${soilTop + (soilBase - soilTop) * 0.35}
     L ${soilX + soilWidth} ${soilBase}
     Z
   `;

@@ -1,18 +1,16 @@
-﻿import React from 'react';
+import React from 'react';
 import { PLANT_AVATAR_PALETTE } from '../palette';
 
 // Sloj steblya: zhivaya stoyka s legkim szhatiem kverhu
-function StemLayer({ stageConfig, width, height }) {
-  const heightFactor = stageConfig?.layout?.heightFactor ?? 0.4;
-  const stemThickness = stageConfig?.appearance?.stemThickness ?? 0.25;
+function StemLayer({ stageConfig, width, height, layout }) {
+  void stageConfig;
+  void width;
+  void height;
 
-  const potHeight = height * 0.28;
-  const soilHeight = potHeight * 0.22;
-  const soilTop = height - potHeight - soilHeight;
-  const maxStemHeight = soilTop - 6;
-  const stemHeight = Math.max(8, maxStemHeight * Math.min(Math.max(heightFactor, 0), 1));
-  const centerX = width / 2;
-  const bottomWidth = Math.max(3, stemThickness * 8);
+  const stemHeight = layout?.stem?.height ?? 40;
+  const centerX = layout?.stem?.baseX ?? (width / 2);
+  const soilTop = layout?.stem?.baseY ?? height * 0.65;
+  const bottomWidth = Math.max(3, layout?.stem?.thickness ?? 6);
   const topWidth = bottomWidth * 0.72;
   const stemTopY = soilTop - stemHeight;
 
