@@ -47,26 +47,32 @@ const pickSoilColor = (moisture) => {
 function SoilLayer({ environment, width, height, layout }) {
   void width;
   void height;
-  const soilTop = layout?.soil?.topY ?? height * 0.6;
-  const soilBase = layout?.soil?.bottomY ?? height * 0.7;
-  const soilWidth = (layout?.width ?? width) * 0.76;
-  const soilX = ((layout?.width ?? width) - soilWidth) / 2;
-  const curveRise = (soilBase - soilTop) * 0.5;
-
-  const soilPath = `
-    M ${soilX} ${soilBase}
-    L ${soilX} ${soilTop + (soilBase - soilTop) * 0.35}
-    Q ${soilX + soilWidth * 0.25} ${soilTop - curveRise} ${soilX + soilWidth / 2} ${soilTop}
-    Q ${soilX + soilWidth * 0.75} ${soilTop - curveRise} ${soilX + soilWidth} ${soilTop + (soilBase - soilTop) * 0.35}
-    L ${soilX + soilWidth} ${soilBase}
-    Z
-  `;
+  const soilCx = layout?.soil?.centerX ?? (layout?.soil?.rx ? (layout?.width ?? width) / 2 : (width / 2));
+  const soilCy = layout?.soil?.centerY ?? layout?.soil?.topY ?? height * 0.62;
+  const soilRx = layout?.soil?.rx ?? (layout?.width ?? width) * 0.35;
+  const soilRy = layout?.soil?.ry ?? soilRx * 0.35;
 
   const soilColor = pickSoilColor(environment?.soilMoisture);
 
+  const bumpPath = `
+    M ${soilCx - soilRx * 0.45} ${soilCy + soilRy * 0.1}
+    C ${soilCx - soilRx * 0.25} ${soilCy - soilRy * 0.4} ${soilCx + soilRx * 0.05} ${soilCy - soilRy * 0.35} ${soilCx + soilRx * 0.25} ${soilCy}
+    C ${soilCx + soilRx * 0.05} ${soilCy + soilRy * 0.18} ${soilCx - soilRx * 0.15} ${soilCy + soilRy * 0.15} ${soilCx - soilRx * 0.45} ${soilCy + soilRy * 0.1}
+    Z
+  `;
+
+  const shadowPath = `
+    M ${soilCx - soilRx * 0.85} ${soilCy + soilRy * 0.2}
+    C ${soilCx - soilRx * 0.55} ${soilCy + soilRy * 0.45} ${soilCx + soilRx * 0.55} ${soilCy + soilRy * 0.45} ${soilCx + soilRx * 0.85} ${soilCy + soilRy * 0.2}
+    C ${soilCx + soilRx * 0.55} ${soilCy + soilRy * 0.55} ${soilCx - soilRx * 0.55} ${soilCy + soilRy * 0.55} ${soilCx - soilRx * 0.85} ${soilCy + soilRy * 0.2}
+    Z
+  `;
+
   return (
     <g className="plant-avatar__layer soil-layer">
-      <path d={soilPath} fill={soilColor} />
+      <ellipse cx={soilCx} cy={soilCy} rx={soilRx} ry={soilRy} fill={soilColor} />
+      <path d={bumpPath} fill={PLANT_AVATAR_PALETTE.SOIL_WET} opacity={0.25} />
+      <path d={shadowPath} fill={PLANT_AVATAR_PALETTE.SOIL_DRY} opacity={0.18} />
     </g>
   );
 }

@@ -13,71 +13,80 @@ function computePlantLayout(stageConfig, width, height) {
   const flowerDensity = clamp(stageConfig?.appearance?.flowerDensity ?? 0, 0, 1);
   const flowerSize = clamp(stageConfig?.appearance?.flowerSize ?? 0, 0, 1);
 
-  const potHeight = height * 0.3;
+  const potHeight = height * 0.34;
   const rimHeight = potHeight * 0.18;
+  const rimThickness = rimHeight * 0.45;
   const bodyHeight = potHeight - rimHeight;
-  const insetX = width * 0.1;
+  const topWidth = width * 0.64;
+  const bottomWidth = topWidth * 0.78;
+  const insetX = (width - topWidth) / 2;
 
-  const potBottomY = height;
-  const potTopY = potBottomY - bodyHeight;
+  const potBottomY = height - height * 0.02;
+  const potTopY = potBottomY - potHeight + rimHeight / 2;
 
-  const soilHeight = potHeight * 0.18;
-  const soilBottomY = potTopY - rimHeight * 0.1;
-  const soilTopY = soilBottomY - soilHeight;
+  const soilWidth = topWidth * 0.88;
+  const soilCenterX = width / 2;
+  const soilRx = soilWidth / 2;
+  const soilRy = rimHeight * 0.45;
+  const soilCenterY = potTopY + rimHeight * 0.1;
+  const soilTopY = soilCenterY - soilRy;
+  const soilBottomY = soilCenterY + soilRy;
 
   const plantTopMargin = height * 0.1;
-  const plantBottomY = soilTopY;
+  const plantBottomY = soilCenterY;
   const plantTopY = plantTopMargin;
   const plantHeight = Math.max(plantBottomY - plantTopY, 10);
 
-  const stemHeight = Math.max(8, plantHeight * heightFactor);
+  const stemHeight = Math.max(12, plantHeight * heightFactor);
   const stemThickness = 4 + stemThicknessFactor * 6;
   const stemBaseX = width / 2;
   const stemBaseY = plantBottomY;
 
   const leafSlots = [];
-  const minLeaves = 2;
+  const minLeaves = 3;
   const midLeaves = 5;
   const maxLeaves = 7;
   let leafCount = minLeaves;
-  if (leafDensity >= 0.7) {
+  if (leafDensity >= 0.66) {
     leafCount = maxLeaves;
-  } else if (leafDensity >= 0.3) {
+  } else if (leafDensity >= 0.33) {
     leafCount = midLeaves;
   }
 
-  const leafSpan = stemHeight * 0.8;
-  const leafStartY = stemBaseY - leafSpan * 0.2;
-  const leafStep = leafSpan / Math.max(leafCount, 1);
+  const leafSpan = stemHeight * 0.82;
+  const leafStartOffset = stemHeight * 0.18;
+  const leafStep = leafCount > 1 ? leafSpan / (leafCount - 1) : 0;
   for (let i = 0; i < leafCount; i += 1) {
     const side = i % 2 === 0 ? 'left' : 'right';
-    const y = leafStartY - i * leafStep;
-    const xOffset = stemThickness * 1.8 + (i % 3) * 2;
-    const scale = 0.9 + (i % 2) * 0.1;
+    const y = stemBaseY - leafStartOffset - i * leafStep;
+    const progress = leafCount > 1 ? i / (leafCount - 1) : 0;
+    const xOffset = stemThickness * 1.5 + progress * stemThickness * 0.6;
+    const scale = 0.85 + (1 - Math.abs(0.5 - progress) * 1.4) * 0.15;
     leafSlots.push({
       x: stemBaseX + (side === 'left' ? -xOffset : xOffset),
       y,
       scale,
       side,
+      angle: side === 'left' ? -26 + progress * -6 : 26 + progress * 6,
     });
   }
 
   const flowers = [];
   if (flowerDensity > 0 && flowerSize > 0) {
     let flowerCount = 1;
-    if (flowerDensity >= 0.7) {
-      flowerCount = 4;
-    } else if (flowerDensity >= 0.3) {
+    if (flowerDensity >= 0.66) {
       flowerCount = 3;
+    } else if (flowerDensity >= 0.33) {
+      flowerCount = 2;
     }
 
     const stemTopY = stemBaseY - stemHeight;
-    const spread = stemThickness * 1.2;
+    const spread = stemThickness * 1.1;
     for (let i = 0; i < flowerCount; i += 1) {
       const offset = i - (flowerCount - 1) / 2;
       const x = stemBaseX + offset * spread;
-      const y = stemTopY - 4 - Math.abs(offset) * 2;
-      const scale = 0.7 + flowerSize * 0.8;
+      const y = stemTopY - 3 - Math.abs(offset) * 1.5;
+      const scale = 0.75 + flowerSize * 0.6;
       flowers.push({ x, y, scale });
     }
   }
@@ -89,12 +98,19 @@ function computePlantLayout(stageConfig, width, height) {
       bottomY: potBottomY,
       topY: potTopY,
       rimHeight,
+      rimThickness,
       bodyHeight,
+      topWidth,
+      bottomWidth,
       insetX,
     },
     soil: {
       topY: soilTopY,
+      centerX: soilCenterX,
+      centerY: soilCenterY,
       bottomY: soilBottomY,
+      rx: soilRx,
+      ry: soilRy,
     },
     plantArea: {
       topY: plantTopY,
