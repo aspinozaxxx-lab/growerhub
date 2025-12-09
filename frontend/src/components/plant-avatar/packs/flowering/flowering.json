@@ -1,0 +1,41 @@
+﻿{
+  "id": "flowering",
+  "plantType": "flowering",
+  "stage": "flowering",
+  "label": "Flowering",
+  "description": "Aktivnoe cvetenie, mnozhestvo socvetij",
+  "layout": {
+    "heightFactor": 0.8,
+    "crownWidthFactor": 0.8
+  },
+  "appearance": {
+    "stemThickness": 0.5,
+    "leafDensity": 0.7,
+    "leafSize": 0.6,
+    "flowerDensity": 0.6,
+    "flowerSize": 0.6
+  },
+  "layers": {
+    "potVariant": "default",
+    "soilVariant": "flat",
+    "stemVariant": "default",
+    "leafVariant": "default",
+    "flowerVariant": "bloom"
+  },
+  "environmentVisual": {
+    "soilMoisture": {
+      "mode": "color",
+      "min": 0,
+      "max": 100
+    },
+    "wateringEffect": {
+      "enabled": true
+    },
+    "lightEffect": {
+      "enabled": true
+    },
+    "fanEffect": {
+      "enabled": true
+    }
+  }
+}

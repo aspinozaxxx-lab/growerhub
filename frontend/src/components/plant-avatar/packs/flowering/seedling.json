@@ -1,0 +1,41 @@
+﻿{
+  "id": "seedling",
+  "plantType": "flowering",
+  "stage": "seedling",
+  "label": "Seedling",
+  "description": "Malenkij rostok s pervymi listyami",
+  "layout": {
+    "heightFactor": 0.25,
+    "crownWidthFactor": 0.4
+  },
+  "appearance": {
+    "stemThickness": 0.12,
+    "leafDensity": 0.3,
+    "leafSize": 0.3,
+    "flowerDensity": 0.0,
+    "flowerSize": 0.0
+  },
+  "layers": {
+    "potVariant": "default",
+    "soilVariant": "flat",
+    "stemVariant": "default",
+    "leafVariant": "default",
+    "flowerVariant": "none"
+  },
+  "environmentVisual": {
+    "soilMoisture": {
+      "mode": "color",
+      "min": 0,
+      "max": 100
+    },
+    "wateringEffect": {
+      "enabled": true
+    },
+    "lightEffect": {
+      "enabled": true
+    },
+    "fanEffect": {
+      "enabled": true
+    }
+  }
+}

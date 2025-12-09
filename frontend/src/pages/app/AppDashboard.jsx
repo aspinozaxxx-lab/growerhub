@@ -120,6 +120,8 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
               plantName={plant.name}
               plantedAt={plant.planted_at}
               plantType="flowering"
+              /* Vremennyj hardcode stadii dlya testov */
+              stage="vegetative"
               environment={environment}
               variant="card"
               size="md"

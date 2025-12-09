@@ -1,4 +1,6 @@
-﻿- Dobavlen bazovyj komponent PlantAvatar i vnedren v dashboard dlya kartochek rastenij
+﻿- Dobavlen JSON-pak stadii flowering dlya PlantAvatar i loader
+- PlantAvatar teper' mozhet brat konfiguraciyu stadii iz paka (v t. ch. data-stage)
+- Dobavlen bazovyj komponent PlantAvatar i vnedren v dashboard dlya kartochek rastenij
 - Ispravlen defoltnyi redirect posle logina na /app
 - Dobavleno chtenie access_token iz URL posle SSO i sohranenie v localStorage
 - Izmenen defoltnyi redirect dlya SSO login na /app na backende

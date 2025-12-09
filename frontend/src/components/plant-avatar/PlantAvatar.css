@@ -60,3 +60,11 @@
 .plant-avatar--fill .plant-avatar__frame {
   max-width: 100%;
 }
+
+.plant-avatar__stage {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #9cc6ff;
+  text-align: center;
+  opacity: 0.9;
+}
