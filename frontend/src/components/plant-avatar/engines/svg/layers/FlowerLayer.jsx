@@ -1,42 +1,42 @@
-﻿import React from 'react';
+import React from 'react';
+import { PLANT_AVATAR_PALETTE } from '../palette';
 
-// Sloj cvetov: krugi v verhnej zone steblya, kolichestvo/razmer ot flowerDensity/flowerSize
-function FlowerLayer({ stageConfig, width, height }) {
+// Sloj cvetov: neytral'noe decorativnoe socvetie, zavisyashchee ot flowerDensity/flowerSize
+function FlowerLayer({ stageConfig, width, height, layout }) {
   const flowerDensity = stageConfig?.appearance?.flowerDensity ?? 0;
   const flowerSize = stageConfig?.appearance?.flowerSize ?? 0;
-  const heightFactor = stageConfig?.layout?.heightFactor ?? 0.4;
+  void width;
+  void height;
 
   if (flowerDensity <= 0 || flowerSize <= 0) {
     return null;
   }
 
-  const potHeight = height * 0.28;
-  const soilHeight = potHeight * 0.22;
-  const soilTop = height - potHeight - soilHeight;
-  const maxStemHeight = soilTop - 6;
-  const stemHeight = Math.max(8, maxStemHeight * Math.min(Math.max(heightFactor, 0), 1));
-  const stemTop = soilTop - stemHeight;
-  const centerX = width / 2;
-
-  const flowerCount = Math.max(1, Math.round(flowerDensity * 6));
-  const petals = [];
-  for (let i = 0; i < flowerCount; i += 1) {
-    const offset = (i - (flowerCount - 1) / 2) * 6;
-    const radius = Math.max(2.5, flowerSize * 5);
-    const y = stemTop + (i % 2 === 0 ? 2 : 6);
-    petals.push(
-      <g key={`flw-${i}`}>
-        <circle cx={centerX + offset} cy={y} r={radius} fill="#f2b8d8" />
-        <circle cx={centerX + offset} cy={y} r={radius * 0.45} fill="#f4e9b5" />
-      </g>,
-    );
+  const slots = layout?.flowers?.slots ?? [];
+  if (slots.length === 0) {
+    return null;
   }
 
-  return (
-    <g className="plant-avatar__layer flower-layer">
-      {petals}
-    </g>
-  );
+  const renderFlower = (slot, index) => {
+    const scale = slot.scale;
+    const petalRadius = 3.6 * scale;
+    const centerRadius = 2 * scale;
+    const petals = Array.from({ length: 6 }, (_, idx) => {
+      const angle = (idx / 6) * Math.PI * 2;
+      const px = slot.x + Math.cos(angle) * petalRadius * 1.5;
+      const py = slot.y + Math.sin(angle) * petalRadius * 1.2;
+      return <circle key={`petal-${index}-${idx}`} cx={px} cy={py} r={petalRadius} fill={PLANT_AVATAR_PALETTE.FLOWER_LIGHT} />;
+    });
+
+    return (
+      <g key={`flower-${index}`}>
+        {petals}
+        <circle cx={slot.x} cy={slot.y} r={centerRadius} fill={PLANT_AVATAR_PALETTE.FLOWER_DARK} />
+      </g>
+    );
+  };
+
+  return <g className="plant-avatar__layer flower-layer">{slots.map(renderFlower)}</g>;
 }
 
 export default FlowerLayer;

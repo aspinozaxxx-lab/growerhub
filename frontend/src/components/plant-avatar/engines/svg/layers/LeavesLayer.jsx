@@ -1,49 +1,43 @@
-﻿import React from 'react';
+import React from 'react';
+import { PLANT_AVATAR_PALETTE } from '../palette';
 
-// Sloj list'ev: neskol'ko ellipsov po bokam steblya, zavisit ot leafDensity/leafSize
-function LeavesLayer({ stageConfig, width, height }) {
+const LEAF_PATH_D = 'M 0 0 C 6 -6 14 -6 16 0 C 14 6 6 10 0 0 Z';
+
+// Sloj list'ev: uproshchennaya sistema list'ev, zavisyashchaya ot leafDensity
+function LeavesLayer({ stageConfig, width, height, layout }) {
   const leafDensity = stageConfig?.appearance?.leafDensity ?? 0;
   const leafSize = stageConfig?.appearance?.leafSize ?? 0.4;
-  const heightFactor = stageConfig?.layout?.heightFactor ?? 0.4;
+  void width;
+  void height;
 
-  const potHeight = height * 0.28;
-  const soilHeight = potHeight * 0.22;
-  const soilTop = height - potHeight - soilHeight;
-  const maxStemHeight = soilTop - 6;
-  const stemHeight = Math.max(8, maxStemHeight * Math.min(Math.max(heightFactor, 0), 1));
-  const centerX = width / 2;
-
-  const leafCount = Math.max(0, Math.round(leafDensity * 8));
-  const leaves = [];
-  for (let i = 0; i < leafCount; i += 1) {
-    const progress = (i + 1) / (leafCount + 1);
-    const y = soilTop - stemHeight * progress;
-    const dir = i % 2 === 0 ? -1 : 1;
-    const offset = (8 + i) * 0.4;
-    const rx = Math.max(3, leafSize * 8);
-    const ry = Math.max(2, leafSize * 6);
-    leaves.push(
-      <ellipse
-        key={`leaf-${i}`}
-        cx={centerX + dir * offset}
-        cy={y}
-        rx={rx}
-        ry={ry}
-        fill="#74b36a"
-        transform={`rotate(${dir * 12}, ${centerX + dir * offset}, ${y})`}
-      />,
-    );
-  }
-
-  if (leafCount === 0) {
+  if (leafDensity <= 0) {
     return null;
   }
 
-  return (
-    <g className="plant-avatar__layer leaves-layer">
-      {leaves}
-    </g>
-  );
+  const slots = layout?.leaves?.slots ?? [];
+  if (slots.length === 0) {
+    return null;
+  }
+
+  const sizeScale = Math.max(0.55, Math.min(1.3, leafSize * 1.3));
+
+  const leaves = slots.map((slot, index) => {
+    const flip = slot.side === 'left' ? -1 : 1;
+    return (
+      <path
+        key={`leaf-${index}`}
+        d={LEAF_PATH_D}
+        fill={PLANT_AVATAR_PALETTE.LEAF_LIGHT}
+        stroke={PLANT_AVATAR_PALETTE.LEAF_DARK}
+        strokeWidth={1.4}
+        transform={`translate(${slot.x}, ${slot.y}) scale(${flip * sizeScale * slot.scale}, ${sizeScale * slot.scale}) rotate(${slot.side === 'left' ? -18 : 18})`}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    );
+  });
+
+  return <g className="plant-avatar__layer leaves-layer">{leaves}</g>;
 }
 
 export default LeavesLayer;
