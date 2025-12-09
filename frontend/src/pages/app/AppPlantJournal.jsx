@@ -22,12 +22,24 @@ const JOURNAL_TYPE_CONFIG = {
 
 const BACKEND_TYPES = ['watering', 'feeding', 'photo', 'note', 'other'];
 
+function toLocalDateKeyFromIso(isoString) {
+  const d = new Date(isoString);
+  const year = d.getFullYear();
+  const month = d.getMonth() + 1;
+  const day = d.getDate();
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 function dateKeyFromString(value) {
   if (!value) return '';
   if (typeof value === 'string') {
-    return value.slice(0, 10);
+    // Dlya gotovyh key v formate YYYY-MM-DD prosto vozvrashaem.
+    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) {
+      return value;
+    }
+    return toLocalDateKeyFromIso(value);
   }
-  return value.toISOString().slice(0, 10);
+  return toLocalDateKeyFromIso(value.toISOString());
 }
 
 function normalizeDateToLocalMidnight(value) {
@@ -40,12 +52,10 @@ function normalizeDateToLocalMidnight(value) {
 
 function buildDateRange(startDate, endDate) {
   const days = [];
-  const cursor = new Date(startDate.getTime());
-  cursor.setHours(0, 0, 0, 0);
-  const end = new Date(endDate.getTime());
-  end.setHours(0, 0, 0, 0);
-  while (cursor <= end) {
-    days.push(new Date(cursor.getTime()));
+  const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+  while (cursor.getTime() <= end.getTime()) {
+    days.push(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()));
     cursor.setDate(cursor.getDate() + 1);
   }
   return days;
@@ -293,7 +303,7 @@ function AppPlantJournal() {
   const entriesForSelectedDate = useMemo(() => {
     if (!selectedDate) return [];
     return entries
-      .filter((entry) => dateKeyFromString(entry.event_at) === selectedDate)
+      .filter((entry) => toLocalDateKeyFromIso(entry.event_at) === selectedDate)
       .sort((a, b) => new Date(a.event_at) - new Date(b.event_at));
   }, [entries, selectedDate]);
 
@@ -309,14 +319,10 @@ function AppPlantJournal() {
     selectedDate && plant?.planted_at
       ? (() => {
           const [y, m, d] = selectedDate.split('-').map((part) => Number(part));
-          const selectedMidnight = new Date(y, m - 1, d);
+          const selectedLocal = new Date(y, m - 1, d);
           const planted = new Date(plant.planted_at);
-          const plantedMidnight = new Date(
-            planted.getFullYear(),
-            planted.getMonth(),
-            planted.getDate(),
-          );
-          const diff = selectedMidnight.getTime() - plantedMidnight.getTime();
+          const plantedLocal = new Date(planted.getFullYear(), planted.getMonth(), planted.getDate());
+          const diff = selectedLocal.getTime() - plantedLocal.getTime();
           return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
         })()
       : null;
