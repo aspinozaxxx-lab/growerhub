@@ -202,7 +202,7 @@ function CalendarGrid({ startDate, endDate, entries, plantedAt, selectedDate, on
         const normalizedLabel = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
         return (
           <div className="journal-calendar__month" key={monthKey}>
-            <div className="journal-calendar__month-title">{normalizedLabel}</div>
+            <div className="journal-calendar__month-title">{normalizedLabel.replace('Г.', 'г.')}</div>
             <div className="journal-calendar__month-grid">
               {days.map((day) => {
                 const key = dateKeyFromString(day);
@@ -469,7 +469,7 @@ function AppPlantJournal() {
       <div className="journal-entries-block">
         <div className="journal-entries-block__header">
           <div className="journal-entries-block__title">
-            {selectedDateLabel ? `Записи за ${selectedDateLabel} года` : 'Выберите день в календаре'}
+            {selectedDateLabel ? `Записи за ${selectedDateLabel}` : 'Выберите день в календаре'}
             {selectedAgeLabel !== null && selectedAgeLabel !== undefined && (
               <div className="journal-entries-block__age">Возраст {selectedAgeLabel} дней</div>
             )}
