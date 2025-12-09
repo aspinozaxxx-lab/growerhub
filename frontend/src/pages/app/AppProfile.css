@@ -5,6 +5,7 @@
 
 .app-profile h2 {
   margin: 0;
+  color: #eef3fb;
 }
 
 .profile-card {
@@ -56,6 +57,7 @@
 
 .profile-auth-card h3 {
   margin: 0;
+  color: #eef3fb;
 }
 
 .profile-auth-header {
@@ -158,4 +160,5 @@
   color: #b6e4c1;
   font-size: 14px;
 }
+
 
