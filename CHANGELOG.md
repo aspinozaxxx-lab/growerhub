@@ -1,4 +1,6 @@
-﻿- Dobavlen JSON-pak stadii flowering dlya PlantAvatar i loader
+﻿- Dobavlen helper dlya opredeleniya stadii rasteniya po vozrastu
+- PlantAvatar na dashborde poluchaet stadiyu po vozrastu, a ne hardsodom
+- Dobavlen JSON-pak stadii flowering dlya PlantAvatar i loader
 - PlantAvatar teper' mozhet brat konfiguraciyu stadii iz paka (v t. ch. data-stage)
 - Dobavlen bazovyj komponent PlantAvatar i vnedren v dashboard dlya kartochek rastenij
 - Ispravlen defoltnyi redirect posle logina na /app

@@ -5,6 +5,7 @@ import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext
 import { useWateringSidebar } from '../../features/watering/WateringSidebarContext';
 import { formatSensorValue } from '../../utils/formatters';
 import PlantAvatar from '../../components/plant-avatar/PlantAvatar';
+import { getStageFromPlantAgeDays } from '../../components/plant-avatar/plantStageFromAge';
 import './AppDashboard.css';
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
@@ -83,6 +84,17 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
     };
   }, [wateringStatus]);
 
+  // Ocenochnoe chislo dnej s posadki dlya vibora stadii avatara
+  const ageDays = React.useMemo(() => {
+    if (!plant?.planted_at) return null;
+    const plantedDate = new Date(plant.planted_at);
+    if (Number.isNaN(plantedDate.getTime())) {
+      return null;
+    }
+    const diff = Date.now() - plantedDate.getTime();
+    return Math.max(0, Math.floor(diff / MS_IN_DAY));
+  }, [plant?.planted_at]);
+
   const environment = primaryDevice
     ? {
         airTemperature: primaryDevice.air_temperature,
@@ -91,6 +103,9 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
         isWatering: primaryDevice.is_watering,
       }
     : undefined;
+
+  // Stadiya opredelyaetsya avtomaticheski po vozrastu; v budushem mozhet idti iz API
+  const stageId = getStageFromPlantAgeDays(ageDays);
 
   const showWateringBadge = wateringStatus && remainingSeconds !== null && remainingSeconds > 0;
 
@@ -120,8 +135,8 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
               plantName={plant.name}
               plantedAt={plant.planted_at}
               plantType="flowering"
-              /* Vremennyj hardcode stadii dlya testov */
-              stage="vegetative"
+              // Stadiya dlya avtora opredelena po vozrastu posadki
+              stage={stageId}
               environment={environment}
               variant="card"
               size="md"
