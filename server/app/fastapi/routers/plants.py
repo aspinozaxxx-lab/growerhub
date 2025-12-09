@@ -4,7 +4,9 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+import io
 
 from app.core.database import get_db
 from app.core.security import get_current_admin, get_current_user
@@ -16,6 +18,7 @@ from app.models.database_models import (
     PlantGroupDB,
     PlantJournalEntryDB,
     PlantJournalPhotoDB,
+    PlantJournalWateringDetailsDB,
     UserDB,
 )
 from app.models.device_schemas import AdminDeviceOut, DeviceOut
@@ -26,6 +29,7 @@ from app.models.plant_schemas import (
     PlantGroupOut,
     PlantJournalEntryCreate,
     PlantJournalEntryOut,
+    PlantJournalWateringDetailsOut,
     PlantOut,
     PlantUpdate,
 )
@@ -336,6 +340,33 @@ async def delete_journal_entry(
     return {"message": "entry deleted"}
 
 
+@router.get("/api/journal/photos/{photo_id}")
+async def get_journal_photo(
+    photo_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
+    """Translitem: vozvrashchaet binarnye dannye foto zhurnala po id s proverkoy vladelecа."""
+
+    photo = (
+        db.query(PlantJournalPhotoDB)
+        .join(PlantJournalEntryDB, PlantJournalEntryDB.id == PlantJournalPhotoDB.journal_entry_id)
+        .join(PlantDB, PlantDB.id == PlantJournalEntryDB.plant_id)
+        .filter(PlantJournalPhotoDB.id == photo_id, PlantDB.user_id == current_user.id)
+        .first()
+    )
+    if not photo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="foto ne najdeno ili nedostupno")
+    if not photo.data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="binarnye dannye dlya etogo foto otsutstvuyut",
+        )
+
+    media_type = photo.content_type or "application/octet-stream"
+    return StreamingResponse(io.BytesIO(photo.data), media_type=media_type)
+
+
 @router.get("/api/admin/plants", response_model=list[AdminPlantOut])
 async def admin_list_plants(
     db: Session = Depends(get_db), admin: UserDB = Depends(get_current_admin)
@@ -378,6 +409,20 @@ def _build_journal_out(entry: PlantJournalEntryDB, db: Session) -> PlantJournalE
         .filter(PlantJournalPhotoDB.journal_entry_id == entry.id)
         .all()
     )
+    watering_details = None
+    if entry.type == "watering":
+        details = (
+            db.query(PlantJournalWateringDetailsDB)
+            .filter(PlantJournalWateringDetailsDB.journal_entry_id == entry.id)
+            .first()
+        )
+        if details:
+            watering_details = PlantJournalWateringDetailsOut(
+                water_volume_l=details.water_volume_l,
+                duration_s=details.duration_s,
+                ph=details.ph,
+                fertilizers_per_liter=details.fertilizers_per_liter,
+            )
     return PlantJournalEntryOut(
         id=entry.id,
         plant_id=entry.plant_id,
@@ -391,9 +436,11 @@ def _build_journal_out(entry: PlantJournalEntryDB, db: Session) -> PlantJournalE
                 "id": photo.id,
                 "url": photo.url,
                 "caption": photo.caption,
+                "has_data": bool(photo.data),
             }
             for photo in photos
         ],
+        watering_details=watering_details,
     )
 
 

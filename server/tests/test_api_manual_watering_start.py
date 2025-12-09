@@ -150,6 +150,17 @@ def test_manual_watering_start_endpoint():
             headers=headers,
         )
 
+        journal_resp = client.get(f"/api/plants/{plant.id}/journal", headers=headers)
+        assert journal_resp.status_code == 200
+        journal_payload = journal_resp.json()
+        assert isinstance(journal_payload, list)
+        assert len(journal_payload) == 1
+        watering_entry = journal_payload[0]
+        assert watering_entry.get("type") == "watering"
+        details = watering_entry.get("watering_details")
+        assert details is not None
+        assert details.get("duration_s") == 20
+
     app.dependency_overrides.clear()
 
     # Ubezhdaemsya chto otvet uspeshnyi i vydan correlation_id.

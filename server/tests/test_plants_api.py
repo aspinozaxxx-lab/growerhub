@@ -1,10 +1,11 @@
 ﻿import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch
+from datetime import datetime
 
 import app.main
 from app.core.database import get_db
-from app.models.database_models import Base, DeviceDB, PlantDeviceDB, PlantJournalEntryDB
+from app.models.database_models import Base, DeviceDB, PlantDeviceDB, PlantJournalEntryDB, PlantJournalPhotoDB
 from tests.test_auth_users import (
     TestingSessionLocal,
     _create_user,
@@ -153,3 +154,47 @@ def test_update_journal_entry(client: TestClient):
         assert db_entry.type == "other"
     finally:
         session.close()
+
+
+def test_journal_photo_download_requires_owner(client: TestClient):
+    owner = _create_user("photo-owner@example.com", "secret")
+    owner_token = _login_and_get_token(client, owner.email, "secret")
+    owner_headers = {"Authorization": f"Bearer {owner_token}"}
+    plant_id = client.post("/api/plants", json={"name": "PhotoPlant"}, headers=owner_headers).json()["id"]
+
+    session = TestingSessionLocal()
+    try:
+        entry = PlantJournalEntryDB(
+            plant_id=plant_id,
+            user_id=owner.id,
+            type="photo",
+            text="with data",
+            event_at=datetime.utcnow(),
+        )
+        session.add(entry)
+        session.flush()
+        photo = PlantJournalPhotoDB(
+            journal_entry_id=entry.id,
+            data=b"hello-world",
+            content_type="text/plain",
+            url=None,
+        )
+        session.add(photo)
+        session.commit()
+        photo_id = photo.id
+    finally:
+        session.close()
+
+    resp_owner = client.get(f"/api/journal/photos/{photo_id}", headers=owner_headers)
+    assert resp_owner.status_code == 200
+    assert resp_owner.headers.get("content-type", "").startswith("text/plain")
+    assert resp_owner.content == b"hello-world"
+
+    resp_unauth = client.get(f"/api/journal/photos/{photo_id}")
+    assert resp_unauth.status_code == 401
+
+    other = _create_user("photo-other@example.com", "secret")
+    other_token = _login_and_get_token(client, other.email, "secret")
+    other_headers = {"Authorization": f"Bearer {other_token}"}
+    resp_other = client.get(f"/api/journal/photos/{photo_id}", headers=other_headers)
+    assert resp_other.status_code in (403, 404)

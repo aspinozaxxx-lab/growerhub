@@ -1,4 +1,4 @@
-﻿from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, UniqueConstraint, Index, ForeignKey
+﻿from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, UniqueConstraint, Index, ForeignKey, LargeBinary
 
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -410,9 +410,15 @@ class PlantJournalPhotoDB(Base):
 
     )
 
-    url = Column(String, nullable=False)
+    # Translitem: legacy-ssylka na foto (ostavlyaem dlya obratnoj sovmestimosti).
+    url = Column(String, nullable=True)
 
     caption = Column(String, nullable=True)
+
+    # Translitem: binarnye dannye foto i ego tip kontenta dlya zashchishchennoj vydachi.
+    data = Column(LargeBinary, nullable=True)
+
+    content_type = Column(String, nullable=True)
 
     journal_entry = relationship("PlantJournalEntryDB", backref="photos")
 

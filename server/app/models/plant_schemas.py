@@ -51,8 +51,9 @@ class PlantJournalPhotoOut(BaseModel):
     """Translitem: opisanie foto v zhurnale."""
 
     id: int
-    url: str
+    url: Optional[str] = None
     caption: Optional[str] = None
+    has_data: bool = False
 
 
 class PlantJournalEntryCreate(BaseModel):
@@ -62,6 +63,15 @@ class PlantJournalEntryCreate(BaseModel):
     text: Optional[str] = None
     event_at: Optional[datetime] = None
     photo_urls: Optional[list[str]] = None
+
+
+class PlantJournalWateringDetailsOut(BaseModel):
+    """Translitem: detali poliva v zhurnale (metadannye, bez binarnyh dannyh)."""
+
+    water_volume_l: Optional[float] = None
+    duration_s: Optional[int] = None
+    ph: Optional[float] = None
+    fertilizers_per_liter: Optional[str] = None
 
 
 class PlantJournalEntryOut(BaseModel):
@@ -75,6 +85,7 @@ class PlantJournalEntryOut(BaseModel):
     event_at: datetime
     created_at: datetime
     photos: list[PlantJournalPhotoOut] = []
+    watering_details: Optional[PlantJournalWateringDetailsOut] = None
 
 
 class AdminPlantOut(BaseModel):
