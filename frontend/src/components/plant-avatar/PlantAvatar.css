@@ -1,0 +1,62 @@
+﻿.plant-avatar {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+}
+
+.plant-avatar--fill {
+  width: 100%;
+}
+
+.plant-avatar__frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: radial-gradient(circle at 30% 20%, rgba(107, 219, 168, 0.14), transparent 50%),
+    radial-gradient(circle at 80% 0%, rgba(137, 181, 255, 0.18), transparent 36%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.plant-avatar__image {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.25));
+}
+
+.plant-avatar--variant-card .plant-avatar__frame {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+}
+
+.plant-avatar--size-xs .plant-avatar__frame {
+  max-width: 96px;
+  border-radius: 8px;
+}
+
+.plant-avatar--size-sm .plant-avatar__frame {
+  max-width: 140px;
+  border-radius: 10px;
+}
+
+.plant-avatar--size-md .plant-avatar__frame {
+  max-width: 200px;
+}
+
+.plant-avatar--size-lg .plant-avatar__frame {
+  max-width: 260px;
+}
+
+.plant-avatar--size-xl .plant-avatar__frame {
+  max-width: 320px;
+}
+
+.plant-avatar--fill .plant-avatar__frame {
+  max-width: 100%;
+}

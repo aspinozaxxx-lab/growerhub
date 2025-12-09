@@ -4,7 +4,7 @@ import { useDashboardData } from '../../features/dashboard/useDashboardData';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
 import { useWateringSidebar } from '../../features/watering/WateringSidebarContext';
 import { formatSensorValue } from '../../utils/formatters';
-import plantPot from '../../assets/plant-pot.svg';
+import PlantAvatar from '../../components/plant-avatar/PlantAvatar';
 import './AppDashboard.css';
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
@@ -83,6 +83,15 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
     };
   }, [wateringStatus]);
 
+  const environment = primaryDevice
+    ? {
+        airTemperature: primaryDevice.air_temperature,
+        airHumidity: primaryDevice.air_humidity,
+        soilMoisture: primaryDevice.soil_moisture,
+        isWatering: primaryDevice.is_watering,
+      }
+    : undefined;
+
   const showWateringBadge = wateringStatus && remainingSeconds !== null && remainingSeconds > 0;
 
   const handleOpenWatering = () => {
@@ -106,10 +115,15 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
       {primaryDevice ? (
         <div className="plant-card__body">
           <div className="plant-card__avatar" aria-hidden="true">
-            <img
-              src={plant.avatarUrl || plantPot}
-              alt={plant.name}
-              loading="lazy"
+            <PlantAvatar
+              plantId={plant.id}
+              plantName={plant.name}
+              plantedAt={plant.planted_at}
+              plantType="flowering"
+              environment={environment}
+              variant="card"
+              size="md"
+              fillContainer
             />
           </div>
           <div className="plant-card__metrics">
