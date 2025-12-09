@@ -30,6 +30,14 @@ function dateKeyFromString(value) {
   return value.toISOString().slice(0, 10);
 }
 
+function normalizeDateToLocalMidnight(value) {
+  const dateObj = typeof value === 'string' ? new Date(value) : value;
+  if (!(dateObj instanceof Date) || Number.isNaN(dateObj.getTime())) {
+    return null;
+  }
+  return new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+}
+
 function buildDateRange(startDate, endDate) {
   const days = [];
   const cursor = new Date(startDate.getTime());
@@ -201,14 +209,12 @@ function CalendarGrid({ startDate, endDate, entries, plantedAt, selectedDate, on
                     className={`journal-calendar__day ${selectedDate === key ? 'is-selected' : ''}`}
                     onClick={() => onSelectDate(key)}
                   >
-                    <div className="journal-calendar__day-row">
-                      <span className="journal-calendar__date-number">{day.getDate()}</span>
-                      <div className="journal-calendar__icons">
-                        {iconList.map((icon) => (
-                          <span key={icon}>{icon}</span>
-                        ))}
-                      </div>
-                    </div>
+                    <span className="journal-calendar__date-number">{day.getDate()}</span>
+                    <span className="journal-calendar__icons">
+                      {iconList.map((icon) => (
+                        <span key={icon}>{icon}</span>
+                      ))}
+                    </span>
                   </button>
                 );
               })}
@@ -301,14 +307,15 @@ function AppPlantJournal() {
 
   const selectedAgeLabel =
     selectedDate && plant?.planted_at
-      ? Math.max(
-          0,
-          Math.floor(
-            (new Date(`${selectedDate}T00:00:00`).setHours(0, 0, 0, 0) -
-              new Date(dateKeyFromString(plant.planted_at)).setHours(0, 0, 0, 0)) /
-              (1000 * 60 * 60 * 24),
-          ),
-        )
+      ? (() => {
+          const selectedMidnight = normalizeDateToLocalMidnight(`${selectedDate}T00:00:00`);
+          const plantedMidnight = normalizeDateToLocalMidnight(plant.planted_at);
+          if (!selectedMidnight || !plantedMidnight) {
+            return null;
+          }
+          const diff = selectedMidnight.getTime() - plantedMidnight.getTime();
+          return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+        })()
       : null;
 
   const handleDownloadJournal = async () => {
