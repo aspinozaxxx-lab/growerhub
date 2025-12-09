@@ -308,11 +308,14 @@ function AppPlantJournal() {
   const selectedAgeLabel =
     selectedDate && plant?.planted_at
       ? (() => {
-          const selectedMidnight = normalizeDateToLocalMidnight(`${selectedDate}T00:00:00`);
-          const plantedMidnight = normalizeDateToLocalMidnight(plant.planted_at);
-          if (!selectedMidnight || !plantedMidnight) {
-            return null;
-          }
+          const [y, m, d] = selectedDate.split('-').map((part) => Number(part));
+          const selectedMidnight = new Date(y, m - 1, d);
+          const planted = new Date(plant.planted_at);
+          const plantedMidnight = new Date(
+            planted.getFullYear(),
+            planted.getMonth(),
+            planted.getDate(),
+          );
           const diff = selectedMidnight.getTime() - plantedMidnight.getTime();
           return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
         })()
@@ -415,7 +418,6 @@ function AppPlantJournal() {
       month: 'long',
       year: 'numeric',
     });
-  const plantedAtDate = plant?.planted_at ? new Date(dateKeyFromString(plant.planted_at)) : null;
 
   return (
     <div className="plant-journal-page">
@@ -424,7 +426,7 @@ function AppPlantJournal() {
           <div className="plant-journal__title">{headingTitle}</div>
           {plant && (
             <div className="plant-journal__subtitle">
-              {plantedAtLabel ? `Посажено ${plantedAtLabel} года` : 'Посажено —'}
+              {plantedAtLabel ? `Посажено ${plantedAtLabel}` : 'Посажено —'}
             </div>
           )}
         </div>
