@@ -21,7 +21,6 @@ const JOURNAL_TYPE_CONFIG = {
 };
 
 const BACKEND_TYPES = ['watering', 'feeding', 'photo', 'note', 'other'];
-const AGE_ICON = '🌱';
 
 function dateKeyFromString(value) {
   if (!value) return '';
@@ -104,7 +103,7 @@ function JournalEntryCard({ entry, onEdit, photoCache, setPhotoCache, token }) {
     const parts = [];
     if (volume) parts.push(volume);
     if (fertilizers) parts.push(`удобрения: ${fertilizers}`);
-    content = parts.join('; ');
+    content = parts.join('   ');
   }
   if (entry.type === 'photo' && !content) {
     content = 'Фото';
@@ -112,23 +111,34 @@ function JournalEntryCard({ entry, onEdit, photoCache, setPhotoCache, token }) {
 
   return (
     <div className="journal-entry">
-      <div className="journal-entry__meta">
-        <div className="journal-entry__time">{time}</div>
-        <div className="journal-entry__type">
-          <span className="journal-entry__icon">{config.icon}</span>
-          <span>{config.label}</span>
+      {entry.type === 'watering' ? (
+        <div className="journal-entry__watering">
+          <span className="journal-entry__time">{time}</span>
+          <span className="journal-entry__icon journal-entry__icon--big">{config.icon}</span>
+          {volume && <span className="journal-entry__volume">{volume}</span>}
+          {fertilizers && <span className="journal-entry__fertilizers">{`удобрения: ${fertilizers}`}</span>}
         </div>
-      </div>
-      <div className="journal-entry__body">
-        {entry.type === 'photo' ? (
-          <div className="journal-entry__photo-block">
-            <div className="journal-entry__text">{content}</div>
-            <PhotoPreview photo={mainPhoto} token={token} cache={photoCache} setCache={setPhotoCache} />
+      ) : (
+        <>
+          <div className="journal-entry__meta">
+            <div className="journal-entry__time">{time}</div>
+            <div className="journal-entry__type">
+              <span className="journal-entry__icon">{config.icon}</span>
+              <span>{config.label}</span>
+            </div>
           </div>
-        ) : (
-          <div className="journal-entry__text">{content || '-'}</div>
-        )}
-      </div>
+          <div className="journal-entry__body">
+            {entry.type === 'photo' ? (
+              <div className="journal-entry__photo-block">
+                <div className="journal-entry__text">{content}</div>
+                <PhotoPreview photo={mainPhoto} token={token} cache={photoCache} setCache={setPhotoCache} />
+              </div>
+            ) : (
+              <div className="journal-entry__text">{content || '-'}</div>
+            )}
+          </div>
+        </>
+      )}
       <button type="button" className="journal-entry__edit" onClick={() => onEdit(entry)} title="Редактировать">
         ✏
       </button>
@@ -174,13 +184,10 @@ function CalendarGrid({ startDate, endDate, entries, plantedAt, selectedDate, on
             <div className="journal-calendar__month-grid">
               {days.map((day) => {
                 const key = dateKeyFromString(day);
-                const age = Math.max(0, Math.floor((day - planted) / (1000 * 60 * 60 * 24)));
                 const entriesForDay = entriesByDate[key] || [];
-                const typeSet = new Set(
-                  entriesForDay.map(
-                    (e) => JOURNAL_TYPE_CONFIG[e.type]?.icon || JOURNAL_TYPE_CONFIG.other.icon,
-                  ),
-                );
+                const iconList = entriesForDay
+                  .map((e) => JOURNAL_TYPE_CONFIG[e.type]?.icon || JOURNAL_TYPE_CONFIG.other.icon)
+                  .slice(0, 3);
                 return (
                   <button
                     key={key}
@@ -188,17 +195,13 @@ function CalendarGrid({ startDate, endDate, entries, plantedAt, selectedDate, on
                     className={`journal-calendar__day ${selectedDate === key ? 'is-selected' : ''}`}
                     onClick={() => onSelectDate(key)}
                   >
-                    <div className="journal-calendar__day-header">
+                    <div className="journal-calendar__day-row">
                       <span className="journal-calendar__date-number">{day.getDate()}</span>
-                      <span className="journal-calendar__age">
-                        <span className="journal-calendar__age-icon">{AGE_ICON}</span>
-                        <span className="journal-calendar__age-value">{age} д</span>
-                      </span>
-                    </div>
-                    <div className="journal-calendar__icons">
-                      {[...typeSet].map((icon) => (
-                        <span key={icon}>{icon}</span>
-                      ))}
+                      <div className="journal-calendar__icons">
+                        {iconList.map((icon) => (
+                          <span key={icon}>{icon}</span>
+                        ))}
+                      </div>
                     </div>
                   </button>
                 );
@@ -281,6 +284,26 @@ function AppPlantJournal() {
       .filter((entry) => dateKeyFromString(entry.event_at) === selectedDate)
       .sort((a, b) => new Date(a.event_at) - new Date(b.event_at));
   }, [entries, selectedDate]);
+
+  const selectedDateLabel =
+    selectedDate &&
+    new Date(`${selectedDate}T00:00:00`).toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+
+  const selectedAgeLabel =
+    selectedDate && plant?.planted_at
+      ? Math.max(
+          0,
+          Math.floor(
+            (new Date(`${selectedDate}T00:00:00`).getTime() -
+              new Date(dateKeyFromString(plant.planted_at)).getTime()) /
+              (1000 * 60 * 60 * 24),
+          ),
+        )
+      : null;
 
   const handleDownloadJournal = async () => {
     try {
@@ -418,7 +441,10 @@ function AppPlantJournal() {
       <div className="journal-entries-block">
         <div className="journal-entries-block__header">
           <div className="journal-entries-block__title">
-            {selectedDate ? `Записи за ${selectedDate}` : 'Выберите день в календаре'}
+            {selectedDateLabel ? `Записи за ${selectedDateLabel} года` : 'Выберите день в календаре'}
+            {selectedAgeLabel !== null && selectedAgeLabel !== undefined && (
+              <div className="journal-entries-block__age">Возраст {selectedAgeLabel} дней</div>
+            )}
           </div>
           <button type="button" className="journal-entries-block__add" onClick={handleOpenForm}>
             {isFormOpen ? 'Закрыть форму' : 'Добавить запись'}

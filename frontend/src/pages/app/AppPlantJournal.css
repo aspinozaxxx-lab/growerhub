@@ -75,14 +75,14 @@
 
 .journal-calendar__day {
   background: #111827;
-  border: 1px solid #1f2937;
+  border: 1px solid transparent;
   border-radius: 10px;
-  padding: 8px;
+  padding: 6px 8px;
   color: #e5e7eb;
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s ease, transform 0.1s ease;
-  min-height: 70px;
+  min-height: 40px;
 }
 
 .journal-calendar__day:hover {
@@ -94,35 +94,23 @@
   box-shadow: 0 0 0 1px #34d399 inset;
 }
 
-.journal-calendar__day-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-
 .journal-calendar__date-number {
   font-size: 16px;
   font-weight: 700;
 }
 
-.journal-calendar__age {
+.journal-calendar__day-row {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.journal-calendar__age-icon {
+  justify-content: space-between;
+  gap: 6px;
   font-size: 14px;
 }
 
 .journal-calendar__icons {
-  margin-top: 4px;
   display: flex;
   gap: 4px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   font-size: 14px;
 }
 
@@ -144,6 +132,10 @@
 .journal-entries-block__title {
   font-weight: 700;
   font-size: 16px;
+}
+.journal-entries-block__age {
+  color: #9ca3af;
+  font-size: 14px;
 }
 
 .journal-entries-block__add {
