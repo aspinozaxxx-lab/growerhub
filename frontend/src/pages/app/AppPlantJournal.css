@@ -1,6 +1,6 @@
-﻿.plant-journal-page {
+.plant-journal-page {
   color: #e2e8f0;
-  padding: 24px;
+  padding: 24px 12px;
 }
 
 .plant-journal__header {
@@ -219,6 +219,11 @@
 
 .journal-entry__fertilizers {
   color: #cbd5e1;
+}
+
+.plant-journal-entry-watering-details {
+  font-size: 0.85rem;
+  opacity: 0.85;
 }
 
 .journal-entry__text {

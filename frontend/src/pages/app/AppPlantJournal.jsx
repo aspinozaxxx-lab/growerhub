@@ -134,7 +134,11 @@ function JournalEntryCard({ entry, onEdit, photoCache, setPhotoCache, token }) {
           <span className="journal-entry__time">{time}</span>
           <span className="journal-entry__icon journal-entry__icon--big">{config.icon}</span>
           {volume && <span className="journal-entry__volume">{volume}</span>}
-          {fertilizers && <span className="journal-entry__fertilizers">{`удобрения: ${fertilizers}`}</span>}
+          {fertilizers && (
+            <span className="journal-entry__fertilizers plant-journal-entry-watering-details">
+              {`удобрения: ${fertilizers}`}
+            </span>
+          )}
         </div>
       ) : (
         <>
