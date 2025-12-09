@@ -1,6 +1,6 @@
 ﻿import React from 'react';
-import plantPot from '../../assets/plant-pot.svg';
 import { getFloweringStageConfig } from './packs/floweringPack';
+import SvgAvatarRenderer from './engines/svg/SvgAvatarRenderer';
 import './PlantAvatar.css';
 
 // Bazovyj komponent avatara rastenij bez slozhnoj logiki stadij
@@ -51,10 +51,12 @@ function PlantAvatar({
     >
       {/* plant-avatar__frame — ramka s aspect ratio 3:4 i fonovymi gradientami */}
       <div className="plant-avatar__frame">
-        <img
-          src={plantPot}
-          alt={plantName || 'Plant avatar'}
-          className="plant-avatar__image"
+        {/* PlantAvatar teper' ispol'zuet SVG renderer; stadiya i pak vliyayut na vid rostka */}
+        <SvgAvatarRenderer
+          stageConfig={stageConfig}
+          environment={environment}
+          variant={variant}
+          size={size}
         />
       </div>
       {stageConfig?.label && (
