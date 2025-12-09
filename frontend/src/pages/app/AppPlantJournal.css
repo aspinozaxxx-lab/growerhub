@@ -55,22 +55,34 @@
 }
 
 .journal-calendar {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 16px;
+}
+
+.journal-calendar__month-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+  text-transform: capitalize;
+}
+
+.journal-calendar__month-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
 }
 
 .journal-calendar__day {
   background: #111827;
   border: 1px solid #1f2937;
   border-radius: 10px;
-  padding: 10px;
+  padding: 8px;
   color: #e5e7eb;
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s ease, transform 0.1s ease;
-  min-height: 90px;
+  min-height: 70px;
 }
 
 .journal-calendar__day:hover {
@@ -82,21 +94,36 @@
   box-shadow: 0 0 0 1px #34d399 inset;
 }
 
+.journal-calendar__day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
 .journal-calendar__date-number {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 .journal-calendar__age {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
   color: #9ca3af;
 }
 
+.journal-calendar__age-icon {
+  font-size: 14px;
+}
+
 .journal-calendar__icons {
-  margin-top: 6px;
+  margin-top: 4px;
   display: flex;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
+  font-size: 14px;
 }
 
 .journal-entries-block {

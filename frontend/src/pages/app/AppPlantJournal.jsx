@@ -21,6 +21,7 @@ const JOURNAL_TYPE_CONFIG = {
 };
 
 const BACKEND_TYPES = ['watering', 'feeding', 'photo', 'note', 'other'];
+const AGE_ICON = '🌱';
 
 function dateKeyFromString(value) {
   if (!value) return '';
@@ -125,7 +126,7 @@ function JournalEntryCard({ entry, onEdit, photoCache, setPhotoCache, token }) {
             <PhotoPreview photo={mainPhoto} token={token} cache={photoCache} setCache={setPhotoCache} />
           </div>
         ) : (
-          <div className="journal-entry__text">{content || '—'}</div>
+          <div className="journal-entry__text">{content || '-'}</div>
         )}
       </div>
       <button type="button" className="journal-entry__edit" onClick={() => onEdit(entry)} title="Редактировать">
@@ -152,28 +153,58 @@ function CalendarGrid({ startDate, endDate, entries, plantedAt, selectedDate, on
     return map;
   }, [entries]);
 
+  const months = useMemo(() => {
+    const grouped = dateList.reduce((acc, day) => {
+      const monthKey = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}`;
+      if (!acc[monthKey]) acc[monthKey] = [];
+      acc[monthKey].push(day);
+      return acc;
+    }, {});
+    return Object.entries(grouped).sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  }, [dateList]);
+
   return (
     <div className="journal-calendar">
-      {dateList.map((day) => {
-        const key = dateKeyFromString(day);
-        const age = Math.max(0, Math.floor((day - planted) / (1000 * 60 * 60 * 24)));
-        const entriesForDay = entriesByDate[key] || [];
-        const typeSet = new Set(entriesForDay.map((e) => JOURNAL_TYPE_CONFIG[e.type]?.icon || JOURNAL_TYPE_CONFIG.other.icon));
+      {months.map(([monthKey, days]) => {
+        const monthLabel = days[0].toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+        const normalizedLabel = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
         return (
-          <button
-            key={key}
-            type="button"
-            className={`journal-calendar__day ${selectedDate === key ? 'is-selected' : ''}`}
-            onClick={() => onSelectDate(key)}
-          >
-            <div className="journal-calendar__date-number">{day.getDate()}</div>
-            <div className="journal-calendar__age">+{age}</div>
-            <div className="journal-calendar__icons">
-              {[...typeSet].map((icon) => (
-                <span key={icon}>{icon}</span>
-              ))}
+          <div className="journal-calendar__month" key={monthKey}>
+            <div className="journal-calendar__month-title">{normalizedLabel}</div>
+            <div className="journal-calendar__month-grid">
+              {days.map((day) => {
+                const key = dateKeyFromString(day);
+                const age = Math.max(0, Math.floor((day - planted) / (1000 * 60 * 60 * 24)));
+                const entriesForDay = entriesByDate[key] || [];
+                const typeSet = new Set(
+                  entriesForDay.map(
+                    (e) => JOURNAL_TYPE_CONFIG[e.type]?.icon || JOURNAL_TYPE_CONFIG.other.icon,
+                  ),
+                );
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`journal-calendar__day ${selectedDate === key ? 'is-selected' : ''}`}
+                    onClick={() => onSelectDate(key)}
+                  >
+                    <div className="journal-calendar__day-header">
+                      <span className="journal-calendar__date-number">{day.getDate()}</span>
+                      <span className="journal-calendar__age">
+                        <span className="journal-calendar__age-icon">{AGE_ICON}</span>
+                        <span className="journal-calendar__age-value">{age} д</span>
+                      </span>
+                    </div>
+                    <div className="journal-calendar__icons">
+                      {[...typeSet].map((icon) => (
+                        <span key={icon}>{icon}</span>
+                      ))}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
-          </button>
+          </div>
         );
       })}
     </div>
@@ -341,6 +372,13 @@ function AppPlantJournal() {
   };
 
   const headingTitle = plant ? `Журнал: ${plant.name}` : 'Журнал растения';
+  const plantedAtLabel =
+    plant?.planted_at &&
+    new Date(plant.planted_at).toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
 
   return (
     <div className="plant-journal-page">
@@ -349,7 +387,7 @@ function AppPlantJournal() {
           <div className="plant-journal__title">{headingTitle}</div>
           {plant && (
             <div className="plant-journal__subtitle">
-              Посажено: {dateKeyFromString(plant.planted_at) || '—'}
+              {plantedAtLabel ? `Посажено ${plantedAtLabel} года` : 'Посажено —'}
             </div>
           )}
         </div>
