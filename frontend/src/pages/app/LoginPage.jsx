@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
 import './LoginPage.css';
@@ -13,10 +13,21 @@ function LoginPage() {
     clearError,
     consumeRedirectAfterLogin,
     setRedirectAfterLogin,
+    redirectAfterLogin,
   } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const queryRedirect = params.get('redirect');
+    const stateRedirect = location.state?.from?.pathname;
+    if (status === 'authorized' && location.pathname === '/app/login' && !redirectAfterLogin && !queryRedirect && !stateRedirect) {
+      // Translitem: perebrosyvaem uzhe avtorizovannogo s login na glavnyj /app
+      navigate('/app', { replace: true });
+    }
+  }, [status, location.pathname, location.search, location.state, redirectAfterLogin, navigate]);
 
   useEffect(() => {
     clearError();

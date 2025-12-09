@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+﻿import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'gh_access_token';
 
@@ -21,7 +21,7 @@ function AuthProvider({ children }) {
   }, []);
 
   const consumeRedirectAfterLogin = useCallback(() => {
-    const target = redirectAfterLogin || '/app/dashboard';
+    const target = redirectAfterLogin || '/app';
     setRedirectAfterLoginState(null);
     return target;
   }, [redirectAfterLogin]);
@@ -109,10 +109,25 @@ function AuthProvider({ children }) {
   );
 
   useEffect(() => {
-    const storedToken = localStorage.getItem(STORAGE_KEY);
-    if (storedToken) {
-      setToken(storedToken);
-      loadCurrentUser(storedToken);
+    const url = new URL(window.location.href);
+    const urlToken = url.searchParams.get('access_token');
+    let effectiveToken = localStorage.getItem(STORAGE_KEY);
+
+    if (urlToken) {
+      // Translitem: podhvatyvaem token iz URL posle SSO i chistim ego iz stroki brauzera
+      effectiveToken = urlToken;
+      localStorage.setItem(STORAGE_KEY, urlToken);
+      setToken(urlToken);
+
+      url.searchParams.delete('access_token');
+      const cleanedSearch = url.searchParams.toString();
+      const cleanedUrl = `${url.pathname}${cleanedSearch ? `?${cleanedSearch}` : ''}${url.hash}`;
+      window.history.replaceState({}, document.title, cleanedUrl);
+    }
+
+    if (effectiveToken) {
+      setToken(effectiveToken);
+      loadCurrentUser(effectiveToken);
     } else {
       setStatus('unauthorized');
     }

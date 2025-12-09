@@ -1,4 +1,9 @@
-﻿- dobavlena ansible-rol dlya ustanovki pgAdmin na gh-tools.
+﻿- Ispravlen defoltnyi redirect posle logina na /app
+- Dobavleno chtenie access_token iz URL posle SSO i sohranenie v localStorage
+- Izmenen defoltnyi redirect dlya SSO login na /app na backende
+- Avtorizovannye polzovateli avtomaticheski pereadresuyutsya s /app/login na /app
+
+- dobavlena ansible-rol dlya ustanovki pgAdmin na gh-tools.
 - sozdan playbook dlya gruppy gh_tools.
 - zahardkozhena dev-konfiguraciya podklyucheniya k gh_db.
 

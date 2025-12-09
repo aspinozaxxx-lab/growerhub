@@ -158,7 +158,7 @@ async def sso_login(
 
     if not redirect_path:
         # default redirect dlya login/link
-        redirect_path = "/static/profile.html" if mode == "link" else "/app/dashboard"
+        redirect_path = "/static/profile.html" if mode == "link" else "/app"
 
     redirect_uri = _build_callback_uri(provider)
     try:
@@ -193,7 +193,7 @@ def sso_callback(
     if state_data.get("provider") != provider:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Provider mismatch")
 
-    redirect_path = state_data.get("redirect_path") or "/app/dashboard"
+    redirect_path = state_data.get("redirect_path") or "/app"
     redirect_uri = _build_callback_uri(provider)
 
     try:
@@ -211,7 +211,7 @@ def sso_callback(
     if mode == "login":
         user = get_or_create_user_from_sso(db, provider, subject, email)
         token = create_access_token({"user_id": user.id})
-        redirect_target = redirect_path or "/app/dashboard"
+        redirect_target = redirect_path or "/app"
         separator = "&" if "?" in redirect_target else "?"
         redirect_with_token = f"{redirect_target}{separator}access_token={token}"
         return RedirectResponse(url=redirect_with_token, status_code=status.HTTP_302_FOUND)
