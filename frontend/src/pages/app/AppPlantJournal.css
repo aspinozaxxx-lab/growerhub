@@ -65,7 +65,7 @@
 .journal-calendar__month-title {
   font-weight: 700;
   margin-bottom: 6px;
-  text-transform: capitalize;
+  text-transform: none;
 }
 
 .journal-calendar__month {
