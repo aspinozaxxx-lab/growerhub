@@ -1,12 +1,12 @@
 import React from 'react';
 import { PLANT_AVATAR_PALETTE } from '../palette';
 
-const LEAF_PATH_D = 'M 0 0 C 6 -6 14 -6 16 0 C 14 6 6 10 0 0 Z';
+const LEAF_PATH_D = 'M 0 0 C 5 -9 16 -10 22 -2 C 17 8 7 10 0 0 Z';
 
-// Sloj list'ev: uproshchennaya sistema list'ev, zavisyashchaya ot leafDensity
+// Sloj list'ev: akkuratnye kapelki, rasstavlennye vokrug steblya
 function LeavesLayer({ stageConfig, width, height, layout }) {
   const leafDensity = stageConfig?.appearance?.leafDensity ?? 0;
-  const leafSize = stageConfig?.appearance?.leafSize ?? 0.4;
+  const leafSize = stageConfig?.appearance?.leafSize ?? 0.5;
   void width;
   void height;
 
@@ -19,21 +19,31 @@ function LeavesLayer({ stageConfig, width, height, layout }) {
     return null;
   }
 
-  const sizeScale = Math.max(0.55, Math.min(1.3, leafSize * 1.3));
+  const sizeScale = Math.max(0.6, Math.min(1.25, leafSize * 1.2));
 
   const leaves = slots.map((slot, index) => {
     const flip = slot.side === 'left' ? -1 : 1;
+    const scale = sizeScale * slot.scale;
+    const rotation = slot.angle ?? (slot.side === 'left' ? -26 : 26);
     return (
-      <path
-        key={`leaf-${index}`}
-        d={LEAF_PATH_D}
-        fill={PLANT_AVATAR_PALETTE.LEAF_LIGHT}
-        stroke={PLANT_AVATAR_PALETTE.LEAF_DARK}
-        strokeWidth={1.4}
-        transform={`translate(${slot.x}, ${slot.y}) scale(${flip * sizeScale * slot.scale}, ${sizeScale * slot.scale}) rotate(${slot.side === 'left' ? -18 : 18})`}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <g key={`leaf-${index}`} transform={`translate(${slot.x}, ${slot.y}) rotate(${rotation}) scale(${flip * scale}, ${scale})`}>
+        <path
+          d={LEAF_PATH_D}
+          fill={PLANT_AVATAR_PALETTE.LEAF_LIGHT}
+          stroke={PLANT_AVATAR_PALETTE.LEAF_DARK}
+          strokeWidth={1.2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M 2 0 C 6 -3 11 -2 14 2"
+          fill="none"
+          stroke={PLANT_AVATAR_PALETTE.LEAF_DARK}
+          strokeWidth={0.9}
+          strokeLinecap="round"
+          opacity={0.6}
+        />
+      </g>
     );
   });
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { PLANT_AVATAR_PALETTE } from '../palette';
 
-// Sloj steblya: zhivaya stoyka s legkim szhatiem kverhu
+// Sloj steblya: odin myagkij izognutyj rostok iz tsentra pochvy
 function StemLayer({ stageConfig, width, height, layout }) {
   void stageConfig;
   void width;
@@ -9,40 +9,40 @@ function StemLayer({ stageConfig, width, height, layout }) {
 
   const stemHeight = layout?.stem?.height ?? 40;
   const centerX = layout?.stem?.baseX ?? (width / 2);
-  const soilTop = layout?.stem?.baseY ?? height * 0.65;
-  const bottomWidth = Math.max(3, layout?.stem?.thickness ?? 6);
-  const topWidth = bottomWidth * 0.72;
-  const stemTopY = soilTop - stemHeight;
+  const soilCenterY = layout?.stem?.baseY ?? height * 0.65;
+  const stemThickness = Math.max(3, layout?.stem?.thickness ?? 6);
+  const stemTopY = soilCenterY - stemHeight;
 
-  const leftBottom = centerX - bottomWidth / 2;
-  const rightBottom = centerX + bottomWidth / 2;
-  const leftTop = centerX - topWidth / 2;
-  const rightTop = centerX + topWidth / 2;
+  const controlOffset = stemHeight * 0.28;
+  const curveShift = stemThickness * 0.7;
 
-  const stemPath = `
-    M ${leftBottom} ${soilTop}
-    L ${rightBottom} ${soilTop}
-    Q ${rightBottom + 2} ${soilTop - 6} ${rightTop} ${stemTopY + 6}
-    Q ${rightTop} ${stemTopY} ${rightTop - 2} ${stemTopY}
-    L ${leftTop + 2} ${stemTopY}
-    Q ${leftTop} ${stemTopY} ${leftTop} ${stemTopY + 6}
-    Q ${leftBottom - 2} ${soilTop - 6} ${leftBottom} ${soilTop}
-    Z
+  const stemSpine = `
+    M ${centerX} ${soilCenterY}
+    C ${centerX - curveShift} ${soilCenterY - controlOffset} ${centerX + curveShift} ${soilCenterY - controlOffset * 1.8} ${centerX} ${stemTopY}
   `;
 
-  const shadowWidth = Math.max(2, bottomWidth * 0.35);
-  const shadowPath = `
-    M ${rightTop - 1} ${stemTopY + 4}
-    L ${rightBottom} ${soilTop}
-    L ${rightBottom - shadowWidth} ${soilTop}
-    L ${rightTop - shadowWidth * 0.6} ${stemTopY + 6}
-    Z
+  const shadowSpine = `
+    M ${centerX + stemThickness * 0.18} ${soilCenterY}
+    C ${centerX + curveShift * 0.6} ${soilCenterY - controlOffset} ${centerX + curveShift * 0.2} ${soilCenterY - controlOffset * 1.8} ${centerX + stemThickness * 0.18} ${stemTopY + stemThickness * 0.2}
   `;
 
   return (
     <g className="plant-avatar__layer stem-layer">
-      <path d={stemPath} fill={PLANT_AVATAR_PALETTE.STEM_BASE} />
-      <path d={shadowPath} fill={PLANT_AVATAR_PALETTE.STEM_SHADOW} opacity={0.95} />
+      <path
+        d={stemSpine}
+        fill="none"
+        stroke={PLANT_AVATAR_PALETTE.STEM_BASE}
+        strokeWidth={stemThickness}
+        strokeLinecap="round"
+      />
+      <path
+        d={shadowSpine}
+        fill="none"
+        stroke={PLANT_AVATAR_PALETTE.STEM_SHADOW}
+        strokeWidth={Math.max(1, stemThickness * 0.4)}
+        strokeLinecap="round"
+        opacity={0.85}
+      />
     </g>
   );
 }

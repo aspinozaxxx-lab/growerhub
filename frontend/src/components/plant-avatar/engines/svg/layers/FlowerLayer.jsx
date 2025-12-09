@@ -1,7 +1,7 @@
 import React from 'react';
 import { PLANT_AVATAR_PALETTE } from '../palette';
 
-// Sloj cvetov: neytral'noe decorativnoe socvetie, zavisyashchee ot flowerDensity/flowerSize
+// Sloj cvetov: prostye myagkie butony nad list'jami
 function FlowerLayer({ stageConfig, width, height, layout }) {
   const flowerDensity = stageConfig?.appearance?.flowerDensity ?? 0;
   const flowerSize = stageConfig?.appearance?.flowerSize ?? 0;
@@ -19,12 +19,12 @@ function FlowerLayer({ stageConfig, width, height, layout }) {
 
   const renderFlower = (slot, index) => {
     const scale = slot.scale;
-    const petalRadius = 3.6 * scale;
-    const centerRadius = 2 * scale;
-    const petals = Array.from({ length: 6 }, (_, idx) => {
-      const angle = (idx / 6) * Math.PI * 2;
-      const px = slot.x + Math.cos(angle) * petalRadius * 1.5;
-      const py = slot.y + Math.sin(angle) * petalRadius * 1.2;
+    const petalRadius = 3.4 * scale;
+    const centerRadius = 2.1 * scale;
+    const petals = Array.from({ length: 5 }, (_, idx) => {
+      const angle = (idx / 5) * Math.PI * 2;
+      const px = slot.x + Math.cos(angle) * petalRadius * 1.35;
+      const py = slot.y + Math.sin(angle) * petalRadius * 1.1;
       return <circle key={`petal-${index}-${idx}`} cx={px} cy={py} r={petalRadius} fill={PLANT_AVATAR_PALETTE.FLOWER_LIGHT} />;
     });
 

@@ -1,64 +1,65 @@
 import React from 'react';
 import { PLANT_AVATAR_PALETTE } from '../palette';
 
-// Sloj gorshka: baza dlya gorshka v stile "sochnogo rasteniya"
+// Sloj gorshka: okruglyj cilindr s myagkim obodkom
 function PotLayer({ stageConfig, environment, width, height, layout }) {
   void stageConfig;
   void environment;
   void width;
   void height;
 
-  const bodyTopY = layout?.pot?.topY ?? height * 0.7;
-  const bodyBottomY = layout?.pot?.bottomY ?? height;
-  const rimHeight = layout?.pot?.rimHeight ?? 8;
-  const insetX = layout?.pot?.insetX ?? 8;
-  const bodyHeight = layout?.pot?.bodyHeight ?? (height * 0.3 - rimHeight);
-  const effectiveWidth = layout?.width ?? width;
-  const topWidth = effectiveWidth - insetX * 2;
-  const bottomWidth = topWidth * 0.8;
-  const topX = (effectiveWidth - topWidth) / 2;
-  const bottomX = (effectiveWidth - bottomWidth) / 2;
+  const centerX = (layout?.width ?? width) / 2;
+  const topY = layout?.pot?.topY ?? height * 0.68;
+  const bottomY = layout?.pot?.bottomY ?? height;
+  const rimHeight = layout?.pot?.rimHeight ?? height * 0.06;
+  const rimThickness = layout?.pot?.rimThickness ?? rimHeight * 0.45;
+  const topWidth = layout?.pot?.topWidth ?? (width - (layout?.pot?.insetX ?? width * 0.18) * 2);
+  const bottomWidth = layout?.pot?.bottomWidth ?? topWidth * 0.78;
+
+  const rimRx = topWidth / 2;
+  const rimRy = rimHeight / 2;
+  const innerRimRx = rimRx - rimThickness;
+  const innerRimRy = rimRy - rimThickness * 0.6;
+  const bodyTopY = topY + rimRy * 0.65;
+  const bodyBottomY = bottomY;
+  const bodyTopHalf = bodyTopY + rimRy * 0.2;
+  const bottomRx = bottomWidth / 2;
 
   const bodyPath = `
-    M ${topX + 4} ${bodyTopY}
-    L ${topX + topWidth - 4} ${bodyTopY}
-    Q ${topX + topWidth} ${bodyTopY + 3} ${topX + topWidth - 5} ${bodyTopY + 12}
-    L ${bottomX + bottomWidth - 4} ${bodyBottomY - 6}
-    Q ${bottomX + bottomWidth} ${bodyBottomY - 2} ${bottomX + bottomWidth - 5} ${bodyBottomY}
-    L ${bottomX + 5} ${bodyBottomY}
-    Q ${bottomX} ${bodyBottomY - 2} ${bottomX + 5} ${bodyBottomY - 6}
-    L ${topX + 4} ${bodyTopY + 12}
-    Q ${topX} ${bodyTopY + 3} ${topX + 4} ${bodyTopY}
+    M ${centerX - rimRx + 3} ${bodyTopY}
+    L ${centerX + rimRx - 3} ${bodyTopY}
+    Q ${centerX + rimRx + 3} ${bodyTopHalf} ${centerX + bottomRx} ${bodyBottomY - 2}
+    Q ${centerX + bottomRx - 2} ${bodyBottomY + 2} ${centerX + bottomRx - 6} ${bodyBottomY}
+    L ${centerX - bottomRx + 6} ${bodyBottomY}
+    Q ${centerX - bottomRx + 2} ${bodyBottomY + 2} ${centerX - bottomRx} ${bodyBottomY - 2}
+    Q ${centerX - rimRx - 3} ${bodyTopHalf} ${centerX - rimRx + 3} ${bodyTopY}
     Z
   `;
 
-  const shadowHeight = bodyHeight * 0.32;
-  const shadowPath = `
-    M ${bottomX + 6} ${bodyBottomY - shadowHeight}
-    L ${bottomX + bottomWidth - 6} ${bodyBottomY - shadowHeight + 5}
-    Q ${bottomX + bottomWidth} ${bodyBottomY - shadowHeight + 10} ${bottomX + bottomWidth - 6} ${bodyBottomY}
-    L ${bottomX + 6} ${bodyBottomY}
-    Q ${bottomX} ${bodyBottomY - 6} ${bottomX + 6} ${bodyBottomY - shadowHeight}
+  const rimFrontPath = `
+    M ${centerX - rimRx} ${topY}
+    C ${centerX - rimRx * 0.65} ${topY + rimRy * 1.1} ${centerX + rimRx * 0.65} ${topY + rimRy * 1.1} ${centerX + rimRx} ${topY}
+    L ${centerX + rimRx} ${topY + rimThickness}
+    C ${centerX + rimRx * 0.68} ${topY + rimRy * 1.35} ${centerX - rimRx * 0.68} ${topY + rimRy * 1.35} ${centerX - rimRx} ${topY + rimThickness}
     Z
   `;
 
-  const rimWidth = topWidth * 1.04;
-  const rimX = (effectiveWidth - rimWidth) / 2;
-  const rimY = bodyTopY - rimHeight * 0.9;
-  const rimPath = `
-    M ${rimX} ${rimY}
-    L ${rimX + rimWidth} ${rimY}
-    Q ${rimX + rimWidth} ${rimY + rimHeight * 0.5} ${rimX + rimWidth - 6} ${rimY + rimHeight}
-    L ${rimX + 6} ${rimY + rimHeight}
-    Q ${rimX} ${rimY + rimHeight * 0.5} ${rimX} ${rimY}
+  const highlightPath = `
+    M ${centerX - rimRx * 0.8} ${bodyTopY + rimRy * 0.2}
+    C ${centerX - rimRx * 0.72} ${bodyTopY + rimRy * 1.2} ${centerX - rimRx * 0.6} ${bottomY - (bottomY - bodyTopY) * 0.45} ${centerX - rimRx * 0.6} ${bottomY - (bottomY - bodyTopY) * 0.18}
+    C ${centerX - rimRx * 0.58} ${bottomY - (bottomY - bodyTopY) * 0.12} ${centerX - rimRx * 0.5} ${bottomY - (bottomY - bodyTopY) * 0.08} ${centerX - rimRx * 0.48} ${bottomY - (bottomY - bodyTopY) * 0.06}
+    L ${centerX - rimRx * 0.36} ${bottomY - (bottomY - bodyTopY) * 0.18}
+    C ${centerX - rimRx * 0.4} ${bottomY - (bottomY - bodyTopY) * 0.3} ${centerX - rimRx * 0.45} ${bodyTopY + rimRy * 0.7} ${centerX - rimRx * 0.52} ${bodyTopY + rimRy * 0.2}
     Z
   `;
 
   return (
     <g className="plant-avatar__layer pot-layer">
+      <ellipse cx={centerX} cy={topY} rx={rimRx} ry={rimRy} fill={PLANT_AVATAR_PALETTE.POT_HIGHLIGHT} />
+      <ellipse cx={centerX} cy={topY} rx={innerRimRx} ry={innerRimRy} fill={PLANT_AVATAR_PALETTE.POT_BASE} />
       <path d={bodyPath} fill={PLANT_AVATAR_PALETTE.POT_BASE} />
-      <path d={shadowPath} fill={PLANT_AVATAR_PALETTE.POT_SHADOW} opacity={0.85} />
-      <path d={rimPath} fill={PLANT_AVATAR_PALETTE.POT_HIGHLIGHT} />
+      <path d={rimFrontPath} fill={PLANT_AVATAR_PALETTE.POT_SHADOW} opacity={0.95} />
+      <path d={highlightPath} fill={PLANT_AVATAR_PALETTE.POT_HIGHLIGHT} opacity={0.85} />
     </g>
   );
 }

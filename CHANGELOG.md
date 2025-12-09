@@ -2,6 +2,7 @@
 - Sloi gorshka, pochvy, steblya, list'ev i cvetov teper' ispol'zuyut obshchuyu geometriju i vyrovneny po centru kadra
 ﻿- Dobavlena palitra yarkih cvetov dlya PlantAvatar (SVG)
 - Sloi gorshka, pochvy, steblya, list'ev i cvetov pererisovany v bolee vyrazitelnom SVG-stile s novoj palitroj
+- Chto pererisovany formy gorshka, pochvy, steblja i list'ev dlya PlantAvatar, teper' avatarnye rasteniya vyglyadyat akuratnee i blizhe k normal'nym kartinkam
 
 - Dobavlen SVG-renderer s sloyami dlya PlantAvatar
 - PlantAvatar risuet uproshchennuyu SVG kompoziciyu v zavisimosti ot stadii
