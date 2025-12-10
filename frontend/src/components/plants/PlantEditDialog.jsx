@@ -49,7 +49,7 @@ function PlantEditDialog({
   const [isSaving, setIsSaving] = useState(false);
 
   const stageOptions = useMemo(() => [
-    { value: '', label: 'Avto po vozrastu' },
+    { value: '', label: 'Авто по возрасту' },
     ...Object.entries(STAGE_LABELS).map(([value, label]) => ({ value, label })),
   ], []);
 
@@ -130,7 +130,7 @@ function PlantEditDialog({
       setLocalGroups((prev) => [...prev, created]);
       setLocalPlant((prev) => ({ ...prev, plant_group_id: created.id }));
     } catch (err) {
-      setError(err?.message || 'Ne udalos sozdat gruppu');
+      setError(err?.message || 'Не удалось создать группу');
     }
   };
 
@@ -141,27 +141,27 @@ function PlantEditDialog({
       return;
     }
     const current = localGroups.find((g) => g.id === groupId);
-    const newName = window.prompt('Novoe nazvanie gruppy', current?.name || '');
+    const newName = window.prompt('Новое название группы', current?.name || '');
     if (!newName || !newName.trim()) return;
     try {
       const updated = await updatePlantGroup(token, groupId, { name: newName.trim() });
       setLocalGroups((prev) => prev.map((g) => (g.id === groupId ? updated : g)));
     } catch (err) {
-      setError(err?.message || 'Ne udalos pereimenovat gruppu');
+      setError(err?.message || 'Не удалось переименовать группу');
     }
   };
 
   const handleDeleteGroup = async () => {
     const groupId = localPlant.plant_group_id;
     if (!groupId) return;
-    const confirmed = window.confirm('Udalit gruppu?');
+    const confirmed = window.confirm('Удалить группу?');
     if (!confirmed) return;
     try {
       await deletePlantGroup(token, groupId);
       setLocalGroups((prev) => prev.filter((g) => g.id !== groupId));
       setLocalPlant((prev) => ({ ...prev, plant_group_id: null }));
     } catch (err) {
-      setError(err?.message || 'Ne udalos udaliti gruppu');
+      setError(err?.message || 'Не удалось удалить группу');
     }
   };
 
@@ -179,7 +179,7 @@ function PlantEditDialog({
       }));
       setSelectedDeviceId('');
     } catch (err) {
-      setError(err?.message || 'Ne udalos privyazat ustrojstvo');
+      setError(err?.message || 'Не удалось привязать устройство');
     }
   };
 
@@ -192,13 +192,13 @@ function PlantEditDialog({
         devices: (prev.devices || []).filter((d) => d.id !== deviceId),
       }));
     } catch (err) {
-      setError(err?.message || 'Ne udalos otvyazat ustrojstvo');
+      setError(err?.message || 'Не удалось отвязать устройство');
     }
   };
 
   const handleSave = async () => {
     if (!localPlant.name.trim()) {
-      setError('Ukazhite nazvanie rastenija');
+      setError('Укажите название растения');
       return;
     }
     setIsSaving(true);
@@ -223,7 +223,7 @@ function PlantEditDialog({
       onSaved?.();
       onClose?.();
     } catch (err) {
-      setError(err?.message || 'Ne udalos sohranit rastenie');
+      setError(err?.message || 'Не удалось сохранить растение');
     } finally {
       setIsSaving(false);
     }
@@ -231,7 +231,7 @@ function PlantEditDialog({
 
   const handleDeletePlant = async () => {
     if (!plant?.id) return;
-    const confirmed = window.confirm('Tochno udalit rastenie?');
+    const confirmed = window.confirm('Точно удалить растение?');
     if (!confirmed) return;
     setIsSaving(true);
     setError(null);
@@ -240,13 +240,13 @@ function PlantEditDialog({
       onSaved?.();
       onClose?.();
     } catch (err) {
-      setError(err?.message || 'Ne udalos udalit rastenie');
+      setError(err?.message || 'Не удалось удалить растение');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const title = mode === 'create' ? 'Novoe rastenie' : 'Redaktirovat\' rastenie';
+  const title = mode === 'create' ? 'Новое растение' : 'Редактировать растение';
 
   return (
     <div className="plant-dialog__overlay">
@@ -407,4 +407,5 @@ function PlantEditDialog({
 }
 
 export default PlantEditDialog;
+
 
