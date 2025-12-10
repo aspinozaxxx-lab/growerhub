@@ -254,7 +254,7 @@ function PlantEditDialog({
         <div className="plant-dialog__header">
           <div className="plant-dialog__title">{title}</div>
           <button type="button" className="plant-dialog__close" onClick={onClose} aria-label="Закрыть">
-            вњ•
+            ✖️
           </button>
         </div>
 
