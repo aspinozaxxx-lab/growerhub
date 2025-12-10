@@ -1,4 +1,5 @@
-﻿- PlantAvatar uproshchen do staticheskih SVG po tipu i stadii
+﻿- PlantAvatar teper' ispol'zuet rastrovye PNG po stadiyam, kartinki masshtabiruyutsya akkyratno v ramke
+- PlantAvatar uproshchen do staticheskih SVG po tipu i stadii
 - Ubrany staryj SVG-dvizhok i JSON-pak stadii flowering
 - Dashboard ispol'zuet uproshchennyj PlantAvatar bez environment
 - Dobavlen layoutEngine dlya PlantAvatar, raschety geometrii pereneseny v odno mesto
@@ -246,5 +247,6 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - Istorija polivov teper ispolzuet obem vody kak osnovnuyu metriku i v saidebare vidno ph i sostav udobrenij.
 - Dobavlena polnocennaja stranica zhurnala rastenija: prosmotr, dobavlenie, izmenenie, udalenie zhjurnalnyh zapisej. Fiks bitogo teksta v istorii polivov, normalnye podpisi.
 - sso callback: po umolchaniyu vozvrashchaet redirect s tokenom v URL, link-mode uhodit na `/static/profile.html`.
+
 
 

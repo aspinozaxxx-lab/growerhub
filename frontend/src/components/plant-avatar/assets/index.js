@@ -1,25 +1,26 @@
-﻿import floweringSeed from './flowering/seed.svg';
-import floweringSeedling from './flowering/seedling.svg';
-import floweringVegetative from './flowering/vegetative.svg';
-import floweringPreflower from './flowering/preflower.svg';
-import floweringFlowering from './flowering/flowering.svg';
-import floweringRipening from './flowering/ripening.svg';
-import floweringHarvestReady from './flowering/harvest_ready.svg';
+﻿// PNG versii assetov po stadiyam dlya avatara
+import seedPng from './flowering/seed.png';
+import seedlingPng from './flowering/seedling.png';
+import vegetativePng from './flowering/vegetative.png';
+import preflowerPng from './flowering/preflower.png';
+import floweringPng from './flowering/flowering.png';
+import ripeningPng from './flowering/ripening.png';
+import harvestReadyPng from './flowering/harvest_ready.png';
 
-// Karta dostupnyh svg asetov po tipu i stadii
+// Karta dostupnyh PNG asetov po tipu i stadii
 export const PLANT_AVATAR_ASSETS = {
   flowering: {
-    seed: floweringSeed,
-    seedling: floweringSeedling,
-    vegetative: floweringVegetative,
-    preflower: floweringPreflower,
-    flowering: floweringFlowering,
-    ripening: floweringRipening,
-    harvest_ready: floweringHarvestReady,
+    seed: seedPng,
+    seedling: seedlingPng,
+    vegetative: vegetativePng,
+    preflower: preflowerPng,
+    flowering: floweringPng,
+    ripening: ripeningPng,
+    harvest_ready: harvestReadyPng,
   },
 };
 
-// Funkciya rezerva: probuem nayti asset, esli net - otdaem vegetative ili pervyj dostupnyj
+// Funkciya rezerva: probuem nayti png dlya tipa/stadii, esli net - otdaem vegetative ili pervyj dostupnyj
 export function resolveAvatarAsset(plantType, stage) {
   const typeAssets = PLANT_AVATAR_ASSETS[plantType];
   if (!typeAssets) {
