@@ -1,5 +1,4 @@
-
-import React, { useCallback, useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchPlants, fetchPlantGroups } from '../../api/plants';
 import { fetchMyDevices } from '../../api/devices';
