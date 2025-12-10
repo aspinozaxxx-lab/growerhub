@@ -37,7 +37,7 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
         </div>
         <div className="plant-card__actions">
           <button type="button" className="plant-card__edit" onClick={handleEdit} aria-label="Редактировать">
-            ??
+            ✏
           </button>
         </div>
       </div>
