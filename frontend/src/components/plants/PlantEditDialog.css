@@ -217,11 +217,20 @@
 @media (max-width: 480px) {
   .plant-dialog__overlay {
     align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
   }
 
   .plant-dialog {
     margin: 16px auto;
-    max-height: calc(100vh - 32px);
+    max-height: none;
+    height: auto;
+  }
+
+  .plant-dialog__content {
+    flex: none;
+    max-height: none;
+    overflow-y: visible;
   }
 }
 
