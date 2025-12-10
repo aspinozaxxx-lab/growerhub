@@ -123,7 +123,7 @@ function PlantEditDialog({
 
   // Translitem: operacii nad gruppami vnutri dialoga (roditel potom refetch cherez onSaved()).
   const handleCreateGroup = async () => {
-    const name = window.prompt('Vvedite nazvanie novoj gruppy');
+    const name = window.prompt('Введите название новой группы');
     if (!name || !name.trim()) return;
     try {
       const created = await createPlantGroup(token, { name: name.trim() });
@@ -262,7 +262,7 @@ function PlantEditDialog({
 
         <div className="plant-dialog__body">
           <label className="plant-dialog__field">
-            <span className="plant-dialog__label">Nazvanie</span>
+            <span className="plant-dialog__label">Название</span>
             <input
               value={localPlant.name}
               onChange={(e) => setLocalPlant((prev) => ({ ...prev, name: e.target.value }))}
@@ -280,7 +280,7 @@ function PlantEditDialog({
           </label>
 
           <label className="plant-dialog__field">
-            <span className="plant-dialog__label">Strain</span>
+            <span className="plant-dialog__label">Сорт</span>
             <input
               value={localPlant.strain || ''}
               onChange={(e) => setLocalPlant((prev) => ({ ...prev, strain: e.target.value }))}
@@ -301,7 +301,7 @@ function PlantEditDialog({
           </label>
 
           <label className="plant-dialog__field">
-            <span className="plant-dialog__label">Data posadki</span>
+            <span className="plant-dialog__label">Дата посадки</span>
             <input
               type="datetime-local"
               value={localPlant.planted_at || ''}
@@ -310,34 +310,34 @@ function PlantEditDialog({
           </label>
 
           <div className="plant-dialog__field">
-            <span className="plant-dialog__label">Gruppa</span>
+            <span className="plant-dialog__label">Группа</span>
             <div className="plant-dialog__group-row">
               <select
                 value={localPlant.plant_group_id ?? ''}
                 onChange={(e) => handleGroupChange(e.target.value)}
               >
-                <option value="">Bez gruppy</option>
+                <option value="">Без группы</option>
                 {localGroups.map((group) => (
                   <option key={group.id} value={group.id}>{group.name}</option>
                 ))}
               </select>
               <div className="plant-dialog__group-actions">
-                <button type="button" onClick={handleCreateGroup}>Sozdat'</button>
-                <button type="button" onClick={handleRenameGroup}>Pereimenovat'</button>
-                <button type="button" onClick={handleDeleteGroup}>Udalit'</button>
+                <button type="button" onClick={handleCreateGroup}>Создать</button>
+                <button type="button" onClick={handleRenameGroup}>Переименовать</button>
+                <button type="button" onClick={handleDeleteGroup}>Удалить</button>
               </div>
             </div>
           </div>
 
           <div className="plant-dialog__section">
-            <div className="plant-dialog__section-title">Ustrojstva</div>
+            <div className="plant-dialog__section-title">Устройства</div>
             {mode === 'create' && (
-              <div className="plant-dialog__hint">Privyazat ustrojstva mozhno posle sohraneniya rastenija.</div>
+              <div className="plant-dialog__hint">Привязать устройства можно после сохранения растения.</div>
             )}
             {mode === 'edit' && (
               <>
                 {assignedDevices.length === 0 && (
-                  <div className="plant-dialog__hint">Net privyazannyh ustrojstv</div>
+                  <div className="plant-dialog__hint">Нет привязанных устройств</div>
                 )}
                 {assignedDevices.length > 0 && (
                   <div className="plant-dialog__devices">
@@ -349,7 +349,7 @@ function PlantEditDialog({
                           className="plant-dialog__unlink"
                           onClick={() => handleDetachDevice(device.id)}
                         >
-                          Otvjazat'
+                          Отвязать
                         </button>
                       </div>
                     ))}
@@ -360,7 +360,7 @@ function PlantEditDialog({
                     value={selectedDeviceId}
                     onChange={(e) => setSelectedDeviceId(e.target.value)}
                   >
-                    <option value="">Vyberite ustrojstvo</option>
+                    <option value="">Выберите устройство</option>
                     {freeDevices.map((device) => (
                       <option key={device.id} value={device.id}>
                         {device.name || device.device_id || `Device ${device.id}`}
@@ -368,7 +368,7 @@ function PlantEditDialog({
                     ))}
                   </select>
                   <button type="button" onClick={handleAttachDevice}>
-                    Privyazat'
+                    Привязать
                   </button>
                 </div>
               </>
@@ -384,12 +384,12 @@ function PlantEditDialog({
               onClick={handleDeletePlant}
               disabled={isSaving}
             >
-              Udalit'
+              Удалить
             </button>
           )}
           <div className="plant-dialog__footer-actions">
             <button type="button" className="plant-dialog__btn" onClick={onClose} disabled={isSaving}>
-              Otmena
+              Отмена
             </button>
             <button
               type="button"
@@ -397,7 +397,7 @@ function PlantEditDialog({
               onClick={handleSave}
               disabled={isSaving}
             >
-              {isSaving ? 'Sohranenie...' : 'Sohranit\''}
+              {isSaving ? 'Сохранение...' : 'Сохранить'}
             </button>
           </div>
         </div>
@@ -407,5 +407,7 @@ function PlantEditDialog({
 }
 
 export default PlantEditDialog;
+
+
 
 
