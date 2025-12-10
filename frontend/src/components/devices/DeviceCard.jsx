@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
 import { resolveDeviceAsset } from './assets';
 import { formatSensorValue } from '../../utils/formatters';
@@ -10,7 +10,7 @@ function StatusBadge({ isOnline }) {
   return (
     <div className="device-card__status">
       <span className={`status-dot ${isOnline ? 'is-online' : 'is-offline'}`} aria-hidden="true" />
-      {isOnline ? 'РћРЅР»Р°Р№РЅ' : 'РћС„С„Р»Р°Р№РЅ'}
+      {isOnline ? 'Онлайн' : 'Оффлайн'}
     </div>
   );
 }
@@ -43,7 +43,7 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
   // avatarKey - segodnya odna ikonka dlya vseh ustrojstv; kogda poyavyatsya tipy, klyuch mozhno brat' iz dannyh
   const avatarKey = 'grovika_mini';
   const avatarSrc = resolveDeviceAsset(avatarKey);
-  const displayName = device.name || 'РЈСЃС‚СЂРѕР№СЃС‚РІРѕ';
+  const displayName = device.name || 'Устройство';
 
   const handleEdit = () => {
     if (onEdit) {
@@ -60,7 +60,7 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
           <div className="device-card__subtitle">{device.device_id}</div>
           <StatusBadge isOnline={device.is_online} />
         </div>
-        <button type="button" className="device-card__edit" onClick={handleEdit} aria-label="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ">
+        <button type="button" className="device-card__edit" onClick={handleEdit} aria-label="Редактировать">
           ??
         </button>
       </div>
@@ -70,33 +70,33 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
           <img src={avatarSrc} alt="device avatar" />
         </div>
         <div className="device-card__info">
-          <div className="device-card__fw">РџСЂРѕС€РёРІРєР°: {firmware}</div>
+          <div className="device-card__fw">Прошивка: {firmware}</div>
           <div className="device-card__metrics">
             <MetricPill
-              label="Р’Р»Р°Р¶РЅ. РїРѕС‡РІС‹, %"
+              label="Влажн. почвы, %"
               value={device.soil_moisture}
               metric="soil_moisture"
               deviceId={device.device_id}
               onOpenStats={openSensorStats}
             />
             <MetricPill
-              label="Р’Р»Р°Р¶РЅ. РІРѕР·РґСѓС…Р°, %"
+              label="Влажн. воздуха, %"
               value={device.air_humidity}
               metric="air_humidity"
               deviceId={device.device_id}
               onOpenStats={openSensorStats}
             />
             <MetricPill
-              label="T, В°C"
+              label="T, °C"
               value={device.air_temperature}
               metric="air_temperature"
               deviceId={device.device_id}
               onOpenStats={openSensorStats}
             />
             <button type="button" className="metric-pill pump-pill" onClick={handleEdit}>
-              <span className="metric-pill__label">РќР°СЃРѕСЃ</span>
+              <span className="metric-pill__label">Насос</span>
               <span className="metric-pill__value">
-                {wateringSpeed ? `РЎРєРѕСЂРѕСЃС‚СЊ: ${wateringSpeed} Р»/С‡` : 'РЅРµ Р·Р°РґР°РЅРѕ'}
+                {wateringSpeed ? `Скорость: ${wateringSpeed} л/ч` : 'не задано'}
               </span>
             </button>
           </div>
@@ -122,7 +122,7 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
             type="button"
             className="device-card__edit device-card__edit--ghost"
             onClick={handleEdit}
-            aria-label="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ"
+            aria-label="Редактировать"
           >
             ??
           </button>
@@ -130,11 +130,11 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
       </div>
       <div className="device-card__plant-metrics">
         <div className="device-chip">
-          <span className="device-chip__label">РџРѕС‡РІР°</span>
+          <span className="device-chip__label">Почва</span>
           <span className="device-chip__value">{formatSensorValue(device.soil_moisture)}</span>
         </div>
         <div className="device-chip">
-          <span className="device-chip__label">Р’РѕР·РґСѓС…</span>
+          <span className="device-chip__label">Воздух</span>
           <span className="device-chip__value">{formatSensorValue(device.air_humidity)}</span>
         </div>
         <div className="device-chip">
@@ -153,4 +153,3 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
 }
 
 export default DeviceCard;
-
