@@ -77,11 +77,16 @@
   color: #eef3fb;
 }
 
-.plant-dialog__body select {
+.plant-dialog select {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   padding: 8px 10px;
+  color: #eef3fb;
+}
+
+.plant-dialog select option {
+  background: #0f1f35;
   color: #eef3fb;
 }
 

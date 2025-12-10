@@ -37,3 +37,8 @@
   gap: 12px;
 }
 
+.app-plants__header h2 {
+  margin: 0;
+  color: #f6fbff;
+}
+
