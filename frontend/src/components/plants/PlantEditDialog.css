@@ -13,8 +13,8 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
   padding: 16px;
-  width: 420px;
-  max-width: 90vw;
+  width: min(640px, 95vw);
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -48,6 +48,7 @@
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
 }
 
@@ -210,6 +211,17 @@
 
   .plant-dialog__body > * {
     min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .plant-dialog__overlay {
+    align-items: flex-start;
+  }
+
+  .plant-dialog {
+    margin: 16px auto;
+    max-height: calc(100vh - 32px);
   }
 }
 
