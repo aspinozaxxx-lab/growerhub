@@ -302,6 +302,12 @@ class PlantDB(Base):
 
     planted_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
+    plant_type = Column(String, nullable=True)  # Translitem: tip rastenija (kategoriya/vid)
+
+    strain = Column(String, nullable=True)  # Translitem: sort ili strain rastenija
+
+    growth_stage = Column(String, nullable=True)  # Translitem: tekushchaya stadiya rosta
+
     plant_group_id = Column(
 
         Integer,
@@ -563,6 +569,7 @@ class OTAUpdateRequest(BaseModel):
     device_id: str
 
     firmware_version: str
+
 
 
 

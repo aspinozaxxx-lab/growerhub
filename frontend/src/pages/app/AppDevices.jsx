@@ -125,6 +125,7 @@ function AppDevices() {
             device={device}
             plantsById={plantsById}
             onEdit={() => handleOpenModal(device)}
+            variant="default"
           />
         ))}
       </div>

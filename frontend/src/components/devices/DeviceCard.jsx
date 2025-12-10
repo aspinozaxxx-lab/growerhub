@@ -4,11 +4,13 @@ import { resolveDeviceAsset } from './assets';
 import { formatSensorValue } from '../../utils/formatters';
 import './DeviceCard.css';
 
+// Translitem: DeviceCard - komponent otobrazheniya ustrojstva s dvumya variantami (default dlya stranicy ustrojstv, plant dlya vlozheniya v kartochku rastenija).
+// Translitem: Ispolzuetsya v AppDevices.jsx; pokazyvaet avatar ustrojstva, status online/offline, nazvanie, firmware i osnovnye sensornye znacheniya.
 function StatusBadge({ isOnline }) {
   return (
     <div className="device-card__status">
       <span className={`status-dot ${isOnline ? 'is-online' : 'is-offline'}`} aria-hidden="true" />
-      {isOnline ? 'Онлайн' : 'Оффлайн'}
+      {isOnline ? 'РћРЅР»Р°Р№РЅ' : 'РћС„С„Р»Р°Р№РЅ'}
     </div>
   );
 }
@@ -33,13 +35,15 @@ function MetricPill({ label, value, metric, deviceId, onOpenStats }) {
   );
 }
 
-function DeviceCard({ device, onEdit }) {
+function DeviceCard({ device, onEdit, variant = 'default' }) {
+  // Translitem: device - dannye ustrojstva; onEdit - handler redaktirovaniya; variant - tip otobrazheniya (default|plant).
   const { openSensorStats } = useSensorStatsContext();
   const firmware = device.firmware_version || device.current_version || 'n/a';
   const wateringSpeed = device.watering_speed_lph;
   // avatarKey - segodnya odna ikonka dlya vseh ustrojstv; kogda poyavyatsya tipy, klyuch mozhno brat' iz dannyh
   const avatarKey = 'grovika_mini';
   const avatarSrc = resolveDeviceAsset(avatarKey);
+  const displayName = device.name || 'РЈСЃС‚СЂРѕР№СЃС‚РІРѕ';
 
   const handleEdit = () => {
     if (onEdit) {
@@ -47,16 +51,17 @@ function DeviceCard({ device, onEdit }) {
     }
   };
 
-  return (
-    <div className="device-card">
+  // Translitem: vetka default - tekushchij vid dlya stranicy ustrojstv.
+  const renderDefault = () => (
+    <div className="device-card device-card--default">
       <div className="device-card__header">
         <div>
-          <div className="device-card__title">{device.name || 'Устройство'}</div>
+          <div className="device-card__title">{displayName}</div>
           <div className="device-card__subtitle">{device.device_id}</div>
           <StatusBadge isOnline={device.is_online} />
         </div>
-        <button type="button" className="device-card__edit" onClick={handleEdit} aria-label="Редактировать">
-          ✏️
+        <button type="button" className="device-card__edit" onClick={handleEdit} aria-label="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ">
+          ??
         </button>
       </div>
 
@@ -65,33 +70,33 @@ function DeviceCard({ device, onEdit }) {
           <img src={avatarSrc} alt="device avatar" />
         </div>
         <div className="device-card__info">
-          <div className="device-card__fw">Прошивка: {firmware}</div>
+          <div className="device-card__fw">РџСЂРѕС€РёРІРєР°: {firmware}</div>
           <div className="device-card__metrics">
             <MetricPill
-              label="Влажн. почвы, %"
+              label="Р’Р»Р°Р¶РЅ. РїРѕС‡РІС‹, %"
               value={device.soil_moisture}
               metric="soil_moisture"
               deviceId={device.device_id}
               onOpenStats={openSensorStats}
             />
             <MetricPill
-              label="Влажн. воздуха, %"
+              label="Р’Р»Р°Р¶РЅ. РІРѕР·РґСѓС…Р°, %"
               value={device.air_humidity}
               metric="air_humidity"
               deviceId={device.device_id}
               onOpenStats={openSensorStats}
             />
             <MetricPill
-              label="T, °C"
+              label="T, В°C"
               value={device.air_temperature}
               metric="air_temperature"
               deviceId={device.device_id}
               onOpenStats={openSensorStats}
             />
             <button type="button" className="metric-pill pump-pill" onClick={handleEdit}>
-              <span className="metric-pill__label">Насос</span>
+              <span className="metric-pill__label">РќР°СЃРѕСЃ</span>
               <span className="metric-pill__value">
-                {wateringSpeed ? `Скорость: ${wateringSpeed} л/ч` : 'не задано'}
+                {wateringSpeed ? `РЎРєРѕСЂРѕСЃС‚СЊ: ${wateringSpeed} Р»/С‡` : 'РЅРµ Р·Р°РґР°РЅРѕ'}
               </span>
             </button>
           </div>
@@ -99,6 +104,53 @@ function DeviceCard({ device, onEdit }) {
       </div>
     </div>
   );
+
+  // Translitem: vetka plant - kompaktnyj vid dlya vlozheniya v kartochku rastenija.
+  const renderPlant = () => (
+    <div className="device-card device-card--plant">
+      <div className="device-card__plant-header">
+        <div className="device-card__avatar device-card__avatar--plant" aria-hidden="true">
+          <img src={avatarSrc} alt="device avatar" />
+        </div>
+        <div className="device-card__plant-meta">
+          <div className="device-card__title device-card__title--compact">{displayName}</div>
+          <div className="device-card__subtitle device-card__subtitle--compact">{device.device_id}</div>
+          <StatusBadge isOnline={device.is_online} />
+        </div>
+        {onEdit && (
+          <button
+            type="button"
+            className="device-card__edit device-card__edit--ghost"
+            onClick={handleEdit}
+            aria-label="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ"
+          >
+            ??
+          </button>
+        )}
+      </div>
+      <div className="device-card__plant-metrics">
+        <div className="device-chip">
+          <span className="device-chip__label">РџРѕС‡РІР°</span>
+          <span className="device-chip__value">{formatSensorValue(device.soil_moisture)}</span>
+        </div>
+        <div className="device-chip">
+          <span className="device-chip__label">Р’РѕР·РґСѓС…</span>
+          <span className="device-chip__value">{formatSensorValue(device.air_humidity)}</span>
+        </div>
+        <div className="device-chip">
+          <span className="device-chip__label">T</span>
+          <span className="device-chip__value">{formatSensorValue(device.air_temperature)}</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (variant === 'plant') {
+    return renderPlant();
+  }
+
+  return renderDefault();
 }
 
 export default DeviceCard;
+

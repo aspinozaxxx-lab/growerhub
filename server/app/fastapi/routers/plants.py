@@ -28,6 +28,7 @@ from app.models.plant_schemas import (
     PlantCreate,
     PlantGroupCreate,
     PlantGroupOut,
+    PlantGroupUpdate,
     PlantJournalEntryCreate,
     PlantJournalEntryOut,
     PlantJournalWateringDetailsOut,
@@ -66,6 +67,29 @@ async def create_plant_group(
 ):
     group = PlantGroupDB(name=payload.name, user_id=current_user.id)
     db.add(group)
+    db.commit()
+    db.refresh(group)
+    return PlantGroupOut(id=group.id, name=group.name, user_id=group.user_id)
+
+
+@router.patch("/api/plant-groups/{group_id}", response_model=PlantGroupOut)
+async def update_plant_group(
+    group_id: int,
+    payload: PlantGroupUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserDB = Depends(get_current_user),
+):
+    """Translitem: pereimenovanie gruppy rastenija."""
+
+    group = (
+        db.query(PlantGroupDB)
+        .filter(PlantGroupDB.id == group_id, PlantGroupDB.user_id == current_user.id)
+        .first()
+    )
+    if not group:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="gruppa ne najdena")
+
+    group.name = payload.name
     db.commit()
     db.refresh(group)
     return PlantGroupOut(id=group.id, name=group.name, user_id=group.user_id)

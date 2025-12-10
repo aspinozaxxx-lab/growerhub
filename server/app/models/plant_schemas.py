@@ -20,12 +20,21 @@ class PlantGroupOut(BaseModel):
     user_id: Optional[int] = None
 
 
+class PlantGroupUpdate(BaseModel):
+    """Translitem: shema dlya pereimenovaniya gruppy rastenija."""
+
+    name: str
+
+
 class PlantCreate(BaseModel):
     """Translitem: sozdanie rastenija."""
 
     name: str
     planted_at: Optional[datetime] = None
     plant_group_id: Optional[int] = None
+    plant_type: Optional[str] = None  # Translitem: tip rastenija (kategoriya/vid)
+    strain: Optional[str] = None  # Translitem: sort ili strain rastenija
+    growth_stage: Optional[str] = None  # Translitem: tekushchaya stadiya rosta
 
 
 class PlantUpdate(BaseModel):
@@ -34,6 +43,9 @@ class PlantUpdate(BaseModel):
     name: Optional[str] = None
     planted_at: Optional[datetime] = None
     plant_group_id: Optional[int] = None
+    plant_type: Optional[str] = None  # Translitem: tip rastenija (kategoriya/vid)
+    strain: Optional[str] = None  # Translitem: sort ili strain rastenija
+    growth_stage: Optional[str] = None  # Translitem: tekushchaya stadiya rosta
 
 
 class PlantOut(BaseModel):
@@ -42,6 +54,9 @@ class PlantOut(BaseModel):
     id: int
     name: str
     planted_at: datetime
+    plant_type: Optional[str] = None  # Translitem: tip rastenija (kategoriya/vid)
+    strain: Optional[str] = None  # Translitem: sort ili strain rastenija
+    growth_stage: Optional[str] = None  # Translitem: tekushchaya stadiya rosta
     user_id: Optional[int] = None
     plant_group: Optional[PlantGroupOut] = None
     devices: list[DeviceOut] = []
@@ -97,3 +112,4 @@ class AdminPlantOut(BaseModel):
     owner_username: Optional[str] = None
     owner_id: Optional[int] = None
     group_name: Optional[str] = None
+

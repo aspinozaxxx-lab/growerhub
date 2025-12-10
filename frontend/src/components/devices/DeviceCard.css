@@ -1,4 +1,4 @@
-.device-card {
+﻿.device-card {
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 12px;
   padding: 12px;
@@ -61,6 +61,11 @@
   max-height: 72px;
 }
 
+.device-card--plant .device-card__avatar img {
+  max-width: 48px;
+  max-height: 48px;
+}
+
 .device-card__info {
   flex: 1;
   display: flex;
@@ -111,3 +116,69 @@
 .pump-pill {
   border-color: rgba(95, 212, 145, 0.4);
 }
+
+.device-card--plant {
+  padding: 10px;
+  background: #0f1f35;
+  gap: 6px;
+}
+
+.device-card__plant-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.device-card__plant-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.device-card__title--compact {
+  font-size: 16px;
+}
+
+.device-card__subtitle--compact {
+  font-size: 12px;
+}
+
+.device-card--plant .device-card__status {
+  font-size: 12px;
+}
+
+.device-card__edit--ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  padding: 4px 8px;
+}
+
+.device-card__plant-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 6px;
+}
+
+.device-chip {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  padding: 6px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #eef3fb;
+}
+
+.device-chip__label {
+  font-size: 12px;
+  color: #8aa3c6;
+}
+
+.device-chip__value {
+  font-weight: 700;
+  margin-left: 6px;
+}
+
