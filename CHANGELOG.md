@@ -1,4 +1,42 @@
-﻿- PlantAvatar teper' ispol'zuet rastrovye PNG po stadiyam, kartinki masshtabiruyutsya akkyratno v ramke
+﻿### feat: dobavlen polnyj razdel rasteniĭ na fronte i rasshirena backend-model'
+
+- Dobavleny novye polya u modeli rastenija: `plant_type`, `strain`, `growth_stage`.
+- Dobavlena alembic-migracija dlya polej v tablice `plants`.
+- Dobavlen PATCH dlya pereimenovanija grupp rastenij (`/api/plant-groups/{id}`).
+- Rasshireny Pydantic-shemy `PlantCreate`, `PlantUpdate`, `PlantOut`, dobavlena `PlantGroupUpdate`.
+
+### feat(front): API-klient dlja rastenij i grupp
+
+- Rasshiren `frontend/src/api/plants.js`: dobavleny metody
+  `fetchPlant`, `createPlant`, `updatePlant`, `deletePlant`,
+  `fetchPlantGroups`, `createPlantGroup`, `updatePlantGroup`, `deletePlantGroup`.
+- Realizovany polnye payloady so sootvetstviem backend-shemam.
+
+### feat(front): komponenty dlya raboty s rastenijami
+
+- Dobavlen novyj komponent `PlantCard` (otobrazhenie rastenija):
+  avatar, tip, strain, gruppa, vozrast, spisok ustrojstv (DeviceCard variant="plant"),
+  knopki "Zhurnal" i "Redaktirovat'".
+- Dobavlen `PlantEditDialog`:
+  - polnyj CRUD rastenija (create/update/delete);
+  - redaktirovanie poly `name`, `plant_type`, `strain`, `growth_stage`, `planted_at`, `plant_group_id`;
+  - upravlenie gruppami: sozdanie/pereimenovanie/udalenie vnutri dialoga;
+  - privjazka i otvjazka ustrojstv (assign/unassign) v rezhime `edit`;
+  - obrabotka oshibok, lokal'noe sostojanie formy.
+
+### feat(front): stranica `/app/plants`
+
+- `AppPlants` prevrashchena iz zaglushki v polnoceNNuju stranicu:
+  - zagruzka `plants`, `plantGroups`, `devices`;
+  - knopka "Dobavit' rastenie";
+  - otkrytie dialoga v rezhime create/edit;
+  - posle sohraneniya/udalenija vypolnyaetsya polnyj refetch dannyh (plants + groups + devices).
+
+### refactor(front): komponent DeviceCard
+
+- Dobavlen prop `variant="plant"` dlya kompaktnogo otobrazhenija ustrojstva v kartochke rastenija.
+
+- PlantAvatar teper' ispol'zuet rastrovye PNG po stadiyam, kartinki masshtabiruyutsya akkyratno v ramke
 - PlantAvatar uproshchen do staticheskih SVG po tipu i stadii
 - Ubrany staryj SVG-dvizhok i JSON-pak stadii flowering
 - Dashboard ispol'zuet uproshchennyj PlantAvatar bez environment
