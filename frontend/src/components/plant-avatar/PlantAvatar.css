@@ -4,10 +4,7 @@
   flex-direction: column;
 }
 
-.plant-avatar--fill {
-  width: 100%;
-}
-
+/* Ramka 3:4 dlya kartinki ili fallback-teksta */
 .plant-avatar__frame {
   position: relative;
   width: 100%;
@@ -23,22 +20,39 @@
   overflow: hidden;
 }
 
+/* Kartinka avatara: zapolnyaet ramku s otstupom */
 .plant-avatar__image {
-  max-width: 90%;
-  max-height: 90%;
+  width: 100%;
+  height: 100%;
+  padding: 6%;
   object-fit: contain;
+  display: block;
   filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.25));
 }
 
-.plant-avatar__svg {
+.plant-avatar__placeholder {
   width: 100%;
   height: 100%;
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+  text-align: center;
+  padding: 8px;
 }
 
 .plant-avatar--variant-card .plant-avatar__frame {
   border-color: rgba(255, 255, 255, 0.1);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+}
+
+.plant-avatar--variant-detail .plant-avatar__frame {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.plant-avatar--variant-mini .plant-avatar__frame {
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .plant-avatar--size-xs .plant-avatar__frame {
@@ -63,10 +77,6 @@
   max-width: 320px;
 }
 
-.plant-avatar--fill .plant-avatar__frame {
-  max-width: 100%;
-}
-
 .plant-avatar__stage {
   margin-top: 6px;
   font-size: 12px;
@@ -74,3 +84,4 @@
   text-align: center;
   opacity: 0.9;
 }
+
