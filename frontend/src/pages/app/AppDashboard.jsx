@@ -1,25 +1,25 @@
-﻿import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useDashboardData } from '../../features/dashboard/useDashboardData';
-import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
-import { useWateringSidebar } from '../../features/watering/WateringSidebarContext';
-import { formatSensorValue } from '../../utils/formatters';
-import PlantAvatar from '../../components/plant-avatar/PlantAvatar';
-import { getStageFromPlantAgeDays } from '../../components/plant-avatar/plantStageFromAge';
-import './AppDashboard.css';
+﻿import React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useDashboardData } from "../../features/dashboard/useDashboardData";
+import { useSensorStatsContext } from "../../features/sensors/SensorStatsContext";
+import { useWateringSidebar } from "../../features/watering/WateringSidebarContext";
+import { formatSensorValue } from "../../utils/formatters";
+import PlantAvatar from "../../components/plant-avatar/PlantAvatar";
+import { getStageFromPlantAgeDays } from "../../components/plant-avatar/plantStageFromAge";
+import "./AppDashboard.css";
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
 
 function formatAge(plantedAt) {
   if (!plantedAt) {
-    return 'Р”Р°С‚Р° РЅРµРёР·РІРµСЃС‚РЅР°';
+    return "Дата неизвестна";
   }
   const date = new Date(plantedAt);
   if (Number.isNaN(date.getTime())) {
-    return 'Р”Р°С‚Р° РЅРµРёР·РІРµСЃС‚РЅР°';
+    return "Дата неизвестна";
   }
   const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / MS_IN_DAY));
-  return `${days} РґРЅ.`;
+  return `${days} дн.`;
 }
 
 function MetricPill({ label, value, metric, deviceId, onOpenStats, highlight = false }) {
@@ -32,7 +32,7 @@ function MetricPill({ label, value, metric, deviceId, onOpenStats, highlight = f
   return (
     <button
       type="button"
-      className={`metric-pill ${highlight ? 'is-highlight' : ''}`}
+      className={`metric-pill ${highlight ? "is-highlight" : ""}`}
       onClick={handleClick}
       disabled={!deviceId || !metric}
     >
@@ -44,21 +44,21 @@ function MetricPill({ label, value, metric, deviceId, onOpenStats, highlight = f
 
 function formatRemaining(seconds) {
   if (seconds === null || seconds === undefined) {
-    return '';
+    return "";
   }
   const clamped = Math.max(0, Math.ceil(seconds));
   const minutes = Math.floor(clamped / 60);
   const secs = clamped % 60;
   const parts = [];
   if (minutes > 0) {
-    parts.push(`${minutes} РјРёРЅ`);
+    parts.push(`${minutes} мин`);
   }
-  parts.push(`${secs} СЃ`);
-  return parts.join(' ');
+  parts.push(`${secs} с`);
+  return parts.join(" ");
 }
 
 function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJournal }) {
-  const primaryDevice = plant?.devices?.[0]; // TODO: Р·Р°РјРµРЅРёС‚СЊ РЅР° РІС‹Р±РѕСЂ РєРѕРЅРєСЂРµС‚РЅРѕРіРѕ СѓСЃС‚СЂРѕР№СЃС‚РІР°, РµСЃР»Рё РёС… РЅРµСЃРєРѕР»СЊРєРѕ.
+  const primaryDevice = plant?.devices?.[0]; // TODO: zamenit' na vybor konkretnogo ustrojstva, esli ih neskol'ko.
   const [remainingSeconds, setRemainingSeconds] = React.useState(null);
 
   React.useEffect(() => {
@@ -112,7 +112,7 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
         <div>
           <div className="plant-card__name">{plant.name}</div>
           <div className="plant-card__group">
-            {plant.plant_group ? plant.plant_group.name : 'Р‘РµР· РіСЂСѓРїРїС‹'}
+            {plant.plant_group ? plant.plant_group.name : "Без группы"}
           </div>
         </div>
         <div className="plant-card__age">{formatAge(plant.planted_at)}</div>
@@ -131,29 +131,29 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
           </div>
           <div className="plant-card__metrics">
             <MetricPill
-              label="T, В°C"
+              label="T, °C"
               value={primaryDevice.air_temperature}
               metric="air_temperature"
               deviceId={primaryDevice.device_id}
               onOpenStats={onOpenStats}
             />
             <MetricPill
-              label="Р’Р»Р°Р¶РЅ. РІРѕР·РґСѓС…Р°, %"
+              label="Влажн. воздуха, %"
               value={primaryDevice.air_humidity}
               metric="air_humidity"
               deviceId={primaryDevice.device_id}
               onOpenStats={onOpenStats}
             />
             <MetricPill
-              label="Р’Р»Р°Р¶РЅ. РїРѕС‡РІС‹, %"
+              label="Влажн. почвы, %"
               value={primaryDevice.soil_moisture}
               metric="soil_moisture"
               deviceId={primaryDevice.device_id}
               onOpenStats={onOpenStats}
             />
             <MetricPill
-              label="РџРѕР»РёРІ"
-              value={primaryDevice.is_watering ? 'Р’С‹РїРѕР»РЅСЏРµС‚СЃСЏ' : 'РќРµС‚'}
+              label="Полив"
+              value={primaryDevice.is_watering ? "Выполняется" : "Нет"}
               metric="watering"
               deviceId={primaryDevice.device_id}
               onOpenStats={onOpenStats}
@@ -161,13 +161,13 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
             />
             {showWateringBadge && (
               <div className="plant-card__watering-badge">
-                РРґС‘С‚ РїРѕР»РёРІ В· РѕСЃС‚Р°Р»РѕСЃСЊ {formatRemaining(remainingSeconds)}
+                Идёт полив · осталось {formatRemaining(remainingSeconds)}
               </div>
             )}
           </div>
         </div>
       ) : (
-        <div className="plant-card__empty">РќРµС‚ РїРѕРґРєР»СЋС‡С‘РЅРЅС‹С… СѓСЃС‚СЂРѕР№СЃС‚РІ</div>
+        <div className="plant-card__empty">Нет подключённых устройств</div>
       )}
 
       <div className="plant-card__footer">
@@ -178,17 +178,17 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
             onClick={handleOpenWatering}
             disabled={!primaryDevice}
           >
-            РџРѕР»РёРІ
+            Полив
           </button>
           <button
             type="button"
             className="plant-card__action-btn"
             onClick={() => onOpenJournal?.(plant.id)}
           >
-            Р–СѓСЂРЅР°Р»
+            Журнал
           </button>
           <Link className="plant-card__link" to="/app/plants">
-            РџРµСЂРµР№С‚Рё в†’
+            Перейти →
           </Link>
         </div>
       </div>
@@ -204,38 +204,38 @@ function FreeDeviceCard({ device, onOpenStats }) {
           <div className="free-device-card__name">{device.name || device.device_id}</div>
           <div className="free-device-card__id">{device.device_id}</div>
           <div className="free-device-card__status">
-            {device.is_online ? 'РћРЅР»Р°Р№РЅ' : 'РћС„С„Р»Р°Р№РЅ'}
-            <span className={`status-dot ${device.is_online ? 'is-online' : 'is-offline'}`} aria-hidden="true" />
+            {device.is_online ? "Онлайн" : "Оффлайн"}
+            <span className={`status-dot ${device.is_online ? "is-online" : "is-offline"}`} aria-hidden="true" />
           </div>
         </div>
-        <div className="free-device-card__tag">РќРµ РїСЂРёРІСЏР·Р°РЅРѕ</div>
+        <div className="free-device-card__tag">Не привязано</div>
       </div>
 
       <div className="free-device-card__metrics">
         <MetricPill
-          label="T, В°C"
+          label="T, °C"
           value={device.air_temperature}
           metric="air_temperature"
           deviceId={device.device_id}
           onOpenStats={onOpenStats}
         />
         <MetricPill
-          label="Р’Р»Р°Р¶РЅ. РІРѕР·РґСѓС…Р°, %"
+          label="Влажн. воздуха, %"
           value={device.air_humidity}
           metric="air_humidity"
           deviceId={device.device_id}
           onOpenStats={onOpenStats}
         />
         <MetricPill
-          label="Р’Р»Р°Р¶РЅ. РїРѕС‡РІС‹, %"
+          label="Влажн. почвы, %"
           value={device.soil_moisture}
           metric="soil_moisture"
           deviceId={device.device_id}
           onOpenStats={onOpenStats}
         />
         <MetricPill
-          label="РџРѕР»РёРІ"
-          value={device.is_watering ? 'Р’С‹РїРѕР»РЅСЏРµС‚СЃСЏ' : 'РќРµС‚'}
+          label="Полив"
+          value={device.is_watering ? "Выполняется" : "Нет"}
           metric="watering"
           deviceId={device.device_id}
           onOpenStats={onOpenStats}
@@ -243,7 +243,7 @@ function FreeDeviceCard({ device, onOpenStats }) {
         />
       </div>
 
-      {/* TODO: РґРѕР±Р°РІРёС‚СЊ РєРЅРѕРїРєСѓ РїСЂРёРІСЏР·РєРё СѓСЃС‚СЂРѕР№СЃС‚РІР° Рє СЂР°СЃС‚РµРЅРёСЋ */}
+      {/* TODO: dobavit' knopku privyazki ustrojstva k rasteniyu */}
     </div>
   );
 }
@@ -260,17 +260,17 @@ function AppDashboard() {
 
   return (
     <div className="dashboard">
-      {isLoading && <div className="dashboard__state">Р—Р°РіСЂСѓР·РєР°...</div>}
+      {isLoading && <div className="dashboard__state">Загрузка...</div>}
       {error && <div className="dashboard__state dashboard__state--error">{error}</div>}
 
       {!isLoading && !error && plants.length === 0 && freeDevices.length === 0 && (
-        <div className="dashboard__state">РџРѕРєР° РЅРµС‚ РґР°РЅРЅС‹С…. Р”РѕР±Р°РІСЊС‚Рµ СЂР°СЃС‚РµРЅРёСЏ Рё РїРѕРґРєР»СЋС‡РёС‚Рµ СѓСЃС‚СЂРѕР№СЃС‚РІР°.</div>
+        <div className="dashboard__state">Пока нет данных. Добавьте растения и подключите устройства.</div>
       )}
 
       {!isLoading && !error && plants.length > 0 && (
         <section className="dashboard-section">
           <div className="dashboard-section__header">
-            <h2>Р Р°СЃС‚РµРЅРёСЏ</h2>
+            <h2>Растения</h2>
           </div>
           <div className="cards-grid">
             {plants.map((plant) => {
@@ -293,8 +293,8 @@ function AppDashboard() {
       {!isLoading && !error && freeDevices.length > 0 && (
         <section className="dashboard-section">
           <div className="dashboard-section__header">
-            <h2>РЎРІРѕР±РѕРґРЅС‹Рµ СѓСЃС‚СЂРѕР№СЃС‚РІР°</h2>
-            <p className="dashboard-section__subtitle">РќРµ РїСЂРёРІСЏР·Р°РЅС‹ Рє СЂР°СЃС‚РµРЅРёСЏРј</p>
+            <h2>Свободные устройства</h2>
+            <p className="dashboard-section__subtitle">Не привязаны к растениям</p>
           </div>
           <div className="cards-grid">
             {freeDevices.map((device) => (
@@ -308,4 +308,3 @@ function AppDashboard() {
 }
 
 export default AppDashboard;
-
