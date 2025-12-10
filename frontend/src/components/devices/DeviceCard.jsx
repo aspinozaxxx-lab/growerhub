@@ -1,6 +1,6 @@
-import React from 'react';
+﻿import React from 'react';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
-import pumpIcon from '../../assets/plant-pot.svg';
+import { resolveDeviceAsset } from './assets';
 import { formatSensorValue } from '../../utils/formatters';
 import './DeviceCard.css';
 
@@ -37,6 +37,9 @@ function DeviceCard({ device, onEdit }) {
   const { openSensorStats } = useSensorStatsContext();
   const firmware = device.firmware_version || device.current_version || 'n/a';
   const wateringSpeed = device.watering_speed_lph;
+  // avatarKey - segodnya odna ikonka dlya vseh ustrojstv; kogda poyavyatsya tipy, klyuch mozhno brat' iz dannyh
+  const avatarKey = 'grovika_mini';
+  const avatarSrc = resolveDeviceAsset(avatarKey);
 
   const handleEdit = () => {
     if (onEdit) {
@@ -59,7 +62,7 @@ function DeviceCard({ device, onEdit }) {
 
       <div className="device-card__body">
         <div className="device-card__avatar" aria-hidden="true">
-          <img src={pumpIcon} alt="device avatar" />
+          <img src={avatarSrc} alt="device avatar" />
         </div>
         <div className="device-card__info">
           <div className="device-card__fw">Прошивка: {firmware}</div>
