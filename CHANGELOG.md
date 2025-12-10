@@ -23,6 +23,7 @@
   - upravlenie gruppami: sozdanie/pereimenovanie/udalenie vnutri dialoga;
   - privjazka i otvjazka ustrojstv (assign/unassign) v rezhime `edit`;
   - obrabotka oshibok, lokal'noe sostojanie formy.
+- feat: dobavlena prokrutka dialoga redaktirovanija rastenija i adaptivnaja dvuhkolonochnaia setka polej na desktopen
 
 ### feat(front): stranica `/app/plants`
 

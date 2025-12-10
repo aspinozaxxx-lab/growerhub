@@ -18,6 +18,8 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-height: 90vh;
+  min-height: 0;
 }
 
 .plant-dialog__header {
@@ -38,6 +40,15 @@
   color: #e2e8f0;
   font-size: 18px;
   cursor: pointer;
+}
+
+.plant-dialog__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .plant-dialog__body {
@@ -187,6 +198,19 @@
 .plant-dialog__footer-actions {
   display: flex;
   gap: 8px;
+}
+
+@media (min-width: 768px) {
+  .plant-dialog__body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 12px;
+    row-gap: 10px;
+  }
+
+  .plant-dialog__body > * {
+    min-width: 0;
+  }
 }
 
 
