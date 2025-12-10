@@ -137,7 +137,7 @@ function PlantEditDialog({
   const handleRenameGroup = async () => {
     const groupId = localPlant.plant_group_id;
     if (!groupId) {
-      window.alert('Vyberite gruppu dlya pereimenovaniya');
+      window.alert('Выберите группу для переименования');
       return;
     }
     const current = localGroups.find((g) => g.id === groupId);
@@ -253,7 +253,7 @@ function PlantEditDialog({
       <div className="plant-dialog">
         <div className="plant-dialog__header">
           <div className="plant-dialog__title">{title}</div>
-          <button type="button" className="plant-dialog__close" onClick={onClose} aria-label="Zakryt">
+          <button type="button" className="plant-dialog__close" onClick={onClose} aria-label="Закрыть">
             вњ•
           </button>
         </div>
@@ -271,7 +271,7 @@ function PlantEditDialog({
           </label>
 
           <label className="plant-dialog__field">
-            <span className="plant-dialog__label">Tip rastenija</span>
+            <span className="plant-dialog__label">Тип растения</span>
             <input
               value={localPlant.plant_type || ''}
               onChange={(e) => setLocalPlant((prev) => ({ ...prev, plant_type: e.target.value }))}
@@ -289,7 +289,7 @@ function PlantEditDialog({
           </label>
 
           <label className="plant-dialog__field">
-            <span className="plant-dialog__label">Stadija rosta</span>
+            <span className="plant-dialog__label">Стадия роста</span>
             <select
               value={localPlant.growth_stage || ''}
               onChange={(e) => setLocalPlant((prev) => ({ ...prev, growth_stage: e.target.value || '' }))}
