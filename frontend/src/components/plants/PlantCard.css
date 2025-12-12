@@ -1,8 +1,4 @@
 ﻿.plant-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 14px;
-  background: #0f1f35;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -21,12 +17,6 @@
   gap: 4px;
 }
 
-.plant-card__name {
-  font-size: 18px;
-  font-weight: 700;
-  color: #f6fbff;
-}
-
 .plant-card__meta {
   display: flex;
   gap: 6px;
@@ -40,11 +30,6 @@
   padding: 2px 8px;
   font-size: 12px;
   color: #e2e8f0;
-}
-
-.plant-card__group {
-  font-size: 13px;
-  color: #8aa3c6;
 }
 
 .plant-card__actions {
@@ -85,11 +70,6 @@
   color: #e2e8f0;
 }
 
-.plant-card__label {
-  font-size: 12px;
-  color: #8aa3c6;
-}
-
 .plant-card__value {
   font-weight: 600;
 }
@@ -113,4 +93,3 @@
   padding: 8px 12px;
   cursor: pointer;
 }
-

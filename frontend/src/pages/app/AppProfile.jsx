@@ -6,6 +6,8 @@ import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppGrid from '../../components/layout/AppGrid';
 import FormField from '../../components/ui/FormField';
 import Button from '../../components/ui/Button';
+import Surface from '../../components/ui/Surface';
+import { Title, Text } from '../../components/ui/Typography';
 import './AppProfile.css';
 
 function AppProfile() {
@@ -175,7 +177,7 @@ function AppProfile() {
     <div className="app-profile">
       <AppPageHeader title="Профиль" />
       <AppGrid min={320}>
-        <div className="profile-card">
+        <Surface variant="card" padding="md" className="profile-card">
           <div className="profile-row">
             <span className="profile-label">ID</span>
             <span>{user.id}</span>
@@ -201,13 +203,13 @@ function AppProfile() {
               Выйти
             </Button>
           </div>
-        </div>
+        </Surface>
 
-        <div className="profile-card profile-auth-card">
+        <Surface variant="card" padding="md" className="profile-card profile-auth-card">
           <div className="profile-auth-header">
-            <h3>Способы входа</h3>
-            {methodsError ? <div className="profile-auth-error">{methodsError}</div> : null}
-            {passwordSuccess ? <div className="profile-auth-success">{passwordSuccess}</div> : null}
+            <Title level={3}>Способы входа</Title>
+            {methodsError ? <Text tone="danger" className="profile-auth-error">{methodsError}</Text> : null}
+            {passwordSuccess ? <Text className="profile-auth-success">{passwordSuccess}</Text> : null}
           </div>
 
           {loadingMethods ? (
@@ -217,11 +219,11 @@ function AppProfile() {
               <div className="profile-auth-row">
                 <div>
                   <div className="profile-auth-title">Локальный логин</div>
-                  <div className="profile-auth-status">
+                  <Text tone="muted" className="profile-auth-status">
                     {localMethods?.active
                       ? `Локальный вход активен (${localMethods.email || '-'})`
                       : 'Локальный вход не настроен'}
-                  </div>
+                  </Text>
                 </div>
                 <div className="profile-auth-actions">
                   {!localMethods?.active ? (
@@ -357,7 +359,7 @@ function AppProfile() {
               <div className="profile-auth-row">
                 <div>
                   <div className="profile-auth-title">Google</div>
-                  <div className="profile-auth-status">{formatProviderStatus(googleMethods)}</div>
+                  <Text tone="muted" className="profile-auth-status">{formatProviderStatus(googleMethods)}</Text>
                 </div>
                 <div className="profile-auth-actions">
                   {googleMethods?.linked ? (
@@ -387,7 +389,7 @@ function AppProfile() {
               <div className="profile-auth-row">
                 <div>
                   <div className="profile-auth-title">Яндекс</div>
-                  <div className="profile-auth-status">{formatProviderStatus(yandexMethods)}</div>
+                  <Text tone="muted" className="profile-auth-status">{formatProviderStatus(yandexMethods)}</Text>
                 </div>
                 <div className="profile-auth-actions">
                   {yandexMethods?.linked ? (
@@ -415,9 +417,9 @@ function AppProfile() {
               </div>
             </>
           ) : (
-            <div className="profile-auth-status">Нет данных о способах входа</div>
+            <Text tone="muted" className="profile-auth-status">Нет данных о способах входа</Text>
           )}
-        </div>
+        </Surface>
       </AppGrid>
     </div>
   );

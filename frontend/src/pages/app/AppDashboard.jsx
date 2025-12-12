@@ -8,6 +8,8 @@ import PlantAvatar from "../../components/plant-avatar/PlantAvatar";
 import { getStageFromPlantAgeDays } from "../../components/plant-avatar/plantStageFromAge";
 import SensorPill from "../../components/ui/SensorPill";
 import Button from "../../components/ui/Button";
+import Surface from "../../components/ui/Surface";
+import { Title, Text } from "../../components/ui/Typography";
 import AppPageState from "../../components/layout/AppPageState";
 import "./AppDashboard.css";
 
@@ -111,10 +113,10 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
     <div className="dashboard-plant-card">
       <div className="dashboard-plant-card__header">
         <div>
-          <div className="dashboard-plant-card__name">{plant.name}</div>
-          <div className="dashboard-plant-card__group">
+          <Title level={3} className="dashboard-plant-card__name">{plant.name}</Title>
+          <Text tone="muted" className="dashboard-plant-card__group">
             {plant.plant_group ? plant.plant_group.name : "Без группы"}
-          </div>
+          </Text>
         </div>
         <div className="dashboard-plant-card__age">{formatAge(plant.planted_at)}</div>
       </div>
@@ -168,7 +170,7 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
           </div>
         </div>
       ) : (
-        <div className="dashboard-plant-card__empty">Нет подключённых устройств</div>
+          <Text tone="muted" className="dashboard-plant-card__empty">Нет подключённых устройств</Text>
       )}
 
       <div className="dashboard-plant-card__footer">
@@ -269,9 +271,9 @@ function AppDashboard() {
       )}
 
       {!isLoading && !error && plants.length > 0 && (
-        <section className="dashboard-section">
+        <Surface variant="section" padding="md" className="dashboard-section">
           <div className="dashboard-section__header">
-            <h2>Растения</h2>
+            <Title level={2}>Растения</Title>
           </div>
           <div className="cards-grid">
             {plants.map((plant) => {
@@ -288,21 +290,21 @@ function AppDashboard() {
               );
             })}
           </div>
-        </section>
+        </Surface>
       )}
 
       {!isLoading && !error && freeDevices.length > 0 && (
-        <section className="dashboard-section">
+        <Surface variant="section" padding="md" className="dashboard-section">
           <div className="dashboard-section__header">
-            <h2>Свободные устройства</h2>
-            <p className="dashboard-section__subtitle">Не привязаны к растениям</p>
+            <Title level={2}>Свободные устройства</Title>
+            <Text tone="muted" className="dashboard-section__subtitle">Не привязаны к растениям</Text>
           </div>
           <div className="cards-grid">
             {freeDevices.map((device) => (
               <FreeDeviceCard key={device.id} device={device} onOpenStats={openSensorStats} />
             ))}
           </div>
-        </section>
+        </Surface>
       )}
     </div>
   );

@@ -1,0 +1,29 @@
+﻿.gh-surface {
+  background: var(--surface-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  color: var(--text-1);
+}
+
+.gh-surface--section {
+  background: var(--surface-2);
+}
+
+.gh-surface--p-sm {
+  padding: 10px;
+}
+
+.gh-surface--p-md {
+  padding: 14px;
+}
+
+.gh-surface--p-lg {
+  padding: 18px;
+}
+
+.gh-divider {
+  border-top: 1px solid var(--border-1);
+  width: 100%;
+  margin: 8px 0;
+}

@@ -4,10 +4,6 @@
 }
 
 .profile-card {
-  background: #0f1f35;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 16px;
   display: grid;
   gap: 10px;
 }
@@ -33,11 +29,6 @@
 .profile-actions {
   display: flex;
   justify-content: flex-end;
-}
-
-.profile-auth-card h3 {
-  margin: 0;
-  color: #eef3fb;
 }
 
 .profile-auth-header {

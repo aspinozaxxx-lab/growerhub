@@ -22,7 +22,6 @@
 
 .dashboard-section__header h2 {
   margin: 0;
-  color: var(--text-1);
 }
 
 .dashboard-section__subtitle {
@@ -37,20 +36,12 @@
 }
 
 .dashboard-plant-card {
-  border: 1px solid var(--border-1);
-  border-radius: 12px;
-  padding: 12px;
-  background: var(--surface-1);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
 .free-device-card {
-  border: 1px solid var(--border-1);
-  border-radius: 12px;
-  padding: 12px;
-  background: var(--surface-1);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -61,17 +52,6 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 10px;
-}
-
-.dashboard-plant-card__name {
-  font-weight: 700;
-  color: #f6fbff;
-  font-size: 18px;
-}
-
-.dashboard-plant-card__group {
-  color: #8aa3c6;
-  font-size: 13px;
 }
 
 .dashboard-plant-card__age {
@@ -108,7 +88,6 @@
 }
 
 .dashboard-plant-card__empty {
-  color: #8aa3c6;
   font-size: 14px;
 }
 
@@ -147,7 +126,6 @@
 
 .free-device-card__name {
   font-weight: 700;
-  color: #f6fbff;
 }
 
 .free-device-card__id {

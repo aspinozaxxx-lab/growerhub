@@ -2,6 +2,8 @@
 import PlantAvatar from '../plant-avatar/PlantAvatar';
 import { getStageFromPlantAgeDays } from '../plant-avatar/plantStageFromAge';
 import DeviceCard from '../devices/DeviceCard';
+import Surface from '../ui/Surface';
+import { Title, Text } from '../ui/Typography';
 import './PlantCard.css';
 
 // Translitem: PlantCard - kartochka rasteniya na stranice spiska rastenij; pokazivaet osnovnye metadannye i svyazannye ustrojstva, imeet knopki Zhurnal i karandash.
@@ -25,19 +27,19 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
   const handleOpenJournal = () => onOpenJournal?.(plant);
 
   return (
-    <div className="plant-card">
+    <Surface variant="card" padding="md" className="plant-card">
       <div className="plant-card__header">
         <div className="plant-card__title">
-          <div className="plant-card__name">{plant.name}</div>
+          <Title level={3} className="plant-card__name">{plant.name}</Title>
           <div className="plant-card__meta">
             {plant.plant_type && <span className="plant-card__tag">{plant.plant_type}</span>}
             {plant.strain && <span className="plant-card__tag">{plant.strain}</span>}
           </div>
-          <div className="plant-card__group">{groupName}</div>
+          <Text tone="muted" className="plant-card__group">{groupName}</Text>
         </div>
         <div className="plant-card__actions">
           <button type="button" className="plant-card__edit" onClick={handleEdit} aria-label="Редактировать">
-            ✏
+            ?
           </button>
         </div>
       </div>
@@ -48,13 +50,13 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
         </div>
         <div className="plant-card__info">
           <div className="plant-card__row">
-            <span className="plant-card__label">Дата посадки</span>
+            <Text as="span" tone="muted" className="plant-card__label">Дата посадки</Text>
             <span className="plant-card__value">{plantedLabel}</span>
           </div>
           <div className="plant-card__row">
-            <span className="plant-card__label">Возраст / Стадия</span>
+            <Text as="span" tone="muted" className="plant-card__label">Возраст / Стадия</Text>
             <span className="plant-card__value">
-              {ageDays !== null ? `${ageDays} дн.` : '—'}
+              {ageDays !== null ? `${ageDays} дн.` : '-'}
               {stage ? ` · ${stage}` : ''}
             </span>
           </div>
@@ -74,9 +76,8 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
           Журнал
         </button>
       </div>
-    </div>
+    </Surface>
   );
 }
 
 export default PlantCard;
-

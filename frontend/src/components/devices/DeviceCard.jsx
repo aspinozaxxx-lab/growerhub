@@ -4,6 +4,8 @@ import { resolveDeviceAsset } from './assets';
 import { formatSensorValue } from '../../utils/formatters';
 import SensorPill from '../ui/SensorPill';
 import Button from '../ui/Button';
+import Surface from '../ui/Surface';
+import { Title, Text } from '../ui/Typography';
 import './DeviceCard.css';
 
 // Translitem: DeviceCard - komponent otobrazheniya ustrojstva s dvumya variantami (default dlya stranicy ustrojstv, plant dlya vlozheniya v kartochku rastenija).
@@ -35,11 +37,11 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
 
   // Translitem: vetka default - tekushchij vid dlya stranicy ustrojstv.
   const renderDefault = () => (
-    <div className="device-card device-card--default">
+    <Surface variant="card" padding="md" className="device-card device-card--default">
       <div className="device-card__header">
         <div>
-          <div className="device-card__title">{displayName}</div>
-          <div className="device-card__subtitle">{device.device_id}</div>
+          <Title level={3} className="device-card__title">{displayName}</Title>
+          <Text tone="muted" className="device-card__subtitle">{device.device_id}</Text>
           <StatusBadge isOnline={device.is_online} />
         </div>
         <Button type="button" variant="ghost" size="sm" className="device-card__edit" onClick={handleEdit} aria-label="Редактировать">
@@ -52,7 +54,7 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
           <img src={avatarSrc} alt="device avatar" />
         </div>
         <div className="device-card__info">
-          <div className="device-card__fw">Прошивка: {firmware}</div>
+          <Text tone="muted" className="device-card__fw">Прошивка: {firmware}</Text>
           <div className="device-card__metrics">
             <SensorPill
               label="Влажн. почвы, %"
@@ -80,19 +82,19 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
           </div>
         </div>
       </div>
-    </div>
+    </Surface>
   );
 
   // Translitem: vetka plant - kompaktnyj vid dlya vlozheniya v kartochku rastenija.
   const renderPlant = () => (
-    <div className="device-card device-card--plant">
+    <Surface variant="card" padding="sm" className="device-card device-card--plant">
       <div className="device-card__plant-header">
         <div className="device-card__avatar device-card__avatar--plant" aria-hidden="true">
           <img src={avatarSrc} alt="device avatar" />
         </div>
         <div className="device-card__plant-meta">
-          <div className="device-card__title device-card__title--compact">{displayName}</div>
-          <div className="device-card__subtitle device-card__subtitle--compact">{device.device_id}</div>
+          <Title level={3} className="device-card__title device-card__title--compact">{displayName}</Title>
+          <Text tone="muted" className="device-card__subtitle device-card__subtitle--compact">{device.device_id}</Text>
           <StatusBadge isOnline={device.is_online} />
         </div>
         {onEdit && (
@@ -122,7 +124,7 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
           <span className="device-chip__value">{formatSensorValue(device.air_temperature)}</span>
         </div>
       </div>
-    </div>
+    </Surface>
   );
 
   if (variant === 'plant') {

@@ -1,0 +1,33 @@
+﻿.gh-title {
+  margin: 0;
+  color: var(--text-1);
+  font-weight: 700;
+}
+
+.gh-title--2 {
+  font-size: 20px;
+}
+
+.gh-title--3 {
+  font-size: 18px;
+}
+
+.gh-text {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.gh-text--muted {
+  color: var(--text-3);
+}
+
+.gh-text--danger {
+  color: var(--danger);
+}
+
+.gh-caption {
+  color: var(--text-3);
+  font-size: 12px;
+}
