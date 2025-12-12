@@ -208,19 +208,6 @@
   height: fit-content;
 }
 
-.dashboard__state {
-  padding: 14px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.03);
-  color: #c7d7ef;
-}
-
-.dashboard__state--error {
-  color: #ffb3b3;
-  border-color: rgba(255, 179, 179, 0.4);
-}
-
 @media (max-width: 640px) {
   .dashboard-plant-card__metrics {
     gap: 8px;

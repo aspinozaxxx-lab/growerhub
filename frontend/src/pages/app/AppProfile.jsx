@@ -1,7 +1,10 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { changePassword, fetchAuthMethods, linkSsoMethod, setLocalLogin, unlinkAuthMethod } from '../../api/auth';
 import { useAuth } from '../../features/auth/AuthContext';
+import AppPageHeader from '../../components/layout/AppPageHeader';
+import AppGrid from '../../components/layout/AppGrid';
 import './AppProfile.css';
 
 function AppProfile() {
@@ -48,7 +51,7 @@ function AppProfile() {
       const data = await fetchAuthMethods(token);
       setAuthMethods(data);
     } catch (error) {
-      setMethodsError(error?.message || 'Не удалось загрузить способы входа');
+      setMethodsError(error?.message || '?? ??????? ????????? ??????? ?????');
     } finally {
       setLoadingMethods(false);
     }
@@ -63,7 +66,7 @@ function AppProfile() {
       event?.preventDefault?.();
       setPasswordSuccess('');
       if (localPassword !== localPasswordConfirm) {
-        setMethodsError('Пароли не совпадают');
+        setMethodsError('?????? ?? ?????????');
         return;
       }
       setMethodsError('');
@@ -75,7 +78,7 @@ function AppProfile() {
         setLocalPassword('');
         setLocalPasswordConfirm('');
       } catch (error) {
-        setMethodsError(error?.message || 'Не удалось сохранить локальный вход');
+        setMethodsError(error?.message || '?? ??????? ????????? ????????? ????');
       } finally {
         setUpdatingLocal(false);
       }
@@ -89,19 +92,19 @@ function AppProfile() {
       setMethodsError('');
       setPasswordSuccess('');
       if (newPassword !== newPasswordConfirm) {
-        setMethodsError('Новый пароль и подтверждение не совпадают');
+        setMethodsError('????? ?????? ? ????????????? ?? ?????????');
         return;
       }
       setChangingPassword(true);
       try {
         await changePassword(currentPassword, newPassword, token);
-        setPasswordSuccess('Пароль успешно обновлён');
+        setPasswordSuccess('?????? ??????? ????????');
         setCurrentPassword('');
         setNewPassword('');
         setNewPasswordConfirm('');
         setShowChangePasswordForm(false);
       } catch (error) {
-        setMethodsError(error?.message || 'Не удалось сменить пароль');
+        setMethodsError(error?.message || '?? ??????? ??????? ??????');
       } finally {
         setChangingPassword(false);
       }
@@ -111,7 +114,7 @@ function AppProfile() {
 
   const handleUnlink = useCallback(
     async (provider) => {
-      const confirmed = window.confirm('Удалить этот способ входа?');
+      const confirmed = window.confirm('??????? ???? ?????? ??????');
       if (!confirmed) {
         return;
       }
@@ -122,7 +125,7 @@ function AppProfile() {
         const data = await unlinkAuthMethod(provider, token);
         setAuthMethods(data);
       } catch (error) {
-        setMethodsError(error?.message || 'Не удалось удалить способ входа');
+        setMethodsError(error?.message || '?? ??????? ??????? ?????? ?????');
       } finally {
         setUnlinkingProvider(null);
       }
@@ -140,7 +143,7 @@ function AppProfile() {
         const url = await linkSsoMethod(provider, redirectPath, token);
         window.location.href = url;
       } catch (error) {
-        setMethodsError(error?.message || 'Не удалось начать привязку');
+        setMethodsError(error?.message || '?? ??????? ?????? ????????');
       } finally {
         setLinkingProvider(null);
       }
@@ -154,264 +157,263 @@ function AppProfile() {
 
   const formatProviderStatus = useCallback((providerData) => {
     if (!providerData?.linked) {
-      return 'Не привязан';
+      return '?? ????????';
     }
     const subject = providerData.provider_subject || '';
-    const shortSubject = subject ? ` (${subject.slice(0, 10)}${subject.length > 10 ? '…' : ''})` : '';
-    return `Привязан${shortSubject}`;
+    const shortSubject = subject ? ` (${subject.slice(0, 10)}${subject.length > 10 ? ':' : ''})` : '';
+    return `????????${shortSubject}`;
   }, []);
 
   const isLoadingLink = useMemo(() => Boolean(linkingProvider), [linkingProvider]);
 
   if (!user) {
-    return <div className="profile-card">Нет данных профиля</div>;
+    return <div className="profile-card">??? ?????? ???????</div>;
   }
 
   return (
     <div className="app-profile">
-      <h2>Профиль</h2>
-      <div className="profile-card">
-        <div className="profile-row">
-          <span className="profile-label">ID</span>
-          <span>{user.id}</span>
-        </div>
-        <div className="profile-row">
-          <span className="profile-label">Email</span>
-          <span>{user.email || '—'}</span>
-        </div>
-        <div className="profile-row">
-          <span className="profile-label">Имя пользователя</span>
-          <span>{user.username || '—'}</span>
-        </div>
-        <div className="profile-row">
-          <span className="profile-label">Роль</span>
-          <span>{user.role || '—'}</span>
-        </div>
-        <div className="profile-row">
-          <span className="profile-label">Статус</span>
-          <span>{user.is_active ? 'Активен' : 'Заблокирован'}</span>
-        </div>
-        <div className="profile-actions">
-          <button type="button" className="logout-button" onClick={handleLogout}>
-            Выйти
-          </button>
-        </div>
-      </div>
-
-      <div className="profile-card profile-auth-card">
-        <div className="profile-auth-header">
-          <h3>Способы входа</h3>
-          {methodsError ? <div className="profile-auth-error">{methodsError}</div> : null}
-          {passwordSuccess ? <div className="profile-auth-success">{passwordSuccess}</div> : null}
+      <AppPageHeader title="???????" />
+      <AppGrid min={320}>
+        <div className="profile-card">
+          <div className="profile-row">
+            <span className="profile-label">ID</span>
+            <span>{user.id}</span>
+          </div>
+          <div className="profile-row">
+            <span className="profile-label">Email</span>
+            <span>{user.email || '-'}</span>
+          </div>
+          <div className="profile-row">
+            <span className="profile-label">??? ????????????</span>
+            <span>{user.username || '-'}</span>
+          </div>
+          <div className="profile-row">
+            <span className="profile-label">????</span>
+            <span>{user.role || '-'}</span>
+          </div>
+          <div className="profile-row">
+            <span className="profile-label">??????</span>
+            <span>{user.is_active ? '???????' : '????????????'}</span>
+          </div>
+          <div className="profile-actions">
+            <button type="button" className="logout-button" onClick={handleLogout}>
+              ?????
+            </button>
+          </div>
         </div>
 
-        {loadingMethods ? (
-          <div className="profile-auth-status">Загрузка способов входа...</div>
-        ) : authMethods ? (
-          <>
-            <div className="profile-auth-row">
-              <div>
-                <div className="profile-auth-title">Локальный логин</div>
-                <div className="profile-auth-status">
-                  {localMethods?.active
-                    ? `Локальный вход активен (${localMethods.email || '—'})`
-                    : 'Локальный вход не настроен'}
+        <div className="profile-card profile-auth-card">
+          <div className="profile-auth-header">
+            <h3>??????? ?????</h3>
+            {methodsError ? <div className="profile-auth-error">{methodsError}</div> : null}
+            {passwordSuccess ? <div className="profile-auth-success">{passwordSuccess}</div> : null}
+          </div>
+
+          {loadingMethods ? (
+            <div className="profile-auth-status">???????? ???????? ?????...</div>
+          ) : authMethods ? (
+            <>
+              <div className="profile-auth-row">
+                <div>
+                  <div className="profile-auth-title">????????? ?????</div>
+                  <div className="profile-auth-status">
+                    {localMethods?.active
+                      ? `????????? ???? ??????? (${localMethods.email || '-'})`
+                      : '????????? ???? ?? ????????'}
+                  </div>
                 </div>
-              </div>
-              <div className="profile-auth-actions">
-                {!localMethods?.active ? (
-                  <button
-                    type="button"
-                    className="profile-auth-button"
-                    onClick={() => setShowSetLocalForm((prev) => !prev)}
-                    disabled={updatingLocal || isLoadingLink || Boolean(unlinkingProvider)}
-                  >
-                    Установить пароль
-                  </button>
-                ) : (
-                  <>
+                <div className="profile-auth-actions">
+                  {!localMethods?.active ? (
                     <button
                       type="button"
                       className="profile-auth-button"
-                      onClick={() => setShowChangePasswordForm((prev) => !prev)}
-                      disabled={changingPassword || isLoadingLink || Boolean(unlinkingProvider)}
+                      onClick={() => setShowSetLocalForm((prev) => !prev)}
+                      disabled={updatingLocal || isLoadingLink || Boolean(unlinkingProvider)}
                     >
-                      Сменить пароль
+                      ?????????? ??????
                     </button>
-                    {localMethods?.can_delete ? (
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="profile-auth-button"
+                        onClick={() => setShowChangePasswordForm((prev) => !prev)}
+                        disabled={changingPassword || isLoadingLink || Boolean(unlinkingProvider)}
+                      >
+                        ??????? ??????
+                      </button>
+                      {localMethods?.can_delete ? (
+                        <button
+                          type="button"
+                          className="profile-auth-button danger"
+                          onClick={() => handleUnlink('local')}
+                          disabled={unlinkingProvider === 'local'}
+                        >
+                          {unlinkingProvider === 'local' ? '???????...' : '??????? ????????? ????'}
+                        </button>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {!localMethods?.active && showSetLocalForm ? (
+                <form className="profile-auth-form" onSubmit={handleSetLocalLogin}>
+                  <label htmlFor="local-email">Email ??? ?????</label>
+                  <input
+                    id="local-email"
+                    type="email"
+                    value={localEmail}
+                    onChange={(event) => setLocalEmail(event.target.value)}
+                    required
+                    disabled={updatingLocal}
+                  />
+                  <label htmlFor="local-password">????? ??????</label>
+                  <input
+                    id="local-password"
+                    type="password"
+                    value={localPassword}
+                    onChange={(event) => setLocalPassword(event.target.value)}
+                    required
+                    disabled={updatingLocal}
+                  />
+                  <label htmlFor="local-password-confirm">????????? ????? ??????</label>
+                  <input
+                    id="local-password-confirm"
+                    type="password"
+                    value={localPasswordConfirm}
+                    onChange={(event) => setLocalPasswordConfirm(event.target.value)}
+                    required
+                    disabled={updatingLocal}
+                  />
+                  <div className="profile-auth-actions">
+                    <button type="submit" className="profile-auth-button" disabled={updatingLocal}>
+                      {updatingLocal ? '?????????...' : '?????????'}
+                    </button>
+                    <button
+                      type="button"
+                      className="profile-auth-button secondary"
+                      onClick={() => setShowSetLocalForm(false)}
+                      disabled={updatingLocal}
+                    >
+                      ??????
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+
+              {localMethods?.active && showChangePasswordForm ? (
+                <form className="profile-auth-form" onSubmit={handleChangePassword}>
+                  <label htmlFor="current-password">??????? ??????</label>
+                  <input
+                    id="current-password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(event) => setCurrentPassword(event.target.value)}
+                    required
+                    disabled={changingPassword}
+                  />
+                  <label htmlFor="new-password">????? ??????</label>
+                  <input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    required
+                    disabled={changingPassword}
+                  />
+                  <label htmlFor="new-password-confirm">????????? ????? ??????</label>
+                  <input
+                    id="new-password-confirm"
+                    type="password"
+                    value={newPasswordConfirm}
+                    onChange={(event) => setNewPasswordConfirm(event.target.value)}
+                    required
+                    disabled={changingPassword}
+                  />
+                  <div className="profile-auth-actions">
+                    <button type="submit" className="profile-auth-button" disabled={changingPassword}>
+                      {changingPassword ? '?????????...' : '??????? ??????'}
+                    </button>
+                    <button
+                      type="button"
+                      className="profile-auth-button secondary"
+                      onClick={() => setShowChangePasswordForm(false)}
+                      disabled={changingPassword}
+                    >
+                      ??????
+                    </button>
+                  </div>
+                </form>
+              ) : null}
+
+              <div className="profile-auth-row">
+                <div>
+                  <div className="profile-auth-title">Google</div>
+                  <div className="profile-auth-status">{formatProviderStatus(googleMethods)}</div>
+                </div>
+                <div className="profile-auth-actions">
+                  {googleMethods?.linked ? (
+                    googleMethods?.can_delete ? (
                       <button
                         type="button"
                         className="profile-auth-button danger"
-                        onClick={() => handleUnlink('local')}
-                        disabled={unlinkingProvider === 'local'}
+                        onClick={() => handleUnlink('google')}
+                        disabled={unlinkingProvider === 'google'}
+                        >
+                          {unlinkingProvider === 'google' ? '??????????...' : '????????'}
+                        </button>
+                      ) : null
+                    ) : (
+                      <button
+                        type="button"
+                        className="profile-auth-button"
+                        onClick={() => handleLink('google')}
+                        disabled={isLoadingLink || loadingMethods}
                       >
-                        {unlinkingProvider === 'local' ? 'Удаляем...' : 'Удалить локальный вход'}
+                        {linkingProvider === 'google' ? '?????????...' : '????????? Google'}
                       </button>
-                    ) : null}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {!localMethods?.active && showSetLocalForm ? (
-              <form className="profile-auth-form" onSubmit={handleSetLocalLogin}>
-                <label htmlFor="local-email">Email для входа</label>
-                <input
-                  id="local-email"
-                  type="email"
-                  value={localEmail}
-                  onChange={(event) => setLocalEmail(event.target.value)}
-                  required
-                  disabled={updatingLocal}
-                />
-                <label htmlFor="local-password">Новый пароль</label>
-                <input
-                  id="local-password"
-                  type="password"
-                  value={localPassword}
-                  onChange={(event) => setLocalPassword(event.target.value)}
-                  required
-                  disabled={updatingLocal}
-                />
-                <label htmlFor="local-password-confirm">Повторите новый пароль</label>
-                <input
-                  id="local-password-confirm"
-                  type="password"
-                  value={localPasswordConfirm}
-                  onChange={(event) => setLocalPasswordConfirm(event.target.value)}
-                  required
-                  disabled={updatingLocal}
-                />
-                <div className="profile-auth-actions">
-                  <button type="submit" className="profile-auth-button" disabled={updatingLocal}>
-                    {updatingLocal ? 'Сохраняем...' : 'Сохранить'}
-                  </button>
-                  <button
-                    type="button"
-                    className="profile-auth-button secondary"
-                    onClick={() => setShowSetLocalForm(false)}
-                    disabled={updatingLocal}
-                  >
-                    Отмена
-                  </button>
+                    )}
                 </div>
-              </form>
-            ) : null}
+              </div>
 
-            {localMethods?.active && showChangePasswordForm ? (
-              <form className="profile-auth-form" onSubmit={handleChangePassword}>
-                <label htmlFor="current-password">Текущий пароль</label>
-                <input
-                  id="current-password"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(event) => setCurrentPassword(event.target.value)}
-                  required
-                  disabled={changingPassword}
-                />
-                <label htmlFor="new-password">Новый пароль</label>
-                <input
-                  id="new-password"
-                  type="password"
-                  value={newPassword}
-                  onChange={(event) => setNewPassword(event.target.value)}
-                  required
-                  disabled={changingPassword}
-                />
-                <label htmlFor="new-password-confirm">Повторите новый пароль</label>
-                <input
-                  id="new-password-confirm"
-                  type="password"
-                  value={newPasswordConfirm}
-                  onChange={(event) => setNewPasswordConfirm(event.target.value)}
-                  required
-                  disabled={changingPassword}
-                />
-                <div className="profile-auth-actions">
-                  <button type="submit" className="profile-auth-button" disabled={changingPassword}>
-                    {changingPassword ? 'Обновляем...' : 'Сменить пароль'}
-                  </button>
-                  <button
-                    type="button"
-                    className="profile-auth-button secondary"
-                    onClick={() => setShowChangePasswordForm(false)}
-                    disabled={changingPassword}
-                  >
-                    Отмена
-                  </button>
+              <div className="profile-auth-row">
+                <div>
+                  <div className="profile-auth-title">??????</div>
+                  <div className="profile-auth-status">{formatProviderStatus(yandexMethods)}</div>
                 </div>
-              </form>
-            ) : null}
-
-            <div className="profile-auth-row">
-              <div>
-                <div className="profile-auth-title">Google</div>
-                <div className="profile-auth-status">{formatProviderStatus(googleMethods)}</div>
-              </div>
-              <div className="profile-auth-actions">
-                {googleMethods?.linked ? (
-                  googleMethods?.can_delete ? (
-                    <button
-                      type="button"
-                      className="profile-auth-button danger"
-                      onClick={() => handleUnlink('google')}
-                      disabled={unlinkingProvider === 'google'}
+                <div className="profile-auth-actions">
+                  {yandexMethods?.linked ? (
+                    yandexMethods?.can_delete ? (
+                      <button
+                        type="button"
+                        className="profile-auth-button danger"
+                        onClick={() => handleUnlink('yandex')}
+                        disabled={unlinkingProvider === 'yandex'}
+                        >
+                          {unlinkingProvider === 'yandex' ? '??????????...' : '????????'}
+                        </button>
+                      ) : null
+                    ) : (
+                      <button
+                        type="button"
+                        className="profile-auth-button"
+                        onClick={() => handleLink('yandex')}
+                        disabled={isLoadingLink || loadingMethods}
                       >
-                        {unlinkingProvider === 'google' ? 'Отвязываем...' : 'Отвязать'}
+                        {linkingProvider === 'yandex' ? '?????????...' : '????????? ??????'}
                       </button>
-                    ) : null
-                  ) : (
-                    <button
-                      type="button"
-                      className="profile-auth-button"
-                      onClick={() => handleLink('google')}
-                      disabled={isLoadingLink || loadingMethods}
-                    >
-                      {linkingProvider === 'google' ? 'Открываем...' : 'Привязать Google'}
-                    </button>
-                  )}
+                    )}
+                </div>
               </div>
-            </div>
-
-            <div className="profile-auth-row">
-              <div>
-                <div className="profile-auth-title">Яндекс</div>
-                <div className="profile-auth-status">{formatProviderStatus(yandexMethods)}</div>
-              </div>
-              <div className="profile-auth-actions">
-                {yandexMethods?.linked ? (
-                  yandexMethods?.can_delete ? (
-                    <button
-                      type="button"
-                      className="profile-auth-button danger"
-                      onClick={() => handleUnlink('yandex')}
-                      disabled={unlinkingProvider === 'yandex'}
-                      >
-                        {unlinkingProvider === 'yandex' ? 'Отвязываем...' : 'Отвязать'}
-                      </button>
-                    ) : null
-                  ) : (
-                    <button
-                      type="button"
-                      className="profile-auth-button"
-                      onClick={() => handleLink('yandex')}
-                      disabled={isLoadingLink || loadingMethods}
-                    >
-                      {linkingProvider === 'yandex' ? 'Открываем...' : 'Привязать Яндекс'}
-                    </button>
-                  )}
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="profile-auth-status">Нет данных о способах входа</div>
-        )}
-      </div>
+            </>
+          ) : (
+            <div className="profile-auth-status">??? ?????? ? ???????? ?????</div>
+          )}
+        </div>
+      </AppGrid>
     </div>
   );
 }
 
 export default AppProfile;
-
-
-

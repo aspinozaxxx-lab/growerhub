@@ -7,6 +7,7 @@ import { formatSensorValue } from "../../utils/formatters";
 import PlantAvatar from "../../components/plant-avatar/PlantAvatar";
 import { getStageFromPlantAgeDays } from "../../components/plant-avatar/plantStageFromAge";
 import SensorPill from "../../components/ui/SensorPill";
+import AppPageState from "../../components/layout/AppPageState";
 import "./AppDashboard.css";
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
@@ -259,11 +260,11 @@ function AppDashboard() {
 
   return (
     <div className="dashboard">
-      {isLoading && <div className="dashboard__state">Загрузка...</div>}
-      {error && <div className="dashboard__state dashboard__state--error">{error}</div>}
+      {isLoading && <AppPageState kind="loading" title="Загрузка..." />}
+      {error && <AppPageState kind="error" title={error} />}
 
       {!isLoading && !error && plants.length === 0 && freeDevices.length === 0 && (
-        <div className="dashboard__state">Пока нет данных. Добавьте растения и подключите устройства.</div>
+        <AppPageState kind="empty" title="Пока нет данных. Добавьте растения и подключите устройства." />
       )}
 
       {!isLoading && !error && plants.length > 0 && (
