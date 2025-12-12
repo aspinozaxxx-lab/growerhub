@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import './SidePanel.css';
+import Button from './Button';
 
 function SidePanel({
   isOpen,
@@ -36,9 +37,16 @@ function SidePanel({
             {title ? <div className="gh-panel__title">{title}</div> : null}
             {subtitle ? <div className="gh-panel__subtitle">{subtitle}</div> : null}
           </div>
-          <button type="button" className="gh-panel__close" onClick={onClose} aria-label={closeLabel}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="gh-panel__close"
+            onClick={onClose}
+            aria-label={closeLabel}
+          >
             ×
-          </button>
+          </Button>
         </header>
         <div className="gh-panel__body">
           {children}

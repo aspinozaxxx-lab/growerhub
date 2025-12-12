@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import './Modal.css';
+import Button from './Button';
 
 function Modal({
   isOpen,
@@ -31,9 +32,16 @@ function Modal({
       <div className={`gh-modal__panel gh-modal__panel--${size}`} onClick={handlePanelClick}>
         <header className="gh-modal__header">
           {title ? <div className="gh-modal__title">{title}</div> : <div />}
-          <button type="button" className="gh-modal__close" onClick={onClose} aria-label={closeLabel}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="gh-modal__close"
+            onClick={onClose}
+            aria-label={closeLabel}
+          >
             ×
-          </button>
+          </Button>
         </header>
         <div className="gh-modal__body">
           {children}

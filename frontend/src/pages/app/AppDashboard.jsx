@@ -7,6 +7,7 @@ import { formatSensorValue } from "../../utils/formatters";
 import PlantAvatar from "../../components/plant-avatar/PlantAvatar";
 import { getStageFromPlantAgeDays } from "../../components/plant-avatar/plantStageFromAge";
 import SensorPill from "../../components/ui/SensorPill";
+import Button from "../../components/ui/Button";
 import AppPageState from "../../components/layout/AppPageState";
 import "./AppDashboard.css";
 
@@ -172,21 +173,21 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
 
       <div className="dashboard-plant-card__footer">
         <div className="dashboard-plant-card__actions">
-          <button
+          <Button
             type="button"
-            className="dashboard-plant-card__action-btn"
+            variant="secondary"
             onClick={handleOpenWatering}
             disabled={!primaryDevice}
           >
             Полив
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="dashboard-plant-card__action-btn"
+            variant="secondary"
             onClick={() => onOpenJournal?.(plant.id)}
           >
             Журнал
-          </button>
+          </Button>
           <Link className="dashboard-plant-card__link" to="/app/plants">
             Перейти →
           </Link>

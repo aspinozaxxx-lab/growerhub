@@ -24,22 +24,3 @@
   gap: 10px;
   margin-top: 8px;
 }
-
-.modal__btn {
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.08);
-  color: #e2e8f0;
-  cursor: pointer;
-}
-
-.modal__btn--primary {
-  border-color: rgba(95, 212, 145, 0.6);
-  background: rgba(95, 212, 145, 0.16);
-}
-
-.modal__btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}

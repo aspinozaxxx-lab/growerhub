@@ -5,6 +5,7 @@ import { useAuth } from '../../features/auth/AuthContext';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppGrid from '../../components/layout/AppGrid';
 import FormField from '../../components/ui/FormField';
+import Button from '../../components/ui/Button';
 import './AppProfile.css';
 
 function AppProfile() {
@@ -196,9 +197,9 @@ function AppProfile() {
             <span>{user.is_active ? 'Активен' : 'Заблокирован'}</span>
           </div>
           <div className="profile-actions">
-            <button type="button" className="logout-button" onClick={handleLogout}>
+            <Button type="button" variant="secondary" onClick={handleLogout}>
               Выйти
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -224,33 +225,33 @@ function AppProfile() {
                 </div>
                 <div className="profile-auth-actions">
                   {!localMethods?.active ? (
-                    <button
+                    <Button
                       type="button"
-                      className="profile-auth-button"
+                      variant="secondary"
                       onClick={() => setShowSetLocalForm((prev) => !prev)}
                       disabled={updatingLocal || isLoadingLink || Boolean(unlinkingProvider)}
                     >
                       Установить пароль
-                    </button>
+                    </Button>
                   ) : (
                     <>
-                      <button
+                      <Button
                         type="button"
-                        className="profile-auth-button"
+                        variant="secondary"
                         onClick={() => setShowChangePasswordForm((prev) => !prev)}
                         disabled={changingPassword || isLoadingLink || Boolean(unlinkingProvider)}
                       >
                         Сменить пароль
-                      </button>
+                      </Button>
                       {localMethods?.can_delete ? (
-                        <button
+                        <Button
                           type="button"
-                          className="profile-auth-button danger"
+                          variant="danger"
                           onClick={() => handleUnlink('local')}
                           disabled={unlinkingProvider === 'local'}
                         >
                           {unlinkingProvider === 'local' ? 'Удаляем...' : 'Удалить локальный вход'}
-                        </button>
+                        </Button>
                       ) : null}
                     </>
                   )}
@@ -290,17 +291,17 @@ function AppProfile() {
                     />
                   </FormField>
                   <div className="profile-auth-actions">
-                    <button type="submit" className="profile-auth-button" disabled={updatingLocal}>
+                    <Button type="submit" variant="primary" disabled={updatingLocal}>
                       {updatingLocal ? 'Сохраняем...' : 'Сохранить'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
-                      className="profile-auth-button secondary"
+                      variant="secondary"
                       onClick={() => setShowSetLocalForm(false)}
                       disabled={updatingLocal}
                     >
                       Отмена
-                    </button>
+                    </Button>
                   </div>
                 </form>
               ) : null}
@@ -338,17 +339,17 @@ function AppProfile() {
                     />
                   </FormField>
                   <div className="profile-auth-actions">
-                    <button type="submit" className="profile-auth-button" disabled={changingPassword}>
+                    <Button type="submit" variant="primary" disabled={changingPassword}>
                       {changingPassword ? 'Обновляем...' : 'Сменить пароль'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
-                      className="profile-auth-button secondary"
+                      variant="secondary"
                       onClick={() => setShowChangePasswordForm(false)}
                       disabled={changingPassword}
                     >
                       Отмена
-                    </button>
+                    </Button>
                   </div>
                 </form>
               ) : null}
@@ -361,24 +362,24 @@ function AppProfile() {
                 <div className="profile-auth-actions">
                   {googleMethods?.linked ? (
                     googleMethods?.can_delete ? (
-                      <button
+                      <Button
                         type="button"
-                        className="profile-auth-button danger"
+                        variant="danger"
                         onClick={() => handleUnlink('google')}
                         disabled={unlinkingProvider === 'google'}
                         >
                           {unlinkingProvider === 'google' ? 'Отвязываем...' : 'Отвязать'}
-                        </button>
+                        </Button>
                       ) : null
                     ) : (
-                      <button
+                      <Button
                         type="button"
-                        className="profile-auth-button"
+                        variant="primary"
                         onClick={() => handleLink('google')}
                         disabled={isLoadingLink || loadingMethods}
                       >
                         {linkingProvider === 'google' ? 'Открываем...' : 'Привязать Google'}
-                      </button>
+                      </Button>
                     )}
                 </div>
               </div>
@@ -391,24 +392,24 @@ function AppProfile() {
                 <div className="profile-auth-actions">
                   {yandexMethods?.linked ? (
                     yandexMethods?.can_delete ? (
-                      <button
+                      <Button
                         type="button"
-                        className="profile-auth-button danger"
+                        variant="danger"
                         onClick={() => handleUnlink('yandex')}
                         disabled={unlinkingProvider === 'yandex'}
                         >
                           {unlinkingProvider === 'yandex' ? 'Отвязываем...' : 'Отвязать'}
-                        </button>
+                        </Button>
                       ) : null
                     ) : (
-                      <button
+                      <Button
                         type="button"
-                        className="profile-auth-button"
+                        variant="primary"
                         onClick={() => handleLink('yandex')}
                         disabled={isLoadingLink || loadingMethods}
                       >
                         {linkingProvider === 'yandex' ? 'Открываем...' : 'Привязать Яндекс'}
-                      </button>
+                      </Button>
                     )}
                 </div>
               </div>
@@ -423,4 +424,3 @@ function AppProfile() {
 }
 
 export default AppProfile;
-

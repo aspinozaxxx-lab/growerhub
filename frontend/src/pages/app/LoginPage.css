@@ -38,28 +38,6 @@
   font-size: 14px;
 }
 
-.login-submit {
-  margin-top: 2px;
-  padding: 11px;
-  border: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #5fd491, #43b674);
-  color: #0b1524;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.05s ease, box-shadow 0.1s ease;
-}
-
-.login-submit:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-.login-submit:not(:disabled):hover {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 26px rgba(95, 212, 145, 0.25);
-}
-
 .login-divider {
   text-align: center;
   color: #8aa3c6;

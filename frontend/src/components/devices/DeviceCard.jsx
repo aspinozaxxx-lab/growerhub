@@ -3,6 +3,7 @@ import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext
 import { resolveDeviceAsset } from './assets';
 import { formatSensorValue } from '../../utils/formatters';
 import SensorPill from '../ui/SensorPill';
+import Button from '../ui/Button';
 import './DeviceCard.css';
 
 // Translitem: DeviceCard - komponent otobrazheniya ustrojstva s dvumya variantami (default dlya stranicy ustrojstv, plant dlya vlozheniya v kartochku rastenija).
@@ -41,9 +42,9 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
           <div className="device-card__subtitle">{device.device_id}</div>
           <StatusBadge isOnline={device.is_online} />
         </div>
-        <button type="button" className="device-card__edit" onClick={handleEdit} aria-label="Редактировать">
-          ✏
-        </button>
+        <Button type="button" variant="ghost" size="sm" className="device-card__edit" onClick={handleEdit} aria-label="Редактировать">
+          ?
+        </Button>
       </div>
 
       <div className="device-card__body">
@@ -95,14 +96,16 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
           <StatusBadge isOnline={device.is_online} />
         </div>
         {onEdit && (
-          <button
+          <Button
             type="button"
-            className="device-card__edit device-card__edit--ghost"
+            variant="ghost"
+            size="sm"
+            className="device-card__edit"
             onClick={handleEdit}
             aria-label="Редактировать"
           >
             ??
-          </button>
+          </Button>
         )}
       </div>
       <div className="device-card__plant-metrics">

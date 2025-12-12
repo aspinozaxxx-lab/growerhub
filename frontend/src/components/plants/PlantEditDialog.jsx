@@ -12,6 +12,7 @@ import { assignDeviceToPlant, unassignDeviceFromPlant } from '../../api/devices'
 import DeviceCard from '../devices/DeviceCard';
 import FormField from '../ui/FormField';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 import './PlantEditDialog.css';
 
 const STAGE_LABELS = {
@@ -253,27 +254,17 @@ function PlantEditDialog({
   const footer = (
     <div className="plant-dialog__footer">
       {mode === 'edit' && plant?.id && (
-        <button
-          type="button"
-          className="plant-dialog__btn plant-dialog__btn--danger"
-          onClick={handleDeletePlant}
-          disabled={isSaving}
-        >
+        <Button variant="danger" onClick={handleDeletePlant} disabled={isSaving}>
           Удалить
-        </button>
+        </Button>
       )}
       <div className="plant-dialog__footer-actions">
-        <button type="button" className="plant-dialog__btn" onClick={onClose} disabled={isSaving}>
+        <Button variant="secondary" onClick={onClose} disabled={isSaving}>
           Отмена
-        </button>
-        <button
-          type="button"
-          className="plant-dialog__btn plant-dialog__btn--primary"
-          onClick={handleSave}
-          disabled={isSaving}
-        >
+        </Button>
+        <Button variant="primary" onClick={handleSave} disabled={isSaving}>
           {isSaving ? 'Сохранение...' : 'Сохранить'}
-        </button>
+        </Button>
       </div>
     </div>
   );

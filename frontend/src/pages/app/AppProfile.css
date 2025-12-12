@@ -35,21 +35,6 @@
   justify-content: flex-end;
 }
 
-.logout-button {
-  justify-self: start;
-  padding: 10px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: #eef3fb;
-  cursor: pointer;
-}
-
-.logout-button:hover {
-  border-color: rgba(192, 57, 43, 0.4);
-  color: #f6c1b5;
-}
-
 .profile-auth-card h3 {
   margin: 0;
   color: #eef3fb;
@@ -90,35 +75,6 @@
   gap: 8px;
 }
 
-.profile-auth-button {
-  padding: 9px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: #eef3fb;
-  cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease;
-}
-
-.profile-auth-button:hover {
-  border-color: rgba(255, 255, 255, 0.25);
-}
-
-.profile-auth-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-.profile-auth-button.secondary {
-  background: transparent;
-}
-
-.profile-auth-button.danger {
-  border-color: rgba(192, 57, 43, 0.5);
-  color: #f6c1b5;
-}
-
 .profile-auth-form {
   display: grid;
   gap: 8px;
@@ -142,4 +98,3 @@
   color: #b6e4c1;
   font-size: 14px;
 }
-

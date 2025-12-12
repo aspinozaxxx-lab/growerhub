@@ -8,6 +8,7 @@ import PlantEditDialog from '../../components/plants/PlantEditDialog';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import AppGrid from '../../components/layout/AppGrid';
+import Button from '../../components/ui/Button';
 import './AppPlants.css';
 
 // Translitem: Stranica spiska rastenij s kartochkami i rabochim dialogom redaktirovaniya.
@@ -72,9 +73,9 @@ function AppPlants() {
       <AppPageHeader
         title="Растения"
         right={(
-          <button type="button" className="app-plants__add" onClick={handleOpenCreate}>
+          <Button type="button" variant="primary" onClick={handleOpenCreate}>
             Добавить растение
-          </button>
+          </Button>
         )}
       />
 

@@ -3,12 +3,3 @@
   flex-direction: column;
   gap: 12px;
 }
-
-.app-plants__add {
-  background: rgba(52, 211, 153, 0.15);
-  border: 1px solid rgba(52, 211, 153, 0.4);
-  color: #bbf7d0;
-  border-radius: 10px;
-  padding: 8px 12px;
-  cursor: pointer;
-}

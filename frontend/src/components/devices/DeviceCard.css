@@ -34,15 +34,6 @@
   gap: 6px;
 }
 
-.device-card__edit {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 10px;
-  padding: 6px 10px;
-  color: #e2e8f0;
-  cursor: pointer;
-}
-
 .device-card__body {
   display: flex;
   gap: 10px;
@@ -113,13 +104,6 @@
 
 .device-card--plant .device-card__status {
   font-size: 12px;
-}
-
-.device-card__edit--ghost {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #e2e8f0;
-  padding: 4px 8px;
 }
 
 .device-card__plant-metrics {

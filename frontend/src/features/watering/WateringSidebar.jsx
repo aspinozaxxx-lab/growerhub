@@ -4,6 +4,7 @@ import { startManualWatering, getManualWateringStatus } from '../../api/manualWa
 import { useWateringSidebar } from './WateringSidebarContext';
 import FormField from '../../components/ui/FormField';
 import SidePanel from '../../components/ui/SidePanel';
+import Button from '../../components/ui/Button';
 import '../sensors/SensorStatsSidebar.css';
 import './WateringSidebar.css';
 
@@ -113,15 +114,9 @@ function WateringSidebar() {
       {error && <div className="sensor-sidebar__state sensor-sidebar__state--error">{error}</div>}
       {success && <div className="sensor-sidebar__state">Poliv zapushchen</div>}
 
-      <button
-        type="button"
-        className="hero-cta"
-        onClick={handleStart}
-        disabled={isSubmitting}
-        style={{ width: '100%', marginTop: 12 }}
-      >
+      <Button variant="primary" onClick={handleStart} disabled={isSubmitting} style={{ width: '100%', marginTop: 12 }}>
         {isSubmitting ? 'Zapusk...' : 'Nachat poliv'}
-      </button>
+      </Button>
     </SidePanel>
   );
 }

@@ -2,6 +2,7 @@
 import { fetchDeviceSettings } from '../../api/devices';
 import FormField from '../ui/FormField';
 import Modal from '../ui/Modal';
+import Button from '../ui/Button';
 import './EditDeviceModal.css';
 
 function EditDeviceModal({
@@ -97,12 +98,17 @@ function EditDeviceModal({
 
   const footer = (
     <div className="modal__actions">
-      <button type="button" className="modal__btn" onClick={onClose} disabled={isSaving}>
+      <Button variant="secondary" onClick={onClose} disabled={isSaving}>
         Отмена
-      </button>
-      <button type="submit" form="edit-device-form" className="modal__btn modal__btn--primary" disabled={isSaving || isLoadingSettings || !settings}>
+      </Button>
+      <Button
+        type="submit"
+        form="edit-device-form"
+        variant="primary"
+        disabled={isSaving || isLoadingSettings || !settings}
+      >
         {isSaving ? 'Сохраняем...' : 'Сохранить'}
-      </button>
+      </Button>
     </div>
   );
 

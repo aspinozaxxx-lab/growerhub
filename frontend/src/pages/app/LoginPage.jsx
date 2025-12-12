@@ -2,6 +2,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
 import FormField from '../../components/ui/FormField';
+import Button from '../../components/ui/Button';
 import './LoginPage.css';
 
 function LoginPage() {
@@ -95,9 +96,9 @@ function LoginPage() {
 
           {error ? <div className="login-error">{error}</div> : null}
 
-          <button type="submit" className="login-submit" disabled={isLoading}>
+          <Button type="submit" variant="primary" disabled={isLoading}>
             {isLoading ? 'Входим...' : 'Войти'}
-          </button>
+          </Button>
         </form>
 
         <div className="login-divider">или продолжить через SSO</div>
