@@ -31,7 +31,7 @@
   cursor: not-allowed;
 }
 
-.gh-help {
+.gh-hint {
   font-size: 13px;
   color: var(--text-3);
 }

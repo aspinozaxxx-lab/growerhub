@@ -10,6 +10,7 @@ import {
 } from '../../api/plants';
 import { assignDeviceToPlant, unassignDeviceFromPlant } from '../../api/devices';
 import DeviceCard from '../devices/DeviceCard';
+import FormField from '../ui/FormField';
 import './PlantEditDialog.css';
 
 const STAGE_LABELS = {
@@ -262,36 +263,36 @@ function PlantEditDialog({
           {error && <div className="plant-dialog__error">{error}</div>}
 
           <div className="plant-dialog__body">
-            <label className="plant-dialog__field">
-              <span className="plant-dialog__label">Название</span>
+            <FormField label="Название" htmlFor="plant-name" className="plant-dialog__field">
               <input
+                id="plant-name"
                 value={localPlant.name}
                 onChange={(e) => setLocalPlant((prev) => ({ ...prev, name: e.target.value }))}
                 placeholder="Basil"
               />
-            </label>
+            </FormField>
 
-            <label className="plant-dialog__field">
-              <span className="plant-dialog__label">Тип растения</span>
+            <FormField label="Тип растения" htmlFor="plant-type" className="plant-dialog__field">
               <input
+                id="plant-type"
                 value={localPlant.plant_type || ''}
                 onChange={(e) => setLocalPlant((prev) => ({ ...prev, plant_type: e.target.value }))}
                 placeholder="flowering"
               />
-            </label>
+            </FormField>
 
-            <label className="plant-dialog__field">
-              <span className="plant-dialog__label">Сорт</span>
+            <FormField label="Сорт" htmlFor="plant-strain" className="plant-dialog__field">
               <input
+                id="plant-strain"
                 value={localPlant.strain || ''}
                 onChange={(e) => setLocalPlant((prev) => ({ ...prev, strain: e.target.value }))}
                 placeholder="Mint"
               />
-            </label>
+            </FormField>
 
-            <label className="plant-dialog__field">
-              <span className="plant-dialog__label">Стадия роста</span>
+            <FormField label="Стадия роста" htmlFor="growth-stage" className="plant-dialog__field">
               <select
+                id="growth-stage"
                 value={localPlant.growth_stage || ''}
                 onChange={(e) => setLocalPlant((prev) => ({ ...prev, growth_stage: e.target.value || '' }))}
               >
@@ -299,21 +300,21 @@ function PlantEditDialog({
                   <option key={opt.value || 'auto'} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
-            </label>
+            </FormField>
 
-            <label className="plant-dialog__field">
-              <span className="plant-dialog__label">Дата посадки</span>
+            <FormField label="Дата посадки" htmlFor="planted-at" className="plant-dialog__field">
               <input
+                id="planted-at"
                 type="datetime-local"
                 value={localPlant.planted_at || ''}
                 onChange={(e) => setLocalPlant((prev) => ({ ...prev, planted_at: e.target.value }))}
               />
-            </label>
+            </FormField>
 
-            <div className="plant-dialog__field">
-              <span className="plant-dialog__label">Группа</span>
-              <div className="plant-dialog__group-row">
+            <div className="plant-dialog__group-row">
+              <FormField label="Группа" htmlFor="plant-group" className="plant-dialog__field">
                 <select
+                  id="plant-group"
                   value={localPlant.plant_group_id ?? ''}
                   onChange={(e) => handleGroupChange(e.target.value)}
                 >
@@ -322,11 +323,11 @@ function PlantEditDialog({
                     <option key={group.id} value={group.id}>{group.name}</option>
                   ))}
                 </select>
-                <div className="plant-dialog__group-actions">
-                  <button type="button" onClick={handleCreateGroup}>Создать</button>
-                  <button type="button" onClick={handleRenameGroup}>Переименовать</button>
-                  <button type="button" onClick={handleDeleteGroup}>Удалить</button>
-                </div>
+              </FormField>
+              <div className="plant-dialog__group-actions">
+                <button type="button" onClick={handleCreateGroup}>Создать</button>
+                <button type="button" onClick={handleRenameGroup}>Переименовать</button>
+                <button type="button" onClick={handleDeleteGroup}>Удалить</button>
               </div>
             </div>
           </div>
@@ -409,6 +410,5 @@ function PlantEditDialog({
 }
 
 export default PlantEditDialog;
-
 
 

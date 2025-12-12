@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { fetchDeviceSettings } from '../../api/devices';
+import FormField from '../ui/FormField';
 import './EditDeviceModal.css';
 
 function EditDeviceModal({
@@ -98,19 +99,19 @@ function EditDeviceModal({
       <div className="modal">
         <div className="modal__header">
           <div>
-            <div className="modal__title">Редактирование устройства</div>
+            <div className="modal__title">Настройки устройства</div>
             <div className="modal__subtitle">{device.device_id}</div>
           </div>
           <button type="button" className="modal__close" onClick={onClose} aria-label="Закрыть">
-            ✕
+            ×
           </button>
         </div>
         <form className="modal__body" onSubmit={handleSubmit}>
-          {isLoadingSettings && <div className="modal__state">Загрузка настроек...</div>}
+          {isLoadingSettings && <div className="modal__state">Загружаем настройки...</div>}
           {settingsError && <div className="modal__error">{settingsError}</div>}
-          <label className="form-control">
-            <div className="form-control__label">Скорость полива (л/ч)</div>
+          <FormField label="Скорость полива (л/ч)" htmlFor="watering-speed">
             <input
+              id="watering-speed"
               type="number"
               step="0.1"
               min="0"
@@ -119,24 +120,25 @@ function EditDeviceModal({
                 setWateringSpeed(e.target.value);
                 setSettings((prev) => (prev ? { ...prev, watering_speed_lph: e.target.value === '' ? null : Number(e.target.value) } : prev));
               }}
-              placeholder="например, 1.5"
+              placeholder="Например, 1.5"
               disabled={isLoadingSettings}
             />
-          </label>
+          </FormField>
 
-          <label className="form-control">
-            <div className="form-control__label">plant_ids (CSV)</div>
+          <FormField
+            label="plant_ids (CSV)"
+            htmlFor="plant-csv"
+            hint={`Доступные id: ${plants.map((p) => `${p.id} (${plantMap.get(p.id) || ''})`).join(', ')}`}
+          >
             <input
+              id="plant-csv"
               type="text"
               value={plantCsv}
               onChange={(e) => setPlantCsv(e.target.value)}
               placeholder="1,2,3"
               disabled={isLoadingSettings}
             />
-            <div className="form-control__hint">
-              Доступные id: {plants.map((p) => `${p.id} (${plantMap.get(p.id) || ''})`).join(', ')}
-            </div>
-          </label>
+          </FormField>
 
           {error && <div className="modal__error">{error}</div>}
           {!error && settingsError && <div className="modal__error">{settingsError}</div>}
@@ -146,7 +148,7 @@ function EditDeviceModal({
               Отмена
             </button>
             <button type="submit" className="modal__btn modal__btn--primary" disabled={isSaving || isLoadingSettings || !settings}>
-              {isSaving ? 'Сохранение...' : 'Сохранить'}
+              {isSaving ? 'Сохраняем...' : 'Сохранить'}
             </button>
           </div>
         </form>

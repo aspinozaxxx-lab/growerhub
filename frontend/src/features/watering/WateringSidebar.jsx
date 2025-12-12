@@ -2,6 +2,7 @@
 import { useAuth } from '../auth/AuthContext';
 import { startManualWatering, getManualWateringStatus } from '../../api/manualWatering';
 import { useWateringSidebar } from './WateringSidebarContext';
+import FormField from '../../components/ui/FormField';
 import '../sensors/SensorStatsSidebar.css';
 import './WateringSidebar.css';
 
@@ -82,14 +83,14 @@ function WateringSidebar() {
             onClick={closeWateringSidebar}
             aria-label="Zakryt nastroiki poliva"
           >
-            ✕
+            ?
           </button>
         </header>
 
         <div className="sensor-sidebar__body">
-          <label className="watering-form-control">
-            <div className="watering-form-control__label">Obem vody, l</div>
+          <FormField label="Obem vody, l" htmlFor="water-volume">
             <input
+              id="water-volume"
               type="range"
               min="0.1"
               max="2.0"
@@ -97,29 +98,29 @@ function WateringSidebar() {
               value={waterVolume}
               onChange={(e) => setWaterVolume(Number(e.target.value))}
             />
-            <div className="watering-form-control__value">{waterVolume.toFixed(1)} l</div>
-          </label>
+          </FormField>
+          <div className="gh-hint">{waterVolume.toFixed(1)} l</div>
 
-          <label className="watering-form-control">
-            <div className="watering-form-control__label">pH (opcionalno)</div>
+          <FormField label="pH (opcionalno)" htmlFor="water-ph">
             <input
+              id="water-ph"
               type="number"
               step="0.1"
               value={ph}
               onChange={(e) => setPh(e.target.value)}
               placeholder="6.5"
             />
-          </label>
+          </FormField>
 
-          <label className="watering-form-control">
-            <div className="watering-form-control__label">Udobreniya na litr (opcionalno)</div>
+          <FormField label="Udobreniya na litr (opcionalno)" htmlFor="water-fertilizers">
             <textarea
+              id="water-fertilizers"
               rows={3}
               value={fertilizers}
               onChange={(e) => setFertilizers(e.target.value)}
               placeholder="NPK 10-10-10"
             />
-          </label>
+          </FormField>
 
           {error && <div className="sensor-sidebar__state sensor-sidebar__state--error">{error}</div>}
           {success && <div className="sensor-sidebar__state">Poliv zapushchen</div>}

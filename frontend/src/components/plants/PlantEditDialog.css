@@ -64,30 +64,15 @@
   gap: 6px;
 }
 
-.plant-dialog__label {
-  font-size: 12px;
-  color: #8aa3c6;
-}
-
-.plant-dialog__body input {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 8px 10px;
-  color: #eef3fb;
-}
-
-.plant-dialog select {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 8px 10px;
-  color: #eef3fb;
+.plant-dialog .gh-control {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  color: var(--text-1);
 }
 
 .plant-dialog select option {
-  background: #0f1f35;
-  color: #eef3fb;
+  background: var(--surface-1);
+  color: var(--text-1);
 }
 
 .plant-dialog__error {
@@ -238,5 +223,4 @@
     overflow-y: visible;
   }
 }
-
 

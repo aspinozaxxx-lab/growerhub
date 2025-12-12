@@ -2,7 +2,7 @@
 import './FormField.css';
 import './form-controls.css';
 
-function FormField({ label, error, hint, children, htmlFor, layout = 'column' }) {
+function FormField({ label, error, hint, children, htmlFor, layout = 'column', className }) {
   const targetId = htmlFor || (React.isValidElement(children) ? children.props.id : undefined);
   const control = React.isValidElement(children)
     ? React.cloneElement(children, {
@@ -11,11 +11,19 @@ function FormField({ label, error, hint, children, htmlFor, layout = 'column' })
       })
     : children;
 
+  const wrapperClass = [
+    'gh-field',
+    layout === 'row' ? 'gh-row' : '',
+    className || '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div className={`gh-field${layout === 'row' ? ' gh-row' : ''}`}>
+    <div className={wrapperClass}>
       {label ? <label className="gh-label" htmlFor={targetId}>{label}</label> : null}
       {control}
-      {hint ? <div className="gh-help">{hint}</div> : null}
+      {hint ? <div className="gh-hint">{hint}</div> : null}
       {error ? <div className="gh-error">{error}</div> : null}
     </div>
   );
