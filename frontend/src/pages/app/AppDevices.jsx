@@ -112,12 +112,12 @@ function AppDevices() {
 
   return (
     <div className="app-devices">
-      <AppPageHeader title="?????'?????????'????" />
-      {isLoading && <AppPageState kind="loading" title="?-??????????????..." />}
+      <AppPageHeader title="Устройства" />
+      {isLoading && <AppPageState kind="loading" title="Загрузка..." />}
       {error && <AppPageState kind="error" title={error} />}
 
       {!isLoading && !error && devices.length === 0 && (
-        <AppPageState kind="empty" title="???????? ?????' ?????'?????????'??." />
+        <AppPageState kind="empty" title="Пока нет ваших устройств." />
       )}
 
       <AppGrid min={280}>
