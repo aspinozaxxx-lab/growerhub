@@ -5,6 +5,9 @@ import { fetchMyDevices } from '../../api/devices';
 import { useAuth } from '../../features/auth/AuthContext';
 import PlantCard from '../../components/plants/PlantCard';
 import PlantEditDialog from '../../components/plants/PlantEditDialog';
+import AppPageHeader from '../../components/layout/AppPageHeader';
+import AppPageState from '../../components/layout/AppPageState';
+import AppGrid from '../../components/layout/AppGrid';
 import './AppPlants.css';
 
 // Translitem: Stranica spiska rastenij s kartochkami i rabochim dialogom redaktirovaniya.
@@ -66,22 +69,24 @@ function AppPlants() {
 
   return (
     <div className="app-plants">
-      <div className="app-plants__header">
-        <h2>Растения</h2>
-        <button type="button" className="app-plants__add" onClick={handleOpenCreate}>
-          Добавить растение
-        </button>
-      </div>
+      <AppPageHeader
+        title="Растения"
+        right={(
+          <button type="button" className="app-plants__add" onClick={handleOpenCreate}>
+            Добавить растение
+          </button>
+        )}
+      />
 
-      {isLoading && <div className="app-plants__state">Загрузка...</div>}
-      {error && <div className="app-plants__state app-plants__state--error">{error}</div>}
+      {isLoading && <AppPageState kind="loading" title="Загрузка..." />}
+      {error && <AppPageState kind="error" title={error} />}
 
       {!isLoading && !error && plants.length === 0 && (
-        <div className="app-plants__state">Растения не найдены</div>
+        <AppPageState kind="empty" title="Растения не найдены" />
       )}
 
       {!isLoading && !error && plants.length > 0 && (
-        <div className="app-plants__grid">
+        <AppGrid min={320}>
           {plants.map((plant) => (
             <PlantCard
               key={plant.id}
@@ -90,7 +95,7 @@ function AppPlants() {
               onOpenJournal={handleOpenJournal}
             />
           ))}
-        </div>
+        </AppGrid>
       )}
 
       <PlantEditDialog

@@ -1,0 +1,22 @@
+﻿.app-page-state {
+  padding: 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-1);
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.app-page-state__title {
+  font-weight: 600;
+}
+
+.app-page-state__hint {
+  color: var(--text-3);
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.app-page-state--error {
+  color: var(--danger);
+  border-color: var(--danger);
+}

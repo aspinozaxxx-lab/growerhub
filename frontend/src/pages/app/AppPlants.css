@@ -4,12 +4,6 @@
   gap: 12px;
 }
 
-.app-plants__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .app-plants__add {
   background: rgba(52, 211, 153, 0.15);
   border: 1px solid rgba(52, 211, 153, 0.4);
@@ -18,27 +12,3 @@
   padding: 8px 12px;
   cursor: pointer;
 }
-
-.app-plants__state {
-  padding: 10px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #e2e8f0;
-}
-
-.app-plants__state--error {
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  color: #fecaca;
-}
-
-.app-plants__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 12px;
-}
-
-.app-plants__header h2 {
-  margin: 0;
-  color: #f6fbff;
-}
-

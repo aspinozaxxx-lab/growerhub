@@ -1,9 +1,13 @@
+﻿
 import React, { useEffect, useMemo, useState } from 'react';
 import DeviceCard from '../../components/devices/DeviceCard';
 import EditDeviceModal from '../../components/devices/EditDeviceModal';
 import { fetchMyDevices, updateDeviceSettings, assignDeviceToPlant, unassignDeviceFromPlant } from '../../api/devices';
 import { fetchPlants } from '../../api/plants';
 import { useAuth } from '../../features/auth/AuthContext';
+import AppPageHeader from '../../components/layout/AppPageHeader';
+import AppPageState from '../../components/layout/AppPageState';
+import AppGrid from '../../components/layout/AppGrid';
 import './AppDevices.css';
 
 function AppDevices() {
@@ -108,17 +112,15 @@ function AppDevices() {
 
   return (
     <div className="app-devices">
-      <div className="app-devices__header">
-        <h2>Устройства</h2>
-      </div>
-      {isLoading && <div className="app-devices__state">Загрузка...</div>}
-      {error && <div className="app-devices__state app-devices__state--error">{error}</div>}
+      <AppPageHeader title="?????'?????????'????" />
+      {isLoading && <AppPageState kind="loading" title="?-??????????????..." />}
+      {error && <AppPageState kind="error" title={error} />}
 
       {!isLoading && !error && devices.length === 0 && (
-        <div className="app-devices__state">Пока нет устройств.</div>
+        <AppPageState kind="empty" title="???????? ?????' ?????'?????????'??." />
       )}
 
-      <div className="app-devices__grid">
+      <AppGrid min={280}>
         {devices.map((device) => (
           <DeviceCard
             key={device.id}
@@ -128,7 +130,7 @@ function AppDevices() {
             variant="default"
           />
         ))}
-      </div>
+      </AppGrid>
 
       {modalDevice && (
         <EditDeviceModal
