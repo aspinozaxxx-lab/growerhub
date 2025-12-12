@@ -1,0 +1,81 @@
+﻿.gh-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gh-modal__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.gh-modal__panel {
+  position: relative;
+  background: var(--surface-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  padding: 16px;
+  width: min(640px, 95vw);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--text-1);
+}
+
+.gh-modal__panel--sm {
+  width: min(480px, 92vw);
+}
+
+.gh-modal__panel--lg {
+  width: min(760px, 96vw);
+}
+
+.gh-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.gh-modal__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.gh-modal__close {
+  background: transparent;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.gh-modal__close:hover {
+  border-color: var(--accent);
+  color: var(--text-1);
+}
+
+.gh-modal__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gh-modal__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}

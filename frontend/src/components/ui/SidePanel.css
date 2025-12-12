@@ -1,0 +1,120 @@
+﻿.gh-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.gh-panel__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: all;
+  border: none;
+  padding: 0;
+}
+
+.gh-panel__drawer {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: min(420px, 100vw);
+  background: var(--surface-1);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-2);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+  gap: 12px;
+  pointer-events: all;
+  color: var(--text-1);
+}
+
+.gh-panel__drawer--sm {
+  width: min(360px, 100vw);
+}
+
+.gh-panel__drawer--lg {
+  width: min(540px, 100vw);
+}
+
+.gh-panel--left .gh-panel__drawer {
+  left: 0;
+  transform: translateX(-100%);
+}
+
+.gh-panel--right .gh-panel__drawer {
+  right: 0;
+}
+
+.gh-panel.is-open .gh-panel__overlay {
+  opacity: 1;
+}
+
+.gh-panel.is-open.gh-panel--right .gh-panel__drawer {
+  transform: translateX(0);
+}
+
+.gh-panel.is-open.gh-panel--left .gh-panel__drawer {
+  transform: translateX(0);
+}
+
+.gh-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.gh-panel__title {
+  font-weight: 700;
+  color: var(--text-1);
+  margin-bottom: 2px;
+}
+
+.gh-panel__subtitle {
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.gh-panel__close {
+  background: transparent;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-md);
+  width: 34px;
+  height: 34px;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.gh-panel__close:hover {
+  border-color: var(--accent);
+  color: var(--text-1);
+}
+
+.gh-panel__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gh-panel__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .gh-panel__drawer {
+    width: 100%;
+    border-radius: 0;
+  }
+}
