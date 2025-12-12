@@ -1,0 +1,61 @@
+﻿.sensor-pill {
+  border: 1px solid var(--border-1);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  color: var(--text-1);
+  cursor: default;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  text-align: left;
+}
+
+.sensor-pill.is-clickable {
+  cursor: pointer;
+}
+
+.sensor-pill.is-clickable:hover:not(.is-disabled) {
+  border-color: rgba(95, 212, 145, 0.4);
+  background: rgba(95, 212, 145, 0.08);
+  transform: translateY(-1px);
+}
+
+.sensor-pill.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sensor-pill.is-highlight {
+  border-color: rgba(95, 212, 145, 0.6);
+  box-shadow: 0 0 0 1px rgba(95, 212, 145, 0.2) inset;
+}
+
+.sensor-pill__icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.sensor-pill__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sensor-pill__label {
+  font-size: 12px;
+  color: var(--text-3);
+  line-height: 1.2;
+}
+
+.sensor-pill__value {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.sensor-pill__unit {
+  margin-left: 4px;
+  font-weight: 600;
+}

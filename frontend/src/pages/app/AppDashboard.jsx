@@ -6,6 +6,7 @@ import { useWateringSidebar } from "../../features/watering/WateringSidebarConte
 import { formatSensorValue } from "../../utils/formatters";
 import PlantAvatar from "../../components/plant-avatar/PlantAvatar";
 import { getStageFromPlantAgeDays } from "../../components/plant-avatar/plantStageFromAge";
+import SensorPill from "../../components/ui/SensorPill";
 import "./AppDashboard.css";
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
@@ -30,15 +31,13 @@ function MetricPill({ label, value, metric, deviceId, onOpenStats, highlight = f
     }
   };
   return (
-    <button
-      type="button"
-      className={`metric-pill ${highlight ? "is-highlight" : ""}`}
+    <SensorPill
+      label={label}
+      value={display}
       onClick={handleClick}
+      isHighlight={highlight}
       disabled={!deviceId || !metric}
-    >
-      <span className="metric-pill__label">{label}</span>
-      <span className="metric-pill__value">{display}</span>
-    </button>
+    />
   );
 }
 
