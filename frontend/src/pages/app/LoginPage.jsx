@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
+import FormField from '../../components/ui/FormField';
 import './LoginPage.css';
 
 function LoginPage() {
@@ -68,29 +69,29 @@ function LoginPage() {
       <div className="login-card">
         <h1>Вход в GrowerHub</h1>
         <form className="login-form" onSubmit={handleSubmit}>
-          <label className="login-label" htmlFor="login-email">Email</label>
-          <input
-            id="login-email"
-            className="login-input"
-            type="email"
-            name="email"
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
+          <FormField label="Email" htmlFor="login-email">
+            <input
+              id="login-email"
+              type="email"
+              name="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+          </FormField>
 
-          <label className="login-label" htmlFor="login-password">Пароль</label>
-          <input
-            id="login-password"
-            className="login-input"
-            type="password"
-            name="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
+          <FormField label="Пароль" htmlFor="login-password">
+            <input
+              id="login-password"
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+          </FormField>
 
           {error ? <div className="login-error">{error}</div> : null}
 

@@ -1,0 +1,48 @@
+﻿.gh-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gh-label {
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.gh-control {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.gh-control:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
+}
+
+.gh-control:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gh-help {
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.gh-error {
+  font-size: 13px;
+  color: var(--danger);
+}
+
+.gh-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

@@ -1,0 +1,26 @@
+﻿.gh-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gh-label {
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.gh-help {
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.gh-error {
+  font-size: 13px;
+  color: var(--danger);
+}
+
+.gh-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

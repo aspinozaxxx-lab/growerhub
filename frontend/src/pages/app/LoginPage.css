@@ -1,4 +1,4 @@
-.login-page {
+﻿.login-page {
   min-height: 70vh;
   display: flex;
   align-items: center;
@@ -27,24 +27,6 @@
 .login-form {
   display: grid;
   gap: 8px;
-}
-
-.login-label {
-  font-size: 14px;
-  color: #c7d7ef;
-}
-
-.login-input {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.03);
-  color: #eef3fb;
-}
-
-.login-input:focus {
-  outline: 2px solid rgba(95, 212, 145, 0.4);
 }
 
 .login-error {

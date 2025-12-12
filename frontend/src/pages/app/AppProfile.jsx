@@ -4,6 +4,7 @@ import { changePassword, fetchAuthMethods, linkSsoMethod, setLocalLogin, unlinkA
 import { useAuth } from '../../features/auth/AuthContext';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppGrid from '../../components/layout/AppGrid';
+import FormField from '../../components/ui/FormField';
 import './AppProfile.css';
 
 function AppProfile() {
@@ -258,33 +259,36 @@ function AppProfile() {
 
               {!localMethods?.active && showSetLocalForm ? (
                 <form className="profile-auth-form" onSubmit={handleSetLocalLogin}>
-                  <label htmlFor="local-email">Email для входа</label>
-                  <input
-                    id="local-email"
-                    type="email"
-                    value={localEmail}
-                    onChange={(event) => setLocalEmail(event.target.value)}
-                    required
-                    disabled={updatingLocal}
-                  />
-                  <label htmlFor="local-password">Новый пароль</label>
-                  <input
-                    id="local-password"
-                    type="password"
-                    value={localPassword}
-                    onChange={(event) => setLocalPassword(event.target.value)}
-                    required
-                    disabled={updatingLocal}
-                  />
-                  <label htmlFor="local-password-confirm">Повторите новый пароль</label>
-                  <input
-                    id="local-password-confirm"
-                    type="password"
-                    value={localPasswordConfirm}
-                    onChange={(event) => setLocalPasswordConfirm(event.target.value)}
-                    required
-                    disabled={updatingLocal}
-                  />
+                  <FormField label="Email для входа" htmlFor="local-email">
+                    <input
+                      id="local-email"
+                      type="email"
+                      value={localEmail}
+                      onChange={(event) => setLocalEmail(event.target.value)}
+                      required
+                      disabled={updatingLocal}
+                    />
+                  </FormField>
+                  <FormField label="Новый пароль" htmlFor="local-password">
+                    <input
+                      id="local-password"
+                      type="password"
+                      value={localPassword}
+                      onChange={(event) => setLocalPassword(event.target.value)}
+                      required
+                      disabled={updatingLocal}
+                    />
+                  </FormField>
+                  <FormField label="Повторите новый пароль" htmlFor="local-password-confirm">
+                    <input
+                      id="local-password-confirm"
+                      type="password"
+                      value={localPasswordConfirm}
+                      onChange={(event) => setLocalPasswordConfirm(event.target.value)}
+                      required
+                      disabled={updatingLocal}
+                    />
+                  </FormField>
                   <div className="profile-auth-actions">
                     <button type="submit" className="profile-auth-button" disabled={updatingLocal}>
                       {updatingLocal ? 'Сохраняем...' : 'Сохранить'}
@@ -303,33 +307,36 @@ function AppProfile() {
 
               {localMethods?.active && showChangePasswordForm ? (
                 <form className="profile-auth-form" onSubmit={handleChangePassword}>
-                  <label htmlFor="current-password">Текущий пароль</label>
-                  <input
-                    id="current-password"
-                    type="password"
-                    value={currentPassword}
-                    onChange={(event) => setCurrentPassword(event.target.value)}
-                    required
-                    disabled={changingPassword}
-                  />
-                  <label htmlFor="new-password">Новый пароль</label>
-                  <input
-                    id="new-password"
-                    type="password"
-                    value={newPassword}
-                    onChange={(event) => setNewPassword(event.target.value)}
-                    required
-                    disabled={changingPassword}
-                  />
-                  <label htmlFor="new-password-confirm">Повторите новый пароль</label>
-                  <input
-                    id="new-password-confirm"
-                    type="password"
-                    value={newPasswordConfirm}
-                    onChange={(event) => setNewPasswordConfirm(event.target.value)}
-                    required
-                    disabled={changingPassword}
-                  />
+                  <FormField label="Текущий пароль" htmlFor="current-password">
+                    <input
+                      id="current-password"
+                      type="password"
+                      value={currentPassword}
+                      onChange={(event) => setCurrentPassword(event.target.value)}
+                      required
+                      disabled={changingPassword}
+                    />
+                  </FormField>
+                  <FormField label="Новый пароль" htmlFor="new-password">
+                    <input
+                      id="new-password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(event) => setNewPassword(event.target.value)}
+                      required
+                      disabled={changingPassword}
+                    />
+                  </FormField>
+                  <FormField label="Повторите новый пароль" htmlFor="new-password-confirm">
+                    <input
+                      id="new-password-confirm"
+                      type="password"
+                      value={newPasswordConfirm}
+                      onChange={(event) => setNewPasswordConfirm(event.target.value)}
+                      required
+                      disabled={changingPassword}
+                    />
+                  </FormField>
                   <div className="profile-auth-actions">
                     <button type="submit" className="profile-auth-button" disabled={changingPassword}>
                       {changingPassword ? 'Обновляем...' : 'Сменить пароль'}
@@ -416,5 +423,4 @@ function AppProfile() {
 }
 
 export default AppProfile;
-
 
