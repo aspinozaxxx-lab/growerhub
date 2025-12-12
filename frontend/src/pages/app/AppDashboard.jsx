@@ -106,20 +106,20 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
   };
 
   return (
-    <div className="plant-card">
-      <div className="plant-card__header">
+    <div className="dashboard-plant-card">
+      <div className="dashboard-plant-card__header">
         <div>
-          <div className="plant-card__name">{plant.name}</div>
-          <div className="plant-card__group">
+          <div className="dashboard-plant-card__name">{plant.name}</div>
+          <div className="dashboard-plant-card__group">
             {plant.plant_group ? plant.plant_group.name : "Без группы"}
           </div>
         </div>
-        <div className="plant-card__age">{formatAge(plant.planted_at)}</div>
+        <div className="dashboard-plant-card__age">{formatAge(plant.planted_at)}</div>
       </div>
 
       {primaryDevice ? (
-        <div className="plant-card__body">
-          <div className="plant-card__avatar" aria-hidden="true">
+        <div className="dashboard-plant-card__body">
+          <div className="dashboard-plant-card__avatar" aria-hidden="true">
             <PlantAvatar
               plantType="flowering"
               // Stadiya teper' nujna tol'ko dlya vybora staticheskogo svg
@@ -128,7 +128,7 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
               size="md"
             />
           </div>
-          <div className="plant-card__metrics">
+          <div className="dashboard-plant-card__metrics">
             <MetricPill
               label="T, °C"
               value={primaryDevice.air_temperature}
@@ -159,21 +159,21 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
               highlight={Boolean(primaryDevice.is_watering)}
             />
             {showWateringBadge && (
-              <div className="plant-card__watering-badge">
+              <div className="dashboard-plant-card__watering-badge">
                 Идёт полив · осталось {formatRemaining(remainingSeconds)}
               </div>
             )}
           </div>
         </div>
       ) : (
-        <div className="plant-card__empty">Нет подключённых устройств</div>
+        <div className="dashboard-plant-card__empty">Нет подключённых устройств</div>
       )}
 
-      <div className="plant-card__footer">
-        <div className="plant-card__actions">
+      <div className="dashboard-plant-card__footer">
+        <div className="dashboard-plant-card__actions">
           <button
             type="button"
-            className="plant-card__action-btn"
+            className="dashboard-plant-card__action-btn"
             onClick={handleOpenWatering}
             disabled={!primaryDevice}
           >
@@ -181,12 +181,12 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
           </button>
           <button
             type="button"
-            className="plant-card__action-btn"
+            className="dashboard-plant-card__action-btn"
             onClick={() => onOpenJournal?.(plant.id)}
           >
             Журнал
           </button>
-          <Link className="plant-card__link" to="/app/plants">
+          <Link className="dashboard-plant-card__link" to="/app/plants">
             Перейти →
           </Link>
         </div>
@@ -204,7 +204,7 @@ function FreeDeviceCard({ device, onOpenStats }) {
           <div className="free-device-card__id">{device.device_id}</div>
           <div className="free-device-card__status">
             {device.is_online ? "Онлайн" : "Оффлайн"}
-            <span className={`status-dot ${device.is_online ? "is-online" : "is-offline"}`} aria-hidden="true" />
+            <span className={`dashboard-status-dot ${device.is_online ? "is-online" : "is-offline"}`} aria-hidden="true" />
           </div>
         </div>
         <div className="free-device-card__tag">Не привязано</div>

@@ -36,7 +36,7 @@
   gap: 12px;
 }
 
-.plant-card {
+.dashboard-plant-card {
   border: 1px solid var(--border-1);
   border-radius: 12px;
   padding: 12px;
@@ -56,36 +56,36 @@
   gap: 10px;
 }
 
-.plant-card__header {
+.dashboard-plant-card__header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 10px;
 }
 
-.plant-card__name {
+.dashboard-plant-card__name {
   font-weight: 700;
   color: #f6fbff;
   font-size: 18px;
 }
 
-.plant-card__group {
+.dashboard-plant-card__group {
   color: #8aa3c6;
   font-size: 13px;
 }
 
-.plant-card__age {
+.dashboard-plant-card__age {
   color: #c7d7ef;
   font-size: 13px;
 }
 
-.plant-card__body {
+.dashboard-plant-card__body {
   display: flex;
   gap: 10px;
   align-items: stretch;
 }
 
-.plant-card__avatar {
+.dashboard-plant-card__avatar {
   flex: 3 1 0;
   max-width: 75%;
   display: flex;
@@ -94,43 +94,43 @@
   min-height: 176px; /* 4 tiles * 40px + 3 gaps * 6px */
 }
 
-.plant-card__avatar img {
+.dashboard-plant-card__avatar img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   border-radius: 10px;
 }
 
-.plant-card__metrics {
+.dashboard-plant-card__metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
 }
 
-.plant-card__empty {
+.dashboard-plant-card__empty {
   color: #8aa3c6;
   font-size: 14px;
 }
 
-.plant-card__footer {
+.dashboard-plant-card__footer {
   display: flex;
   justify-content: flex-end;
 }
 
-.plant-card__link {
+.dashboard-plant-card__link {
   color: #9de8ba;
   text-decoration: none;
   font-weight: 600;
 }
 
-.plant-card__actions {
+.dashboard-plant-card__actions {
   display: flex;
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
 }
 
-.plant-card__action-btn {
+.dashboard-plant-card__action-btn {
   padding: 8px 12px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -139,12 +139,12 @@
   cursor: pointer;
 }
 
-.plant-card__action-btn:disabled {
+.dashboard-plant-card__action-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.plant-card__watering-badge {
+.dashboard-plant-card__watering-badge {
   margin-top: 8px;
   padding: 8px 10px;
   border-radius: 10px;
@@ -183,18 +183,18 @@
   gap: 8px;
 }
 
-.status-dot {
+.dashboard-status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   display: inline-block;
 }
 
-.status-dot.is-online {
+.dashboard-status-dot.is-online {
   background: #6bdba8;
 }
 
-.status-dot.is-offline {
+.dashboard-status-dot.is-offline {
   background: #8aa3c6;
 }
 
@@ -222,7 +222,7 @@
 }
 
 @media (max-width: 640px) {
-  .plant-card__metrics {
+  .dashboard-plant-card__metrics {
     gap: 8px;
   }
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { startManualWatering, getManualWateringStatus } from '../../api/manualWatering';
 import { useWateringSidebar } from './WateringSidebarContext';
@@ -87,8 +87,8 @@ function WateringSidebar() {
         </header>
 
         <div className="sensor-sidebar__body">
-          <label className="form-control">
-            <div className="form-control__label">Obem vody, l</div>
+          <label className="watering-form-control">
+            <div className="watering-form-control__label">Obem vody, l</div>
             <input
               type="range"
               min="0.1"
@@ -97,11 +97,11 @@ function WateringSidebar() {
               value={waterVolume}
               onChange={(e) => setWaterVolume(Number(e.target.value))}
             />
-            <div className="form-control__value">{waterVolume.toFixed(1)} l</div>
+            <div className="watering-form-control__value">{waterVolume.toFixed(1)} l</div>
           </label>
 
-          <label className="form-control">
-            <div className="form-control__label">pH (opcionalno)</div>
+          <label className="watering-form-control">
+            <div className="watering-form-control__label">pH (opcionalno)</div>
             <input
               type="number"
               step="0.1"
@@ -111,8 +111,8 @@ function WateringSidebar() {
             />
           </label>
 
-          <label className="form-control">
-            <div className="form-control__label">Udobreniya na litr (opcionalno)</div>
+          <label className="watering-form-control">
+            <div className="watering-form-control__label">Udobreniya na litr (opcionalno)</div>
             <textarea
               rows={3}
               value={fertilizers}

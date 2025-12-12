@@ -1,17 +1,17 @@
-.sensor-sidebar__body {
+﻿.sensor-sidebar__body {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.form-control {
+.watering-form-control {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.form-control input[type="number"],
-.form-control textarea {
+.watering-form-control input[type="number"],
+.watering-form-control textarea {
   width: 100%;
   padding: 8px 10px;
   border-radius: 8px;
@@ -20,16 +20,16 @@
   color: #e2e8f0;
 }
 
-.form-control input[type="range"] {
+.watering-form-control input[type="range"] {
   width: 100%;
 }
 
-.form-control__label {
+.watering-form-control__label {
   font-size: 0.9rem;
   color: #c7d7ef;
 }
 
-.form-control__value {
+.watering-form-control__value {
   font-size: 0.9rem;
   color: #e2e8f0;
 }
