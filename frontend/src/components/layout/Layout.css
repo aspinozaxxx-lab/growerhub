@@ -1,14 +1,4 @@
-﻿:root {
-  --bg: #0b1524;
-  --card: #0f1f35;
-  --accent: #5fd491;
-  --accent-strong: #43b674;
-  --text: #eef3fb;
-  --muted: #9db3d4;
-  --border: rgba(255, 255, 255, 0.08);
-}
-
-.app-shell {
+﻿.app-shell {
   min-height: 100vh;
   background: radial-gradient(circle at 10% 20%, rgba(95, 212, 145, 0.1), transparent 25%),
     radial-gradient(circle at 80% 0%, rgba(95, 212, 145, 0.12), transparent 22%),

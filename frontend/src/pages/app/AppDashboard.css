@@ -1,4 +1,4 @@
-.dashboard {
+﻿.dashboard {
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -22,7 +22,7 @@
 
 .dashboard-section__header h2 {
   margin: 0;
-  color: #f6fbff;
+  color: var(--text-1);
 }
 
 .dashboard-section__subtitle {
@@ -37,20 +37,20 @@
 }
 
 .plant-card {
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-1);
   border-radius: 12px;
   padding: 12px;
-  background: #0f1f35;
+  background: var(--surface-1);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
 .free-device-card {
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-1);
   border-radius: 12px;
   padding: 12px;
-  background: #0f1f35;
+  background: var(--surface-1);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -111,7 +111,7 @@
 }
 
 .metric-pill {
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-1);
   background: rgba(255, 255, 255, 0.03);
   border-radius: 10px;
   padding: 8px 10px;
