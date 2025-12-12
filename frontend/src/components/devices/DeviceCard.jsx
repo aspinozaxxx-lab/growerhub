@@ -11,7 +11,7 @@ function StatusBadge({ isOnline }) {
   return (
     <div className="device-card__status">
       <span className={`status-dot ${isOnline ? 'is-online' : 'is-offline'}`} aria-hidden="true" />
-      {isOnline ? '\u041e\u043d\u043b\u0430\u0439\u043d' : '\u041e\u0444\u0444\u043b\u0430\u0439\u043d'}
+      {isOnline ? 'Онлайн' : 'Оффлайн'}
     </div>
   );
 }
@@ -24,7 +24,7 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
   // avatarKey - segodnya odna ikonka dlya vseh ustrojstv; kogda poyavyatsya tipy, klyuch mozhno brat' iz dannyh
   const avatarKey = 'grovika_mini';
   const avatarSrc = resolveDeviceAsset(avatarKey);
-  const displayName = device.name || '\u0423\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e';
+  const displayName = device.name || 'Устройство';
 
   const handleEdit = () => {
     if (onEdit) {
@@ -41,8 +41,8 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
           <div className="device-card__subtitle">{device.device_id}</div>
           <StatusBadge isOnline={device.is_online} />
         </div>
-        <button type="button" className="device-card__edit" onClick={handleEdit} aria-label="\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c">
-          \u270f
+        <button type="button" className="device-card__edit" onClick={handleEdit} aria-label="Редактировать">
+          ✏
         </button>
       </div>
 
@@ -51,29 +51,29 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
           <img src={avatarSrc} alt="device avatar" />
         </div>
         <div className="device-card__info">
-          <div className="device-card__fw">\u041f\u0440\u043e\u0448\u0438\u0432\u043a\u0430: {firmware}</div>
+          <div className="device-card__fw">Прошивка: {firmware}</div>
           <div className="device-card__metrics">
             <SensorPill
-              label="\u0412\u043b\u0430\u0436\u043d. \u043f\u043e\u0447\u0432\u044b, %"
+              label="Влажн. почвы, %"
               value={formatSensorValue(device.soil_moisture)}
               onClick={device.device_id ? () => openSensorStats({ deviceId: device.device_id, metric: 'soil_moisture' }) : undefined}
               disabled={!device.device_id}
             />
             <SensorPill
-              label="\u0412\u043b\u0430\u0436\u043d. \u0432\u043e\u0437\u0434\u0443\u0445\u0430, %"
+              label="Влажн. воздуха, %"
               value={formatSensorValue(device.air_humidity)}
               onClick={device.device_id ? () => openSensorStats({ deviceId: device.device_id, metric: 'air_humidity' }) : undefined}
               disabled={!device.device_id}
             />
             <SensorPill
-              label="T, \u00b0C"
+              label="T, °C"
               value={formatSensorValue(device.air_temperature)}
               onClick={device.device_id ? () => openSensorStats({ deviceId: device.device_id, metric: 'air_temperature' }) : undefined}
               disabled={!device.device_id}
             />
             <SensorPill
-              label="\u041d\u0430\u0441\u043e\u0441"
-              value={wateringSpeed ? `\u0421\u043a\u043e\u0440\u043e\u0441\u0442\u044c: ${wateringSpeed} \u043b/\u0447` : '\u043d\u0435 \u0437\u0430\u0434\u0430\u043d\u043e'}
+              label="Насос"
+              value={wateringSpeed ? `Скорость: ${wateringSpeed} л/ч` : 'не задано'}
               onClick={handleEdit}
             />
           </div>
@@ -99,7 +99,7 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
             type="button"
             className="device-card__edit device-card__edit--ghost"
             onClick={handleEdit}
-            aria-label="\u0420\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u0442\u044c"
+            aria-label="Редактировать"
           >
             ??
           </button>
@@ -107,11 +107,11 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
       </div>
       <div className="device-card__plant-metrics">
         <div className="device-chip">
-          <span className="device-chip__label">\u041f\u043e\u0447\u0432\u0430</span>
+          <span className="device-chip__label">Почва</span>
           <span className="device-chip__value">{formatSensorValue(device.soil_moisture)}</span>
         </div>
         <div className="device-chip">
-          <span className="device-chip__label">\u0412\u043e\u0437\u0434\u0443\u0445</span>
+          <span className="device-chip__label">Воздух</span>
           <span className="device-chip__value">{formatSensorValue(device.air_humidity)}</span>
         </div>
         <div className="device-chip">
