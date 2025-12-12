@@ -1,10 +1,4 @@
-﻿.sensor-sidebar__body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sensor-sidebar__body .gh-control[type="range"] {
+﻿.gh-panel__body .gh-control[type="range"] {
   padding: 0;
   background: transparent;
   border: none;

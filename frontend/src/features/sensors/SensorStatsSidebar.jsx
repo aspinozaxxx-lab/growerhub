@@ -13,6 +13,7 @@ import {
 import { useSensorStats } from './useSensorStats';
 import { useSensorStatsContext } from './SensorStatsContext';
 import { formatSensorValue, formatTimestampLabel } from '../../utils/formatters';
+import SidePanel from '../../components/ui/SidePanel';
 import './SensorStatsSidebar.css';
 
 const RANGE_OPTIONS = [
@@ -148,7 +149,7 @@ function SensorStatsSidebar() {
   const title = useMemo(() => {
     const metricLabel = metric ? METRIC_LABELS[metric] || metric : '';
     const deviceLabel = deviceName || deviceId || '';
-    return `${metricLabel}${deviceLabel ? ` — ${deviceLabel}` : ''}`;
+    return `${metricLabel}${deviceLabel ? ` - ${deviceLabel}` : ''}`;
   }, [deviceId, deviceName, metric]);
 
   if (!isOpen) {
@@ -156,48 +157,35 @@ function SensorStatsSidebar() {
   }
 
   return (
-    <div className={`sensor-sidebar ${isOpen ? 'is-open' : ''}`}>
-      <button className="sensor-sidebar__backdrop" type="button" onClick={closeSensorStats} aria-label="Закрыть" />
-      <aside className="sensor-sidebar__panel" aria-label="Статистика датчиков">
-        <header className="sensor-sidebar__header">
-          <div>
-            <div className="sensor-sidebar__metric">{title}</div>
-            {deviceName && <div className="sensor-sidebar__device">{deviceId}</div>}
-          </div>
+    <SidePanel
+      isOpen={isOpen}
+      onClose={closeSensorStats}
+      title={title}
+      subtitle={deviceName ? deviceId : ''}
+    >
+      <div className="sensor-sidebar__ranges" role="group" aria-label="Диапазон">
+        {RANGE_OPTIONS.map((option) => (
           <button
+            key={option.key}
             type="button"
-            className="sensor-sidebar__close"
-            onClick={closeSensorStats}
-            aria-label="Закрыть панель статистики"
+            className={`sensor-sidebar__range-btn ${activeRange === option.key ? 'is-active' : ''}`}
+            onClick={() => setRange(option.key)}
           >
-            ×
+            {option.label}
           </button>
-        </header>
+        ))}
+      </div>
 
-        <div className="sensor-sidebar__ranges" role="group" aria-label="Диапазон">
-          {RANGE_OPTIONS.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              className={`sensor-sidebar__range-btn ${activeRange === option.key ? 'is-active' : ''}`}
-              onClick={() => setRange(option.key)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="sensor-sidebar__chart">
-          {isLoading ? (
-            <div className="sensor-sidebar__state">Загрузка...</div>
-          ) : error ? (
-            <div className="sensor-sidebar__state sensor-sidebar__state--error">{error}</div>
-          ) : (
-            <SensorChart metric={metric} range={activeRange} data={chartData} />
-          )}
-        </div>
-      </aside>
-    </div>
+      <div className="sensor-sidebar__chart">
+        {isLoading ? (
+          <div className="sensor-sidebar__state">Загрузка...</div>
+        ) : error ? (
+          <div className="sensor-sidebar__state sensor-sidebar__state--error">{error}</div>
+        ) : (
+          <SensorChart metric={metric} range={activeRange} data={chartData} />
+        )}
+      </div>
+    </SidePanel>
   );
 }
 

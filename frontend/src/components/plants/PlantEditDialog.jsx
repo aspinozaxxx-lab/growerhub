@@ -11,6 +11,7 @@ import {
 import { assignDeviceToPlant, unassignDeviceFromPlant } from '../../api/devices';
 import DeviceCard from '../devices/DeviceCard';
 import FormField from '../ui/FormField';
+import Modal from '../ui/Modal';
 import './PlantEditDialog.css';
 
 const STAGE_LABELS = {
@@ -249,166 +250,155 @@ function PlantEditDialog({
 
   const title = mode === 'create' ? 'Новое растение' : 'Редактировать растение';
 
+  const footer = (
+    <div className="plant-dialog__footer">
+      {mode === 'edit' && plant?.id && (
+        <button
+          type="button"
+          className="plant-dialog__btn plant-dialog__btn--danger"
+          onClick={handleDeletePlant}
+          disabled={isSaving}
+        >
+          Удалить
+        </button>
+      )}
+      <div className="plant-dialog__footer-actions">
+        <button type="button" className="plant-dialog__btn" onClick={onClose} disabled={isSaving}>
+          Отмена
+        </button>
+        <button
+          type="button"
+          className="plant-dialog__btn plant-dialog__btn--primary"
+          onClick={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? 'Сохранение...' : 'Сохранить'}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="plant-dialog__overlay">
-      <div className="plant-dialog">
-        <div className="plant-dialog__header">
-          <div className="plant-dialog__title">{title}</div>
-          <button type="button" className="plant-dialog__close" onClick={onClose} aria-label="Закрыть">
-            ✖️
-          </button>
-        </div>
+    <Modal isOpen={isOpen} onClose={onClose} title={title} disableOverlayClose footer={footer}>
+      {error && <div className="plant-dialog__error">{error}</div>}
 
-        <div className="plant-dialog__content">
-          {error && <div className="plant-dialog__error">{error}</div>}
+      <div className="plant-dialog__body">
+        <FormField label="Название" htmlFor="plant-name" className="plant-dialog__field">
+          <input
+            id="plant-name"
+            value={localPlant.name}
+            onChange={(e) => setLocalPlant((prev) => ({ ...prev, name: e.target.value }))}
+            placeholder="Basil"
+          />
+        </FormField>
 
-          <div className="plant-dialog__body">
-            <FormField label="Название" htmlFor="plant-name" className="plant-dialog__field">
-              <input
-                id="plant-name"
-                value={localPlant.name}
-                onChange={(e) => setLocalPlant((prev) => ({ ...prev, name: e.target.value }))}
-                placeholder="Basil"
-              />
-            </FormField>
+        <FormField label="Тип растения" htmlFor="plant-type" className="plant-dialog__field">
+          <input
+            id="plant-type"
+            value={localPlant.plant_type || ''}
+            onChange={(e) => setLocalPlant((prev) => ({ ...prev, plant_type: e.target.value }))}
+            placeholder="flowering"
+          />
+        </FormField>
 
-            <FormField label="Тип растения" htmlFor="plant-type" className="plant-dialog__field">
-              <input
-                id="plant-type"
-                value={localPlant.plant_type || ''}
-                onChange={(e) => setLocalPlant((prev) => ({ ...prev, plant_type: e.target.value }))}
-                placeholder="flowering"
-              />
-            </FormField>
+        <FormField label="Сорт" htmlFor="plant-strain" className="plant-dialog__field">
+          <input
+            id="plant-strain"
+            value={localPlant.strain || ''}
+            onChange={(e) => setLocalPlant((prev) => ({ ...prev, strain: e.target.value }))}
+            placeholder="Mint"
+          />
+        </FormField>
 
-            <FormField label="Сорт" htmlFor="plant-strain" className="plant-dialog__field">
-              <input
-                id="plant-strain"
-                value={localPlant.strain || ''}
-                onChange={(e) => setLocalPlant((prev) => ({ ...prev, strain: e.target.value }))}
-                placeholder="Mint"
-              />
-            </FormField>
+        <FormField label="Стадия роста" htmlFor="growth-stage" className="plant-dialog__field">
+          <select
+            id="growth-stage"
+            value={localPlant.growth_stage || ''}
+            onChange={(e) => setLocalPlant((prev) => ({ ...prev, growth_stage: e.target.value || '' }))}
+          >
+            {stageOptions.map((opt) => (
+              <option key={opt.value || 'auto'} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </FormField>
 
-            <FormField label="Стадия роста" htmlFor="growth-stage" className="plant-dialog__field">
-              <select
-                id="growth-stage"
-                value={localPlant.growth_stage || ''}
-                onChange={(e) => setLocalPlant((prev) => ({ ...prev, growth_stage: e.target.value || '' }))}
-              >
-                {stageOptions.map((opt) => (
-                  <option key={opt.value || 'auto'} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </FormField>
+        <FormField label="Дата посадки" htmlFor="planted-at" className="plant-dialog__field">
+          <input
+            id="planted-at"
+            type="datetime-local"
+            value={localPlant.planted_at || ''}
+            onChange={(e) => setLocalPlant((prev) => ({ ...prev, planted_at: e.target.value }))}
+          />
+        </FormField>
 
-            <FormField label="Дата посадки" htmlFor="planted-at" className="plant-dialog__field">
-              <input
-                id="planted-at"
-                type="datetime-local"
-                value={localPlant.planted_at || ''}
-                onChange={(e) => setLocalPlant((prev) => ({ ...prev, planted_at: e.target.value }))}
-              />
-            </FormField>
-
-            <div className="plant-dialog__group-row">
-              <FormField label="Группа" htmlFor="plant-group" className="plant-dialog__field">
-                <select
-                  id="plant-group"
-                  value={localPlant.plant_group_id ?? ''}
-                  onChange={(e) => handleGroupChange(e.target.value)}
-                >
-                  <option value="">Без группы</option>
-                  {localGroups.map((group) => (
-                    <option key={group.id} value={group.id}>{group.name}</option>
-                  ))}
-                </select>
-              </FormField>
-              <div className="plant-dialog__group-actions">
-                <button type="button" onClick={handleCreateGroup}>Создать</button>
-                <button type="button" onClick={handleRenameGroup}>Переименовать</button>
-                <button type="button" onClick={handleDeleteGroup}>Удалить</button>
-              </div>
-            </div>
-          </div>
-
-          <div className="plant-dialog__section">
-            <div className="plant-dialog__section-title">Устройства</div>
-            {mode === 'create' && (
-              <div className="plant-dialog__hint">Привязать устройства можно после сохранения растения.</div>
-            )}
-            {mode === 'edit' && (
-              <>
-                {assignedDevices.length === 0 && (
-                  <div className="plant-dialog__hint">Нет привязанных устройств</div>
-                )}
-                {assignedDevices.length > 0 && (
-                  <div className="plant-dialog__devices">
-                    {assignedDevices.map((device) => (
-                      <div key={device.id} className="plant-dialog__device-row">
-                        <DeviceCard device={device} variant="plant" />
-                        <button
-                          type="button"
-                          className="plant-dialog__unlink"
-                          onClick={() => handleDetachDevice(device.id)}
-                        >
-                          Отвязать
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="plant-dialog__attach">
-                  <select
-                    value={selectedDeviceId}
-                    onChange={(e) => setSelectedDeviceId(e.target.value)}
-                  >
-                    <option value="">Выберите устройство</option>
-                    {freeDevices.map((device) => (
-                      <option key={device.id} value={device.id}>
-                        {device.name || device.device_id || `Device ${device.id}`}
-                      </option>
-                    ))}
-                  </select>
-                  <button type="button" onClick={handleAttachDevice}>
-                    Привязать
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="plant-dialog__footer">
-          {mode === 'edit' && plant?.id && (
-            <button
-              type="button"
-              className="plant-dialog__btn plant-dialog__btn--danger"
-              onClick={handleDeletePlant}
-              disabled={isSaving}
+        <div className="plant-dialog__group-row">
+          <FormField label="Группа" htmlFor="plant-group" className="plant-dialog__field">
+            <select
+              id="plant-group"
+              value={localPlant.plant_group_id ?? ''}
+              onChange={(e) => handleGroupChange(e.target.value)}
             >
-              Удалить
-            </button>
-          )}
-          <div className="plant-dialog__footer-actions">
-            <button type="button" className="plant-dialog__btn" onClick={onClose} disabled={isSaving}>
-              Отмена
-            </button>
-            <button
-              type="button"
-              className="plant-dialog__btn plant-dialog__btn--primary"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? 'Сохранение...' : 'Сохранить'}
-            </button>
+              <option value="">Без группы</option>
+              {localGroups.map((group) => (
+                <option key={group.id} value={group.id}>{group.name}</option>
+              ))}
+            </select>
+          </FormField>
+          <div className="plant-dialog__group-actions">
+            <button type="button" onClick={handleCreateGroup}>Создать</button>
+            <button type="button" onClick={handleRenameGroup}>Переименовать</button>
+            <button type="button" onClick={handleDeleteGroup}>Удалить</button>
           </div>
         </div>
       </div>
-    </div>
+
+      <div className="plant-dialog__section">
+        <div className="plant-dialog__section-title">Устройства</div>
+        {mode === 'create' && (
+          <div className="plant-dialog__hint">Привязать устройства можно после сохранения растения.</div>
+        )}
+        {mode === 'edit' && (
+          <>
+            {assignedDevices.length === 0 && (
+              <div className="plant-dialog__hint">Нет привязанных устройств</div>
+            )}
+            {assignedDevices.length > 0 && (
+              <div className="plant-dialog__devices">
+                {assignedDevices.map((device) => (
+                  <div key={device.id} className="plant-dialog__device-row">
+                    <DeviceCard device={device} variant="plant" />
+                    <button
+                      type="button"
+                      className="plant-dialog__unlink"
+                      onClick={() => handleDetachDevice(device.id)}
+                    >
+                      Отвязать
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="plant-dialog__attach">
+              <select
+                value={selectedDeviceId}
+                onChange={(e) => setSelectedDeviceId(e.target.value)}
+              >
+                <option value="">Выберите устройство</option>
+                {freeDevices.map((device) => (
+                  <option key={device.id} value={device.id}>
+                    {device.name || device.device_id || `Device ${device.id}`}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={handleAttachDevice}>
+                Привязать
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </Modal>
   );
 }
 
 export default PlantEditDialog;
-
-

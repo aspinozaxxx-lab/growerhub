@@ -1,58 +1,4 @@
-﻿.plant-dialog__overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.plant-dialog {
-  background: #0f1f35;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  padding: 16px;
-  width: min(640px, 95vw);
-  max-width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-height: 90vh;
-  min-height: 0;
-}
-
-.plant-dialog__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.plant-dialog__title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #f6fbff;
-}
-
-.plant-dialog__close {
-  background: transparent;
-  border: none;
-  color: #e2e8f0;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-.plant-dialog__content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  min-height: 0;
-}
-
-.plant-dialog__body {
+﻿.plant-dialog__body {
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -64,13 +10,13 @@
   gap: 6px;
 }
 
-.plant-dialog .gh-control {
+.plant-dialog__body .gh-control {
   background: var(--surface-2);
   border: 1px solid var(--border-2);
   color: var(--text-1);
 }
 
-.plant-dialog select option {
+.plant-dialog__body select option {
   background: var(--surface-1);
   color: var(--text-1);
 }
@@ -205,22 +151,7 @@
 }
 
 @media (max-width: 480px) {
-  .plant-dialog__overlay {
-    align-items: flex-start;
-    justify-content: center;
-    overflow-y: auto;
-  }
-
-  .plant-dialog {
-    margin: 16px auto;
-    max-height: none;
-    height: auto;
-  }
-
-  .plant-dialog__content {
-    flex: none;
-    max-height: none;
-    overflow-y: visible;
+  .plant-dialog__body {
+    grid-template-columns: 1fr;
   }
 }
-
