@@ -45,7 +45,7 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
           <StatusBadge isOnline={device.is_online} />
         </div>
         <Button type="button" variant="ghost" size="sm" className="device-card__edit" onClick={handleEdit} aria-label="Редактировать">
-          ?
+          ✏
         </Button>
       </div>
 
