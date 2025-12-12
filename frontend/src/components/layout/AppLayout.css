@@ -1,8 +1,8 @@
-.app-layout {
+﻿.app-layout {
   display: grid;
   grid-template-columns: 1fr;
   min-height: 100vh;
-  color: #0f172a;
+  color: var(--text-1);
 }
 
 .app-content {
@@ -30,18 +30,20 @@
   height: 100%;
   padding: 8px 10px;
   font-size: 12px;
-  color: #475569;
+  color: var(--text-3);
   text-decoration: none;
   transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
 }
 
 .app-nav__item:hover {
-  color: #1f2937;
+  color: var(--text-1);
 }
 
 .app-nav__item.is-active {
-  color: #2563eb;
+  color: var(--text-1);
   font-weight: 600;
+  background: rgba(95, 212, 145, 0.14);
+  border-radius: 10px;
 }
 
 .app-nav__icon {
@@ -71,20 +73,21 @@
   margin: 0 auto;
   width: 100%;
   justify-content: space-around;
-  background: rgba(15, 23, 42, 0.96);
+  background: var(--surface-1);
+  border: 1px solid var(--border-1);
   border-radius: 9999px;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.35);
+  box-shadow: var(--shadow-1);
   backdrop-filter: blur(16px);
   height: 64px;
   padding: 0 8px;
 }
 
 .app-nav--bottom .app-nav__item {
-  color: #cbd5e1;
+  color: var(--text-2);
 }
 
 .app-nav--bottom .app-nav__item.is-active {
-  color: #5fd491;
+  color: var(--accent);
 }
 
 /* Sidebar dlya desktopa */
@@ -100,11 +103,12 @@
   gap: 12px;
   padding: 24px 16px;
   min-height: 100vh;
-  background: rgba(15, 23, 42, 0.92);
-  color: #e2e8f0;
+  background: var(--surface-1);
+  color: var(--text-1);
   border-radius: 18px;
   margin: 12px 10px 20px;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.24);
+  box-shadow: var(--shadow-2);
+  border: 1px solid var(--border-1);
 }
 
 .app-sidebar__brand {
@@ -129,16 +133,17 @@
   justify-content: flex-start;
   padding: 10px 12px;
   border-radius: 10px;
-  color: #cbd5e1;
+  color: var(--text-2);
 }
 
 .app-nav--sidebar .app-nav__item:hover {
-  background: rgba(226, 232, 240, 0.12);
+  background: var(--surface-2);
 }
 
 .app-nav--sidebar .app-nav__item.is-active {
-  background: rgba(37, 99, 235, 0.14);
-  color: #ffffff;
+  background: rgba(95, 212, 145, 0.14);
+  color: var(--text-1);
+  border: 1px solid rgba(95, 212, 145, 0.4);
 }
 
 @media (min-width: 768px) {
