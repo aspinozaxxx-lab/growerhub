@@ -100,7 +100,7 @@ function AppDashboard() {
       )}
 
       {!isLoading && !error && plants.length > 0 && (
-        <Surface variant="section" padding="md" className="dashboard-section">
+        <div className="dashboard-section-plain">
           <div className="dashboard-section__header">
             <Title level={2}>Растения</Title>
           </div>
@@ -119,7 +119,7 @@ function AppDashboard() {
               );
             })}
           </div>
-        </Surface>
+        </div>
       )}
 
       {!isLoading && !error && freeDevices.length > 0 && (
