@@ -10,6 +10,8 @@
 - refactor(front): vveden `frontend/src/domain/plants` kak edinaya tochka pravdy dlya tipov/stadiy/labelov/auto-stage/avatars.
 - refactor(front): avatary stadiy pereneseny v `frontend/src/domain/plants/avatars` s fallback (type/stage -> type/default -> generic).
 - feat(front): dobavleny tipy `flowering_plants`, `houseplant`, `leafy_greens`, `fruiting_veg` i stadii `mature`, `fruit_set`.
+- feat(front): dobavleny tipy `succulents_cacti`, `herbs_spices` i stadiya `bolting` (strelkovanie).
+- chore(front): obnavleny porogi auto-stadii po vozrastu dlya vseh tipov; dobavleny avatary dlya novyh tipov.
 - Dobavlen PATCH dlya pereimenovanija grupp rastenij (`/api/plant-groups/{id}`).
 - Rasshireny Pydantic-shemy `PlantCreate`, `PlantUpdate`, `PlantOut`, dobavlena `PlantGroupUpdate`.
 
