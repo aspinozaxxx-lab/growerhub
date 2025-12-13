@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import PlantAvatar from '../plant-avatar/PlantAvatar';
 import { getStageFromPlantAgeDays } from '../plant-avatar/plantStageFromAge';
+import { parseBackendTimestamp } from '../../utils/formatters';
 import SensorPill from '../ui/sensor-pill/SensorPill';
 import Button from '../ui/Button';
 import Surface from '../ui/Surface';
@@ -52,7 +53,7 @@ function DashboardPlantCard({
       setRemainingSeconds(null);
       return undefined;
     }
-    const startTs = new Date(wateringStatus.startTime).getTime();
+    const startTs = parseBackendTimestamp(wateringStatus.startTime)?.getTime();
     if (!Number.isFinite(startTs)) {
       setRemainingSeconds(null);
       return undefined;

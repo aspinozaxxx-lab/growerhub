@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../features/auth/AuthContext';
 import { STAGE_OPTIONS_RU } from '../../constants/plantStages';
+import { formatDateKeyYYYYMMDD, formatTimeHHMM } from '../../utils/formatters';
 import {
   createPlant,
   updatePlant,
@@ -60,10 +61,11 @@ function PlantEditDialog({
 
   const toLocalDateTimeInput = (isoValue) => {
     if (!isoValue) return '';
-    const date = new Date(isoValue);
-    if (Number.isNaN(date.getTime())) return '';
-    const pad = (v) => String(v).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    // Translitem: datetime iz backenda privodim k UI timezone (Moskva) i formatu input[type=datetime-local].
+    const dateKey = formatDateKeyYYYYMMDD(isoValue);
+    const time = formatTimeHHMM(isoValue);
+    if (!dateKey || !time) return '';
+    return `${dateKey}T${time}`;
   };
 
   const toIsoString = (localValue) => {

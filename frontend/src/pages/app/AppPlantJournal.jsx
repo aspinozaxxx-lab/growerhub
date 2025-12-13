@@ -9,7 +9,7 @@ import {
   downloadJournalPhotoBlob,
 } from '../../api/plantJournal';
 import { useAuth } from '../../features/auth/AuthContext';
-import { formatTimeHHMM } from '../../utils/formatters';
+import { formatDateKeyYYYYMMDD, formatTimeHHMM, parseBackendTimestamp } from '../../utils/formatters';
 import './AppPlantJournal.css';
 
 const JOURNAL_TYPE_CONFIG = {
@@ -23,11 +23,8 @@ const JOURNAL_TYPE_CONFIG = {
 const BACKEND_TYPES = ['watering', 'feeding', 'photo', 'note', 'other'];
 
 function toLocalDateKeyFromIso(isoString) {
-  const d = new Date(isoString);
-  const year = d.getFullYear();
-  const month = d.getMonth() + 1;
-  const day = d.getDate();
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  // Translitem: backend otdaet UTC datetime, a v UI nuzhen key v timezone Moskva.
+  return formatDateKeyYYYYMMDD(isoString);
 }
 
 function dateKeyFromString(value) {
@@ -39,7 +36,7 @@ function dateKeyFromString(value) {
     }
     return toLocalDateKeyFromIso(value);
   }
-  return toLocalDateKeyFromIso(value.toISOString());
+  return toLocalDateKeyFromIso(value);
 }
 
 function normalizeDateToLocalMidnight(value) {
@@ -310,7 +307,11 @@ function AppPlantJournal() {
     if (!selectedDate) return [];
     return entries
       .filter((entry) => toLocalDateKeyFromIso(entry.event_at) === selectedDate)
-      .sort((a, b) => new Date(a.event_at) - new Date(b.event_at));
+      .sort((a, b) => {
+        const aTs = parseBackendTimestamp(a.event_at)?.getTime() ?? 0;
+        const bTs = parseBackendTimestamp(b.event_at)?.getTime() ?? 0;
+        return aTs - bTs;
+      });
   }, [entries, selectedDate]);
 
   const selectedDateLabel =

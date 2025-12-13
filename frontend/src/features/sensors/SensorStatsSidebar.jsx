@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { useSensorStats } from './useSensorStats';
 import { useSensorStatsContext } from './SensorStatsContext';
-import { formatSensorValue, formatTimestampLabel } from '../../utils/formatters';
+import { formatDateDDMM, formatSensorValue, formatTimeHHMM, formatTimestampLabel } from '../../utils/formatters';
 import SidePanel from '../../components/ui/SidePanel';
 import './SensorStatsSidebar.css';
 
@@ -31,15 +31,10 @@ const METRIC_LABELS = {
 };
 
 function formatAxisLabel(timestamp, range) {
-  const date = new Date(timestamp);
-  const hours = `${date.getHours()}`.padStart(2, '0');
-  const minutes = `${date.getMinutes()}`.padStart(2, '0');
   if (range === 'hour' || range === 'day') {
-    return `${hours}:${minutes}`;
+    return formatTimeHHMM(timestamp);
   }
-  const day = `${date.getDate()}`.padStart(2, '0');
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  return `${day}.${month}`;
+  return formatDateDDMM(timestamp);
 }
 
 function WateringTooltip({ active, payload, label }) {

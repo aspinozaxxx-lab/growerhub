@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchSensorHistory, fetchWateringLogs } from '../../api/history';
 import { useAuth } from '../auth/AuthContext';
+import { parseBackendTimestamp } from '../../utils/formatters';
 
 const SENSOR_RANGE_TO_HOURS = {
   hour: 1,
@@ -10,14 +11,14 @@ const SENSOR_RANGE_TO_HOURS = {
 };
 
 const WATERING_RANGE_TO_DAYS = {
-  hour: 1, // Используем сутки и фильтруем на фронте, чтобы не ломать UI.
+  hour: 1, // Translitem: ispol'zuem sutki i fil'truem na fronte, chtoby ne l'omat' UI.
   day: 1,
   week: 7,
   month: 30,
 };
 
 /**
- * Управляет загрузкой и кэшированием истории датчиков/поливов по диапазонам.
+ * Translitem: upravlyaet zagruzkoy i keshirovaniem istorii datchikov/polivov po diapazonam.
  */
 export function useSensorStats(deviceId, metric) {
   const { token } = useAuth();
@@ -26,7 +27,7 @@ export function useSensorStats(deviceId, metric) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Сброс состояния при смене устройства или метрики.
+  // Translitem: sbros sostoyaniya pri smene ustroystva ili metriki.
   useEffect(() => {
     setActiveRange('day');
     setDataByRange({});
@@ -65,7 +66,7 @@ export function useSensorStats(deviceId, metric) {
     [dataByRange, deviceId, token],
   );
 
-  // Загружаем данные для активного диапазона при первом запросе.
+  // Translitem: zagruzhaem dannye dlya aktivnogo diapazona pri pervom zaprose.
   useEffect(() => {
     if (!deviceId) {
       return;
@@ -90,18 +91,19 @@ export function useSensorStats(deviceId, metric) {
       return wateringLogs
         .filter((log) => {
           if (activeRange === 'hour') {
-            const tsCandidate = new Date(log.start_time || log.startTime || log.timestamp || log.time).getTime();
+            const raw = log.start_time || log.startTime || log.timestamp || log.time;
+            const tsCandidate = parseBackendTimestamp(raw)?.getTime();
             return Number.isFinite(tsCandidate) ? tsCandidate >= cutoffMs : true;
           }
           return true;
         })
         .map((log) => {
           const raw = log.start_time || log.startTime || log.timestamp || log.time;
-          const tsValue = raw ? new Date(raw) : new Date();
-          const safeDate = Number.isFinite(tsValue.getTime()) ? tsValue : new Date();
+          const parsed = raw ? parseBackendTimestamp(raw) : null;
+          const safeDate = parsed || new Date();
           return {
             timestamp: safeDate.toISOString(),
-            value: log.water_used ?? log.duration ?? 1, // ??????? ??????? ?? obem/duration fallback
+            value: log.water_used ?? log.duration ?? 1, // Translitem: fallback: water_used -> duration -> 1.
             duration: log.duration,
             water_used: log.water_used,
             ph: log.ph,
