@@ -27,8 +27,7 @@ function formatAge(plantedAt) {
   return `${days} дн.`;
 }
 
-function MetricPill({ label, value, metric, deviceId, onOpenStats, highlight = false }) {
-  const display = formatSensorValue(value);
+function MetricPill({ kind, value, metric, deviceId, onOpenStats, highlight = false }) {
   const handleClick = () => {
     if (deviceId && metric) {
       onOpenStats({ deviceId, metric });
@@ -36,10 +35,10 @@ function MetricPill({ label, value, metric, deviceId, onOpenStats, highlight = f
   };
   return (
     <SensorPill
-      label={label}
-      value={display}
+      kind={kind}
+      value={value}
       onClick={handleClick}
-      isHighlight={highlight}
+      highlight={highlight}
       disabled={!deviceId || !metric}
     />
   );
@@ -134,29 +133,29 @@ function PlantCard({ plant, onOpenStats, onOpenWatering, wateringStatus, onOpenJ
           </div>
           <div className="dashboard-plant-card__metrics">
             <MetricPill
-              label="T, °C"
+              kind="air_temperature"
               value={primaryDevice.air_temperature}
               metric="air_temperature"
               deviceId={primaryDevice.device_id}
               onOpenStats={onOpenStats}
             />
             <MetricPill
-              label="Влажн. воздуха, %"
+              kind="air_humidity"
               value={primaryDevice.air_humidity}
               metric="air_humidity"
               deviceId={primaryDevice.device_id}
               onOpenStats={onOpenStats}
             />
             <MetricPill
-              label="Влажн. почвы, %"
+              kind="soil_moisture"
               value={primaryDevice.soil_moisture}
               metric="soil_moisture"
               deviceId={primaryDevice.device_id}
               onOpenStats={onOpenStats}
             />
             <MetricPill
-              label="Полив"
-              value={primaryDevice.is_watering ? "Выполняется" : "Нет"}
+              kind="watering"
+              value={primaryDevice.is_watering}
               metric="watering"
               deviceId={primaryDevice.device_id}
               onOpenStats={onOpenStats}
@@ -216,29 +215,29 @@ function FreeDeviceCard({ device, onOpenStats }) {
 
       <div className="free-device-card__metrics">
         <MetricPill
-          label="T, °C"
+          kind="air_temperature"
           value={device.air_temperature}
           metric="air_temperature"
           deviceId={device.device_id}
           onOpenStats={onOpenStats}
         />
         <MetricPill
-          label="Влажн. воздуха, %"
+          kind="air_humidity"
           value={device.air_humidity}
           metric="air_humidity"
           deviceId={device.device_id}
           onOpenStats={onOpenStats}
         />
         <MetricPill
-          label="Влажн. почвы, %"
+          kind="soil_moisture"
           value={device.soil_moisture}
           metric="soil_moisture"
           deviceId={device.device_id}
           onOpenStats={onOpenStats}
         />
         <MetricPill
-          label="Полив"
-          value={device.is_watering ? "Выполняется" : "Нет"}
+          kind="watering"
+          value={device.is_watering}
           metric="watering"
           deviceId={device.device_id}
           onOpenStats={onOpenStats}

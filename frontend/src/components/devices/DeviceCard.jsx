@@ -57,27 +57,28 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
           <Text tone="muted" className="device-card__fw">Прошивка: {firmware}</Text>
           <div className="device-card__metrics">
             <SensorPill
-              label="Влажн. почвы, %"
-              value={formatSensorValue(device.soil_moisture)}
+              kind="soil_moisture"
+              value={device.soil_moisture}
               onClick={device.device_id ? () => openSensorStats({ deviceId: device.device_id, metric: 'soil_moisture' }) : undefined}
               disabled={!device.device_id}
             />
             <SensorPill
-              label="Влажн. воздуха, %"
-              value={formatSensorValue(device.air_humidity)}
+              kind="air_humidity"
+              value={device.air_humidity}
               onClick={device.device_id ? () => openSensorStats({ deviceId: device.device_id, metric: 'air_humidity' }) : undefined}
               disabled={!device.device_id}
             />
             <SensorPill
-              label="T, °C"
-              value={formatSensorValue(device.air_temperature)}
+              kind="air_temperature"
+              value={device.air_temperature}
               onClick={device.device_id ? () => openSensorStats({ deviceId: device.device_id, metric: 'air_temperature' }) : undefined}
               disabled={!device.device_id}
             />
             <SensorPill
-              label="Насос"
-              value={wateringSpeed ? `Скорость: ${wateringSpeed} л/ч` : 'не задано'}
+              kind="pump"
+              value={wateringSpeed}
               onClick={handleEdit}
+              action="edit"
             />
           </div>
         </div>

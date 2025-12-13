@@ -7,7 +7,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 40px;
+  min-height: 44px;
   color: var(--text-1);
   cursor: default;
   transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
@@ -35,14 +35,26 @@
 }
 
 .sensor-pill__icon {
-  font-size: 18px;
-  line-height: 1;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+}
+
+.sensor-pill__icon img {
+  width: 18px;
+  height: 18px;
+  display: block;
 }
 
 .sensor-pill__body {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  min-width: 0;
 }
 
 .sensor-pill__label {
@@ -54,6 +66,7 @@
 .sensor-pill__value {
   font-weight: 700;
   line-height: 1.2;
+  color: var(--text-1);
 }
 
 .sensor-pill__unit {
