@@ -52,6 +52,78 @@ def test_create_plant_sets_owner(client: TestClient):
     assert payload["user_id"] == user.id
 
 
+def test_create_plant_persists_plant_fields(client: TestClient):
+    """Translitem: POST /api/plants dolzhen sohranyat i vozvrashchat plant_type/strain/growth_stage."""
+
+    user = _create_user("plant-fields-create@example.com", "secret")
+    token = _login_and_get_token(client, user.email, "secret")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    create_resp = client.post(
+        "/api/plants",
+        json={
+            "name": "Rose",
+            "plant_type": "flowering",
+            "strain": "Mint",
+            "growth_stage": "seedling",
+        },
+        headers=headers,
+    )
+    assert create_resp.status_code == 200
+    created = create_resp.json()
+    assert created["plant_type"] == "flowering"
+    assert created["strain"] == "Mint"
+    assert created["growth_stage"] == "seedling"
+
+    list_resp = client.get("/api/plants", headers=headers)
+    assert list_resp.status_code == 200
+    plants = list_resp.json()
+    found = next((p for p in plants if p.get("id") == created["id"]), None)
+    assert found is not None
+    assert found["plant_type"] == "flowering"
+    assert found["strain"] == "Mint"
+    assert found["growth_stage"] == "seedling"
+
+
+def test_patch_plant_updates_plant_fields(client: TestClient):
+    """Translitem: PATCH /api/plants/{id} dolzhen obnovlyat tol'ko peredannye polya plants."""
+
+    user = _create_user("plant-fields-patch@example.com", "secret")
+    token = _login_and_get_token(client, user.email, "secret")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    create_resp = client.post(
+        "/api/plants",
+        json={
+            "name": "Lemon",
+            "plant_type": "flowering",
+            "strain": "Old",
+            "growth_stage": "vegetative",
+        },
+        headers=headers,
+    )
+    assert create_resp.status_code == 200
+    plant_id = create_resp.json()["id"]
+
+    patch_resp = client.patch(
+        f"/api/plants/{plant_id}",
+        json={"strain": "New", "growth_stage": "flowering"},
+        headers=headers,
+    )
+    assert patch_resp.status_code == 200
+    patched = patch_resp.json()
+    assert patched["plant_type"] == "flowering"
+    assert patched["strain"] == "New"
+    assert patched["growth_stage"] == "flowering"
+
+    get_resp = client.get(f"/api/plants/{plant_id}", headers=headers)
+    assert get_resp.status_code == 200
+    fetched = get_resp.json()
+    assert fetched["plant_type"] == "flowering"
+    assert fetched["strain"] == "New"
+    assert fetched["growth_stage"] == "flowering"
+
+
 def test_attach_device_to_plant(client: TestClient):
     user = _create_user("plant-device@example.com", "secret")
     session = TestingSessionLocal()

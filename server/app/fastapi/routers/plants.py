@@ -138,11 +138,15 @@ async def create_plant(
     current_user: UserDB = Depends(get_current_user),
 ):
     planted_at = payload.planted_at or datetime.utcnow()
+    # Translitem: sohranyaem dopolnitel'nye polya plants iz payload, chtoby oni real'no persistilis'.
     plant = PlantDB(
         name=payload.name,
         planted_at=planted_at,
         user_id=current_user.id,
         plant_group_id=payload.plant_group_id,
+        plant_type=payload.plant_type,
+        strain=payload.strain,
+        growth_stage=payload.growth_stage,
     )
     db.add(plant)
     db.commit()
@@ -175,6 +179,7 @@ async def update_plant(
     current_user: UserDB = Depends(get_current_user),
 ):
     plant = _get_user_plant(db, plant_id, current_user)
+    # Translitem: PATCH dolzhen obnovlyat tol'ko peredannye polya (exclude_unset=True), inache ne zatiraem znacheniya.
     update_data = payload.model_dump(exclude_unset=True)
     if "name" in update_data:
         plant.name = update_data["name"]
@@ -182,6 +187,12 @@ async def update_plant(
         plant.planted_at = update_data["planted_at"]
     if "plant_group_id" in update_data:
         plant.plant_group_id = update_data["plant_group_id"]
+    if "plant_type" in update_data:
+        plant.plant_type = update_data["plant_type"]
+    if "strain" in update_data:
+        plant.strain = update_data["strain"]
+    if "growth_stage" in update_data:
+        plant.growth_stage = update_data["growth_stage"]
 
     db.commit()
     db.refresh(plant)
@@ -597,10 +608,14 @@ def _build_plant_out(
         for device in device_links
     ]
 
+    # Translitem: vozvrashchaem persist polya plants (plant_type/strain/growth_stage), chtoby front mog ih otobrazhat'.
     return PlantOut(
         id=plant.id,
         name=plant.name,
         planted_at=plant.planted_at,
+        plant_type=plant.plant_type,
+        strain=plant.strain,
+        growth_stage=plant.growth_stage,
         user_id=plant.user_id,
         plant_group=PlantGroupOut(id=group.id, name=group.name, user_id=group.user_id)
         if group
