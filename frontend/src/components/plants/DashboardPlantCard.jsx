@@ -12,14 +12,14 @@ const MS_IN_DAY = 24 * 60 * 60 * 1000;
 
 function formatAge(plantedAt) {
   if (!plantedAt) {
-    return 'Р”Р°С‚Р° РЅРµРёР·РІРµСЃС‚РЅР°';
+    return 'Дата неизвестна';
   }
   const date = new Date(plantedAt);
   if (Number.isNaN(date.getTime())) {
-    return 'Р”Р°С‚Р° РЅРµРёР·РІРµСЃС‚РЅР°';
+    return 'Дата неизвестна';
   }
   const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / MS_IN_DAY));
-  return `${days} РґРЅ.`;
+  return `${days} дн.`;
 }
 
 function formatRemaining(seconds) {
@@ -31,9 +31,9 @@ function formatRemaining(seconds) {
   const secs = clamped % 60;
   const parts = [];
   if (minutes > 0) {
-    parts.push(`${minutes} РјРёРЅ`);
+    parts.push(`${minutes} мин`);
   }
-  parts.push(`${secs} СЃ`);
+  parts.push(`${secs} с`);
   return parts.join(' ');
 }
 
@@ -95,7 +95,7 @@ function DashboardPlantCard({
         <div>
           <Title level={3} className="dashboard-plant-card__name">{plant.name}</Title>
           <Text tone="muted" className="dashboard-plant-card__group">
-            {plant.plant_group ? plant.plant_group.name : 'Р‘РµР· РіСЂСѓРїРїС‹'}
+            {plant.plant_group ? plant.plant_group.name : 'Без группы'}
           </Text>
         </div>
         <Text tone="muted" className="dashboard-plant-card__age">
@@ -141,13 +141,13 @@ function DashboardPlantCard({
             />
             {showWateringBadge && (
               <div className="dashboard-plant-card__watering-badge">
-                РРґС‘С‚ РїРѕР»РёРІ В· РѕСЃС‚Р°Р»РѕСЃСЊ {formatRemaining(remainingSeconds)}
+                Идёт полив · осталось {formatRemaining(remainingSeconds)}
               </div>
             )}
           </div>
         </div>
       ) : (
-        <Text tone="muted" className="dashboard-plant-card__empty">РќРµС‚ РїРѕРґРєР»СЋС‡С‘РЅРЅС‹С… СѓСЃС‚СЂРѕР№СЃС‚РІ</Text>
+        <Text tone="muted" className="dashboard-plant-card__empty">Нет подключённых устройств</Text>
       )}
 
       <div className="dashboard-plant-card__footer">
@@ -158,17 +158,17 @@ function DashboardPlantCard({
             onClick={handleOpenWatering}
             disabled={!primaryDevice}
           >
-            РџРѕР»РёРІ
+            Полив
           </Button>
           <Button
             type="button"
             variant="secondary"
             onClick={() => onOpenJournal?.(plant.id)}
           >
-            Р–СѓСЂРЅР°Р»
+            Журнал
           </Button>
           <Link className="dashboard-plant-card__link" to="/app/plants">
-            РџРµСЂРµР№С‚Рё в†’
+            Перейти →
           </Link>
         </div>
       </div>
