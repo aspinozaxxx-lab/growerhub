@@ -35,90 +35,11 @@
   gap: 12px;
 }
 
-.dashboard-plant-card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .free-device-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-
-.dashboard-plant-card__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.dashboard-plant-card__age {
-  color: #c7d7ef;
-  font-size: 13px;
-}
-
-.dashboard-plant-card__body {
-  display: flex;
-  gap: 10px;
-  align-items: stretch;
-}
-
-.dashboard-plant-card__avatar {
-  flex: 1 1 auto;
-  max-width: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 176px; /* 4 tiles * 40px + 3 gaps * 6px */
-}
-
-.dashboard-plant-card__avatar img {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  border-radius: 10px;
-}
-
-.dashboard-plant-card__metrics {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 8px;
-  flex: 0 0 190px;
-}
-
-.dashboard-plant-card__empty {
-  font-size: 14px;
-}
-
-.dashboard-plant-card__footer {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.dashboard-plant-card__link {
-  color: #9de8ba;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.dashboard-plant-card__actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.dashboard-plant-card__watering-badge {
-  margin-top: 8px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: rgba(107, 219, 168, 0.12);
-  color: #6bdba8;
-  font-weight: 600;
-}
-
 .free-device-card__header {
   display: flex;
   justify-content: space-between;
@@ -171,11 +92,4 @@
   color: #c7d7ef;
   font-size: 12px;
   height: fit-content;
-}
-
-@media (max-width: 640px) {
-  .dashboard-plant-card__metrics {
-    gap: 8px;
-    flex-basis: 170px;
-  }
 }
