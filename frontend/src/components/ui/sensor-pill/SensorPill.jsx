@@ -16,12 +16,10 @@ const ICONS = {
   pump: iconPump,
 };
 
-const LABELS = {
-  air_temperature: { label: 'T', unit: '°C' },
-  air_humidity: { label: 'Влажн. воздуха', unit: '%' },
-  soil_moisture: { label: 'Влажн. почвы', unit: '%' },
-  watering: { label: 'Полив', unit: '' },
-  pump: { label: 'Насос', unit: '' },
+const UNITS = {
+  air_temperature: '°C',
+  air_humidity: '%',
+  soil_moisture: '%',
 };
 
 function SensorPill({
@@ -33,7 +31,7 @@ function SensorPill({
   action = null,
 }) {
   const icon = ICONS[kind] || iconUnknown;
-  const { label, unit } = LABELS[kind] || { label: 'Показатель', unit: '' };
+  const unit = UNITS[kind] || '';
 
   const isClickable = typeof onClick === 'function';
 
@@ -54,12 +52,14 @@ function SensorPill({
       displayValue = 'не задано';
     } else {
       const formatted = formatSensorValue(value, 1);
-      displayValue = `Скорость: ${formatted} л/ч`;
+      displayValue = `${formatted} л/ч`;
     }
     displayUnit = '';
   } else {
     displayValue = formatSensorValue(value, 1);
   }
+
+  const showUnit = Boolean(displayUnit) && displayValue !== '—';
 
   const classNames = [
     'sensor-pill',
@@ -83,17 +83,14 @@ function SensorPill({
       <span className="sensor-pill__icon" aria-hidden="true">
         <img src={icon} alt="" />
       </span>
-      <div className="sensor-pill__body">
-        <span className="sensor-pill__value">{displayValue}</span>
-        <span className="sensor-pill__label">
-          {label}
-          {displayUnit ? (
-            <span className="sensor-pill__unit">
-              {` ${displayUnit}`}
-            </span>
-          ) : null}
-        </span>
-      </div>
+      <span className="sensor-pill__value">
+        {displayValue}
+        {showUnit ? (
+          <span className="sensor-pill__unit">
+            {displayUnit}
+          </span>
+        ) : null}
+      </span>
     </Element>
   );
 }

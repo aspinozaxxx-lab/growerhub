@@ -111,19 +111,10 @@ function DeviceCard({ device, onEdit, variant = 'default' }) {
           </Button>
         )}
       </div>
-      <div className="device-card__plant-metrics">
-        <div className="device-chip">
-          <span className="device-chip__label">Почва</span>
-          <span className="device-chip__value">{formatSensorValue(device.soil_moisture)}</span>
-        </div>
-        <div className="device-chip">
-          <span className="device-chip__label">Воздух</span>
-          <span className="device-chip__value">{formatSensorValue(device.air_humidity)}</span>
-        </div>
-        <div className="device-chip">
-          <span className="device-chip__label">T</span>
-          <span className="device-chip__value">{formatSensorValue(device.air_temperature)}</span>
-        </div>
+      <div className="device-card__metrics">
+        <SensorPill kind="soil_moisture" value={device.soil_moisture} />
+        <SensorPill kind="air_humidity" value={device.air_humidity} />
+        <SensorPill kind="air_temperature" value={device.air_temperature} />
       </div>
     </Surface>
   );
