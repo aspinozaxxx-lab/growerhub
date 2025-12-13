@@ -1,4 +1,4 @@
-export function formatSensorValue(value, fractionDigits = 1) {
+﻿export function formatSensorValue(value, fractionDigits = 1) {
   if (value === null || value === undefined) {
     return '—';
   }
