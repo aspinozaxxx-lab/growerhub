@@ -1,12 +1,12 @@
 ﻿import React from 'react';
 import { formatSensorValue } from '../../../utils/formatters';
 import './SensorPill.css';
-import iconTemperature from './assets/temperature.svg';
-import iconAirHumidity from './assets/air-humidity.svg';
-import iconSoilMoisture from './assets/soil-moisture.svg';
-import iconWatering from './assets/watering.svg';
-import iconPump from './assets/pump.svg';
-import iconUnknown from './assets/unknown.svg';
+import iconTemperature from './assets/temperature.svg?raw';
+import iconAirHumidity from './assets/air-humidity.svg?raw';
+import iconSoilMoisture from './assets/soil-moisture.svg?raw';
+import iconWatering from './assets/watering.svg?raw';
+import iconPump from './assets/pump.svg?raw';
+import iconUnknown from './assets/unknown.svg?raw';
 
 const ICONS = {
   air_temperature: iconTemperature,
@@ -30,7 +30,7 @@ function SensorPill({
   highlight = false,
   action = null,
 }) {
-  const icon = ICONS[kind] || iconUnknown;
+  const iconMarkup = ICONS[kind] || iconUnknown;
   const unit = UNITS[kind] || '';
 
   const isClickable = typeof onClick === 'function';
@@ -80,9 +80,11 @@ function SensorPill({
       disabled={disabled && isClickable}
       aria-label={action === 'edit' ? 'Редактировать' : undefined}
     >
-      <span className="sensor-pill__icon" aria-hidden="true">
-        <img src={icon} alt="" />
-      </span>
+      <span
+        className="sensor-pill__icon"
+        aria-hidden="true"
+        dangerouslySetInnerHTML={{ __html: iconMarkup }}
+      />
       <span className="sensor-pill__value">
         {displayValue}
         {showUnit ? (

@@ -66,8 +66,8 @@
 }
 
 .dashboard-plant-card__avatar {
-  flex: 3 1 0;
-  max-width: 75%;
+  flex: 1 1 auto;
+  max-width: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -83,8 +83,9 @@
 
 .dashboard-plant-card__metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: 1fr;
   gap: 8px;
+  flex: 0 0 190px;
 }
 
 .dashboard-plant-card__empty {
@@ -175,5 +176,6 @@
 @media (max-width: 640px) {
   .dashboard-plant-card__metrics {
     gap: 8px;
+    flex-basis: 170px;
   }
 }
