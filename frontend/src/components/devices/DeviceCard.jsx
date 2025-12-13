@@ -2,7 +2,7 @@
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
 import { resolveDeviceAsset } from './assets';
 import { formatSensorValue } from '../../utils/formatters';
-import SensorPill from '../ui/SensorPill';
+import SensorPill from '../ui/sensor-pill/SensorPill';
 import Button from '../ui/Button';
 import Surface from '../ui/Surface';
 import { Title, Text } from '../ui/Typography';

@@ -6,7 +6,7 @@ import { useWateringSidebar } from "../../features/watering/WateringSidebarConte
 import { formatSensorValue } from "../../utils/formatters";
 import PlantAvatar from "../../components/plant-avatar/PlantAvatar";
 import { getStageFromPlantAgeDays } from "../../components/plant-avatar/plantStageFromAge";
-import SensorPill from "../../components/ui/SensorPill";
+import SensorPill from "../../components/ui/sensor-pill/SensorPill";
 import Button from "../../components/ui/Button";
 import Surface from "../../components/ui/Surface";
 import { Title, Text } from "../../components/ui/Typography";
