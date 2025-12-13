@@ -80,7 +80,14 @@ function DashboardPlantCard({
     return Math.max(0, Math.floor(diff / MS_IN_DAY));
   }, [plant?.planted_at]);
 
-  const stageId = getStageFromPlantAgeDays(ageDays);
+  // Translitem: esli stadiya zadana v plant.growth_stage — berem ee; inache fallback na avto po vozrastu.
+  const stageId = plant?.growth_stage && String(plant.growth_stage).trim()
+    ? String(plant.growth_stage).trim()
+    : getStageFromPlantAgeDays(ageDays);
+  // Translitem: tip rastenija berem iz plant.plant_type; esli pustoj — ispol'zuem defolt "flowering" (est assets).
+  const plantType = plant?.plant_type && String(plant.plant_type).trim()
+    ? String(plant.plant_type).trim()
+    : 'flowering';
   const showWateringBadge = wateringStatus && remainingSeconds !== null && remainingSeconds > 0;
 
   const handleOpenWatering = () => {
@@ -107,7 +114,7 @@ function DashboardPlantCard({
         <div className="dashboard-plant-card__body">
           <div className="dashboard-plant-card__avatar" aria-hidden="true">
             <PlantAvatar
-              plantType="flowering"
+              plantType={plantType}
               stage={stageId}
               variant="card"
               size="md"

@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../features/auth/AuthContext';
+import { STAGE_OPTIONS_RU } from '../../constants/plantStages';
 import {
   createPlant,
   updatePlant,
@@ -14,16 +15,6 @@ import FormField from '../ui/FormField';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import './PlantEditDialog.css';
-
-const STAGE_LABELS = {
-  seed: 'Seed',
-  seedling: 'Seedling',
-  vegetative: 'Vegetative',
-  preflower: 'Pre-flower',
-  flowering: 'Flowering',
-  ripening: 'Ripening',
-  harvest_ready: 'Harvest ready',
-};
 
 // Translitem: PlantEditDialog - dialog CRUD rastenija (polya, gruppy, privyazki ustrojstv); roditel delat refetch cherez onSaved().
 function PlantEditDialog({
@@ -51,10 +42,8 @@ function PlantEditDialog({
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const stageOptions = useMemo(() => [
-    { value: '', label: 'Авто по возрасту' },
-    ...Object.entries(STAGE_LABELS).map(([value, label]) => ({ value, label })),
-  ], []);
+  // Translitem: opcii stadii v select vynosim v obshchiy modul, chtoby vsyudu byli russkie leybly.
+  const stageOptions = useMemo(() => STAGE_OPTIONS_RU, []);
 
   const assignedDevices = useMemo(() => Array.isArray(localPlant.devices) ? localPlant.devices : [], [localPlant.devices]);
 

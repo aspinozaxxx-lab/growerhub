@@ -1,17 +1,7 @@
 ﻿import React from 'react';
 import './PlantAvatar.css';
 import { resolveAvatarAsset } from './assets';
-
-// Karta dlya chelovecheskih podpisey stadii
-const STAGE_LABELS = {
-  seed: 'Seed',
-  seedling: 'Seedling',
-  vegetative: 'Vegetative',
-  preflower: 'Pre-flower',
-  flowering: 'Flowering',
-  ripening: 'Ripening',
-  harvest_ready: 'Harvest ready',
-};
+import { getStageLabelRu } from '../../constants/plantStages';
 
 // Prostyj avatar rastenija: beret staticheskij svg po tipu i stadii
 function PlantAvatar({
@@ -25,8 +15,9 @@ function PlantAvatar({
   size = 'md',
 }) {
   const imageSrc = resolveAvatarAsset(plantType, stage);
-  const stageLabel = STAGE_LABELS[stage] || stage || 'Unknown stage';
-  const title = `${plantType || 'Plant'} ${stageLabel}`;
+  // Translitem: podpisi stadii v UI pokazyvaem po-russki cherez edinyj modul.
+  const stageLabel = stage ? getStageLabelRu(stage) : '';
+  const title = `${plantType || 'Растение'}${stageLabel ? ` · ${stageLabel}` : ''}`;
 
   const className = [
     'plant-avatar',
@@ -56,4 +47,3 @@ function PlantAvatar({
 }
 
 export default PlantAvatar;
-

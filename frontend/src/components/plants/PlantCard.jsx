@@ -1,6 +1,7 @@
 ﻿import React, { useMemo } from 'react';
 import PlantAvatar from '../plant-avatar/PlantAvatar';
 import { getStageFromPlantAgeDays } from '../plant-avatar/plantStageFromAge';
+import { getStageLabelRu } from '../../constants/plantStages';
 import DeviceCard from '../devices/DeviceCard';
 import Surface from '../ui/Surface';
 import { Title, Text } from '../ui/Typography';
@@ -16,7 +17,8 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
     return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
   }, [plantedDate]);
 
-  const stage = plant?.growth_stage || (ageDays !== null ? getStageFromPlantAgeDays(ageDays) : undefined);
+  const stageId = plant?.growth_stage || (ageDays !== null ? getStageFromPlantAgeDays(ageDays) : undefined);
+  const stageLabel = stageId ? getStageLabelRu(stageId) : '';
 
   const groupName = plant?.plant_group?.name || 'Без группы';
   const plantedLabel = plantedDate && !Number.isNaN(plantedDate.getTime())
@@ -46,7 +48,7 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
 
       <div className="plant-card__body">
         <div className="plant-card__avatar" aria-hidden="true">
-          <PlantAvatar plantType={plant.plant_type || 'flowering'} stage={stage} variant="card" size="md" />
+          <PlantAvatar plantType={plant.plant_type || 'flowering'} stage={stageId} variant="card" size="md" />
         </div>
         <div className="plant-card__info">
           <div className="plant-card__row">
@@ -57,7 +59,7 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
             <Text as="span" tone="muted" className="plant-card__label">Возраст / Стадия</Text>
             <span className="plant-card__value">
               {ageDays !== null ? `${ageDays} дн.` : '-'}
-              {stage ? ` · ${stage}` : ''}
+              {stageLabel ? ` · ${stageLabel}` : ''}
             </span>
           </div>
         </div>

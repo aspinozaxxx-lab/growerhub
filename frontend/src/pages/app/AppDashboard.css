@@ -35,6 +35,14 @@
   gap: 12px;
 }
 
+@media (min-width: 1024px) {
+  /* Translitem: na desktop delaem kartochki rastenij zametno bol'she, ostavlyaya ostal'nye setki bez izmeneniy. */
+  .cards-grid.cards-grid--plants {
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 16px;
+  }
+}
+
 .dashboard-section-plain {
   padding: var(--space-4);
   display: flex;

@@ -76,6 +76,23 @@
   font-weight: 600;
 }
 
+@media (min-width: 1024px) {
+  /* Translitem: na desktop uvelichivaem "kartinku" rastenija i sdelajem metriki bolee kompaktnymi. */
+  .dashboard-plant-card {
+    padding: var(--space-5);
+    gap: var(--space-4);
+  }
+
+  .dashboard-plant-card__avatar {
+    min-height: 240px;
+  }
+
+  .dashboard-plant-card__metrics {
+    flex-basis: 140px;
+    gap: var(--space-1);
+  }
+}
+
 @media (max-width: 640px) {
   .dashboard-plant-card {
     width: 100%;

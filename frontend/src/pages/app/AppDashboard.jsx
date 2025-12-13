@@ -104,7 +104,7 @@ function AppDashboard() {
           <div className="dashboard-section__header">
             <Title level={2}>Растения</Title>
           </div>
-          <div className="cards-grid">
+          <div className="cards-grid cards-grid--plants">
             {plants.map((plant) => {
               const deviceKey = plant?.devices?.[0]?.device_id;
               return (
