@@ -43,6 +43,8 @@
   grid-template-columns: 1fr;
   gap: var(--space-2);
   flex: 0 0 150px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .dashboard-plant-card__empty {
@@ -105,6 +107,7 @@
   .dashboard-plant-card__body {
     display: flex;
     align-items: stretch;
+    gap: var(--space-2);
   }
 
   .dashboard-plant-card__avatar {
@@ -113,10 +116,42 @@
   }
 
   .dashboard-plant-card__metrics {
-    flex: 1 0 0;
-    max-width: 25%;
+    flex: 0 0 calc(var(--space-6) * 5);
+    max-width: calc(var(--space-6) * 5);
+    padding-right: var(--space-1);
+    min-width: 0;
     display: grid;
     grid-template-columns: 1fr;
-    gap: var(--space-2);
+    gap: var(--space-1);
+  }
+
+  .dashboard-plant-card__metrics .sensor-pill {
+    padding: var(--space-1) var(--space-2);
+    gap: var(--space-1);
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .dashboard-plant-card__metrics .sensor-pill__icon {
+    width: var(--space-6);
+    height: var(--space-6);
+    flex: 0 0 auto;
+  }
+
+  .dashboard-plant-card__metrics .sensor-pill__icon svg {
+    width: var(--space-4);
+    height: var(--space-4);
+  }
+
+  .dashboard-plant-card__metrics .sensor-pill__value {
+    display: block;
+    white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dashboard-plant-card__metrics .sensor-pill__unit {
+    margin-left: var(--space-1);
   }
 }
