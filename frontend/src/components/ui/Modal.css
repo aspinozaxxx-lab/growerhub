@@ -19,12 +19,12 @@
   border: 1px solid var(--border-1);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-2);
-  padding: 16px;
+  padding: var(--space-4);
   width: min(640px, 95vw);
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   color: var(--text-1);
 }
 
@@ -40,7 +40,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .gh-modal__title {
@@ -53,7 +53,7 @@
   background: transparent;
   border: 1px solid var(--border-2);
   border-radius: var(--radius-md);
-  padding: 6px 10px;
+  padding: var(--space-2) var(--space-3);
   color: var(--text-2);
   cursor: pointer;
   transition: border-color 0.15s ease, color 0.15s ease;
@@ -70,12 +70,12 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-3);
 }
 
 .gh-modal__footer {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
 }

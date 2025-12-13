@@ -1,7 +1,7 @@
 ﻿.gh-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .gh-label {
@@ -11,7 +11,7 @@
 
 .gh-control {
   width: 100%;
-  padding: 10px 12px;
+  padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-2);
   background: var(--surface-2);
@@ -43,6 +43,6 @@
 
 .gh-row {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
 }

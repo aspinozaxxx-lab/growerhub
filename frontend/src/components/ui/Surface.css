@@ -11,19 +11,19 @@
 }
 
 .gh-surface--p-sm {
-  padding: 10px;
+  padding: var(--space-3);
 }
 
 .gh-surface--p-md {
-  padding: 14px;
+  padding: var(--space-4);
 }
 
 .gh-surface--p-lg {
-  padding: 18px;
+  padding: var(--space-5);
 }
 
 .gh-divider {
   border-top: 1px solid var(--border-1);
   width: 100%;
-  margin: 8px 0;
+  margin: var(--space-2) 0;
 }

@@ -1,12 +1,14 @@
 ﻿import React from 'react';
+import Stack from '../ui/Stack';
+import { Title } from '../ui/Typography';
 import './AppPageHeader.css';
 
 function AppPageHeader({ title, right = null }) {
   return (
-    <div className="app-page-header">
-      <h2 className="app-page-header__title">{title}</h2>
+    <Stack className="app-page-header" direction="row" gap="3" align="center" justify="space-between" wrap="wrap">
+      <Title level={2} className="app-page-header__title">{title}</Title>
       {right ? <div className="app-page-header__actions">{right}</div> : null}
-    </div>
+    </Stack>
   );
 }
 

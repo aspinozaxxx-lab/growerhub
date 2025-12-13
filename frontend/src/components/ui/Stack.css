@@ -1,0 +1,4 @@
+﻿.gh-stack {
+  display: flex;
+  gap: var(--stack-gap, var(--space-2));
+}
