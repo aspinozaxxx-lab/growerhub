@@ -3,6 +3,10 @@
 - Dobavleny novye polya u modeli rastenija: `plant_type`, `strain`, `growth_stage`.
 - Dobavlena alembic-migracija dlya polej v tablice `plants`.
 - fix(server): POST/PATCH `/api/plants` teper' sohranyaet i vozvrashchaet `plant_type`, `strain`, `growth_stage`.
+- refactor(front): stadii rastenij teper' pokazyvayutsya po-russki cherez edinyj modul (select/avatary/kartochki).
+- fix(front): dashboard beret `growth_stage`/`plant_type` esli zadany, inache fallback na avto-stadiyu po vozrastu.
+- fix(front): vremya zhurnala/poliva formatiruetsya v Europe/Moscow; UTC datetime bez timezone interpretiruetsya korrektno.
+- fix(front): status aktivnogo poliva vosstanavlivaetsya pri zagruzke dashborda cherez `/api/manual-watering/status`.
 - Dobavlen PATCH dlya pereimenovanija grupp rastenij (`/api/plant-groups/{id}`).
 - Rasshireny Pydantic-shemy `PlantCreate`, `PlantUpdate`, `PlantOut`, dobavlena `PlantGroupUpdate`.
 
@@ -287,5 +291,4 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - Istorija polivov teper ispolzuet obem vody kak osnovnuyu metriku i v saidebare vidno ph i sostav udobrenij.
 - Dobavlena polnocennaja stranica zhurnala rastenija: prosmotr, dobavlenie, izmenenie, udalenie zhjurnalnyh zapisej. Fiks bitogo teksta v istorii polivov, normalnye podpisi.
 - sso callback: po umolchaniyu vozvrashchaet redirect s tokenom v URL, link-mode uhodit na `/static/profile.html`.
-
 

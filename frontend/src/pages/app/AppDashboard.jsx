@@ -1,8 +1,10 @@
 ﻿import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../features/auth/AuthContext";
 import { useDashboardData } from "../../features/dashboard/useDashboardData";
 import { useSensorStatsContext } from "../../features/sensors/SensorStatsContext";
 import { useWateringSidebar } from "../../features/watering/WateringSidebarContext";
+import { getManualWateringStatus } from "../../api/manualWatering";
 import SensorPill from "../../components/ui/sensor-pill/SensorPill";
 import Button from "../../components/ui/Button";
 import Surface from "../../components/ui/Surface";
@@ -81,14 +83,61 @@ function FreeDeviceCard({ device, onOpenStats }) {
 }
 
 function AppDashboard() {
+  const { token } = useAuth();
   const { plants, devices, freeDevices, isLoading, error } = useDashboardData();
   const { openSensorStats } = useSensorStatsContext();
-  const { openWateringSidebar, wateringByDevice } = useWateringSidebar();
+  const { openWateringSidebar, setWateringStatus, wateringByDevice } = useWateringSidebar();
   const navigate = useNavigate();
 
   const handleOpenJournal = (plantId) => {
     navigate(`/app/plants/${plantId}/journal`);
   };
+
+  const deviceToPlantId = React.useMemo(() => {
+    const map = {};
+    (plants || []).forEach((plant) => {
+      (plant?.devices || []).forEach((device) => {
+        const deviceId = device?.device_id;
+        if (deviceId) {
+          map[deviceId] = plant.id;
+        }
+      });
+    });
+    return map;
+  }, [plants]);
+
+  React.useEffect(() => {
+    // Translitem: vosstanavlivaem status aktivnogo poliva posle obnovleniya stranicy iz servernogo istochnika pravdy.
+    let isCancelled = false;
+    async function restoreStatuses() {
+      if (!token || !Array.isArray(devices) || devices.length === 0) return;
+      const ids = devices.map((d) => d?.device_id).filter(Boolean);
+      await Promise.all(ids.map(async (deviceId) => {
+        try {
+          const status = await getManualWateringStatus(deviceId, token);
+          if (isCancelled) return;
+          const startTime = status.start_time || status.started_at || status.startTime || status.startedAt || null;
+          const duration = status.duration ?? status.duration_s ?? status.durationS ?? null;
+          const isRunning = status.status === 'running';
+          if (isRunning && startTime && duration) {
+            setWateringStatus(deviceId, {
+              startTime,
+              duration: Number(duration),
+              plantId: deviceToPlantId[deviceId] || null,
+            });
+          } else {
+            setWateringStatus(deviceId, null);
+          }
+        } catch (_err) {
+          // Translitem: esli status ne udaetsya poluchit' (set'/auth), ne portim lokal'noe sostoyanie.
+        }
+      }));
+    }
+    restoreStatuses();
+    return () => {
+      isCancelled = true;
+    };
+  }, [deviceToPlantId, devices, setWateringStatus, token]);
 
   return (
     <div className="dashboard">

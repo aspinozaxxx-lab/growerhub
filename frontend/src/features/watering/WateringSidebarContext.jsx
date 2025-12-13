@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+﻿import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 const WateringSidebarContext = createContext(undefined);
 
@@ -29,13 +29,20 @@ function WateringSidebarProvider({ children }) {
   }, []);
 
   const setWateringStatus = useCallback((deviceId, status) => {
-    if (!deviceId || !status) {
-      return;
-    }
-    setWateringByDevice((prev) => ({
-      ...prev,
-      [deviceId]: status,
-    }));
+    if (!deviceId) return;
+    setWateringByDevice((prev) => {
+      if (!status) {
+        // Translitem: ochistka statusa esli poliv ne aktivnyj.
+        if (!prev[deviceId]) return prev;
+        const next = { ...prev };
+        delete next[deviceId];
+        return next;
+      }
+      return {
+        ...prev,
+        [deviceId]: status,
+      };
+    });
   }, []);
 
   const value = useMemo(
@@ -65,3 +72,4 @@ function useWateringSidebar() {
 }
 
 export { WateringSidebarProvider, useWateringSidebar };
+
