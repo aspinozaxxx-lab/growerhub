@@ -77,7 +77,29 @@
 }
 
 @media (max-width: 640px) {
+  .dashboard-plant-card {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    align-self: stretch;
+    box-sizing: border-box;
+  }
+
+  .dashboard-plant-card__body {
+    display: flex;
+    align-items: stretch;
+  }
+
+  .dashboard-plant-card__avatar {
+    flex: 3 1 0;
+    min-width: 0;
+  }
+
   .dashboard-plant-card__metrics {
-    flex-basis: 150px;
+    flex: 1 0 0;
+    max-width: 25%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
   }
 }

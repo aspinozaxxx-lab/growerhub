@@ -47,6 +47,13 @@
   flex-direction: column;
   gap: 10px;
 }
+
+@media (max-width: 640px) {
+  .dashboard-section-plain {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
 .free-device-card__header {
   display: flex;
   justify-content: space-between;
