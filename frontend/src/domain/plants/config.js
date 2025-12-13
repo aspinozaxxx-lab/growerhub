@@ -48,7 +48,28 @@ const PLANT_TYPE_CONFIG = {
       { min_age_days: 100, stage: 'harvest_ready' },
     ],
   },
+  succulents_cacti: {
+    stages: ['seed', 'seedling', 'vegetative', 'mature', 'flowering'],
+    fallback_stage: 'seedling',
+    auto_thresholds: [
+      { min_age_days: 0, stage: 'seed' },
+      { min_age_days: 21, stage: 'seedling' },
+      { min_age_days: 120, stage: 'vegetative' },
+      { min_age_days: 365, stage: 'mature' },
+      { min_age_days: 730, stage: 'flowering' },
+    ],
+  },
+  herbs_spices: {
+    stages: ['seed', 'seedling', 'vegetative', 'harvest_ready', 'bolting'],
+    fallback_stage: 'seedling',
+    auto_thresholds: [
+      { min_age_days: 0, stage: 'seed' },
+      { min_age_days: 5, stage: 'seedling' },
+      { min_age_days: 14, stage: 'vegetative' },
+      { min_age_days: 28, stage: 'harvest_ready' },
+      { min_age_days: 45, stage: 'bolting' },
+    ],
+  },
 };
 
 export { PLANT_TYPE_CONFIG };
-

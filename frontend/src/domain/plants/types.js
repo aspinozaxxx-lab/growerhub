@@ -8,6 +8,8 @@ const PLANT_TYPES = [
   { id: 'houseplant', labels: { ru: 'Комнатные декоративные', en: 'Houseplants' } },
   { id: 'leafy_greens', labels: { ru: 'Зелень и салаты', en: 'Leafy greens' } },
   { id: 'fruiting_veg', labels: { ru: 'Плодоносящие', en: 'Fruiting vegetables' } },
+  { id: 'succulents_cacti', labels: { ru: 'Суккуленты и кактусы', en: 'Succulents and cacti' } },
+  { id: 'herbs_spices', labels: { ru: 'Пряные травы', en: 'Herbs and spices' } },
 ];
 
 // Translitem: bystraya karta dlya poiska.
@@ -44,4 +46,3 @@ export {
   getPlantTypeOptions,
   normalizePlantTypeId,
 };
-

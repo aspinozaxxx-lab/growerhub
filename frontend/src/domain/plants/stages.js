@@ -7,6 +7,7 @@ const STAGES = {
   vegetative: { labels: { ru: 'Вегетация', en: 'Vegetative' } },
   preflower: { labels: { ru: 'Предцвет', en: 'Preflower' } },
   flowering: { labels: { ru: 'Цветение', en: 'Flowering' } },
+  bolting: { labels: { ru: 'Стрелкование', en: 'Bolting' } },
   fruit_set: { labels: { ru: 'Завязь плодов', en: 'Fruit set' } },
   ripening: { labels: { ru: 'Созревание', en: 'Ripening' } },
   mature: { labels: { ru: 'Зрелое растение', en: 'Mature' } },
@@ -23,4 +24,3 @@ function getStageLabel(stageId, lang = 'ru') {
 }
 
 export { STAGES, getStageLabel };
-
