@@ -1,7 +1,12 @@
 ﻿import React, { useMemo } from 'react';
 import PlantAvatar from '../plant-avatar/PlantAvatar';
-import { getStageFromPlantAgeDays } from '../plant-avatar/plantStageFromAge';
-import { getStageLabelRu } from '../../constants/plantStages';
+import {
+  DEFAULT_PLANT_TYPE_ID,
+  getAutoStageFromAge,
+  getPlantTypeLabel,
+  getStageLabel,
+  normalizePlantTypeId,
+} from '../../domain/plants';
 import DeviceCard from '../devices/DeviceCard';
 import Surface from '../ui/Surface';
 import { Title, Text } from '../ui/Typography';
@@ -17,8 +22,10 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
     return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
   }, [plantedDate]);
 
-  const stageId = plant?.growth_stage || (ageDays !== null ? getStageFromPlantAgeDays(ageDays) : undefined);
-  const stageLabel = stageId ? getStageLabelRu(stageId) : '';
+  const plantTypeId = normalizePlantTypeId(plant?.plant_type || DEFAULT_PLANT_TYPE_ID);
+  const manualStageId = plant?.growth_stage ? String(plant.growth_stage).trim() : '';
+  const stageId = manualStageId || (ageDays !== null ? getAutoStageFromAge(plantTypeId, ageDays) : undefined);
+  const stageLabel = stageId ? getStageLabel(stageId, 'ru') : '';
 
   const groupName = plant?.plant_group?.name || 'Без группы';
   const plantedLabel = plantedDate && !Number.isNaN(plantedDate.getTime())
@@ -34,7 +41,7 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
         <div className="plant-card__title">
           <Title level={3} className="plant-card__name">{plant.name}</Title>
           <div className="plant-card__meta">
-            {plant.plant_type && <span className="plant-card__tag">{plant.plant_type}</span>}
+            {plant.plant_type && <span className="plant-card__tag">{getPlantTypeLabel(plant.plant_type, 'ru')}</span>}
             {plant.strain && <span className="plant-card__tag">{plant.strain}</span>}
           </div>
           <Text tone="muted" className="plant-card__group">{groupName}</Text>
@@ -48,7 +55,7 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
 
       <div className="plant-card__body">
         <div className="plant-card__avatar" aria-hidden="true">
-          <PlantAvatar plantType={plant.plant_type || 'flowering'} stage={stageId} variant="card" size="md" />
+          <PlantAvatar plantType={plantTypeId} stage={stageId} variant="card" size="md" />
         </div>
         <div className="plant-card__info">
           <div className="plant-card__row">

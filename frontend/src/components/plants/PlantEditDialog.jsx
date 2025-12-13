@@ -1,7 +1,13 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../features/auth/AuthContext';
-import { STAGE_OPTIONS_RU } from '../../constants/plantStages';
 import { formatDateKeyYYYYMMDD, formatTimeHHMM } from '../../utils/formatters';
+import {
+  DEFAULT_PLANT_TYPE_ID,
+  getPlantTypeOptions,
+  getStageOptionsForType,
+  getStagesForType,
+  normalizePlantTypeId,
+} from '../../domain/plants';
 import {
   createPlant,
   updatePlant,
@@ -31,7 +37,7 @@ function PlantEditDialog({
   const { token } = useAuth();
   const [localPlant, setLocalPlant] = useState({
     name: '',
-    plant_type: '',
+    plant_type: DEFAULT_PLANT_TYPE_ID,
     strain: '',
     growth_stage: '',
     planted_at: '',
@@ -43,8 +49,9 @@ function PlantEditDialog({
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Translitem: opcii stadii v select vynosim v obshchiy modul, chtoby vsyudu byli russkie leybly.
-  const stageOptions = useMemo(() => STAGE_OPTIONS_RU, []);
+  const plantTypeOptions = useMemo(() => getPlantTypeOptions('ru'), []);
+  const selectedTypeId = useMemo(() => normalizePlantTypeId(localPlant.plant_type), [localPlant.plant_type]);
+  const stageOptions = useMemo(() => getStageOptionsForType('ru', selectedTypeId), [selectedTypeId]);
 
   const assignedDevices = useMemo(() => Array.isArray(localPlant.devices) ? localPlant.devices : [], [localPlant.devices]);
 
@@ -84,7 +91,7 @@ function PlantEditDialog({
     if (mode === 'edit' && plant) {
       setLocalPlant({
         name: plant.name || '',
-        plant_type: plant.plant_type || '',
+        plant_type: normalizePlantTypeId(plant.plant_type || DEFAULT_PLANT_TYPE_ID),
         strain: plant.strain || '',
         growth_stage: plant.growth_stage || '',
         planted_at: toLocalDateTimeInput(plant.planted_at),
@@ -94,7 +101,7 @@ function PlantEditDialog({
     } else {
       setLocalPlant({
         name: '',
-        plant_type: '',
+        plant_type: DEFAULT_PLANT_TYPE_ID,
         strain: '',
         growth_stage: '',
         planted_at: '',
@@ -113,6 +120,20 @@ function PlantEditDialog({
       ...prev,
       plant_group_id: value === '' || value === null ? null : Number(value),
     }));
+  };
+
+  const handlePlantTypeChange = (value) => {
+    const nextTypeId = normalizePlantTypeId(value);
+    setLocalPlant((prev) => {
+      const currentStage = prev.growth_stage ? String(prev.growth_stage).trim() : '';
+      const allowed = new Set(getStagesForType(nextTypeId));
+      const nextStage = currentStage && allowed.has(currentStage) ? currentStage : '';
+      return {
+        ...prev,
+        plant_type: nextTypeId,
+        growth_stage: nextStage,
+      };
+    });
   };
 
   // Translitem: operacii nad gruppami vnutri dialoga (roditel potom refetch cherez onSaved()).
@@ -275,12 +296,15 @@ function PlantEditDialog({
         </FormField>
 
         <FormField label="Тип растения" htmlFor="plant-type" className="plant-dialog__field">
-          <input
+          <select
             id="plant-type"
-            value={localPlant.plant_type || ''}
-            onChange={(e) => setLocalPlant((prev) => ({ ...prev, plant_type: e.target.value }))}
-            placeholder="flowering"
-          />
+            value={selectedTypeId}
+            onChange={(e) => handlePlantTypeChange(e.target.value)}
+          >
+            {plantTypeOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
         </FormField>
 
         <FormField label="Сорт" htmlFor="plant-strain" className="plant-dialog__field">
@@ -288,7 +312,6 @@ function PlantEditDialog({
             id="plant-strain"
             value={localPlant.strain || ''}
             onChange={(e) => setLocalPlant((prev) => ({ ...prev, strain: e.target.value }))}
-            placeholder="Mint"
           />
         </FormField>
 

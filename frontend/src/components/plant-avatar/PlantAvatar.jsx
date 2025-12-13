@@ -1,23 +1,28 @@
 ﻿import React from 'react';
 import './PlantAvatar.css';
-import { resolveAvatarAsset } from './assets';
-import { getStageLabelRu } from '../../constants/plantStages';
+import {
+  getPlantTypeLabel,
+  getStageLabel,
+  normalizePlantTypeId,
+  resolveAvatarAsset,
+} from '../../domain/plants';
 
-// Prostyj avatar rastenija: beret staticheskij svg po tipu i stadii
+// Translitem: prostyj avatar rastenija: beret png-asset po tipu i stadii iz plants domain.
 function PlantAvatar({
-  // plantType - tip rastenija (naprimer, flowering)
+  // plantType - typeId rastenija (naprimer, flowering_plants)
   plantType,
-  // stage - stadiya rosta (seed, seedling, vegetative, preflower, flowering, ripening, harvest_ready)
+  // stage - stageId rosta (seed, seedling, vegetative, preflower, flowering, ripening, harvest_ready, ...)
   stage,
   // variant - stil obolochki (card, detail, mini)
   variant = 'card',
   // size - razmer obolochki (xs, sm, md, lg, xl)
   size = 'md',
 }) {
-  const imageSrc = resolveAvatarAsset(plantType, stage);
-  // Translitem: podpisi stadii v UI pokazyvaem po-russki cherez edinyj modul.
-  const stageLabel = stage ? getStageLabelRu(stage) : '';
-  const title = `${plantType || 'Растение'}${stageLabel ? ` · ${stageLabel}` : ''}`;
+  const typeId = plantType ? normalizePlantTypeId(plantType) : null;
+  const imageSrc = resolveAvatarAsset(typeId, stage);
+  const stageLabel = stage ? getStageLabel(stage, 'ru') : '';
+  const typeLabel = plantType ? getPlantTypeLabel(plantType, 'ru') : 'Растение';
+  const title = `${typeLabel}${stageLabel ? ` · ${stageLabel}` : ''}`;
 
   const className = [
     'plant-avatar',

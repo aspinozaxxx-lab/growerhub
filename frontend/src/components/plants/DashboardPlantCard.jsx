@@ -1,8 +1,8 @@
 ﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import PlantAvatar from '../plant-avatar/PlantAvatar';
-import { getStageFromPlantAgeDays } from '../plant-avatar/plantStageFromAge';
 import { parseBackendTimestamp } from '../../utils/formatters';
+import { DEFAULT_PLANT_TYPE_ID, getAutoStageFromAge, normalizePlantTypeId } from '../../domain/plants';
 import SensorPill from '../ui/sensor-pill/SensorPill';
 import Button from '../ui/Button';
 import Surface from '../ui/Surface';
@@ -81,14 +81,11 @@ function DashboardPlantCard({
     return Math.max(0, Math.floor(diff / MS_IN_DAY));
   }, [plant?.planted_at]);
 
-  // Translitem: esli stadiya zadana v plant.growth_stage — berem ee; inache fallback na avto po vozrastu.
+  const plantTypeId = normalizePlantTypeId(plant?.plant_type || DEFAULT_PLANT_TYPE_ID);
+  // Translitem: esli stadiya zadana v plant.growth_stage - berem ee; inache fallback na avto po vozrastu s uchetom tipa.
   const stageId = plant?.growth_stage && String(plant.growth_stage).trim()
     ? String(plant.growth_stage).trim()
-    : getStageFromPlantAgeDays(ageDays);
-  // Translitem: tip rastenija berem iz plant.plant_type; esli pustoj — ispol'zuem defolt "flowering" (est assets).
-  const plantType = plant?.plant_type && String(plant.plant_type).trim()
-    ? String(plant.plant_type).trim()
-    : 'flowering';
+    : getAutoStageFromAge(plantTypeId, ageDays);
   const showWateringBadge = wateringStatus && remainingSeconds !== null && remainingSeconds > 0;
 
   const handleOpenWatering = () => {
@@ -115,7 +112,7 @@ function DashboardPlantCard({
         <div className="dashboard-plant-card__body">
           <div className="dashboard-plant-card__avatar" aria-hidden="true">
             <PlantAvatar
-              plantType={plantType}
+              plantType={plantTypeId}
               stage={stageId}
               variant="card"
               size="md"
