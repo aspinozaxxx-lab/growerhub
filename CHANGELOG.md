@@ -2,6 +2,7 @@
 
 - Dobavleny novye polya u modeli rastenija: `plant_type`, `strain`, `growth_stage`.
 - Dobavlena alembic-migracija dlya polej v tablice `plants`.
+- fix(server): POST/PATCH `/api/plants` teper' sohranyaet i vozvrashchaet `plant_type`, `strain`, `growth_stage`.
 - Dobavlen PATCH dlya pereimenovanija grupp rastenij (`/api/plant-groups/{id}`).
 - Rasshireny Pydantic-shemy `PlantCreate`, `PlantUpdate`, `PlantOut`, dobavlena `PlantGroupUpdate`.
 
@@ -286,6 +287,5 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - Istorija polivov teper ispolzuet obem vody kak osnovnuyu metriku i v saidebare vidno ph i sostav udobrenij.
 - Dobavlena polnocennaja stranica zhurnala rastenija: prosmotr, dobavlenie, izmenenie, udalenie zhjurnalnyh zapisej. Fiks bitogo teksta v istorii polivov, normalnye podpisi.
 - sso callback: po umolchaniyu vozvrashchaet redirect s tokenom v URL, link-mode uhodit na `/static/profile.html`.
-
 
 
