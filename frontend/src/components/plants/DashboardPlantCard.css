@@ -18,17 +18,18 @@
 }
 
 .dashboard-plant-card__body {
-  display: flex;
-  gap: var(--space-3);
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(140px, 1fr);
+  column-gap: var(--space-3);
   align-items: stretch;
 }
 
 .dashboard-plant-card__avatar {
-  flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 176px;
+  min-width: 0;
 }
 
 .dashboard-plant-card__avatar img {
@@ -42,7 +43,6 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-2);
-  flex: 0 0 150px;
   min-width: 0;
   box-sizing: border-box;
 }
@@ -90,7 +90,6 @@
   }
 
   .dashboard-plant-card__metrics {
-    flex-basis: 140px;
     gap: var(--space-1);
   }
 }
@@ -105,19 +104,16 @@
   }
 
   .dashboard-plant-card__body {
-    display: flex;
+    grid-template-columns: minmax(0, 3fr) minmax(calc(var(--space-6) * 4), 1fr);
     align-items: stretch;
     gap: var(--space-2);
   }
 
   .dashboard-plant-card__avatar {
-    flex: 3 1 0;
     min-width: 0;
   }
 
   .dashboard-plant-card__metrics {
-    flex: 0 0 calc(var(--space-6) * 5);
-    max-width: calc(var(--space-6) * 5);
     padding-right: var(--space-1);
     min-width: 0;
     display: grid;
