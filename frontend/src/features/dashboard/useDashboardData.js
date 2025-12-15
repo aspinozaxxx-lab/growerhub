@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { fetchPlants } from '../../api/plants';
 import { fetchMyDevices } from '../../api/devices';
+import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
 
 export function useDashboardData() {
@@ -26,6 +27,7 @@ export function useDashboardData() {
         }
       } catch (err) {
         if (!isCancelled) {
+          if (isSessionExpiredError(err)) return;
           setError(err?.message || 'Не удалось загрузить данные');
         }
       } finally {

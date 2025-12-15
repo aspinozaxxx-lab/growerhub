@@ -1,11 +1,12 @@
 ﻿// Translitem: API helpery dlya raboty so sposobami vhoda i paroljem.
+import { apiFetch } from './client';
 
 /**
  * Translitem: vozvrashchaet status dostupnyh sposobov vhoda tekushchego polzovatelya.
  */
 export async function fetchAuthMethods(token) {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const response = await fetch('/api/auth/methods', { headers });
+  void token;
+  const response = await apiFetch('/api/auth/methods');
   if (!response.ok) {
     throw new Error(`Ne udalos zagruzit sposoby vhoda (${response.status})`);
   }
@@ -16,14 +17,10 @@ export async function fetchAuthMethods(token) {
  * Translitem: nachinaet link SSO (Google/Yandex) i vozvrashchaet URL provajdera.
  */
 export async function linkSsoMethod(provider, redirectPath, token) {
-  const headers = {
-    Accept: 'application/json',
-  };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  void token;
+  const headers = { Accept: 'application/json' };
   const url = `/api/auth/sso/${encodeURIComponent(provider)}/login?redirect_path=${encodeURIComponent(redirectPath)}`;
-  const response = await fetch(url, { headers });
+  const response = await apiFetch(url, { headers });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.detail || `Ne udalos nachat privyazku (${response.status})`);
@@ -39,10 +36,9 @@ export async function linkSsoMethod(provider, redirectPath, token) {
  * Translitem: udalyaet ukazannyj sposob vhoda (local/google/yandex).
  */
 export async function unlinkAuthMethod(provider, token) {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const response = await fetch(`/api/auth/methods/${encodeURIComponent(provider)}`, {
+  void token;
+  const response = await apiFetch(`/api/auth/methods/${encodeURIComponent(provider)}`, {
     method: 'DELETE',
-    headers,
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -55,13 +51,11 @@ export async function unlinkAuthMethod(provider, token) {
  * Translitem: vklyuchaet ili obnovlyaet lokal'nyj login/parol'.
  */
 export async function setLocalLogin(email, password, token) {
+  void token;
   const headers = {
     'Content-Type': 'application/json',
   };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  const response = await fetch('/api/auth/methods/local', {
+  const response = await apiFetch('/api/auth/methods/local', {
     method: 'POST',
     headers,
     body: JSON.stringify({ email, password }),
@@ -77,13 +71,11 @@ export async function setLocalLogin(email, password, token) {
  * Translitem: menyajet parol' dlya lokal'nogo vhoda.
  */
 export async function changePassword(currentPassword, newPassword, token) {
+  void token;
   const headers = {
     'Content-Type': 'application/json',
   };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  const response = await fetch('/api/auth/change-password', {
+  const response = await apiFetch('/api/auth/change-password', {
     method: 'POST',
     headers,
     body: JSON.stringify({
@@ -97,4 +89,3 @@ export async function changePassword(currentPassword, newPassword, token) {
   }
   return data;
 }
-

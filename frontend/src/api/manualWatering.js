@@ -1,11 +1,11 @@
-// API helper for manual watering actions.
+﻿// API helper for manual watering actions.
+import { apiFetch } from './client';
+
 export async function startManualWatering({ deviceId, waterVolumeL, ph, fertilizersPerLiter, token }) {
+  void token;
   const headers = {
     'Content-Type': 'application/json',
   };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
 
   const payload = {
     device_id: deviceId,
@@ -20,7 +20,7 @@ export async function startManualWatering({ deviceId, waterVolumeL, ph, fertiliz
     payload.fertilizers_per_liter = fertilizersPerLiter;
   }
 
-  const response = await fetch('/api/manual-watering/start', {
+  const response = await apiFetch('/api/manual-watering/start', {
     method: 'POST',
     headers,
     body: JSON.stringify(payload),
@@ -34,10 +34,8 @@ export async function startManualWatering({ deviceId, waterVolumeL, ph, fertiliz
 }
 
 export async function getManualWateringStatus(deviceId, token) {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const response = await fetch(`/api/manual-watering/status?device_id=${encodeURIComponent(deviceId)}`, {
-    headers,
-  });
+  void token;
+  const response = await apiFetch(`/api/manual-watering/status?device_id=${encodeURIComponent(deviceId)}`);
 
   if (!response.ok) {
     throw new Error(`Failed to load watering status (${response.status})`);

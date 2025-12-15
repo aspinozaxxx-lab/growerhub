@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom';
 import { fetchPlants, fetchPlantGroups } from '../../api/plants';
 import { fetchMyDevices } from '../../api/devices';
+import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
 import PlantCard from '../../components/plants/PlantCard';
 import PlantEditDialog from '../../components/plants/PlantEditDialog';
@@ -37,6 +38,7 @@ function AppPlants() {
       setPlantGroups(Array.isArray(groupsPayload) ? groupsPayload : []);
       setDevices(Array.isArray(devicesPayload) ? devicesPayload : []);
     } catch (err) {
+      if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Ne udalos zagruzit rasteniya');
     } finally {
       setIsLoading(false);

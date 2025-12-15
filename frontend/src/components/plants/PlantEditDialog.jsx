@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../features/auth/AuthContext';
+import { isSessionExpiredError } from '../../api/client';
 import { formatDateKeyYYYYMMDD, formatTimeHHMM } from '../../utils/formatters';
 import {
   DEFAULT_PLANT_TYPE_ID,
@@ -145,6 +146,7 @@ function PlantEditDialog({
       setLocalGroups((prev) => [...prev, created]);
       setLocalPlant((prev) => ({ ...prev, plant_group_id: created.id }));
     } catch (err) {
+      if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Не удалось создать группу');
     }
   };
@@ -162,6 +164,7 @@ function PlantEditDialog({
       const updated = await updatePlantGroup(token, groupId, { name: newName.trim() });
       setLocalGroups((prev) => prev.map((g) => (g.id === groupId ? updated : g)));
     } catch (err) {
+      if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Не удалось переименовать группу');
     }
   };
@@ -176,6 +179,7 @@ function PlantEditDialog({
       setLocalGroups((prev) => prev.filter((g) => g.id !== groupId));
       setLocalPlant((prev) => ({ ...prev, plant_group_id: null }));
     } catch (err) {
+      if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Не удалось удалить группу');
     }
   };
@@ -194,6 +198,7 @@ function PlantEditDialog({
       }));
       setSelectedDeviceId('');
     } catch (err) {
+      if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Не удалось привязать устройство');
     }
   };
@@ -207,6 +212,7 @@ function PlantEditDialog({
         devices: (prev.devices || []).filter((d) => d.id !== deviceId),
       }));
     } catch (err) {
+      if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Не удалось отвязать устройство');
     }
   };
@@ -238,6 +244,7 @@ function PlantEditDialog({
       onSaved?.();
       onClose?.();
     } catch (err) {
+      if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Не удалось сохранить растение');
     } finally {
       setIsSaving(false);
@@ -255,6 +262,7 @@ function PlantEditDialog({
       onSaved?.();
       onClose?.();
     } catch (err) {
+      if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Не удалось удалить растение');
     } finally {
       setIsSaving(false);

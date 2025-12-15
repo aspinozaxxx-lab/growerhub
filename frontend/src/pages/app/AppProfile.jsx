@@ -1,6 +1,7 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { changePassword, fetchAuthMethods, linkSsoMethod, setLocalLogin, unlinkAuthMethod } from '../../api/auth';
+import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppGrid from '../../components/layout/AppGrid';
@@ -54,6 +55,7 @@ function AppProfile() {
       const data = await fetchAuthMethods(token);
       setAuthMethods(data);
     } catch (error) {
+      if (isSessionExpiredError(error)) return;
       setMethodsError(error?.message || 'Не удалось загрузить способы входа');
     } finally {
       setLoadingMethods(false);
@@ -81,6 +83,7 @@ function AppProfile() {
         setLocalPassword('');
         setLocalPasswordConfirm('');
       } catch (error) {
+        if (isSessionExpiredError(error)) return;
         setMethodsError(error?.message || 'Не удалось сохранить локальный вход');
       } finally {
         setUpdatingLocal(false);
@@ -107,6 +110,7 @@ function AppProfile() {
         setNewPasswordConfirm('');
         setShowChangePasswordForm(false);
       } catch (error) {
+        if (isSessionExpiredError(error)) return;
         setMethodsError(error?.message || 'Не удалось сменить пароль');
       } finally {
         setChangingPassword(false);
@@ -128,6 +132,7 @@ function AppProfile() {
         const data = await unlinkAuthMethod(provider, token);
         setAuthMethods(data);
       } catch (error) {
+        if (isSessionExpiredError(error)) return;
         setMethodsError(error?.message || 'Не удалось удалить способ входа');
       } finally {
         setUnlinkingProvider(null);
@@ -146,6 +151,7 @@ function AppProfile() {
         const url = await linkSsoMethod(provider, redirectPath, token);
         window.location.href = url;
       } catch (error) {
+        if (isSessionExpiredError(error)) return;
         setMethodsError(error?.message || 'Не удалось начать привязку');
       } finally {
         setLinkingProvider(null);

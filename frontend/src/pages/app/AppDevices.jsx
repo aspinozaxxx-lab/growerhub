@@ -4,6 +4,7 @@ import DeviceCard from '../../components/devices/DeviceCard';
 import EditDeviceModal from '../../components/devices/EditDeviceModal';
 import { fetchMyDevices, updateDeviceSettings, assignDeviceToPlant, unassignDeviceFromPlant } from '../../api/devices';
 import { fetchPlants } from '../../api/plants';
+import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
@@ -36,6 +37,7 @@ function AppDevices() {
         }
       } catch (err) {
         if (!cancelled) {
+          if (isSessionExpiredError(err)) return;
           setError(err?.message || 'Ne udalos zagruzit dannye');
         }
       } finally {
@@ -61,6 +63,7 @@ function AppDevices() {
       const devs = await fetchMyDevices(token);
       setDevices(Array.isArray(devs) ? devs : []);
     } catch (err) {
+      if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Ne udalos obnovit ustrojstva');
     }
   };
@@ -104,6 +107,7 @@ function AppDevices() {
       await refreshDevices();
       handleCloseModal();
     } catch (err) {
+      if (isSessionExpiredError(err)) return;
       setSaveError(err?.message || 'Ne udalos sohranit');
     } finally {
       setIsSaving(false);

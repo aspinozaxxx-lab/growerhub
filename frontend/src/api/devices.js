@@ -1,7 +1,9 @@
-// API helper for user devices.
+﻿// API helper for user devices.
+import { apiFetch } from './client';
+
 export async function fetchMyDevices(token) {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const response = await fetch('/api/devices/my', { headers });
+  void token;
+  const response = await apiFetch('/api/devices/my');
   if (!response.ok) {
     throw new Error(`Failed to load devices (${response.status})`);
   }
@@ -9,10 +11,8 @@ export async function fetchMyDevices(token) {
 }
 
 export async function fetchDeviceSettings(deviceId, token) {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const response = await fetch(`/api/device/${encodeURIComponent(deviceId)}/settings`, {
-    headers,
-  });
+  void token;
+  const response = await apiFetch(`/api/device/${encodeURIComponent(deviceId)}/settings`);
   if (!response.ok) {
     throw new Error(`Failed to load device settings (${response.status})`);
   }
@@ -20,13 +20,11 @@ export async function fetchDeviceSettings(deviceId, token) {
 }
 
 export async function updateDeviceSettings(deviceId, settings, token) {
+  void token;
   const headers = {
     'Content-Type': 'application/json',
   };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  const response = await fetch(`/api/device/${encodeURIComponent(deviceId)}/settings`, {
+  const response = await apiFetch(`/api/device/${encodeURIComponent(deviceId)}/settings`, {
     method: 'PUT',
     headers,
     body: JSON.stringify(settings),
@@ -38,13 +36,11 @@ export async function updateDeviceSettings(deviceId, settings, token) {
 }
 
 export async function assignDeviceToPlant(deviceId, plantId, token) {
+  void token;
   const headers = {
     'Content-Type': 'application/json',
   };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  const response = await fetch(`/api/plants/${encodeURIComponent(plantId)}/devices/${encodeURIComponent(deviceId)}`, {
+  const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}/devices/${encodeURIComponent(deviceId)}`, {
     method: 'POST',
     headers,
   });
@@ -55,10 +51,9 @@ export async function assignDeviceToPlant(deviceId, plantId, token) {
 }
 
 export async function unassignDeviceFromPlant(deviceId, plantId, token) {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const response = await fetch(`/api/plants/${encodeURIComponent(plantId)}/devices/${encodeURIComponent(deviceId)}`, {
+  void token;
+  const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}/devices/${encodeURIComponent(deviceId)}`, {
     method: 'DELETE',
-    headers,
   });
   if (!response.ok) {
     throw new Error(`Failed to unassign device (${response.status})`);

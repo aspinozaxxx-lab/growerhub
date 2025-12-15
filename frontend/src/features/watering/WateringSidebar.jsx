@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { startManualWatering, getManualWateringStatus } from '../../api/manualWatering';
+import { isSessionExpiredError } from '../../api/client';
 import { useWateringSidebar } from './WateringSidebarContext';
 import FormField from '../../components/ui/FormField';
 import SidePanel from '../../components/ui/SidePanel';
@@ -64,6 +65,7 @@ function WateringSidebar() {
       }
       setSuccess(true);
     } catch (err) {
+      if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Ne udalos startovat poliv');
     } finally {
       setIsSubmitting(false);

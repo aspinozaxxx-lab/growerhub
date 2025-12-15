@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { fetchDeviceSettings } from '../../api/devices';
+import { isSessionExpiredError } from '../../api/client';
 import FormField from '../ui/FormField';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
@@ -45,6 +46,7 @@ function EditDeviceModal({
         }
       } catch (err) {
         if (!cancelled) {
+          if (isSessionExpiredError(err)) return;
           setSettingsError(err?.message || 'Ne udalos zagruzit nastroiki');
         }
       } finally {

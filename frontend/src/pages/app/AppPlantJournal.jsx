@@ -8,6 +8,7 @@ import {
   downloadPlantJournalMarkdown,
   downloadJournalPhotoBlob,
 } from '../../api/plantJournal';
+import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
 import { formatDateKeyYYYYMMDD, formatTimeHHMM, parseBackendTimestamp } from '../../utils/formatters';
 import './AppPlantJournal.css';
@@ -271,6 +272,7 @@ function AppPlantJournal() {
       const todayKey = dateKeyFromString(new Date());
       setFormState((prev) => ({ ...prev, date: prev.date || todayKey }));
     } catch (err) {
+      if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Не удалось загрузить журнал');
     } finally {
       setIsLoading(false);
@@ -419,6 +421,7 @@ function AppPlantJournal() {
       setIsFormOpen(false);
       resetForm();
     } catch (err) {
+      if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Не удалось сохранить запись');
     }
   };

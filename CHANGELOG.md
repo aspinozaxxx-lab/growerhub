@@ -1,4 +1,11 @@
-﻿### feat: dobavlen polnyj razdel rasteniĭ na fronte i rasshirena backend-model'
+﻿### feat(auth): refresh tokeny + auto-refresh na fronte
+
+- feat(server): dobavleny refresh tokeny v BD (hash + expires/revoked) i cookie `gh_refresh_token` (httpOnly).
+- feat(server): dobavleny endpointy `POST /api/auth/refresh` (rotaciya refresh + novyj `access_token`) i `POST /api/auth/logout` (revok + ochistka cookie).
+- feat(front): dobavlen edinyj fetch-wrapper `frontend/src/api/client.js` s avtomaticheskim refresh+retry pri 401 i zashchitoj ot parallel'nyh refresh.
+- fix(front): pri istekshey sessii pokaz oshibok 401 podavlyaetsya (SESSION_EXPIRED), prilozhenie uhodit na login bez krasnyh plashchek.
+
+### feat: dobavlen polnyj razdel rasteniĭ na fronte i rasshirena backend-model'
 
 - Dobavleny novye polya u modeli rastenija: `plant_type`, `strain`, `growth_stage`.
 - Dobavlena alembic-migracija dlya polej v tablice `plants`.

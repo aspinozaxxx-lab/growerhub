@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchSensorHistory, fetchWateringLogs } from '../../api/history';
+import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { parseBackendTimestamp } from '../../utils/formatters';
 
@@ -58,6 +59,7 @@ export function useSensorStats(deviceId, metric) {
           [range]: { sensorHistory, wateringLogs },
         }));
       } catch (err) {
+        if (isSessionExpiredError(err)) return;
         setError(err?.message || 'Не удалось загрузить статистику');
       } finally {
         setIsLoading(false);

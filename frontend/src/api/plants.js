@@ -1,7 +1,9 @@
 ﻿// API helper for plants list.
+import { apiFetch } from './client';
+
 export async function fetchPlants(token) {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const response = await fetch('/api/plants', { headers });
+  void token;
+  const response = await apiFetch('/api/plants');
   if (!response.ok) {
     throw new Error(`Failed to load plants (${response.status})`);
   }
@@ -10,8 +12,8 @@ export async function fetchPlants(token) {
 
 // Translitem: zagruzka odnogo rastenija po id.
 export async function fetchPlant(token, plantId) {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const response = await fetch(`/api/plants/${encodeURIComponent(plantId)}`, { headers });
+  void token;
+  const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}`);
   if (!response.ok) {
     throw new Error(`Failed to load plant (${response.status})`);
   }
@@ -20,11 +22,9 @@ export async function fetchPlant(token, plantId) {
 
 // Translitem: sozdanie rastenija (name, planted_at, plant_group_id, plant_type, strain, growth_stage).
 export async function createPlant(token, payload) {
+  void token;
   const headers = { 'Content-Type': 'application/json' };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  const response = await fetch('/api/plants', {
+  const response = await apiFetch('/api/plants', {
     method: 'POST',
     headers,
     body: JSON.stringify(payload),
@@ -37,11 +37,9 @@ export async function createPlant(token, payload) {
 
 // Translitem: obnovlenie rastenija po id (name, planted_at, plant_group_id, plant_type, strain, growth_stage).
 export async function updatePlant(token, plantId, payload) {
+  void token;
   const headers = { 'Content-Type': 'application/json' };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  const response = await fetch(`/api/plants/${encodeURIComponent(plantId)}`, {
+  const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}`, {
     method: 'PATCH',
     headers,
     body: JSON.stringify(payload),
@@ -54,10 +52,9 @@ export async function updatePlant(token, plantId, payload) {
 
 // Translitem: udalenie rastenija po id.
 export async function deletePlant(token, plantId) {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const response = await fetch(`/api/plants/${encodeURIComponent(plantId)}`, {
+  void token;
+  const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}`, {
     method: 'DELETE',
-    headers,
   });
   if (!response.ok) {
     throw new Error(`Failed to delete plant (${response.status})`);
@@ -67,8 +64,8 @@ export async function deletePlant(token, plantId) {
 
 // Translitem: zagruzka spiska grupp rastenij.
 export async function fetchPlantGroups(token) {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const response = await fetch('/api/plant-groups', { headers });
+  void token;
+  const response = await apiFetch('/api/plant-groups');
   if (!response.ok) {
     throw new Error(`Failed to load plant groups (${response.status})`);
   }
@@ -77,11 +74,9 @@ export async function fetchPlantGroups(token) {
 
 // Translitem: sozdanie gruppy rastenij (pole name).
 export async function createPlantGroup(token, payload) {
+  void token;
   const headers = { 'Content-Type': 'application/json' };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  const response = await fetch('/api/plant-groups', {
+  const response = await apiFetch('/api/plant-groups', {
     method: 'POST',
     headers,
     body: JSON.stringify(payload),
@@ -94,11 +89,9 @@ export async function createPlantGroup(token, payload) {
 
 // Translitem: pereimenovanie gruppy rastenij po id (pole name).
 export async function updatePlantGroup(token, groupId, payload) {
+  void token;
   const headers = { 'Content-Type': 'application/json' };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  const response = await fetch(`/api/plant-groups/${encodeURIComponent(groupId)}`, {
+  const response = await apiFetch(`/api/plant-groups/${encodeURIComponent(groupId)}`, {
     method: 'PATCH',
     headers,
     body: JSON.stringify(payload),
@@ -111,14 +104,12 @@ export async function updatePlantGroup(token, groupId, payload) {
 
 // Translitem: udalenie gruppy rastenij po id.
 export async function deletePlantGroup(token, groupId) {
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const response = await fetch(`/api/plant-groups/${encodeURIComponent(groupId)}`, {
+  void token;
+  const response = await apiFetch(`/api/plant-groups/${encodeURIComponent(groupId)}`, {
     method: 'DELETE',
-    headers,
   });
   if (!response.ok) {
     throw new Error(`Failed to delete plant group (${response.status})`);
   }
   return response.json();
 }
-

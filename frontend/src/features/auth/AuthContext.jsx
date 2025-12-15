@@ -1,4 +1,5 @@
 ﻿import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { registerAuthHandlers } from '../../api/client';
 
 const STORAGE_KEY = 'gh_access_token';
 
@@ -34,6 +35,11 @@ function AuthProvider({ children }) {
     setRedirectAfterLoginState(null);
     setError(null);
   }, []);
+
+  useEffect(() => {
+    // Translitem: registriruem logout/getToken dlya fetch-wrapper, chtoby on mog razloginivat' pri neudachnom refresh.
+    registerAuthHandlers({ logout });
+  }, [logout]);
 
   const loadCurrentUser = useCallback(async (providedToken) => {
     const effectiveToken = providedToken || localStorage.getItem(STORAGE_KEY);
