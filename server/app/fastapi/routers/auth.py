@@ -1,12 +1,20 @@
 ﻿from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.refresh_tokens import (
+    clear_refresh_cookie,
+    generate_refresh_token,
+    hash_refresh_token,
+    refresh_expires_at,
+    set_refresh_cookie,
+)
 from app.core.security import (
     create_access_token,
     decode_access_token,
@@ -38,6 +46,11 @@ from app.repositories.users import (
     get_identities_by_user,
     get_identity_by_provider,
     get_user_by_id,
+)
+from app.repositories.refresh_tokens import (
+    create_refresh_token,
+    get_refresh_token_by_hash,
+    revoke_refresh_token,
 )
 from config import get_settings
 
@@ -122,7 +135,12 @@ def _auth_methods_response(db: Session, user: UserDB) -> dict:
 
 
 @router.post("/api/auth/login", response_model=Token)
-def login(form: LoginRequest, db: Session = Depends(get_db)) -> Token:
+def login(
+    form: LoginRequest,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> Token:
     """Translitem: login po email i parolyu, vozvrashchaet JWT."""
 
     user = authenticate_local_user(db, form.email, form.password)
@@ -134,6 +152,21 @@ def login(form: LoginRequest, db: Session = Depends(get_db)) -> Token:
         )
 
     token = create_access_token({"user_id": user.id})
+
+    refresh_raw = generate_refresh_token()
+    refresh_hash = hash_refresh_token(refresh_raw)
+    expires_at = refresh_expires_at()
+    create_refresh_token(
+        db,
+        user_id=user.id,
+        token_hash=refresh_hash,
+        expires_at=expires_at,
+        user_agent=request.headers.get("user-agent"),
+        ip=getattr(getattr(request, "client", None), "host", None),
+    )
+    db.commit()
+    set_refresh_cookie(response, refresh_raw)
+
     return Token(access_token=token, token_type="bearer")
 
 
@@ -176,6 +209,7 @@ async def sso_login(
 @router.get("/api/auth/sso/{provider}/callback")
 def sso_callback(
     provider: str,
+    request: Request,
     code: str,
     state: str,
     db: Session = Depends(get_db),
@@ -214,7 +248,23 @@ def sso_callback(
         redirect_target = redirect_path or "/app"
         separator = "&" if "?" in redirect_target else "?"
         redirect_with_token = f"{redirect_target}{separator}access_token={token}"
-        return RedirectResponse(url=redirect_with_token, status_code=status.HTTP_302_FOUND)
+
+        refresh_raw = generate_refresh_token()
+        refresh_hash = hash_refresh_token(refresh_raw)
+        expires_at = refresh_expires_at()
+        create_refresh_token(
+            db,
+            user_id=user.id,
+            token_hash=refresh_hash,
+            expires_at=expires_at,
+            user_agent=request.headers.get("user-agent"),
+            ip=getattr(getattr(request, "client", None), "host", None),
+        )
+        db.commit()
+
+        resp = RedirectResponse(url=redirect_with_token, status_code=status.HTTP_302_FOUND)
+        set_refresh_cookie(resp, refresh_raw)
+        return resp
 
     current_user_id = state_data.get("current_user_id")
     try:
@@ -254,6 +304,75 @@ def read_me(current_user: UserDB = Depends(get_current_user)) -> UserOut:
     """Translitem: vozvrashchaet dannye tekushchego avtorizovannogo polzovatelya."""
 
     return _user_to_out(current_user)
+
+
+@router.post("/api/auth/refresh", response_model=Token)
+def refresh_access_token(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> Token:
+    """Translitem: vydaet novyj access JWT po refresh tokenu iz httpOnly cookie."""
+
+    settings = get_settings()
+    refresh_raw = request.cookies.get(settings.REFRESH_TOKEN_COOKIE_NAME)
+    if not refresh_raw:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token required")
+
+    refresh_hash = hash_refresh_token(refresh_raw)
+    record = get_refresh_token_by_hash(db, refresh_hash)
+    if not record:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+    if record.revoked_at is not None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token revoked")
+    if record.expires_at <= datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired")
+
+    user = get_user_by_id(db, int(record.user_id))
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User disabled")
+
+    # Translitem: rotaciya refresh tokena - staryj invalidiruem, novyj vydajem i sohranyaem v BD.
+    revoke_refresh_token(db, record)
+    next_refresh_raw = generate_refresh_token()
+    next_refresh_hash = hash_refresh_token(next_refresh_raw)
+    next_expires_at = refresh_expires_at()
+    create_refresh_token(
+        db,
+        user_id=user.id,
+        token_hash=next_refresh_hash,
+        expires_at=next_expires_at,
+        user_agent=request.headers.get("user-agent"),
+        ip=getattr(getattr(request, "client", None), "host", None),
+    )
+    db.commit()
+    set_refresh_cookie(response, next_refresh_raw)
+
+    token = create_access_token({"user_id": user.id})
+    return Token(access_token=token, token_type="bearer")
+
+
+@router.post("/api/auth/logout")
+def logout(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> dict:
+    """Translitem: invalidiruet refresh token iz cookie i ochishchaet cookie."""
+
+    settings = get_settings()
+    refresh_raw = request.cookies.get(settings.REFRESH_TOKEN_COOKIE_NAME)
+    if refresh_raw:
+        refresh_hash = hash_refresh_token(refresh_raw)
+        record = get_refresh_token_by_hash(db, refresh_hash)
+        if record and record.revoked_at is None:
+            revoke_refresh_token(db, record)
+            db.commit()
+
+    clear_refresh_cookie(response)
+    return {"message": "logged out"}
 
 
 @router.patch("/api/auth/me", response_model=UserOut)
@@ -383,4 +502,3 @@ def delete_auth_method(
     db.delete(identity)
     db.commit()
     return _auth_methods_response(db, current_user)
-

@@ -69,6 +69,13 @@ class Settings:
     AUTH_YANDEX_TOKEN_URL: str = "https://oauth.yandex.ru/token"
     AUTH_YANDEX_USERINFO_URL: str = "https://login.yandex.ru/info"
 
+    # Translitem: refresh token (cookie + BD) dlya obnovleniya access JWT.
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    REFRESH_TOKEN_COOKIE_NAME: str = "gh_refresh_token"
+    REFRESH_TOKEN_COOKIE_SECURE: bool = False  # Translitem: v prod dolzhno byt' True (HTTPS)
+    REFRESH_TOKEN_COOKIE_SAMESITE: str = "lax"  # Translitem: lax/strict/none
+    REFRESH_TOKEN_COOKIE_PATH: str = "/api/auth"
+
 
 @lru_cache()
 def get_settings() -> Settings:
@@ -102,9 +109,25 @@ def get_settings() -> Settings:
         AUTH_YANDEX_AUTH_URL=os.getenv("AUTH_YANDEX_AUTH_URL", Settings.AUTH_YANDEX_AUTH_URL),
         AUTH_YANDEX_TOKEN_URL=os.getenv("AUTH_YANDEX_TOKEN_URL", Settings.AUTH_YANDEX_TOKEN_URL),
         AUTH_YANDEX_USERINFO_URL=os.getenv("AUTH_YANDEX_USERINFO_URL", Settings.AUTH_YANDEX_USERINFO_URL),
+        REFRESH_TOKEN_EXPIRE_DAYS=_env_int("REFRESH_TOKEN_EXPIRE_DAYS", Settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        REFRESH_TOKEN_COOKIE_NAME=os.getenv("REFRESH_TOKEN_COOKIE_NAME", Settings.REFRESH_TOKEN_COOKIE_NAME),
+        REFRESH_TOKEN_COOKIE_SECURE=_env_bool("REFRESH_TOKEN_COOKIE_SECURE", Settings.REFRESH_TOKEN_COOKIE_SECURE),
+        REFRESH_TOKEN_COOKIE_SAMESITE=_sanitize_samesite(
+            os.getenv("REFRESH_TOKEN_COOKIE_SAMESITE", Settings.REFRESH_TOKEN_COOKIE_SAMESITE)
+        ),
+        REFRESH_TOKEN_COOKIE_PATH=os.getenv("REFRESH_TOKEN_COOKIE_PATH", Settings.REFRESH_TOKEN_COOKIE_PATH),
     )
     _log_firmware_dir(settings.FIRMWARE_BINARIES_DIR)
     return settings
+
+
+def _sanitize_samesite(value: str) -> str:
+    """Translitem: privodim SameSite k dopustimym znacheniyam (lax/strict/none)."""
+
+    normalized = (value or "").strip().lower()
+    if normalized in {"lax", "strict", "none"}:
+        return normalized
+    return Settings.REFRESH_TOKEN_COOKIE_SAMESITE
 
 
 def _resolve_firmware_dir(custom_path: Optional[str]) -> str:

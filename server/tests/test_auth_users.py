@@ -15,7 +15,7 @@ from sqlalchemy.pool import StaticPool
 import app.main
 from app.core.database import get_db
 from app.core.security import create_access_token
-from app.models.database_models import Base, UserDB
+from app.models.database_models import Base, UserDB, UserRefreshTokenDB
 from app.repositories.users import authenticate_local_user, create_local_user, get_user_by_email
 
 if os.getenv("GITHUB_ACTIONS") == "true" or os.getenv("CI") == "true":
@@ -199,6 +199,57 @@ def test_login_inactive_user_returns_401(client: TestClient):
     )
 
     assert response.status_code == 401
+
+
+def test_refresh_rotates_refresh_cookie_and_returns_new_access_token(client: TestClient):
+    """Translitem: /api/auth/refresh rotiruet refresh cookie i vozvrashaet novyj access_token."""
+
+    user = _create_user(_unique_email("refresh"), "secret", role="admin")
+
+    login_resp = client.post("/api/auth/login", json={"email": user.email, "password": "secret"})
+    assert login_resp.status_code == 200
+    first_refresh = client.cookies.get("gh_refresh_token")
+    assert isinstance(first_refresh, str) and first_refresh
+
+    refresh_resp = client.post("/api/auth/refresh")
+    assert refresh_resp.status_code == 200, refresh_resp.text
+    payload = refresh_resp.json()
+    assert isinstance(payload.get("access_token"), str) and payload.get("access_token")
+    assert payload.get("token_type") == "bearer"
+
+    second_refresh = client.cookies.get("gh_refresh_token")
+    assert isinstance(second_refresh, str) and second_refresh
+    assert second_refresh != first_refresh
+
+    session = TestingSessionLocal()
+    try:
+        rows = session.query(UserRefreshTokenDB).filter(UserRefreshTokenDB.user_id == user.id).all()
+        assert len(rows) == 2
+        revoked_count = sum(1 for r in rows if r.revoked_at is not None)
+        active_count = sum(1 for r in rows if r.revoked_at is None)
+        assert revoked_count == 1
+        assert active_count == 1
+    finally:
+        session.close()
+
+
+def test_logout_revokes_refresh_token(client: TestClient):
+    """Translitem: /api/auth/logout invalidiruet refresh token i ochishchaet cookie."""
+
+    user = _create_user(_unique_email("logout"), "secret", role="admin")
+
+    login_resp = client.post("/api/auth/login", json={"email": user.email, "password": "secret"})
+    assert login_resp.status_code == 200
+    refresh_value = client.cookies.get("gh_refresh_token")
+    assert isinstance(refresh_value, str) and refresh_value
+
+    logout_resp = client.post("/api/auth/logout")
+    assert logout_resp.status_code == 200, logout_resp.text
+
+    # Translitem: vozvrashchaem staroe znachenie cookie dlya proverki revoked.
+    client.cookies.set("gh_refresh_token", refresh_value, path="/api/auth")
+    refresh_resp = client.post("/api/auth/refresh")
+    assert refresh_resp.status_code == 401
 
 
 def test_diag_authenticate_local_user_and_create_user_use_same_db(client: TestClient):

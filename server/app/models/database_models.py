@@ -241,6 +241,30 @@ class UserAuthIdentityDB(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class UserRefreshTokenDB(Base):
+
+    """Translitem: refresh tokeny dlya vypuska novogo access JWT bez povtornogo logina."""
+
+    __tablename__ = "user_refresh_tokens"
+
+    __table_args__ = (
+        UniqueConstraint("token_hash", name="uq_user_refresh_tokens_token_hash"),
+        Index("ix_user_refresh_tokens_user_id", "user_id"),
+        Index("ix_user_refresh_tokens_expires_at", "expires_at"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+
+    token_hash = Column(String(64), nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+    revoked_at = Column(DateTime, nullable=True)
+
+    user_agent = Column(Text, nullable=True)  # Translitem: user-agent iz zaprosa (audit/debug)
+    ip = Column(String, nullable=True)  # Translitem: client ip (audit/debug)
+
+
 
 
 
@@ -569,7 +593,6 @@ class OTAUpdateRequest(BaseModel):
     device_id: str
 
     firmware_version: str
-
 
 
 
