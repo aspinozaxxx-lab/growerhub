@@ -38,7 +38,7 @@
 @media (min-width: 1024px) {
   /* Translitem: na desktop delaem kartochki rastenij zametno bol'she, ostavlyaya ostal'nye setki bez izmeneniy. */
   .cards-grid.cards-grid--plants {
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
   }
 }
