@@ -55,12 +55,28 @@ jobs:
       url: https://growerhub.ru/health
     env:
       DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
-      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
       DEPLOY_USER: ${{ vars.DEPLOY_USER }}
       DEPLOY_DIR: /opt/growerhub/java-backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Validate deploy configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${DEPLOY_HOST:-}" ]; then
+            echo "DEPLOY_HOST is empty. Set repository variable DEPLOY_HOST." >&2
+            exit 1
+          fi
+          if [ -z "${DEPLOY_USER:-}" ]; then
+            echo "DEPLOY_USER is empty. Set repository variable DEPLOY_USER." >&2
+            exit 1
+          fi
+          echo "DEPLOY_HOST=$DEPLOY_HOST"
+          echo "DEPLOY_USER=$DEPLOY_USER"
+          echo "DEPLOY_PORT=$DEPLOY_PORT"
 
       - name: Setup SSH
         run: |
