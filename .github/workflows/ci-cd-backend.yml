@@ -115,5 +115,15 @@ jobs:
           docker rm -f growerhub-java-backend || true
           docker run -d --name growerhub-java-backend --restart unless-stopped -p 127.0.0.1:18080:8080 growerhub-backend:local
           docker ps --filter name=growerhub-java-backend
-          curl -fsS http://127.0.0.1:18080/health
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:18080/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker ps --filter name=growerhub-java-backend
+          docker logs --tail=200 growerhub-java-backend || true
+          exit 1
           EOF
