@@ -55,10 +55,6 @@ server {
         proxy_redirect off;
     }
 
-    # Health напрямую к бэкенду (удобно для мониторинга)
-    location = /health {
-        proxy_pass http://127.0.0.1:18080/health;
-    }
 }
 
 # ====== доступ по IP в ЛС (192.168.0.11) ======
@@ -113,8 +109,5 @@ server {
         proxy_redirect off;
     }
 
-    location = /health {
-        proxy_pass http://127.0.0.1:18080/health;
-    }
 }
 
