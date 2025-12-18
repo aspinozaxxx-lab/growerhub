@@ -90,14 +90,14 @@ jobs:
         run: |
           ssh -p "$SSH_PORT" -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" "echo 'SSH OK'"
 
-      - name: Ensure target dir exists
+      - name: Check deploy dir is writable
+        shell: bash
         run: |
-          ssh -p "$SSH_PORT" -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" <<'EOF'
-          set -e
-          sudo mkdir -p /opt/growerhub/java-backend
-          sudo chown -R "$(id -un):$(id -gn)" /opt/growerhub/java-backend
-          sudo chmod 755 /opt/growerhub /opt/growerhub/java-backend
-          EOF
+          set -euo pipefail
+          if ! ssh -p "$SSH_PORT" -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" "test -w \"$DEPLOY_DIR\""; then
+            echo "No write access to $DEPLOY_DIR on $SSH_HOST for user $SSH_USER. Create it and grant write permissions, then re-run deploy." >&2
+            exit 1
+          fi
 
       - name: Sync backend to server
         run: |
