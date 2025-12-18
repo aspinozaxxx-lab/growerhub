@@ -1,5 +1,6 @@
 ---
 - name: Check docker CLI is available
+  become: true
   ansible.builtin.command: docker --version
   register: java_backend_docker_cli
   changed_when: false
@@ -13,6 +14,7 @@
   when: java_backend_docker_cli.rc != 0
 
 - name: Check docker daemon is available
+  become: true
   ansible.builtin.command: docker info
   register: java_backend_docker_info
   changed_when: false
@@ -26,6 +28,7 @@
   when: java_backend_docker_info.rc != 0
 
 - name: Check python docker SDK is available (python3-docker)
+  become: true
   ansible.builtin.command: python3 -c "import docker; print(docker.__version__)"
   register: java_backend_python_docker
   changed_when: false
@@ -39,14 +42,16 @@
   when: java_backend_python_docker.rc != 0
 
 - name: Ensure deployment directory exists
+  become: true
   ansible.builtin.file:
     path: "{{ java_backend_deploy_dir }}"
     state: directory
-    owner: "{{ java_backend_deploy_owner }}"
-    group: "{{ java_backend_deploy_group }}"
-    mode: "{{ java_backend_deploy_mode }}"
+    owner: "{{ ansible_user | default(ansible_ssh_user) | default(ansible_facts.user_id) | default('root') }}"
+    group: "{{ ansible_user | default(ansible_ssh_user) | default(ansible_facts.user_id) | default('root') }}"
+    mode: "0755"
 
 - name: Sync backend sources to target (rsync)
+  become: false
   ansible.posix.synchronize:
     mode: push
     src: "{{ java_backend_local_src_dir }}/"
@@ -56,6 +61,7 @@
   register: java_backend_sync
 
 - name: Build docker image on target (when sources changed)
+  become: true
   ansible.builtin.command: "docker build -t {{ java_backend_image }} ."
   args:
     chdir: "{{ java_backend_deploy_dir }}"
@@ -64,6 +70,7 @@
   when: java_backend_force_build or java_backend_sync.changed
 
 - name: Ensure java backend container is running
+  become: true
   community.docker.docker_container:
     name: "{{ java_backend_container_name }}"
     image: "{{ java_backend_image }}"
@@ -74,6 +81,7 @@
     recreate: "{{ java_backend_build.changed | default(false) }}"
 
 - name: Check java backend container status
+  become: true
   community.docker.docker_container_info:
     name: "{{ java_backend_container_name }}"
   register: java_backend_container_info
