@@ -116,14 +116,20 @@ jobs:
           docker run -d --name growerhub-java-backend --restart unless-stopped -p 127.0.0.1:18080:8080 growerhub-backend:local
           docker ps --filter name=growerhub-java-backend
 
+          ok=0
           for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:18080/health; then
-              exit 0
+            if curl -fsS http://127.0.0.1:18080/health >/tmp/health.json 2>/tmp/health.err; then
+              ok=1
+              cat /tmp/health.json
+              break
             fi
+            echo "healthcheck attempt $i failed: $(cat /tmp/health.err 2>/dev/null || true)"
             sleep 1
           done
 
-          docker ps --filter name=growerhub-java-backend
-          docker logs --tail=200 growerhub-java-backend || true
-          exit 1
+          if [ "$ok" -ne 1 ]; then
+            docker ps --filter name=growerhub-java-backend
+            docker logs --tail=200 growerhub-java-backend || true
+            exit 1
+          fi
           EOF
