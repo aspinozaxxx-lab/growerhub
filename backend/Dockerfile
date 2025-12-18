@@ -12,9 +12,8 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-COPY --from=build /home/gradle/project/build/libs/*.jar /app/app.jar
+COPY --from=build /home/gradle/project/build/libs/app.jar /app/app.jar
 
 EXPOSE 8080
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
-
