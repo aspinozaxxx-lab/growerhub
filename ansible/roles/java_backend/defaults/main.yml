@@ -1,0 +1,33 @@
+---
+# Default deployment settings for GrowerHub Java backend (Docker).
+
+# Local path (on Ansible controller) to the repo `backend/` directory.
+java_backend_local_src_dir: "{{ playbook_dir }}/../../backend"
+
+# Target host directory where sources are synced for remote docker build.
+java_backend_deploy_dir: "/opt/growerhub/java-backend"
+java_backend_deploy_owner: "{{ ansible_user | default('root') }}"
+java_backend_deploy_group: "{{ ansible_user | default('root') }}"
+java_backend_deploy_mode: "0755"
+
+# Docker image/tag to build on the target host.
+java_backend_image_name: "growerhub-backend"
+java_backend_image_tag: "local"
+java_backend_image: "{{ java_backend_image_name }}:{{ java_backend_image_tag }}"
+
+# Container settings.
+java_backend_container_name: "growerhub-java-backend"
+java_backend_bind_ip: "127.0.0.1"
+java_backend_host_port: 18080
+java_backend_container_port: 8080
+
+# Force docker build every run (otherwise builds only when sources changed).
+java_backend_force_build: false
+
+# rsync exclusions for synchronize.
+java_backend_rsync_opts:
+  - "--exclude=.gradle/"
+  - "--exclude=build/"
+  - "--exclude=.idea/"
+  - "--exclude=out/"
+

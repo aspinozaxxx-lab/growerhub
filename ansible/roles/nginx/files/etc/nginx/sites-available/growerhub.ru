@@ -57,7 +57,7 @@ server {
 
     # Health напрямую к бэкенду (удобно для мониторинга)
     location = /health {
-        proxy_pass http://127.0.0.1:8000/health;
+        proxy_pass http://127.0.0.1:18080/health;
     }
 }
 
@@ -114,7 +114,7 @@ server {
     }
 
     location = /health {
-        proxy_pass http://127.0.0.1:8000/health;
+        proxy_pass http://127.0.0.1:18080/health;
     }
 }
 

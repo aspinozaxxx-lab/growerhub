@@ -1,0 +1,84 @@
+---
+- name: Check docker CLI is available
+  ansible.builtin.command: docker --version
+  register: java_backend_docker_cli
+  changed_when: false
+  failed_when: false
+
+- name: Fail if docker CLI is unavailable
+  ansible.builtin.fail:
+    msg: >-
+      Docker is required on the target host for the java_backend role.
+      Install Docker Engine and ensure the `docker` command is available in PATH.
+  when: java_backend_docker_cli.rc != 0
+
+- name: Check docker daemon is available
+  ansible.builtin.command: docker info
+  register: java_backend_docker_info
+  changed_when: false
+  failed_when: false
+
+- name: Fail if docker daemon is unavailable
+  ansible.builtin.fail:
+    msg: >-
+      Docker daemon is not available (docker info failed).
+      Ensure Docker Engine is running (e.g. `systemctl status docker`) and the current user can access the Docker socket.
+  when: java_backend_docker_info.rc != 0
+
+- name: Check python docker SDK is available (python3-docker)
+  ansible.builtin.command: python3 -c "import docker; print(docker.__version__)"
+  register: java_backend_python_docker
+  changed_when: false
+  failed_when: false
+
+- name: Fail if python docker SDK is missing
+  ansible.builtin.fail:
+    msg: >-
+      Python Docker SDK is required for community.docker modules used by this role.
+      Install `python3-docker` on the target host.
+  when: java_backend_python_docker.rc != 0
+
+- name: Ensure deployment directory exists
+  ansible.builtin.file:
+    path: "{{ java_backend_deploy_dir }}"
+    state: directory
+    owner: "{{ java_backend_deploy_owner }}"
+    group: "{{ java_backend_deploy_group }}"
+    mode: "{{ java_backend_deploy_mode }}"
+
+- name: Sync backend sources to target (rsync)
+  ansible.posix.synchronize:
+    mode: push
+    src: "{{ java_backend_local_src_dir }}/"
+    dest: "{{ java_backend_deploy_dir }}/"
+    delete: true
+    rsync_opts: "{{ java_backend_rsync_opts }}"
+  register: java_backend_sync
+
+- name: Build docker image on target (when sources changed)
+  ansible.builtin.command: "docker build -t {{ java_backend_image }} ."
+  args:
+    chdir: "{{ java_backend_deploy_dir }}"
+  register: java_backend_build
+  changed_when: true
+  when: java_backend_force_build or java_backend_sync.changed
+
+- name: Ensure java backend container is running
+  community.docker.docker_container:
+    name: "{{ java_backend_container_name }}"
+    image: "{{ java_backend_image }}"
+    restart_policy: always
+    published_ports:
+      - "{{ java_backend_bind_ip }}:{{ java_backend_host_port }}:{{ java_backend_container_port }}"
+    state: started
+    recreate: "{{ java_backend_build.changed | default(false) }}"
+
+- name: Check java backend container status
+  community.docker.docker_container_info:
+    name: "{{ java_backend_container_name }}"
+  register: java_backend_container_info
+
+- name: Fail if java backend container is not running
+  ansible.builtin.fail:
+    msg: "Container {{ java_backend_container_name }} is not running. Check `docker logs {{ java_backend_container_name }}`."
+  when: not (java_backend_container_info.exists and java_backend_container_info.container.State.Running | default(false))
