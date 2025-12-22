@@ -1,4 +1,8 @@
-﻿### feat(auth): refresh tokeny + auto-refresh na fronte
+﻿### fix(backend): testy startuyut na H2 bez sql init
+
+- fix(backend): otklyuchen spring.sql.init v testovom profile, chtoby schema ne dublirovalas' pri ddl-auto=create-drop.
+
+### feat(auth): refresh tokeny + auto-refresh na fronte
 
 - feat(server): dobavleny refresh tokeny v BD (hash + expires/revoked) i cookie `gh_refresh_token` (httpOnly).
 - feat(server): dobavleny endpointy `POST /api/auth/refresh` (rotaciya refresh + novyj `access_token`) i `POST /api/auth/logout` (revok + ochistka cookie).
