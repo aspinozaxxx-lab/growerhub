@@ -48,5 +48,28 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+**/*.iml
 *.swp
 *.swo
+
+# Gradle
+.gradle/
+**/.gradle/
+**/build/
+**/out/
+
+**/.classpath
+**/.project
+
+# Java
+**/*.class
+**/*.log
+**/hs_err_pid*.log
+
+# Keep Gradle wrapper and build scripts
+!gradle/wrapper/gradle-wrapper.jar
+!gradlew
+!gradlew.bat
+!build.gradle
+!settings.gradle
+!gradle.properties
