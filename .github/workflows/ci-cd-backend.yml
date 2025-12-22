@@ -8,7 +8,6 @@ on:
     branches: [ "main" ]
     paths:
       - "backend/**"
-  workflow_dispatch:
 
 jobs:
   ci:
@@ -25,19 +24,18 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+          cache: gradle
 
-      - name: Setup Gradle (with cache)
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.10.2"
+      - name: Ensure Gradle wrapper is executable
+        run: chmod +x backend/gradlew
 
       - name: Gradle test
         working-directory: backend
-        run: gradle --no-daemon test
+        run: ./gradlew --no-daemon test
 
       - name: Gradle build
         working-directory: backend
-        run: gradle --no-daemon build -x test
+        run: ./gradlew --no-daemon build -x test
 
       - name: Docker build
         working-directory: backend
