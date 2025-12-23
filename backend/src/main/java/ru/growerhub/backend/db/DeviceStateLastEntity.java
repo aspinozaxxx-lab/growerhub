@@ -1,4 +1,4 @@
-package ru.growerhub.backend.db;
+﻿package ru.growerhub.backend.db;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -43,6 +43,10 @@ public class DeviceStateLastEntity {
     protected DeviceStateLastEntity() {
     }
 
+    public static DeviceStateLastEntity create() {
+        return new DeviceStateLastEntity();
+    }
+
     public Integer getId() {
         return id;
     }
@@ -51,11 +55,23 @@ public class DeviceStateLastEntity {
         return deviceId;
     }
 
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
+    }
+
     public String getStateJson() {
         return stateJson;
     }
 
+    public void setStateJson(String stateJson) {
+        this.stateJson = stateJson;
+    }
+
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

@@ -1,4 +1,4 @@
-package ru.growerhub.backend.db;
+﻿package ru.growerhub.backend.db;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -43,6 +43,10 @@ public class SensorDataEntity {
     protected SensorDataEntity() {
     }
 
+    public static SensorDataEntity create() {
+        return new SensorDataEntity();
+    }
+
     public Integer getId() {
         return id;
     }
@@ -51,19 +55,39 @@ public class SensorDataEntity {
         return deviceId;
     }
 
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
+    }
+
     public LocalDateTime getTimestamp() {
         return timestamp;
+    }
+
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
     }
 
     public Double getSoilMoisture() {
         return soilMoisture;
     }
 
+    public void setSoilMoisture(Double soilMoisture) {
+        this.soilMoisture = soilMoisture;
+    }
+
     public Double getAirTemperature() {
         return airTemperature;
     }
 
+    public void setAirTemperature(Double airTemperature) {
+        this.airTemperature = airTemperature;
+    }
+
     public Double getAirHumidity() {
         return airHumidity;
+    }
+
+    public void setAirHumidity(Double airHumidity) {
+        this.airHumidity = airHumidity;
     }
 }

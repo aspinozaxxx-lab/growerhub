@@ -1,4 +1,4 @@
-package ru.growerhub.backend.db;
+﻿package ru.growerhub.backend.db;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -102,6 +102,10 @@ public class DeviceEntity {
     protected DeviceEntity() {
     }
 
+    public static DeviceEntity create() {
+        return new DeviceEntity();
+    }
+
     public Integer getId() {
         return id;
     }
@@ -110,84 +114,168 @@ public class DeviceEntity {
         return deviceId;
     }
 
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
+    }
+
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public UserEntity getUser() {
         return user;
     }
 
+    public void setUser(UserEntity user) {
+        this.user = user;
+    }
+
     public Double getSoilMoisture() {
         return soilMoisture;
+    }
+
+    public void setSoilMoisture(Double soilMoisture) {
+        this.soilMoisture = soilMoisture;
     }
 
     public Double getAirTemperature() {
         return airTemperature;
     }
 
+    public void setAirTemperature(Double airTemperature) {
+        this.airTemperature = airTemperature;
+    }
+
     public Double getAirHumidity() {
         return airHumidity;
+    }
+
+    public void setAirHumidity(Double airHumidity) {
+        this.airHumidity = airHumidity;
     }
 
     public Boolean getIsWatering() {
         return isWatering;
     }
 
+    public void setIsWatering(Boolean isWatering) {
+        this.isWatering = isWatering;
+    }
+
     public Boolean getIsLightOn() {
         return isLightOn;
+    }
+
+    public void setIsLightOn(Boolean isLightOn) {
+        this.isLightOn = isLightOn;
     }
 
     public LocalDateTime getLastWatering() {
         return lastWatering;
     }
 
+    public void setLastWatering(LocalDateTime lastWatering) {
+        this.lastWatering = lastWatering;
+    }
+
     public LocalDateTime getLastSeen() {
         return lastSeen;
+    }
+
+    public void setLastSeen(LocalDateTime lastSeen) {
+        this.lastSeen = lastSeen;
     }
 
     public Double getTargetMoisture() {
         return targetMoisture;
     }
 
+    public void setTargetMoisture(Double targetMoisture) {
+        this.targetMoisture = targetMoisture;
+    }
+
     public Integer getWateringDuration() {
         return wateringDuration;
+    }
+
+    public void setWateringDuration(Integer wateringDuration) {
+        this.wateringDuration = wateringDuration;
     }
 
     public Integer getWateringTimeout() {
         return wateringTimeout;
     }
 
+    public void setWateringTimeout(Integer wateringTimeout) {
+        this.wateringTimeout = wateringTimeout;
+    }
+
     public Double getWateringSpeedLph() {
         return wateringSpeedLph;
+    }
+
+    public void setWateringSpeedLph(Double wateringSpeedLph) {
+        this.wateringSpeedLph = wateringSpeedLph;
     }
 
     public Integer getLightOnHour() {
         return lightOnHour;
     }
 
+    public void setLightOnHour(Integer lightOnHour) {
+        this.lightOnHour = lightOnHour;
+    }
+
     public Integer getLightOffHour() {
         return lightOffHour;
+    }
+
+    public void setLightOffHour(Integer lightOffHour) {
+        this.lightOffHour = lightOffHour;
     }
 
     public Integer getLightDuration() {
         return lightDuration;
     }
 
+    public void setLightDuration(Integer lightDuration) {
+        this.lightDuration = lightDuration;
+    }
+
     public String getCurrentVersion() {
         return currentVersion;
+    }
+
+    public void setCurrentVersion(String currentVersion) {
+        this.currentVersion = currentVersion;
     }
 
     public String getLatestVersion() {
         return latestVersion;
     }
 
+    public void setLatestVersion(String latestVersion) {
+        this.latestVersion = latestVersion;
+    }
+
     public Boolean getUpdateAvailable() {
         return updateAvailable;
     }
 
+    public void setUpdateAvailable(Boolean updateAvailable) {
+        this.updateAvailable = updateAvailable;
+    }
+
     public String getFirmwareUrl() {
         return firmwareUrl;
+    }
+
+    public void setFirmwareUrl(String firmwareUrl) {
+        this.firmwareUrl = firmwareUrl;
     }
 
     public List<PlantDeviceEntity> getPlantDevices() {

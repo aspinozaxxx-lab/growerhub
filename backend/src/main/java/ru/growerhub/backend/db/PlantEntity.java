@@ -1,4 +1,4 @@
-package ru.growerhub.backend.db;
+﻿package ru.growerhub.backend.db;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -64,6 +64,10 @@ public class PlantEntity {
     protected PlantEntity() {
     }
 
+    public static PlantEntity create() {
+        return new PlantEntity();
+    }
+
     public Integer getId() {
         return id;
     }
@@ -72,36 +76,72 @@ public class PlantEntity {
         return user;
     }
 
+    public void setUser(UserEntity user) {
+        this.user = user;
+    }
+
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public LocalDateTime getPlantedAt() {
         return plantedAt;
     }
 
+    public void setPlantedAt(LocalDateTime plantedAt) {
+        this.plantedAt = plantedAt;
+    }
+
     public String getPlantType() {
         return plantType;
+    }
+
+    public void setPlantType(String plantType) {
+        this.plantType = plantType;
     }
 
     public String getStrain() {
         return strain;
     }
 
+    public void setStrain(String strain) {
+        this.strain = strain;
+    }
+
     public String getGrowthStage() {
         return growthStage;
+    }
+
+    public void setGrowthStage(String growthStage) {
+        this.growthStage = growthStage;
     }
 
     public PlantGroupEntity getPlantGroup() {
         return plantGroup;
     }
 
+    public void setPlantGroup(PlantGroupEntity plantGroup) {
+        this.plantGroup = plantGroup;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     public List<PlantDeviceEntity> getPlantDevices() {

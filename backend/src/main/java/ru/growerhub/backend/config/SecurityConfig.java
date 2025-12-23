@@ -1,7 +1,8 @@
-package ru.growerhub.backend.config;
+﻿package ru.growerhub.backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -29,6 +30,11 @@ public class SecurityConfig {
                                 "/api/auth/logout",
                                 "/api/auth/sso/**"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/device/*/status").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/device/*/settings").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/device/*/settings").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/devices").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/device/*").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()
                 );

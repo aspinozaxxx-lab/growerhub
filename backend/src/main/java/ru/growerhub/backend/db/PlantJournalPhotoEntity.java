@@ -1,4 +1,4 @@
-package ru.growerhub.backend.db;
+﻿package ru.growerhub.backend.db;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -33,7 +33,7 @@ public class PlantJournalPhotoEntity {
     private String caption;
 
     @Lob
-    @Column(name = "data", nullable = true)
+    @Column(name = "data", nullable = true, columnDefinition = "bytea")
     private byte[] data;
 
     @Column(name = "content_type", nullable = true)

@@ -1,4 +1,4 @@
-package ru.growerhub.backend.db;
+﻿package ru.growerhub.backend.db;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -66,6 +66,10 @@ public class PlantJournalEntryEntity {
     protected PlantJournalEntryEntity() {
     }
 
+    public static PlantJournalEntryEntity create() {
+        return new PlantJournalEntryEntity();
+    }
+
     public Integer getId() {
         return id;
     }
@@ -74,32 +78,64 @@ public class PlantJournalEntryEntity {
         return plant;
     }
 
+    public void setPlant(PlantEntity plant) {
+        this.plant = plant;
+    }
+
     public UserEntity getUser() {
         return user;
+    }
+
+    public void setUser(UserEntity user) {
+        this.user = user;
     }
 
     public String getType() {
         return type;
     }
 
+    public void setType(String type) {
+        this.type = type;
+    }
+
     public String getText() {
         return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
     }
 
     public LocalDateTime getEventAt() {
         return eventAt;
     }
 
+    public void setEventAt(LocalDateTime eventAt) {
+        this.eventAt = eventAt;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
     public PlantJournalWateringDetailsEntity getWateringDetails() {
         return wateringDetails;
+    }
+
+    public void setWateringDetails(PlantJournalWateringDetailsEntity wateringDetails) {
+        this.wateringDetails = wateringDetails;
     }
 
     public List<PlantJournalPhotoEntity> getPhotos() {

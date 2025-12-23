@@ -1,4 +1,4 @@
-# Endpoints Checklist
+﻿# Endpoints Checklist
 
 Legend: DONE = implemented, TODO = stub (501 Not Implemented)
 
@@ -25,39 +25,39 @@ Legend: DONE = implemented, TODO = stub (501 Not Implemented)
 ## Users
 | Method | Path | Status |
 | --- | --- | --- |
-| GET | /api/users | TODO |
-| GET | /api/users/{user_id} | TODO |
-| POST | /api/users | TODO |
-| PATCH | /api/users/{user_id} | TODO |
-| DELETE | /api/users/{user_id} | TODO |
+| GET | /api/users | DONE |
+| GET | /api/users/{user_id} | DONE |
+| POST | /api/users | DONE |
+| PATCH | /api/users/{user_id} | DONE |
+| DELETE | /api/users/{user_id} | DONE |
 
 ## Devices
 | Method | Path | Status |
 | --- | --- | --- |
-| POST | /api/device/{device_id}/status | TODO |
-| GET | /api/device/{device_id}/settings | TODO |
-| PUT | /api/device/{device_id}/settings | TODO |
-| GET | /api/devices | TODO |
-| GET | /api/devices/my | TODO |
-| GET | /api/admin/devices | TODO |
-| POST | /api/devices/assign-to-me | TODO |
-| POST | /api/devices/{device_id}/unassign | TODO |
-| POST | /api/admin/devices/{device_id}/assign | TODO |
-| POST | /api/admin/devices/{device_id}/unassign | TODO |
-| DELETE | /api/device/{device_id} | TODO |
+| POST | /api/device/{device_id}/status | DONE |
+| GET | /api/device/{device_id}/settings | DONE |
+| PUT | /api/device/{device_id}/settings | DONE |
+| GET | /api/devices | DONE |
+| GET | /api/devices/my | DONE |
+| GET | /api/admin/devices | DONE |
+| POST | /api/devices/assign-to-me | DONE |
+| POST | /api/devices/{device_id}/unassign | DONE |
+| POST | /api/admin/devices/{device_id}/assign | DONE |
+| POST | /api/admin/devices/{device_id}/unassign | DONE |
+| DELETE | /api/device/{device_id} | DONE |
 
 ## Manual Watering
 | Method | Path | Status |
 | --- | --- | --- |
-| POST | /api/manual-watering/start | TODO |
-| POST | /api/manual-watering/stop | TODO |
-| POST | /api/manual-watering/reboot | TODO |
-| GET | /api/manual-watering/status | TODO |
-| GET | /api/manual-watering/ack | TODO |
-| GET | /api/manual-watering/wait-ack | TODO |
-| GET | /_debug/manual-watering/config | TODO |
-| POST | /_debug/shadow/state | TODO |
-| GET | /_debug/manual-watering/snapshot | TODO |
+| POST | /api/manual-watering/start | DONE |
+| POST | /api/manual-watering/stop | DONE |
+| POST | /api/manual-watering/reboot | DONE |
+| GET | /api/manual-watering/status | DONE |
+| GET | /api/manual-watering/ack | DONE |
+| GET | /api/manual-watering/wait-ack | DONE |
+| GET | /_debug/manual-watering/config | DONE |
+| POST | /_debug/shadow/state | DONE |
+| GET | /_debug/manual-watering/snapshot | DONE |
 
 ## History
 | Method | Path | Status |

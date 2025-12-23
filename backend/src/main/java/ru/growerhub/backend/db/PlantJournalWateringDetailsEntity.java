@@ -1,4 +1,4 @@
-package ru.growerhub.backend.db;
+﻿package ru.growerhub.backend.db;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -48,6 +48,10 @@ public class PlantJournalWateringDetailsEntity {
     protected PlantJournalWateringDetailsEntity() {
     }
 
+    public static PlantJournalWateringDetailsEntity create() {
+        return new PlantJournalWateringDetailsEntity();
+    }
+
     public Integer getId() {
         return id;
     }
@@ -56,19 +60,39 @@ public class PlantJournalWateringDetailsEntity {
         return journalEntry;
     }
 
+    public void setJournalEntry(PlantJournalEntryEntity journalEntry) {
+        this.journalEntry = journalEntry;
+    }
+
     public Double getWaterVolumeL() {
         return waterVolumeL;
+    }
+
+    public void setWaterVolumeL(Double waterVolumeL) {
+        this.waterVolumeL = waterVolumeL;
     }
 
     public Integer getDurationS() {
         return durationS;
     }
 
+    public void setDurationS(Integer durationS) {
+        this.durationS = durationS;
+    }
+
     public Double getPh() {
         return ph;
     }
 
+    public void setPh(Double ph) {
+        this.ph = ph;
+    }
+
     public String getFertilizersPerLiter() {
         return fertilizersPerLiter;
+    }
+
+    public void setFertilizersPerLiter(String fertilizersPerLiter) {
+        this.fertilizersPerLiter = fertilizersPerLiter;
     }
 }

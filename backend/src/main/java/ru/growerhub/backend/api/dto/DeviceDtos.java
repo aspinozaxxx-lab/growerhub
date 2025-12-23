@@ -1,6 +1,7 @@
-package ru.growerhub.backend.api.dto;
+﻿package ru.growerhub.backend.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -9,23 +10,35 @@ public final class DeviceDtos {
     }
 
     public record DeviceStatusRequest(
+            @NotNull
             @JsonProperty("device_id") String deviceId,
+            @NotNull
             @JsonProperty("soil_moisture") Double soilMoisture,
+            @NotNull
             @JsonProperty("air_temperature") Double airTemperature,
+            @NotNull
             @JsonProperty("air_humidity") Double airHumidity,
+            @NotNull
             @JsonProperty("is_watering") Boolean isWatering,
+            @NotNull
             @JsonProperty("is_light_on") Boolean isLightOn,
             @JsonProperty("last_watering") LocalDateTime lastWatering
     ) {
     }
 
     public record DeviceSettingsRequest(
+            @NotNull
             @JsonProperty("target_moisture") Double targetMoisture,
+            @NotNull
             @JsonProperty("watering_duration") Integer wateringDuration,
+            @NotNull
             @JsonProperty("watering_timeout") Integer wateringTimeout,
             @JsonProperty("watering_speed_lph") Double wateringSpeedLph,
+            @NotNull
             @JsonProperty("light_on_hour") Integer lightOnHour,
+            @NotNull
             @JsonProperty("light_off_hour") Integer lightOffHour,
+            @NotNull
             @JsonProperty("light_duration") Integer lightDuration
     ) {
     }
@@ -104,9 +117,15 @@ public final class DeviceDtos {
     ) {
     }
 
-    public record AssignToMeRequest(@JsonProperty("device_id") Integer deviceId) {
+    public record AssignToMeRequest(
+            @NotNull
+            @JsonProperty("device_id") Integer deviceId
+    ) {
     }
 
-    public record AdminAssignRequest(@JsonProperty("user_id") Integer userId) {
+    public record AdminAssignRequest(
+            @NotNull
+            @JsonProperty("user_id") Integer userId
+    ) {
     }
 }

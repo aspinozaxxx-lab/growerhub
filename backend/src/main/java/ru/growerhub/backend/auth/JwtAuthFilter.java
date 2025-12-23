@@ -1,4 +1,4 @@
-package ru.growerhub.backend.auth;
+﻿package ru.growerhub.backend.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
@@ -15,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import ru.growerhub.backend.api.ApiError;
 import ru.growerhub.backend.user.UserEntity;
@@ -23,6 +24,7 @@ import ru.growerhub.backend.user.UserService;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "bearer ";
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
     private static final Set<String> PUBLIC_PATHS = Set.of(
             "/api/auth/login",
             "/api/auth/refresh",
@@ -48,7 +50,26 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (PUBLIC_PATHS.contains(path)) {
             return true;
         }
-        return path.startsWith("/api/auth/sso/");
+        if (path.startsWith("/api/auth/sso/")) {
+            return true;
+        }
+        return isPublicDevicePath(request.getMethod(), path);
+    }
+
+    private boolean isPublicDevicePath(String method, String path) {
+        if ("POST".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/status", path)) {
+            return true;
+        }
+        if ("GET".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/settings", path)) {
+            return true;
+        }
+        if ("PUT".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/settings", path)) {
+            return true;
+        }
+        if ("GET".equalsIgnoreCase(method) && "/api/devices".equals(path)) {
+            return true;
+        }
+        return "DELETE".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*", path);
     }
 
     @Override

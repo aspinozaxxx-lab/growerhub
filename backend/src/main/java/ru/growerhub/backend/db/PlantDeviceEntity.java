@@ -1,4 +1,4 @@
-package ru.growerhub.backend.db;
+﻿package ru.growerhub.backend.db;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -39,6 +39,10 @@ public class PlantDeviceEntity {
     protected PlantDeviceEntity() {
     }
 
+    public static PlantDeviceEntity create() {
+        return new PlantDeviceEntity();
+    }
+
     public Integer getId() {
         return id;
     }
@@ -47,7 +51,15 @@ public class PlantDeviceEntity {
         return plant;
     }
 
+    public void setPlant(PlantEntity plant) {
+        this.plant = plant;
+    }
+
     public DeviceEntity getDevice() {
         return device;
+    }
+
+    public void setDevice(DeviceEntity device) {
+        this.device = device;
     }
 }
