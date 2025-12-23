@@ -70,6 +70,24 @@ public class UserEntity {
     protected UserEntity() {
     }
 
+    public static UserEntity create(
+            String email,
+            String username,
+            String role,
+            boolean isActive,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        UserEntity user = new UserEntity();
+        user.email = email;
+        user.username = username;
+        user.role = role;
+        user.isActive = isActive;
+        user.createdAt = createdAt;
+        user.updatedAt = updatedAt;
+        return user;
+    }
+
     public Integer getId() {
         return id;
     }
@@ -78,24 +96,48 @@ public class UserEntity {
         return email;
     }
 
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
     public String getUsername() {
         return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getRole() {
         return role;
     }
 
+    public void setRole(String role) {
+        this.role = role;
+    }
+
     public boolean isActive() {
         return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
     }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     public List<DeviceEntity> getDevices() {

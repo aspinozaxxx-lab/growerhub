@@ -61,6 +61,25 @@ public class UserRefreshTokenEntity {
     protected UserRefreshTokenEntity() {
     }
 
+    public static UserRefreshTokenEntity create(
+            UserEntity user,
+            String tokenHash,
+            LocalDateTime createdAt,
+            LocalDateTime expiresAt,
+            String userAgent,
+            String ip
+    ) {
+        UserRefreshTokenEntity record = new UserRefreshTokenEntity();
+        record.user = user;
+        record.tokenHash = tokenHash;
+        record.createdAt = createdAt;
+        record.expiresAt = expiresAt;
+        record.revokedAt = null;
+        record.userAgent = userAgent;
+        record.ip = ip;
+        return record;
+    }
+
     public Integer getId() {
         return id;
     }
@@ -69,27 +88,55 @@ public class UserRefreshTokenEntity {
         return user;
     }
 
+    public void setUser(UserEntity user) {
+        this.user = user;
+    }
+
     public String getTokenHash() {
         return tokenHash;
+    }
+
+    public void setTokenHash(String tokenHash) {
+        this.tokenHash = tokenHash;
     }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
     public LocalDateTime getExpiresAt() {
         return expiresAt;
+    }
+
+    public void setExpiresAt(LocalDateTime expiresAt) {
+        this.expiresAt = expiresAt;
     }
 
     public LocalDateTime getRevokedAt() {
         return revokedAt;
     }
 
+    public void setRevokedAt(LocalDateTime revokedAt) {
+        this.revokedAt = revokedAt;
+    }
+
     public String getUserAgent() {
         return userAgent;
     }
 
+    public void setUserAgent(String userAgent) {
+        this.userAgent = userAgent;
+    }
+
     public String getIp() {
         return ip;
+    }
+
+    public void setIp(String ip) {
+        this.ip = ip;
     }
 }

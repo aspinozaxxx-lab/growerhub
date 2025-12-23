@@ -10,17 +10,17 @@ Legend: DONE = implemented, TODO = stub (501 Not Implemented)
 ## Auth
 | Method | Path | Status |
 | --- | --- | --- |
-| POST | /api/auth/login | TODO |
-| GET | /api/auth/sso/{provider}/login | TODO |
-| GET | /api/auth/sso/{provider}/callback | TODO |
+| POST | /api/auth/login | DONE |
+| GET | /api/auth/sso/{provider}/login | DONE |
+| GET | /api/auth/sso/{provider}/callback | DONE |
 | GET | /api/auth/me | DONE |
-| POST | /api/auth/refresh | TODO |
-| POST | /api/auth/logout | TODO |
-| PATCH | /api/auth/me | TODO |
-| POST | /api/auth/change-password | TODO |
-| GET | /api/auth/methods | TODO |
-| POST | /api/auth/methods/local | TODO |
-| DELETE | /api/auth/methods/{provider} | TODO |
+| POST | /api/auth/refresh | DONE |
+| POST | /api/auth/logout | DONE |
+| PATCH | /api/auth/me | DONE |
+| POST | /api/auth/change-password | DONE |
+| GET | /api/auth/methods | DONE |
+| POST | /api/auth/methods/local | DONE |
+| DELETE | /api/auth/methods/{provider} | DONE |
 
 ## Users
 | Method | Path | Status |

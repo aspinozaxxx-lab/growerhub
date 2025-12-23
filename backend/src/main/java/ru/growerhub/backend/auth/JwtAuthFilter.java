@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Locale;
+import java.util.Set;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,6 +23,11 @@ import ru.growerhub.backend.user.UserService;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "bearer ";
+    private static final Set<String> PUBLIC_PATHS = Set.of(
+            "/api/auth/login",
+            "/api/auth/refresh",
+            "/api/auth/logout"
+    );
 
     private final JwtService jwtService;
     private final UserService userService;
@@ -36,7 +42,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path == null || !path.startsWith("/api/");
+        if (path == null || !path.startsWith("/api/")) {
+            return true;
+        }
+        if (PUBLIC_PATHS.contains(path)) {
+            return true;
+        }
+        return path.startsWith("/api/auth/sso/");
     }
 
     @Override
