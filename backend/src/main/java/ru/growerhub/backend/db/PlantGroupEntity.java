@@ -44,6 +44,10 @@ public class PlantGroupEntity {
     protected PlantGroupEntity() {
     }
 
+    public static PlantGroupEntity create() {
+        return new PlantGroupEntity();
+    }
+
     public Integer getId() {
         return id;
     }
@@ -52,16 +56,32 @@ public class PlantGroupEntity {
         return user;
     }
 
+    public void setUser(UserEntity user) {
+        this.user = user;
+    }
+
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     public List<PlantEntity> getPlants() {

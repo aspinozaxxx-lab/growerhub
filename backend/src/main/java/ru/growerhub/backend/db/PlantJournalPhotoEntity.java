@@ -26,7 +26,7 @@ public class PlantJournalPhotoEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private PlantJournalEntryEntity journalEntry;
 
-    @Column(name = "url", nullable = false)
+    @Column(name = "url", nullable = true)
     private String url;
 
     @Column(name = "caption", nullable = true)
@@ -42,6 +42,10 @@ public class PlantJournalPhotoEntity {
     protected PlantJournalPhotoEntity() {
     }
 
+    public static PlantJournalPhotoEntity create() {
+        return new PlantJournalPhotoEntity();
+    }
+
     public Integer getId() {
         return id;
     }
@@ -50,19 +54,39 @@ public class PlantJournalPhotoEntity {
         return journalEntry;
     }
 
+    public void setJournalEntry(PlantJournalEntryEntity journalEntry) {
+        this.journalEntry = journalEntry;
+    }
+
     public String getUrl() {
         return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public String getCaption() {
         return caption;
     }
 
+    public void setCaption(String caption) {
+        this.caption = caption;
+    }
+
     public byte[] getData() {
         return data;
     }
 
+    public void setData(byte[] data) {
+        this.data = data;
+    }
+
     public String getContentType() {
         return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
     }
 }

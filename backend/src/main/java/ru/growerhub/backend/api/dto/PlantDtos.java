@@ -1,6 +1,8 @@
 package ru.growerhub.backend.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.List;
 import ru.growerhub.backend.api.dto.DeviceDtos.DeviceResponse;
@@ -9,10 +11,16 @@ public final class PlantDtos {
     private PlantDtos() {
     }
 
-    public record PlantGroupCreateRequest(@JsonProperty("name") String name) {
+    public record PlantGroupCreateRequest(
+            @NotNull
+            @JsonProperty("name") String name
+    ) {
     }
 
-    public record PlantGroupUpdateRequest(@JsonProperty("name") String name) {
+    public record PlantGroupUpdateRequest(
+            @NotNull
+            @JsonProperty("name") String name
+    ) {
     }
 
     public record PlantGroupResponse(
@@ -23,7 +31,9 @@ public final class PlantDtos {
     }
 
     public record PlantCreateRequest(
+            @NotNull
             @JsonProperty("name") String name,
+            @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
             @JsonProperty("planted_at") LocalDateTime plantedAt,
             @JsonProperty("plant_group_id") Integer plantGroupId,
             @JsonProperty("plant_type") String plantType,
@@ -34,6 +44,7 @@ public final class PlantDtos {
 
     public record PlantUpdateRequest(
             @JsonProperty("name") String name,
+            @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
             @JsonProperty("planted_at") LocalDateTime plantedAt,
             @JsonProperty("plant_group_id") Integer plantGroupId,
             @JsonProperty("plant_type") String plantType,
@@ -72,8 +83,10 @@ public final class PlantDtos {
     }
 
     public record PlantJournalEntryCreateRequest(
+            @NotNull
             @JsonProperty("type") String type,
             @JsonProperty("text") String text,
+            @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
             @JsonProperty("event_at") LocalDateTime eventAt,
             @JsonProperty("photo_urls") List<String> photoUrls
     ) {

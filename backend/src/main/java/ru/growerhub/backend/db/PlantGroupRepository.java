@@ -1,5 +1,11 @@
 package ru.growerhub.backend.db;
 
+import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface PlantGroupRepository extends JpaRepository<PlantGroupEntity, Integer> {}
+public interface PlantGroupRepository extends JpaRepository<PlantGroupEntity, Integer> {
+    List<PlantGroupEntity> findAllByUser_Id(Integer userId);
+
+    Optional<PlantGroupEntity> findByIdAndUser_Id(Integer id, Integer userId);
+}
