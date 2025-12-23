@@ -62,16 +62,16 @@ Legend: DONE = implemented, TODO = stub (501 Not Implemented)
 ## History
 | Method | Path | Status |
 | --- | --- | --- |
-| GET | /api/device/{device_id}/sensor-history | TODO |
-| GET | /api/device/{device_id}/watering-logs | TODO |
+| GET | /api/device/{device_id}/sensor-history | DONE |
+| GET | /api/device/{device_id}/watering-logs | DONE |
 
 ## Firmware
 | Method | Path | Status |
 | --- | --- | --- |
-| GET | /api/device/{device_id}/firmware | TODO |
-| POST | /api/upload-firmware | TODO |
-| POST | /api/device/{device_id}/trigger-update | TODO |
-| GET | /api/firmware/versions | TODO |
+| GET | /api/device/{device_id}/firmware | DONE |
+| POST | /api/upload-firmware | DONE |
+| POST | /api/device/{device_id}/trigger-update | DONE |
+| GET | /api/firmware/versions | DONE |
 
 ## Plants
 | Method | Path | Status |

@@ -1,5 +1,6 @@
 package ru.growerhub.backend.api.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public final class FirmwareDtos {
@@ -13,6 +14,7 @@ public final class FirmwareDtos {
     ) {
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public record FirmwareCheckResponse(
             @JsonProperty("update_available") Boolean updateAvailable,
             @JsonProperty("latest_version") String latestVersion,

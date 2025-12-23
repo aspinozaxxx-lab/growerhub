@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -20,6 +22,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ApiError> handleApiException(ApiException ex) {
         return ResponseEntity.status(ex.getStatus()).body(new ApiError(ex.getMessage()));
+    }
+
+    @ExceptionHandler(ApiValidationException.class)
+    public ResponseEntity<ApiValidationError> handleApiValidationException(ApiValidationException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(ex.getError());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -53,9 +60,27 @@ public class ApiExceptionHandler {
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ApiValidationError> handleMissingParam(MissingServletRequestParameterException ex) {
+    public ResponseEntity<ApiValidationError> handleMissingParam(
+            MissingServletRequestParameterException ex,
+            HttpServletRequest request
+    ) {
+        String loc = "query";
+        String contentType = request != null ? request.getContentType() : null;
+        if (contentType != null && contentType.toLowerCase().startsWith("multipart/form-data")) {
+            loc = "body";
+        }
         ApiValidationErrorItem item = new ApiValidationErrorItem(
-                List.of("query", ex.getParameterName()),
+                List.of(loc, ex.getParameterName()),
+                "Field required",
+                "value_error.missing"
+        );
+        return ResponseEntity.status(422).body(new ApiValidationError(List.of(item)));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiValidationError> handleMissingPart(MissingServletRequestPartException ex) {
+        ApiValidationErrorItem item = new ApiValidationErrorItem(
+                List.of("body", ex.getRequestPartName()),
                 "Field required",
                 "value_error.missing"
         );

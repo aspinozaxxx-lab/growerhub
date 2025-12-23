@@ -60,6 +60,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if ("POST".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/status", path)) {
             return true;
         }
+        if ("GET".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/firmware", path)) {
+            return true;
+        }
+        if ("POST".equalsIgnoreCase(method) && "/api/upload-firmware".equals(path)) {
+            return true;
+        }
+        if ("POST".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/trigger-update", path)) {
+            return true;
+        }
+        if ("GET".equalsIgnoreCase(method) && "/api/firmware/versions".equals(path)) {
+            return true;
+        }
+        if ("GET".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/sensor-history", path)) {
+            return true;
+        }
+        if ("GET".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/watering-logs", path)) {
+            return true;
+        }
         if ("GET".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/settings", path)) {
             return true;
         }
