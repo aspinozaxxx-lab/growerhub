@@ -87,7 +87,7 @@
 - name: Render env file for java backend
   become: true
   ansible.builtin.copy:
-    dest: "{{ java_backend_env_file }}"
+    dest: "{{ java_backend_env_file_path }}"
     owner: root
     group: root
     mode: "0600"
@@ -95,6 +95,16 @@
       {% for item in java_backend_env | dict2items %}
       {{ item.key }}={{ item.value }}
       {% endfor %}
+
+- name: Check env file exists
+  ansible.builtin.stat:
+    path: "{{ java_backend_env_file_path }}"
+  register: java_backend_env_file_stat
+
+- name: Fail if env file is missing
+  ansible.builtin.fail:
+    msg: "Env file not found: {{ java_backend_env_file_path }}"
+  when: not java_backend_env_file_stat.stat.exists
 
 - name: Sync backend sources to target (rsync)
   become: false
@@ -121,8 +131,7 @@
     name: "{{ java_backend_container_name }}"
     image: "{{ java_backend_image }}"
     restart_policy: always
-    env_file:
-      - "{{ java_backend_env_file }}"
+    env_file: "{{ java_backend_env_file_path }}"
     published_ports:
       - "{{ java_backend_bind_ip }}:{{ java_backend_host_port }}:{{ java_backend_container_port }}"
     state: started
@@ -133,6 +142,17 @@
   community.docker.docker_container_info:
     name: "{{ java_backend_container_name }}"
   register: java_backend_container_info
+
+- name: Assert env is present in container
+  become: true
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker inspect {{ java_backend_container_name }} \
+      --format '{{range .Config.Env}}{{println .}}{{end}}' \
+      | grep -q '^SECRET_KEY='
+  args:
+    executable: /bin/bash
+  when: java_backend_container_info.exists and (java_backend_container_info.container.State.Running | default(false))
 
 - name: Fail if java backend container is not running
   ansible.builtin.fail:

@@ -23,7 +23,8 @@ java_backend_container_port: 8080
 
 # Env file path (sozdaetsya ansible rolyu)
 java_backend_env_dir: "/opt/growerhub/env"
-java_backend_env_file: "{{ java_backend_env_dir }}/growerhub-java-backend.env"
+java_backend_env_file_path: "/opt/growerhub/env/growerhub-java-backend.env"
+java_backend_env_file: "{{ java_backend_env_file_path }}"
 
 # Required env values (dolzhny byt' zadany v vars/vault)
 java_backend_secret_key: ""
