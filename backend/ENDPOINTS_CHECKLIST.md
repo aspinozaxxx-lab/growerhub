@@ -72,6 +72,7 @@ Legend: DONE = implemented, TODO = stub (501 Not Implemented)
 | POST | /api/upload-firmware | DONE |
 | POST | /api/device/{device_id}/trigger-update | DONE |
 | GET | /api/firmware/versions | DONE |
+| GET | /firmware/{filename} | DONE |
 
 ## Plants
 | Method | Path | Status |

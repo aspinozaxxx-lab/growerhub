@@ -38,7 +38,7 @@ import ru.growerhub.backend.db.PlantJournalEntryRepository;
 import ru.growerhub.backend.db.PlantJournalWateringDetailsEntity;
 import ru.growerhub.backend.mqtt.AckStore;
 import ru.growerhub.backend.mqtt.DeviceShadowStore;
-import ru.growerhub.backend.mqtt.ManualWateringSettings;
+import ru.growerhub.backend.mqtt.DeviceSettings;
 import ru.growerhub.backend.mqtt.MqttPublisher;
 import ru.growerhub.backend.mqtt.model.CmdPumpStart;
 import ru.growerhub.backend.mqtt.model.CmdPumpStop;
@@ -59,7 +59,7 @@ public class ManualWateringController {
     private final PlantJournalEntryRepository plantJournalEntryRepository;
     private final AckStore ackStore;
     private final DeviceShadowStore shadowStore;
-    private final ManualWateringSettings settings;
+    private final DeviceSettings settings;
     private final ObjectMapper objectMapper;
     private final ObjectProvider<MqttPublisher> publisherProvider;
 
@@ -70,7 +70,7 @@ public class ManualWateringController {
             PlantJournalEntryRepository plantJournalEntryRepository,
             AckStore ackStore,
             DeviceShadowStore shadowStore,
-            ManualWateringSettings settings,
+            DeviceSettings settings,
             ObjectMapper objectMapper,
             ObjectProvider<MqttPublisher> publisherProvider
     ) {
@@ -573,7 +573,7 @@ public class ManualWateringController {
     }
 
     private int resolveThreshold() {
-        int threshold = settings.getDeviceOnlineThresholdSeconds();
+        int threshold = settings.getOnlineThresholdS();
         return threshold > 0 ? threshold : 180;
     }
 

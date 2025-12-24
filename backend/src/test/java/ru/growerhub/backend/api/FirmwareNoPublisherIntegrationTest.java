@@ -20,7 +20,7 @@ import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.db.DeviceEntity;
 import ru.growerhub.backend.db.DeviceRepository;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "MQTT_HOST=")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
 
@@ -44,8 +44,8 @@ class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
                 throw new IllegalStateException(ex);
             }
         }
-        registry.add("SERVER_PUBLIC_BASE_URL", () -> "https://example.com");
-        registry.add("FIRMWARE_BINARIES_DIR", () -> firmwareDir.toString());
+        registry.add("server.public-base-url", () -> "https://example.com");
+        registry.add("firmware.binaries-dir", () -> firmwareDir.toString());
     }
 
     @BeforeEach

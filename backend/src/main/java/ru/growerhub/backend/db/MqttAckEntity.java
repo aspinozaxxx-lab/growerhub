@@ -57,6 +57,10 @@ public class MqttAckEntity {
     protected MqttAckEntity() {
     }
 
+    public static MqttAckEntity create() {
+        return new MqttAckEntity();
+    }
+
     public Integer getId() {
         return id;
     }
@@ -65,27 +69,55 @@ public class MqttAckEntity {
         return correlationId;
     }
 
+    public void setCorrelationId(String correlationId) {
+        this.correlationId = correlationId;
+    }
+
     public String getDeviceId() {
         return deviceId;
+    }
+
+    public void setDeviceId(String deviceId) {
+        this.deviceId = deviceId;
     }
 
     public String getResult() {
         return result;
     }
 
+    public void setResult(String result) {
+        this.result = result;
+    }
+
     public String getStatus() {
         return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public String getPayloadJson() {
         return payloadJson;
     }
 
+    public void setPayloadJson(String payloadJson) {
+        this.payloadJson = payloadJson;
+    }
+
     public LocalDateTime getReceivedAt() {
         return receivedAt;
     }
 
+    public void setReceivedAt(LocalDateTime receivedAt) {
+        this.receivedAt = receivedAt;
+    }
+
     public LocalDateTime getExpiresAt() {
         return expiresAt;
+    }
+
+    public void setExpiresAt(LocalDateTime expiresAt) {
+        this.expiresAt = expiresAt;
     }
 }

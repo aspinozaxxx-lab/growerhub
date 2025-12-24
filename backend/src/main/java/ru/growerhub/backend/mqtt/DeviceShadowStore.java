@@ -2,6 +2,7 @@
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -18,16 +19,18 @@ public class DeviceShadowStore {
     private static final DateTimeFormatter ISO_UTC = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
     private final Map<String, ShadowEntry> storage = new ConcurrentHashMap<>();
-    private final ManualWateringSettings settings;
+    private final DeviceSettings settings;
     private final ObjectMapper objectMapper;
+    private final Clock clock;
 
-    public DeviceShadowStore(ManualWateringSettings settings, ObjectMapper objectMapper) {
+    public DeviceShadowStore(DeviceSettings settings, ObjectMapper objectMapper, Clock clock) {
         this.settings = settings;
         this.objectMapper = objectMapper;
+        this.clock = clock;
     }
 
     public void updateFromState(String deviceId, DeviceState state) {
-        storage.put(deviceId, new ShadowEntry(state, LocalDateTime.now(ZoneOffset.UTC)));
+        storage.put(deviceId, new ShadowEntry(state, LocalDateTime.now(clock)));
     }
 
     public DeviceState getLastState(String deviceId) {
@@ -65,14 +68,14 @@ public class DeviceShadowStore {
 
         Integer remainingS = null;
         if ("running".equals(status) && durationS != null && startedAt != null) {
-            LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+            LocalDateTime now = LocalDateTime.now(clock);
             long elapsed = Duration.between(startedAt, now).getSeconds();
             remainingS = (int) Math.max(0, durationS - elapsed);
         }
 
         LocalDateTime observedAt = entry.updatedAt();
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        int threshold = settings.getDeviceOnlineThresholdSeconds();
+        LocalDateTime now = LocalDateTime.now(clock);
+        int threshold = settings.getOnlineThresholdS();
         boolean isOnline = Duration.between(observedAt, now).getSeconds() <= threshold;
         String lastSeenIso = formatIsoUtc(observedAt);
         String startedIso = startedAt != null ? formatIsoUtc(startedAt) : null;

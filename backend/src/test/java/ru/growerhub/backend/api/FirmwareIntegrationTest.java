@@ -64,8 +64,8 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
                 throw new IllegalStateException(ex);
             }
         }
-        registry.add("SERVER_PUBLIC_BASE_URL", () -> "https://example.com");
-        registry.add("FIRMWARE_BINARIES_DIR", () -> firmwareDir.toString());
+        registry.add("server.public-base-url", () -> "https://example.com");
+        registry.add("firmware.binaries-dir", () -> firmwareDir.toString());
     }
 
     @BeforeEach

@@ -34,11 +34,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.core.io.InputStreamResource;
 import ru.growerhub.backend.api.dto.FirmwareDtos;
 import ru.growerhub.backend.db.DeviceEntity;
 import ru.growerhub.backend.db.DeviceRepository;
 import ru.growerhub.backend.firmware.FirmwareSettings;
+import ru.growerhub.backend.firmware.ServerSettings;
 import ru.growerhub.backend.mqtt.MqttPublisher;
 import ru.growerhub.backend.mqtt.model.CmdOta;
 
@@ -49,15 +49,18 @@ public class FirmwareController {
 
     private final DeviceRepository deviceRepository;
     private final FirmwareSettings firmwareSettings;
+    private final ServerSettings serverSettings;
     private final ObjectProvider<MqttPublisher> publisherProvider;
 
     public FirmwareController(
             DeviceRepository deviceRepository,
             FirmwareSettings firmwareSettings,
+            ServerSettings serverSettings,
             ObjectProvider<MqttPublisher> publisherProvider
     ) {
         this.deviceRepository = deviceRepository;
         this.firmwareSettings = firmwareSettings;
+        this.serverSettings = serverSettings;
         this.publisherProvider = publisherProvider;
     }
 
@@ -189,30 +192,6 @@ public class FirmwareController {
         return new ResponseEntity<>(payload, headers, HttpStatus.OK);
     }
 
-    @GetMapping("/firmware/{filename:.+}")
-    public ResponseEntity<InputStreamResource> getFirmwareBinary(
-            @PathVariable("filename") String filename
-    ) {
-        Path baseDir = firmwareSettings.getFirmwareDir();
-        Path target = baseDir.resolve(filename).normalize();
-        if (!target.startsWith(baseDir)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-        if (!Files.exists(target) || !Files.isRegularFile(target)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-        try {
-            long size = Files.size(target);
-            InputStreamResource resource = new InputStreamResource(Files.newInputStream(target));
-            return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .contentLength(size)
-                    .body(resource);
-        } catch (IOException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-        }
-    }
-
     private MqttPublisher getPublisher() {
         MqttPublisher publisher = publisherProvider.getIfAvailable();
         if (publisher == null) {
@@ -222,7 +201,7 @@ public class FirmwareController {
     }
 
     private String buildFirmwareUrl(String version) {
-        String prefix = firmwareSettings.getServerPublicBaseUrl();
+        String prefix = serverSettings.getPublicBaseUrl();
         while (prefix.endsWith("/")) {
             prefix = prefix.substring(0, prefix.length() - 1);
         }

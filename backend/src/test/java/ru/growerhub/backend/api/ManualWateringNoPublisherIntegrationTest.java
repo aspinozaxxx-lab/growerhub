@@ -30,7 +30,10 @@ import ru.growerhub.backend.db.PlantRepository;
 import ru.growerhub.backend.user.UserEntity;
 import ru.growerhub.backend.user.UserRepository;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "DEBUG=false")
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        properties = {"DEBUG=false", "MQTT_HOST="}
+)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
 

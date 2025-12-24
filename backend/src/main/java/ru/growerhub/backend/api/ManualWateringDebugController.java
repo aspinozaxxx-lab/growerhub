@@ -9,28 +9,31 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.ManualWateringDtos;
+import ru.growerhub.backend.mqtt.DebugSettings;
 import ru.growerhub.backend.mqtt.DeviceShadowStore;
-import ru.growerhub.backend.mqtt.ManualWateringSettings;
+import ru.growerhub.backend.mqtt.MqttSettings;
 
 @RestController
 @ConditionalOnProperty(name = "DEBUG", havingValue = "true", matchIfMissing = true)
 public class ManualWateringDebugController {
-    private final ManualWateringSettings settings;
+    private final MqttSettings settings;
+    private final DebugSettings debugSettings;
     private final DeviceShadowStore shadowStore;
 
-    public ManualWateringDebugController(ManualWateringSettings settings, DeviceShadowStore shadowStore) {
+    public ManualWateringDebugController(MqttSettings settings, DebugSettings debugSettings, DeviceShadowStore shadowStore) {
         this.settings = settings;
+        this.debugSettings = debugSettings;
         this.shadowStore = shadowStore;
     }
 
     @GetMapping("/_debug/manual-watering/config")
     public ManualWateringDtos.DebugManualWateringConfigResponse debugConfig() {
         return new ManualWateringDtos.DebugManualWateringConfigResponse(
-                settings.getMqttHost(),
-                settings.getMqttPort(),
-                settings.getMqttUsername(),
-                settings.isMqttTls(),
-                settings.isDebug()
+                settings.getHost(),
+                settings.getPort(),
+                settings.getUsername(),
+                settings.isTls(),
+                debugSettings.isDebug()
         );
     }
 
