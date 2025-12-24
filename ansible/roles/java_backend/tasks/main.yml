@@ -62,6 +62,18 @@
       Nuzhno ukazat' java_backend_secret_key, java_backend_db_url,
       java_backend_db_username, java_backend_db_password v vars/vault.
 
+- name: Assert MQTT vars when MQTT is enabled
+  ansible.builtin.assert:
+    that:
+      - java_backend_mqtt_port | default("") | length > 0
+      - (java_backend_mqtt_username | default("") | length == 0 and java_backend_mqtt_password | default("") | length == 0)
+        or (java_backend_mqtt_username | default("") | length > 0 and java_backend_mqtt_password | default("") | length > 0)
+    fail_msg: >-
+      MQTT vklyuchen (java_backend_mqtt_host zadany), no ne vse peremennye est'.
+      Nuzhno ukazat' java_backend_mqtt_port, a takzhe oba java_backend_mqtt_username i java_backend_mqtt_password,
+      esli ispol'zuetsya autentifikaciya.
+  when: java_backend_mqtt_host | default("") | length > 0
+
 - name: Ensure env directory exists
   become: true
   ansible.builtin.file:
