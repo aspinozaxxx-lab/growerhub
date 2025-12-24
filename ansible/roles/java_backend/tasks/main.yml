@@ -148,7 +148,7 @@
   ansible.builtin.shell: |
     set -euo pipefail
     docker inspect {{ java_backend_container_name }} \
-      --format '{{range .Config.Env}}{{println .}}{{end}}' \
+      --format '{% raw %}{{range .Config.Env}}{{println .}}{{end}}{% endraw %}' \
       | grep -q '^SECRET_KEY='
   args:
     executable: /bin/bash
