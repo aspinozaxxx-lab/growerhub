@@ -33,6 +33,7 @@
   notify:
     - test nginx config
     - reload nginx
+    - smoke-check api health
 
 # === HTTPS подготовка (если включён) ===
 - name: Ensure certbot installed when HTTPS enabled
@@ -97,6 +98,7 @@
   notify:
     - test nginx config
     - reload nginx
+    - smoke-check api health
 
 - name: Enable site symlink
   ansible.builtin.file:
@@ -107,6 +109,7 @@
   notify:
     - test nginx config
     - reload nginx
+    - smoke-check api health
 
 - name: Disable default site if present
   ansible.builtin.file:
@@ -115,6 +118,7 @@
   notify:
     - test nginx config
     - reload nginx
+    - smoke-check api health
 
 # 🔔 Выполним хендлеры сейчас (перезагрузим nginx), чтобы certbot получил доступ к webroot
 - name: Apply config now before certbot
@@ -135,6 +139,7 @@
   notify:
     - test nginx config
     - reload nginx
+    - smoke-check api health
 
 - name: Re-check if LE cert exists (post-issue)
   when: nginx_enable_https
@@ -156,6 +161,7 @@
   notify:
     - test nginx config
     - reload nginx
+    - smoke-check api health
 
 
 # Хук автопродления — перезагружаем nginx после обновления сертификатов
