@@ -26,6 +26,10 @@ java_backend_env_dir: "/opt/growerhub/env"
 java_backend_env_file_path: "/opt/growerhub/env/growerhub-java-backend.env"
 java_backend_env_file: "{{ java_backend_env_file_path }}"
 
+# Deploy sudoers
+java_backend_sudo_user: "watering-admin"
+java_backend_sudoers_file: "/etc/sudoers.d/growerhub-java-deploy"
+
 # Required env values (dolzhny byt' zadany v vars/vault)
 java_backend_secret_key: ""
 java_backend_db_url: ""

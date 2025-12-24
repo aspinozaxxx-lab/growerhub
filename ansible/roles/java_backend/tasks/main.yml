@@ -41,6 +41,17 @@
       Install `python3-docker` on the target host.
   when: java_backend_python_docker.rc != 0
 
+- name: Install sudoers rule for java backend deploy
+  become: true
+  ansible.builtin.copy:
+    dest: "{{ java_backend_sudoers_file }}"
+    owner: root
+    group: root
+    mode: "0440"
+    content: |-
+      {{ java_backend_sudo_user }} ALL=(root) NOPASSWD: /usr/bin/docker, /usr/bin/test, /usr/bin/grep, /usr/bin/curl, /usr/bin/cat, /bin/sed
+    validate: "/usr/sbin/visudo -cf %s"
+
 - name: Ensure deployment directory exists
   become: true
   ansible.builtin.file:

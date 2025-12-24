@@ -110,80 +110,84 @@ jobs:
           ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" <<'EOF'
           set -e
           ENV_FILE="/opt/growerhub/env/growerhub-java-backend.env"
-          if [ ! -f "$ENV_FILE" ]; then
+          if ! sudo -n /usr/bin/test -d /; then
+            echo "sudo NOPASSWD is not configured for watering-admin (needs test/grep/docker/curl)" >&2
+            exit 1
+          fi
+          if ! sudo -n /usr/bin/test -f "$ENV_FILE"; then
             echo "Env file is missing: $ENV_FILE" >&2
             exit 1
           fi
-          if ! grep -Eq '^SECRET_KEY=.+$' "$ENV_FILE"; then
+          if ! sudo -n /usr/bin/grep -Eq '^SECRET_KEY=.+$' "$ENV_FILE"; then
             echo "SECRET_KEY is missing or empty in $ENV_FILE" >&2
             exit 1
           fi
-          if ! grep -Eq '^SPRING_DATASOURCE_URL=.+$' "$ENV_FILE"; then
+          if ! sudo -n /usr/bin/grep -Eq '^SPRING_DATASOURCE_URL=.+$' "$ENV_FILE"; then
             echo "SPRING_DATASOURCE_URL is missing or empty in $ENV_FILE" >&2
             exit 1
           fi
-          if ! grep -Eq '^SPRING_DATASOURCE_USERNAME=.+$' "$ENV_FILE"; then
+          if ! sudo -n /usr/bin/grep -Eq '^SPRING_DATASOURCE_USERNAME=.+$' "$ENV_FILE"; then
             echo "SPRING_DATASOURCE_USERNAME is missing or empty in $ENV_FILE" >&2
             exit 1
           fi
-          if ! grep -Eq '^SPRING_DATASOURCE_PASSWORD=.+$' "$ENV_FILE"; then
+          if ! sudo -n /usr/bin/grep -Eq '^SPRING_DATASOURCE_PASSWORD=.+$' "$ENV_FILE"; then
             echo "SPRING_DATASOURCE_PASSWORD is missing or empty in $ENV_FILE" >&2
             exit 1
           fi
-          if grep -Eq '^MQTT_HOST=.+$' "$ENV_FILE"; then
-            if ! grep -Eq '^MQTT_PORT=.+$' "$ENV_FILE"; then
+          if sudo -n /usr/bin/grep -Eq '^MQTT_HOST=.+$' "$ENV_FILE"; then
+            if ! sudo -n /usr/bin/grep -Eq '^MQTT_PORT=.+$' "$ENV_FILE"; then
               echo "MQTT_PORT is missing or empty in $ENV_FILE (MQTT_HOST is set)" >&2
               exit 1
             fi
-            if grep -Eq '^MQTT_USERNAME=' "$ENV_FILE" || grep -Eq '^MQTT_PASSWORD=' "$ENV_FILE"; then
-              if ! grep -Eq '^MQTT_USERNAME=.+$' "$ENV_FILE"; then
+            if sudo -n /usr/bin/grep -Eq '^MQTT_USERNAME=' "$ENV_FILE" || sudo -n /usr/bin/grep -Eq '^MQTT_PASSWORD=' "$ENV_FILE"; then
+              if ! sudo -n /usr/bin/grep -Eq '^MQTT_USERNAME=.+$' "$ENV_FILE"; then
                 echo "MQTT_USERNAME is missing or empty in $ENV_FILE (MQTT auth enabled)" >&2
                 exit 1
               fi
-              if ! grep -Eq '^MQTT_PASSWORD=.+$' "$ENV_FILE"; then
+              if ! sudo -n /usr/bin/grep -Eq '^MQTT_PASSWORD=.+$' "$ENV_FILE"; then
                 echo "MQTT_PASSWORD is missing or empty in $ENV_FILE (MQTT auth enabled)" >&2
                 exit 1
               fi
             fi
           fi
-          docker build -t growerhub-backend:local /opt/growerhub/java-backend
-          docker rm -f growerhub-java-backend || true
-          docker run -d --name growerhub-java-backend --restart unless-stopped \
+          sudo -n /usr/bin/docker build -t growerhub-backend:local /opt/growerhub/java-backend
+          sudo -n /usr/bin/docker rm -f growerhub-java-backend || true
+          sudo -n /usr/bin/docker run -d --name growerhub-java-backend --restart unless-stopped \
             --env-file "$ENV_FILE" \
             -p 127.0.0.1:18080:8080 \
             growerhub-backend:local
-          docker ps --filter name=growerhub-java-backend
-          if ! docker inspect growerhub-java-backend \
+          sudo -n /usr/bin/docker ps --filter name=growerhub-java-backend
+          if ! sudo -n /usr/bin/docker inspect growerhub-java-backend \
             --format '{{range .Config.Env}}{{println .}}{{end}}' \
             | grep -q '^SECRET_KEY='; then
             echo "SECRET_KEY is not present in container env" >&2
             exit 1
           fi
-          if ! docker inspect growerhub-java-backend \
+          if ! sudo -n /usr/bin/docker inspect growerhub-java-backend \
             --format '{{range .Config.Env}}{{println .}}{{end}}' \
             | grep -q '^SPRING_DATASOURCE_URL='; then
             echo "SPRING_DATASOURCE_URL is not present in container env" >&2
             exit 1
           fi
-          docker inspect growerhub-java-backend \
+          sudo -n /usr/bin/docker inspect growerhub-java-backend \
             --format '{{range .Config.Env}}{{println .}}{{end}}' \
             | sed -E 's/=(.*)$/=***MASKED***/' \
             | grep -E '^(SECRET_KEY|SPRING_DATASOURCE_URL)=' || true
 
           ok=0
           for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:18080/health >/tmp/health.json 2>/tmp/health.err; then
+            if sudo -n /usr/bin/curl -fsS http://127.0.0.1:18080/health >/tmp/health.json 2>/tmp/health.err; then
               ok=1
-              cat /tmp/health.json
+              sudo -n /usr/bin/cat /tmp/health.json
               break
             fi
-            echo "healthcheck attempt $i failed: $(cat /tmp/health.err 2>/dev/null || true)"
+            echo "healthcheck attempt $i failed: $(sudo -n /usr/bin/cat /tmp/health.err 2>/dev/null || true)"
             sleep 1
           done
 
           if [ "$ok" -ne 1 ]; then
-            docker ps --filter name=growerhub-java-backend
-            docker logs --tail=200 growerhub-java-backend || true
+            sudo -n /usr/bin/docker ps --filter name=growerhub-java-backend
+            sudo -n /usr/bin/docker logs --tail=200 growerhub-java-backend || true
             exit 1
           fi
           EOF
