@@ -3,6 +3,9 @@
   hosts: app
   become: true
 
+  vars_files:
+    - /home/gh/ansible_secrets.yml
+
   roles:
     - role: java_backend
 
