@@ -74,7 +74,7 @@ Legend: DONE = implemented, TODO = stub (501 Not Implemented)
 | GET | /api/firmware/versions | DONE |
 | GET | /firmware/{filename} | DONE |
 
-## Plants
+##  Plants
 | Method | Path | Status |
 | --- | --- | --- |
 | GET | /api/plant-groups | DONE |
