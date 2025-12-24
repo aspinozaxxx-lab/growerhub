@@ -21,6 +21,36 @@ java_backend_bind_ip: "127.0.0.1"
 java_backend_host_port: 18080
 java_backend_container_port: 8080
 
+# Env file path (sozdaetsya ansible rolyu)
+java_backend_env_dir: "/opt/growerhub/env"
+java_backend_env_file: "{{ java_backend_env_dir }}/growerhub-java-backend.env"
+
+# Required env values (dolzhny byt' zadany v vars/vault)
+java_backend_secret_key: ""
+java_backend_db_url: ""
+java_backend_db_username: ""
+java_backend_db_password: ""
+
+java_backend_env_required:
+  SECRET_KEY: "{{ java_backend_secret_key }}"
+  SPRING_DATASOURCE_URL: "{{ java_backend_db_url }}"
+  SPRING_DATASOURCE_USERNAME: "{{ java_backend_db_username }}"
+  SPRING_DATASOURCE_PASSWORD: "{{ java_backend_db_password }}"
+
+java_backend_env_optional:
+  MQTT_HOST: "{{ java_backend_mqtt_host | default('') }}"
+  MQTT_PORT: "{{ java_backend_mqtt_port | default('') }}"
+  MQTT_USERNAME: "{{ java_backend_mqtt_username | default('') }}"
+  MQTT_PASSWORD: "{{ java_backend_mqtt_password | default('') }}"
+  MQTT_TLS: "{{ java_backend_mqtt_tls | default('') }}"
+  AUTH_SSO_REDIRECT_BASE: "{{ java_backend_auth_sso_redirect_base | default('') }}"
+  AUTH_GOOGLE_CLIENT_ID: "{{ google_client_id | default('') }}"
+  AUTH_GOOGLE_CLIENT_SECRET: "{{ google_client_secret | default('') }}"
+  AUTH_YANDEX_CLIENT_ID: "{{ yandex_client_id | default('') }}"
+  AUTH_YANDEX_CLIENT_SECRET: "{{ yandex_client_secret | default('') }}"
+
+java_backend_env: "{{ java_backend_env_required | combine(java_backend_env_optional) }}"
+
 # Force docker build every run (otherwise builds only when sources changed).
 java_backend_force_build: false
 
@@ -30,4 +60,3 @@ java_backend_rsync_opts:
   - "--exclude=build/"
   - "--exclude=.idea/"
   - "--exclude=out/"
-

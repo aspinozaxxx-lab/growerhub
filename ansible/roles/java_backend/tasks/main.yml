@@ -50,6 +50,39 @@
     group: "{{ ansible_user | default(ansible_ssh_user) | default(ansible_facts.user_id) | default('root') }}"
     mode: "0755"
 
+- name: Assert required env values are set
+  ansible.builtin.assert:
+    that:
+      - java_backend_secret_key | default("") | length > 0
+      - java_backend_db_url | default("") | length > 0
+      - java_backend_db_username | default("") | length > 0
+      - java_backend_db_password | default("") | length > 0
+    fail_msg: >-
+      Ne zadany obyazatelnye peremennye dlya env-file java backend.
+      Nuzhno ukazat' java_backend_secret_key, java_backend_db_url,
+      java_backend_db_username, java_backend_db_password v vars/vault.
+
+- name: Ensure env directory exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ java_backend_env_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Render env file for java backend
+  become: true
+  ansible.builtin.copy:
+    dest: "{{ java_backend_env_file }}"
+    owner: root
+    group: root
+    mode: "0600"
+    content: |-
+      {% for item in java_backend_env | dict2items %}
+      {{ item.key }}={{ item.value }}
+      {% endfor %}
+
 - name: Sync backend sources to target (rsync)
   become: false
   ansible.posix.synchronize:
@@ -75,6 +108,8 @@
     name: "{{ java_backend_container_name }}"
     image: "{{ java_backend_image }}"
     restart_policy: always
+    env_file:
+      - "{{ java_backend_env_file }}"
     published_ports:
       - "{{ java_backend_bind_ip }}:{{ java_backend_host_port }}:{{ java_backend_container_port }}"
     state: started

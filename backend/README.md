@@ -66,6 +66,27 @@ Run container:
 docker run --rm -p 8080:8080 growerhub-backend:local
 ```
 
+## Environment
+
+Required env for startup:
+
+- `SECRET_KEY`
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
+
+Optional env:
+
+- `MQTT_HOST`
+- `MQTT_PORT`
+- `MQTT_USERNAME`
+- `MQTT_PASSWORD`
+- `MQTT_TLS`
+
+On production server the env file is stored at:
+
+`/opt/growerhub/env/growerhub-java-backend.env`
+
 ## Health check
 
 ```bash

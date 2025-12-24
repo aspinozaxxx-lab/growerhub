@@ -109,9 +109,33 @@ jobs:
         run: |
           ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" <<'EOF'
           set -e
+          ENV_FILE="/opt/growerhub/env/growerhub-java-backend.env"
+          if [ ! -f "$ENV_FILE" ]; then
+            echo "Env file is missing: $ENV_FILE" >&2
+            exit 1
+          fi
+          if ! grep -Eq '^SECRET_KEY=.+$' "$ENV_FILE"; then
+            echo "SECRET_KEY is missing or empty in $ENV_FILE" >&2
+            exit 1
+          fi
+          if ! grep -Eq '^SPRING_DATASOURCE_URL=.+$' "$ENV_FILE"; then
+            echo "SPRING_DATASOURCE_URL is missing or empty in $ENV_FILE" >&2
+            exit 1
+          fi
+          if ! grep -Eq '^SPRING_DATASOURCE_USERNAME=.+$' "$ENV_FILE"; then
+            echo "SPRING_DATASOURCE_USERNAME is missing or empty in $ENV_FILE" >&2
+            exit 1
+          fi
+          if ! grep -Eq '^SPRING_DATASOURCE_PASSWORD=.+$' "$ENV_FILE"; then
+            echo "SPRING_DATASOURCE_PASSWORD is missing or empty in $ENV_FILE" >&2
+            exit 1
+          fi
           docker build -t growerhub-backend:local /opt/growerhub/java-backend
           docker rm -f growerhub-java-backend || true
-          docker run -d --name growerhub-java-backend --restart unless-stopped -p 127.0.0.1:18080:8080 growerhub-backend:local
+          docker run -d --name growerhub-java-backend --restart unless-stopped \
+            --env-file "$ENV_FILE" \
+            -p 127.0.0.1:18080:8080 \
+            growerhub-backend:local
           docker ps --filter name=growerhub-java-backend
 
           ok=0
