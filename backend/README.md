@@ -98,3 +98,8 @@ Expected response:
 ```json
 {"status":"ok"}
 ```
+
+## Device telemetry
+
+Device telemetry endpoint is unauthenticated (like FastAPI):
+`POST /api/device/{device_id}/status`

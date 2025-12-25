@@ -90,6 +90,28 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void updateDeviceStatusAllowsAnonymous() {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("device_id", "dev-1-public");
+        payload.put("soil_moisture", 10.0);
+        payload.put("air_temperature", 20.0);
+        payload.put("air_humidity", 30.0);
+        payload.put("is_watering", false);
+        payload.put("is_light_on", false);
+
+        given()
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .post("/api/device/dev-1-public/status")
+                .then()
+                .statusCode(200)
+                .body("message", equalTo("Status updated"));
+
+        Assertions.assertEquals(1, sensorDataRepository.count());
+    }
+
+    @Test
     void updateDeviceStatusRequiresFields() {
         Map<String, Object> payload = new HashMap<>();
         payload.put("device_id", "dev-2");

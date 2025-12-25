@@ -30,7 +30,7 @@ public class SecurityConfig {
                                 "/api/auth/logout",
                                 "/api/auth/sso/**"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/device/*/status").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/device/*/status", "/api/device/*/status/").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/device/*/settings").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/device/*/settings").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/device/*/firmware").permitAll()

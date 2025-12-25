@@ -57,7 +57,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     private boolean isPublicDevicePath(String method, String path) {
-        if ("POST".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/status", path)) {
+        if ("POST".equalsIgnoreCase(method) && (PATH_MATCHER.match("/api/device/*/status", path)
+                || PATH_MATCHER.match("/api/device/*/status/", path))) {
             return true;
         }
         if ("GET".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/firmware", path)) {
