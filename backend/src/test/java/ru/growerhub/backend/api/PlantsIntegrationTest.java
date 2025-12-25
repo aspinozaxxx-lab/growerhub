@@ -484,6 +484,40 @@ class PlantsIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void journalListReturnsWateringDetailsText() {
+        UserEntity owner = createUser("journal-details@example.com", "user");
+        String token = buildToken(owner.getId());
+        PlantEntity plant = createPlant(owner, "JournalDetails");
+
+        PlantJournalEntryEntity entry = PlantJournalEntryEntity.create();
+        entry.setPlant(plant);
+        entry.setUser(owner);
+        entry.setType("watering");
+        entry.setText("details");
+        entry.setEventAt(LocalDateTime.now(ZoneOffset.UTC));
+        entry.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        entry.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        plantJournalEntryRepository.save(entry);
+
+        PlantJournalWateringDetailsEntity details = PlantJournalWateringDetailsEntity.create();
+        details.setJournalEntry(entry);
+        details.setWaterVolumeL(1.0);
+        details.setDurationS(675);
+        details.setPh(6.3);
+        details.setFertilizersPerLiter("G8M12B16 капель");
+        plantJournalWateringDetailsRepository.save(details);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/plants/" + plant.getId() + "/journal")
+                .then()
+                .statusCode(200)
+                .body("size()", equalTo(1))
+                .body("[0].watering_details.fertilizers_per_liter", equalTo("G8M12B16 капель"));
+    }
+
+    @Test
     void journalExportMarkdown() {
         UserEntity owner = createUser("export-owner@example.com", "user");
         String token = buildToken(owner.getId());
