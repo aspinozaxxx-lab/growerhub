@@ -37,6 +37,9 @@ import ru.growerhub.backend.user.UserRepository;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AuthDomainIntegrationTest extends IntegrationTestBase {
 
+    private static final String PASSLIB_HASH =
+            "$pbkdf2-sha256$29000$AQIDBAUGBwgJCgsMDQ4PEA$Y44huKS63zDb0ckparjOGpy6ParmA.WrWScxigLcMvQ";
+
     @LocalServerPort
     private int port;
 
@@ -92,6 +95,36 @@ class AuthDomainIntegrationTest extends IntegrationTestBase {
                 .header("Set-Cookie", containsString("SameSite=" + authSettings.getRefreshTokenCookieSameSite()))
                 .body("access_token", notNullValue())
                 .body("token_type", equalTo("bearer"));
+    }
+
+    @Test
+    void loginPasslibHashSupportsValidAndInvalidPassword() {
+        UserEntity user = createUser("passlib@example.com", true);
+        createIdentity(user, "local", null, PASSLIB_HASH);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("email", "passlib@example.com");
+        payload.put("password", "secret");
+
+        given()
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .post("/api/auth/login")
+                .then()
+                .statusCode(200);
+
+        payload.put("password", "wrong");
+
+        given()
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .post("/api/auth/login")
+                .then()
+                .statusCode(401)
+                .header("WWW-Authenticate", "Bearer")
+                .body("detail", equalTo("Nevernyj email ili parol'"));
     }
 
     @Test

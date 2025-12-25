@@ -4,6 +4,7 @@ import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Base64;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import org.springframework.stereotype.Component;
@@ -14,9 +15,6 @@ public class PasswordHasher {
     private static final int DEFAULT_ROUNDS = 29000;
     private static final int SALT_BYTES = 16;
     private static final int HASH_BYTES = 32;
-    private static final char[] AB64_CHARS =
-            "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".toCharArray();
-    private static final int[] AB64_INV = buildInverse();
     private final SecureRandom secureRandom = new SecureRandom();
 
     public String hash(String plainPassword) {
@@ -64,80 +62,23 @@ public class PasswordHasher {
     }
 
     private static String ab64Encode(byte[] data) {
-        StringBuilder sb = new StringBuilder((data.length * 4 + 2) / 3);
-        int i = 0;
-        while (i < data.length) {
-            int b0 = data[i++] & 0xff;
-            if (i == data.length) {
-                sb.append(AB64_CHARS[b0 >>> 2]);
-                sb.append(AB64_CHARS[(b0 & 0x03) << 4]);
-                break;
-            }
-            int b1 = data[i++] & 0xff;
-            if (i == data.length) {
-                sb.append(AB64_CHARS[b0 >>> 2]);
-                sb.append(AB64_CHARS[((b0 & 0x03) << 4) | (b1 >>> 4)]);
-                sb.append(AB64_CHARS[(b1 & 0x0f) << 2]);
-                break;
-            }
-            int b2 = data[i++] & 0xff;
-            sb.append(AB64_CHARS[b0 >>> 2]);
-            sb.append(AB64_CHARS[((b0 & 0x03) << 4) | (b1 >>> 4)]);
-            sb.append(AB64_CHARS[((b1 & 0x0f) << 2) | (b2 >>> 6)]);
-            sb.append(AB64_CHARS[b2 & 0x3f]);
-        }
-        return sb.toString();
+        String encoded = Base64.getEncoder().withoutPadding().encodeToString(data);
+        return encoded.replace('+', '.');
     }
 
     private static byte[] ab64Decode(String encoded) {
         if (encoded == null || encoded.isEmpty()) {
             return new byte[0];
         }
-        int length = encoded.length();
-        if (length % 4 == 1) {
+        String normalized = encoded.replace('.', '+');
+        int length = normalized.length();
+        int mod = length % 4;
+        if (mod == 1) {
             throw new IllegalArgumentException("Invalid ab64 length");
         }
-        int outputLength = (length * 6) / 8;
-        byte[] out = new byte[outputLength];
-        int outPos = 0;
-        int i = 0;
-        while (i < length) {
-            int c1 = decodeChar(encoded.charAt(i++));
-            int c2 = decodeChar(encoded.charAt(i++));
-            int b0 = (c1 << 2) | (c2 >>> 4);
-            out[outPos++] = (byte) b0;
-            if (i >= length) {
-                break;
-            }
-            int c3 = decodeChar(encoded.charAt(i++));
-            int b1 = ((c2 & 0x0f) << 4) | (c3 >>> 2);
-            out[outPos++] = (byte) b1;
-            if (i >= length) {
-                break;
-            }
-            int c4 = decodeChar(encoded.charAt(i++));
-            int b2 = ((c3 & 0x03) << 6) | c4;
-            out[outPos++] = (byte) b2;
+        if (mod != 0) {
+            normalized = normalized + "=".repeat(4 - mod);
         }
-        if (outPos != out.length) {
-            return Arrays.copyOf(out, outPos);
-        }
-        return out;
-    }
-
-    private static int decodeChar(char value) {
-        if (value >= AB64_INV.length || AB64_INV[value] < 0) {
-            throw new IllegalArgumentException("Invalid ab64 char");
-        }
-        return AB64_INV[value];
-    }
-
-    private static int[] buildInverse() {
-        int[] inverse = new int[128];
-        Arrays.fill(inverse, -1);
-        for (int i = 0; i < AB64_CHARS.length; i++) {
-            inverse[AB64_CHARS[i]] = i;
-        }
-        return inverse;
+        return Base64.getDecoder().decode(normalized);
     }
 }
