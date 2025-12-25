@@ -222,6 +222,33 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void listMyDevicesHandlesStateJson() throws Exception {
+        UserEntity user = createUser("state-owner@example.com", "user");
+        DeviceEntity device = createDevice("dev-state", user);
+        Map<String, Object> manual = new HashMap<>();
+        manual.put("status", "running");
+        Map<String, Object> state = new HashMap<>();
+        state.put("manual_watering", manual);
+        state.put("fw_ver", "v3");
+        DeviceStateLastEntity stored = DeviceStateLastEntity.create();
+        stored.setDeviceId(device.getDeviceId());
+        stored.setStateJson(objectMapper.writeValueAsString(state));
+        stored.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        deviceStateLastRepository.save(stored);
+        String token = buildToken(user.getId());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/devices/my")
+                .then()
+                .statusCode(200)
+                .body("size()", equalTo(1))
+                .body("[0].firmware_version", equalTo("v3"))
+                .body("[0].is_watering", equalTo(true));
+    }
+
+    @Test
     void adminDevicesRequiresAdmin() {
         UserEntity user = createUser("basic@example.com", "user");
         UserEntity admin = createUser("boss@example.com", "admin");

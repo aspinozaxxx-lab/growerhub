@@ -30,6 +30,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.db.DeviceEntity;
 import ru.growerhub.backend.db.DeviceRepository;
+import ru.growerhub.backend.db.DeviceStateLastEntity;
+import ru.growerhub.backend.db.DeviceStateLastRepository;
 import ru.growerhub.backend.db.PlantDeviceEntity;
 import ru.growerhub.backend.db.PlantDeviceRepository;
 import ru.growerhub.backend.db.PlantEntity;
@@ -66,6 +68,9 @@ class PlantsIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private DeviceRepository deviceRepository;
+
+    @Autowired
+    private DeviceStateLastRepository deviceStateLastRepository;
 
     @Autowired
     private PlantDeviceRepository plantDeviceRepository;
@@ -269,6 +274,35 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .patch("/api/plants/" + plant.getId())
                 .then()
                 .statusCode(422);
+    }
+
+    @Test
+    void listPlantsHandlesStateJson() {
+        UserEntity owner = createUser("plant-state@example.com", "user");
+        String token = buildToken(owner.getId());
+        PlantEntity plant = createPlant(owner, "State");
+        DeviceEntity device = createDevice(owner, "dev-state-plant");
+        PlantDeviceEntity link = PlantDeviceEntity.create();
+        link.setPlant(plant);
+        link.setDevice(device);
+        plantDeviceRepository.save(link);
+
+        DeviceStateLastEntity stored = DeviceStateLastEntity.create();
+        stored.setDeviceId(device.getDeviceId());
+        stored.setStateJson("{\"manual_watering\":{\"status\":\"running\"},\"fw_ver\":\"v5\"}");
+        stored.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        deviceStateLastRepository.save(stored);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/plants")
+                .then()
+                .statusCode(200)
+                .body("size()", equalTo(1))
+                .body("[0].devices", hasSize(1))
+                .body("[0].devices[0].firmware_version", equalTo("v5"))
+                .body("[0].devices[0].is_watering", equalTo(true));
     }
 
     @Test

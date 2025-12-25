@@ -1,5 +1,8 @@
 ﻿# Changelog
 
+## 2025-12-25
+- Ispravlen mapping device_state_last.state_json na TEXT, chtoby JSON ne chitalsya kak chislo/LOB; dobavleny integracionnye testy dlya /api/devices/my i /api/plants.
+
 ## 2025-12-24
 - Dobavlen MQTT runtime na Paho s QoS=1, resubscribe i obrabotchikami state/ack.
 - Vnedreny in-memory AckStore/DeviceShadowStore s TTL i onlayn-raschetom, plus upsert v device_state_last i mqtt_ack.
@@ -19,3 +22,4 @@
 - Dobavleny domeny firmware i history s polnym sovmestimost'yu FastAPI i staticheskoy vydachey firmware.
 - Dobavleny integracionnye testy dlya firmware i history, vklyuchaya multipart upload i fil'try istorii.
 - Dobavlen domen plants (gruppy, privyazki, zhurnal, export, foto) s integracionnymi testami.
+

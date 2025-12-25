@@ -6,7 +6,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
@@ -32,8 +31,7 @@ public class DeviceStateLastEntity {
     @Column(name = "device_id", nullable = false)
     private String deviceId;
 
-    @Lob
-    @Column(name = "state_json", nullable = false)
+    @Column(name = "state_json", nullable = false, columnDefinition = "TEXT")
     // TODO: map JSON field properly.
     private String stateJson;
 
