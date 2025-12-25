@@ -458,6 +458,32 @@ class PlantsIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void journalListReturnsTextPayload() {
+        UserEntity owner = createUser("journal-text@example.com", "user");
+        String token = buildToken(owner.getId());
+        PlantEntity plant = createPlant(owner, "JournalText");
+
+        PlantJournalEntryEntity entry = PlantJournalEntryEntity.create();
+        entry.setPlant(plant);
+        entry.setUser(owner);
+        entry.setType("note");
+        entry.setText("obem_vody=1.50l; dlitelnost=675s; ph=6.3");
+        entry.setEventAt(LocalDateTime.now(ZoneOffset.UTC));
+        entry.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        entry.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        plantJournalEntryRepository.save(entry);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/plants/" + plant.getId() + "/journal")
+                .then()
+                .statusCode(200)
+                .body("size()", equalTo(1))
+                .body("[0].text", equalTo("obem_vody=1.50l; dlitelnost=675s; ph=6.3"));
+    }
+
+    @Test
     void journalExportMarkdown() {
         UserEntity owner = createUser("export-owner@example.com", "user");
         String token = buildToken(owner.getId());

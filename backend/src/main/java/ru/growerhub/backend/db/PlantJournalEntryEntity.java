@@ -7,7 +7,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
@@ -40,8 +39,7 @@ public class PlantJournalEntryEntity {
     @Column(name = "type", nullable = false)
     private String type;
 
-    @Lob
-    @Column(name = "text", nullable = true)
+    @Column(name = "text", nullable = true, columnDefinition = "TEXT")
     private String text;
 
     @Column(name = "event_at", nullable = false)
