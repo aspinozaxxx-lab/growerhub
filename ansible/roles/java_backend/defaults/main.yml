@@ -36,6 +36,11 @@ java_backend_db_url: ""
 java_backend_db_username: ""
 java_backend_db_password: ""
 
+# MQTT defaults (docker0 IP for container -> host access).
+# Override in vault/vars if needed (e.g. LAN IP 192.168.0.11).
+java_backend_mqtt_host: "172.17.0.1"
+java_backend_mqtt_port: 1883
+
 java_backend_env_required:
   SECRET_KEY: "{{ java_backend_secret_key }}"
   SPRING_DATASOURCE_URL: "{{ java_backend_db_url }}"

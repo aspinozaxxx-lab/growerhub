@@ -169,3 +169,45 @@
   ansible.builtin.fail:
     msg: "Container {{ java_backend_container_name }} is not running. Check `docker logs {{ java_backend_container_name }}`."
   when: not (java_backend_container_info.exists and java_backend_container_info.container.State.Running | default(false))
+
+- name: Wait for java backend health endpoint
+  become: true
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ok=0
+    for i in $(seq 1 30); do
+      if curl -fsS http://{{ java_backend_bind_ip }}:{{ java_backend_host_port }}/health >/tmp/java_backend_health.json 2>/tmp/java_backend_health.err; then
+        ok=1
+        cat /tmp/java_backend_health.json
+        break
+      fi
+      echo "healthcheck attempt $i failed: $(cat /tmp/java_backend_health.err 2>/dev/null || true)"
+      sleep 1
+    done
+    if [ "$ok" -ne 1 ]; then
+      exit 1
+    fi
+  args:
+    executable: /bin/bash
+  when: java_backend_container_info.exists and (java_backend_container_info.container.State.Running | default(false))
+
+- name: Fail if MQTT failed to start (java backend)
+  become: true
+  ansible.builtin.shell: |
+    set -euo pipefail
+    if docker logs --since 10m {{ java_backend_container_name }} 2>&1 | grep -Eq "MQTT (publisher|subscriber) failed to start"; then
+      exit 1
+    fi
+  args:
+    executable: /bin/bash
+  when: java_backend_container_info.exists and (java_backend_container_info.container.State.Running | default(false))
+
+- name: Assert MQTT publisher/subscriber connected (java backend)
+  become: true
+  ansible.builtin.shell: |
+    set -euo pipefail
+    docker logs --since 10m {{ java_backend_container_name }} 2>&1 | grep -q "MQTT publisher connected"
+    docker logs --since 10m {{ java_backend_container_name }} 2>&1 | grep -q "MQTT subscriber connected"
+  args:
+    executable: /bin/bash
+  when: java_backend_container_info.exists and (java_backend_container_info.container.State.Running | default(false))

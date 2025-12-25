@@ -134,10 +134,17 @@ jobs:
             echo "SPRING_DATASOURCE_PASSWORD is missing or empty in $ENV_FILE" >&2
             exit 1
           fi
+          if ! sudo -n /usr/bin/grep -Eq '^MQTT_HOST=.+$' "$ENV_FILE"; then
+            echo "MQTT_HOST is missing in $ENV_FILE, defaulting to 172.17.0.1" >&2
+            sudo -n /bin/sed -i '$a MQTT_HOST=172.17.0.1' "$ENV_FILE"
+          elif sudo -n /usr/bin/grep -Eq '^MQTT_HOST=127\\.0\\.0\\.1$' "$ENV_FILE"; then
+            echo "MQTT_HOST is localhost in $ENV_FILE, switching to 172.17.0.1" >&2
+            sudo -n /bin/sed -i 's/^MQTT_HOST=.*/MQTT_HOST=172.17.0.1/' "$ENV_FILE"
+          fi
           if sudo -n /usr/bin/grep -Eq '^MQTT_HOST=.+$' "$ENV_FILE"; then
             if ! sudo -n /usr/bin/grep -Eq '^MQTT_PORT=.+$' "$ENV_FILE"; then
-              echo "MQTT_PORT is missing or empty in $ENV_FILE (MQTT_HOST is set)" >&2
-              exit 1
+              echo "MQTT_PORT is missing in $ENV_FILE, defaulting to 1883" >&2
+              sudo -n /bin/sed -i '$a MQTT_PORT=1883' "$ENV_FILE"
             fi
             if sudo -n /usr/bin/grep -Eq '^MQTT_USERNAME=' "$ENV_FILE" || sudo -n /usr/bin/grep -Eq '^MQTT_PASSWORD=' "$ENV_FILE"; then
               if ! sudo -n /usr/bin/grep -Eq '^MQTT_USERNAME=.+$' "$ENV_FILE"; then
@@ -187,6 +194,28 @@ jobs:
 
           if [ "$ok" -ne 1 ]; then
             sudo -n /usr/bin/docker ps --filter name=growerhub-java-backend
+            sudo -n /usr/bin/docker logs --tail=200 growerhub-java-backend || true
+            exit 1
+          fi
+
+          if sudo -n /usr/bin/docker logs --since 10m growerhub-java-backend 2>&1 | grep -Eq "MQTT (publisher|subscriber) failed to start"; then
+            echo "MQTT failed to start in container logs" >&2
+            sudo -n /usr/bin/docker logs --tail=200 growerhub-java-backend || true
+            exit 1
+          fi
+
+          mqtt_ok=0
+          for i in $(seq 1 30); do
+            if sudo -n /usr/bin/docker logs --since 10m growerhub-java-backend 2>&1 | grep -q "MQTT publisher connected" \
+              && sudo -n /usr/bin/docker logs --since 10m growerhub-java-backend 2>&1 | grep -q "MQTT subscriber connected"; then
+              mqtt_ok=1
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$mqtt_ok" -ne 1 ]; then
+            echo "MQTT publisher/subscriber did not connect (check logs)" >&2
             sudo -n /usr/bin/docker logs --tail=200 growerhub-java-backend || true
             exit 1
           fi
