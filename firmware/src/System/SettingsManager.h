@@ -53,13 +53,13 @@ class SettingsManager : public IWiFiSettings {
 private:
     SystemSettings settings;
     DefaultNetworkProfile BUILTIN_NETWORK_DEFAULTS = {
-    4,
+    5,
     {
         {"JR", "qazwsxedc"},
         {"AKADO-E84E", "90838985"},
         {"TP-LINK_446C", "70863765"},
         {"Gfdsa", "qazwsxedc"},
-        {"", ""},
+        {"JR2", "qazwsxedc"},
         {"", ""},
         {"", ""},
         {"", ""},
