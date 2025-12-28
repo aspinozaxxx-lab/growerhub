@@ -7,11 +7,13 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include "core/Context.h"
 
 #if defined(ARDUINO)
 #include <PubSubClient.h>
+#include <WiFiClient.h>
 #endif
 
 namespace Services {
@@ -75,17 +77,37 @@ class MqttService {
 
  private:
 #if defined(ARDUINO)
+  bool TryConnect(uint32_t now_ms);
+  bool StorePendingSub(const char* topic, int qos);
+  void SubscribePending();
   void HandleMessage(char* topic, uint8_t* payload, unsigned int length);
   static void OnMessageThunk(char* topic, uint8_t* payload, unsigned int length);
 #endif
   void PushEvent(const char* topic, const char* payload);
 
   Core::EventQueue* event_queue_ = nullptr;
+  const char* device_id_ = nullptr;
+  uint32_t last_attempt_ms_ = 0;
+  bool last_connected_ = false;
   bool connected_ = false;
 
 #if defined(ARDUINO)
+  static constexpr size_t kPendingTopicMax = 128;
+  static constexpr size_t kMaxPendingSubs = 4;
+  struct PendingSub {
+    char topic[kPendingTopicMax];
+    int qos;
+    bool used;
+  };
+
   static MqttService* active_instance_;
+  WiFiClient wifi_client_;
   PubSubClient mqtt_client_;
+  const char* mqtt_host_ = nullptr;
+  uint16_t mqtt_port_ = 0;
+  const char* mqtt_user_ = nullptr;
+  const char* mqtt_pass_ = nullptr;
+  PendingSub pending_subs_[kMaxPendingSubs]{};
 #endif
 
 #if defined(UNIT_TEST)
