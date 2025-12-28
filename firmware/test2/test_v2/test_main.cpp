@@ -23,6 +23,10 @@ void test_wifi_defaults_user_override();
 void test_wifi_config_codec_storage();
 void test_wifi_config_codec_invalid();
 void test_webconfig_build_json();
+void test_soil_scanner_detected();
+void test_soil_scanner_hysteresis();
+void test_sensor_hub_pump_block();
+void test_state_soil_serialization();
 
 void setUp() {}
 void tearDown() {}
@@ -54,5 +58,9 @@ int main(int argc, char** argv) {
   RUN_TEST(test_wifi_config_codec_storage);
   RUN_TEST(test_wifi_config_codec_invalid);
   RUN_TEST(test_webconfig_build_json);
+  RUN_TEST(test_soil_scanner_detected);
+  RUN_TEST(test_soil_scanner_hysteresis);
+  RUN_TEST(test_sensor_hub_pump_block);
+  RUN_TEST(test_state_soil_serialization);
   return UNITY_END();
 }

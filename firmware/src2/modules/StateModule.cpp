@@ -7,6 +7,7 @@
 #include "core/Context.h"
 #include "modules/ActuatorModule.h"
 #include "modules/ConfigSyncModule.h"
+#include "modules/SensorHubModule.h"
 #include "services/MqttService.h"
 #include "services/Topics.h"
 #include "util/Logger.h"
@@ -17,6 +18,7 @@ void StateModule::Init(Core::Context& ctx) {
   mqtt_ = ctx.mqtt;
   actuator_ = ctx.actuator;
   config_sync_ = ctx.config_sync;
+  sensor_hub_ = ctx.sensor_hub;
   hardware_ = ctx.hardware;
   last_publish_ms_ = 0;
   Util::Logger::Info("init StateModule");
@@ -79,6 +81,26 @@ void StateModule::PublishState(bool retained) {
   payload += "\"water_moisture\":{\"enabled\":" + std::string(water_moisture ? "true" : "false") + "},";
   payload += "\"light_schedule\":{\"enabled\":" + std::string(light_schedule ? "true" : "false") + "}";
   payload += "}";
+
+  if (sensor_hub_ && sensor_hub_->GetScanner()) {
+    const Drivers::Rj9PortScanner* scanner = sensor_hub_->GetScanner();
+    const size_t port_count = scanner->GetPortCount();
+    payload += ",\"soil\":{\"ports\":[";
+    for (size_t i = 0; i < port_count; ++i) {
+      const bool detected = scanner->IsDetected(static_cast<uint8_t>(i));
+      payload += "{";
+      payload += "\"port\":" + std::to_string(static_cast<int>(i)) + ",";
+      payload += "\"detected\":" + std::string(detected ? "true" : "false");
+      if (detected) {
+        payload += ",\"percent\":" + std::to_string(static_cast<int>(scanner->GetLastPercent(static_cast<uint8_t>(i))));
+      }
+      payload += "}";
+      if (i + 1 < port_count) {
+        payload += ",";
+      }
+    }
+    payload += "]}";
+  }
   payload += "}";
 
   char topic[128];

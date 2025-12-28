@@ -15,7 +15,9 @@ enum class EventType : uint8_t {
   kWifiStaUp = 5,
   kWifiStaDown = 6,
   kWifiApUp = 7,
-  kWifiConfigUpdated = 8
+  kWifiConfigUpdated = 8,
+  kPumpStarted = 9,
+  kPumpStopped = 10
 };
 
 static const size_t kMqttTopicMax = 64;

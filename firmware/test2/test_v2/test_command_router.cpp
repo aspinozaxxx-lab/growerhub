@@ -47,7 +47,7 @@ void test_pump_start_ack() {
   Modules::CommandRouterModule router;
   const Config::HardwareProfile& hw = Config::GetHardwareProfile();
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &actuator, nullptr, nullptr, &hw};
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &actuator, nullptr, nullptr, nullptr, &hw};
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);
   mqtt.SetPublishHook(CapturePublish);
@@ -81,7 +81,7 @@ void test_pump_stop_ack() {
   Modules::CommandRouterModule router;
   const Config::HardwareProfile& hw = Config::GetHardwareProfile();
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &actuator, nullptr, nullptr, &hw};
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &actuator, nullptr, nullptr, nullptr, &hw};
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);
   mqtt.SetPublishHook(CapturePublish);
@@ -118,7 +118,7 @@ void test_reboot_declined_when_pump_running() {
   TestRebooter rebooter;
   const Config::HardwareProfile& hw = Config::GetHardwareProfile();
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &actuator, nullptr, nullptr, &hw};
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &actuator, nullptr, nullptr, nullptr, &hw};
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);
   mqtt.SetPublishHook(CapturePublish);
@@ -156,7 +156,7 @@ void test_reboot_accepted_when_idle() {
   TestRebooter rebooter;
   const Config::HardwareProfile& hw = Config::GetHardwareProfile();
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &actuator, nullptr, nullptr, &hw};
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &actuator, nullptr, nullptr, nullptr, &hw};
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);
   mqtt.SetPublishHook(CapturePublish);

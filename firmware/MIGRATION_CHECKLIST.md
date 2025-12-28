@@ -10,7 +10,7 @@
 - [x] MQTT service + topics
 - [x] Command router + ACK
 - [x] Retained cfg sync (server -> device)
-- [ ] Sensors: RJ9 auto-detect soil moisture
+- [x] Sensors: RJ9 auto-detect soil moisture
 - [ ] Sensors: DHT22 optional
 - [x] Actuators: pump relay
 - [x] Actuators: light relay

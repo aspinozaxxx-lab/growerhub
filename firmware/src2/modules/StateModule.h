@@ -10,6 +10,7 @@ class MqttService;
 namespace Modules {
 class ActuatorModule;
 class ConfigSyncModule;
+class SensorHubModule;
 }
 
 namespace Config {
@@ -32,6 +33,7 @@ class StateModule : public Core::Module {
   Services::MqttService* mqtt_ = nullptr;
   Modules::ActuatorModule* actuator_ = nullptr;
   Modules::ConfigSyncModule* config_sync_ = nullptr;
+  Modules::SensorHubModule* sensor_hub_ = nullptr;
   const Config::HardwareProfile* hardware_ = nullptr;
 
   uint32_t last_publish_ms_ = 0;

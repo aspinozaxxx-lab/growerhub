@@ -4,7 +4,12 @@
 
 #include "config/HardwareProfile.h"
 #include "core/Context.h"
+#include "core/EventQueue.h"
 #include "util/Logger.h"
+
+#if defined(ARDUINO)
+#include <Arduino.h>
+#endif
 
 namespace Modules {
 
@@ -16,6 +21,7 @@ void ActuatorModule::Init(Core::Context& ctx) {
   max_runtime_ms_ = profile.pump_max_runtime_ms;
   pump_relay_.Init(profile.pins.pump_relay_pin, profile.pins.pump_relay_inverted);
   light_relay_.Init(profile.pins.light_relay_pin, profile.pins.light_relay_inverted);
+  event_queue_ = ctx.event_queue;
 
   ResetManualState();
   Util::Logger::Info("init ActuatorModule");
@@ -69,6 +75,13 @@ bool ActuatorModule::StartPump(uint32_t duration_s, const char* correlation_id) 
   std::strncpy(manual_started_at_, kDefaultStartedAt, sizeof(manual_started_at_) - 1);
   manual_started_at_[sizeof(manual_started_at_) - 1] = '\0';
 
+  if (event_queue_) {
+    Core::Event event{};
+    event.type = Core::EventType::kPumpStarted;
+    event.value = GetNowMs();
+    event_queue_->Push(event);
+  }
+
   return true;
 }
 
@@ -108,12 +121,31 @@ void ActuatorModule::ResetManualState() {
 }
 
 void ActuatorModule::StopPumpInternal() {
+  const bool was_running = manual_active_ && pump_relay_.Get();
+
   pump_relay_.Set(false);
   manual_active_ = false;
   manual_duration_s_ = 0;
   manual_start_ms_ = 0;
   manual_correlation_id_[0] = '\0';
   manual_started_at_[0] = '\0';
+
+  if (was_running && event_queue_) {
+    Core::Event event{};
+    event.type = Core::EventType::kPumpStopped;
+    event.value = GetNowMs();
+    event_queue_->Push(event);
+  }
+}
+
+uint32_t ActuatorModule::GetNowMs() {
+#if defined(ARDUINO)
+  return millis();
+#else
+  static uint32_t fake_now = 0;
+  fake_now += 1;
+  return fake_now;
+#endif
 }
 
 }

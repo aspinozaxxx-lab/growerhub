@@ -23,7 +23,7 @@ void test_config_sync_apply_retained() {
   Modules::ConfigSyncModule sync;
   const Config::HardwareProfile& hw = Config::GetHardwareProfile();
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, &storage, nullptr, &sync, nullptr, &hw};
+  Core::Context ctx{&scheduler, &queue, &mqtt, &storage, nullptr, &sync, nullptr, nullptr, &hw};
   storage.SetRootForTests("test_storage_sync");
   storage.Init(ctx);
   mqtt.Init(ctx);

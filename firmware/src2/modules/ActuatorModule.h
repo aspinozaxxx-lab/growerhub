@@ -31,9 +31,11 @@ class ActuatorModule : public Core::Module {
  private:
   void ResetManualState();
   void StopPumpInternal();
+  static uint32_t GetNowMs();
 
   Drivers::Relay pump_relay_;
   Drivers::Relay light_relay_;
+  Core::EventQueue* event_queue_ = nullptr;
 
   bool manual_active_ = false;
   uint32_t manual_duration_s_ = 0;

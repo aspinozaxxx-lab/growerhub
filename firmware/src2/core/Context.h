@@ -13,6 +13,7 @@ class StorageService;
 namespace Modules {
 class ActuatorModule;
 class ConfigSyncModule;
+class SensorHubModule;
 class StateModule;
 }
 
@@ -29,6 +30,7 @@ struct Context {
   Services::StorageService* storage;
   Modules::ActuatorModule* actuator;
   Modules::ConfigSyncModule* config_sync;
+  Modules::SensorHubModule* sensor_hub;
   Modules::StateModule* state;
   const Config::HardwareProfile* hardware;
 };
