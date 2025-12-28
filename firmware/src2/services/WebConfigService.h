@@ -17,9 +17,9 @@ class WebConfigService {
   static bool BuildWifiConfigJson(const char* ssid, const char* password, char* out, size_t out_size);
 
  private:
-  StorageService* storage_ = nullptr;
-  Core::EventQueue* event_queue_ = nullptr;
-  const Config::HardwareProfile* hardware_ = nullptr;
+ StorageService* storage_ = nullptr;
+ Core::EventQueue* event_queue_ = nullptr;
+ const char* device_id_ = nullptr;
 #if defined(ARDUINO)
   WebServer* server_ = nullptr;
   bool server_started_ = false;

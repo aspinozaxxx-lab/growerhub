@@ -9,6 +9,8 @@
 - feat(v2): RJ9 auto-detect soil sensors + state; dobavlen DHT22 driver + air state.
 - remove(v2): udalena REST telemetriya (HTTP POST status) iz v2.
 - test(v2): 39 unity-testov (native) - codec/ack, config/storage, wifi/web, soil/automation, ota rollback, dht22, scheduler/event queue.
+- fix(v2): device_id teper' stroitsya kak v legacy (grovika_ + 3 bajta MAC, verhnij registr), dobavlen DeviceIdentity i unity-test.
+- test(v2): test_storage_* ubrany iz korna, testovye khranilishcha pereneseny v test2/tmp, dobavlen gitignore.
 
 ## 2025-11-07
 - feat: edinyj bezopasnyj reboot cherez SystemMonitor::rebootIfSafe (ACK, status idle/running, zaderzhka 250ms, busy-wait).

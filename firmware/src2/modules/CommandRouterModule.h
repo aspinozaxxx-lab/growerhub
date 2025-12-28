@@ -13,10 +13,6 @@ class ConfigSyncModule;
 class StateModule;
 }
 
-namespace Config {
-struct HardwareProfile;
-}
-
 namespace Modules {
 
 class CommandRouterModule : public Core::Module {
@@ -44,7 +40,7 @@ class CommandRouterModule : public Core::Module {
   Modules::ActuatorModule* actuator_ = nullptr;
   Modules::ConfigSyncModule* config_sync_ = nullptr;
   Modules::StateModule* state_ = nullptr;
-  const Config::HardwareProfile* hardware_ = nullptr;
+  const char* device_id_ = nullptr;
   Rebooter* rebooter_ = nullptr;
 
 #if defined(ARDUINO)

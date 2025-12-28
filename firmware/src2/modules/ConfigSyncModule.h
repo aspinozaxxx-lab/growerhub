@@ -8,10 +8,6 @@ class MqttService;
 class StorageService;
 }
 
-namespace Config {
-struct HardwareProfile;
-}
-
 namespace Modules {
 
 class ConfigSyncModule : public Core::Module {
@@ -32,7 +28,7 @@ class ConfigSyncModule : public Core::Module {
   Services::StorageService* storage_ = nullptr;
   Services::MqttService* mqtt_ = nullptr;
   Core::EventQueue* event_queue_ = nullptr;
-  const Config::HardwareProfile* hardware_ = nullptr;
+  const char* device_id_ = nullptr;
 
   Util::ScenariosConfig config_{};
   char retained_payload_[1024];

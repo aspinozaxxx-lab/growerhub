@@ -3,7 +3,6 @@
 #include <string>
 
 #include "config/BuildFlags.h"
-#include "config/HardwareProfile.h"
 #include "core/Context.h"
 #include "modules/ActuatorModule.h"
 #include "modules/ConfigSyncModule.h"
@@ -19,7 +18,7 @@ void StateModule::Init(Core::Context& ctx) {
   actuator_ = ctx.actuator;
   config_sync_ = ctx.config_sync;
   sensor_hub_ = ctx.sensor_hub;
-  hardware_ = ctx.hardware;
+  device_id_ = ctx.device_id;
   last_publish_ms_ = 0;
   Util::Logger::Info("init StateModule");
 }
@@ -46,7 +45,9 @@ void StateModule::PublishState(bool retained) {
     return;
   }
 
-  const Config::HardwareProfile& profile = hardware_ ? *hardware_ : Config::GetHardwareProfile();
+  if (!device_id_) {
+    return;
+  }
   const ManualWateringState manual = actuator_->GetManualWateringState();
   const char* status = manual.active ? "running" : "idle";
   const bool has_correlation = manual.correlation_id && manual.correlation_id[0] != '\0';
@@ -117,7 +118,7 @@ void StateModule::PublishState(bool retained) {
   payload += "}";
 
   char topic[128];
-  if (!Services::Topics::BuildStateTopic(topic, sizeof(topic), profile.device_id)) {
+  if (!Services::Topics::BuildStateTopic(topic, sizeof(topic), device_id_)) {
     return;
   }
 

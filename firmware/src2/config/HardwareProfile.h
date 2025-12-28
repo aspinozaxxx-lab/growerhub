@@ -7,7 +7,6 @@ namespace Config {
 
 struct HardwareProfile {
   const char* name;
-  const char* device_id;
   PinMap pins;
   uint8_t soil_port_count;
   bool has_dht22;
@@ -18,7 +17,6 @@ struct HardwareProfile {
 inline const HardwareProfile& GetHardwareProfile() {
   static const HardwareProfile profile = {
       "default",
-      "gh-dev",
       {4, true, 5, true, {34, 35}, 15},
       2,
       true,

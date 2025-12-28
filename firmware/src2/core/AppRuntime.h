@@ -14,6 +14,7 @@
 #include "modules/OtaModule.h"
 #include "modules/SensorHubModule.h"
 #include "modules/StateModule.h"
+#include "services/DeviceIdentity.h"
 #include "services/MqttService.h"
 #include "services/StorageService.h"
 #include "services/TimeService.h"
@@ -37,6 +38,7 @@ class AppRuntime {
   Services::WiFiService wifi_service_;
   Services::WebConfigService web_config_service_;
   Services::MqttService mqtt_service_;
+  Services::DeviceIdentity device_identity_;
 
   Modules::CommandRouterModule command_router_module_;
   Modules::ConfigSyncModule config_sync_module_;

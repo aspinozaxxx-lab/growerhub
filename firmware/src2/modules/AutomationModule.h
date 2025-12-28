@@ -17,10 +17,6 @@ class ConfigSyncModule;
 class SensorHubModule;
 }
 
-namespace Config {
-struct HardwareProfile;
-}
-
 namespace Modules {
 
 class AutomationModule : public Core::Module {
@@ -47,7 +43,7 @@ class AutomationModule : public Core::Module {
   Modules::ActuatorModule* actuator_ = nullptr;
   Modules::ConfigSyncModule* config_sync_ = nullptr;
   Modules::SensorHubModule* sensor_hub_ = nullptr;
-  const Config::HardwareProfile* hardware_ = nullptr;
+  const char* device_id_ = nullptr;
 
   Util::ScenariosConfig config_{};
   uint32_t last_auto_water_ms_ = 0;

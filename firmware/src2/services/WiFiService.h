@@ -42,7 +42,7 @@ class WiFiService {
 
   StorageService* storage_ = nullptr;
   Core::EventQueue* event_queue_ = nullptr;
-  const Config::HardwareProfile* hardware_ = nullptr;
+  const char* device_id_ = nullptr;
   WiFiNetworkList preferred_{};
   size_t sta_index_ = 0;
   uint32_t last_attempt_ms_ = 0;

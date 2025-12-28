@@ -13,10 +13,6 @@ class MqttService;
 class TimeService;
 }
 
-namespace Config {
-struct HardwareProfile;
-}
-
 namespace Modules {
 
 class SensorHubModule : public Core::Module {
@@ -67,7 +63,7 @@ class SensorHubModule : public Core::Module {
   Core::EventQueue* event_queue_ = nullptr;
   Services::MqttService* mqtt_ = nullptr;
   Services::TimeService* time_ = nullptr;
-  const Config::HardwareProfile* hardware_ = nullptr;
+  const char* device_id_ = nullptr;
 };
 
 }

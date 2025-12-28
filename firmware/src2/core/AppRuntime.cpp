@@ -8,6 +8,23 @@
 #include <Arduino.h>
 #endif
 
+#if !defined(ARDUINO)
+namespace {
+class ZeroMacProvider : public Services::ChipIdProvider {
+ public:
+  bool ReadMac(uint8_t mac[6]) override {
+    if (!mac) {
+      return false;
+    }
+    for (int i = 0; i < 6; ++i) {
+      mac[i] = 0;
+    }
+    return true;
+  }
+};
+}
+#endif
+
 namespace Core {
 
 void AppRuntime::Init() {
@@ -22,13 +39,20 @@ void AppRuntime::Init() {
   context_.sensor_hub = &sensor_hub_module_;
   context_.state = &state_module_;
   context_.hardware = &Config::GetHardwareProfile();
+#if defined(ARDUINO)
+  Services::EfuseMacProvider mac_provider;
+#else
+  ZeroMacProvider mac_provider;
+#endif
+  device_identity_.Init(mac_provider);
+  context_.device_id = device_identity_.GetDeviceId();
 
   InitServices();
   InitModules();
   scheduler_.AddPeriodic("heartbeat", 5000, &AppRuntime::HeartbeatTask);
 
   char cmd_topic[128];
-  if (context_.hardware && Services::Topics::BuildCmdTopic(cmd_topic, sizeof(cmd_topic), context_.hardware->device_id)) {
+  if (context_.device_id && Services::Topics::BuildCmdTopic(cmd_topic, sizeof(cmd_topic), context_.device_id)) {
     mqtt_service_.Subscribe(cmd_topic, 1);
   }
 }

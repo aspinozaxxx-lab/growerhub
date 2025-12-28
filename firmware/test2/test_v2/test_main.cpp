@@ -39,6 +39,7 @@ void test_ota_timeout_trigger();
 void test_dht_rate_limit();
 void test_dht_nan_unavailable();
 void test_dht_fail_triggers_reboot_event();
+void test_device_identity_legacy_format();
 
 void setUp() {}
 void tearDown() {}
@@ -86,5 +87,6 @@ int main(int argc, char** argv) {
   RUN_TEST(test_dht_rate_limit);
   RUN_TEST(test_dht_nan_unavailable);
   RUN_TEST(test_dht_fail_triggers_reboot_event);
+  RUN_TEST(test_device_identity_legacy_format);
   return UNITY_END();
 }

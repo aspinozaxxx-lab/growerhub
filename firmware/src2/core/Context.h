@@ -35,6 +35,7 @@ struct Context {
   Modules::SensorHubModule* sensor_hub;
   Modules::StateModule* state;
   const Config::HardwareProfile* hardware;
+  const char* device_id;
 };
 
 }

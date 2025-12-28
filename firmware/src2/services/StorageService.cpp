@@ -49,7 +49,7 @@ void StorageService::Init(Core::Context& ctx) {
 
 #if defined(UNIT_TEST)
   if (root_path_[0] == '\0') {
-    std::snprintf(root_path_, sizeof(root_path_), "test_storage");
+    std::snprintf(root_path_, sizeof(root_path_), "test2/tmp/test_storage");
   }
   MakeDir(root_path_);
 #endif
@@ -177,7 +177,7 @@ bool StorageService::BuildPath(const char* path, char* out, size_t out_size) con
   }
 
 #if defined(UNIT_TEST)
-  const char* root = root_path_[0] != '\0' ? root_path_ : "test_storage";
+  const char* root = root_path_[0] != '\0' ? root_path_ : "test2/tmp/test_storage";
   const char* rel = path[0] == '/' ? path + 1 : path;
   const int written = std::snprintf(out, out_size, "%s/%s", root, rel);
   return written > 0 && static_cast<size_t>(written) < out_size;

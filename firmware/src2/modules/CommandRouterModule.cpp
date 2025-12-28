@@ -6,7 +6,6 @@
 #include <Arduino.h>
 #endif
 
-#include "config/HardwareProfile.h"
 #include "core/Context.h"
 #include "modules/ActuatorModule.h"
 #include "modules/ConfigSyncModule.h"
@@ -38,7 +37,7 @@ void CommandRouterModule::Init(Core::Context& ctx) {
   actuator_ = ctx.actuator;
   config_sync_ = ctx.config_sync;
   state_ = ctx.state;
-  hardware_ = ctx.hardware;
+  device_id_ = ctx.device_id;
 #if defined(ARDUINO)
   rebooter_ = &default_rebooter_;
 #endif
@@ -70,8 +69,7 @@ void CommandRouterModule::HandleCommand(const char* topic, const char* payload) 
     return;
   }
 
-  const Config::HardwareProfile& profile = hardware_ ? *hardware_ : Config::GetHardwareProfile();
-  if (!Services::Topics::IsCmdTopic(topic, profile.device_id)) {
+  if (!Services::Topics::IsCmdTopic(topic, device_id_)) {
     return;
   }
 
@@ -126,9 +124,8 @@ void CommandRouterModule::SendAckStatus(const char* correlation_id, const char* 
     return;
   }
 
-  const Config::HardwareProfile& profile = hardware_ ? *hardware_ : Config::GetHardwareProfile();
   char topic[128];
-  if (!Services::Topics::BuildAckTopic(topic, sizeof(topic), profile.device_id)) {
+  if (!Services::Topics::BuildAckTopic(topic, sizeof(topic), device_id_)) {
     return;
   }
 
@@ -146,9 +143,8 @@ void CommandRouterModule::SendAckError(const char* correlation_id, const char* r
     return;
   }
 
-  const Config::HardwareProfile& profile = hardware_ ? *hardware_ : Config::GetHardwareProfile();
   char topic[128];
-  if (!Services::Topics::BuildAckTopic(topic, sizeof(topic), profile.device_id)) {
+  if (!Services::Topics::BuildAckTopic(topic, sizeof(topic), device_id_)) {
     return;
   }
 

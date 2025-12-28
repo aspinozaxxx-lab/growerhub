@@ -2,7 +2,6 @@
 
 #include <cstring>
 
-#include "config/HardwareProfile.h"
 #include "core/Context.h"
 #include "services/MqttService.h"
 #include "services/StorageService.h"
@@ -18,7 +17,7 @@ void ConfigSyncModule::Init(Core::Context& ctx) {
   storage_ = ctx.storage;
   mqtt_ = ctx.mqtt;
   event_queue_ = ctx.event_queue;
-  hardware_ = ctx.hardware;
+  device_id_ = ctx.device_id;
   config_ = Util::DefaultScenariosConfig();
   retained_payload_[0] = '\0';
   has_retained_ = false;
@@ -37,8 +36,7 @@ void ConfigSyncModule::OnEvent(Core::Context& ctx, const Core::Event& event) {
     return;
   }
 
-  const Config::HardwareProfile& profile = hardware_ ? *hardware_ : Config::GetHardwareProfile();
-  if (Services::Topics::IsCfgTopic(event.mqtt.topic, profile.device_id)) {
+  if (Services::Topics::IsCfgTopic(event.mqtt.topic, device_id_)) {
     if (event.mqtt.payload[0] == '\0') {
       return;
     }
@@ -67,9 +65,8 @@ void ConfigSyncModule::OnTick(Core::Context& ctx, uint32_t now_ms) {
 
   const bool connected = mqtt_ && mqtt_->IsConnected();
   if (connected && !subscribed_) {
-    const Config::HardwareProfile& profile = hardware_ ? *hardware_ : Config::GetHardwareProfile();
     char topic[128];
-    if (Services::Topics::BuildCfgTopic(topic, sizeof(topic), profile.device_id)) {
+    if (Services::Topics::BuildCfgTopic(topic, sizeof(topic), device_id_)) {
       subscribed_ = mqtt_->Subscribe(topic, 1);
     }
   }
@@ -153,8 +150,7 @@ bool ConfigSyncModule::IsCfgSyncCommand(const char* topic, const char* payload) 
   if (!topic || !payload) {
     return false;
   }
-  const Config::HardwareProfile& profile = hardware_ ? *hardware_ : Config::GetHardwareProfile();
-  if (!Services::Topics::IsCmdTopic(topic, profile.device_id)) {
+  if (!Services::Topics::IsCmdTopic(topic, device_id_)) {
     return false;
   }
 

@@ -25,7 +25,7 @@ void SensorHubModule::Init(Core::Context& ctx) {
   event_queue_ = ctx.event_queue;
   mqtt_ = ctx.mqtt;
   time_ = ctx.time;
-  hardware_ = ctx.hardware;
+  device_id_ = ctx.device_id;
   dht_enabled_ = profile.has_dht22;
   dht_auto_reboot_ = profile.dht_auto_reboot_on_fail;
   if (dht_enabled_) {
@@ -163,12 +163,11 @@ void SensorHubModule::RequestReboot(uint32_t now_ms) {
 }
 
 void SensorHubModule::PublishDhtFailEvent(uint32_t now_ms, uint8_t errors_count) {
-  if (!mqtt_ || !mqtt_->IsConnected()) {
+  if (!mqtt_ || !mqtt_->IsConnected() || !device_id_) {
     return;
   }
-  const Config::HardwareProfile& profile = hardware_ ? *hardware_ : Config::GetHardwareProfile();
   char topic[128];
-  if (!Services::Topics::BuildEventsTopic(topic, sizeof(topic), profile.device_id)) {
+  if (!Services::Topics::BuildEventsTopic(topic, sizeof(topic), device_id_)) {
     return;
   }
 

@@ -13,6 +13,7 @@
 static uint16_t g_samples_hub[2][9];
 static size_t g_index_hub[2];
 static char g_state_payload[512];
+static const char* kDeviceId = "grovika_040AB1";
 
 static void FillSamplesHub(uint16_t port0, uint16_t port1) {
   for (size_t i = 0; i < 9; ++i) {
@@ -58,7 +59,7 @@ void test_sensor_hub_pump_block() {
   hw.has_dht22 = false;
   hw.dht_auto_reboot_on_fail = false;
 
-  Core::Context ctx{&scheduler, &queue, nullptr, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw};
+  Core::Context ctx{&scheduler, &queue, nullptr, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw, kDeviceId};
   hub.Init(ctx);
   Drivers::Rj9PortScanner* scanner = hub.GetScanner();
   scanner->SetAdcReader(&FakeAdcHub);
@@ -100,7 +101,7 @@ void test_state_soil_serialization() {
   Modules::StateModule state;
   Config::HardwareProfile hw = Config::GetHardwareProfile();
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, &actuator, nullptr, &hub, &state, &hw};
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, &actuator, nullptr, &hub, &state, &hw, kDeviceId};
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);
   mqtt.SetPublishHook(&PublishHook);

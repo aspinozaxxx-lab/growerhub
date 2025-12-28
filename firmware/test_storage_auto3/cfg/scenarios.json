@@ -1,1 +1,0 @@
-{"schema_version":2,"watering":{"by_moisture":{"enabled":true,"min_time_between_watering_s":60,"per_sensor":[{"port":0,"enabled":true,"threshold_percent":25,"duration_s":10},{"port":1,"enabled":false,"threshold_percent":30,"duration_s":0}]},"by_schedule":{"enabled":false,"entries":[]}},"light":{"by_schedule":{"enabled":false,"entries":[]}}}}

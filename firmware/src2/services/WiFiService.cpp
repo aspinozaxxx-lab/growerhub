@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <cstring>
 
-#include "config/HardwareProfile.h"
 #include "core/EventQueue.h"
 #include "services/StorageService.h"
 #include "services/wifi/BuiltinWifiDefaults.h"
@@ -114,7 +113,7 @@ bool WiFiService::ExtractStringField(const char* start,
 void WiFiService::Init(Core::Context& ctx) {
   storage_ = ctx.storage;
   event_queue_ = ctx.event_queue;
-  hardware_ = ctx.hardware;
+  device_id_ = ctx.device_id;
   preferred_ = GetPreferredNetworks();
   sta_index_ = 0;
   last_attempt_ms_ = 0;
@@ -279,7 +278,7 @@ void WiFiService::StartAccessPoint() {
   WiFi.mode(WIFI_AP_STA);
 
   char ap_ssid[64];
-  const char* device_id = hardware_ ? hardware_->device_id : "device";
+  const char* device_id = device_id_ ? device_id_ : "device";
   std::snprintf(ap_ssid, sizeof(ap_ssid), "%s%s", kApSsidPrefix, device_id);
 
   ap_started_ = WiFi.softAP(ap_ssid, kApPassword);

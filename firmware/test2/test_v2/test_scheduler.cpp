@@ -15,7 +15,7 @@ static void TickTask(Core::Context& ctx, uint32_t now_ms) {
 void test_scheduler_periodic() {
   Core::Scheduler scheduler;
   Core::EventQueue queue;
-  Core::Context ctx{&scheduler, &queue, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+  Core::Context ctx{&scheduler, &queue, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
   g_calls = 0;
   bool added = scheduler.AddPeriodic("tick", 5, TickTask);

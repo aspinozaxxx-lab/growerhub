@@ -2,7 +2,6 @@
 
 #include <cstdio>
 
-#include "config/HardwareProfile.h"
 #include "core/EventQueue.h"
 #include "services/StorageService.h"
 #include "util/JsonUtil.h"
@@ -39,7 +38,7 @@ bool WebConfigService::BuildWifiConfigJson(const char* ssid,
 void WebConfigService::Init(Core::Context& ctx) {
   storage_ = ctx.storage;
   event_queue_ = ctx.event_queue;
-  hardware_ = ctx.hardware;
+  device_id_ = ctx.device_id;
   Util::Logger::Info("init WebConfigService");
 
 #if defined(ARDUINO)
@@ -84,7 +83,7 @@ void WebConfigService::Init(Core::Context& ctx) {
     const bool sta_connected = WiFi.status() == WL_CONNECTED;
     String sta_ip = WiFi.localIP().toString();
     String ap_ip = WiFi.softAPIP().toString();
-    const char* device_id = hardware_ ? hardware_->device_id : "device";
+    const char* device_id = device_id_ ? device_id_ : "device";
     char ap_ssid[64];
     std::snprintf(ap_ssid, sizeof(ap_ssid), "Grovika-%s", device_id);
     std::snprintf(payload,

@@ -12,9 +12,9 @@
 #include "util/JsonUtil.h"
 
 void test_config_sync_apply_retained() {
-  std::remove("test_storage_sync/cfg/scenarios.json");
-  std::remove("test_storage_sync/cfg");
-  std::remove("test_storage_sync");
+  std::remove("test2/tmp/test_storage_sync/cfg/scenarios.json");
+  std::remove("test2/tmp/test_storage_sync/cfg");
+  std::remove("test2/tmp/test_storage_sync");
 
   Core::Scheduler scheduler;
   Core::EventQueue queue;
@@ -22,16 +22,17 @@ void test_config_sync_apply_retained() {
   Services::StorageService storage;
   Modules::ConfigSyncModule sync;
   const Config::HardwareProfile& hw = Config::GetHardwareProfile();
+  const char* device_id = "grovika_040AB1";
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, &storage, nullptr, nullptr, &sync, nullptr, nullptr, &hw};
-  storage.SetRootForTests("test_storage_sync");
+  Core::Context ctx{&scheduler, &queue, &mqtt, &storage, nullptr, nullptr, &sync, nullptr, nullptr, &hw, device_id};
+  storage.SetRootForTests("test2/tmp/test_storage_sync");
   storage.Init(ctx);
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);
   sync.Init(ctx);
 
   char topic[128];
-  Services::Topics::BuildCfgTopic(topic, sizeof(topic), hw.device_id);
+  Services::Topics::BuildCfgTopic(topic, sizeof(topic), device_id);
 
   const char* payload =
       "{\"schema_version\":2,\"watering\":{\"by_moisture\":{\"enabled\":true,\"min_time_between_watering_s\":3600,\"per_sensor\":[{\"port\":0,\"enabled\":true,\"threshold_percent\":25,\"duration_s\":30},{\"port\":1,\"enabled\":false,\"threshold_percent\":30,\"duration_s\":20}]},\"by_schedule\":{\"enabled\":false,\"entries\":[]}},\"light\":{\"by_schedule\":{\"enabled\":false,\"entries\":[]}}}";

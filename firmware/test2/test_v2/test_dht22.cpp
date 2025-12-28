@@ -66,7 +66,7 @@ void test_dht_fail_triggers_reboot_event() {
   hw.has_dht22 = true;
   hw.dht_auto_reboot_on_fail = true;
 
-  Core::Context ctx{nullptr, &queue, nullptr, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw};
+  Core::Context ctx{nullptr, &queue, nullptr, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw, nullptr};
   hub.Init(ctx);
 
   Drivers::Dht22Sensor* dht = hub.GetDhtSensor();

@@ -3,7 +3,6 @@
 #include <cstdio>
 #include <cstring>
 
-#include "config/HardwareProfile.h"
 #include "core/Context.h"
 #include "drivers/soil/Rj9PortScanner.h"
 #include "modules/ActuatorModule.h"
@@ -26,7 +25,7 @@ void AutomationModule::Init(Core::Context& ctx) {
   actuator_ = ctx.actuator;
   config_sync_ = ctx.config_sync;
   sensor_hub_ = ctx.sensor_hub;
-  hardware_ = ctx.hardware;
+  device_id_ = ctx.device_id;
   config_ = Util::DefaultScenariosConfig();
   std::memset(schedule_fired_, 0, sizeof(schedule_fired_));
   last_light_on_ = false;
@@ -193,11 +192,11 @@ void AutomationModule::MarkWatered(uint32_t now_ms) {
 }
 
 void AutomationModule::PublishEvent(const char* mode, uint8_t port, uint32_t duration_s, uint8_t soil_percent) {
-  if (!mqtt_ || !hardware_) {
+  if (!mqtt_ || !device_id_) {
     return;
   }
   char topic[128];
-  if (!Services::Topics::BuildEventsTopic(topic, sizeof(topic), hardware_->device_id)) {
+  if (!Services::Topics::BuildEventsTopic(topic, sizeof(topic), device_id_)) {
     return;
   }
   const uint64_t unix_ms = time_ ? time_->GetUnixTimeMs() : 0;
@@ -211,7 +210,7 @@ void AutomationModule::PublishEvent(const char* mode, uint8_t port, uint32_t dur
   last_event_ms_ = event_ms;
 
   char event_id[96];
-  std::snprintf(event_id, sizeof(event_id), "%s-%llu", hardware_->device_id,
+  std::snprintf(event_id, sizeof(event_id), "%s-%llu", device_id_,
                 static_cast<unsigned long long>(event_ms));
 
   char ts[32];
