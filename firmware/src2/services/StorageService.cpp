@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 
+#include "util/JsonUtil.h"
 #include "util/Logger.h"
 
 #if defined(ARDUINO)
@@ -37,13 +38,71 @@ static bool MakeDir(const char* path) {
 }
 #endif
 
+#if defined(ARDUINO)
+static const char* kCfgDir = "/cfg"; // katalog dlya cfg
+static const char* kScenariosPath = "/cfg/scenarios.json"; // defolt scenarii v2
+static const char* kDevicePath = "/cfg/device.json"; // sostoyanie OTA
+
+static bool EnsureCfgDir() {
+  // sozdanie /cfg dlya chistogo LittleFS
+  if (LittleFS.exists(kCfgDir)) {
+    return true;
+  }
+  return LittleFS.mkdir(kCfgDir);
+}
+
+static bool EnsureDefaultScenarios(StorageService& storage) {
+  // sozdanie defoltnogo scenarios.json pri otsutstvii
+  if (storage.Exists(kScenariosPath)) {
+    return true;
+  }
+  Util::ScenariosConfig config = Util::DefaultScenariosConfig();
+  char payload[768];
+  if (!Util::EncodeScenariosConfig(config, payload, sizeof(payload))) {
+    return false;
+  }
+  return storage.WriteFileAtomic(kScenariosPath, payload);
+}
+
+static bool EnsureDefaultDevice(StorageService& storage) {
+  // sozdanie defoltnogo device.json pri otsutstvii
+  if (storage.Exists(kDevicePath)) {
+    return true;
+  }
+  char payload[160];
+  const int written = std::snprintf(
+      payload,
+      sizeof(payload),
+      "{\"schema_version\":1,\"pending\":false,\"boot_fail_count\":0,\"pending_since_ms\":0}");
+  if (written <= 0 || static_cast<size_t>(written) >= sizeof(payload)) {
+    return false;
+  }
+  return storage.WriteFileAtomic(kDevicePath, payload);
+}
+#endif
+
 void StorageService::Init(Core::Context& ctx) {
   (void)ctx;
   Util::Logger::Info("init StorageService");
 
 #if defined(ARDUINO)
-  if (!LittleFS.begin()) {
-    LittleFS.begin(true);
+  bool mounted = LittleFS.begin();
+  if (!mounted) {
+    Util::Logger::Info("littlefs mount fail, format");
+    mounted = LittleFS.begin(true);
+  }
+  if (!mounted) {
+    Util::Logger::Info("littlefs mount fail after format");
+  } else {
+    if (!EnsureCfgDir()) {
+      Util::Logger::Info("littlefs mkdir /cfg fail");
+    }
+    if (!EnsureDefaultScenarios(*this)) {
+      Util::Logger::Info("littlefs default scenarios fail");
+    }
+    if (!EnsureDefaultDevice(*this)) {
+      Util::Logger::Info("littlefs default device fail");
+    }
   }
 #endif
 

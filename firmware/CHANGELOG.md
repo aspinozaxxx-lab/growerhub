@@ -1,4 +1,4 @@
-# Changelog
+﻿# Changelog
 
 ## 2025-12-28
 - feat(v2): migraciya proshivki Grovika v novyj karkas (runtime, modulnaya arhitektura, MQTT cmd/ack/state).
@@ -11,6 +11,7 @@
 - test(v2): 39 unity-testov (native) - codec/ack, config/storage, wifi/web, soil/automation, ota rollback, dht22, scheduler/event queue.
 - fix(v2): device_id teper' stroitsya kak v legacy (grovika_ + 3 bajta MAC, verhnij registr), dobavlen DeviceIdentity i unity-test.
 - test(v2): test_storage_* ubrany iz korna, testovye khranilishcha pereneseny v test2/tmp, dobavlen gitignore.
+- fix(v2): DHT22 otklyuchen po umolchaniyu; LittleFS sozdaet /cfg i defolt scenarii/device.json bez oshibok.
 
 ## 2025-11-07
 - feat: edinyj bezopasnyj reboot cherez SystemMonitor::rebootIfSafe (ACK, status idle/running, zaderzhka 250ms, busy-wait).

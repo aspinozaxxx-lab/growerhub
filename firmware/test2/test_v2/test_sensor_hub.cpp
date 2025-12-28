@@ -1,4 +1,4 @@
-#include <cstring>
+﻿#include <cstring>
 #include <unity.h>
 
 #include "config/HardwareProfile.h"
@@ -100,6 +100,7 @@ void test_state_soil_serialization() {
   Modules::SensorHubModule hub;
   Modules::StateModule state;
   Config::HardwareProfile hw = Config::GetHardwareProfile();
+  hw.has_dht22 = true;
 
   Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, &actuator, nullptr, &hub, &state, &hw, kDeviceId};
   mqtt.Init(ctx);
