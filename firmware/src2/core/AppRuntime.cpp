@@ -49,7 +49,7 @@ void AppRuntime::Init() {
 
   InitServices();
   InitModules();
-  scheduler_.AddPeriodic("heartbeat", 5000, &AppRuntime::HeartbeatTask);
+  scheduler_.AddPeriodic("heartbeat", 60000, &AppRuntime::HeartbeatTask);
 
   char cmd_topic[128];
   if (context_.device_id && Services::Topics::BuildCmdTopic(cmd_topic, sizeof(cmd_topic), context_.device_id)) {
