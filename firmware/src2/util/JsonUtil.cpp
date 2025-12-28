@@ -85,6 +85,58 @@ static bool ExtractBoolAfterKey(const char* json, const char* key, const char* f
   return false;
 }
 
+static bool ExtractStringFieldWithin(const char* start,
+                                     const char* limit,
+                                     const char* key,
+                                     char* out,
+                                     size_t out_size) {
+  if (!start || !limit || !key || !out || out_size == 0) {
+    return false;
+  }
+  char pattern[64];
+  std::snprintf(pattern, sizeof(pattern), "\"%s\"", key);
+  const char* key_pos = std::strstr(start, pattern);
+  if (!key_pos || key_pos >= limit) {
+    return false;
+  }
+  const char* colon = std::strchr(key_pos + std::strlen(pattern), ':');
+  if (!colon || colon >= limit) {
+    return false;
+  }
+  const char* value = SkipWs(colon + 1);
+  if (!value || value >= limit || *value != '"') {
+    return false;
+  }
+  ++value;
+  size_t written = 0;
+  while (value < limit && *value && *value != '"' && written + 1 < out_size) {
+    out[written++] = *value++;
+  }
+  if (value >= limit || *value != '"') {
+    return false;
+  }
+  out[written] = '\0';
+  return true;
+}
+
+static bool IsSafeWifiField(const char* value) {
+  if (!value) {
+    return false;
+  }
+  size_t len = 0;
+  while (value[len] != '\0') {
+    char ch = value[len];
+    if (ch == '"' || ch == '\\' || static_cast<unsigned char>(ch) < 0x20) {
+      return false;
+    }
+    ++len;
+    if (len > 64) {
+      return false;
+    }
+  }
+  return len > 0;
+}
+
 ScenariosConfig DefaultScenariosConfig() {
   ScenariosConfig config{};
   config.schema_version = kScenariosSchemaVersion;
@@ -142,6 +194,66 @@ bool DecodeScenariosConfig(const char* json, ScenariosConfig* config) {
 
 bool ValidateScenariosConfig(const ScenariosConfig& config) {
   return config.schema_version == kScenariosSchemaVersion;
+}
+
+bool EncodeWifiConfig(const char* ssid, const char* password, char* out, size_t out_size) {
+  if (!out || out_size == 0) {
+    return false;
+  }
+  if (!IsSafeWifiField(ssid)) {
+    return false;
+  }
+  const char* pass = password ? password : "";
+  if (std::strlen(pass) > 64) {
+    return false;
+  }
+  for (const char* p = pass; *p; ++p) {
+    if (*p == '"' || *p == '\\' || static_cast<unsigned char>(*p) < 0x20) {
+      return false;
+    }
+  }
+  const int written = std::snprintf(
+      out,
+      out_size,
+      "{\"schema_version\":%u,\"networks\":[{\"ssid\":\"%s\",\"password\":\"%s\"}]}",
+      static_cast<unsigned int>(kWifiSchemaVersion),
+      ssid,
+      pass);
+  return written > 0 && static_cast<size_t>(written) < out_size;
+}
+
+bool ValidateWifiConfig(const char* json) {
+  if (!json || !HasJsonBraces(json)) {
+    return false;
+  }
+  uint32_t schema_version = 0;
+  if (!ExtractUintField(json, "schema_version", schema_version)) {
+    return false;
+  }
+  if (schema_version != kWifiSchemaVersion) {
+    return false;
+  }
+  const char* networks_key = std::strstr(json, "\"networks\"");
+  if (!networks_key) {
+    return false;
+  }
+  const char* array_start = std::strchr(networks_key, '[');
+  if (!array_start) {
+    return false;
+  }
+  const char* obj_start = std::strchr(array_start, '{');
+  if (!obj_start) {
+    return false;
+  }
+  const char* obj_end = std::strchr(obj_start, '}');
+  if (!obj_end) {
+    return false;
+  }
+  char ssid[65];
+  if (!ExtractStringFieldWithin(obj_start, obj_end, "ssid", ssid, sizeof(ssid))) {
+    return false;
+  }
+  return ssid[0] != '\0';
 }
 
 }

@@ -4,9 +4,9 @@
 - [x] Logger unified format
 - [x] Storage (LittleFS + json files + schema version + migrations)
 - [ ] Hardware profiles + build matrix
-- [ ] WiFi STA + always-on AP
+- [x] WiFi STA + always-on AP
 - [x] Builtin Wi-Fi defaults wired
-- [ ] Web config portal (wifi setup)
+- [x] Web config portal (wifi setup)
 - [x] MQTT service + topics
 - [x] Command router + ACK
 - [x] Retained cfg sync (server -> device)

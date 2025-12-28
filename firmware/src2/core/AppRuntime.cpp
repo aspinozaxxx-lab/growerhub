@@ -45,6 +45,9 @@ void AppRuntime::Tick() {
 
   scheduler_.Tick(context_, now_ms);
 
+  wifi_service_.Loop(context_, now_ms);
+  web_config_service_.Loop(context_);
+
   Event event;
   while (event_queue_.Pop(event)) {
     DispatchEvent(event);
@@ -80,6 +83,7 @@ void AppRuntime::InitModules() {
 }
 
 void AppRuntime::DispatchEvent(const Event& event) {
+  wifi_service_.OnEvent(context_, event);
   for (size_t i = 0; i < modules_.size(); ++i) {
     modules_[i]->OnEvent(context_, event);
   }

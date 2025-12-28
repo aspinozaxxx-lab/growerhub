@@ -20,6 +20,9 @@ void test_scheduler_periodic();
 void test_config_sync_apply_retained();
 void test_wifi_defaults_builtin();
 void test_wifi_defaults_user_override();
+void test_wifi_config_codec_storage();
+void test_wifi_config_codec_invalid();
+void test_webconfig_build_json();
 
 void setUp() {}
 void tearDown() {}
@@ -48,5 +51,8 @@ int main(int argc, char** argv) {
   RUN_TEST(test_config_sync_apply_retained);
   RUN_TEST(test_wifi_defaults_builtin);
   RUN_TEST(test_wifi_defaults_user_override);
+  RUN_TEST(test_wifi_config_codec_storage);
+  RUN_TEST(test_wifi_config_codec_invalid);
+  RUN_TEST(test_webconfig_build_json);
   return UNITY_END();
 }

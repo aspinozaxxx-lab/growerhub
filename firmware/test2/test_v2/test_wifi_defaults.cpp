@@ -41,7 +41,7 @@ void test_wifi_defaults_user_override() {
   storage.Init(ctx);
 
   const char* payload =
-      "{\"networks\":[{\"ssid\":\"HomeWiFi\",\"password\":\"homepass\"},{\"ssid\":\"OfficeWiFi\",\"password\":\"officepass\"}]}";
+      "{\"schema_version\":1,\"networks\":[{\"ssid\":\"HomeWiFi\",\"password\":\"homepass\"},{\"ssid\":\"OfficeWiFi\",\"password\":\"officepass\"}]}";
   TEST_ASSERT_TRUE(storage.WriteFileAtomic("/cfg/wifi.json", payload));
 
   wifi.Init(ctx);

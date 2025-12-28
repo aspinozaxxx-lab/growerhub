@@ -4,13 +4,24 @@
 #include <cstdio>
 #include <cstring>
 
+#include "config/HardwareProfile.h"
+#include "core/EventQueue.h"
 #include "services/StorageService.h"
 #include "services/wifi/BuiltinWifiDefaults.h"
+#include "util/JsonUtil.h"
 #include "util/Logger.h"
+
+#if defined(ARDUINO)
+#include <WiFi.h>
+#endif
 
 namespace Services {
 
-const char* WiFiService::SkipWs(const char* ptr) {
+static const uint32_t kStaAttemptIntervalMs = 5000;
+static const char* kApSsidPrefix = "Grovika-";
+static const char* kApPassword = "grovika123";
+
+static const char* SkipWsLocal(const char* ptr) {
   const char* current = ptr;
   while (current && *current && std::isspace(static_cast<unsigned char>(*current))) {
     ++current;
@@ -25,6 +36,33 @@ static bool HasJsonBraces(const char* json) {
   const char* left = std::strchr(json, '{');
   const char* right = std::strrchr(json, '}');
   return left && right && left < right;
+}
+
+static bool ExtractUintField(const char* json, const char* key, uint32_t& out) {
+  if (!json || !key) {
+    return false;
+  }
+  char pattern[64];
+  std::snprintf(pattern, sizeof(pattern), "\"%s\"", key);
+  const char* key_pos = std::strstr(json, pattern);
+  if (!key_pos) {
+    return false;
+  }
+  const char* colon = std::strchr(key_pos + std::strlen(pattern), ':');
+  if (!colon) {
+    return false;
+  }
+  const char* value = SkipWsLocal(colon + 1);
+  if (!value || !std::isdigit(static_cast<unsigned char>(*value))) {
+    return false;
+  }
+  uint32_t result = 0;
+  while (*value && std::isdigit(static_cast<unsigned char>(*value))) {
+    result = result * 10 + static_cast<uint32_t>(*value - '0');
+    ++value;
+  }
+  out = result;
+  return true;
 }
 
 static void CopyField(const char* src, char* out, size_t out_size) {
@@ -57,7 +95,7 @@ bool WiFiService::ExtractStringField(const char* start,
   if (!colon || colon >= limit) {
     return false;
   }
-  const char* value = SkipWs(colon + 1);
+  const char* value = SkipWsLocal(colon + 1);
   if (!value || value >= limit || *value != '"') {
     return false;
   }
@@ -75,7 +113,67 @@ bool WiFiService::ExtractStringField(const char* start,
 
 void WiFiService::Init(Core::Context& ctx) {
   storage_ = ctx.storage;
+  event_queue_ = ctx.event_queue;
+  hardware_ = ctx.hardware;
+  preferred_ = GetPreferredNetworks();
+  sta_index_ = 0;
+  last_attempt_ms_ = 0;
+  last_status_ = -1;
+  ap_started_ = false;
   Util::Logger::Info("init WiFiService");
+
+  StartAccessPoint();
+  StartStaConnect(0);
+}
+
+void WiFiService::Loop(Core::Context& ctx, uint32_t now_ms) {
+  (void)ctx;
+#if defined(ARDUINO)
+  const int status = static_cast<int>(WiFi.status());
+  if (status != last_status_) {
+    if (status == WL_CONNECTED) {
+      if (event_queue_) {
+        Core::Event event{};
+        event.type = Core::EventType::kWifiStaUp;
+        event_queue_->Push(event);
+      }
+    } else if (last_status_ == WL_CONNECTED) {
+      if (event_queue_) {
+        Core::Event event{};
+        event.type = Core::EventType::kWifiStaDown;
+        event_queue_->Push(event);
+      }
+    }
+    last_status_ = status;
+  }
+
+  if (status == WL_CONNECTED) {
+    return;
+  }
+  if (preferred_.count == 0) {
+    return;
+  }
+  if (now_ms - last_attempt_ms_ < kStaAttemptIntervalMs) {
+    return;
+  }
+  StartStaConnect(now_ms);
+#else
+  (void)now_ms;
+#endif
+}
+
+void WiFiService::OnEvent(Core::Context& ctx, const Core::Event& event) {
+  (void)ctx;
+  if (event.type != Core::EventType::kWifiConfigUpdated) {
+    return;
+  }
+  preferred_ = GetPreferredNetworks();
+  sta_index_ = 0;
+  last_attempt_ms_ = 0;
+#if defined(ARDUINO)
+  WiFi.disconnect(true);
+  StartStaConnect(0);
+#endif
 }
 
 WiFiNetworkList WiFiService::GetPreferredNetworks() const {
@@ -122,6 +220,13 @@ bool WiFiService::ParseWifiConfig(const char* json, WiFiNetworkList& out) {
   if (!json || !HasJsonBraces(json)) {
     return false;
   }
+  uint32_t schema_version = 0;
+  if (!ExtractUintField(json, "schema_version", schema_version)) {
+    return false;
+  }
+  if (schema_version != Util::kWifiSchemaVersion) {
+    return false;
+  }
   const char* networks_key = std::strstr(json, "\"networks\"");
   if (!networks_key) {
     return false;
@@ -154,6 +259,36 @@ bool WiFiService::ParseWifiConfig(const char* json, WiFiNetworkList& out) {
     cursor = obj_end + 1;
   }
   return out.count > 0;
+}
+
+void WiFiService::StartStaConnect(uint32_t now_ms) {
+  if (preferred_.count == 0) {
+    return;
+  }
+#if defined(ARDUINO)
+  const WiFiNetwork& network = preferred_.entries[sta_index_];
+  WiFi.disconnect(true);
+  WiFi.begin(network.ssid, network.password);
+#endif
+  last_attempt_ms_ = now_ms;
+  sta_index_ = (sta_index_ + 1) % preferred_.count;
+}
+
+void WiFiService::StartAccessPoint() {
+#if defined(ARDUINO)
+  WiFi.mode(WIFI_AP_STA);
+
+  char ap_ssid[64];
+  const char* device_id = hardware_ ? hardware_->device_id : "device";
+  std::snprintf(ap_ssid, sizeof(ap_ssid), "%s%s", kApSsidPrefix, device_id);
+
+  ap_started_ = WiFi.softAP(ap_ssid, kApPassword);
+  if (ap_started_ && event_queue_) {
+    Core::Event event{};
+    event.type = Core::EventType::kWifiApUp;
+    event_queue_->Push(event);
+  }
+#endif
 }
 
 }
