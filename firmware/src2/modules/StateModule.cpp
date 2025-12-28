@@ -27,7 +27,7 @@ void StateModule::Init(Core::Context& ctx) {
   sensor_hub_ = ctx.sensor_hub;
   device_id_ = ctx.device_id;
   last_publish_ms_ = 0;
-  Util::Logger::Info("init StateModule");
+  Util::Logger::Info("[STATE] init");
 }
 
 void StateModule::OnEvent(Core::Context& ctx, const Core::Event& event) {
@@ -48,11 +48,21 @@ void StateModule::OnTick(Core::Context& ctx, uint32_t now_ms) {
 }
 
 void StateModule::PublishState(bool retained) {
-  if (!mqtt_ || !actuator_ || !mqtt_->IsConnected()) {
+  if (!mqtt_) {
+    Util::Logger::Info("[STATE] publish skip: mqtt null");
+    return;
+  }
+  if (!actuator_) {
+    Util::Logger::Info("[STATE] publish skip: actuator null");
+    return;
+  }
+  if (!mqtt_->IsConnected()) {
+    Util::Logger::Info("[STATE] publish skip: mqtt disconnected");
     return;
   }
 
   if (!device_id_) {
+    Util::Logger::Info("[STATE] publish skip: device_id null");
     return;
   }
   const ManualWateringState manual = actuator_->GetManualWateringState();
@@ -126,8 +136,17 @@ void StateModule::PublishState(bool retained) {
 
   char topic[128];
   if (!Services::Topics::BuildStateTopic(topic, sizeof(topic), device_id_)) {
+    Util::Logger::Info("[STATE] publish skip: bad topic");
     return;
   }
+
+  std::string log_line = "[STATE] publish topic=";
+  log_line += topic;
+  log_line += " qos=0 retained=";
+  log_line += retained ? "true" : "false";
+  log_line += " payload=";
+  log_line += payload;
+  Util::Logger::Info(log_line.c_str());
 
   mqtt_->Publish(topic, payload.c_str(), retained, 0);
 }

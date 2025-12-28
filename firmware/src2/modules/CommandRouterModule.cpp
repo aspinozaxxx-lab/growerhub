@@ -7,6 +7,7 @@
 
 #include "modules/CommandRouterModule.h"
 
+#include <cstdio>
 #include <cstring>
 
 #if defined(ARDUINO)
@@ -23,6 +24,22 @@
 #include "util/MqttCodec.h"
 
 namespace Modules {
+
+static const char* CommandTypeToString(Util::CommandType type) {
+  switch (type) {
+    case Util::CommandType::kPumpStart:
+      return "pump.start";
+    case Util::CommandType::kPumpStop:
+      return "pump.stop";
+    case Util::CommandType::kReboot:
+      return "reboot";
+    case Util::CommandType::kCfgSync:
+      return "cfg.sync";
+    case Util::CommandType::kUnknown:
+    default:
+      return "unknown";
+  }
+}
 
 static const uint32_t kRebootGraceDelayMs =
 #if defined(UNIT_TEST)
@@ -48,7 +65,7 @@ void CommandRouterModule::Init(Core::Context& ctx) {
 #if defined(ARDUINO)
   rebooter_ = &default_rebooter_;
 #endif
-  Util::Logger::Info("init CommandRouterModule");
+  Util::Logger::Info("[CMD] init");
 }
 
 void CommandRouterModule::OnEvent(Core::Context& ctx, const Core::Event& event) {
@@ -83,9 +100,23 @@ void CommandRouterModule::HandleCommand(const char* topic, const char* payload) 
   Util::Command command{};
   Util::ParseError error = Util::ParseError::kNone;
   if (!Util::ParseCommand(payload, command, error)) {
+    char log_buf[192];
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "[CMD] parse error reason=%s",
+                  Util::ParseErrorReason(error));
+    Util::Logger::Info(log_buf);
     SendAckError(command.correlation_id, Util::ParseErrorReason(error));
     return;
   }
+  char log_buf[256];
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[CMD] parsed type=%s duration_s=%u correlation_id=%s",
+                CommandTypeToString(command.type),
+                static_cast<unsigned int>(command.duration_s),
+                command.correlation_id);
+  Util::Logger::Info(log_buf);
 
   if (command.type == Util::CommandType::kPumpStart) {
     actuator_->StartPump(command.duration_s, command.correlation_id);

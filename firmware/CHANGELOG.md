@@ -1,6 +1,8 @@
 ﻿# Changelog
 
 ## 2025-12-28
+- fix(v2): dobavlen MQTT connect/reconnect v MqttService (setServer, retry 5s, rc reason).
+- feat(v2): rasshireny logi [WIFI]/[CFG]/[MQTT]/[STATE]/[CMD] dlya podklyucheniya, konfiguracii, publish i rx.
 - docs(v2): Dobavleny dokumentacionnye kommentarii (shapki fajlov + opisaniya parametrov publichnyh API) dlya v2 src2.
 - feat(v2): migraciya proshivki Grovika v novyj karkas (runtime, modulnaya arhitektura, MQTT cmd/ack/state).
 - feat(v2): AP + web-setup dlya Wi-Fi, builtin defaults, zapis wifi.json.

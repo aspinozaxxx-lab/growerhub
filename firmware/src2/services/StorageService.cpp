@@ -68,7 +68,11 @@ static bool EnsureDefaultScenarios(StorageService& storage) {
   if (!Util::EncodeScenariosConfig(config, payload, sizeof(payload))) {
     return false;
   }
-  return storage.WriteFileAtomic(kScenariosPath, payload);
+  if (!storage.WriteFileAtomic(kScenariosPath, payload)) {
+    return false;
+  }
+  Util::Logger::Info("[CFG] default scenarios.json created");
+  return true;
 }
 
 static bool EnsureDefaultDevice(StorageService& storage) {
@@ -84,31 +88,38 @@ static bool EnsureDefaultDevice(StorageService& storage) {
   if (written <= 0 || static_cast<size_t>(written) >= sizeof(payload)) {
     return false;
   }
-  return storage.WriteFileAtomic(kDevicePath, payload);
+  if (!storage.WriteFileAtomic(kDevicePath, payload)) {
+    return false;
+  }
+  Util::Logger::Info("[CFG] default device.json created");
+  return true;
 }
 #endif
 
 void StorageService::Init(Core::Context& ctx) {
   (void)ctx;
-  Util::Logger::Info("init StorageService");
+  Util::Logger::Info("[CFG] storage init");
 
 #if defined(ARDUINO)
   bool mounted = LittleFS.begin();
+  bool formatted = false;
   if (!mounted) {
-    Util::Logger::Info("littlefs mount fail, format");
+    Util::Logger::Info("[CFG] littlefs mount fail, format");
     mounted = LittleFS.begin(true);
+    formatted = mounted;
   }
   if (!mounted) {
-    Util::Logger::Info("littlefs mount fail after format");
+    Util::Logger::Info("[CFG] littlefs mount fail after format");
   } else {
+    Util::Logger::Info(formatted ? "[CFG] littlefs mount ok after format" : "[CFG] littlefs mount ok");
     if (!EnsureCfgDir()) {
-      Util::Logger::Info("littlefs mkdir /cfg fail");
+      Util::Logger::Info("[CFG] littlefs mkdir /cfg fail");
     }
     if (!EnsureDefaultScenarios(*this)) {
-      Util::Logger::Info("littlefs default scenarios fail");
+      Util::Logger::Info("[CFG] littlefs default scenarios fail");
     }
     if (!EnsureDefaultDevice(*this)) {
-      Util::Logger::Info("littlefs default device fail");
+      Util::Logger::Info("[CFG] littlefs default device fail");
     }
   }
 #endif

@@ -77,6 +77,7 @@ class WiFiService {
   WiFiNetworkList preferred_{};
   size_t sta_index_ = 0;
   uint32_t last_attempt_ms_ = 0;
+  char last_attempt_ssid_[kWifiSsidMaxLen + 1] = {};
   bool ap_started_ = false;
   int last_status_ = -1;
 };

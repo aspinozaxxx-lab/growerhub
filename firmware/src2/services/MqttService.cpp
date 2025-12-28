@@ -9,6 +9,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <string>
 
 #include "core/EventQueue.h"
 #include "util/Logger.h"
@@ -305,6 +306,17 @@ void MqttService::HandleMessage(char* topic, uint8_t* payload, unsigned int leng
   }
   std::memcpy(payload_buf, payload, copy_len);
   payload_buf[copy_len] = '\0';
+
+  const bool truncated = length >= Core::kMqttPayloadMax;
+  const char* topic_str = topic ? topic : "";
+  std::string log_line = "[MQTT] rx topic=";
+  log_line += topic_str;
+  log_line += " payload=";
+  log_line += payload_buf;
+  if (truncated) {
+    log_line += " truncated=true";
+  }
+  Util::Logger::Info(log_line.c_str());
 
   PushEvent(topic, payload_buf);
 }

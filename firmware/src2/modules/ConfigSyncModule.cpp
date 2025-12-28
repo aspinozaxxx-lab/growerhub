@@ -7,6 +7,7 @@
 
 #include "modules/ConfigSyncModule.h"
 
+#include <cstdio>
 #include <cstring>
 
 #include "core/Context.h"
@@ -34,7 +35,7 @@ void ConfigSyncModule::Init(Core::Context& ctx) {
   pending_apply_ = !mqtt_connected_;
 
   LoadFromStorage();
-  Util::Logger::Info("init ConfigSyncModule");
+  Util::Logger::Info("[CFG] init ConfigSyncModule");
 }
 
 void ConfigSyncModule::OnEvent(Core::Context& ctx, const Core::Event& event) {
@@ -141,6 +142,17 @@ void ConfigSyncModule::LoadFromStorage() {
     return;
   }
   config_ = parsed;
+  char log_buf[256];
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[CFG] scenarios loaded water_moisture=%s min_time=%u water_schedule=%s entries=%u light_schedule=%s entries=%u",
+                config_.water_moisture.enabled ? "true" : "false",
+                static_cast<unsigned int>(config_.water_moisture.min_time_between_watering_s),
+                config_.water_schedule.enabled ? "true" : "false",
+                static_cast<unsigned int>(config_.water_schedule.entry_count),
+                config_.light_schedule.enabled ? "true" : "false",
+                static_cast<unsigned int>(config_.light_schedule.entry_count));
+  Util::Logger::Info(log_buf);
 }
 
 void ConfigSyncModule::EmitConfigUpdated() {

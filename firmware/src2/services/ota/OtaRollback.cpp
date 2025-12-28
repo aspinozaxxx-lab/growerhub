@@ -182,6 +182,14 @@ bool OtaRollback::LoadState() {
   }
 
   state_ = loaded;
+  char log_buf[192];
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[CFG] device.json pending=%s boot_fail_count=%u pending_since_ms=%llu",
+                state_.pending ? "true" : "false",
+                static_cast<unsigned int>(state_.boot_fail_count),
+                static_cast<unsigned long long>(state_.pending_since_ms));
+  Util::Logger::Info(log_buf);
   return true;
 }
 

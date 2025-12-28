@@ -10,6 +10,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstring>
+#include <string>
 
 #include "core/EventQueue.h"
 #include "services/StorageService.h"
@@ -126,7 +127,8 @@ void WiFiService::Init(Core::Context& ctx) {
   last_attempt_ms_ = 0;
   last_status_ = -1;
   ap_started_ = false;
-  Util::Logger::Info("init WiFiService");
+  last_attempt_ssid_[0] = '\0';
+  Util::Logger::Info("[WIFI] init");
 
   StartAccessPoint();
   StartStaConnect(0);
@@ -137,18 +139,60 @@ void WiFiService::Loop(Core::Context& ctx, uint32_t now_ms) {
 #if defined(ARDUINO)
   const int status = static_cast<int>(WiFi.status());
   if (status != last_status_) {
+    const char* ssid = last_attempt_ssid_[0] != '\0' ? last_attempt_ssid_ : "unknown";
+    const String current_ssid = WiFi.SSID();
+    if (current_ssid.length() > 0) {
+      ssid = current_ssid.c_str();
+    }
+    const String ip = WiFi.localIP().toString();
+    const int rssi = WiFi.RSSI();
+    char log_buf[256];
     if (status == WL_CONNECTED) {
+      std::snprintf(log_buf,
+                    sizeof(log_buf),
+                    "[WIFI] sta_up ssid=%s ip=%s rssi=%d status=%d",
+                    ssid,
+                    ip.c_str(),
+                    rssi,
+                    status);
+      Util::Logger::Info(log_buf);
       if (event_queue_) {
         Core::Event event{};
         event.type = Core::EventType::kWifiStaUp;
         event_queue_->Push(event);
       }
     } else if (last_status_ == WL_CONNECTED) {
+      std::snprintf(log_buf,
+                    sizeof(log_buf),
+                    "[WIFI] sta_down ssid=%s ip=%s rssi=%d status=%d",
+                    ssid,
+                    ip.c_str(),
+                    rssi,
+                    status);
+      Util::Logger::Info(log_buf);
       if (event_queue_) {
         Core::Event event{};
         event.type = Core::EventType::kWifiStaDown;
         event_queue_->Push(event);
       }
+    } else if (status == WL_CONNECT_FAILED || status == WL_NO_SSID_AVAIL || status == WL_DISCONNECTED) {
+      std::snprintf(log_buf,
+                    sizeof(log_buf),
+                    "[WIFI] sta_error ssid=%s ip=%s rssi=%d status=%d",
+                    ssid,
+                    ip.c_str(),
+                    rssi,
+                    status);
+      Util::Logger::Info(log_buf);
+    } else {
+      std::snprintf(log_buf,
+                    sizeof(log_buf),
+                    "[WIFI] sta_status ssid=%s ip=%s rssi=%d status=%d",
+                    ssid,
+                    ip.c_str(),
+                    rssi,
+                    status);
+      Util::Logger::Info(log_buf);
     }
     last_status_ = status;
   }
@@ -194,16 +238,21 @@ WiFiNetworkList WiFiService::GetPreferredNetworks() const {
 bool WiFiService::LoadUserNetworks(WiFiNetworkList& out) const {
   out.count = 0;
   if (!storage_) {
+    Util::Logger::Info("[CFG] wifi.json skip: no storage");
     return false;
   }
   if (!storage_->Exists("/cfg/wifi.json")) {
+    Util::Logger::Info("[CFG] wifi.json not_found");
     return false;
   }
+  Util::Logger::Info("[CFG] wifi.json found");
   char json[1024];
   if (!storage_->ReadFile("/cfg/wifi.json", json, sizeof(json))) {
+    Util::Logger::Info("[CFG] wifi.json read_fail");
     return false;
   }
   if (!ParseWifiConfig(json, out)) {
+    Util::Logger::Info("[CFG] wifi.json parse_fail");
     out.count = 0;
     return false;
   }
@@ -230,7 +279,18 @@ bool WiFiService::ParseWifiConfig(const char* json, WiFiNetworkList& out) {
   if (!ExtractUintField(json, "schema_version", schema_version)) {
     return false;
   }
+  char log_buf[512];
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[CFG] wifi.json schema_version=%u",
+                static_cast<unsigned int>(schema_version));
+  Util::Logger::Info(log_buf);
   if (schema_version != Util::kWifiSchemaVersion) {
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "[CFG] wifi.json schema_mismatch expected=%u",
+                  static_cast<unsigned int>(Util::kWifiSchemaVersion));
+    Util::Logger::Info(log_buf);
     return false;
   }
   const char* networks_key = std::strstr(json, "\"networks\"");
@@ -264,6 +324,19 @@ bool WiFiService::ParseWifiConfig(const char* json, WiFiNetworkList& out) {
     out.entries[out.count++] = network;
     cursor = obj_end + 1;
   }
+  std::string ssids;
+  for (size_t i = 0; i < out.count; ++i) {
+    if (!ssids.empty()) {
+      ssids += ",";
+    }
+    ssids += out.entries[i].ssid;
+  }
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[CFG] wifi.json networks=%u ssids=%s",
+                static_cast<unsigned int>(out.count),
+                ssids.c_str());
+  Util::Logger::Info(log_buf);
   return out.count > 0;
 }
 
@@ -273,6 +346,10 @@ void WiFiService::StartStaConnect(uint32_t now_ms) {
   }
 #if defined(ARDUINO)
   const WiFiNetwork& network = preferred_.entries[sta_index_];
+  CopyField(network.ssid, last_attempt_ssid_, sizeof(last_attempt_ssid_));
+  char log_buf[128];
+  std::snprintf(log_buf, sizeof(log_buf), "[WIFI] sta_connect ssid=%s", last_attempt_ssid_);
+  Util::Logger::Info(log_buf);
   WiFi.disconnect(true);
   WiFi.begin(network.ssid, network.password);
 #endif
@@ -289,6 +366,13 @@ void WiFiService::StartAccessPoint() {
   std::snprintf(ap_ssid, sizeof(ap_ssid), "%s%s", kApSsidPrefix, device_id);
 
   ap_started_ = WiFi.softAP(ap_ssid, kApPassword);
+  char log_buf[128];
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[WIFI] ap_start ssid=%s ok=%s",
+                ap_ssid,
+                ap_started_ ? "true" : "false");
+  Util::Logger::Info(log_buf);
   if (ap_started_ && event_queue_) {
     Core::Event event{};
     event.type = Core::EventType::kWifiApUp;

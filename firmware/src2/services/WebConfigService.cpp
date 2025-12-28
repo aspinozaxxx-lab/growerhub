@@ -46,7 +46,7 @@ void WebConfigService::Init(Core::Context& ctx) {
   storage_ = ctx.storage;
   event_queue_ = ctx.event_queue;
   device_id_ = ctx.device_id;
-  Util::Logger::Info("init WebConfigService");
+  Util::Logger::Info("[CFG] init WebConfigService");
 
 #if defined(ARDUINO)
   if (!server_) {
@@ -77,6 +77,12 @@ void WebConfigService::Init(Core::Context& ctx) {
       server_->send(500, "text/plain", "Write failed");
       return;
     }
+    char log_buf[160];
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "[CFG] wifi.json saved ssid=%s",
+                  ssid.c_str());
+    Util::Logger::Info(log_buf);
     if (event_queue_) {
       Core::Event event{};
       event.type = Core::EventType::kWifiConfigUpdated;
