@@ -12,6 +12,7 @@
 - fix(v2): device_id teper' stroitsya kak v legacy (grovika_ + 3 bajta MAC, verhnij registr), dobavlen DeviceIdentity i unity-test.
 - test(v2): test_storage_* ubrany iz korna, testovye khranilishcha pereneseny v test2/tmp, dobavlen gitignore.
 - fix(v2): DHT22 otklyuchen po umolchaniyu; LittleFS sozdaet /cfg i defolt scenarii/device.json bez oshibok.
+- fix(v2): web-portal Wi-Fi prinimaet /save po GET i POST dlya sohraneniya.
 
 ## 2025-11-07
 - feat: edinyj bezopasnyj reboot cherez SystemMonitor::rebootIfSafe (ACK, status idle/running, zaderzhka 250ms, busy-wait).

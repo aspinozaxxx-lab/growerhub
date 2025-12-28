@@ -1,4 +1,4 @@
-#include "services/WebConfigService.h"
+﻿#include "services/WebConfigService.h"
 
 #include <cstdio>
 
@@ -50,7 +50,7 @@ void WebConfigService::Init(Core::Context& ctx) {
     server_->send(200, "text/html", kWebHtml);
   });
 
-  server_->on("/save", HTTP_POST, [this]() {
+  auto handle_save = [this]() {
     if (!storage_) {
       server_->send(500, "text/plain", "Storage unavailable");
       return;
@@ -76,7 +76,10 @@ void WebConfigService::Init(Core::Context& ctx) {
       event_queue_->Push(event);
     }
     server_->send(200, "text/plain", "Saved, reconnecting...");
-  });
+  };
+
+  server_->on("/save", HTTP_POST, handle_save);
+  server_->on("/save", HTTP_GET, handle_save);
 
   server_->on("/status", HTTP_GET, [this]() {
     char payload[256];
