@@ -1,7 +1,6 @@
 ﻿#pragma once
 
-// Prostoi logger dlya novoi vetki, poka tolko konsol/Serial.
-namespace Logging {
+namespace Util {
 
 class Logger {
  public:
@@ -9,4 +8,4 @@ class Logger {
   static void Info(const char* message);
 };
 
-}  // namespace Logging
+}

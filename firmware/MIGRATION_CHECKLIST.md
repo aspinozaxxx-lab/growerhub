@@ -1,0 +1,22 @@
+﻿# Migration Checklist
+
+- [ ] Core runtime (scheduler/event queue/module contract)
+- [ ] Logger unified format
+- [ ] Storage (LittleFS + json files + schema version + migrations)
+- [ ] Hardware profiles + build matrix
+- [ ] WiFi STA + always-on AP
+- [ ] Web config portal (wifi setup)
+- [ ] MQTT service + topics
+- [ ] Command router + ACK
+- [ ] Retained cfg sync (server -> device)
+- [ ] Sensors: RJ9 auto-detect soil moisture
+- [ ] Sensors: DHT22 optional
+- [ ] Actuators: pump relay
+- [ ] Actuators: light relay
+- [ ] Automations: water by time
+- [ ] Automations: water by moisture
+- [ ] Automations: light schedule
+- [ ] State retained publishing
+- [ ] OTA pull + rollback
+- [ ] Remove legacy REST telemetry usage in v2
+- [ ] Test suite for v2 (native)

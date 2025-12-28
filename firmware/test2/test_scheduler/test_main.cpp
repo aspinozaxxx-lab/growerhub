@@ -1,0 +1,41 @@
+﻿#include <unity.h>
+
+#include "core/Context.h"
+#include "core/EventQueue.h"
+#include "core/Scheduler.h"
+
+static int g_calls = 0;
+
+static void TickTask(Core::Context& ctx, uint32_t now_ms) {
+  (void)ctx;
+  (void)now_ms;
+  ++g_calls;
+}
+
+void setUp() {}
+void tearDown() {}
+
+static void test_scheduler_periodic() {
+  Core::Scheduler scheduler;
+  Core::EventQueue queue;
+  Core::Context ctx{&scheduler, &queue};
+
+  g_calls = 0;
+  bool added = scheduler.AddPeriodic("tick", 5, TickTask);
+  TEST_ASSERT_TRUE(added);
+
+  scheduler.Tick(ctx, 0);
+  scheduler.Tick(ctx, 5);
+  scheduler.Tick(ctx, 9);
+  scheduler.Tick(ctx, 10);
+
+  TEST_ASSERT_EQUAL(2, g_calls);
+}
+
+int main(int argc, char** argv) {
+  (void)argc;
+  (void)argv;
+  UNITY_BEGIN();
+  RUN_TEST(test_scheduler_periodic);
+  return UNITY_END();
+}

@@ -1,13 +1,12 @@
-﻿#include "Logging/Logger.h"
+﻿#include "util/Logger.h"
 
-// Perekluchenie na Serial ili printf dlya raznykh platform.
 #if defined(ARDUINO)
 #include <Arduino.h>
 #else
 #include <cstdio>
 #endif
 
-namespace Logging {
+namespace Util {
 
 void Logger::Init() {
 #if defined(ARDUINO)
@@ -23,4 +22,4 @@ void Logger::Info(const char* message) {
 #endif
 }
 
-}  // namespace Logging
+}
