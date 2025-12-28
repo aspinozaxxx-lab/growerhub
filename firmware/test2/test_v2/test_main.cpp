@@ -6,7 +6,8 @@ void test_pump_start_ack();
 void test_pump_stop_ack();
 void test_reboot_declined_when_pump_running();
 void test_reboot_accepted_when_idle();
-void test_config_codec();
+void test_config_codec_valid();
+void test_config_codec_invalid();
 void test_event_queue_order();
 void test_parse_pump_start();
 void test_parse_pump_stop();
@@ -16,6 +17,7 @@ void test_parse_missing_type();
 void test_parse_invalid_duration();
 void test_ack_payloads();
 void test_scheduler_periodic();
+void test_config_sync_apply_retained();
 
 void setUp() {}
 void tearDown() {}
@@ -30,7 +32,8 @@ int main(int argc, char** argv) {
   RUN_TEST(test_pump_stop_ack);
   RUN_TEST(test_reboot_declined_when_pump_running);
   RUN_TEST(test_reboot_accepted_when_idle);
-  RUN_TEST(test_config_codec);
+  RUN_TEST(test_config_codec_valid);
+  RUN_TEST(test_config_codec_invalid);
   RUN_TEST(test_event_queue_order);
   RUN_TEST(test_parse_pump_start);
   RUN_TEST(test_parse_pump_stop);
@@ -40,5 +43,6 @@ int main(int argc, char** argv) {
   RUN_TEST(test_parse_invalid_duration);
   RUN_TEST(test_ack_payloads);
   RUN_TEST(test_scheduler_periodic);
+  RUN_TEST(test_config_sync_apply_retained);
   return UNITY_END();
 }

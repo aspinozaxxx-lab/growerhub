@@ -2,13 +2,13 @@
 
 - [x] Core runtime (scheduler/event queue/module contract)
 - [x] Logger unified format
-- [ ] Storage (LittleFS + json files + schema version + migrations)
+- [x] Storage (LittleFS + json files + schema version + migrations)
 - [ ] Hardware profiles + build matrix
 - [ ] WiFi STA + always-on AP
 - [ ] Web config portal (wifi setup)
 - [x] MQTT service + topics
 - [x] Command router + ACK
-- [ ] Retained cfg sync (server -> device)
+- [x] Retained cfg sync (server -> device)
 - [ ] Sensors: RJ9 auto-detect soil moisture
 - [ ] Sensors: DHT22 optional
 - [x] Actuators: pump relay

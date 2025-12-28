@@ -10,7 +10,8 @@ enum class EventType : uint8_t {
   kNone = 0,
   kHeartbeat = 1,
   kCustom = 2,
-  kMqttMessage = 3
+  kMqttMessage = 3,
+  kConfigUpdated = 4
 };
 
 static const size_t kMqttTopicMax = 64;

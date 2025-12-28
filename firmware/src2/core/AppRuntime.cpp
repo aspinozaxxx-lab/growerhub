@@ -15,7 +15,9 @@ void AppRuntime::Init() {
   context_.scheduler = &scheduler_;
   context_.event_queue = &event_queue_;
   context_.mqtt = &mqtt_service_;
+  context_.storage = &storage_service_;
   context_.actuator = &actuator_module_;
+  context_.config_sync = &config_sync_module_;
   context_.state = &state_module_;
   context_.hardware = &Config::GetHardwareProfile();
 

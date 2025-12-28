@@ -122,6 +122,11 @@ bool ParseCommand(const char* json, Command& out, ParseError& error) {
     return true;
   }
 
+  if (std::strcmp(type_buf, "cfg.sync") == 0) {
+    out.type = CommandType::kCfgSync;
+    return true;
+  }
+
   error = ParseError::kUnsupportedCommand;
   return false;
 }

@@ -5,12 +5,18 @@
 
 namespace Util {
 
-struct ConfigStub {
-  uint32_t version;
+static const uint32_t kScenariosSchemaVersion = 1;
+
+struct ScenariosConfig {
+  uint32_t schema_version;
+  bool water_time_enabled;
+  bool water_moisture_enabled;
+  bool light_schedule_enabled;
 };
 
-bool EncodeConfig(const ConfigStub& config, char* out, size_t out_size);
-bool DecodeConfig(const char* json, ConfigStub* config);
-bool ValidateConfig(const ConfigStub& config);
+ScenariosConfig DefaultScenariosConfig();
+bool EncodeScenariosConfig(const ScenariosConfig& config, char* out, size_t out_size);
+bool DecodeScenariosConfig(const char* json, ScenariosConfig* config);
+bool ValidateScenariosConfig(const ScenariosConfig& config);
 
 }

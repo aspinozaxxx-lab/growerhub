@@ -9,6 +9,7 @@
 #include "config/HardwareProfile.h"
 #include "core/Context.h"
 #include "modules/ActuatorModule.h"
+#include "modules/ConfigSyncModule.h"
 #include "modules/StateModule.h"
 #include "services/MqttService.h"
 #include "services/Topics.h"
@@ -35,6 +36,7 @@ static void SleepMs(uint32_t delay_ms) {
 void CommandRouterModule::Init(Core::Context& ctx) {
   mqtt_ = ctx.mqtt;
   actuator_ = ctx.actuator;
+  config_sync_ = ctx.config_sync;
   state_ = ctx.state;
   hardware_ = ctx.hardware;
 #if defined(ARDUINO)
@@ -102,6 +104,13 @@ void CommandRouterModule::HandleCommand(const char* topic, const char* payload) 
       SendAckError("", "bad-correlation-id");
     } else {
       RebootIfSafe(command.correlation_id);
+    }
+    return;
+  }
+
+  if (command.type == Util::CommandType::kCfgSync) {
+    if (config_sync_) {
+      config_sync_->RequestSync();
     }
     return;
   }

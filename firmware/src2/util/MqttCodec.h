@@ -11,7 +11,8 @@ enum class CommandType : uint8_t {
   kUnknown = 0,
   kPumpStart = 1,
   kPumpStop = 2,
-  kReboot = 3
+  kReboot = 3,
+  kCfgSync = 4
 };
 
 enum class ParseError : uint8_t {

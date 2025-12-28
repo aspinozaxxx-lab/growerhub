@@ -9,7 +9,7 @@ void test_pump_timeout() {
   Config::HardwareProfile hw = Config::GetHardwareProfile();
   hw.pump_max_runtime_ms = 1000;
 
-  Core::Context ctx{nullptr, nullptr, nullptr, &actuator, nullptr, &hw};
+  Core::Context ctx{nullptr, nullptr, nullptr, nullptr, &actuator, nullptr, nullptr, &hw};
   actuator.Init(ctx);
 
   TEST_ASSERT_TRUE(actuator.StartPump(5, "p1"));
@@ -24,7 +24,7 @@ void test_pump_timeout() {
 void test_light_state() {
   Modules::ActuatorModule actuator;
   Config::HardwareProfile hw = Config::GetHardwareProfile();
-  Core::Context ctx{nullptr, nullptr, nullptr, &actuator, nullptr, &hw};
+  Core::Context ctx{nullptr, nullptr, nullptr, nullptr, &actuator, nullptr, nullptr, &hw};
   actuator.Init(ctx);
 
   actuator.SetLight(true);

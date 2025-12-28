@@ -7,10 +7,12 @@ class EventQueue;
 
 namespace Services {
 class MqttService;
+class StorageService;
 }
 
 namespace Modules {
 class ActuatorModule;
+class ConfigSyncModule;
 class StateModule;
 }
 
@@ -24,7 +26,9 @@ struct Context {
   Scheduler* scheduler;
   EventQueue* event_queue;
   Services::MqttService* mqtt;
+  Services::StorageService* storage;
   Modules::ActuatorModule* actuator;
+  Modules::ConfigSyncModule* config_sync;
   Modules::StateModule* state;
   const Config::HardwareProfile* hardware;
 };

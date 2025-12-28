@@ -2,17 +2,26 @@
 
 #include "util/JsonUtil.h"
 
-void test_config_codec() {
-  Util::ConfigStub config{1};
-  char buffer[8];
+void test_config_codec_valid() {
+  Util::ScenariosConfig config = Util::DefaultScenariosConfig();
+  config.water_time_enabled = true;
+  config.light_schedule_enabled = true;
 
-  TEST_ASSERT_TRUE(Util::EncodeConfig(config, buffer, sizeof(buffer)));
-  TEST_ASSERT_EQUAL_STRING("{}", buffer);
+  char buffer[256];
+  TEST_ASSERT_TRUE(Util::EncodeScenariosConfig(config, buffer, sizeof(buffer)));
 
-  Util::ConfigStub decoded{0};
-  TEST_ASSERT_TRUE(Util::DecodeConfig("{}", &decoded));
-  TEST_ASSERT_TRUE(Util::ValidateConfig(decoded));
+  Util::ScenariosConfig decoded{};
+  TEST_ASSERT_TRUE(Util::DecodeScenariosConfig(buffer, &decoded));
+  TEST_ASSERT_TRUE(Util::ValidateScenariosConfig(decoded));
+  TEST_ASSERT_TRUE(decoded.water_time_enabled);
+  TEST_ASSERT_TRUE(decoded.light_schedule_enabled);
+  TEST_ASSERT_FALSE(decoded.water_moisture_enabled);
+}
 
-  Util::ConfigStub bad{0};
-  TEST_ASSERT_FALSE(Util::ValidateConfig(bad));
+void test_config_codec_invalid() {
+  Util::ScenariosConfig decoded{};
+  TEST_ASSERT_FALSE(Util::DecodeScenariosConfig("", &decoded));
+  TEST_ASSERT_FALSE(Util::DecodeScenariosConfig("{}", &decoded));
+  TEST_ASSERT_TRUE(Util::DecodeScenariosConfig(R"({"schema_version":2})", &decoded));
+  TEST_ASSERT_FALSE(Util::ValidateScenariosConfig(decoded));
 }

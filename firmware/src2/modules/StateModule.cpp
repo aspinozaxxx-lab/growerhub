@@ -6,6 +6,7 @@
 #include "config/HardwareProfile.h"
 #include "core/Context.h"
 #include "modules/ActuatorModule.h"
+#include "modules/ConfigSyncModule.h"
 #include "services/MqttService.h"
 #include "services/Topics.h"
 #include "util/Logger.h"
@@ -15,6 +16,7 @@ namespace Modules {
 void StateModule::Init(Core::Context& ctx) {
   mqtt_ = ctx.mqtt;
   actuator_ = ctx.actuator;
+  config_sync_ = ctx.config_sync;
   hardware_ = ctx.hardware;
   last_publish_ms_ = 0;
   Util::Logger::Info("init StateModule");
@@ -62,6 +64,21 @@ void StateModule::PublishState(bool retained) {
     payload += ",\"fw_build\":\"" + std::string(Config::kFwBuild) + "\"";
   }
   payload += ",\"light\":{\"status\":\"" + std::string(actuator_->IsLightOn() ? "on" : "off") + "\"}";
+
+  bool water_time = false;
+  bool water_moisture = false;
+  bool light_schedule = false;
+  if (config_sync_) {
+    const Util::ScenariosConfig& cfg = config_sync_->GetConfig();
+    water_time = cfg.water_time_enabled;
+    water_moisture = cfg.water_moisture_enabled;
+    light_schedule = cfg.light_schedule_enabled;
+  }
+  payload += ",\"scenarios\":{";
+  payload += "\"water_time\":{\"enabled\":" + std::string(water_time ? "true" : "false") + "},";
+  payload += "\"water_moisture\":{\"enabled\":" + std::string(water_moisture ? "true" : "false") + "},";
+  payload += "\"light_schedule\":{\"enabled\":" + std::string(light_schedule ? "true" : "false") + "}";
+  payload += "}";
   payload += "}";
 
   char topic[128];
