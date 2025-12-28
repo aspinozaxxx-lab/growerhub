@@ -1,5 +1,15 @@
 # Changelog
 
+## 2025-12-28
+- feat(v2): migraciya proshivki Grovika v novyj karkas (runtime, modulnaya arhitektura, MQTT cmd/ack/state).
+- feat(v2): AP + web-setup dlya Wi-Fi, builtin defaults, zapis wifi.json.
+- feat(v2): storage na LittleFS, retained cfg sync (scenarios.json), validaciya i migraciya shemy.
+- feat(v2): avtomatika (poliv po vlazhnosti i po raspisaniyu, svet po raspisaniyu) + QoS1 events.
+- feat(v2): OTA pull + rollback s markerami pending/confirm.
+- feat(v2): RJ9 auto-detect soil sensors + state; dobavlen DHT22 driver + air state.
+- remove(v2): udalena REST telemetriya (HTTP POST status) iz v2.
+- test(v2): 39 unity-testov (native) - codec/ack, config/storage, wifi/web, soil/automation, ota rollback, dht22, scheduler/event queue.
+
 ## 2025-11-07
 - feat: edinyj bezopasnyj reboot cherez SystemMonitor::rebootIfSafe (ACK, status idle/running, zaderzhka 250ms, busy-wait).
 - refactor: komanda reboot po MQTT teper' deligiruyetsya v SystemMonitor; ACK uhodit iz SystemMonitor cherez MQTT helper.
