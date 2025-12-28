@@ -19,7 +19,7 @@ MCU: ESP32 devboard
 | Signal | GPIO | Источник |
 |---|---:|---|
 | SOIL_A_ADC | GPIO34 | firmware/src/Application.cpp:410 |
-| SOIL_B_ADC | GPIO__ | not found in firmware |
+| SOIL_B_ADC | GPIO35 | not found in firmware |
 | PUMP_CTRL | GPIO4 | firmware/src/Application.cpp:434 |
 | LIGHT_RELAY | GPIO5 | firmware/src/Application.cpp:435 |
 | RTC_SDA | GPIO21 | firmware/src/System/SystemClock.h:15 |
