@@ -38,6 +38,7 @@ class CommandRouterModule : public Core::Module {
   void SendAckStatus(const char* correlation_id, const char* status, bool accepted);
   void SendAckError(const char* correlation_id, const char* reason);
   void RebootIfSafe(const char* correlation_id);
+  void RebootIfSafeInternal(const char* correlation_id, bool send_ack, const char* reason);
 
   Services::MqttService* mqtt_ = nullptr;
   Modules::ActuatorModule* actuator_ = nullptr;

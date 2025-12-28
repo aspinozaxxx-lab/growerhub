@@ -36,6 +36,9 @@ void test_light_schedule_overnight();
 void test_ota_pending_confirm();
 void test_ota_boot_failures_trigger();
 void test_ota_timeout_trigger();
+void test_dht_rate_limit();
+void test_dht_nan_unavailable();
+void test_dht_fail_triggers_reboot_event();
 
 void setUp() {}
 void tearDown() {}
@@ -80,5 +83,8 @@ int main(int argc, char** argv) {
   RUN_TEST(test_ota_pending_confirm);
   RUN_TEST(test_ota_boot_failures_trigger);
   RUN_TEST(test_ota_timeout_trigger);
+  RUN_TEST(test_dht_rate_limit);
+  RUN_TEST(test_dht_nan_unavailable);
+  RUN_TEST(test_dht_fail_triggers_reboot_event);
   return UNITY_END();
 }

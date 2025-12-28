@@ -55,6 +55,8 @@ void test_sensor_hub_pump_block() {
   Core::EventQueue queue;
   Modules::SensorHubModule hub;
   Config::HardwareProfile hw = Config::GetHardwareProfile();
+  hw.has_dht22 = false;
+  hw.dht_auto_reboot_on_fail = false;
 
   Core::Context ctx{&scheduler, &queue, nullptr, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw};
   hub.Init(ctx);
@@ -109,6 +111,17 @@ void test_state_soil_serialization() {
 
   Drivers::Rj9PortScanner* scanner = hub.GetScanner();
   scanner->SetAdcReader(&FakeAdcHub);
+  Drivers::Dht22Sensor* dht = hub.GetDhtSensor();
+  if (dht) {
+    dht->SetReadHook([](float* out_temp_c, float* out_humidity) {
+      if (!out_temp_c || !out_humidity) {
+        return false;
+      }
+      *out_temp_c = 24.5f;
+      *out_humidity = 60.1f;
+      return true;
+    });
+  }
   FillSamplesHub(2000, 4095);
   RunTick(scheduler, hub, ctx, 5000);
   RunTick(scheduler, hub, ctx, 10000);
@@ -119,4 +132,6 @@ void test_state_soil_serialization() {
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"soil\"") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"port\":0") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"detected\":true") != nullptr);
+  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"air\"") != nullptr);
+  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"available\":true") != nullptr);
 }

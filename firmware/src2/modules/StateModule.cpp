@@ -82,6 +82,19 @@ void StateModule::PublishState(bool retained) {
   payload += "\"light_schedule\":{\"enabled\":" + std::string(light_schedule ? "true" : "false") + "}";
   payload += "}";
 
+  Modules::SensorHubModule::DhtReading dht{};
+  const bool has_dht = sensor_hub_ && sensor_hub_->GetDhtReading(&dht);
+  const bool dht_available = has_dht && dht.available;
+  payload += ",\"air\":{";
+  payload += "\"available\":" + std::string(dht_available ? "true" : "false");
+  if (dht_available) {
+    payload += ",\"temperature\":" + std::to_string(dht.temperature_c);
+    payload += ",\"humidity\":" + std::to_string(dht.humidity);
+  } else {
+    payload += ",\"temperature\":null,\"humidity\":null";
+  }
+  payload += "}";
+
   if (sensor_hub_ && sensor_hub_->GetScanner()) {
     const Drivers::Rj9PortScanner* scanner = sensor_hub_->GetScanner();
     const size_t port_count = scanner->GetPortCount();

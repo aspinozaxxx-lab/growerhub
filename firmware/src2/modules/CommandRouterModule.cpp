@@ -47,10 +47,13 @@ void CommandRouterModule::Init(Core::Context& ctx) {
 
 void CommandRouterModule::OnEvent(Core::Context& ctx, const Core::Event& event) {
   (void)ctx;
-  if (event.type != Core::EventType::kMqttMessage) {
+  if (event.type == Core::EventType::kMqttMessage) {
+    HandleCommand(event.mqtt.topic, event.mqtt.payload);
     return;
   }
-  HandleCommand(event.mqtt.topic, event.mqtt.payload);
+  if (event.type == Core::EventType::kRebootRequest) {
+    RebootIfSafeInternal(nullptr, false, event.mqtt.payload);
+  }
 }
 
 void CommandRouterModule::OnTick(Core::Context& ctx, uint32_t now_ms) {
@@ -158,15 +161,26 @@ void CommandRouterModule::SendAckError(const char* correlation_id, const char* r
 }
 
 void CommandRouterModule::RebootIfSafe(const char* correlation_id) {
+  RebootIfSafeInternal(correlation_id, true, nullptr);
+}
+
+void CommandRouterModule::RebootIfSafeInternal(const char* correlation_id, bool send_ack, const char* reason) {
   const bool pump_running = actuator_ && actuator_->IsPumpRunning();
   const char* status = pump_running ? "running" : "idle";
 
   if (pump_running) {
-    SendAckStatus(correlation_id, status, false);
+    if (send_ack && correlation_id) {
+      SendAckStatus(correlation_id, status, false);
+    }
     return;
   }
 
-  SendAckStatus(correlation_id, status, true);
+  if (send_ack && correlation_id) {
+    SendAckStatus(correlation_id, status, true);
+  }
+  if (reason && reason[0] != '\0') {
+    Util::Logger::Info(reason);
+  }
   if (state_) {
     state_->PublishState(false);
   }
