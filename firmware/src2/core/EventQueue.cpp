@@ -1,4 +1,11 @@
-﻿#include "core/EventQueue.h"
+﻿/*
+ * Chto v faile: realizaciya tipov sobytiy i ocheredi sobytiy.
+ * Rol v arhitekture: core.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe core.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "core/EventQueue.h"
 
 namespace Core {
 

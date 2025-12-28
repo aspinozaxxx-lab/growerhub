@@ -1,3 +1,10 @@
+﻿/*
+ * Chto v faile: realizaciya obertki dlya pochvennogo datchika.
+ * Rol v arhitekture: drivers.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe drivers.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
 #include "drivers/soil/SoilSensor.h"
 
 namespace Drivers {

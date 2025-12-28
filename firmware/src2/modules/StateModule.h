@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+ * Chto v faile: obyavleniya modulya publikacii sostoyaniya.
+ * Rol v arhitekture: modules.
+ * Naznachenie: publichnyi API i tipy dlya sloya modules.
+ * Soderzhit: klassy, struktury i publichnye metody.
+ */
+
+#pragma once
 
 #include <cstdint>
 #include "core/Module.h"
@@ -17,10 +24,28 @@ namespace Modules {
 
 class StateModule : public Core::Module {
  public:
+  /**
+   * Init modula sostoyaniya.
+   * @param ctx Kontekst s servisami i modulami.
+   */
   void Init(Core::Context& ctx) override;
+  /**
+   * Obrabotka sobytiy (esli nuzhno).
+   * @param ctx Kontekst s zavisimostyami modula.
+   * @param event Sobytie dlya obrabotki.
+   */
   void OnEvent(Core::Context& ctx, const Core::Event& event) override;
+  /**
+   * Periodicheskiy tick publikacii sostoyaniya.
+   * @param ctx Kontekst s zavisimostyami modula.
+   * @param now_ms Tekuschee vremya v millisekundah.
+   */
   void OnTick(Core::Context& ctx, uint32_t now_ms) override;
 
+  /**
+   * Publikuet sostoyanie ustroistva v MQTT.
+   * @param retained Flag retained dlya soobshcheniya.
+   */
   void PublishState(bool retained);
 
  private:

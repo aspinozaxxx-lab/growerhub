@@ -1,3 +1,10 @@
+﻿/*
+ * Chto v faile: obyavleniya modulya avtomatizacii poliva i sveta.
+ * Rol v arhitekture: modules.
+ * Naznachenie: publichnyi API i tipy dlya sloya modules.
+ * Soderzhit: klassy, struktury i publichnye metody.
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -21,8 +28,22 @@ namespace Modules {
 
 class AutomationModule : public Core::Module {
  public:
+  /**
+   * Init modula avtomatizacii.
+   * @param ctx Kontekst s servisami i modulami.
+   */
   void Init(Core::Context& ctx) override;
+  /**
+   * Obrabotka sobytiy konfiguracii.
+   * @param ctx Kontekst s zavisimostyami modula.
+   * @param event Sobytie dlya obrabotki.
+   */
   void OnEvent(Core::Context& ctx, const Core::Event& event) override;
+  /**
+   * Periodicheskiy tick avtomatiki.
+   * @param ctx Kontekst s zavisimostyami modula.
+   * @param now_ms Tekuschee vremya v millisekundah.
+   */
   void OnTick(Core::Context& ctx, uint32_t now_ms) override;
 
  private:

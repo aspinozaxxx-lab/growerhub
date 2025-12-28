@@ -1,3 +1,10 @@
+﻿/*
+ * Chto v faile: realizaciya modulya avtomatizacii poliva i sveta.
+ * Rol v arhitekture: modules.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe modules.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
 #include "modules/AutomationModule.h"
 
 #include <cstdio>

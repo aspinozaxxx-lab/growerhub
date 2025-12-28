@@ -1,4 +1,11 @@
-﻿#include "services/StorageService.h"
+﻿/*
+ * Chto v faile: realizaciya dostupa k hranilishchu konfiguracii.
+ * Rol v arhitekture: services.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe services.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "services/StorageService.h"
 
 #include <cstdio>
 #include <cstring>

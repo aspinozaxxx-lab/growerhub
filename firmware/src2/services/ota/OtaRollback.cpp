@@ -1,3 +1,10 @@
+﻿/*
+ * Chto v faile: realizaciya hraneniya sostoyaniya OTA i logiki rollback.
+ * Rol v arhitekture: services.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe services.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
 #include "services/ota/OtaRollback.h"
 
 #include <cctype>

@@ -1,4 +1,11 @@
-﻿#include "drivers/relay/Relay.h"
+﻿/*
+ * Chto v faile: realizaciya drivera rele.
+ * Rol v arhitekture: drivers.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe drivers.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "drivers/relay/Relay.h"
 
 #if defined(ARDUINO)
 #include <Arduino.h>

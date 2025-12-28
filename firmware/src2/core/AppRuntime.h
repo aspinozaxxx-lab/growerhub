@@ -1,4 +1,11 @@
-﻿#pragma once
+﻿/*
+ * Chto v faile: obyavleniya orkestratora init i tick dlya servisov i moduley.
+ * Rol v arhitekture: core.
+ * Naznachenie: publichnyi API i tipy dlya sloya core.
+ * Soderzhit: klassy, struktury i publichnye metody.
+ */
+
+#pragma once
 
 #include <array>
 #include <cstddef>
@@ -25,7 +32,13 @@ namespace Core {
 
 class AppRuntime {
  public:
+  /**
+   * Init runtime i svyazyvaet servisy/moduli v kontekste.
+   */
   void Init();
+  /**
+   * Odin tick glavnogo cikla obrabotki.
+   */
   void Tick();
 
  private:

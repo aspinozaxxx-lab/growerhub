@@ -1,4 +1,11 @@
-﻿#include "services/MqttService.h"
+﻿/*
+ * Chto v faile: realizaciya MQTT servisa i svyazi s event queue.
+ * Rol v arhitekture: services.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe services.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "services/MqttService.h"
 
 #include <cstring>
 

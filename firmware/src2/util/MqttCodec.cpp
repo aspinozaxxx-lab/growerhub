@@ -1,4 +1,11 @@
-﻿#include "util/MqttCodec.h"
+﻿/*
+ * Chto v faile: realizaciya parsera komand MQTT i formirovaniya ack.
+ * Rol v arhitekture: util.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe util.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "util/MqttCodec.h"
 
 #include <cctype>
 #include <cstdio>

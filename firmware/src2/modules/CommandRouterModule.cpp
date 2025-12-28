@@ -1,4 +1,11 @@
-﻿#include "modules/CommandRouterModule.h"
+﻿/*
+ * Chto v faile: realizaciya modulya marshrutizacii komand i reboot.
+ * Rol v arhitekture: modules.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe modules.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "modules/CommandRouterModule.h"
 
 #include <cstring>
 

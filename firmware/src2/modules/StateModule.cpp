@@ -1,4 +1,11 @@
-﻿#include "modules/StateModule.h"
+﻿/*
+ * Chto v faile: realizaciya modulya publikacii sostoyaniya.
+ * Rol v arhitekture: modules.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe modules.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "modules/StateModule.h"
 
 #include <string>
 

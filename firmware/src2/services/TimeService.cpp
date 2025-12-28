@@ -1,3 +1,10 @@
+﻿/*
+ * Chto v faile: realizaciya servisa vremeni i vremennyh metok.
+ * Rol v arhitekture: services.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe services.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
 #include "services/TimeService.h"
 
 #include <ctime>

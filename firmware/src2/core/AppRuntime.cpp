@@ -1,4 +1,11 @@
-﻿#include "core/AppRuntime.h"
+﻿/*
+ * Chto v faile: realizaciya orkestratora init i tick dlya servisov i moduley.
+ * Rol v arhitekture: core.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe core.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "core/AppRuntime.h"
 
 #include "config/HardwareProfile.h"
 #include "services/Topics.h"

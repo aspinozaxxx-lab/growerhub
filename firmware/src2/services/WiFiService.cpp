@@ -1,3 +1,10 @@
+﻿/*
+ * Chto v faile: realizaciya servisa upravleniya Wi-Fi i AP.
+ * Rol v arhitekture: services.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe services.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
 #include "services/WiFiService.h"
 
 #include <cctype>

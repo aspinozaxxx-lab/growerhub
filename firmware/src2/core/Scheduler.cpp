@@ -1,4 +1,11 @@
-﻿#include "core/Scheduler.h"
+﻿/*
+ * Chto v faile: realizaciya planirivshchika periodicheskih zadach.
+ * Rol v arhitekture: core.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe core.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "core/Scheduler.h"
 #include "core/Context.h"
 
 namespace Core {

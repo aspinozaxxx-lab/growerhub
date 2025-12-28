@@ -1,4 +1,11 @@
-﻿#include "util/JsonUtil.h"
+﻿/*
+ * Chto v faile: realizaciya struktur konfiguracii i JSON kodirovaniya/dekodirovaniya.
+ * Rol v arhitekture: util.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe util.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "util/JsonUtil.h"
 
 #include <cctype>
 #include <cstdarg>

@@ -1,4 +1,11 @@
-﻿#include "services/WebConfigService.h"
+﻿/*
+ * Chto v faile: realizaciya web-nastroiki Wi-Fi i zapisi konfiguracii.
+ * Rol v arhitekture: services.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe services.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "services/WebConfigService.h"
 
 #include <cstdio>
 

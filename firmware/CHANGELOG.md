@@ -1,6 +1,7 @@
 ﻿# Changelog
 
 ## 2025-12-28
+- docs(v2): Dobavleny dokumentacionnye kommentarii (shapki fajlov + opisaniya parametrov publichnyh API) dlya v2 src2.
 - feat(v2): migraciya proshivki Grovika v novyj karkas (runtime, modulnaya arhitektura, MQTT cmd/ack/state).
 - feat(v2): AP + web-setup dlya Wi-Fi, builtin defaults, zapis wifi.json.
 - feat(v2): storage na LittleFS, retained cfg sync (scenarios.json), validaciya i migraciya shemy.

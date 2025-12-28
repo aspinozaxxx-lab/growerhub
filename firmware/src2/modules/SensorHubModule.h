@@ -1,3 +1,10 @@
+﻿/*
+ * Chto v faile: obyavleniya modulya sbora dannyh datchikov.
+ * Rol v arhitekture: modules.
+ * Naznachenie: publichnyi API i tipy dlya sloya modules.
+ * Soderzhit: klassy, struktury i publichnye metody.
+ */
+
 #pragma once
 
 #include "core/Module.h"
@@ -18,20 +25,50 @@ namespace Modules {
 class SensorHubModule : public Core::Module {
  public:
   struct DhtReading {
+    // Est li aktualnoe chtenie.
     bool available;
+    // Temperatura v gradusah C.
     float temperature_c;
+    // Vlazhnost v procentah.
     float humidity;
   };
 
+  /**
+   * Init modula datchikov.
+   * @param ctx Kontekst s servisami i ocheredyu sobytiy.
+   */
   void Init(Core::Context& ctx) override;
+  /**
+   * Obrabotka sobytiy nasosa i reboot.
+   * @param ctx Kontekst s zavisimostyami modula.
+   * @param event Sobytie dlya obrabotki.
+   */
   void OnEvent(Core::Context& ctx, const Core::Event& event) override;
+  /**
+   * Periodicheskiy tick skanirovaniya i chteniya datchikov.
+   * @param ctx Kontekst s zavisimostyami modula.
+   * @param now_ms Tekuschee vremya v millisekundah.
+   */
   void OnTick(Core::Context& ctx, uint32_t now_ms) override;
 
+  /**
+   * Vozvrashaet ukazatel na skaner portov (const).
+   */
   const Drivers::Rj9PortScanner* GetScanner() const;
+  /**
+   * Vozvrashaet ukazatel na skaner portov.
+   */
   Drivers::Rj9PortScanner* GetScanner();
+  /**
+   * Vozvrashaet poslednee chtenie DHT22.
+   * @param out Vyhodnaya struktura s dannymi.
+   */
   bool GetDhtReading(DhtReading* out) const;
 
 #if defined(UNIT_TEST)
+  /**
+   * Vozvrashaet ukazatel na DHT22 dlya testov.
+   */
   Drivers::Dht22Sensor* GetDhtSensor();
 #endif
 

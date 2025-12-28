@@ -1,4 +1,11 @@
-﻿#include "modules/ConfigSyncModule.h"
+﻿/*
+ * Chto v faile: realizaciya modulya sinhronizacii konfiguracii scenariev.
+ * Rol v arhitekture: modules.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe modules.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "modules/ConfigSyncModule.h"
 
 #include <cstring>
 

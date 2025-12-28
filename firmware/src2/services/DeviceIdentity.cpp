@@ -1,4 +1,11 @@
-﻿#include "services/DeviceIdentity.h"
+﻿/*
+ * Chto v faile: realizaciya formirovaniya device_id po MAC.
+ * Rol v arhitekture: services.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe services.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "services/DeviceIdentity.h"
 
 #include <cstdio>
 

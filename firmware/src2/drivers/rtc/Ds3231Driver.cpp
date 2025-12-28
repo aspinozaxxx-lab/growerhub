@@ -1,4 +1,11 @@
-﻿#include "drivers/rtc/Ds3231Driver.h"
+﻿/*
+ * Chto v faile: realizaciya zagotovki drivera RTC DS3231.
+ * Rol v arhitekture: drivers.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe drivers.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "drivers/rtc/Ds3231Driver.h"
 
 namespace Drivers {
 

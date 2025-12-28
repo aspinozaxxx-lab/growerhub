@@ -1,4 +1,11 @@
-﻿#include "util/Logger.h"
+﻿/*
+ * Chto v faile: realizaciya prostogo logirovaniya.
+ * Rol v arhitekture: util.
+ * Naznachenie: logika i vzaimodeistvie komponenta v sloe util.
+ * Soderzhit: realizacii metodov i vspomogatelnye funkcii.
+ */
+
+#include "util/Logger.h"
 
 #if defined(ARDUINO)
 #include <Arduino.h>
