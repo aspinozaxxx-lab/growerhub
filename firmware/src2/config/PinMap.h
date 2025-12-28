@@ -5,7 +5,10 @@
 namespace Config {
 
 struct PinMap {
-  uint8_t dummy;
+  uint8_t pump_relay_pin;
+  bool pump_relay_inverted;
+  uint8_t light_relay_pin;
+  bool light_relay_inverted;
 };
 
 }

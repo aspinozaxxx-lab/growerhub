@@ -1,10 +1,22 @@
 ﻿#include "modules/StateModule.h"
+
+#include <string>
+
+#include "config/BuildFlags.h"
+#include "config/HardwareProfile.h"
+#include "core/Context.h"
+#include "modules/ActuatorModule.h"
+#include "services/MqttService.h"
+#include "services/Topics.h"
 #include "util/Logger.h"
 
 namespace Modules {
 
 void StateModule::Init(Core::Context& ctx) {
-  (void)ctx;
+  mqtt_ = ctx.mqtt;
+  actuator_ = ctx.actuator;
+  hardware_ = ctx.hardware;
+  last_publish_ms_ = 0;
   Util::Logger::Info("init StateModule");
 }
 
@@ -15,7 +27,49 @@ void StateModule::OnEvent(Core::Context& ctx, const Core::Event& event) {
 
 void StateModule::OnTick(Core::Context& ctx, uint32_t now_ms) {
   (void)ctx;
-  (void)now_ms;
+  if (!mqtt_ || !actuator_ || !mqtt_->IsConnected()) {
+    return;
+  }
+
+  if (last_publish_ms_ == 0 || now_ms - last_publish_ms_ >= kHeartbeatIntervalMs) {
+    PublishState(true);
+    last_publish_ms_ = now_ms;
+  }
+}
+
+void StateModule::PublishState(bool retained) {
+  if (!mqtt_ || !actuator_ || !mqtt_->IsConnected()) {
+    return;
+  }
+
+  const Config::HardwareProfile& profile = hardware_ ? *hardware_ : Config::GetHardwareProfile();
+  const ManualWateringState manual = actuator_->GetManualWateringState();
+  const char* status = manual.active ? "running" : "idle";
+  const bool has_correlation = manual.correlation_id && manual.correlation_id[0] != '\0';
+  const bool has_started = manual.started_at && manual.started_at[0] != '\0';
+
+  std::string payload = "{";
+  payload += "\"manual_watering\":{";
+  payload += "\"status\":\"" + std::string(status) + "\",";
+  payload += "\"duration_s\":" + (manual.active ? std::to_string(manual.duration_s) : std::string("null")) + ",";
+  payload += "\"started_at\":" + (manual.active && has_started ? "\"" + std::string(manual.started_at) + "\"" : std::string("null")) + ",";
+  payload += "\"correlation_id\":" + (manual.active && has_correlation ? "\"" + std::string(manual.correlation_id) + "\"" : std::string("null"));
+  payload += "},";
+  payload += "\"fw\":\"" + std::string(Config::kFwVersion) + "\"";
+  if (Config::kFwInfoAvailable) {
+    payload += ",\"fw_ver\":\"" + std::string(Config::kFwVer) + "\"";
+    payload += ",\"fw_name\":\"" + std::string(Config::kFwName) + "\"";
+    payload += ",\"fw_build\":\"" + std::string(Config::kFwBuild) + "\"";
+  }
+  payload += ",\"light\":{\"status\":\"" + std::string(actuator_->IsLightOn() ? "on" : "off") + "\"}";
+  payload += "}";
+
+  char topic[128];
+  if (!Services::Topics::BuildStateTopic(topic, sizeof(topic), profile.device_id)) {
+    return;
+  }
+
+  mqtt_->Publish(topic, payload.c_str(), retained, 0);
 }
 
 }

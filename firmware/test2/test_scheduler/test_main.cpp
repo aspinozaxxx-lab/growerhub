@@ -18,7 +18,7 @@ void tearDown() {}
 static void test_scheduler_periodic() {
   Core::Scheduler scheduler;
   Core::EventQueue queue;
-  Core::Context ctx{&scheduler, &queue};
+  Core::Context ctx{&scheduler, &queue, nullptr, nullptr, nullptr, nullptr};
 
   g_calls = 0;
   bool added = scheduler.AddPeriodic("tick", 5, TickTask);

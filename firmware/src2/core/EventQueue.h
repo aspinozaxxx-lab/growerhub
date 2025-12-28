@@ -9,12 +9,22 @@ namespace Core {
 enum class EventType : uint8_t {
   kNone = 0,
   kHeartbeat = 1,
-  kCustom = 2
+  kCustom = 2,
+  kMqttMessage = 3
+};
+
+static const size_t kMqttTopicMax = 64;
+static const size_t kMqttPayloadMax = 256;
+
+struct MqttMessage {
+  char topic[kMqttTopicMax];
+  char payload[kMqttPayloadMax];
 };
 
 struct Event {
   EventType type;
   uint32_t value;
+  MqttMessage mqtt;
 };
 
 class EventQueue {
