@@ -35,7 +35,7 @@ class ConfigSyncModule : public Core::Module {
   const Config::HardwareProfile* hardware_ = nullptr;
 
   Util::ScenariosConfig config_{};
-  char retained_payload_[Core::kMqttPayloadMax];
+  char retained_payload_[1024];
   bool has_retained_ = false;
   bool pending_apply_ = false;
   bool subscribed_ = false;

@@ -8,6 +8,7 @@ class EventQueue;
 namespace Services {
 class MqttService;
 class StorageService;
+class TimeService;
 }
 
 namespace Modules {
@@ -28,6 +29,7 @@ struct Context {
   EventQueue* event_queue;
   Services::MqttService* mqtt;
   Services::StorageService* storage;
+  Services::TimeService* time;
   Modules::ActuatorModule* actuator;
   Modules::ConfigSyncModule* config_sync;
   Modules::SensorHubModule* sensor_hub;

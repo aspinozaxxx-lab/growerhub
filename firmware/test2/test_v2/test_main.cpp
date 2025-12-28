@@ -8,6 +8,7 @@ void test_reboot_declined_when_pump_running();
 void test_reboot_accepted_when_idle();
 void test_config_codec_valid();
 void test_config_codec_invalid();
+void test_config_codec_migrate();
 void test_event_queue_order();
 void test_parse_pump_start();
 void test_parse_pump_stop();
@@ -27,6 +28,14 @@ void test_soil_scanner_detected();
 void test_soil_scanner_hysteresis();
 void test_sensor_hub_pump_block();
 void test_state_soil_serialization();
+void test_auto_moisture_port0();
+void test_auto_moisture_port1();
+void test_auto_min_time_between();
+void test_auto_schedule_trigger_once();
+void test_light_schedule_overnight();
+void test_ota_pending_confirm();
+void test_ota_boot_failures_trigger();
+void test_ota_timeout_trigger();
 
 void setUp() {}
 void tearDown() {}
@@ -43,6 +52,7 @@ int main(int argc, char** argv) {
   RUN_TEST(test_reboot_accepted_when_idle);
   RUN_TEST(test_config_codec_valid);
   RUN_TEST(test_config_codec_invalid);
+  RUN_TEST(test_config_codec_migrate);
   RUN_TEST(test_event_queue_order);
   RUN_TEST(test_parse_pump_start);
   RUN_TEST(test_parse_pump_stop);
@@ -62,5 +72,13 @@ int main(int argc, char** argv) {
   RUN_TEST(test_soil_scanner_hysteresis);
   RUN_TEST(test_sensor_hub_pump_block);
   RUN_TEST(test_state_soil_serialization);
+  RUN_TEST(test_auto_moisture_port0);
+  RUN_TEST(test_auto_moisture_port1);
+  RUN_TEST(test_auto_min_time_between);
+  RUN_TEST(test_auto_schedule_trigger_once);
+  RUN_TEST(test_light_schedule_overnight);
+  RUN_TEST(test_ota_pending_confirm);
+  RUN_TEST(test_ota_boot_failures_trigger);
+  RUN_TEST(test_ota_timeout_trigger);
   return UNITY_END();
 }

@@ -105,7 +105,7 @@ bool ConfigSyncModule::ApplyRetained() {
     return false;
   }
 
-  char encoded[512];
+  char encoded[1024];
   if (!Util::EncodeScenariosConfig(parsed, encoded, sizeof(encoded))) {
     return false;
   }
@@ -125,7 +125,7 @@ void ConfigSyncModule::LoadFromStorage() {
   if (!storage_) {
     return;
   }
-  char payload[512];
+  char payload[1024];
   if (!storage_->ReadFile(kScenariosPath, payload, sizeof(payload))) {
     return;
   }

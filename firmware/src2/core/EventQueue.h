@@ -21,7 +21,7 @@ enum class EventType : uint8_t {
 };
 
 static const size_t kMqttTopicMax = 64;
-static const size_t kMqttPayloadMax = 256;
+static const size_t kMqttPayloadMax = 512;
 
 struct MqttMessage {
   char topic[kMqttTopicMax];

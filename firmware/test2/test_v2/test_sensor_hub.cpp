@@ -56,7 +56,7 @@ void test_sensor_hub_pump_block() {
   Modules::SensorHubModule hub;
   Config::HardwareProfile hw = Config::GetHardwareProfile();
 
-  Core::Context ctx{&scheduler, &queue, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw};
+  Core::Context ctx{&scheduler, &queue, nullptr, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw};
   hub.Init(ctx);
   Drivers::Rj9PortScanner* scanner = hub.GetScanner();
   scanner->SetAdcReader(&FakeAdcHub);
@@ -98,7 +98,7 @@ void test_state_soil_serialization() {
   Modules::StateModule state;
   Config::HardwareProfile hw = Config::GetHardwareProfile();
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &actuator, nullptr, &hub, &state, &hw};
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, &actuator, nullptr, &hub, &state, &hw};
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);
   mqtt.SetPublishHook(&PublishHook);

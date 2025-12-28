@@ -23,7 +23,7 @@ void test_config_sync_apply_retained() {
   Modules::ConfigSyncModule sync;
   const Config::HardwareProfile& hw = Config::GetHardwareProfile();
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, &storage, nullptr, &sync, nullptr, nullptr, &hw};
+  Core::Context ctx{&scheduler, &queue, &mqtt, &storage, nullptr, nullptr, &sync, nullptr, nullptr, &hw};
   storage.SetRootForTests("test_storage_sync");
   storage.Init(ctx);
   mqtt.Init(ctx);
@@ -34,7 +34,7 @@ void test_config_sync_apply_retained() {
   Services::Topics::BuildCfgTopic(topic, sizeof(topic), hw.device_id);
 
   const char* payload =
-      "{\"schema_version\":1,\"scenarios\":{\"water_time\":{\"enabled\":true},\"water_moisture\":{\"enabled\":false},\"light_schedule\":{\"enabled\":true}}}";
+      "{\"schema_version\":2,\"watering\":{\"by_moisture\":{\"enabled\":true,\"min_time_between_watering_s\":3600,\"per_sensor\":[{\"port\":0,\"enabled\":true,\"threshold_percent\":25,\"duration_s\":30},{\"port\":1,\"enabled\":false,\"threshold_percent\":30,\"duration_s\":20}]},\"by_schedule\":{\"enabled\":false,\"entries\":[]}},\"light\":{\"by_schedule\":{\"enabled\":false,\"entries\":[]}}}";
 
   mqtt.InjectMessage(topic, payload);
 
@@ -52,7 +52,9 @@ void test_config_sync_apply_retained() {
   Util::ScenariosConfig decoded{};
   TEST_ASSERT_TRUE(Util::DecodeScenariosConfig(stored, &decoded));
   TEST_ASSERT_TRUE(Util::ValidateScenariosConfig(decoded));
-  TEST_ASSERT_TRUE(decoded.water_time_enabled);
-  TEST_ASSERT_TRUE(decoded.light_schedule_enabled);
-  TEST_ASSERT_FALSE(decoded.water_moisture_enabled);
+  TEST_ASSERT_TRUE(decoded.water_moisture.enabled);
+  TEST_ASSERT_EQUAL_UINT32(3600, decoded.water_moisture.min_time_between_watering_s);
+  TEST_ASSERT_TRUE(decoded.water_moisture.sensors[0].enabled);
+  TEST_ASSERT_EQUAL_UINT8(25, decoded.water_moisture.sensors[0].threshold_percent);
+  TEST_ASSERT_EQUAL_UINT32(30, decoded.water_moisture.sensors[0].duration_s);
 }

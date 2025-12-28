@@ -11,6 +11,7 @@ static constexpr const char* kCmdSuffix = "cmd";
 static constexpr const char* kCfgSuffix = "cfg";
 static constexpr const char* kStateSuffix = "state";
 static constexpr const char* kAckSuffix = "state/ack";
+static constexpr const char* kEventsSuffix = "events";
 
 inline bool BuildDeviceTopic(char* out, size_t out_size, const char* device_id, const char* suffix) {
   if (!out || out_size == 0 || !device_id || !suffix) {
@@ -34,6 +35,10 @@ inline bool BuildStateTopic(char* out, size_t out_size, const char* device_id) {
 
 inline bool BuildAckTopic(char* out, size_t out_size, const char* device_id) {
   return BuildDeviceTopic(out, out_size, device_id, kAckSuffix);
+}
+
+inline bool BuildEventsTopic(char* out, size_t out_size, const char* device_id) {
+  return BuildDeviceTopic(out, out_size, device_id, kEventsSuffix);
 }
 
 inline bool IsCmdTopic(const char* topic, const char* device_id) {

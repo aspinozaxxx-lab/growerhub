@@ -23,7 +23,6 @@ void MqttService::Init(Core::Context& ctx) {
 }
 
 bool MqttService::Publish(const char* topic, const char* payload, bool retain, int qos) {
-  (void)qos;
   if (!topic || !payload) {
     return false;
   }
@@ -37,7 +36,13 @@ bool MqttService::Publish(const char* topic, const char* payload, bool retain, i
   if (!mqtt_client_.connected()) {
     return false;
   }
-  return mqtt_client_.publish(topic, payload, retain);
+  if (qos <= 0) {
+    return mqtt_client_.publish(topic, payload, retain);
+  }
+  if (qos == 1) {
+    return mqtt_client_.publish(topic, payload, retain);
+  }
+  return false;
 #else
   return connected_;
 #endif

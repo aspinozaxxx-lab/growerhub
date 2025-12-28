@@ -14,10 +14,12 @@
 - [ ] Sensors: DHT22 optional
 - [x] Actuators: pump relay
 - [x] Actuators: light relay
-- [ ] Automations: water by time
-- [ ] Automations: water by moisture
-- [ ] Automations: light schedule
+- [x] Automations: water by time
+- [x] Automations: water by moisture
+- [x] Per-sensor moisture settings
+- [x] Automations: light schedule
 - [x] State retained publishing
-- [ ] OTA pull + rollback
+- [x] MQTT QoS1 events for journal
+- [x] OTA pull + rollback
 - [x] Remove legacy REST telemetry usage in v2
 - [x] Test suite for v2 (native)

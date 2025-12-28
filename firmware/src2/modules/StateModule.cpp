@@ -72,9 +72,9 @@ void StateModule::PublishState(bool retained) {
   bool light_schedule = false;
   if (config_sync_) {
     const Util::ScenariosConfig& cfg = config_sync_->GetConfig();
-    water_time = cfg.water_time_enabled;
-    water_moisture = cfg.water_moisture_enabled;
-    light_schedule = cfg.light_schedule_enabled;
+    water_time = cfg.water_schedule.enabled;
+    water_moisture = cfg.water_moisture.enabled;
+    light_schedule = cfg.light_schedule.enabled;
   }
   payload += ",\"scenarios\":{";
   payload += "\"water_time\":{\"enabled\":" + std::string(water_time ? "true" : "false") + "},";
