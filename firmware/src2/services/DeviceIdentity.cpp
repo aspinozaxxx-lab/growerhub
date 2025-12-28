@@ -3,6 +3,8 @@
 #include <cstdio>
 
 #if defined(ARDUINO)
+#include <Arduino.h>
+#include <esp_mac.h>
 #include <esp_efuse.h>
 #endif
 
@@ -40,7 +42,13 @@ bool EfuseMacProvider::ReadMac(uint8_t mac[6]) {
   if (!mac) {
     return false;
   }
-  esp_efuse_mac_get_default(mac);
+  if (esp_efuse_mac_get_default(mac) == ESP_OK) {
+    return true;
+  }
+  const uint64_t efuse = ESP.getEfuseMac();
+  for (int i = 0; i < 6; ++i) {
+    mac[i] = static_cast<uint8_t>(efuse >> (8 * (5 - i)));
+  }
   return true;
 }
 #endif
