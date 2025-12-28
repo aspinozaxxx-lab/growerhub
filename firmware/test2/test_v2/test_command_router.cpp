@@ -18,6 +18,10 @@ struct PublishCapture {
 
 static PublishCapture g_capture;
 
+static void ResetCapture() {
+  std::memset(&g_capture, 0, sizeof(g_capture));
+}
+
 static void CapturePublish(const char* topic, const char* payload, bool retain, int qos) {
   (void)retain;
   (void)qos;
@@ -34,13 +38,8 @@ class TestRebooter : public Modules::CommandRouterModule::Rebooter {
   int calls = 0;
 };
 
-void setUp() {
-  std::memset(&g_capture, 0, sizeof(g_capture));
-}
-
-void tearDown() {}
-
-static void test_pump_start_ack() {
+void test_pump_start_ack() {
+  ResetCapture();
   Core::Scheduler scheduler;
   Core::EventQueue queue;
   Services::MqttService mqtt;
@@ -73,7 +72,8 @@ static void test_pump_start_ack() {
                            g_capture.payload);
 }
 
-static void test_pump_stop_ack() {
+void test_pump_stop_ack() {
+  ResetCapture();
   Core::Scheduler scheduler;
   Core::EventQueue queue;
   Services::MqttService mqtt;
@@ -108,7 +108,8 @@ static void test_pump_stop_ack() {
                            g_capture.payload);
 }
 
-static void test_reboot_declined_when_pump_running() {
+void test_reboot_declined_when_pump_running() {
+  ResetCapture();
   Core::Scheduler scheduler;
   Core::EventQueue queue;
   Services::MqttService mqtt;
@@ -145,7 +146,8 @@ static void test_reboot_declined_when_pump_running() {
                            g_capture.payload);
 }
 
-static void test_reboot_accepted_when_idle() {
+void test_reboot_accepted_when_idle() {
+  ResetCapture();
   Core::Scheduler scheduler;
   Core::EventQueue queue;
   Services::MqttService mqtt;
@@ -178,15 +180,4 @@ static void test_reboot_accepted_when_idle() {
   TEST_ASSERT_EQUAL_INT(1, g_capture.count);
   TEST_ASSERT_EQUAL_STRING(R"({"correlation_id":"r2","result":"accepted","status":"idle"})",
                            g_capture.payload);
-}
-
-int main(int argc, char** argv) {
-  (void)argc;
-  (void)argv;
-  UNITY_BEGIN();
-  RUN_TEST(test_pump_start_ack);
-  RUN_TEST(test_pump_stop_ack);
-  RUN_TEST(test_reboot_declined_when_pump_running);
-  RUN_TEST(test_reboot_accepted_when_idle);
-  return UNITY_END();
 }

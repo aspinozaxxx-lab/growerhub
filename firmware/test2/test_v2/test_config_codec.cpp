@@ -2,10 +2,7 @@
 
 #include "util/JsonUtil.h"
 
-void setUp() {}
-void tearDown() {}
-
-static void test_config_codec() {
+void test_config_codec() {
   Util::ConfigStub config{1};
   char buffer[8];
 
@@ -18,12 +15,4 @@ static void test_config_codec() {
 
   Util::ConfigStub bad{0};
   TEST_ASSERT_FALSE(Util::ValidateConfig(bad));
-}
-
-int main(int argc, char** argv) {
-  (void)argc;
-  (void)argv;
-  UNITY_BEGIN();
-  RUN_TEST(test_config_codec);
-  return UNITY_END();
 }

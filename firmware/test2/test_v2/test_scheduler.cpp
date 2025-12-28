@@ -12,10 +12,7 @@ static void TickTask(Core::Context& ctx, uint32_t now_ms) {
   ++g_calls;
 }
 
-void setUp() {}
-void tearDown() {}
-
-static void test_scheduler_periodic() {
+void test_scheduler_periodic() {
   Core::Scheduler scheduler;
   Core::EventQueue queue;
   Core::Context ctx{&scheduler, &queue, nullptr, nullptr, nullptr, nullptr};
@@ -30,12 +27,4 @@ static void test_scheduler_periodic() {
   scheduler.Tick(ctx, 10);
 
   TEST_ASSERT_EQUAL(2, g_calls);
-}
-
-int main(int argc, char** argv) {
-  (void)argc;
-  (void)argv;
-  UNITY_BEGIN();
-  RUN_TEST(test_scheduler_periodic);
-  return UNITY_END();
 }
