@@ -10,6 +10,7 @@
 #include <cstddef>
 
 #include "core/Context.h"
+#include "services/WiFiService.h"
 
 #if defined(ARDUINO)
 class WebServer;
@@ -36,12 +37,15 @@ class WebConfigService {
    * @param out Bufer dlya JSON stroki.
    * @param out_size Razmer bufera v baytah.
    */
-  static bool BuildWifiConfigJson(const char* ssid, const char* password, char* out, size_t out_size);
+ static bool BuildWifiConfigJson(const char* ssid, const char* password, char* out, size_t out_size);
 
  private:
+ static const size_t kWifiJsonBufferSize = 2048;
  StorageService* storage_ = nullptr;
  Core::EventQueue* event_queue_ = nullptr;
  const char* device_id_ = nullptr;
+ WiFiNetworkList wifi_list_{};
+ char wifi_json_buf_[kWifiJsonBufferSize] = {};
 #if defined(ARDUINO)
   WebServer* server_ = nullptr;
   bool server_started_ = false;

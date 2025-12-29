@@ -26,7 +26,6 @@
 namespace Services {
 
 static const char* kWifiConfigPath = "/cfg/wifi.json";
-static const size_t kWifiJsonBufferSize = 2048;
 
 static const char* SkipWsLocal(const char* ptr) {
   const char* current = ptr;
@@ -89,26 +88,81 @@ static void CopyField(const char* src, char* out, size_t out_size) {
   out[out_size - 1] = '\0';
 }
 
-static bool LoadNetworksFromStorage(StorageService* storage, WiFiNetworkList& out) {
+static bool LoadNetworksFromStorage(StorageService* storage,
+                                    WiFiNetworkList& out,
+                                    char* json_buf,
+                                    size_t json_buf_size) {
   out.count = 0;
   if (!storage || !storage->Exists(kWifiConfigPath)) {
     return false;
   }
-  char json[kWifiJsonBufferSize];
-  if (!storage->ReadFile(kWifiConfigPath, json, sizeof(json))) {
+  if (!storage->ReadFile(kWifiConfigPath, json_buf, json_buf_size)) {
     return false;
   }
-  return WiFiService::ParseWifiConfig(json, out);
+  return WiFiService::ParseWifiConfig(json_buf, out);
 }
 
-static bool BuildNetworksJson(const WiFiNetworkList& list, char* out, size_t out_size) {
+enum class BuildJsonResult {
+  kOk = 0,
+  kTooLarge = 1,
+  kInvalid = 2
+};
+
+static size_t CountDigits(uint32_t value) {
+  size_t digits = 1;
+  while (value >= 10) {
+    value /= 10;
+    ++digits;
+  }
+  return digits;
+}
+
+static bool CanFitNetworksJson(const WiFiNetworkList& list, size_t out_size) {
+  const char* json_prefix = "{\"schema_version\":";
+  const char* json_mid = ",\"networks\":[";
+  const char* json_suffix = "]}";
+  const char* entry_prefix = "{\"ssid\":\"";
+  const char* entry_mid = "\",\"password\":\"";
+  const char* entry_suffix = "\"}";
+  size_t needed = std::strlen(json_prefix) + CountDigits(Util::kWifiSchemaVersion) +
+                  std::strlen(json_mid) + std::strlen(json_suffix) + 1;
+  for (size_t i = 0; i < list.count; ++i) {
+    needed += std::strlen(entry_prefix);
+    needed += std::strlen(list.entries[i].ssid);
+    needed += std::strlen(entry_mid);
+    needed += std::strlen(list.entries[i].password);
+    needed += std::strlen(entry_suffix);
+    if (i + 1 < list.count) {
+      needed += 1;
+    }
+  }
+  return needed <= out_size;
+}
+
+static BuildJsonResult BuildNetworksJson(const WiFiNetworkList& list, char* out, size_t out_size) {
+  if (!CanFitNetworksJson(list, out_size)) {
+    return BuildJsonResult::kTooLarge;
+  }
   const char* ssids[kWifiMaxNetworks];
   const char* passwords[kWifiMaxNetworks];
   for (size_t i = 0; i < list.count; ++i) {
     ssids[i] = list.entries[i].ssid;
     passwords[i] = list.entries[i].password;
   }
-  return Util::EncodeWifiConfig(ssids, passwords, list.count, out, out_size);
+  if (!Util::EncodeWifiConfig(ssids, passwords, list.count, out, out_size)) {
+    return BuildJsonResult::kInvalid;
+  }
+  return BuildJsonResult::kOk;
+}
+
+static bool WriteOkEmpty(char* out, size_t out_size) {
+  const int written = std::snprintf(out, out_size, "{\"ok\":true,\"networks\":[]}");
+  return written > 0 && static_cast<size_t>(written) < out_size;
+}
+
+static bool WriteTooLargeError(char* out, size_t out_size) {
+  const int written = std::snprintf(out, out_size, "{\"ok\":false,\"error\":\"response_too_large\"}");
+  return written > 0 && static_cast<size_t>(written) < out_size;
 }
 
 static bool UpsertNetwork(WiFiNetworkList& list, const char* ssid, const char* password) {
@@ -173,22 +227,34 @@ void WebConfigService::Init(Core::Context& ctx) {
   });
 
   server_->on("/api/networks", HTTP_GET, [this]() {
-    WiFiNetworkList list{};
-    if (LoadNetworksFromStorage(storage_, list) && list.count > 0) {
-      char json[kWifiJsonBufferSize];
-      if (!BuildNetworksJson(list, json, sizeof(json))) {
-        server_->send(500, "text/plain", "Encode failed");
+    wifi_list_.count = 0;
+    if (LoadNetworksFromStorage(storage_, wifi_list_, wifi_json_buf_, sizeof(wifi_json_buf_)) &&
+        wifi_list_.count > 0) {
+      const BuildJsonResult result = BuildNetworksJson(wifi_list_, wifi_json_buf_, sizeof(wifi_json_buf_));
+      if (result == BuildJsonResult::kTooLarge) {
+        if (WriteTooLargeError(wifi_json_buf_, sizeof(wifi_json_buf_))) {
+          server_->send(500, "application/json", wifi_json_buf_);
+        } else {
+          server_->send(500, "text/plain", "response_too_large");
+        }
         return;
       }
-      server_->send(200, "application/json", json);
+      if (result != BuildJsonResult::kOk) {
+        if (WriteOkEmpty(wifi_json_buf_, sizeof(wifi_json_buf_))) {
+          server_->send(200, "application/json", wifi_json_buf_);
+        } else {
+          server_->send(200, "application/json", "{\"ok\":true,\"networks\":[]}");
+        }
+        return;
+      }
+      server_->send(200, "application/json", wifi_json_buf_);
       return;
     }
-    char empty_json[64];
-    std::snprintf(empty_json,
-                  sizeof(empty_json),
-                  "{\"schema_version\":%u,\"networks\":[]}",
-                  static_cast<unsigned int>(Util::kWifiSchemaVersion));
-    server_->send(200, "application/json", empty_json);
+    if (WriteOkEmpty(wifi_json_buf_, sizeof(wifi_json_buf_))) {
+      server_->send(200, "application/json", wifi_json_buf_);
+    } else {
+      server_->send(200, "application/json", "{\"ok\":true,\"networks\":[]}");
+    }
   });
 
   server_->on("/api/networks", HTTP_POST, [this]() {
@@ -207,19 +273,27 @@ void WebConfigService::Init(Core::Context& ctx) {
       password[0] = '\0';
     }
 
-    WiFiNetworkList list{};
-    LoadNetworksFromStorage(storage_, list);
-    if (!UpsertNetwork(list, ssid, password)) {
+    wifi_list_.count = 0;
+    LoadNetworksFromStorage(storage_, wifi_list_, wifi_json_buf_, sizeof(wifi_json_buf_));
+    if (!UpsertNetwork(wifi_list_, ssid, password)) {
       server_->send(400, "text/plain", "Too many networks");
       return;
     }
 
-    char json[kWifiJsonBufferSize];
-    if (!BuildNetworksJson(list, json, sizeof(json))) {
+    const BuildJsonResult result = BuildNetworksJson(wifi_list_, wifi_json_buf_, sizeof(wifi_json_buf_));
+    if (result == BuildJsonResult::kTooLarge) {
+      if (WriteTooLargeError(wifi_json_buf_, sizeof(wifi_json_buf_))) {
+        server_->send(500, "application/json", wifi_json_buf_);
+      } else {
+        server_->send(500, "text/plain", "response_too_large");
+      }
+      return;
+    }
+    if (result != BuildJsonResult::kOk) {
       server_->send(400, "text/plain", "Invalid data");
       return;
     }
-    if (!storage_->WriteFileAtomic(kWifiConfigPath, json)) {
+    if (!storage_->WriteFileAtomic(kWifiConfigPath, wifi_json_buf_)) {
       server_->send(500, "text/plain", "Write failed");
       return;
     }
@@ -234,7 +308,7 @@ void WebConfigService::Init(Core::Context& ctx) {
       event.type = Core::EventType::kWifiConfigUpdated;
       event_queue_->Push(event);
     }
-    server_->send(200, "application/json", json);
+    server_->send(200, "application/json", wifi_json_buf_);
   });
 
   server_->on("/api/networks", HTTP_DELETE, [this]() {
@@ -247,26 +321,34 @@ void WebConfigService::Init(Core::Context& ctx) {
       server_->send(400, "text/plain", "SSID required");
       return;
     }
-    WiFiNetworkList list{};
-    LoadNetworksFromStorage(storage_, list);
-    if (list.count == 0) {
+    wifi_list_.count = 0;
+    LoadNetworksFromStorage(storage_, wifi_list_, wifi_json_buf_, sizeof(wifi_json_buf_));
+    if (wifi_list_.count == 0) {
       server_->send(404, "text/plain", "Not found");
       return;
     }
-    if (!RemoveNetwork(list, ssid.c_str())) {
+    if (!RemoveNetwork(wifi_list_, ssid.c_str())) {
       server_->send(404, "text/plain", "Not found");
       return;
     }
-    if (list.count == 0) {
+    if (wifi_list_.count == 0) {
       server_->send(400, "text/plain", "No networks left");
       return;
     }
-    char json[kWifiJsonBufferSize];
-    if (!BuildNetworksJson(list, json, sizeof(json))) {
+    const BuildJsonResult result = BuildNetworksJson(wifi_list_, wifi_json_buf_, sizeof(wifi_json_buf_));
+    if (result == BuildJsonResult::kTooLarge) {
+      if (WriteTooLargeError(wifi_json_buf_, sizeof(wifi_json_buf_))) {
+        server_->send(500, "application/json", wifi_json_buf_);
+      } else {
+        server_->send(500, "text/plain", "response_too_large");
+      }
+      return;
+    }
+    if (result != BuildJsonResult::kOk) {
       server_->send(400, "text/plain", "Invalid data");
       return;
     }
-    if (!storage_->WriteFileAtomic(kWifiConfigPath, json)) {
+    if (!storage_->WriteFileAtomic(kWifiConfigPath, wifi_json_buf_)) {
       server_->send(500, "text/plain", "Write failed");
       return;
     }
@@ -275,7 +357,7 @@ void WebConfigService::Init(Core::Context& ctx) {
       event.type = Core::EventType::kWifiConfigUpdated;
       event_queue_->Push(event);
     }
-    server_->send(200, "application/json", json);
+    server_->send(200, "application/json", wifi_json_buf_);
   });
 
   server_->on("/status", HTTP_GET, [this]() {

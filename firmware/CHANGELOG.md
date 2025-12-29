@@ -64,3 +64,4 @@
 - feat(firmware): EncodeWifiConfig teper' kodiruet spisok setei, ValidateWifiConfig trebuet hotya by odin nepustoi SSID.
 - fix(firmware): WiFiService sbros indexa/sostoyaniya pri kWifiConfigUpdated i perebor setei po krugu do soedineniya.
 - test: obnovleny testy Wi-Fi konfiguracii, dobavlen encode/decode spiska setei.
+- fix(firmware): snizhen stack-nagruzki v WebConfigService API handlerah (staticheskie bufery JSON/spisok setei).
