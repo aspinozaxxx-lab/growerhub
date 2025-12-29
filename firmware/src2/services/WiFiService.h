@@ -58,11 +58,14 @@ class WiFiService {
    * Vozvrashaet predpochtennyi spisok setei.
    */
   WiFiNetworkList GetPreferredNetworks() const;
+  /**
+   * Parsit wifi.json v spisok setei.
+   */
+  static bool ParseWifiConfig(const char* json, WiFiNetworkList& out);
 
  private:
   bool LoadUserNetworks(WiFiNetworkList& out) const;
   static WiFiNetworkList LoadBuiltinNetworks();
-  static bool ParseWifiConfig(const char* json, WiFiNetworkList& out);
   static bool ExtractStringField(const char* start,
                                  const char* limit,
                                  const char* key,

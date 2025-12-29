@@ -57,3 +57,10 @@
 - Dobavlen karkas SystemClock i DI-interfeisy vremeni; bezopasnye folbeki sokhranjayut tekushchee povedenie.
 - Realizovana sinhronizacia: 3 NTP-popytki pri starte, retry kazhdyh 30 s i planovyi resink raz v 6 ch s proverkoi sdviga >31 dnya.
 - Dobavleny Unity-testy SystemClock (folbeki, startovye popytki, filtr >31 dnya, retry 30 s, resink 6 ch, granichnye gody).
+
+## 2025-12-29
+- feat(firmware): web-ui vynesena v services/website, novyi UI s fetch, status Sokhraneno, pokaz parolya.
+- feat(firmware): API /api/networks (GET/POST/DELETE) dlya spiska setei s sohraneniem i sobytiem kWifiConfigUpdated.
+- feat(firmware): EncodeWifiConfig teper' kodiruet spisok setei, ValidateWifiConfig trebuet hotya by odin nepustoi SSID.
+- fix(firmware): WiFiService sbros indexa/sostoyaniya pri kWifiConfigUpdated i perebor setei po krugu do soedineniya.
+- test: obnovleny testy Wi-Fi konfiguracii, dobavlen encode/decode spiska setei.

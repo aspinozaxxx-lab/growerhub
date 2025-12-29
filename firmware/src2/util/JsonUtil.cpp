@@ -653,30 +653,70 @@ bool ValidateScenariosConfig(const ScenariosConfig& config) {
   return true;
 }
 
-bool EncodeWifiConfig(const char* ssid, const char* password, char* out, size_t out_size) {
+bool EncodeWifiConfig(const char* const* ssids,
+                      const char* const* passwords,
+                      size_t count,
+                      char* out,
+                      size_t out_size) {
   if (!out || out_size == 0) {
     return false;
   }
-  if (!IsSafeWifiField(ssid)) {
+  if (!ssids || !passwords || count == 0) {
     return false;
   }
-  const char* pass = password ? password : "";
-  if (std::strlen(pass) > 64) {
-    return false;
-  }
-  for (const char* p = pass; *p; ++p) {
-    if (*p == '"' || *p == '\\' || static_cast<unsigned char>(*p) < 0x20) {
+  for (size_t i = 0; i < count; ++i) {
+    if (!IsSafeWifiField(ssids[i])) {
       return false;
     }
+    const char* pass = passwords[i] ? passwords[i] : "";
+    if (std::strlen(pass) > 64) {
+      return false;
+    }
+    for (const char* p = pass; *p; ++p) {
+      if (*p == '"' || *p == '\\' || static_cast<unsigned char>(*p) < 0x20) {
+        return false;
+      }
+    }
   }
-  const int written = std::snprintf(
-      out,
-      out_size,
-      "{\"schema_version\":%u,\"networks\":[{\"ssid\":\"%s\",\"password\":\"%s\"}]}",
-      static_cast<unsigned int>(kWifiSchemaVersion),
-      ssid,
-      pass);
-  return written > 0 && static_cast<size_t>(written) < out_size;
+  size_t offset = 0;
+  auto append = [&](const char* fmt, ...) -> bool {
+    if (offset >= out_size) {
+      return false;
+    }
+    va_list args;
+    va_start(args, fmt);
+    const int written = std::vsnprintf(out + offset, out_size - offset, fmt, args);
+    va_end(args);
+    if (written <= 0 || static_cast<size_t>(written) >= out_size - offset) {
+      return false;
+    }
+    offset += static_cast<size_t>(written);
+    return true;
+  };
+  if (!append("{\"schema_version\":%u,\"networks\":[", static_cast<unsigned int>(kWifiSchemaVersion))) {
+    return false;
+  }
+  for (size_t i = 0; i < count; ++i) {
+    const char* pass = passwords[i] ? passwords[i] : "";
+    if (!append("{\"ssid\":\"%s\",\"password\":\"%s\"}", ssids[i], pass)) {
+      return false;
+    }
+    if (i + 1 < count) {
+      if (!append(",")) {
+        return false;
+      }
+    }
+  }
+  if (!append("]}")) {
+    return false;
+  }
+  return true;
+}
+
+bool EncodeWifiConfig(const char* ssid, const char* password, char* out, size_t out_size) {
+  const char* ssids[1] = {ssid};
+  const char* passwords[1] = {password};
+  return EncodeWifiConfig(ssids, passwords, 1, out, out_size);
 }
 
 bool ValidateWifiConfig(const char* json) {
@@ -690,27 +730,31 @@ bool ValidateWifiConfig(const char* json) {
   if (schema_version != kWifiSchemaVersion) {
     return false;
   }
-  const char* networks_key = std::strstr(json, "\"networks\"");
-  if (!networks_key) {
+  const char* array_start = nullptr;
+  const char* array_end = nullptr;
+  if (!FindArrayBoundsWithin(json, json + std::strlen(json), "networks", &array_start, &array_end)) {
     return false;
   }
-  const char* array_start = std::strchr(networks_key, '[');
-  if (!array_start) {
-    return false;
+  bool has_ssid = false;
+  const char* cursor = array_start;
+  while (cursor < array_end) {
+    const char* obj_start = std::strchr(cursor, '{');
+    if (!obj_start || obj_start >= array_end) {
+      break;
+    }
+    const char* obj_end = std::strchr(obj_start, '}');
+    if (!obj_end || obj_end > array_end) {
+      return false;
+    }
+    char ssid[65];
+    if (ExtractStringFieldWithin(obj_start, obj_end, "ssid", ssid, sizeof(ssid))) {
+      if (ssid[0] != '\0') {
+        has_ssid = true;
+      }
+    }
+    cursor = obj_end + 1;
   }
-  const char* obj_start = std::strchr(array_start, '{');
-  if (!obj_start) {
-    return false;
-  }
-  const char* obj_end = std::strchr(obj_start, '}');
-  if (!obj_end) {
-    return false;
-  }
-  char ssid[65];
-  if (!ExtractStringFieldWithin(obj_start, obj_end, "ssid", ssid, sizeof(ssid))) {
-    return false;
-  }
-  return ssid[0] != '\0';
+  return has_ssid;
 }
 
 }

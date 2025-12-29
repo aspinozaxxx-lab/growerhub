@@ -121,6 +121,19 @@ bool ValidateScenariosConfig(const ScenariosConfig& config);
  */
 bool EncodeWifiConfig(const char* ssid, const char* password, char* out, size_t out_size);
 /**
+ * Kodiruet spisok Wi-Fi setei v JSON.
+ * @param ssids Massiv SSID.
+ * @param passwords Massiv paroley (mozhet byt null dlya pustogo parolya).
+ * @param count Kolichestvo setei.
+ * @param out Bufer dlya JSON stroki.
+ * @param out_size Razmer bufera v baytah.
+ */
+bool EncodeWifiConfig(const char* const* ssids,
+                      const char* const* passwords,
+                      size_t count,
+                      char* out,
+                      size_t out_size);
+/**
  * Proveryaet korrektnost JSON Wi-Fi konfiguracii.
  * @param json JSON stroka s konfiguraciei Wi-Fi.
  */

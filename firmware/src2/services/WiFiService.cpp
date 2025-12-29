@@ -220,6 +220,8 @@ void WiFiService::OnEvent(Core::Context& ctx, const Core::Event& event) {
   preferred_ = GetPreferredNetworks();
   sta_index_ = 0;
   last_attempt_ms_ = 0;
+  last_attempt_ssid_[0] = '\0';
+  last_status_ = -1;
 #if defined(ARDUINO)
   WiFi.disconnect(true);
   StartStaConnect(0);
@@ -246,7 +248,7 @@ bool WiFiService::LoadUserNetworks(WiFiNetworkList& out) const {
     return false;
   }
   Util::Logger::Info("[CFG] wifi.json found");
-  char json[1024];
+  char json[2048];
   if (!storage_->ReadFile("/cfg/wifi.json", json, sizeof(json))) {
     Util::Logger::Info("[CFG] wifi.json read_fail");
     return false;
@@ -345,6 +347,9 @@ void WiFiService::StartStaConnect(uint32_t now_ms) {
     return;
   }
 #if defined(ARDUINO)
+  if (sta_index_ >= preferred_.count) {
+    sta_index_ = 0;
+  }
   const WiFiNetwork& network = preferred_.entries[sta_index_];
   CopyField(network.ssid, last_attempt_ssid_, sizeof(last_attempt_ssid_));
   char log_buf[128];
