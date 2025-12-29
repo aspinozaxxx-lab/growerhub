@@ -1,6 +1,7 @@
 ﻿# Changelog
 
 ## 2025-12-25
+- Avtoregistraciya ustroystv pri MQTT state soobshcheniyah: device sozdaetsya avtomaticheski pri pervom state.
 - Ispravlen mapping device_state_last.state_json na TEXT, chtoby JSON ne chitalsya kak chislo/LOB; dobavleny integracionnye testy dlya /api/devices/my i /api/plants.
 - Ispravlen mapping text v plant_journal_entries na TEXT i dobavlen integracionnyj test na /api/plants/{plant_id}/journal.
 - Ispravlen mapping fertilizers_per_liter v plant_journal_watering_details na TEXT dlya korrektnogo chteniya stroki v zhurnale.

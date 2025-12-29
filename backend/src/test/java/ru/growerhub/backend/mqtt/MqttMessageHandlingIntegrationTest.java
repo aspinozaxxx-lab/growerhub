@@ -1,4 +1,4 @@
-package ru.growerhub.backend.mqtt;
+﻿package ru.growerhub.backend.mqtt;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
@@ -97,6 +97,29 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         Assertions.assertNotNull(updatedDevice);
         Assertions.assertNotNull(updatedDevice.getLastSeen());
         Assertions.assertTrue(updatedDevice.getLastSeen().isAfter(LocalDateTime.now(ZoneOffset.UTC).minusMinutes(1)));
+    }
+
+    @Test
+    void autoRegistersDeviceOnStateMessage() {
+        String deviceId = "mqtt-new";
+        String stateJson = """
+                {"manual_watering":{"status":"running","duration_s":30,"started_at":"2025-01-01T00:00:00Z","remaining_s":30,"correlation_id":"corr-new"}}
+                """;
+        injectorSubscriber.injectState("gh/dev/" + deviceId + "/state", stateJson.getBytes(StandardCharsets.UTF_8));
+
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        Assertions.assertNotNull(device);
+        Assertions.assertEquals("Watering Device " + deviceId, device.getName());
+        Assertions.assertNotNull(device.getLastSeen());
+        Assertions.assertEquals(40.0, device.getTargetMoisture());
+        Assertions.assertEquals(30, device.getWateringDuration());
+        Assertions.assertEquals(300, device.getWateringTimeout());
+        Assertions.assertEquals(false, device.getUpdateAvailable());
+        Assertions.assertNull(device.getUser());
+
+        DeviceStateLastEntity state = deviceStateLastRepository.findByDeviceId(deviceId).orElse(null);
+        Assertions.assertNotNull(state);
+        Assertions.assertNotNull(shadowStore.getLastState(deviceId));
     }
 
     private void clearDatabase() {
