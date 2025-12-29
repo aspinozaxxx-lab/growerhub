@@ -84,6 +84,10 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         Assertions.assertTrue(state.getStateJson().contains("manual_watering"));
         Assertions.assertNotNull(shadowStore.getLastState("mqtt-1"));
 
+        DeviceEntity afterState = deviceRepository.findByDeviceId("mqtt-1").orElse(null);
+        Assertions.assertNotNull(afterState);
+        Assertions.assertNotNull(afterState.getLastSeen());
+
         LocalDateTime prevUpdated = state.getUpdatedAt();
 
         String ackJson = """

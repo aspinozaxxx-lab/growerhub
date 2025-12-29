@@ -1,5 +1,8 @@
 ﻿# Changelog
 
+## 2025-12-29
+- MQTT state teper' obnovlyaet devices.last_seen posle uspeshnogo parse.
+
 ## 2025-12-25
 - MQTT state obrabotka teper' delegiruetsya v device domen, shadow store perenesen v ru.growerhub.backend.device.
 - Avtoregistraciya ustroystv pri MQTT state i REST init perenesena v DeviceService.

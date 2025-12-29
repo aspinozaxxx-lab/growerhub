@@ -54,7 +54,11 @@ public class DeviceService {
 
     @Transactional
     public void handleMqttState(String deviceId, DeviceState state, LocalDateTime now) {
-        ensureDeviceExists(deviceId, now);
+        DeviceEntity device = ensureDeviceExists(deviceId, now);
+        if (device != null) {
+            device.setLastSeen(now);
+            deviceRepository.save(device);
+        }
         shadowStore.updateFromState(deviceId, state);
         upsertDeviceState(deviceId, state, now);
     }
