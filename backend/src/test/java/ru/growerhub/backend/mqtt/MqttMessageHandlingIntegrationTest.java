@@ -1,5 +1,9 @@
 ﻿package ru.growerhub.backend.mqtt;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -10,6 +14,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -20,6 +25,7 @@ import ru.growerhub.backend.db.DeviceStateLastEntity;
 import ru.growerhub.backend.db.DeviceStateLastRepository;
 import ru.growerhub.backend.db.MqttAckEntity;
 import ru.growerhub.backend.db.MqttAckRepository;
+import ru.growerhub.backend.device.DeviceService;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -49,6 +55,9 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private DeviceShadowStore shadowStore;
+
+    @SpyBean
+    private DeviceService deviceService;
 
     @BeforeEach
     void setUp() {
@@ -106,6 +115,8 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
                 {"manual_watering":{"status":"running","duration_s":30,"started_at":"2025-01-01T00:00:00Z","remaining_s":30,"correlation_id":"corr-new"}}
                 """;
         injectorSubscriber.injectState("gh/dev/" + deviceId + "/state", stateJson.getBytes(StandardCharsets.UTF_8));
+
+        verify(deviceService).ensureDeviceExists(eq(deviceId), any(LocalDateTime.class));
 
         DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
         Assertions.assertNotNull(device);

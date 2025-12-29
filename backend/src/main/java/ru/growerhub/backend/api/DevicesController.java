@@ -30,23 +30,15 @@ import ru.growerhub.backend.db.PlantDeviceEntity;
 import ru.growerhub.backend.db.PlantDeviceRepository;
 import ru.growerhub.backend.db.SensorDataEntity;
 import ru.growerhub.backend.db.SensorDataRepository;
+import ru.growerhub.backend.device.DeviceService;
 import ru.growerhub.backend.user.UserEntity;
 import ru.growerhub.backend.user.UserRepository;
 
 @RestController
 @Validated
 public class DevicesController {
-    private static final double DEFAULT_TARGET_MOISTURE = 40.0;
-    private static final int DEFAULT_WATERING_DURATION = 30;
-    private static final int DEFAULT_WATERING_TIMEOUT = 300;
-    private static final int DEFAULT_LIGHT_ON_HOUR = 6;
-    private static final int DEFAULT_LIGHT_OFF_HOUR = 22;
-    private static final int DEFAULT_LIGHT_DURATION = 16;
-    private static final String DEFAULT_CURRENT_VERSION = "1.0.0";
-    private static final String DEFAULT_LATEST_VERSION = "1.0.0";
-    private static final boolean DEFAULT_UPDATE_AVAILABLE = false;
-
     private final DeviceRepository deviceRepository;
+    private final DeviceService deviceService;
     private final SensorDataRepository sensorDataRepository;
     private final DeviceStateLastRepository deviceStateLastRepository;
     private final PlantDeviceRepository plantDeviceRepository;
@@ -55,6 +47,7 @@ public class DevicesController {
 
     public DevicesController(
             DeviceRepository deviceRepository,
+            DeviceService deviceService,
             SensorDataRepository sensorDataRepository,
             DeviceStateLastRepository deviceStateLastRepository,
             PlantDeviceRepository plantDeviceRepository,
@@ -62,6 +55,7 @@ public class DevicesController {
             ObjectMapper objectMapper
     ) {
         this.deviceRepository = deviceRepository;
+        this.deviceService = deviceService;
         this.sensorDataRepository = sensorDataRepository;
         this.deviceStateLastRepository = deviceStateLastRepository;
         this.plantDeviceRepository = plantDeviceRepository;
@@ -76,13 +70,13 @@ public class DevicesController {
             @Valid @RequestBody DeviceDtos.DeviceStatusRequest request
     ) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        DeviceEntity device = deviceService.ensureDeviceExists(deviceId, now);
         if (device == null) {
             device = DeviceEntity.create();
             device.setDeviceId(deviceId);
-            device.setName("Watering Device " + deviceId);
+            device.setName(deviceService.defaultName(deviceId));
             device.setLastSeen(now);
-            applyDefaults(device, deviceId);
+            deviceService.applyDefaults(device, deviceId);
         }
 
         device.setSoilMoisture(request.soilMoisture());
@@ -94,7 +88,7 @@ public class DevicesController {
             device.setLastWatering(request.lastWatering());
         }
         device.setLastSeen(now);
-        applyDefaults(device, deviceId);
+        deviceService.applyDefaults(device, deviceId);
         deviceRepository.save(device);
 
         SensorDataEntity sensorData = SensorDataEntity.create();
@@ -114,25 +108,25 @@ public class DevicesController {
             @PathVariable("device_id") String deviceId
     ) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        DeviceEntity device = deviceService.ensureDeviceExists(deviceId, now);
         if (device == null) {
             device = DeviceEntity.create();
             device.setDeviceId(deviceId);
-            device.setName("Watering Device " + deviceId);
+            device.setName(deviceService.defaultName(deviceId));
             device.setLastSeen(now);
-            applyDefaults(device, deviceId);
+            deviceService.applyDefaults(device, deviceId);
             deviceRepository.save(device);
         }
 
         return new DeviceDtos.DeviceSettingsResponse(
-                defaultDouble(device.getTargetMoisture(), DEFAULT_TARGET_MOISTURE),
-                defaultInteger(device.getWateringDuration(), DEFAULT_WATERING_DURATION),
-                defaultInteger(device.getWateringTimeout(), DEFAULT_WATERING_TIMEOUT),
+                defaultDouble(device.getTargetMoisture(), deviceService.defaultTargetMoisture()),
+                defaultInteger(device.getWateringDuration(), deviceService.defaultWateringDuration()),
+                defaultInteger(device.getWateringTimeout(), deviceService.defaultWateringTimeout()),
                 device.getWateringSpeedLph(),
-                defaultInteger(device.getLightOnHour(), DEFAULT_LIGHT_ON_HOUR),
-                defaultInteger(device.getLightOffHour(), DEFAULT_LIGHT_OFF_HOUR),
-                defaultInteger(device.getLightDuration(), DEFAULT_LIGHT_DURATION),
-                defaultBoolean(device.getUpdateAvailable(), DEFAULT_UPDATE_AVAILABLE)
+                defaultInteger(device.getLightOnHour(), deviceService.defaultLightOnHour()),
+                defaultInteger(device.getLightOffHour(), deviceService.defaultLightOffHour()),
+                defaultInteger(device.getLightDuration(), deviceService.defaultLightDuration()),
+                defaultBoolean(device.getUpdateAvailable(), deviceService.defaultUpdateAvailable())
         );
     }
 
@@ -418,24 +412,24 @@ public class DevicesController {
         return new DeviceDtos.DeviceResponse(
                 device.getId(),
                 device.getDeviceId(),
-                defaultString(device.getName(), "Watering Device " + device.getDeviceId()),
+                defaultString(device.getName(), deviceService.defaultName(device.getDeviceId())),
                 snapshot.isOnline(),
-                defaultDouble(device.getSoilMoisture(), 0.0),
-                defaultDouble(device.getAirTemperature(), 0.0),
-                defaultDouble(device.getAirHumidity(), 0.0),
-                defaultBoolean(snapshot.isWatering(), false),
-                defaultBoolean(device.getIsLightOn(), false),
+                defaultDouble(device.getSoilMoisture(), deviceService.defaultSoilMoisture()),
+                defaultDouble(device.getAirTemperature(), deviceService.defaultAirTemperature()),
+                defaultDouble(device.getAirHumidity(), deviceService.defaultAirHumidity()),
+                defaultBoolean(snapshot.isWatering(), deviceService.defaultIsWatering()),
+                defaultBoolean(device.getIsLightOn(), deviceService.defaultIsLightOn()),
                 device.getLastWatering(),
                 snapshot.lastSeen(),
-                defaultDouble(device.getTargetMoisture(), DEFAULT_TARGET_MOISTURE),
-                defaultInteger(device.getWateringDuration(), DEFAULT_WATERING_DURATION),
-                defaultInteger(device.getWateringTimeout(), DEFAULT_WATERING_TIMEOUT),
+                defaultDouble(device.getTargetMoisture(), deviceService.defaultTargetMoisture()),
+                defaultInteger(device.getWateringDuration(), deviceService.defaultWateringDuration()),
+                defaultInteger(device.getWateringTimeout(), deviceService.defaultWateringTimeout()),
                 device.getWateringSpeedLph(),
-                defaultInteger(device.getLightOnHour(), DEFAULT_LIGHT_ON_HOUR),
-                defaultInteger(device.getLightOffHour(), DEFAULT_LIGHT_OFF_HOUR),
-                defaultInteger(device.getLightDuration(), DEFAULT_LIGHT_DURATION),
-                defaultString(device.getCurrentVersion(), DEFAULT_CURRENT_VERSION),
-                defaultBoolean(device.getUpdateAvailable(), DEFAULT_UPDATE_AVAILABLE),
+                defaultInteger(device.getLightOnHour(), deviceService.defaultLightOnHour()),
+                defaultInteger(device.getLightOffHour(), deviceService.defaultLightOffHour()),
+                defaultInteger(device.getLightDuration(), deviceService.defaultLightDuration()),
+                defaultString(device.getCurrentVersion(), deviceService.defaultCurrentVersion()),
+                defaultBoolean(device.getUpdateAvailable(), deviceService.defaultUpdateAvailable()),
                 snapshot.firmwareVersion(),
                 ownerId,
                 plantIds
@@ -485,54 +479,6 @@ public class DevicesController {
             });
         } catch (Exception ex) {
             return null;
-        }
-    }
-
-    private void applyDefaults(DeviceEntity device, String deviceId) {
-        if (device.getName() == null) {
-            device.setName("Watering Device " + deviceId);
-        }
-        if (device.getSoilMoisture() == null) {
-            device.setSoilMoisture(0.0);
-        }
-        if (device.getAirTemperature() == null) {
-            device.setAirTemperature(0.0);
-        }
-        if (device.getAirHumidity() == null) {
-            device.setAirHumidity(0.0);
-        }
-        if (device.getIsWatering() == null) {
-            device.setIsWatering(false);
-        }
-        if (device.getIsLightOn() == null) {
-            device.setIsLightOn(false);
-        }
-        if (device.getTargetMoisture() == null) {
-            device.setTargetMoisture(DEFAULT_TARGET_MOISTURE);
-        }
-        if (device.getWateringDuration() == null) {
-            device.setWateringDuration(DEFAULT_WATERING_DURATION);
-        }
-        if (device.getWateringTimeout() == null) {
-            device.setWateringTimeout(DEFAULT_WATERING_TIMEOUT);
-        }
-        if (device.getLightOnHour() == null) {
-            device.setLightOnHour(DEFAULT_LIGHT_ON_HOUR);
-        }
-        if (device.getLightOffHour() == null) {
-            device.setLightOffHour(DEFAULT_LIGHT_OFF_HOUR);
-        }
-        if (device.getLightDuration() == null) {
-            device.setLightDuration(DEFAULT_LIGHT_DURATION);
-        }
-        if (device.getCurrentVersion() == null) {
-            device.setCurrentVersion(DEFAULT_CURRENT_VERSION);
-        }
-        if (device.getLatestVersion() == null) {
-            device.setLatestVersion(DEFAULT_LATEST_VERSION);
-        }
-        if (device.getUpdateAvailable() == null) {
-            device.setUpdateAvailable(DEFAULT_UPDATE_AVAILABLE);
         }
     }
 
