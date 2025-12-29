@@ -1,4 +1,4 @@
-package ru.growerhub.backend.mqtt;
+﻿package ru.growerhub.backend.mqtt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import ru.growerhub.backend.device.DeviceShadowStore;
 import ru.growerhub.backend.mqtt.model.DeviceState;
 import ru.growerhub.backend.mqtt.model.ManualWateringState;
 

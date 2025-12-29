@@ -1,6 +1,7 @@
 ﻿# Changelog
 
 ## 2025-12-25
+- MQTT state obrabotka teper' delegiruetsya v device domen, shadow store perenesen v ru.growerhub.backend.device.
 - Avtoregistraciya ustroystv pri MQTT state i REST init perenesena v DeviceService.
 - Avtoregistraciya ustroystv pri MQTT state soobshcheniyah: device sozdaetsya avtomaticheski pri pervom state.
 - Ispravlen mapping device_state_last.state_json na TEXT, chtoby JSON ne chitalsya kak chislo/LOB; dobavleny integracionnye testy dlya /api/devices/my i /api/plants.

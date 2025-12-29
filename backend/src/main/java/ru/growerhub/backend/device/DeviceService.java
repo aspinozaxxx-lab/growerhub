@@ -1,13 +1,18 @@
 ﻿package ru.growerhub.backend.device;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import ru.growerhub.backend.db.DeviceEntity;
 import ru.growerhub.backend.db.DeviceRepository;
+import ru.growerhub.backend.db.DeviceStateLastEntity;
+import ru.growerhub.backend.db.DeviceStateLastRepository;
+import ru.growerhub.backend.mqtt.model.DeviceState;
 
 @Service
 public class DeviceService {
@@ -27,12 +32,31 @@ public class DeviceService {
     private static final boolean DEFAULT_UPDATE_AVAILABLE = false;
 
     private final DeviceRepository deviceRepository;
+    private final DeviceShadowStore shadowStore;
+    private final DeviceStateLastRepository deviceStateLastRepository;
+    private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
 
-    public DeviceService(DeviceRepository deviceRepository, PlatformTransactionManager transactionManager) {
+    public DeviceService(
+            DeviceRepository deviceRepository,
+            DeviceShadowStore shadowStore,
+            DeviceStateLastRepository deviceStateLastRepository,
+            ObjectMapper objectMapper,
+            PlatformTransactionManager transactionManager
+    ) {
         this.deviceRepository = deviceRepository;
+        this.shadowStore = shadowStore;
+        this.deviceStateLastRepository = deviceStateLastRepository;
+        this.objectMapper = objectMapper;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
+
+    @Transactional
+    public void handleMqttState(String deviceId, DeviceState state, LocalDateTime now) {
+        ensureDeviceExists(deviceId, now);
+        shadowStore.updateFromState(deviceId, state);
+        upsertDeviceState(deviceId, state, now);
     }
 
     public DeviceEntity ensureDeviceExists(String deviceId, LocalDateTime now) {
@@ -150,6 +174,23 @@ public class DeviceService {
 
     public boolean defaultUpdateAvailable() {
         return DEFAULT_UPDATE_AVAILABLE;
+    }
+
+    private void upsertDeviceState(String deviceId, DeviceState state, LocalDateTime updatedAt) {
+        String payload;
+        try {
+            payload = objectMapper.writeValueAsString(state);
+        } catch (Exception ex) {
+            throw new IllegalStateException(ex);
+        }
+        DeviceStateLastEntity record = deviceStateLastRepository.findByDeviceId(deviceId).orElse(null);
+        if (record == null) {
+            record = DeviceStateLastEntity.create();
+            record.setDeviceId(deviceId);
+        }
+        record.setStateJson(payload);
+        record.setUpdatedAt(updatedAt);
+        deviceStateLastRepository.save(record);
     }
 
     private void createIfMissing(String deviceId, LocalDateTime now) {

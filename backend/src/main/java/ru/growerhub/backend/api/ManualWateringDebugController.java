@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.ManualWateringDtos;
+import ru.growerhub.backend.device.DeviceShadowStore;
 import ru.growerhub.backend.mqtt.DebugSettings;
-import ru.growerhub.backend.mqtt.DeviceShadowStore;
 import ru.growerhub.backend.mqtt.MqttSettings;
 
 @RestController

@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.mqtt;
+﻿package ru.growerhub.backend.device;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
+import ru.growerhub.backend.mqtt.DeviceSettings;
 import ru.growerhub.backend.mqtt.model.DeviceState;
 import ru.growerhub.backend.mqtt.model.ManualWateringState;
 

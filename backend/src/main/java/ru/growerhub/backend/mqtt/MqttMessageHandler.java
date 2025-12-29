@@ -26,7 +26,6 @@ public class MqttMessageHandler {
     private static final String ACK_SUFFIX = "/state/ack";
 
     private final ObjectMapper objectMapper;
-    private final DeviceShadowStore shadowStore;
     private final AckStore ackStore;
     private final DeviceStateLastRepository deviceStateLastRepository;
     private final MqttAckRepository mqttAckRepository;
@@ -38,7 +37,6 @@ public class MqttMessageHandler {
 
     public MqttMessageHandler(
             ObjectMapper objectMapper,
-            DeviceShadowStore shadowStore,
             AckStore ackStore,
             DeviceStateLastRepository deviceStateLastRepository,
             MqttAckRepository mqttAckRepository,
@@ -49,7 +47,6 @@ public class MqttMessageHandler {
             Clock clock
     ) {
         this.objectMapper = objectMapper;
-        this.shadowStore = shadowStore;
         this.ackStore = ackStore;
         this.deviceStateLastRepository = deviceStateLastRepository;
         this.mqttAckRepository = mqttAckRepository;
@@ -60,7 +57,6 @@ public class MqttMessageHandler {
         this.clock = clock;
     }
 
-    @Transactional
     public void handleStateMessage(String topic, byte[] payload) {
         if (debugSettings.isDebug()) {
             logger.info("MQTT DEBUG state topic={} payload={}", topic, safePayload(payload));
@@ -78,9 +74,7 @@ public class MqttMessageHandler {
             return;
         }
         LocalDateTime now = LocalDateTime.now(clock);
-        deviceService.ensureDeviceExists(deviceId, now);
-        shadowStore.updateFromState(deviceId, state);
-        upsertDeviceState(deviceId, state, now);
+        deviceService.handleMqttState(deviceId, state, now);
         logger.info("MQTT state updated for {}", deviceId);
     }
 
@@ -121,23 +115,6 @@ public class MqttMessageHandler {
         upsertAck(deviceId, correlationId, result, ack.status(), payloadMap, receivedAt, expiresAt);
         touchLastSeen(deviceId, receivedAt);
         logger.info("MQTT ack stored for {} correlation_id={}", deviceId, correlationId);
-    }
-
-    private void upsertDeviceState(String deviceId, DeviceState state, LocalDateTime updatedAt) {
-        String payload;
-        try {
-            payload = objectMapper.writeValueAsString(state);
-        } catch (Exception ex) {
-            throw new IllegalStateException(ex);
-        }
-        DeviceStateLastEntity record = deviceStateLastRepository.findByDeviceId(deviceId).orElse(null);
-        if (record == null) {
-            record = DeviceStateLastEntity.create();
-            record.setDeviceId(deviceId);
-        }
-        record.setStateJson(payload);
-        record.setUpdatedAt(updatedAt);
-        deviceStateLastRepository.save(record);
     }
 
     private void upsertAck(

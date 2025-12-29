@@ -26,6 +26,8 @@ import ru.growerhub.backend.db.DeviceStateLastRepository;
 import ru.growerhub.backend.db.MqttAckEntity;
 import ru.growerhub.backend.db.MqttAckRepository;
 import ru.growerhub.backend.device.DeviceService;
+import ru.growerhub.backend.device.DeviceShadowStore;
+import ru.growerhub.backend.mqtt.model.DeviceState;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -116,7 +118,7 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
                 """;
         injectorSubscriber.injectState("gh/dev/" + deviceId + "/state", stateJson.getBytes(StandardCharsets.UTF_8));
 
-        verify(deviceService).ensureDeviceExists(eq(deviceId), any(LocalDateTime.class));
+        verify(deviceService).handleMqttState(eq(deviceId), any(DeviceState.class), any(LocalDateTime.class));
 
         DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
         Assertions.assertNotNull(device);
