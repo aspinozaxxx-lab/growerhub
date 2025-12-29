@@ -41,6 +41,10 @@ void test_dht_rate_limit();
 void test_dht_nan_unavailable();
 void test_dht_fail_triggers_reboot_event();
 void test_device_identity_legacy_format();
+void test_logger_prefix_no_watch();
+void test_logger_prefix_synced();
+void test_time_service_retry_schedule_on_fail();
+void test_time_service_resync_schedule_on_success();
 
 void setUp() {}
 void tearDown() {}
@@ -90,5 +94,11 @@ int main(int argc, char** argv) {
   RUN_TEST(test_dht_nan_unavailable);
   RUN_TEST(test_dht_fail_triggers_reboot_event);
   RUN_TEST(test_device_identity_legacy_format);
+  RUN_TEST(test_logger_prefix_no_watch);
+  RUN_TEST(test_logger_prefix_synced);
+  RUN_TEST(test_time_service_retry_schedule_on_fail);
+  RUN_TEST(test_time_service_resync_schedule_on_success);
   return UNITY_END();
 }
+
+

@@ -77,6 +77,7 @@ void AppRuntime::Tick() {
 #endif
 
   scheduler_.Tick(context_, now_ms);
+  time_service_.Loop(context_, now_ms);
 
   wifi_service_.Loop(context_, now_ms);
   web_config_service_.Loop(context_);
@@ -129,3 +130,5 @@ void AppRuntime::HeartbeatTask(Context& ctx, uint32_t now_ms) {
 }
 
 }
+
+

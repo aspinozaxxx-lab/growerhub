@@ -7,9 +7,13 @@
 
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
+#include <ctime>
+#include <memory>
 
 #include "core/Context.h"
+#include "services/time/INtpClient.h"
 
 namespace Services {
 
@@ -30,6 +34,19 @@ struct TimeFields {
   uint8_t wday;
 };
 
+class IRtcProvider {
+ public:
+  /**
+   * Virtualnyi destruktor RTC-providera.
+   */
+  virtual ~IRtcProvider() = default;
+  /**
+   * Vozvrashaet UTC vremya iz RTC.
+   * @param out_utc Vyhodnoe UTC vremya.
+   */
+  virtual bool GetUtc(std::time_t& out_utc) const = 0;
+};
+
 class TimeService {
  public:
   /**
@@ -37,6 +54,12 @@ class TimeService {
    * @param ctx Kontekst (dlya sootvetstviya interfeisu).
    */
   void Init(Core::Context& ctx);
+  /**
+   * Periodicheskiy loop dlya NTP-retry/resync.
+   * @param ctx Kontekst s zavisimostyami servisa.
+   * @param now_ms Tekuschee vremya v millisekundah.
+   */
+  void Loop(Core::Context& ctx, uint32_t now_ms);
   /**
    * Poluchaet tekushchee vremya v polya.
    * @param out Vyhodnaya struktura s polyami vremeni.
@@ -50,6 +73,12 @@ class TimeService {
    * Proveryaet, sinhronizirovano li vremya.
    */
   bool IsSynced() const;
+  /**
+   * Formiruet stroku vremeni dlya loga (DD.MM hh:mm:ss).
+   * @param out Bufer dlya zapisi.
+   * @param out_size Razmer bufera.
+   */
+  bool GetLogTimestamp(char* out, size_t out_size) const;
 
 #if defined(UNIT_TEST)
   /**
@@ -63,14 +92,103 @@ class TimeService {
    * @param synced Flag sinhronizacii.
    */
   void SetSyncedForTests(bool synced);
+  /**
+   * Podmena NTP klienta dlya testov.
+   * @param client NTP klient dlya testov.
+   */
+  void SetNtpClientForTests(INtpClient* client);
+  /**
+   * Podmena RTC providera dlya testov.
+   * @param rtc RTC provider dlya testov.
+   */
+  void SetRtcProviderForTests(IRtcProvider* rtc);
+  /**
+   * Podmena tekushchego millis dlya testov.
+   * @param now_ms Znachenie millis.
+   */
+  void SetNowMsForTests(uint32_t now_ms);
+  /**
+   * Priznak zaplanirovannogo retry dlya testov.
+   */
+  bool IsRetryPendingForTests() const;
+  /**
+   * Priznak zaplanirovannogo resync dlya testov.
+   */
+  bool IsResyncPendingForTests() const;
+  /**
+   * Vremya sleduyushchego retry dlya testov.
+   */
+  uint32_t GetNextRetryMsForTests() const;
+  /**
+   * Vremya sleduyushchego resync dlya testov.
+   */
+  uint32_t GetNextResyncMsForTests() const;
 #endif
 
  private:
+  /**
+   * Zapuskaet odnu popytku NTP sinhronizacii.
+   * @param context Metka konteksta dlya loga.
+   * @param now_ms Tekuschee vremya v millisekundah.
+   */
+  bool AttemptNtpSync(const char* context, uint32_t now_ms);
+  /**
+   * Poluchaet vremya iz NTP klienta.
+   * @param out_utc Vyhodnoe UTC vremya.
+   */
+  bool FetchNtpTime(std::time_t& out_utc) const;
+  /**
+   * Poluchaet vremya iz RTC, esli dostupno.
+   * @param out_utc Vyhodnoe UTC vremya.
+   */
+  bool GetRtcUtc(std::time_t& out_utc) const;
+  /**
+   * Proveryaet dopustimost goda v UTC.
+   * @param value UTC vremya.
+   */
+  bool IsYearValid(std::time_t value) const;
+  /**
+   * Proveryaet podklyuchenie Wi-Fi.
+   */
+  bool IsWifiConnected() const;
+  /**
+   * Vozvrashaet tekushchee millis s uchetom testov.
+   */
+  uint32_t GetNowMs() const;
+  /**
+   * Planiruet povtornuyu sinhronizaciyu (retry).
+   * @param now_ms Tekuschee vremya v millisekundah.
+   * @param reason Metka prichiny dlya loga.
+   */
+  void ScheduleRetry(uint32_t now_ms, const char* reason);
+  /**
+   * Planiruet periodicheskiy resync.
+   * @param now_ms Tekuschee vremya v millisekundah.
+   * @param reason Metka prichiny dlya loga.
+   */
+  void ScheduleResync(uint32_t now_ms, const char* reason);
+
+  INtpClient* ntp_ = nullptr;
+  std::unique_ptr<INtpClient> owned_ntp_;
+  IRtcProvider* rtc_ = nullptr;
+  std::time_t cached_utc_ = 0;
+  bool time_valid_ = false;
+  uint32_t next_retry_ms_ = 0;
+  uint32_t next_resync_ms_ = 0;
+  bool retry_pending_ = false;
+  bool resync_pending_ = false;
+  uint32_t sync_attempt_counter_ = 0;
+  bool last_sync_ok_ = false;
+  int64_t last_sync_delta_sec_ = 0;
+  uint32_t last_sync_ms_ = 0;
 #if defined(UNIT_TEST)
   bool test_synced_ = false;
   TimeFields test_fields_{};
   uint64_t test_unix_ms_ = 0;
+  uint32_t test_now_ms_ = 0;
 #endif
 };
 
 }
+
+
