@@ -125,7 +125,7 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
-    access_log /var/log/nginx/growerhub.ru_ssl_access.log;
+    access_log /var/log/nginx/growerhub.ru_ssl_access.log timed;
     error_log  /var/log/nginx/growerhub.ru_ssl_error.log;
 }
 

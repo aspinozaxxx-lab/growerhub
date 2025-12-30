@@ -1,3 +1,9 @@
+### chore(nginx): logi i tls nastrojki dlya medlennogo pervogo zaprosa
+
+- chore(nginx): dobavlen log_format timed s request_time/upstream/ssl v access log dlya growerhub.ru.
+- chore(nginx): TLS tolko 1.2/1.3 + session cache/timeout + OCSP stapling + resolver.
+- chore(nginx): dobavleny keepalive_timeout/keepalive_requests/tcp_nodelay v http{}.
+
 ﻿### fix(backend): testy startuyut na H2 bez sql init
 
 - fix(backend): otklyuchen spring.sql.init v testovom profile, chtoby schema ne dublirovalas' pri ddl-auto=create-drop.
