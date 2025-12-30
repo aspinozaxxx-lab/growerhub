@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 2025-12-30
+- MQTT state teper' zapisivaet istoriyu sensorov v sensor_data pri nalichii znacheniy.
+- Obrabotka state unificirovana cherez DeviceService.handleState, vkljuchaya HTTP status i MQTT.
+
 ## 2025-12-29
 - MQTT state teper' obnovlyaet devices.last_seen posle uspeshnogo parse.
 
@@ -30,6 +34,7 @@
 - Dobavleny domeny firmware i history s polnym sovmestimost'yu FastAPI i staticheskoy vydachey firmware.
 - Dobavleny integracionnye testy dlya firmware i history, vklyuchaya multipart upload i fil'try istorii.
 - Dobavlen domen plants (gruppy, privyazki, zhurnal, export, foto) s integracionnymi testami.
+
 
 
 
