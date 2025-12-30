@@ -1,4 +1,4 @@
-name: CI Firmware
+﻿name: CI Firmware
 
 on:
   push:
@@ -33,4 +33,4 @@ jobs:
         run: pio --version
 
       - name: Run WiFiService tests
-        run: pio test -e wifi_service_test -v
+        run: pio test -e wifi_service_test_legacy -v

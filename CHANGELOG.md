@@ -1,3 +1,7 @@
+﻿### fix(ci): ispravlen env dlya platformio testov
+
+- fix(ci): pio test teper' zapuskaetsya s env "wifi_service_test_legacy" v CI.
+
 ### chore(nginx): logi i tls nastrojki dlya medlennogo pervogo zaprosa
 
 - chore(nginx): dobavlen log_format timed s request_time/upstream/ssl v access log dlya growerhub.ru.
