@@ -5,18 +5,25 @@
     update_cache: true
     state: present
 
+- name: Deploy main nginx.conf
+  become: true
+  ansible.builtin.copy:
+    src: etc/nginx/nginx.conf
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - test nginx config
+    - reload nginx
+    - smoke-check api health
+
 #- name: Create backup of current /etc/nginx (одноразово, если нет бэкапа)
 #  ansible.builtin.command:
 #    cmd: tar -czf /etc/nginx.backup.tgz /etc/nginx
 #    creates: /etc/nginx.backup.tgz
 
 # Валидация текущей конфигурации (до изменений)
-- name: nginx -t (assert success)
-  ansible.builtin.command: nginx -t
-  register: nginx_test
-  changed_when: false
-  failed_when: nginx_test.rc != 0
-
 - name: Remove other enabled sites (keep only growerhub.conf)
   become: true
   find:
@@ -119,6 +126,12 @@
     - test nginx config
     - reload nginx
     - smoke-check api health
+
+- name: nginx -t (assert success)
+  ansible.builtin.command: nginx -t
+  register: nginx_test
+  changed_when: false
+  failed_when: nginx_test.rc != 0
 
 # 🔔 Выполним хендлеры сейчас (перезагрузим nginx), чтобы certbot получил доступ к webroot
 - name: Apply config now before certbot
