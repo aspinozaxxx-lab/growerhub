@@ -74,7 +74,7 @@ public class MqttMessageHandler {
             return;
         }
         LocalDateTime now = LocalDateTime.now(clock);
-        deviceService.handleMqttState(deviceId, state, now);
+        deviceService.handleState(deviceId, state, now);
         logger.info("MQTT state updated for {}", deviceId);
     }
 

@@ -28,9 +28,9 @@ import ru.growerhub.backend.db.DeviceStateLastEntity;
 import ru.growerhub.backend.db.DeviceStateLastRepository;
 import ru.growerhub.backend.db.PlantDeviceEntity;
 import ru.growerhub.backend.db.PlantDeviceRepository;
-import ru.growerhub.backend.db.SensorDataEntity;
 import ru.growerhub.backend.db.SensorDataRepository;
 import ru.growerhub.backend.device.DeviceService;
+import ru.growerhub.backend.mqtt.model.DeviceState;
 import ru.growerhub.backend.user.UserEntity;
 import ru.growerhub.backend.user.UserRepository;
 
@@ -91,13 +91,17 @@ public class DevicesController {
         deviceService.applyDefaults(device, deviceId);
         deviceRepository.save(device);
 
-        SensorDataEntity sensorData = SensorDataEntity.create();
-        sensorData.setDeviceId(deviceId);
-        sensorData.setSoilMoisture(request.soilMoisture());
-        sensorData.setAirTemperature(request.airTemperature());
-        sensorData.setAirHumidity(request.airHumidity());
-        sensorData.setTimestamp(now);
-        sensorDataRepository.save(sensorData);
+        DeviceState state = new DeviceState(
+                null,
+                null,
+                null,
+                null,
+                null,
+                request.soilMoisture(),
+                request.airTemperature(),
+                request.airHumidity()
+        );
+        deviceService.handleState(deviceId, state, now);
 
         return new CommonDtos.MessageResponse("Status updated");
     }

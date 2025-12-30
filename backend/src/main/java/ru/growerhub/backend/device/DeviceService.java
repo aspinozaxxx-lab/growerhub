@@ -12,6 +12,8 @@ import ru.growerhub.backend.db.DeviceEntity;
 import ru.growerhub.backend.db.DeviceRepository;
 import ru.growerhub.backend.db.DeviceStateLastEntity;
 import ru.growerhub.backend.db.DeviceStateLastRepository;
+import ru.growerhub.backend.db.SensorDataEntity;
+import ru.growerhub.backend.db.SensorDataRepository;
 import ru.growerhub.backend.mqtt.model.DeviceState;
 
 @Service
@@ -34,6 +36,7 @@ public class DeviceService {
     private final DeviceRepository deviceRepository;
     private final DeviceShadowStore shadowStore;
     private final DeviceStateLastRepository deviceStateLastRepository;
+    private final SensorDataRepository sensorDataRepository;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
 
@@ -41,19 +44,21 @@ public class DeviceService {
             DeviceRepository deviceRepository,
             DeviceShadowStore shadowStore,
             DeviceStateLastRepository deviceStateLastRepository,
+            SensorDataRepository sensorDataRepository,
             ObjectMapper objectMapper,
             PlatformTransactionManager transactionManager
     ) {
         this.deviceRepository = deviceRepository;
         this.shadowStore = shadowStore;
         this.deviceStateLastRepository = deviceStateLastRepository;
+        this.sensorDataRepository = sensorDataRepository;
         this.objectMapper = objectMapper;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     @Transactional
-    public void handleMqttState(String deviceId, DeviceState state, LocalDateTime now) {
+    public void handleState(String deviceId, DeviceState state, LocalDateTime now) {
         DeviceEntity device = ensureDeviceExists(deviceId, now);
         if (device != null) {
             device.setLastSeen(now);
@@ -61,6 +66,7 @@ public class DeviceService {
         }
         shadowStore.updateFromState(deviceId, state);
         upsertDeviceState(deviceId, state, now);
+        persistSensorHistoryIfPresent(deviceId, state, now);
     }
 
     public DeviceEntity ensureDeviceExists(String deviceId, LocalDateTime now) {
@@ -195,6 +201,25 @@ public class DeviceService {
         record.setStateJson(payload);
         record.setUpdatedAt(updatedAt);
         deviceStateLastRepository.save(record);
+    }
+
+    private void persistSensorHistoryIfPresent(String deviceId, DeviceState state, LocalDateTime timestamp) {
+        if (state == null) {
+            return;
+        }
+        Double soilMoisture = state.soilMoisture();
+        Double airTemperature = state.airTemperature();
+        Double airHumidity = state.airHumidity();
+        if (soilMoisture == null && airTemperature == null && airHumidity == null) {
+            return;
+        }
+        SensorDataEntity sensorData = SensorDataEntity.create();
+        sensorData.setDeviceId(deviceId);
+        sensorData.setSoilMoisture(soilMoisture);
+        sensorData.setAirTemperature(airTemperature);
+        sensorData.setAirHumidity(airHumidity);
+        sensorData.setTimestamp(timestamp);
+        sensorDataRepository.save(sensorData);
     }
 
     private void createIfMissing(String deviceId, LocalDateTime now) {

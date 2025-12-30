@@ -25,6 +25,8 @@ import ru.growerhub.backend.db.DeviceStateLastEntity;
 import ru.growerhub.backend.db.DeviceStateLastRepository;
 import ru.growerhub.backend.db.MqttAckEntity;
 import ru.growerhub.backend.db.MqttAckRepository;
+import ru.growerhub.backend.db.SensorDataEntity;
+import ru.growerhub.backend.db.SensorDataRepository;
 import ru.growerhub.backend.device.DeviceService;
 import ru.growerhub.backend.device.DeviceShadowStore;
 import ru.growerhub.backend.mqtt.model.DeviceState;
@@ -57,6 +59,9 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private DeviceShadowStore shadowStore;
+
+    @Autowired
+    private SensorDataRepository sensorDataRepository;
 
     @SpyBean
     private DeviceService deviceService;
@@ -122,7 +127,7 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
                 """;
         injectorSubscriber.injectState("gh/dev/" + deviceId + "/state", stateJson.getBytes(StandardCharsets.UTF_8));
 
-        verify(deviceService).handleMqttState(eq(deviceId), any(DeviceState.class), any(LocalDateTime.class));
+        verify(deviceService).handleState(eq(deviceId), any(DeviceState.class), any(LocalDateTime.class));
 
         DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
         Assertions.assertNotNull(device);
@@ -137,6 +142,23 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         DeviceStateLastEntity state = deviceStateLastRepository.findByDeviceId(deviceId).orElse(null);
         Assertions.assertNotNull(state);
         Assertions.assertNotNull(shadowStore.getLastState(deviceId));
+    }
+
+    @Test
+    void persistsSensorHistoryFromStateMessage() {
+        String deviceId = "mqtt-sensor";
+        String stateJson = """
+                {"soil_moisture":12.5,"air_temperature":22.0,"air_humidity":55.5}
+                """;
+        injectorSubscriber.injectState("gh/dev/" + deviceId + "/state", stateJson.getBytes(StandardCharsets.UTF_8));
+
+        SensorDataEntity record = sensorDataRepository.findAll().stream().findFirst().orElse(null);
+        Assertions.assertNotNull(record);
+        Assertions.assertEquals(deviceId, record.getDeviceId());
+        Assertions.assertEquals(12.5, record.getSoilMoisture());
+        Assertions.assertEquals(22.0, record.getAirTemperature());
+        Assertions.assertEquals(55.5, record.getAirHumidity());
+        Assertions.assertNotNull(record.getTimestamp());
     }
 
     private void clearDatabase() {
