@@ -174,7 +174,7 @@ class TimeService {
    * Poluchaet luchshee UTC vremya (system ili RTC).
    * @param out_utc Vyhodnoe UTC vremya.
    */
-  bool GetBestUtc(std::time_t& out_utc) const;
+  bool TryGetBestUtc(std::time_t& out_utc) const;
   /**
    * Validaciya RTC epoch po minimalnomu porogu.
    * @param value UTC vremya.

@@ -7,6 +7,7 @@
 
 #include "modules/StateModule.h"
 
+#include <algorithm>
 #include <string>
 
 #include "config/BuildFlags.h"
@@ -145,9 +146,19 @@ void StateModule::PublishState(bool retained) {
   log_line += topic;
   log_line += " qos=0 retained=";
   log_line += retained ? "true" : "false";
-  log_line += " payload=";
-  log_line += payload;
   Util::Logger::Info(log_line.c_str());
+  std::string payload_line = "[STATE] payload_len=";
+  payload_line += std::to_string(payload.size());
+  Util::Logger::Info(payload_line.c_str());
+
+  const size_t chunk_size = 200;
+  for (size_t offset = 0; offset < payload.size(); offset += chunk_size) {
+    const size_t len = std::min(chunk_size, payload.size() - offset);
+    std::string chunk = payload.substr(offset, len);
+    std::string chunk_line = "[STATE] payload_chunk=";
+    chunk_line += chunk;
+    Util::Logger::Info(chunk_line.c_str());
+  }
 
   mqtt_->Publish(topic, payload.c_str(), retained, 0);
 }

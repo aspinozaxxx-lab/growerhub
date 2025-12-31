@@ -59,6 +59,22 @@ void TimeService::Init(Core::Context& ctx) {
   last_sync_delta_sec_ = 0;
   last_sync_ms_ = 0;
 
+  if (rtc_) {
+    std::time_t rtc_utc = 0;
+    if (GetRtcUtc(rtc_utc)) {
+      char log_buf[kLogBufSize];
+      std::snprintf(log_buf,
+                    sizeof(log_buf),
+                    "RTC: start read ok, utc=%lld.",
+                    static_cast<long long>(rtc_utc));
+      Util::Logger::Info(log_buf);
+    } else {
+      Util::Logger::Info("RTC: start read fail ili nevalidno.");
+    }
+  } else {
+    Util::Logger::Info("RTC: provider ne nastroen.");
+  }
+
   if (!ntp_) {
 #if defined(ARDUINO)
     owned_ntp_.reset(new ESP32NtpClientAdapter());
@@ -132,7 +148,7 @@ bool TimeService::GetTime(TimeFields* out) const {
   return true;
 #else
   std::time_t now = 0;
-  if (!GetBestUtc(now)) {
+  if (!TryGetBestUtc(now)) {
     return false;
   }
   std::tm tm_info{};
@@ -178,7 +194,7 @@ bool TimeService::TryGetUnixTimeMs(uint64_t* out_ms) const {
   return true;
 #else
   std::time_t now = 0;
-  if (!GetBestUtc(now)) {
+  if (!TryGetBestUtc(now)) {
     return false;
   }
   *out_ms = static_cast<uint64_t>(now) * 1000ULL;
@@ -201,7 +217,7 @@ bool TimeService::HasValidTime() const {
   return test_synced_;
 #else
   std::time_t now = 0;
-  return GetBestUtc(now);
+  return TryGetBestUtc(now);
 #endif
 }
 
@@ -456,7 +472,7 @@ uint32_t TimeService::GetNowMs() const {
 }
 
 // Vybor luchshego UTC vremena (system ili RTC).
-bool TimeService::GetBestUtc(std::time_t& out_utc) const {
+bool TimeService::TryGetBestUtc(std::time_t& out_utc) const {
   const std::time_t system_utc = std::time(nullptr);
   if (IsYearValid(system_utc)) {
     out_utc = system_utc;
