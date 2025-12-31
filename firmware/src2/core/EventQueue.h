@@ -44,7 +44,7 @@ struct Event {
   // Tip sobytiya.
   EventType type;
   // Dop. chislennoe znachenie sobytiya.
-  uint32_t value;
+  uint64_t value;
   // MQTT dannye dlya sobytiy tipa kMqttMessage.
   MqttMessage mqtt;
 };

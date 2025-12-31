@@ -56,8 +56,7 @@ void SensorHubModule::OnEvent(Core::Context& ctx, const Core::Event& event) {
   if (event.type == Core::EventType::kPumpStopped) {
     pump_blocked_ = false;
     rescan_pending_ = true;
-    const uint32_t now_ms = event.value;
-    rescan_at_ms_ = now_ms + kRescanDelayMs;
+    rescan_at_ms_ = 0;
     return;
   }
 }
@@ -71,9 +70,14 @@ void SensorHubModule::OnTick(Core::Context& ctx, uint32_t now_ms) {
     }
   }
 
-  if (rescan_pending_ && now_ms >= rescan_at_ms_) {
-    rescan_pending_ = false;
-    ScanNow(now_ms);
+  if (rescan_pending_) {
+    if (rescan_at_ms_ == 0) {
+      rescan_at_ms_ = now_ms + kRescanDelayMs;
+    }
+    if (now_ms >= rescan_at_ms_) {
+      rescan_pending_ = false;
+      ScanNow(now_ms);
+    }
   }
 
   if (dht_reboot_pending_ && !pump_blocked_) {
@@ -179,7 +183,7 @@ void SensorHubModule::PublishDhtFailEvent(uint32_t now_ms, uint8_t errors_count)
   }
 
   char ts[32];
-  std::snprintf(ts, sizeof(ts), "1970-01-01T00:00:00Z");
+  bool has_ts = false;
   if (time_) {
     Services::TimeFields fields{};
     if (time_->GetTime(&fields)) {
@@ -192,15 +196,23 @@ void SensorHubModule::PublishDhtFailEvent(uint32_t now_ms, uint8_t errors_count)
                     static_cast<unsigned int>(fields.hour),
                     static_cast<unsigned int>(fields.minute),
                     static_cast<unsigned int>(fields.second));
+      has_ts = true;
     }
   }
 
   char payload[160];
-  std::snprintf(payload,
-                sizeof(payload),
-                "{\"type\":\"sensor.dht22.fail\",\"ts\":\"%s\",\"errors_count\":%u}",
-                ts,
-                static_cast<unsigned int>(errors_count));
+  if (has_ts) {
+    std::snprintf(payload,
+                  sizeof(payload),
+                  "{\"type\":\"sensor.dht22.fail\",\"ts\":\"%s\",\"errors_count\":%u}",
+                  ts,
+                  static_cast<unsigned int>(errors_count));
+  } else {
+    std::snprintf(payload,
+                  sizeof(payload),
+                  "{\"type\":\"sensor.dht22.fail\",\"ts\":null,\"errors_count\":%u}",
+                  static_cast<unsigned int>(errors_count));
+  }
   mqtt_->Publish(topic, payload, false, 1);
 }
 

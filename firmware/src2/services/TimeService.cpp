@@ -36,6 +36,8 @@ namespace {
   const int kMinValidYear = 2025;
   // Maksimalno dopustimyi god UTC.
   const int kMaxValidYear = 2040;
+  // Minimalnyi epoch RTC dlya bazovoi proverki.
+  const std::time_t kRtcMinEpoch = 1735689600;
   // Buffer dlya log-strok s korotkimi soobshcheniyami.
   const size_t kLogBufSize = 192;
 }
@@ -129,8 +131,8 @@ bool TimeService::GetTime(TimeFields* out) const {
   *out = test_fields_;
   return true;
 #else
-  const std::time_t now = std::time(nullptr);
-  if (!IsYearValid(now)) {
+  std::time_t now = 0;
+  if (!GetBestUtc(now)) {
     return false;
   }
   std::tm tm_info{};
@@ -155,11 +157,32 @@ uint64_t TimeService::GetUnixTimeMs() const {
 #if defined(UNIT_TEST)
   return test_synced_ ? test_unix_ms_ : 0;
 #else
-  const std::time_t now = std::time(nullptr);
-  if (!IsYearValid(now)) {
+  uint64_t unix_ms = 0;
+  if (!TryGetUnixTimeMs(&unix_ms)) {
     return 0;
   }
-  return static_cast<uint64_t>(now) * 1000ULL;
+  return unix_ms;
+#endif
+}
+
+// Poluchenie unix ms tolko pri validnom vremeni.
+bool TimeService::TryGetUnixTimeMs(uint64_t* out_ms) const {
+  if (!out_ms) {
+    return false;
+  }
+#if defined(UNIT_TEST)
+  if (!test_synced_) {
+    return false;
+  }
+  *out_ms = test_unix_ms_;
+  return true;
+#else
+  std::time_t now = 0;
+  if (!GetBestUtc(now)) {
+    return false;
+  }
+  *out_ms = static_cast<uint64_t>(now) * 1000ULL;
+  return true;
 #endif
 }
 
@@ -168,8 +191,17 @@ bool TimeService::IsSynced() const {
 #if defined(UNIT_TEST)
   return test_synced_;
 #else
-  const std::time_t now = std::time(nullptr);
-  return IsYearValid(now);
+  return HasValidTime();
+#endif
+}
+
+// Priznak nalichiya vremeni iz system ili RTC.
+bool TimeService::HasValidTime() const {
+#if defined(UNIT_TEST)
+  return test_synced_;
+#else
+  std::time_t now = 0;
+  return GetBestUtc(now);
 #endif
 }
 
@@ -191,6 +223,11 @@ bool TimeService::GetLogTimestamp(char* out, size_t out_size) const {
                                     static_cast<unsigned int>(fields.minute),
                                     static_cast<unsigned int>(fields.second));
   return written > 0 && static_cast<size_t>(written) < out_size;
+}
+
+// Ustanovka RTC providera dlya runtime.
+void TimeService::SetRtcProvider(IRtcProvider* rtc) {
+  rtc_ = rtc;
 }
 
 #if defined(UNIT_TEST)
@@ -376,7 +413,7 @@ bool TimeService::GetRtcUtc(std::time_t& out_utc) const {
   if (!rtc_->GetUtc(out_utc)) {
     return false;
   }
-  return IsYearValid(out_utc);
+  return IsYearValid(out_utc) && IsRtcEpochValid(out_utc);
 }
 
 // Proverka goda na dopustimyi diapazon.
@@ -416,6 +453,26 @@ uint32_t TimeService::GetNowMs() const {
   fake_now += 10;
   return fake_now;
 #endif
+}
+
+// Vybor luchshego UTC vremena (system ili RTC).
+bool TimeService::GetBestUtc(std::time_t& out_utc) const {
+  const std::time_t system_utc = std::time(nullptr);
+  if (IsYearValid(system_utc)) {
+    out_utc = system_utc;
+    return true;
+  }
+  std::time_t rtc_utc = 0;
+  if (GetRtcUtc(rtc_utc)) {
+    out_utc = rtc_utc;
+    return true;
+  }
+  return false;
+}
+
+// Proverka minimalnogo RTC epoch poroga.
+bool TimeService::IsRtcEpochValid(std::time_t value) const {
+  return value >= kRtcMinEpoch;
 }
 
 // Planirovanie retry NTP.

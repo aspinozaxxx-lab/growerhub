@@ -70,15 +70,30 @@ class TimeService {
    */
   uint64_t GetUnixTimeMs() const;
   /**
+   * Vozvrashaet unix ms tolko pri validnom vremeni.
+   * @param out_ms Vyhodnoe unix vremya v ms.
+   */
+  bool TryGetUnixTimeMs(uint64_t* out_ms) const;
+  /**
    * Proveryaet, sinhronizirovano li vremya.
    */
   bool IsSynced() const;
+  /**
+   * Priznak nalichiya validnogo vremeni iz lyubogo istochnika.
+   */
+  bool HasValidTime() const;
   /**
    * Formiruet stroku vremeni dlya loga (DD.MM hh:mm:ss).
    * @param out Bufer dlya zapisi.
    * @param out_size Razmer bufera.
    */
   bool GetLogTimestamp(char* out, size_t out_size) const;
+
+  /**
+   * Ustanavlivaet RTC provider dlya runtime.
+   * @param rtc RTC provider.
+   */
+  void SetRtcProvider(IRtcProvider* rtc);
 
 #if defined(UNIT_TEST)
   /**
@@ -155,6 +170,16 @@ class TimeService {
    * Vozvrashaet tekushchee millis s uchetom testov.
    */
   uint32_t GetNowMs() const;
+  /**
+   * Poluchaet luchshee UTC vremya (system ili RTC).
+   * @param out_utc Vyhodnoe UTC vremya.
+   */
+  bool GetBestUtc(std::time_t& out_utc) const;
+  /**
+   * Validaciya RTC epoch po minimalnomu porogu.
+   * @param value UTC vremya.
+   */
+  bool IsRtcEpochValid(std::time_t value) const;
   /**
    * Planiruet povtornuyu sinhronizaciyu (retry).
    * @param now_ms Tekuschee vremya v millisekundah.

@@ -105,6 +105,9 @@ void test_auto_moisture_port0() {
   hub.Init(full);
   automation.Init(full);
 
+  Services::TimeFields fields{2025, 1, 1, 0, 0, 0, 3};
+  time_service.SetTimeForTests(fields, 1735689600000ULL);
+
   FillSamplesAuto(3800, 4095);
   PrimeScanner(hub);
 
@@ -161,6 +164,9 @@ void test_auto_moisture_port1() {
   hub.Init(full);
   automation.Init(full);
 
+  Services::TimeFields fields{2025, 1, 1, 0, 0, 0, 3};
+  time_service.SetTimeForTests(fields, 1735689600000ULL);
+
   FillSamplesAuto(4095, 3800);
   PrimeScanner(hub);
 
@@ -214,6 +220,9 @@ void test_auto_min_time_between() {
   actuator.Init(full);
   hub.Init(full);
   automation.Init(full);
+
+  Services::TimeFields fields{2025, 1, 1, 0, 0, 0, 3};
+  time_service.SetTimeForTests(fields, 1735689600000ULL);
 
   FillSamplesAuto(3800, 4095);
   PrimeScanner(hub);

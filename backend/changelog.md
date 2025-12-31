@@ -1,5 +1,11 @@
 ﻿# Changelog
 
+## 2025-12-31
+- TimeService teper' ispol'zuet RTC kak istochnik vremeni, a "[no watch]" tol'ko pri otsutstvii validnogo vremeni.
+- Ruchnoi poliv: started_at i timestampy sobytii teper' iz TimeService (epoch ms), bez "1970".
+- State: dobavlen status rele nasosa i garantirovany porty pochvy, DHT/soil otrazhajut dostupnost'.
+- Backend: DTO dlya v2 state, shadow i sensor_data rasshireny pod soil1/soil2 i statusy rele.
+
 ## 2025-12-30
 - MQTT state teper' zapisivaet istoriyu sensorov v sensor_data pri nalichii znacheniy.
 - Obrabotka state unificirovana cherez DeviceService.handleState, vkljuchaya HTTP status i MQTT.
@@ -34,6 +40,8 @@
 - Dobavleny domeny firmware i history s polnym sovmestimost'yu FastAPI i staticheskoy vydachey firmware.
 - Dobavleny integracionnye testy dlya firmware i history, vklyuchaya multipart upload i fil'try istorii.
 - Dobavlen domen plants (gruppy, privyazki, zhurnal, export, foto) s integracionnymi testami.
+
+
 
 
 

@@ -25,6 +25,7 @@
 #include "services/MqttService.h"
 #include "services/StorageService.h"
 #include "services/TimeService.h"
+#include "services/time/Ds3231RtcProvider.h"
 #include "services/WebConfigService.h"
 #include "services/WiFiService.h"
 
@@ -48,6 +49,7 @@ class AppRuntime {
 
   Services::StorageService storage_service_;
   Services::TimeService time_service_;
+  Services::Ds3231RtcProvider rtc_provider_;
   Services::WiFiService wifi_service_;
   Services::WebConfigService web_config_service_;
   Services::MqttService mqtt_service_;

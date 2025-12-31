@@ -96,6 +96,8 @@ void AppRuntime::Tick() {
 
 void AppRuntime::InitServices() {
   storage_service_.Init(context_);
+  rtc_provider_.Init();
+  time_service_.SetRtcProvider(&rtc_provider_);
   time_service_.Init(context_);
   wifi_service_.Init(context_);
   web_config_service_.Init(context_);

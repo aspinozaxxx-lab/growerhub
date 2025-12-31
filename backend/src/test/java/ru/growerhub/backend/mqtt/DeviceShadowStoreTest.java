@@ -23,7 +23,7 @@ class DeviceShadowStoreTest {
         DeviceShadowStore store = new DeviceShadowStore(settings, mapper, clock);
 
         ManualWateringState manual = new ManualWateringState("running", 20, null, null, "corr");
-        store.updateFromState("device-1", new DeviceState(manual, null, null, null, null, null, null, null));
+        store.updateFromState("device-1", new DeviceState(manual, null, null, null, null, null, null, null, null, null, null, null, null));
 
         Assertions.assertEquals(true, store.getManualWateringView("device-1").get("is_online"));
 

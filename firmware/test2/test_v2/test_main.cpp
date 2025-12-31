@@ -29,6 +29,8 @@ void test_soil_scanner_detected();
 void test_soil_scanner_hysteresis();
 void test_sensor_hub_pump_block();
 void test_state_soil_serialization();
+void test_state_pump_status_and_started_at();
+void test_state_started_at_null_without_time();
 void test_auto_moisture_port0();
 void test_auto_moisture_port1();
 void test_auto_min_time_between();
@@ -82,6 +84,8 @@ int main(int argc, char** argv) {
   RUN_TEST(test_soil_scanner_hysteresis);
   RUN_TEST(test_sensor_hub_pump_block);
   RUN_TEST(test_state_soil_serialization);
+  RUN_TEST(test_state_pump_status_and_started_at);
+  RUN_TEST(test_state_started_at_null_without_time);
   RUN_TEST(test_auto_moisture_port0);
   RUN_TEST(test_auto_moisture_port1);
   RUN_TEST(test_auto_min_time_between);

@@ -206,9 +206,8 @@ void AutomationModule::PublishEvent(const char* mode, uint8_t port, uint32_t dur
   if (!Services::Topics::BuildEventsTopic(topic, sizeof(topic), device_id_)) {
     return;
   }
-  const uint64_t unix_ms = time_ ? time_->GetUnixTimeMs() : 0;
-  const uint64_t event_ms = unix_ms > 0 ? unix_ms : last_auto_water_ms_;
-  if (event_ms == 0) {
+  uint64_t event_ms = 0;
+  if (!time_ || !time_->TryGetUnixTimeMs(&event_ms)) {
     return;
   }
   if (last_event_ms_ != 0 && event_ms - last_event_ms_ < kMinEventSpacingMs) {
@@ -221,7 +220,7 @@ void AutomationModule::PublishEvent(const char* mode, uint8_t port, uint32_t dur
                 static_cast<unsigned long long>(event_ms));
 
   char ts[32];
-  std::snprintf(ts, sizeof(ts), "1970-01-01T00:00:00Z");
+  bool has_ts = false;
   if (time_) {
     Services::TimeFields fields{};
     if (time_->GetTime(&fields)) {
@@ -234,19 +233,31 @@ void AutomationModule::PublishEvent(const char* mode, uint8_t port, uint32_t dur
                     static_cast<unsigned int>(fields.hour),
                     static_cast<unsigned int>(fields.minute),
                     static_cast<unsigned int>(fields.second));
+      has_ts = true;
     }
   }
 
   char payload[256];
-  std::snprintf(payload,
-                sizeof(payload),
-                "{\"type\":\"watering.auto\",\"mode\":\"%s\",\"port\":%u,\"duration_s\":%u,\"soil_percent\":%u,\"ts\":\"%s\",\"event_id\":\"%s\"}",
-                mode ? mode : "",
-                static_cast<unsigned int>(port),
-                static_cast<unsigned int>(duration_s),
-                static_cast<unsigned int>(soil_percent),
-                ts,
-                event_id);
+  if (has_ts) {
+    std::snprintf(payload,
+                  sizeof(payload),
+                  "{\"type\":\"watering.auto\",\"mode\":\"%s\",\"port\":%u,\"duration_s\":%u,\"soil_percent\":%u,\"ts\":\"%s\",\"event_id\":\"%s\"}",
+                  mode ? mode : "",
+                  static_cast<unsigned int>(port),
+                  static_cast<unsigned int>(duration_s),
+                  static_cast<unsigned int>(soil_percent),
+                  ts,
+                  event_id);
+  } else {
+    std::snprintf(payload,
+                  sizeof(payload),
+                  "{\"type\":\"watering.auto\",\"mode\":\"%s\",\"port\":%u,\"duration_s\":%u,\"soil_percent\":%u,\"ts\":null,\"event_id\":\"%s\"}",
+                  mode ? mode : "",
+                  static_cast<unsigned int>(port),
+                  static_cast<unsigned int>(duration_s),
+                  static_cast<unsigned int>(soil_percent),
+                  event_id);
+  }
 
   mqtt_->Publish(topic, payload, false, 1);
 }

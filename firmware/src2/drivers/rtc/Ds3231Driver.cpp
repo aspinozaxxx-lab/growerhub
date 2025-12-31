@@ -7,16 +7,180 @@
 
 #include "drivers/rtc/Ds3231Driver.h"
 
+#include <cstddef>
+#include <cstdint>
+
+#if defined(ARDUINO)
+#include <Wire.h>
+#endif
+
 namespace Drivers {
 
-void Ds3231Driver::Init() {}
+namespace {
+  // I2C adres mikroshemy DS3231.
+  const uint8_t kDs3231Address = 0x68;
+  // Registr nachala vremeni (sekundy).
+  const uint8_t kTimeRegStart = 0x00;
+  // Kolichestvo registrov vremeni (sek-min-hour-wday-day-month-year).
+  const size_t kTimeRegCount = 7;
+  // Pin SDA dlya I2C RTC (ESP32 po umolchaniyu).
+  const uint8_t kRtcSdaPin = 21;
+  // Pin SCL dlya I2C RTC (ESP32 po umolchaniyu).
+  const uint8_t kRtcSclPin = 22;
 
-bool Ds3231Driver::ReadEpoch(uint32_t* out_epoch) {
-  if (out_epoch == nullptr) {
+  // Dekodiruet BCD znachenie v desyatichnoe.
+  bool DecodeBcd(uint8_t value, uint8_t* out) {
+    if (!out) {
+      return false;
+    }
+    const uint8_t high = static_cast<uint8_t>((value >> 4) & 0x0F);
+    const uint8_t low = static_cast<uint8_t>(value & 0x0F);
+    if (high > 9 || low > 9) {
+      return false;
+    }
+    *out = static_cast<uint8_t>(high * 10 + low);
+    return true;
+  }
+
+  // Chitaet blok registrov po I2C.
+  bool ReadRegisters(uint8_t start_reg, uint8_t* out, size_t length) {
+    if (!out || length == 0) {
+      return false;
+    }
+#if defined(ARDUINO)
+    Wire.beginTransmission(kDs3231Address);
+    Wire.write(start_reg);
+    if (Wire.endTransmission(false) != 0) {
+      return false;
+    }
+    const size_t received = Wire.requestFrom(kDs3231Address, static_cast<uint8_t>(length));
+    if (received != length) {
+      return false;
+    }
+    for (size_t i = 0; i < length; ++i) {
+      out[i] = Wire.read();
+    }
+    return true;
+#else
+    (void)start_reg;
+    return false;
+#endif
+  }
+
+  // Konvertiruet datu v kolichestvo dney s 1970-01-01 (UTC).
+  int64_t DaysFromCivil(int32_t year, uint32_t month, uint32_t day) {
+    year -= month <= 2;
+    const int32_t era = (year >= 0 ? year : year - 399) / 400;
+    const uint32_t yoe = static_cast<uint32_t>(year - era * 400);
+    const uint32_t doy = (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5 + day - 1;
+    const uint32_t doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    return static_cast<int64_t>(era) * 146097 + static_cast<int64_t>(doe) - 719468;
+  }
+
+  // Sobrannyi epoch iz polya vremeni DS3231.
+  bool BuildEpoch(uint16_t year,
+                  uint8_t month,
+                  uint8_t day,
+                  uint8_t hour,
+                  uint8_t minute,
+                  uint8_t second,
+                  uint32_t* out_epoch) {
+    if (!out_epoch) {
+      return false;
+    }
+    if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) {
+      return false;
+    }
+    const int64_t days = DaysFromCivil(static_cast<int32_t>(year), month, day);
+    if (days < 0) {
+      return false;
+    }
+    const int64_t total_seconds =
+        days * 86400LL + static_cast<int64_t>(hour) * 3600LL +
+        static_cast<int64_t>(minute) * 60LL + static_cast<int64_t>(second);
+    if (total_seconds < 0 || total_seconds > static_cast<int64_t>(UINT32_MAX)) {
+      return false;
+    }
+    *out_epoch = static_cast<uint32_t>(total_seconds);
+    return true;
+  }
+
+  // Rasparslivanie chasa s uchetom 12/24 formata.
+  bool ParseHour(uint8_t raw, uint8_t* out_hour) {
+    if (!out_hour) {
+      return false;
+    }
+    if (raw & 0x40) {
+      const bool pm = (raw & 0x20) != 0;
+      uint8_t bcd = 0;
+      if (!DecodeBcd(static_cast<uint8_t>(raw & 0x1F), &bcd)) {
+        return false;
+      }
+      if (bcd == 0 || bcd > 12) {
+        return false;
+      }
+      uint8_t hour24 = bcd % 12;
+      if (pm) {
+        hour24 = static_cast<uint8_t>(hour24 + 12);
+      }
+      *out_hour = hour24;
+      return true;
+    }
+    return DecodeBcd(static_cast<uint8_t>(raw & 0x3F), out_hour);
+  }
+}
+
+// Inicializaciya RTC DS3231 po I2C.
+bool Ds3231Driver::Init() {
+#if defined(ARDUINO)
+  if (!Wire.begin(kRtcSdaPin, kRtcSclPin)) {
+    ready_ = false;
     return false;
   }
-  *out_epoch = 0;
-  return true;
+  Wire.beginTransmission(kDs3231Address);
+  ready_ = (Wire.endTransmission() == 0);
+  return ready_;
+#else
+  ready_ = false;
+  return false;
+#endif
+}
+
+// Chtenie epoch iz RTC DS3231.
+bool Ds3231Driver::ReadEpoch(uint32_t* out_epoch) {
+  if (!out_epoch || !ready_) {
+    return false;
+  }
+  uint8_t data[kTimeRegCount]{};
+  if (!ReadRegisters(kTimeRegStart, data, kTimeRegCount)) {
+    return false;
+  }
+  uint8_t second = 0;
+  uint8_t minute = 0;
+  uint8_t hour = 0;
+  uint8_t day = 0;
+  uint8_t month = 0;
+  uint8_t year_bcd = 0;
+  if (!DecodeBcd(static_cast<uint8_t>(data[0] & 0x7F), &second)) {
+    return false;
+  }
+  if (!DecodeBcd(static_cast<uint8_t>(data[1] & 0x7F), &minute)) {
+    return false;
+  }
+  if (!ParseHour(data[2], &hour)) {
+    return false;
+  }
+  if (!DecodeBcd(static_cast<uint8_t>(data[4] & 0x3F), &day)) {
+    return false;
+  }
+  if (!DecodeBcd(static_cast<uint8_t>(data[5] & 0x1F), &month)) {
+    return false;
+  }
+  if (!DecodeBcd(data[6], &year_bcd)) {
+    return false;
+  }
+  const uint16_t year = static_cast<uint16_t>(2000 + year_bcd);
+  return BuildEpoch(year, month, day, hour, minute, second, out_epoch);
 }
 
 }

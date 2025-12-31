@@ -208,18 +208,78 @@ public class DeviceService {
             return;
         }
         Double soilMoisture = state.soilMoisture();
-        Double airTemperature = state.airTemperature();
-        Double airHumidity = state.airHumidity();
-        if (soilMoisture == null && airTemperature == null && airHumidity == null) {
+        Double airTemperature = resolveAirTemperature(state);
+        Double airHumidity = resolveAirHumidity(state);
+        Double soilMoisture1 = resolveSoilPortPercent(state, 0);
+        Double soilMoisture2 = resolveSoilPortPercent(state, 1);
+        Boolean pumpRelayOn = resolveRelayState(state.pump());
+        Boolean lightRelayOn = resolveRelayState(state.light());
+        if (soilMoisture == null
+                && airTemperature == null
+                && airHumidity == null
+                && soilMoisture1 == null
+                && soilMoisture2 == null
+                && pumpRelayOn == null
+                && lightRelayOn == null) {
             return;
         }
         SensorDataEntity sensorData = SensorDataEntity.create();
         sensorData.setDeviceId(deviceId);
         sensorData.setSoilMoisture(soilMoisture);
+        sensorData.setSoilMoisture1(soilMoisture1);
+        sensorData.setSoilMoisture2(soilMoisture2);
         sensorData.setAirTemperature(airTemperature);
         sensorData.setAirHumidity(airHumidity);
+        sensorData.setPumpRelayOn(pumpRelayOn);
+        sensorData.setLightRelayOn(lightRelayOn);
         sensorData.setTimestamp(timestamp);
         sensorDataRepository.save(sensorData);
+    }
+
+    // Vybor temperatury vozduha s uchetom novogo payload.
+    private Double resolveAirTemperature(DeviceState state) {
+        DeviceState.AirState air = state.air();
+        if (air != null) {
+            return Boolean.TRUE.equals(air.available()) ? air.temperature() : null;
+        }
+        return state.airTemperature();
+    }
+
+    // Vybor vlazhnosti vozduha s uchetom novogo payload.
+    private Double resolveAirHumidity(DeviceState state) {
+        DeviceState.AirState air = state.air();
+        if (air != null) {
+            return Boolean.TRUE.equals(air.available()) ? air.humidity() : null;
+        }
+        return state.airHumidity();
+    }
+
+    // Vybor procenta pochvy po portu s uchetom detected.
+    private Double resolveSoilPortPercent(DeviceState state, int port) {
+        DeviceState.SoilState soil = state.soil();
+        if (soil == null || soil.ports() == null) {
+            return null;
+        }
+        for (DeviceState.SoilPort entry : soil.ports()) {
+            if (entry == null || entry.port() == null) {
+                continue;
+            }
+            if (entry.port() == port) {
+                if (!Boolean.TRUE.equals(entry.detected()) || entry.percent() == null) {
+                    return null;
+                }
+                return entry.percent().doubleValue();
+            }
+        }
+        return null;
+    }
+
+    // Konvertaciya statusa rele v Boolean.
+    private Boolean resolveRelayState(DeviceState.RelayState relay) {
+        if (relay == null || relay.status() == null) {
+            return null;
+        }
+        return "on".equalsIgnoreCase(relay.status());
     }
 
     private void createIfMissing(String deviceId, LocalDateTime now) {

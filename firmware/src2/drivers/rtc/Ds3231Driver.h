@@ -16,12 +16,16 @@ class Ds3231Driver {
   /**
    * Init drivera RTC DS3231.
    */
-  void Init();
+  bool Init();
   /**
    * Chitaet epoch vremya iz RTC.
    * @param out_epoch Vyhodnoe unix vremya v sekundah.
    */
   bool ReadEpoch(uint32_t* out_epoch);
+
+ private:
+  // Flag uspeshnoi inicializacii RTC.
+  bool ready_ = false;
 };
 
 }

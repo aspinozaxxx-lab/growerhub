@@ -11,6 +11,10 @@
 #include "core/Module.h"
 #include "drivers/relay/Relay.h"
 
+namespace Services {
+class TimeService;
+}
+
 namespace Modules {
 
 struct ManualWateringState {
@@ -78,11 +82,17 @@ class ActuatorModule : public Core::Module {
  private:
   void ResetManualState();
   void StopPumpInternal();
+  /**
+   * Vozvrashaet unix ms dlya sobytiya ili 0, esli vremeni net.
+   */
+  uint64_t GetEventTimestampMs() const;
   static uint32_t GetNowMs();
 
   Drivers::Relay pump_relay_;
   Drivers::Relay light_relay_;
   Core::EventQueue* event_queue_ = nullptr;
+  // Ukazatel na servis vremeni.
+  Services::TimeService* time_ = nullptr;
 
   bool manual_active_ = false;
   uint32_t manual_duration_s_ = 0;

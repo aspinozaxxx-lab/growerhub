@@ -35,8 +35,8 @@ inline const HardwareProfile& GetHardwareProfile() {
       "default",
       {4, true, 5, true, {34, 35}, 15},
       2,
-      false,
-      false,
+      true,
+      true,
       300000};
   return profile;
 }

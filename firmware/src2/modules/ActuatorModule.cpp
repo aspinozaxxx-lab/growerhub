@@ -7,11 +7,13 @@
 
 #include "modules/ActuatorModule.h"
 
+#include <cstdio>
 #include <cstring>
 
 #include "config/HardwareProfile.h"
 #include "core/Context.h"
 #include "core/EventQueue.h"
+#include "services/TimeService.h"
 #include "util/Logger.h"
 
 #if defined(ARDUINO)
@@ -20,8 +22,6 @@
 
 namespace Modules {
 
-static const char* kDefaultStartedAt = "1970-01-01T00:00:00Z";
-
 void ActuatorModule::Init(Core::Context& ctx) {
   const Config::HardwareProfile& profile = ctx.hardware ? *ctx.hardware : Config::GetHardwareProfile();
 
@@ -29,6 +29,7 @@ void ActuatorModule::Init(Core::Context& ctx) {
   pump_relay_.Init(profile.pins.pump_relay_pin, profile.pins.pump_relay_inverted);
   light_relay_.Init(profile.pins.light_relay_pin, profile.pins.light_relay_inverted);
   event_queue_ = ctx.event_queue;
+  time_ = ctx.time;
 
   ResetManualState();
   Util::Logger::Info("init ActuatorModule");
@@ -79,13 +80,26 @@ bool ActuatorModule::StartPump(uint32_t duration_s, const char* correlation_id) 
     manual_correlation_id_[0] = '\0';
   }
 
-  std::strncpy(manual_started_at_, kDefaultStartedAt, sizeof(manual_started_at_) - 1);
-  manual_started_at_[sizeof(manual_started_at_) - 1] = '\0';
+  manual_started_at_[0] = '\0';
+  if (time_) {
+    Services::TimeFields fields{};
+    if (time_->GetTime(&fields)) {
+      std::snprintf(manual_started_at_,
+                    sizeof(manual_started_at_),
+                    "%04u-%02u-%02uT%02u:%02u:%02uZ",
+                    static_cast<unsigned int>(fields.year),
+                    static_cast<unsigned int>(fields.month),
+                    static_cast<unsigned int>(fields.day),
+                    static_cast<unsigned int>(fields.hour),
+                    static_cast<unsigned int>(fields.minute),
+                    static_cast<unsigned int>(fields.second));
+    }
+  }
 
   if (event_queue_) {
     Core::Event event{};
     event.type = Core::EventType::kPumpStarted;
-    event.value = GetNowMs();
+    event.value = GetEventTimestampMs();
     event_queue_->Push(event);
   }
 
@@ -140,9 +154,20 @@ void ActuatorModule::StopPumpInternal() {
   if (was_running && event_queue_) {
     Core::Event event{};
     event.type = Core::EventType::kPumpStopped;
-    event.value = GetNowMs();
+    event.value = GetEventTimestampMs();
     event_queue_->Push(event);
   }
+}
+
+uint64_t ActuatorModule::GetEventTimestampMs() const {
+  if (!time_) {
+    return 0;
+  }
+  uint64_t unix_ms = 0;
+  if (!time_->TryGetUnixTimeMs(&unix_ms)) {
+    return 0;
+  }
+  return unix_ms;
 }
 
 uint32_t ActuatorModule::GetNowMs() {

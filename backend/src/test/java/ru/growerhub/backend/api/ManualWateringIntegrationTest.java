@@ -266,7 +266,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 60,
                 "shadow-corr"
         );
-        shadowStore.updateFromState(device.getDeviceId(), new DeviceState(manual, null, null, null, null, null, null, null));
+        shadowStore.updateFromState(device.getDeviceId(), new DeviceState(manual, null, null, null, null, null, null, null, null, null, null, null, null));
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("device_id", device.getDeviceId());
@@ -361,7 +361,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 45,
                 "shadow-stop"
         );
-        shadowStore.updateFromState(device.getDeviceId(), new DeviceState(manual, null, null, null, null, null, null, null));
+        shadowStore.updateFromState(device.getDeviceId(), new DeviceState(manual, null, null, null, null, null, null, null, null, null, null, null, null));
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("device_id", device.getDeviceId());
@@ -401,7 +401,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 null,
                 null
         );
-        shadowStore.updateFromState(device.getDeviceId(), new DeviceState(manual, null, null, null, null, null, null, null));
+        shadowStore.updateFromState(device.getDeviceId(), new DeviceState(manual, null, null, null, null, null, null, null, null, null, null, null, null));
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("device_id", device.getDeviceId());
@@ -516,7 +516,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 30,
                 "corr-status"
         );
-        shadowStore.updateFromState(device.getDeviceId(), new DeviceState(manual, null, null, null, null, null, null, null));
+        shadowStore.updateFromState(device.getDeviceId(), new DeviceState(manual, null, null, null, null, null, null, null, null, null, null, null, null));
 
         String token = buildToken(user.getId());
 

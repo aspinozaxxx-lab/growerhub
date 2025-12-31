@@ -99,7 +99,12 @@ public class DevicesController {
                 null,
                 request.soilMoisture(),
                 request.airTemperature(),
-                request.airHumidity()
+                request.airHumidity(),
+                null,
+                null,
+                null,
+                null,
+                null
         );
         deviceService.handleState(deviceId, state, now);
 

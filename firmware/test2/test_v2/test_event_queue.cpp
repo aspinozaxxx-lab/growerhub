@@ -13,9 +13,9 @@ void test_event_queue_order() {
 
   Core::Event out{};
   TEST_ASSERT_TRUE(queue.Pop(out));
-  TEST_ASSERT_EQUAL_UINT32(1, out.value);
+  TEST_ASSERT_EQUAL_UINT64(1, out.value);
 
   TEST_ASSERT_TRUE(queue.Pop(out));
-  TEST_ASSERT_EQUAL_UINT32(2, out.value);
+  TEST_ASSERT_EQUAL_UINT64(2, out.value);
   TEST_ASSERT_EQUAL(0, static_cast<int>(queue.Size()));
 }

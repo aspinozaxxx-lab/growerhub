@@ -148,16 +148,19 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
     void persistsSensorHistoryFromStateMessage() {
         String deviceId = "mqtt-sensor";
         String stateJson = """
-                {"soil_moisture":12.5,"air_temperature":22.0,"air_humidity":55.5}
+                {"air":{"available":true,"temperature":22.0,"humidity":55.5},"soil":{"ports":[{"port":0,"detected":true,"percent":12},{"port":1,"detected":false}]},"pump":{"status":"on"},"light":{"status":"off"}}
                 """;
         injectorSubscriber.injectState("gh/dev/" + deviceId + "/state", stateJson.getBytes(StandardCharsets.UTF_8));
 
         SensorDataEntity record = sensorDataRepository.findAll().stream().findFirst().orElse(null);
         Assertions.assertNotNull(record);
         Assertions.assertEquals(deviceId, record.getDeviceId());
-        Assertions.assertEquals(12.5, record.getSoilMoisture());
+        Assertions.assertEquals(12.0, record.getSoilMoisture1());
+        Assertions.assertNull(record.getSoilMoisture2());
         Assertions.assertEquals(22.0, record.getAirTemperature());
         Assertions.assertEquals(55.5, record.getAirHumidity());
+        Assertions.assertEquals(true, record.getPumpRelayOn());
+        Assertions.assertEquals(false, record.getLightRelayOn());
         Assertions.assertNotNull(record.getTimestamp());
     }
 
