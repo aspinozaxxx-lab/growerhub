@@ -21,7 +21,7 @@ class Ds3231Driver {
    * Chitaet epoch vremya iz RTC.
    * @param out_epoch Vyhodnoe unix vremya v sekundah.
    */
-  bool ReadEpoch(uint32_t* out_epoch);
+  bool ReadEpoch(uint32_t* out_epoch) const;
 
  private:
   // Flag uspeshnoi inicializacii RTC.

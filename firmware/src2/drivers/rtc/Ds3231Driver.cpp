@@ -147,7 +147,7 @@ bool Ds3231Driver::Init() {
 }
 
 // Chtenie epoch iz RTC DS3231.
-bool Ds3231Driver::ReadEpoch(uint32_t* out_epoch) {
+bool Ds3231Driver::ReadEpoch(uint32_t* out_epoch) const {
   if (!out_epoch || !ready_) {
     return false;
   }
