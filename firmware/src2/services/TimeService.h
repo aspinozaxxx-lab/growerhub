@@ -206,6 +206,12 @@ class TimeService {
   bool last_sync_ok_ = false;
   int64_t last_sync_delta_sec_ = 0;
   uint32_t last_sync_ms_ = 0;
+  // Kolichestvo popytok progрева RTC.
+  uint8_t rtc_warmup_attempts_ = 0;
+  // Vremya sleduyushchey popytki progрева RTC.
+  uint32_t rtc_warmup_next_try_ms_ = 0;
+  // Flag zaversheniya progрева RTC.
+  bool rtc_warmup_done_ = false;
 #if defined(UNIT_TEST)
   bool test_synced_ = false;
   TimeFields test_fields_{};

@@ -12,6 +12,7 @@
 #include <string>
 
 #include "core/EventQueue.h"
+#include "services/Topics.h"
 #include "util/Logger.h"
 
 #if defined(ARDUINO)
@@ -35,6 +36,10 @@ static const MqttDefaults kMqttDefaults = {
     "qazwsxedc"};
 
 static const uint32_t kReconnectIntervalMs = 5000;
+#if defined(DEBUG_MQTT_DIAG)
+// Interval publikacii diagnosticheskih soobshcheniy.
+static const uint32_t kDiagIntervalMs = 10000;
+#endif
 
 static const char* MqttRcToString(int rc) {
   switch (rc) {
@@ -113,16 +118,76 @@ bool MqttService::Publish(const char* topic, const char* payload, bool retain, i
   }
 #endif
 #if defined(ARDUINO)
+  const size_t payload_len = std::strlen(payload);
+#if defined(MQTT_MAX_PACKET_SIZE)
+  const size_t max_packet_size = MQTT_MAX_PACKET_SIZE;
+#else
+  const size_t max_packet_size = 0;
+#endif
+  const char* client_id = device_id_ ? device_id_ : "device";
+  const char* user = mqtt_user_ ? mqtt_user_ : "";
+  char log_buf[192];
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[MQTT] publish host=%s port=%u client_id=%s user=%s",
+                mqtt_host_ ? mqtt_host_ : "",
+                static_cast<unsigned int>(mqtt_port_),
+                client_id,
+                user);
+  Util::Logger::Info(log_buf);
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[MQTT] publish topic=%s qos=%d retained=%s",
+                topic,
+                qos,
+                retain ? "true" : "false");
+  Util::Logger::Info(log_buf);
   if (!mqtt_client_.connected()) {
+    const int rc = mqtt_client_.state();
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "[MQTT] publish result ok=false rc=%d reason=%s ack=na",
+                  rc,
+                  MqttRcToString(rc));
+    Util::Logger::Info(log_buf);
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "[MQTT] publish diag payload_len=%u max_packet=%u connected=false state=%d",
+                  static_cast<unsigned int>(payload_len),
+                  static_cast<unsigned int>(max_packet_size),
+                  rc);
+    Util::Logger::Info(log_buf);
     return false;
   }
+  bool ok = false;
   if (qos <= 0) {
-    return mqtt_client_.publish(topic, payload, retain);
+    ok = mqtt_client_.publish(topic, payload, retain);
+  } else if (qos == 1) {
+    ok = mqtt_client_.publish(topic, payload, retain);
+  } else {
+    ok = false;
   }
-  if (qos == 1) {
-    return mqtt_client_.publish(topic, payload, retain);
+  const int rc = mqtt_client_.state();
+  const char* ack_note = qos > 0 ? "na_pubsubclient" : "na_qos0";
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[MQTT] publish result ok=%s rc=%d reason=%s ack=%s",
+                ok ? "true" : "false",
+                rc,
+                MqttRcToString(rc),
+                ack_note);
+  Util::Logger::Info(log_buf);
+  if (!ok) {
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "[MQTT] publish diag payload_len=%u max_packet=%u connected=%s state=%d",
+                  static_cast<unsigned int>(payload_len),
+                  static_cast<unsigned int>(max_packet_size),
+                  mqtt_client_.connected() ? "true" : "false",
+                  rc);
+    Util::Logger::Info(log_buf);
   }
-  return false;
+  return ok;
 #else
   return connected_;
 #endif
@@ -175,6 +240,25 @@ void MqttService::Loop() {
     }
   }
   last_connected_ = mqtt_client_.connected();
+#if defined(DEBUG_MQTT_DIAG)
+  if (connected) {
+    const uint32_t now_ms = millis();
+    if (diag_next_ms_ == 0 || static_cast<int32_t>(now_ms - diag_next_ms_) >= 0) {
+      diag_next_ms_ = now_ms + kDiagIntervalMs;
+      ++diag_seq_;
+      char topic[128];
+      if (device_id_ &&
+          Services::Topics::BuildDeviceTopic(topic, sizeof(topic), device_id_, "diag")) {
+        char payload[96];
+        std::snprintf(payload,
+                      sizeof(payload),
+                      "{\"seq\":%lu}",
+                      static_cast<unsigned long>(diag_seq_));
+        Publish(topic, payload, false, 0);
+      }
+    }
+  }
+#endif
 #endif
 }
 

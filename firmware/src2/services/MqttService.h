@@ -108,6 +108,12 @@ class MqttService {
   const char* mqtt_user_ = nullptr;
   const char* mqtt_pass_ = nullptr;
   PendingSub pending_subs_[kMaxPendingSubs]{};
+#if defined(DEBUG_MQTT_DIAG)
+  // Schetchik diagnosticheskih publikacij.
+  uint32_t diag_seq_ = 0;
+  // Sleduyuschee vremya diagnosticheskoy publikacii.
+  uint32_t diag_next_ms_ = 0;
+#endif
 #endif
 
 #if defined(UNIT_TEST)

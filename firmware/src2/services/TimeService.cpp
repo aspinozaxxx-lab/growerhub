@@ -38,6 +38,10 @@ namespace {
   const int kMaxValidYear = 2040;
   // Minimalnyi epoch RTC dlya bazovoi proverki.
   const std::time_t kRtcMinEpoch = 1735689600;
+  // Maksimalnoe chislo popytok progрева RTC.
+  const uint8_t kRtcWarmupMaxAttempts = 10;
+  // Interval mezhdu popytkami progрева RTC.
+  const uint32_t kRtcWarmupIntervalMs = 1000;
   // Buffer dlya log-strok s korotkimi soobshcheniyami.
   const size_t kLogBufSize = 192;
 }
@@ -58,6 +62,9 @@ void TimeService::Init(Core::Context& ctx) {
   last_sync_ok_ = false;
   last_sync_delta_sec_ = 0;
   last_sync_ms_ = 0;
+  rtc_warmup_attempts_ = 0;
+  rtc_warmup_next_try_ms_ = 0;
+  rtc_warmup_done_ = false;
 
   if (rtc_) {
     std::time_t rtc_utc = 0;
@@ -68,6 +75,7 @@ void TimeService::Init(Core::Context& ctx) {
                     "RTC: start read ok, utc=%lld.",
                     static_cast<long long>(rtc_utc));
       Util::Logger::Info(log_buf);
+      rtc_warmup_done_ = true;
     } else {
       Util::Logger::Info("RTC: start read fail ili nevalidno.");
     }
@@ -131,6 +139,40 @@ void TimeService::Loop(Core::Context& ctx, uint32_t now_ms) {
       ScheduleResync(now_ms, "resync_ok");
     } else {
       ScheduleRetry(now_ms, "resync_fail");
+    }
+  }
+
+  if (rtc_ && !rtc_warmup_done_) {
+    const std::time_t system_utc = std::time(nullptr);
+    if (IsYearValid(system_utc)) {
+      rtc_warmup_done_ = true;
+    } else if (rtc_warmup_next_try_ms_ == 0 ||
+               static_cast<int32_t>(now_ms - rtc_warmup_next_try_ms_) >= 0) {
+      std::time_t rtc_utc = 0;
+      const bool ok = GetRtcUtc(rtc_utc);
+      rtc_warmup_attempts_++;
+      if (ok) {
+        char log_buf[kLogBufSize];
+        std::snprintf(log_buf,
+                      sizeof(log_buf),
+                      "RTC: warmup ok attempt=%u utc=%lld.",
+                      static_cast<unsigned int>(rtc_warmup_attempts_),
+                      static_cast<long long>(rtc_utc));
+        Util::Logger::Info(log_buf);
+        rtc_warmup_done_ = true;
+      } else {
+        char log_buf[kLogBufSize];
+        std::snprintf(log_buf,
+                      sizeof(log_buf),
+                      "RTC: warmup fail attempt=%u.",
+                      static_cast<unsigned int>(rtc_warmup_attempts_));
+        Util::Logger::Info(log_buf);
+        if (rtc_warmup_attempts_ >= kRtcWarmupMaxAttempts) {
+          rtc_warmup_done_ = true;
+        } else {
+          rtc_warmup_next_try_ms_ = now_ms + kRtcWarmupIntervalMs;
+        }
+      }
     }
   }
 }
@@ -429,7 +471,13 @@ bool TimeService::GetRtcUtc(std::time_t& out_utc) const {
   if (!rtc_->GetUtc(out_utc)) {
     return false;
   }
-  return IsYearValid(out_utc) && IsRtcEpochValid(out_utc);
+  if (!IsRtcEpochValid(out_utc)) {
+    return false;
+  }
+  if (!IsYearValid(out_utc)) {
+    return false;
+  }
+  return true;
 }
 
 // Proverka goda na dopustimyi diapazon.

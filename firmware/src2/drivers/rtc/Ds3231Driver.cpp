@@ -9,6 +9,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+
+#include "util/Logger.h"
 
 #if defined(ARDUINO)
 #include <Wire.h>
@@ -134,11 +137,20 @@ namespace {
 bool Ds3231Driver::Init() {
 #if defined(ARDUINO)
   if (!Wire.begin(kRtcSdaPin, kRtcSclPin)) {
+    Util::Logger::Info("RTC: wire begin fail");
     ready_ = false;
     return false;
   }
   Wire.beginTransmission(kDs3231Address);
-  ready_ = (Wire.endTransmission() == 0);
+  const uint8_t rc = Wire.endTransmission();
+  char log_buf[96];
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "RTC: i2c probe addr=0x%02X rc=%u.",
+                static_cast<unsigned int>(kDs3231Address),
+                static_cast<unsigned int>(rc));
+  Util::Logger::Info(log_buf);
+  ready_ = (rc == 0);
   return ready_;
 #else
   ready_ = false;

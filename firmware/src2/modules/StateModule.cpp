@@ -147,9 +147,9 @@ void StateModule::PublishState(bool retained) {
   log_line += " qos=0 retained=";
   log_line += retained ? "true" : "false";
   Util::Logger::Info(log_line.c_str());
-  std::string payload_line = "[STATE] payload_len=";
-  payload_line += std::to_string(payload.size());
-  Util::Logger::Info(payload_line.c_str());
+  //std::string payload_line = "[STATE] payload_len=";
+  //payload_line += std::to_string(payload.size());
+  //Util::Logger::Info(payload_line.c_str());
 
   const size_t chunk_size = 200;
   for (size_t offset = 0; offset < payload.size(); offset += chunk_size) {
