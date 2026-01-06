@@ -13,6 +13,9 @@
 
 #if defined(ARDUINO)
 #include <Arduino.h>
+#if defined(ESP32)
+#include <esp_heap_caps.h>
+#endif
 #endif
 
 #if !defined(ARDUINO)
@@ -33,6 +36,40 @@ class ZeroMacProvider : public Services::ChipIdProvider {
 #endif
 
 namespace Core {
+
+#if defined(ARDUINO)
+// Log heap posle init servisov dlya diagnostiki prosadok pamyati.
+static void LogHeap(const char* tag) {
+#if defined(GH_DEBUG_WEB_HEAP)
+  if (!tag) {
+    return;
+  }
+  const uint32_t free_heap = ESP.getFreeHeap();
+#if defined(ESP32)
+  const uint32_t min_heap = ESP.getMinFreeHeap();
+  const size_t largest = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+  char log_buf[160];
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[HEAP] %s free=%lu min=%lu largest=%u",
+                tag,
+                static_cast<unsigned long>(free_heap),
+                static_cast<unsigned long>(min_heap),
+                static_cast<unsigned int>(largest));
+#else
+  char log_buf[128];
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[HEAP] %s free=%lu",
+                tag,
+                static_cast<unsigned long>(free_heap));
+#endif
+  Util::Logger::Info(log_buf);
+#else
+  (void)tag;
+#endif
+}
+#endif
 
 void AppRuntime::Init() {
   Util::Logger::Init();
@@ -55,6 +92,9 @@ void AppRuntime::Init() {
   context_.device_id = device_identity_.GetDeviceId();
 
   InitServices();
+#if defined(ARDUINO)
+  LogHeap("after_init_services");
+#endif
   InitModules();
   scheduler_.AddPeriodic("heartbeat", 60000, &AppRuntime::HeartbeatTask);
 

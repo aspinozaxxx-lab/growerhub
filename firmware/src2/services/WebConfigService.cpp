@@ -20,21 +20,74 @@
 #include "util/Logger.h"
 
 #if defined(ARDUINO)
+#include <Arduino.h>
 #include <WebServer.h>
 #include <WiFi.h>
+#if defined(ESP32)
+#include <esp_heap_caps.h>
+#endif
 #endif
 
 namespace Services {
 
 static const char* kWifiConfigPath = "/cfg/wifi.json";
-
 #if defined(ARDUINO)
-// Zamena vsekh vhozhdenij shablona na znachenie dlya servernogo rendera HTML.
-static void ReplaceAll(String& target, const char* needle, const String& value) {
-  if (!needle || !*needle) {
+// Shablon dlya podstanovki statusa Wi-Fi na servere.
+static const char kWifiStatusPlaceholder[] = "{{WIFI_STATUS_LINE}}";
+// Shablon dlya podstanovki statusa MQTT na servere.
+static const char kMqttStatusPlaceholder[] = "{{MQTT_STATUS_LINE}}";
+
+// Log heap dlya diagnostiki prosadok i fragmentacii pamyati.
+static void LogHeap(const char* tag) {
+#if defined(GH_DEBUG_WEB_HEAP)
+  if (!tag) {
     return;
   }
-  target.replace(needle, value);
+  const uint32_t free_heap = ESP.getFreeHeap();
+#if defined(ESP32)
+  const uint32_t min_heap = ESP.getMinFreeHeap();
+  const size_t largest = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+  char log_buf[160];
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[HEAP] %s free=%lu min=%lu largest=%u",
+                tag,
+                static_cast<unsigned long>(free_heap),
+                static_cast<unsigned long>(min_heap),
+                static_cast<unsigned int>(largest));
+#else
+  char log_buf[128];
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[HEAP] %s free=%lu",
+                tag,
+                static_cast<unsigned long>(free_heap));
+#endif
+  Util::Logger::Info(log_buf);
+#else
+  (void)tag;
+#endif
+}
+
+// Otdaet chast' HTML bez bol'shih vremennyh String.
+static void SendContentSpan(WebServer* server, const char* start, size_t len) {
+  if (!server || !start || len == 0) {
+    return;
+  }
+  // Razmer kuska dlya bezopasnoy otpravki v WebServer.
+  static const size_t kChunkSize = 256;
+  char buf[kChunkSize + 1];
+  size_t offset = 0;
+  while (offset < len) {
+    size_t chunk = len - offset;
+    if (chunk > kChunkSize) {
+      chunk = kChunkSize;
+    }
+    std::memcpy(buf, start + offset, chunk);
+    buf[chunk] = '\0';
+    server->sendContent(buf);
+    offset += chunk;
+  }
 }
 #endif
 
@@ -227,7 +280,7 @@ void WebConfigService::Init(Core::Context& ctx) {
   }
 
   server_->on("/", HTTP_GET, [this]() {
-    String rendered = Website::Html();
+    LogHeap("web_before_render");
     const bool sta_connected = WiFi.status() == WL_CONNECTED;
     String ip;
     if (sta_connected) {
@@ -252,9 +305,30 @@ void WebConfigService::Init(Core::Context& ctx) {
     String mqtt_line = "MQTT: ";
     mqtt_line += mqtt_connected ? "CONNECTED" : "DISCONNECTED";
 
-    ReplaceAll(rendered, "{{WIFI_STATUS_LINE}}", wifi_line);
-    ReplaceAll(rendered, "{{MQTT_STATUS_LINE}}", mqtt_line);
-    server_->send(200, "text/html", rendered);
+    const char* html = Website::Html();
+    const char* wifi_pos = std::strstr(html, kWifiStatusPlaceholder);
+    if (!wifi_pos) {
+      server_->send(200, "text/html", html);
+      LogHeap("web_after_send");
+      return;
+    }
+    const char* after_wifi = wifi_pos + std::strlen(kWifiStatusPlaceholder);
+    const char* mqtt_pos = std::strstr(after_wifi, kMqttStatusPlaceholder);
+    if (!mqtt_pos) {
+      server_->send(200, "text/html", html);
+      LogHeap("web_after_send");
+      return;
+    }
+    const char* after_mqtt = mqtt_pos + std::strlen(kMqttStatusPlaceholder);
+
+    server_->setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server_->send(200, "text/html", "");
+    SendContentSpan(server_, html, static_cast<size_t>(wifi_pos - html));
+    server_->sendContent(wifi_line);
+    SendContentSpan(server_, after_wifi, static_cast<size_t>(mqtt_pos - after_wifi));
+    server_->sendContent(mqtt_line);
+    SendContentSpan(server_, after_mqtt, std::strlen(after_mqtt));
+    LogHeap("web_after_send");
   });
 
   server_->on("/style.css", HTTP_GET, [this]() {

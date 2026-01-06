@@ -19,7 +19,11 @@
 #include "util/Logger.h"
 
 #if defined(ARDUINO)
+#include <Arduino.h>
 #include <WiFi.h>
+#if defined(ESP32)
+#include <esp_heap_caps.h>
+#endif
 #endif
 
 namespace Services {
@@ -27,6 +31,40 @@ namespace Services {
 static const uint32_t kStaAttemptIntervalMs = 5000;
 static const char* kApSsidPrefix = "Grovika-";
 static const char* kApPassword = "grovika123";
+
+#if defined(ARDUINO)
+// Log heap pered popytkoy STA connect dlya diagnostiki pamyati.
+static void LogHeap(const char* tag) {
+#if defined(GH_DEBUG_WEB_HEAP)
+  if (!tag) {
+    return;
+  }
+  const uint32_t free_heap = ESP.getFreeHeap();
+#if defined(ESP32)
+  const uint32_t min_heap = ESP.getMinFreeHeap();
+  const size_t largest = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+  char log_buf[160];
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[HEAP] %s free=%lu min=%lu largest=%u",
+                tag,
+                static_cast<unsigned long>(free_heap),
+                static_cast<unsigned long>(min_heap),
+                static_cast<unsigned int>(largest));
+#else
+  char log_buf[128];
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "[HEAP] %s free=%lu",
+                tag,
+                static_cast<unsigned long>(free_heap));
+#endif
+  Util::Logger::Info(log_buf);
+#else
+  (void)tag;
+#endif
+}
+#endif
 
 static const char* SkipWsLocal(const char* ptr) {
   const char* current = ptr;
@@ -347,6 +385,7 @@ void WiFiService::StartStaConnect(uint32_t now_ms) {
     return;
   }
 #if defined(ARDUINO)
+  LogHeap("wifi_before_sta_connect");
   if (sta_index_ >= preferred_.count) {
     sta_index_ = 0;
   }

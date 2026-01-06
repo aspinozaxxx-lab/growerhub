@@ -33,7 +33,7 @@ struct HardwareProfile {
 inline const HardwareProfile& GetHardwareProfile() {
   static const HardwareProfile profile = {
       "default",
-      {4, true, 5, true, {34, 35}, 15},
+      {4, false, 5, false, {34, 35}, 15},
       2,
       true,
       true,
