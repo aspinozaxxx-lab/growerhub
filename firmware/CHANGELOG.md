@@ -4,6 +4,7 @@
 - feat(v2): zapis UTC v DS3231 posle uspeshnogo NTP sync (TimeService + RTC provider).
 - feat(v2): dobavlen WriteEpoch v Ds3231Driver i SetUtc v Ds3231RtcProvider.
 - test(v2): testy dlya BCD encode/decode i rascheta dnya nedeli DS3231.
+- feat(v2): dobavlen pio extra_script dlya generacii GH_FW_VERSION na osnove git daty i schetchika kommitov.
 
 ## 2025-12-28
 - fix(v2): dobavlen MQTT connect/reconnect v MqttService (setServer, retry 5s, rc reason).
