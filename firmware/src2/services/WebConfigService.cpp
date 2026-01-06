@@ -12,6 +12,7 @@
 #include <cstring>
 
 #include "core/EventQueue.h"
+#include "services/MqttService.h"
 #include "services/StorageService.h"
 #include "services/WiFiService.h"
 #include "services/website/WebsiteContent.h"
@@ -26,6 +27,16 @@
 namespace Services {
 
 static const char* kWifiConfigPath = "/cfg/wifi.json";
+
+#if defined(ARDUINO)
+// Zamena vsekh vhozhdenij shablona na znachenie dlya servernogo rendera HTML.
+static void ReplaceAll(String& target, const char* needle, const String& value) {
+  if (!needle || !*needle) {
+    return;
+  }
+  target.replace(needle, value);
+}
+#endif
 
 static const char* SkipWsLocal(const char* ptr) {
   const char* current = ptr;
@@ -207,6 +218,7 @@ void WebConfigService::Init(Core::Context& ctx) {
   storage_ = ctx.storage;
   event_queue_ = ctx.event_queue;
   device_id_ = ctx.device_id;
+  mqtt_ = ctx.mqtt;
   Util::Logger::Info("[CFG] init WebConfigService");
 
 #if defined(ARDUINO)
@@ -215,7 +227,34 @@ void WebConfigService::Init(Core::Context& ctx) {
   }
 
   server_->on("/", HTTP_GET, [this]() {
-    server_->send(200, "text/html", Website::Html());
+    String rendered = Website::Html();
+    const bool sta_connected = WiFi.status() == WL_CONNECTED;
+    String ip;
+    if (sta_connected) {
+      ip = WiFi.localIP().toString();
+    }
+    String wifi_line = "Wi-Fi: ";
+    wifi_line += sta_connected ? "CONNECTED" : "DISCONNECTED";
+    wifi_line += " (ip=";
+    if (sta_connected) {
+      wifi_line += ip;
+    } else {
+      wifi_line += "-";
+    }
+    wifi_line += ")";
+
+    bool mqtt_connected = false;
+    if (mqtt_) {
+      mqtt_connected = mqtt_->IsConnected();
+    } else {
+      // Esli mqtt_ == nullptr, schitaem MQTT otklyuchennym.
+    }
+    String mqtt_line = "MQTT: ";
+    mqtt_line += mqtt_connected ? "CONNECTED" : "DISCONNECTED";
+
+    ReplaceAll(rendered, "{{WIFI_STATUS_LINE}}", wifi_line);
+    ReplaceAll(rendered, "{{MQTT_STATUS_LINE}}", mqtt_line);
+    server_->send(200, "text/html", rendered);
   });
 
   server_->on("/style.css", HTTP_GET, [this]() {

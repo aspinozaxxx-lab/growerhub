@@ -18,6 +18,8 @@ class WebServer;
 
 namespace Services {
 
+class MqttService;
+
 class WebConfigService {
  public:
   /**
@@ -44,6 +46,8 @@ class WebConfigService {
  StorageService* storage_ = nullptr;
  Core::EventQueue* event_queue_ = nullptr;
  const char* device_id_ = nullptr;
+ // Ukazatel na MQTT servis.
+ MqttService* mqtt_ = nullptr;
  WiFiNetworkList wifi_list_{};
  char wifi_json_buf_[kWifiJsonBufferSize] = {};
 #if defined(ARDUINO)
