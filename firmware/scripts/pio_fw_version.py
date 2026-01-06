@@ -93,28 +93,23 @@ def _build_version(project_dir):
         print(f"git_error={exc}")
         return FALLBACK_VERSION
 
-# Funkciya dobavlya define GH_FW_VER (i dopolnitelno GH_FW_VERSION) kak stroku v nastroiki kompilacii.
+# Funkciya dobavlya define GH_FW_VER kak stroku v nastroiki kompilacii.
 def _apply_define(version_str):
     env.Append(
         CPPDEFINES=[
             ("GH_FW_VER", f'\\"{version_str}\\"'),
-            ("GH_FW_VERSION", f'\\"{version_str}\\"'),
         ]
     )
     # Diagnostika: pechataem itogovuyu stroku i spisok defines posle Append.
     cppdefines = env.get("CPPDEFINES")
-    gh_fw_version = None
     gh_fw_ver = None
     if isinstance(cppdefines, (list, tuple)):
         for item in cppdefines:
             if isinstance(item, (list, tuple)) and len(item) >= 2:
-                if item[0] == "GH_FW_VERSION":
-                    gh_fw_version = item[1]
                 if item[0] == "GH_FW_VER":
                     gh_fw_ver = item[1]
     print(f"computed_version={version_str}")
     print(f"computed_define=GH_FW_VER=\\\"{version_str}\\\"")
-    print(f"define_value_GH_FW_VERSION={gh_fw_version}")
     print(f"define_value_GH_FW_VER={gh_fw_ver}")
     print(f"env_cppdefines={env.get('CPPDEFINES')}")
 

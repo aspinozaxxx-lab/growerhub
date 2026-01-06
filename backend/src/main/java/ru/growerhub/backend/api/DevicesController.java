@@ -94,9 +94,6 @@ public class DevicesController {
         DeviceState state = new DeviceState(
                 null,
                 null,
-                null,
-                null,
-                null,
                 request.soilMoisture(),
                 request.airTemperature(),
                 request.airHumidity(),

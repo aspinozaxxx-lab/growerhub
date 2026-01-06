@@ -19,15 +19,6 @@
 #include "services/Topics.h"
 #include "util/Logger.h"
 
-// Diagnostika kompilacii: pokazhite znachenie GH_FW_VER v etoy edinice sborki.
-#define GH_STRINGIFY_INNER(x) #x
-#define GH_STRINGIFY(x) GH_STRINGIFY_INNER(x)
-#ifdef GH_FW_VER
-#pragma message("GH_FW_VER=" GH_STRINGIFY(GH_FW_VER))
-#else
-#pragma message("GH_FW_VER not defined")
-#endif
-
 namespace Modules {
 
 void StateModule::Init(Core::Context& ctx) {
@@ -87,12 +78,7 @@ void StateModule::PublishState(bool retained) {
   payload += "\"started_at\":" + (manual.active && has_started ? "\"" + std::string(manual.started_at) + "\"" : std::string("null")) + ",";
   payload += "\"correlation_id\":" + (manual.active && has_correlation ? "\"" + std::string(manual.correlation_id) + "\"" : std::string("null"));
   payload += "},";
-  payload += "\"fw\":\"" + std::string(Config::kFwVersion) + "\"";
-  if (Config::kFwInfoAvailable) {
-    payload += ",\"fw_ver\":\"" + std::string(Config::kFwVer) + "\"";
-    payload += ",\"fw_name\":\"" + std::string(Config::kFwName) + "\"";
-    payload += ",\"fw_build\":\"" + std::string(Config::kFwBuild) + "\"";
-  }
+  payload += "\"fw_ver\":\"" + std::string(Config::kFwVer) + "\"";
   payload += ",\"pump\":{\"status\":\"" + std::string(actuator_->IsPumpRunning() ? "on" : "off") + "\"}";
   payload += ",\"light\":{\"status\":\"" + std::string(actuator_->IsLightOn() ? "on" : "off") + "\"}";
 

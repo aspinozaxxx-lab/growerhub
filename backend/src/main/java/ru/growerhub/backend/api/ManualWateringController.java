@@ -136,7 +136,7 @@ public class ManualWateringController {
                 durationS,
                 correlationId
         );
-        DeviceState state = new DeviceState(manualState, null, null, null, null, null, null, null, null, null, null, null, null);
+        DeviceState state = new DeviceState(manualState, null, null, null, null, null, null, null, null, null);
         store.updateFromState(request.deviceId(), state);
         upsertDeviceState(request.deviceId(), state, startedAt);
 

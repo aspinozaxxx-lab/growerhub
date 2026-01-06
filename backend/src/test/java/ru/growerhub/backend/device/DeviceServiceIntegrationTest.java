@@ -35,7 +35,7 @@ class DeviceServiceIntegrationTest extends IntegrationTestBase {
     @Test
     void handleStatePersistsSensorHistory() {
         LocalDateTime now = LocalDateTime.of(2024, 1, 1, 12, 0);
-        DeviceState state = new DeviceState(null, null, null, null, null, 10.0, 20.0, 30.0, null, null, null, null, null);
+        DeviceState state = new DeviceState(null, null, 10.0, 20.0, 30.0, null, null, null, null, null);
 
         deviceService.handleState("device-1", state, now);
 
@@ -51,7 +51,7 @@ class DeviceServiceIntegrationTest extends IntegrationTestBase {
     @Test
     void handleStateSkipsSensorHistoryWhenEmpty() {
         LocalDateTime now = LocalDateTime.of(2024, 1, 1, 12, 0);
-        DeviceState state = new DeviceState(null, null, null, null, null, null, null, null, null, null, null, null, null);
+        DeviceState state = new DeviceState(null, null, null, null, null, null, null, null, null, null);
 
         deviceService.handleState("device-2", state, now);
 
@@ -67,7 +67,7 @@ class DeviceServiceIntegrationTest extends IntegrationTestBase {
         DeviceState.SoilState soil = new DeviceState.SoilState(List.of(port0, port1));
         DeviceState.RelayState pump = new DeviceState.RelayState("on");
         DeviceState.RelayState light = new DeviceState.RelayState("off");
-        DeviceState state = new DeviceState(null, null, null, null, null, null, null, null, air, soil, light, pump, null);
+        DeviceState state = new DeviceState(null, null, null, null, null, air, soil, light, pump, null);
 
         deviceService.handleState("device-3", state, now);
 
