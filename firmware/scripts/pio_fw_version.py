@@ -56,9 +56,9 @@ def _build_version(project_dir):
     except Exception:
         return FALLBACK_VERSION
 
-# Funkciya dobavlya define GH_FW_VERSION kak stroku v nastroiki kompilacii.
+# Funkciya dobavlya define GH_FW_VER kak stroku v nastroiki kompilacii.
 def _apply_define(version_str):
-    env.Append(CPPDEFINES=[("GH_FW_VERSION", f'"{version_str}"')])
+    env.Append(CPPDEFINES=[("GH_FW_VER", f'"{version_str}"')])
 
 project_dir = env.subst("$PROJECT_DIR")
 version = _build_version(project_dir)

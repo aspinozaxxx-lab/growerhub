@@ -14,7 +14,7 @@
 
 // Makros korotkoi versii proshivki.
 #ifndef GH_FW_VER
-#define GH_FW_VER "v2-dev"
+#define GH_FW_VER "v2-dev551"
 #endif
 
 // Makros imeni proshivki.
