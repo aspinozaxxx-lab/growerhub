@@ -19,6 +19,15 @@
 #include "services/Topics.h"
 #include "util/Logger.h"
 
+// Diagnostika kompilacii: pokazhite znachenie GH_FW_VER v etoy edinice sborki.
+#define GH_STRINGIFY_INNER(x) #x
+#define GH_STRINGIFY(x) GH_STRINGIFY_INNER(x)
+#ifdef GH_FW_VER
+#pragma message("GH_FW_VER=" GH_STRINGIFY(GH_FW_VER))
+#else
+#pragma message("GH_FW_VER not defined")
+#endif
+
 namespace Modules {
 
 void StateModule::Init(Core::Context& ctx) {
@@ -164,3 +173,4 @@ void StateModule::PublishState(bool retained) {
 }
 
 }
+
