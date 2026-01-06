@@ -1,4 +1,9 @@
-﻿### fix(ci): ispravlen env dlya platformio testov
+﻿### fix(mqtt): fw_ver only in state
+
+- fix(firmware): state payload teper' tol'ko s fw_ver; ubrany fw/fw_name/fw_build i svyazannye define.
+- fix(backend): DeviceState DTO i testy obnovleny pod tol'ko fw_ver.
+
+### fix(ci): ispravlen env dlya platformio testov
 
 - fix(ci): pio test teper' zapuskaetsya s env "wifi_service_test_legacy" v CI.
 
