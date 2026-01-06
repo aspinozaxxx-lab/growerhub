@@ -9,7 +9,7 @@
 
 // Makros stroki versii proshivki.
 #ifndef GH_FW_VERSION
-#define GH_FW_VERSION "v2-dev"
+#define GH_FW_VERSION "v2-dev1312"
 #endif
 
 // Makros korotkoi versii proshivki.

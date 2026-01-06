@@ -45,6 +45,14 @@ class IRtcProvider {
    * @param out_utc Vyhodnoe UTC vremya.
    */
   virtual bool GetUtc(std::time_t& out_utc) const = 0;
+  /**
+   * Popytka zapisi UTC vremeni v RTC (po umolchaniyu provider mozhet byt tolko na chtenie).
+   * @param utc_epoch UTC epoch v sekundah.
+   */
+  virtual bool TrySetUtc(std::time_t utc_epoch) {
+    (void)utc_epoch;
+    return false;
+  }
 };
 
 class TimeService {
@@ -170,6 +178,21 @@ class TimeService {
    * Vozvrashaet tekushchee millis s uchetom testov.
    */
   uint32_t GetNowMs() const;
+  /**
+   * Chtenie system UTC s validaciei.
+   */
+  bool ReadSystemUtcIfValid(std::time_t& out_utc) const;
+  /**
+   * Chtenie RTC UTC s validaciei.
+   */
+  bool ReadRtcUtcIfValid(std::time_t& out_utc) const;
+  /**
+   * Log sostoyaniya system/RTC vremeni i delty.
+   */
+  void LogSystemAndRtc(bool system_valid,
+                       std::time_t system_utc,
+                       bool rtc_valid,
+                       std::time_t rtc_utc) const;
   /**
    * Poluchaet luchshee UTC vremya (system ili RTC).
    * @param out_utc Vyhodnoe UTC vremya.

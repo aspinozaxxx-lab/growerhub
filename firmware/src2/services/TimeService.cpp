@@ -126,11 +126,63 @@ void TimeService::Loop(Core::Context& ctx, uint32_t now_ms) {
 
   if (retry_pending_ && static_cast<int32_t>(now_ms - next_retry_ms_) >= 0) {
     retry_pending_ = false;
+#if defined(UNIT_TEST)
     if (AttemptNtpSync("retry", now_ms)) {
       ScheduleResync(now_ms, "retry_ok");
     } else {
       ScheduleRetry(now_ms, "retry_fail");
     }
+#else
+    std::time_t system_utc = 0;
+    const bool system_valid = ReadSystemUtcIfValid(system_utc);
+    std::time_t rtc_utc = 0;
+    const bool rtc_valid = ReadRtcUtcIfValid(rtc_utc);
+
+    //Util::Logger::Info("NTP: окно ожидания истекло, проверяем системное время.");
+    LogSystemAndRtc(system_valid, system_utc, rtc_valid, rtc_utc);
+
+    if (system_valid) {
+      const std::time_t previous_utc = cached_utc_;
+      const bool previous_valid = time_valid_ && IsYearValid(previous_utc);
+
+      cached_utc_ = system_utc;
+      time_valid_ = true;
+
+      long long delta_sec = 0;
+      if (rtc_valid) {
+        delta_sec = static_cast<long long>(system_utc) - static_cast<long long>(rtc_utc);
+      } else if (previous_valid) {
+        delta_sec = static_cast<long long>(system_utc) - static_cast<long long>(previous_utc);
+      }
+
+      if (rtc_) {
+        char log_buf[kLogBufSize];
+        const bool rtc_written = rtc_->TrySetUtc(system_utc);
+        std::snprintf(log_buf,
+                      sizeof(log_buf),
+                      "RTC: write %s",
+                      rtc_written ? "success" : "error");
+        Util::Logger::Info(log_buf);
+      }
+
+      char log_buf[kLogBufSize];
+      std::snprintf(log_buf,
+                    sizeof(log_buf),
+                    "NTP: sync successful (%s), delta=%llds",
+                    "retry",
+                    delta_sec);
+      Util::Logger::Info(log_buf);
+
+      last_sync_ok_ = true;
+      last_sync_delta_sec_ = delta_sec;
+      last_sync_ms_ = now_ms;
+      ScheduleResync(now_ms, "retry_ok");
+    } else {
+      Util::Logger::Info("NTP: system time is invalid");
+      (void)AttemptNtpSync("retry", now_ms);
+      ScheduleRetry(now_ms, "retry_fail");
+    }
+#endif
   }
 
   if (resync_pending_ && static_cast<int32_t>(now_ms - next_resync_ms_) >= 0) {
@@ -345,7 +397,7 @@ bool TimeService::AttemptNtpSync(const char* context, uint32_t now_ms) {
   }
 
   if (!IsWifiConnected()) {
-    Util::Logger::Info("NTP: wifi ne podklyuchen, popytka propushchena.");
+    Util::Logger::Info("NTP: Wi-Fi not connected, attempt skipped");
     last_sync_ok_ = false;
     last_sync_delta_sec_ = 0;
     last_sync_ms_ = now_ms;
@@ -356,15 +408,16 @@ bool TimeService::AttemptNtpSync(const char* context, uint32_t now_ms) {
   char log_buf[kLogBufSize];
   std::snprintf(log_buf,
                 sizeof(log_buf),
-                "NTP: popytka #%lu (%s)",
+                "NTP: attempt #%lu (%s)",
                 static_cast<unsigned long>(sync_attempt_counter_),
                 context ? context : "unknown");
   Util::Logger::Info(log_buf);
 
+#if defined(UNIT_TEST)
   if (!ntp_->SyncOnce(kNtpSyncTimeoutMs)) {
     std::snprintf(log_buf,
                   sizeof(log_buf),
-                  "NTP: popytka %s - fail ili tajmaut.",
+                  "NTP: attempt %s - error or timeout",
                   context ? context : "unknown");
     Util::Logger::Info(log_buf);
     last_sync_ok_ = false;
@@ -377,7 +430,7 @@ bool TimeService::AttemptNtpSync(const char* context, uint32_t now_ms) {
   if (!FetchNtpTime(ntp_utc)) {
     std::snprintf(log_buf,
                   sizeof(log_buf),
-                  "NTP: popytka %s - vremya ne polucheno.",
+                  "NTP: attempt %s - time not received",
                   context ? context : "unknown");
     Util::Logger::Info(log_buf);
     last_sync_ok_ = false;
@@ -389,7 +442,7 @@ bool TimeService::AttemptNtpSync(const char* context, uint32_t now_ms) {
   if (!IsYearValid(ntp_utc)) {
     std::snprintf(log_buf,
                   sizeof(log_buf),
-                  "NTP: popytka %s - god vne diapazona.",
+                  "NTP: attempt %s - year out of range",
                   context ? context : "unknown");
     Util::Logger::Info(log_buf);
     last_sync_ok_ = false;
@@ -403,10 +456,10 @@ bool TimeService::AttemptNtpSync(const char* context, uint32_t now_ms) {
   if (rtc_) {
     rtc_valid = GetRtcUtc(rtc_utc);
     if (!rtc_valid) {
-      Util::Logger::Info("RTC: net validnogo vremeni, drift-check propushchen.");
+      Util::Logger::Info("RTC: no valid time, drift-check skipped");
     }
   } else {
-    Util::Logger::Info("RTC: net, drift-check propushchen.");
+    Util::Logger::Info("RTC: not available, drift-check skipped");
   }
 
   if (rtc_valid) {
@@ -415,7 +468,7 @@ bool TimeService::AttemptNtpSync(const char* context, uint32_t now_ms) {
     if (delta_check > static_cast<long long>(kSuspiciousDriftSec)) {
       std::snprintf(log_buf,
                     sizeof(log_buf),
-                    "NTP: popytka %s - podozritelnyi sdvig %llds, otkloneno.",
+                    "NTP: attempt %s - suspicious drift %llds, rejected",
                     context ? context : "unknown",
                     delta_check);
       Util::Logger::Info(log_buf);
@@ -432,6 +485,15 @@ bool TimeService::AttemptNtpSync(const char* context, uint32_t now_ms) {
   cached_utc_ = ntp_utc;
   time_valid_ = true;
 
+  if (rtc_) {
+    const bool rtc_written = rtc_->TrySetUtc(ntp_utc);
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "RTC: write %s",
+                  rtc_written ? "success" : "error");
+    Util::Logger::Info(log_buf);
+  }
+
   long long delta_sec = 0;
   if (rtc_valid) {
     delta_sec = static_cast<long long>(ntp_utc) - static_cast<long long>(rtc_utc);
@@ -441,7 +503,7 @@ bool TimeService::AttemptNtpSync(const char* context, uint32_t now_ms) {
 
   std::snprintf(log_buf,
                 sizeof(log_buf),
-                "NTP: uspeshnaya sinhronizaciya (%s), delta=%llds.",
+                "NTP: sync success (%s), delta=%llds",
                 context ? context : "unknown",
                 delta_sec);
   Util::Logger::Info(log_buf);
@@ -450,6 +512,25 @@ bool TimeService::AttemptNtpSync(const char* context, uint32_t now_ms) {
   last_sync_delta_sec_ = delta_sec;
   last_sync_ms_ = now_ms;
   return true;
+#else
+  std::time_t system_utc = 0;
+  const bool system_valid = ReadSystemUtcIfValid(system_utc);
+  std::time_t rtc_utc = 0;
+  const bool rtc_valid = ReadRtcUtcIfValid(rtc_utc);
+  LogSystemAndRtc(system_valid, system_utc, rtc_valid, rtc_utc);
+
+  std::snprintf(log_buf,
+                sizeof(log_buf),
+                "NTP: sync init, wait %lus",
+                static_cast<unsigned long>(kNtpRetryIntervalMs / 1000U));
+  Util::Logger::Info(log_buf);
+
+  (void)ntp_->SyncOnce(kNtpSyncTimeoutMs);
+  last_sync_ok_ = false;
+  last_sync_delta_sec_ = 0;
+  last_sync_ms_ = now_ms;
+  return false;
+#endif
 }
 
 // Poluchenie vremeni iz NTP klienta.
@@ -519,6 +600,62 @@ uint32_t TimeService::GetNowMs() const {
 #endif
 }
 
+// Chtenie system UTC s validaciei.
+bool TimeService::ReadSystemUtcIfValid(std::time_t& out_utc) const {
+  const std::time_t system_utc = std::time(nullptr);
+  if (!IsYearValid(system_utc)) {
+    return false;
+  }
+  out_utc = system_utc;
+  return true;
+}
+
+// Chtenie RTC UTC s validaciei.
+bool TimeService::ReadRtcUtcIfValid(std::time_t& out_utc) const {
+  return GetRtcUtc(out_utc);
+}
+
+// Log sostoyaniya system/RTC vremeni i delty.
+void TimeService::LogSystemAndRtc(bool system_valid,
+                                  std::time_t system_utc,
+                                  bool rtc_valid,
+                                  std::time_t rtc_utc) const {
+  char log_buf[kLogBufSize];
+  if (system_valid) {
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "System time valid, utc=%lld",
+                  static_cast<long long>(system_utc));
+  } else {
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "System time not valid");
+  }
+  Util::Logger::Info(log_buf);
+
+  if (rtc_valid) {
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "RTC time valid, utc=%lld",
+                  static_cast<long long>(rtc_utc));
+  } else {
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "RTC time not valid");
+  }
+  Util::Logger::Info(log_buf);
+
+  if (system_valid && rtc_valid) {
+    const long long delta_sec =
+        static_cast<long long>(system_utc) - static_cast<long long>(rtc_utc);
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "Delta system-rtc=%llds.",
+                  delta_sec);
+    Util::Logger::Info(log_buf);
+  }
+}
+
 // Vybor luchshego UTC vremena (system ili RTC).
 bool TimeService::TryGetBestUtc(std::time_t& out_utc) const {
   const std::time_t system_utc = std::time(nullptr);
@@ -548,7 +685,7 @@ void TimeService::ScheduleRetry(uint32_t now_ms, const char* reason) {
   char log_buf[kLogBufSize];
   std::snprintf(log_buf,
                 sizeof(log_buf),
-                "NTP: planiruem retry cherez %lus (%s).",
+                "NTP: planiruem retry cherez %lus (%s)",
                 static_cast<unsigned long>(kNtpRetryIntervalMs / 1000U),
                 reason ? reason : "unknown");
   Util::Logger::Info(log_buf);
@@ -563,7 +700,7 @@ void TimeService::ScheduleResync(uint32_t now_ms, const char* reason) {
   char log_buf[kLogBufSize];
   std::snprintf(log_buf,
                 sizeof(log_buf),
-                "NTP: planiruem resync cherez %lus (%s).",
+                "NTP: planiruem resync cherez %lus (%s)",
                 static_cast<unsigned long>(kNtpResyncIntervalMs / 1000U),
                 reason ? reason : "unknown");
   Util::Logger::Info(log_buf);

@@ -25,6 +25,16 @@ class Ds3231RtcProvider : public IRtcProvider {
    * @param out_utc Vyhodnoe UTC vremya.
    */
   bool GetUtc(std::time_t& out_utc) const override;
+  /**
+   * Popytka zapisi UTC vremeni v RTC.
+   * @param utc_epoch UTC epoch v sekundah.
+   */
+  bool TrySetUtc(std::time_t utc_epoch) override;
+  /**
+   * Zapis UTC vremeni v RTC.
+   * @param utc_epoch UTC epoch v sekundah.
+   */
+  bool SetUtc(std::time_t utc_epoch);
 
  private:
   // Driver DS3231 dlya nizkourovnevogo chteniya.

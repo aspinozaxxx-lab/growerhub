@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <ctime>
 
 #include "util/Logger.h"
 
@@ -43,6 +44,30 @@ namespace {
     }
     *out = static_cast<uint8_t>(high * 10 + low);
     return true;
+  }
+
+  // Kodiruet desyatichnoe znachenie v BCD.
+  bool EncodeBcd(int value, uint8_t* out) {
+    if (!out) {
+      return false;
+    }
+    if (value < 0 || value > 99) {
+      return false;
+    }
+    const uint8_t high = static_cast<uint8_t>(value / 10);
+    const uint8_t low = static_cast<uint8_t>(value % 10);
+    *out = static_cast<uint8_t>((high << 4) | low);
+    return true;
+  }
+
+  // Vychislyaet den nedeli (1..7), 1970-01-01 = chetverg, 1=ponedelnik.
+  uint8_t CalcWeekday(std::time_t utc_epoch) {
+    int64_t days = static_cast<int64_t>(utc_epoch) / 86400LL;
+    int64_t wday = (days + 3) % 7;
+    if (wday < 0) {
+      wday += 7;
+    }
+    return static_cast<uint8_t>(wday + 1);
   }
 
   // Chitaet blok registrov po I2C.
@@ -146,7 +171,7 @@ bool Ds3231Driver::Init() {
   char log_buf[96];
   std::snprintf(log_buf,
                 sizeof(log_buf),
-                "RTC: i2c probe addr=0x%02X rc=%u.",
+                "RTC: i2c probe addr=0x%02X rc=%u (0 - ready)",
                 static_cast<unsigned int>(kDs3231Address),
                 static_cast<unsigned int>(rc));
   Util::Logger::Info(log_buf);
@@ -157,6 +182,86 @@ bool Ds3231Driver::Init() {
   return false;
 #endif
 }
+
+// Zapis epoch vremeni v RTC DS3231.
+bool Ds3231Driver::WriteEpoch(std::time_t utc_epoch) {
+  if (!ready_) {
+    Util::Logger::Info("RTC: write fail not ready");
+    return false;
+  }
+#if defined(ARDUINO)
+  if (utc_epoch < 0) {
+    Util::Logger::Info("RTC: write fail epoch<0");
+    return false;
+  }
+  std::tm tm_info{};
+#if defined(_WIN32)
+  if (gmtime_s(&tm_info, &utc_epoch) != 0) {
+    Util::Logger::Info("RTC: write fail gmtime");
+    return false;
+  }
+#else
+  if (!gmtime_r(&utc_epoch, &tm_info)) {
+    Util::Logger::Info("RTC: write fail gmtime");
+    return false;
+  }
+#endif
+
+  const int year = tm_info.tm_year + 1900;
+  if (year < 2000 || year > 2099) {
+    Util::Logger::Info("RTC: write fail year_range");
+    return false;
+  }
+
+  uint8_t data[kTimeRegCount]{};
+  if (!EncodeBcd(tm_info.tm_sec, &data[0]) ||
+      !EncodeBcd(tm_info.tm_min, &data[1]) ||
+      !EncodeBcd(tm_info.tm_hour, &data[2]) ||
+      !EncodeBcd(tm_info.tm_mday, &data[4]) ||
+      !EncodeBcd(tm_info.tm_mon + 1, &data[5]) ||
+      !EncodeBcd(year - 2000, &data[6])) {
+    Util::Logger::Info("RTC: write fail bcd");
+    return false;
+  }
+  data[3] = CalcWeekday(utc_epoch);
+
+  Wire.beginTransmission(kDs3231Address);
+  Wire.write(kTimeRegStart);
+  for (size_t i = 0; i < kTimeRegCount; ++i) {
+    Wire.write(data[i]);
+  }
+  const uint8_t rc = Wire.endTransmission();
+  if (rc != 0) {
+    char log_buf[96];
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "RTC: write i2c rc=%u.",
+                  static_cast<unsigned int>(rc));
+    Util::Logger::Info(log_buf);
+    return false;
+  }
+  return true;
+#else
+  (void)utc_epoch;
+  Util::Logger::Info("RTC: write fail no wire");
+  return false;
+#endif
+}
+
+#if defined(UNIT_TEST)
+// Testovye obvertki dlya pomoshchnyh funkcii.
+bool Ds3231Driver::EncodeBcdForTests(int value, uint8_t* out) {
+  return EncodeBcd(value, out);
+}
+
+bool Ds3231Driver::DecodeBcdForTests(uint8_t value, uint8_t* out) {
+  return DecodeBcd(value, out);
+}
+
+uint8_t Ds3231Driver::CalcWeekdayForTests(std::time_t utc_epoch) {
+  return CalcWeekday(utc_epoch);
+}
+#endif
 
 // Chtenie epoch iz RTC DS3231.
 bool Ds3231Driver::ReadEpoch(uint32_t* out_epoch) const {

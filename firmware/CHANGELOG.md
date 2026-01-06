@@ -1,5 +1,10 @@
 ﻿# Changelog
 
+## 2026-01-06
+- feat(v2): zapis UTC v DS3231 posle uspeshnogo NTP sync (TimeService + RTC provider).
+- feat(v2): dobavlen WriteEpoch v Ds3231Driver i SetUtc v Ds3231RtcProvider.
+- test(v2): testy dlya BCD encode/decode i rascheta dnya nedeli DS3231.
+
 ## 2025-12-28
 - fix(v2): dobavlen MQTT connect/reconnect v MqttService (setServer, retry 5s, rc reason).
 - feat(v2): rasshireny logi [WIFI]/[CFG]/[MQTT]/[STATE]/[CMD] dlya podklyucheniya, konfiguracii, publish i rx.

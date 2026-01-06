@@ -28,4 +28,17 @@ bool Ds3231RtcProvider::GetUtc(std::time_t& out_utc) const {
   return true;
 }
 
+// Popytka zapisi UTC vremeni v DS3231.
+bool Ds3231RtcProvider::TrySetUtc(std::time_t utc_epoch) {
+  return SetUtc(utc_epoch);
+}
+
+// Zapis UTC vremeni v DS3231.
+bool Ds3231RtcProvider::SetUtc(std::time_t utc_epoch) {
+  if (!ready_) {
+    return false;
+  }
+  return driver_.WriteEpoch(utc_epoch);
+}
+
 } // namespace Services

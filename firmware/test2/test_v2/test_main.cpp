@@ -47,6 +47,8 @@ void test_logger_prefix_no_watch();
 void test_logger_prefix_synced();
 void test_time_service_retry_schedule_on_fail();
 void test_time_service_resync_schedule_on_success();
+void test_rtc_bcd_encode_decode();
+void test_rtc_weekday_calc();
 
 void setUp() {}
 void tearDown() {}
@@ -102,6 +104,8 @@ int main(int argc, char** argv) {
   RUN_TEST(test_logger_prefix_synced);
   RUN_TEST(test_time_service_retry_schedule_on_fail);
   RUN_TEST(test_time_service_resync_schedule_on_success);
+  RUN_TEST(test_rtc_bcd_encode_decode);
+  RUN_TEST(test_rtc_weekday_calc);
   return UNITY_END();
 }
 
