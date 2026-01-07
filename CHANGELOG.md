@@ -1,4 +1,8 @@
-﻿### fix(mqtt): fw_ver only in state
+﻿### fix(backend): flyway migraciya dlya sensor_data relay kolonok
+
+- fix(backend): dobavlen flyway i migraciya dlya kolonok light_relay_on/pump_relay_on/soil_moisture_1/soil_moisture_2 v sensor_data.
+
+### fix(mqtt): fw_ver only in state
 
 - fix(firmware): state payload teper' tol'ko s fw_ver; ubrany fw/fw_name/fw_build i svyazannye define.
 - fix(backend): DeviceState DTO i testy obnovleny pod tol'ko fw_ver.

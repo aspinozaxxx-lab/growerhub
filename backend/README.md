@@ -1,4 +1,4 @@
-# growerhub-backend (Java)
+﻿# growerhub-backend (Java)
 
 Minimal Spring Boot backend (Java 21) for GrowerHub.
 
@@ -26,6 +26,10 @@ cd backend
 cd backend
 ./gradlew bootRun
 ```
+
+Flyway migracii zapuskayutsya avtomaticheski pri starte prilozheniya.
+Dlya lokal'nogo starta nuzhno ukazat' SPRING_DATASOURCE_*.
+
 
 ## Build jar
 

@@ -1,4 +1,4 @@
-package ru.growerhub.backend.api;
+﻿package ru.growerhub.backend.api;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -104,6 +104,31 @@ class HistoryIntegrationTest extends IntegrationTestBase {
                 .body("[0].soil_moisture", equalTo(31.5f))
                 .body("[0].air_temperature", equalTo(24.2f))
                 .body("[0].air_humidity", equalTo(52.1f));
+    }
+
+    @Test
+    void sensorDataHasRelayColumns() {
+        Integer light = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'SENSOR_DATA' AND column_name = 'LIGHT_RELAY_ON'",
+                Integer.class
+        );
+        Integer pump = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'SENSOR_DATA' AND column_name = 'PUMP_RELAY_ON'",
+                Integer.class
+        );
+        Integer soil1 = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'SENSOR_DATA' AND column_name = 'SOIL_MOISTURE_1'",
+                Integer.class
+        );
+        Integer soil2 = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'SENSOR_DATA' AND column_name = 'SOIL_MOISTURE_2'",
+                Integer.class
+        );
+
+        Assertions.assertEquals(1, light);
+        Assertions.assertEquals(1, pump);
+        Assertions.assertEquals(1, soil1);
+        Assertions.assertEquals(1, soil2);
     }
 
     @Test
