@@ -156,6 +156,9 @@ growerhub-deploy-agent.service<br>
 ansible-playbook -i inventory/hosts.ini playbooks/gh_tools_pgadmin.yml<br>
 ansible-playbook -i inventory/hosts.ini playbooks/fastapi.yml -K --ask-vault-pass
 
+Просмотр очередей MQTT<br>
+mosquitto_sub -h localhost -p 1883 -u mosquitto-admin -P qazwsxedc -t 'gh/#' -v
+
 🔒 Переменные окружения<br>
 sudo systemctl edit watering-deploy-agent.service
 
