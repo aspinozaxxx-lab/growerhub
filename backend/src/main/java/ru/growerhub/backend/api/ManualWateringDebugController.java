@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.ManualWateringDtos;
-import ru.growerhub.backend.device.DeviceShadowStore;
+import ru.growerhub.backend.device.DeviceService;
 import ru.growerhub.backend.mqtt.DebugSettings;
 import ru.growerhub.backend.mqtt.MqttSettings;
 
@@ -18,12 +18,16 @@ import ru.growerhub.backend.mqtt.MqttSettings;
 public class ManualWateringDebugController {
     private final MqttSettings settings;
     private final DebugSettings debugSettings;
-    private final DeviceShadowStore shadowStore;
+    private final DeviceService deviceService;
 
-    public ManualWateringDebugController(MqttSettings settings, DebugSettings debugSettings, DeviceShadowStore shadowStore) {
+    public ManualWateringDebugController(
+            MqttSettings settings,
+            DebugSettings debugSettings,
+            DeviceService deviceService
+    ) {
         this.settings = settings;
         this.debugSettings = debugSettings;
-        this.shadowStore = shadowStore;
+        this.deviceService = deviceService;
     }
 
     @GetMapping("/_debug/manual-watering/config")
@@ -41,7 +45,7 @@ public class ManualWateringDebugController {
     public CommonDtos.OkResponse debugShadowState(
             @Valid @RequestBody ManualWateringDtos.ShadowStateRequest request
     ) {
-        shadowStore.updateFromState(request.deviceId(), request.state());
+        deviceService.handleState(request.deviceId(), request.state(), java.time.LocalDateTime.now(java.time.ZoneOffset.UTC));
         return new CommonDtos.OkResponse(true);
     }
 
@@ -49,8 +53,8 @@ public class ManualWateringDebugController {
     public ManualWateringDtos.DebugManualWateringSnapshotResponse debugSnapshot(
             @RequestParam("device_id") String deviceId
     ) {
-        Object raw = shadowStore.debugDump(deviceId);
-        Object view = shadowStore.getManualWateringView(deviceId);
+        Object raw = deviceService.debugShadowDump(deviceId);
+        Object view = deviceService.debugManualWateringView(deviceId);
         return new ManualWateringDtos.DebugManualWateringSnapshotResponse(raw, view);
     }
 }

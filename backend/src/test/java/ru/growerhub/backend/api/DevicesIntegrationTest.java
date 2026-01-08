@@ -28,6 +28,8 @@ import ru.growerhub.backend.db.DeviceStateLastEntity;
 import ru.growerhub.backend.db.DeviceStateLastRepository;
 import ru.growerhub.backend.db.SensorDataEntity;
 import ru.growerhub.backend.db.SensorDataRepository;
+import ru.growerhub.backend.device.DeviceShadowStore;
+import ru.growerhub.backend.mqtt.MqttMessageHandler;
 import ru.growerhub.backend.user.UserEntity;
 import ru.growerhub.backend.user.UserRepository;
 
@@ -56,11 +58,18 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private DeviceShadowStore shadowStore;
+
+    @Autowired
+    private MqttMessageHandler mqttMessageHandler;
+
     @BeforeEach
     void setUp() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
         clearDatabase();
+        shadowStore.clear();
     }
 
     @Test
@@ -268,6 +277,85 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .body("size()", equalTo(1))
                 .body("[0].firmware_version", equalTo("v3"))
                 .body("[0].is_watering", equalTo(true));
+    }
+
+    @Test
+    void mqttStatePopulatesAirTemperatureInMyDevices() {
+        UserEntity user = createUser("mqtt-owner@example.com", "user");
+        DeviceEntity device = createDevice("dev-mqtt-temp", user);
+        String token = buildToken(user.getId());
+        String payload = """
+                {"air_temperature":23.5,"air_humidity":44.0}
+                """;
+
+        mqttMessageHandler.handleStateMessage(
+                "gh/dev/" + device.getDeviceId() + "/state",
+                payload.getBytes(StandardCharsets.UTF_8)
+        );
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/devices/my")
+                .then()
+                .statusCode(200)
+                .body("[0].air_temperature", equalTo(23.5f));
+    }
+
+    @Test
+    void httpStatusPopulatesAirTemperatureInMyDevices() {
+        UserEntity user = createUser("http-owner@example.com", "user");
+        DeviceEntity device = createDevice("dev-http-temp", user);
+        String token = buildToken(user.getId());
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("device_id", device.getDeviceId());
+        payload.put("soil_moisture", 10.0);
+        payload.put("air_temperature", 22.0);
+        payload.put("air_humidity", 40.0);
+        payload.put("is_watering", false);
+        payload.put("is_light_on", true);
+
+        given()
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .post("/api/device/" + device.getDeviceId() + "/status")
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/devices/my")
+                .then()
+                .statusCode(200)
+                .body("[0].air_temperature", equalTo(22.0f));
+    }
+
+    @Test
+    void coldStartLoadsAirTemperatureFromDbState() throws Exception {
+        UserEntity user = createUser("cold-owner@example.com", "user");
+        DeviceEntity device = createDevice("dev-cold", user);
+        String token = buildToken(user.getId());
+
+        Map<String, Object> state = new HashMap<>();
+        state.put("air_temperature", 19.0);
+        state.put("air_humidity", 55.0);
+        DeviceStateLastEntity record = DeviceStateLastEntity.create();
+        record.setDeviceId(device.getDeviceId());
+        record.setStateJson(objectMapper.writeValueAsString(state));
+        record.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        deviceStateLastRepository.save(record);
+        shadowStore.clear();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/devices/my")
+                .then()
+                .statusCode(200)
+                .body("[0].air_temperature", equalTo(19.0f));
     }
 
     @Test

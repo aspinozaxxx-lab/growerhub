@@ -70,27 +70,8 @@ public class DevicesController {
             @Valid @RequestBody DeviceDtos.DeviceStatusRequest request
     ) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        DeviceEntity device = deviceService.ensureDeviceExists(deviceId, now);
-        if (device == null) {
-            device = DeviceEntity.create();
-            device.setDeviceId(deviceId);
-            device.setName(deviceService.defaultName(deviceId));
-            device.setLastSeen(now);
-            deviceService.applyDefaults(device, deviceId);
-        }
-
-        device.setSoilMoisture(request.soilMoisture());
-        device.setAirTemperature(request.airTemperature());
-        device.setAirHumidity(request.airHumidity());
-        device.setIsWatering(request.isWatering());
-        device.setIsLightOn(request.isLightOn());
-        if (request.lastWatering() != null) {
-            device.setLastWatering(request.lastWatering());
-        }
-        device.setLastSeen(now);
-        deviceService.applyDefaults(device, deviceId);
-        deviceRepository.save(device);
-
+        DeviceState.RelayState light = new DeviceState.RelayState(request.isLightOn() ? "on" : "off");
+        DeviceState.RelayState pump = new DeviceState.RelayState(request.isWatering() ? "on" : "off");
         DeviceState state = new DeviceState(
                 null,
                 null,
@@ -99,8 +80,8 @@ public class DevicesController {
                 request.airHumidity(),
                 null,
                 null,
-                null,
-                null,
+                light,
+                pump,
                 null
         );
         deviceService.handleState(deviceId, state, now);
@@ -175,14 +156,7 @@ public class DevicesController {
 
     @GetMapping("/api/devices/my")
     public List<DeviceDtos.DeviceResponse> listMyDevices(@AuthenticationPrincipal UserEntity user) {
-        List<DeviceEntity> devices = deviceRepository.findAllByUser_Id(user.getId());
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        Duration onlineWindow = Duration.ofMinutes(3);
-        List<DeviceDtos.DeviceResponse> responses = new ArrayList<>();
-        for (DeviceEntity device : devices) {
-            responses.add(toDeviceResponse(device, now, onlineWindow));
-        }
-        return responses;
+        return deviceService.listMyDevices(user.getId());
     }
 
     @GetMapping("/api/admin/devices")

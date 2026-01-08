@@ -1,5 +1,12 @@
 ﻿# Changelog
 
+## 2026-01-08
+- DeviceShadowStore rasshiren do snapshot(meta+state) s cold start iz device_state_last.
+- DeviceService stal edinym provodnikom dlya dashboard response i manual_watering status.
+- /api/devices/my i /api/plants teper' berut state iz shadow, a ne iz devices polya.
+- Manual watering kontroli perevedeny na DeviceService, dobavleny debug wrappery.
+- Integracionnye testy obnovleny: MQTT/HTTP status i cold start dlya air_temperature.
+
 ## 2025-12-31
 - MQTT packet size 1024, QoS0 state i diagnostika publish rezultatov.
 - RTC DS3231: presence check, chtenie epoch i warmup 10x1s bez blokirovki.

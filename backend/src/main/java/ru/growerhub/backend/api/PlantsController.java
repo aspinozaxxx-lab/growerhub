@@ -1,9 +1,7 @@
 ﻿
 package ru.growerhub.backend.api;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -15,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -36,8 +33,6 @@ import ru.growerhub.backend.api.dto.DeviceDtos;
 import ru.growerhub.backend.api.dto.PlantDtos;
 import ru.growerhub.backend.db.DeviceEntity;
 import ru.growerhub.backend.db.DeviceRepository;
-import ru.growerhub.backend.db.DeviceStateLastEntity;
-import ru.growerhub.backend.db.DeviceStateLastRepository;
 import ru.growerhub.backend.db.PlantDeviceEntity;
 import ru.growerhub.backend.db.PlantDeviceRepository;
 import ru.growerhub.backend.db.PlantEntity;
@@ -50,6 +45,7 @@ import ru.growerhub.backend.db.PlantJournalPhotoRepository;
 import ru.growerhub.backend.db.PlantJournalWateringDetailsEntity;
 import ru.growerhub.backend.db.PlantJournalWateringDetailsRepository;
 import ru.growerhub.backend.db.PlantRepository;
+import ru.growerhub.backend.device.DeviceService;
 import ru.growerhub.backend.user.UserEntity;
 
 @RestController
@@ -70,8 +66,7 @@ public class PlantsController {
     private final PlantJournalPhotoRepository plantJournalPhotoRepository;
     private final PlantJournalWateringDetailsRepository plantJournalWateringDetailsRepository;
     private final DeviceRepository deviceRepository;
-    private final DeviceStateLastRepository deviceStateLastRepository;
-    private final ObjectMapper objectMapper;
+    private final DeviceService deviceService;
 
     public PlantsController(
             PlantGroupRepository plantGroupRepository,
@@ -81,8 +76,7 @@ public class PlantsController {
             PlantJournalPhotoRepository plantJournalPhotoRepository,
             PlantJournalWateringDetailsRepository plantJournalWateringDetailsRepository,
             DeviceRepository deviceRepository,
-            DeviceStateLastRepository deviceStateLastRepository,
-            ObjectMapper objectMapper
+            DeviceService deviceService
     ) {
         this.plantGroupRepository = plantGroupRepository;
         this.plantRepository = plantRepository;
@@ -91,8 +85,7 @@ public class PlantsController {
         this.plantJournalPhotoRepository = plantJournalPhotoRepository;
         this.plantJournalWateringDetailsRepository = plantJournalWateringDetailsRepository;
         this.deviceRepository = deviceRepository;
-        this.deviceStateLastRepository = deviceStateLastRepository;
-        this.objectMapper = objectMapper;
+        this.deviceService = deviceService;
     }
 
     @GetMapping("/api/plant-groups")
@@ -521,9 +514,12 @@ public class PlantsController {
         List<DeviceDtos.DeviceResponse> devices = new ArrayList<>();
         for (PlantDeviceEntity link : links) {
             DeviceEntity device = link.getDevice();
-            UserEntity owner = device != null ? device.getUser() : null;
-            if (owner != null && owner.getId().equals(user.getId())) {
-                devices.add(toDeviceResponse(device, now, onlineWindow));
+            if (device == null) {
+                continue;
+            }
+            DeviceDtos.DeviceResponse response = deviceService.buildDeviceResponse(device.getDeviceId(), user.getId());
+            if (response != null) {
+                devices.add(response);
             }
         }
 
@@ -584,94 +580,6 @@ public class PlantsController {
                 photoResponses,
                 detailsResponse
         );
-    }
-    private DeviceDtos.DeviceResponse toDeviceResponse(
-            DeviceEntity device,
-            LocalDateTime now,
-            Duration onlineWindow
-    ) {
-        DeviceStateSnapshot snapshot = resolveState(device, now, onlineWindow);
-        List<PlantDeviceEntity> links = plantDeviceRepository.findAllByDevice_Id(device.getId());
-        List<Integer> plantIds = new ArrayList<>();
-        for (PlantDeviceEntity link : links) {
-            PlantEntity plant = link.getPlant();
-            if (plant != null) {
-                plantIds.add(plant.getId());
-            }
-        }
-        UserEntity owner = device.getUser();
-        Integer ownerId = owner != null ? owner.getId() : null;
-        return new DeviceDtos.DeviceResponse(
-                device.getId(),
-                device.getDeviceId(),
-                device.getName(),
-                snapshot.isOnline(),
-                defaultDouble(device.getSoilMoisture(), 0.0),
-                defaultDouble(device.getAirTemperature(), 0.0),
-                defaultDouble(device.getAirHumidity(), 0.0),
-                defaultBoolean(snapshot.isWatering(), false),
-                defaultBoolean(device.getIsLightOn(), false),
-                device.getLastWatering(),
-                snapshot.lastSeen(),
-                defaultDouble(device.getTargetMoisture(), 40.0),
-                defaultInteger(device.getWateringDuration(), 30),
-                defaultInteger(device.getWateringTimeout(), 300),
-                device.getWateringSpeedLph(),
-                defaultInteger(device.getLightOnHour(), 6),
-                defaultInteger(device.getLightOffHour(), 22),
-                defaultInteger(device.getLightDuration(), 16),
-                defaultString(device.getCurrentVersion(), "1.0.0"),
-                defaultBoolean(device.getUpdateAvailable(), false),
-                snapshot.firmwareVersion(),
-                ownerId,
-                plantIds
-        );
-    }
-
-    private DeviceStateSnapshot resolveState(DeviceEntity device, LocalDateTime now, Duration onlineWindow) {
-        String firmwareVersion = "old";
-        Boolean isWatering = device.getIsWatering();
-        LocalDateTime lastSeen = device.getLastSeen();
-        boolean isOnline = lastSeen != null && Duration.between(lastSeen, now).compareTo(onlineWindow) <= 0;
-
-        DeviceStateLastEntity state = deviceStateLastRepository.findByDeviceId(device.getDeviceId()).orElse(null);
-        if (state == null) {
-            return new DeviceStateSnapshot(firmwareVersion, isWatering, lastSeen, isOnline);
-        }
-
-        Map<String, Object> payload = parseStateJson(state.getStateJson());
-        if (payload != null) {
-            Object fwVer = payload.get("fw_ver");
-            if (fwVer != null && !fwVer.toString().isBlank()) {
-                firmwareVersion = fwVer.toString();
-            }
-            Object manualObj = payload.get("manual_watering");
-            if (manualObj instanceof Map<?, ?> manual) {
-                Object statusObj = manual.get("status");
-                if (statusObj != null) {
-                    isWatering = "running".equals(statusObj.toString());
-                }
-            }
-        }
-
-        if (state.getUpdatedAt() != null) {
-            lastSeen = state.getUpdatedAt();
-            isOnline = Duration.between(lastSeen, now).compareTo(onlineWindow) <= 0;
-        }
-
-        return new DeviceStateSnapshot(firmwareVersion, isWatering, lastSeen, isOnline);
-    }
-
-    private Map<String, Object> parseStateJson(String stateJson) {
-        if (stateJson == null) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(stateJson, new TypeReference<Map<String, Object>>() {
-            });
-        } catch (Exception ex) {
-            return null;
-        }
     }
 
     private String buildJournalMarkdown(PlantEntity plant, List<PlantJournalEntryEntity> entries) {
@@ -831,27 +739,4 @@ public class PlantsController {
         }
     }
 
-    private Double defaultDouble(Double value, double fallback) {
-        return value != null ? value : fallback;
-    }
-
-    private Integer defaultInteger(Integer value, int fallback) {
-        return value != null ? value : fallback;
-    }
-
-    private Boolean defaultBoolean(Boolean value, boolean fallback) {
-        return value != null ? value : fallback;
-    }
-
-    private String defaultString(String value, String fallback) {
-        return value != null ? value : fallback;
-    }
-
-    private record DeviceStateSnapshot(
-            String firmwareVersion,
-            Boolean isWatering,
-            LocalDateTime lastSeen,
-            boolean isOnline
-    ) {
-    }
 }

@@ -1,17 +1,12 @@
 ﻿package ru.growerhub.backend.api;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -28,17 +23,14 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.ManualWateringDtos;
 import ru.growerhub.backend.db.DeviceEntity;
 import ru.growerhub.backend.db.DeviceRepository;
-import ru.growerhub.backend.db.DeviceStateLastEntity;
-import ru.growerhub.backend.db.DeviceStateLastRepository;
 import ru.growerhub.backend.db.PlantDeviceEntity;
 import ru.growerhub.backend.db.PlantDeviceRepository;
 import ru.growerhub.backend.db.PlantEntity;
 import ru.growerhub.backend.db.PlantJournalEntryEntity;
 import ru.growerhub.backend.db.PlantJournalEntryRepository;
 import ru.growerhub.backend.db.PlantJournalWateringDetailsEntity;
-import ru.growerhub.backend.device.DeviceShadowStore;
+import ru.growerhub.backend.device.DeviceService;
 import ru.growerhub.backend.mqtt.AckStore;
-import ru.growerhub.backend.mqtt.DeviceSettings;
 import ru.growerhub.backend.mqtt.MqttPublisher;
 import ru.growerhub.backend.mqtt.model.CmdPumpStart;
 import ru.growerhub.backend.mqtt.model.CmdPumpStop;
@@ -51,37 +43,26 @@ import ru.growerhub.backend.user.UserEntity;
 @RestController
 @Validated
 public class ManualWateringController {
-    private static final DateTimeFormatter ISO_UTC = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
-
     private final DeviceRepository deviceRepository;
-    private final DeviceStateLastRepository deviceStateLastRepository;
     private final PlantDeviceRepository plantDeviceRepository;
     private final PlantJournalEntryRepository plantJournalEntryRepository;
     private final AckStore ackStore;
-    private final DeviceShadowStore shadowStore;
-    private final DeviceSettings settings;
-    private final ObjectMapper objectMapper;
+    private final DeviceService deviceService;
     private final ObjectProvider<MqttPublisher> publisherProvider;
 
     public ManualWateringController(
             DeviceRepository deviceRepository,
-            DeviceStateLastRepository deviceStateLastRepository,
             PlantDeviceRepository plantDeviceRepository,
             PlantJournalEntryRepository plantJournalEntryRepository,
             AckStore ackStore,
-            DeviceShadowStore shadowStore,
-            DeviceSettings settings,
-            ObjectMapper objectMapper,
+            DeviceService deviceService,
             ObjectProvider<MqttPublisher> publisherProvider
     ) {
         this.deviceRepository = deviceRepository;
-        this.deviceStateLastRepository = deviceStateLastRepository;
         this.plantDeviceRepository = plantDeviceRepository;
         this.plantJournalEntryRepository = plantJournalEntryRepository;
         this.ackStore = ackStore;
-        this.shadowStore = shadowStore;
-        this.settings = settings;
-        this.objectMapper = objectMapper;
+        this.deviceService = deviceService;
         this.publisherProvider = publisherProvider;
     }
 
@@ -98,8 +79,7 @@ public class ManualWateringController {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Устройство не привязано ни k odnomu rasteniyu");
         }
 
-        DeviceShadowStore store = getShadowStore();
-        Map<String, Object> view = store.getManualWateringView(request.deviceId());
+        Map<String, Object> view = deviceService.getManualWateringView(request.deviceId());
         if (view != null && "running".equals(asString(view.get("status")))) {
             throw new ApiException(HttpStatus.CONFLICT, "Полив уже выполняется — повторный запуск запрещён.");
         }
@@ -137,8 +117,7 @@ public class ManualWateringController {
                 correlationId
         );
         DeviceState state = new DeviceState(manualState, null, null, null, null, null, null, null, null, null);
-        store.updateFromState(request.deviceId(), state);
-        upsertDeviceState(request.deviceId(), state, startedAt);
+        deviceService.handleState(request.deviceId(), state, startedAt);
 
         createWateringJournal(
                 device,
@@ -160,8 +139,7 @@ public class ManualWateringController {
     ) {
         requireDeviceAccess(request.deviceId(), user);
 
-        DeviceShadowStore store = getShadowStore();
-        Map<String, Object> view = store.getManualWateringView(request.deviceId());
+        Map<String, Object> view = deviceService.getManualWateringView(request.deviceId());
         if (view == null || !"running".equals(asString(view.get("status")))) {
             throw new ApiException(HttpStatus.CONFLICT, "Полив не выполняется — останавливать нечего.");
         }
@@ -206,136 +184,7 @@ public class ManualWateringController {
             @AuthenticationPrincipal UserEntity user
     ) {
         requireDeviceAccess(deviceId, user);
-        int threshold = resolveThreshold();
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-
-        Map<String, Object> view = getShadowStore().getManualWateringView(deviceId);
-        if (view == null) {
-            DeviceStateLastEntity storedState = deviceStateLastRepository.findByDeviceId(deviceId).orElse(null);
-            if (storedState != null) {
-                Map<String, Object> statePayload = parseStateJson(storedState.getStateJson());
-                Map<String, Object> manual = extractManual(statePayload);
-                String statusValue = manual != null && manual.get("status") != null
-                        ? manual.get("status").toString()
-                        : "idle";
-                Integer durationS = asInteger(manual != null ? manual.get("duration_s") : null);
-                String startedAt = asString(manual != null ? manual.get("started_at") : null);
-                String correlationId = asString(manual != null ? manual.get("correlation_id") : null);
-                Integer remainingS = asInteger(manual != null ? manual.get("remaining_s") : null);
-                LocalDateTime updatedAt = storedState.getUpdatedAt();
-                String lastSeenIso = formatIsoUtc(updatedAt);
-                boolean isOnline = updatedAt != null && Duration.between(updatedAt, now).getSeconds() <= threshold;
-                String offlineReason = isOnline ? null : "device_offline";
-                if (!isOnline && offlineReason == null) {
-                    offlineReason = "device_offline";
-                }
-                return new ManualWateringDtos.ManualWateringStatusResponse(
-                        statusValue,
-                        durationS,
-                        durationS,
-                        startedAt,
-                        startedAt,
-                        remainingS,
-                        correlationId,
-                        lastSeenIso,
-                        lastSeenIso,
-                        isOnline,
-                        offlineReason,
-                        "db_state"
-                );
-            }
-
-            DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
-            if (device == null) {
-                return new ManualWateringDtos.ManualWateringStatusResponse(
-                        "idle",
-                        null,
-                        0,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        false,
-                        "no_state_yet",
-                        "fallback"
-                );
-            }
-
-            LocalDateTime lastSeen = device.getLastSeen();
-            String lastSeenIso = formatIsoUtc(lastSeen);
-            boolean isOnline = lastSeen != null && Duration.between(lastSeen, now).getSeconds() <= threshold;
-            String offlineReason = isOnline ? null : "device_offline";
-            return new ManualWateringDtos.ManualWateringStatusResponse(
-                    "idle",
-                    null,
-                    0,
-                    null,
-                    null,
-                    null,
-                    null,
-                    lastSeenIso,
-                    lastSeenIso,
-                    isOnline,
-                    offlineReason,
-                    "db_fallback"
-            );
-        }
-
-        Map<String, Object> enriched = new HashMap<>(view);
-        boolean hasLastSeen = enriched.containsKey("last_seen_at") && enriched.get("last_seen_at") != null;
-        boolean hasIsOnline = enriched.containsKey("is_online") && enriched.get("is_online") != null;
-        if (!hasLastSeen || !hasIsOnline) {
-            DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
-            if (device != null) {
-                LocalDateTime lastSeen = device.getLastSeen();
-                if (!hasLastSeen) {
-                    String lastSeenIso = formatIsoUtc(lastSeen);
-                    enriched.put("last_seen_at", lastSeenIso);
-                    if (!enriched.containsKey("updated_at") || enriched.get("updated_at") == null) {
-                        enriched.put("updated_at", lastSeenIso);
-                    }
-                }
-                if (!hasIsOnline) {
-                    boolean isOnline = lastSeen != null && Duration.between(lastSeen, now).getSeconds() <= threshold;
-                    enriched.put("is_online", isOnline);
-                }
-                if (!enriched.containsKey("updated_at")) {
-                    enriched.put("updated_at", enriched.get("last_seen_at"));
-                }
-            } else {
-                if (!hasLastSeen) {
-                    enriched.put("last_seen_at", null);
-                }
-                if (!hasIsOnline) {
-                    enriched.put("is_online", false);
-                }
-                enriched.putIfAbsent("updated_at", enriched.get("last_seen_at"));
-            }
-        }
-
-        Boolean isOnline = asBoolean(enriched.get("is_online"));
-        enriched.putIfAbsent("updated_at", null);
-        enriched.putIfAbsent("last_seen_at", null);
-        enriched.putIfAbsent("start_time", enriched.get("started_at"));
-        enriched.putIfAbsent("duration", enriched.get("duration_s"));
-        enriched.put("offline_reason", Boolean.TRUE.equals(isOnline) ? null : "device_offline");
-
-        return new ManualWateringDtos.ManualWateringStatusResponse(
-                asString(enriched.get("status")),
-                asInteger(enriched.get("duration_s")),
-                asInteger(enriched.get("duration")),
-                asString(enriched.get("started_at")),
-                asString(enriched.get("start_time")),
-                asInteger(enriched.get("remaining_s")),
-                asString(enriched.get("correlation_id")),
-                asString(enriched.get("updated_at")),
-                asString(enriched.get("last_seen_at")),
-                isOnline,
-                asString(enriched.get("offline_reason")),
-                asString(enriched.get("source"))
-        );
+        return deviceService.buildManualWateringStatus(deviceId);
     }
 
     @GetMapping("/api/manual-watering/ack")
@@ -487,94 +336,8 @@ public class ManualWateringController {
         return String.join("; ", parts);
     }
 
-    private void upsertDeviceState(String deviceId, DeviceState state, LocalDateTime updatedAt) {
-        String payload;
-        try {
-            payload = objectMapper.writeValueAsString(state);
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
-
-        DeviceStateLastEntity record = deviceStateLastRepository.findByDeviceId(deviceId).orElse(null);
-        if (record == null) {
-            record = DeviceStateLastEntity.create();
-            record.setDeviceId(deviceId);
-        }
-        record.setStateJson(payload);
-        record.setUpdatedAt(updatedAt);
-        deviceStateLastRepository.save(record);
-    }
-
-    private Map<String, Object> parseStateJson(String stateJson) {
-        if (stateJson == null) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(stateJson, new TypeReference<Map<String, Object>>() {
-            });
-        } catch (Exception ex) {
-            return null;
-        }
-    }
-
-    private Map<String, Object> extractManual(Map<String, Object> statePayload) {
-        if (statePayload == null) {
-            return null;
-        }
-        Object manual = statePayload.get("manual_watering");
-        if (manual instanceof Map<?, ?> map) {
-            Map<String, Object> result = new HashMap<>();
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                if (entry.getKey() instanceof String key) {
-                    result.put(key, entry.getValue());
-                }
-            }
-            return result;
-        }
-        return null;
-    }
-
-    private String formatIsoUtc(LocalDateTime value) {
-        if (value == null) {
-            return null;
-        }
-        return value.atOffset(ZoneOffset.UTC).withNano(0).format(ISO_UTC);
-    }
-
     private String asString(Object value) {
         return value != null ? value.toString() : null;
-    }
-
-    private Integer asInteger(Object value) {
-        if (value instanceof Integer integer) {
-            return integer;
-        }
-        if (value instanceof Number number) {
-            return number.intValue();
-        }
-        if (value instanceof String text) {
-            try {
-                return Integer.parseInt(text);
-            } catch (NumberFormatException ex) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    private Boolean asBoolean(Object value) {
-        if (value instanceof Boolean bool) {
-            return bool;
-        }
-        if (value instanceof String text) {
-            return Boolean.parseBoolean(text);
-        }
-        return null;
-    }
-
-    private int resolveThreshold() {
-        int threshold = settings.getOnlineThresholdS();
-        return threshold > 0 ? threshold : 180;
     }
 
     private MqttPublisher getPublisher() {
@@ -583,13 +346,6 @@ public class ManualWateringController {
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "MQTT publisher unavailable");
         }
         return publisher;
-    }
-
-    private DeviceShadowStore getShadowStore() {
-        if (shadowStore == null) {
-            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Device shadow store unavailable");
-        }
-        return shadowStore;
     }
 
     private AckStore getAckStore() {
