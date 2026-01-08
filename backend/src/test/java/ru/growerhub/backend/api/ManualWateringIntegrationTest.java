@@ -196,6 +196,32 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void updatePumpBindingsReturnsOk() {
+        UserEntity user = createUser("owner-bindings@example.com", "user");
+        DeviceEntity device = createDevice("mw-bindings", user);
+        PumpEntity pump = pumpService.ensureDefaultPump(device);
+        PlantEntity plant = createPlant(user, "Basil");
+        String token = buildToken(user.getId());
+
+        Map<String, Object> payload = Map.of(
+                "items",
+                List.of(Map.of("plant_id", plant.getId(), "rate_ml_per_hour", 1800))
+        );
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .put("/api/pumps/" + pump.getId() + "/bindings")
+                .then()
+                .statusCode(200)
+                .body("ok", equalTo(true));
+
+        Assertions.assertEquals(1, pumpPlantBindingRepository.findAllByPump_Id(pump.getId()).size());
+    }
+
+    @Test
     void startRequiresAuth() {
         DeviceEntity device = createDevice("mw-auth-1", null);
         PumpEntity pump = pumpService.ensureDefaultPump(device);

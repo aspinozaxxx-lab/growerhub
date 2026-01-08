@@ -124,6 +124,11 @@
   font-size: 12px;
 }
 
+.device-card__edit-icon {
+  width: 18px;
+  height: 18px;
+}
+
 @media (max-width: 720px) {
   .device-card__item {
     flex-direction: column;

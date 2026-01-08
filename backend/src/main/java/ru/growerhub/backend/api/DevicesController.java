@@ -58,14 +58,20 @@ public class DevicesController {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         DeviceState.RelayState light = new DeviceState.RelayState(request.isLightOn() ? "on" : "off");
         DeviceState.RelayState pump = new DeviceState.RelayState(request.isWatering() ? "on" : "off");
+        Integer soilPercent = request.soilMoisture() != null
+                ? (int) Math.round(request.soilMoisture())
+                : null;
+        DeviceState.SoilPort soilPort = new DeviceState.SoilPort(0, true, soilPercent);
+        DeviceState.SoilState soil = new DeviceState.SoilState(List.of(soilPort));
+        DeviceState.AirState air = new DeviceState.AirState(true, request.airTemperature(), request.airHumidity());
         DeviceState state = new DeviceState(
                 null,
                 null,
-                request.soilMoisture(),
-                request.airTemperature(),
-                request.airHumidity(),
                 null,
                 null,
+                null,
+                air,
+                soil,
                 light,
                 pump,
                 null

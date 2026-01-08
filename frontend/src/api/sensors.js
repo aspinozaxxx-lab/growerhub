@@ -1,6 +1,17 @@
 ﻿// API helper dlya sensors (bindings + history).
 import { apiFetch } from './client';
 
+async function parseOptionalJson(response) {
+  if (!response || response.status === 204 || response.status === 205) {
+    return null;
+  }
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+  return JSON.parse(text);
+}
+
 export async function updateSensorBindings(sensorId, plantIds, token) {
   void token;
   const headers = {
@@ -14,7 +25,7 @@ export async function updateSensorBindings(sensorId, plantIds, token) {
   if (!response.ok) {
     throw new Error(`Failed to update sensor bindings (${response.status})`);
   }
-  return response.status === 204 ? null : response.json();
+  return parseOptionalJson(response);
 }
 
 export async function fetchSensorHistory(sensorId, hours, token) {

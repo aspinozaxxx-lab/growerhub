@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.ApiException;
+import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.PumpDtos;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
 import ru.growerhub.backend.user.UserEntity;
@@ -32,7 +33,7 @@ public class PumpController {
     }
 
     @PutMapping("/api/pumps/{pump_id}/bindings")
-    public void updateBindings(
+    public CommonDtos.OkResponse updateBindings(
             @PathVariable("pump_id") Integer pumpId,
             @Valid @RequestBody PumpDtos.PumpBindingUpdateRequest request,
             @AuthenticationPrincipal UserEntity user
@@ -46,6 +47,7 @@ public class PumpController {
                         : null,
                 user
         );
+        return new CommonDtos.OkResponse(true);
     }
 
     @PostMapping("/api/pumps/{pump_id}/watering/start")

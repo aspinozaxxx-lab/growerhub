@@ -31,8 +31,17 @@ import ru.growerhub.backend.device.DeviceShadowStore;
 import ru.growerhub.backend.device.DeviceStateLastEntity;
 import ru.growerhub.backend.device.DeviceStateLastRepository;
 import ru.growerhub.backend.mqtt.MqttMessageHandler;
+import ru.growerhub.backend.plant.PlantEntity;
+import ru.growerhub.backend.plant.PlantMetricSampleEntity;
+import ru.growerhub.backend.plant.PlantMetricSampleRepository;
+import ru.growerhub.backend.plant.PlantMetricType;
+import ru.growerhub.backend.plant.PlantRepository;
+import ru.growerhub.backend.sensor.SensorEntity;
+import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
+import ru.growerhub.backend.sensor.SensorPlantBindingRepository;
 import ru.growerhub.backend.sensor.SensorReadingRepository;
 import ru.growerhub.backend.sensor.SensorRepository;
+import ru.growerhub.backend.sensor.SensorType;
 import ru.growerhub.backend.user.UserEntity;
 import ru.growerhub.backend.user.UserRepository;
 
@@ -54,6 +63,15 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private SensorReadingRepository sensorReadingRepository;
+
+    @Autowired
+    private SensorPlantBindingRepository sensorPlantBindingRepository;
+
+    @Autowired
+    private PlantRepository plantRepository;
+
+    @Autowired
+    private PlantMetricSampleRepository plantMetricSampleRepository;
 
     @Autowired
     private DeviceStateLastRepository deviceStateLastRepository;
@@ -102,6 +120,49 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals("Watering Device dev-1", stored.getName());
         Assertions.assertEquals(3, sensorRepository.count());
         Assertions.assertEquals(3, sensorReadingRepository.count());
+    }
+
+    @Test
+    void updateDeviceStatusCreatesPlantMetricsForBoundSensor() {
+        UserEntity owner = createUser("metric-owner@example.com", "user");
+        DeviceEntity device = createDevice("dev-metric-1", owner);
+        PlantEntity plant = createPlant(owner, "Lettuce");
+
+        SensorEntity sensor = SensorEntity.create();
+        sensor.setDevice(device);
+        sensor.setType(SensorType.AIR_TEMPERATURE);
+        sensor.setChannel(0);
+        sensor.setDetected(true);
+        sensor.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        sensor.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        sensorRepository.save(sensor);
+
+        SensorPlantBindingEntity binding = SensorPlantBindingEntity.create();
+        binding.setSensor(sensor);
+        binding.setPlant(plant);
+        sensorPlantBindingRepository.save(binding);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("device_id", device.getDeviceId());
+        payload.put("soil_moisture", 15.0);
+        payload.put("air_temperature", 25.0);
+        payload.put("air_humidity", 50.0);
+        payload.put("is_watering", false);
+        payload.put("is_light_on", true);
+
+        given()
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .post("/api/device/" + device.getDeviceId() + "/status")
+                .then()
+                .statusCode(200)
+                .body("message", equalTo("Status updated"));
+
+        Assertions.assertEquals(1, plantMetricSampleRepository.count());
+        PlantMetricSampleEntity sample = plantMetricSampleRepository.findAll().get(0);
+        Assertions.assertEquals(plant.getId(), sample.getPlant().getId());
+        Assertions.assertEquals(PlantMetricType.AIR_TEMPERATURE, sample.getMetricType());
     }
 
     @Test
@@ -580,6 +641,14 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         device.setUser(owner);
         device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         return deviceRepository.save(device);
+    }
+
+    private PlantEntity createPlant(UserEntity owner, String name) {
+        PlantEntity plant = PlantEntity.create();
+        plant.setUser(owner);
+        plant.setName(name);
+        plant.setPlantedAt(LocalDateTime.now(ZoneOffset.UTC));
+        return plantRepository.save(plant);
     }
 
     private String buildToken(int userId) {

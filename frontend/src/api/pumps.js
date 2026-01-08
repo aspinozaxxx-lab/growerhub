@@ -1,6 +1,17 @@
 ﻿// API helper dlya pumpov (bindings + manual watering).
 import { apiFetch } from './client';
 
+async function parseOptionalJson(response) {
+  if (!response || response.status === 204 || response.status === 205) {
+    return null;
+  }
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+  return JSON.parse(text);
+}
+
 export async function updatePumpBindings(pumpId, items, token) {
   void token;
   const headers = {
@@ -14,7 +25,7 @@ export async function updatePumpBindings(pumpId, items, token) {
   if (!response.ok) {
     throw new Error(`Failed to update pump bindings (${response.status})`);
   }
-  return response.status === 204 ? null : response.json();
+  return parseOptionalJson(response);
 }
 
 export async function startPumpWatering({ pumpId, durationS, waterVolumeL, ph, fertilizersPerLiter, token }) {

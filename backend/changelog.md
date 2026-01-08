@@ -12,6 +12,7 @@
 - Frontend peredelan pod sensors/pumps, novye grafiki plant/sensor history i UI privyazok.
 - Firmware API vosstanovlen pod /api/device/*/firmware i /api/upload-firmware; dobavlen storage dlya .bin.
 - Integracionnye testy obnovleny pod novye domennye servisy i MQTT ingest.
+- Fiksy UI/ingestion: ok-otvety dlya bindings, stabil'nyj parsing, chips s gruppoi/vozrastom, ubiranie free devices, avatar vsegda, HTTP state v soil/air, plus testy.
 
 ## 2025-12-31
 - MQTT packet size 1024, QoS0 state i diagnostika publish rezultatov.

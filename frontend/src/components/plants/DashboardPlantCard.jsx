@@ -102,9 +102,19 @@ function DashboardPlantCard({
     : getAutoStageFromAge(plantTypeId, ageDays);
   const showWateringBadge = wateringStatus && remainingSeconds !== null && remainingSeconds > 0;
 
+  const boundSensors = React.useMemo(() => {
+    if (!plant?.id) {
+      return sensors;
+    }
+    return sensors.filter((sensor) => {
+      const boundPlants = Array.isArray(sensor.bound_plants) ? sensor.bound_plants : [];
+      return boundPlants.some((bound) => bound.id === plant.id);
+    });
+  }, [plant?.id, sensors]);
+
   const sensorsByKind = React.useMemo(() => {
     const map = {};
-    sensors.forEach((sensor) => {
+    boundSensors.forEach((sensor) => {
       const kind = SENSOR_KIND_MAP[sensor.type];
       if (!kind) return;
       if (!map[kind]) {
@@ -118,7 +128,18 @@ function DashboardPlantCard({
       }
     });
     return map;
-  }, [sensors]);
+  }, [boundSensors]);
+
+  const sensorPills = React.useMemo(() => {
+    const order = ['air_temperature', 'air_humidity', 'soil_moisture'];
+    return order
+      .map((kind) => {
+        const sensor = sensorsByKind[kind];
+        if (!sensor) return null;
+        return { kind, sensor };
+      })
+      .filter(Boolean);
+  }, [sensorsByKind]);
 
   const handleOpenMetric = (metric) => {
     if (!plant?.id || !metric) return;
@@ -152,35 +173,26 @@ function DashboardPlantCard({
         </Text>
       </div>
 
-      {sensors.length > 0 ? (
-        <div className="dashboard-plant-card__body">
-          <div className="dashboard-plant-card__avatar" aria-hidden="true">
-            <PlantAvatar
-              plantType={plantTypeId}
-              stage={stageId}
-              variant="card"
-              size="md"
-            />
-          </div>
+      <div className="dashboard-plant-card__body">
+        <div className="dashboard-plant-card__avatar" aria-hidden="true">
+          <PlantAvatar
+            plantType={plantTypeId}
+            stage={stageId}
+            variant="card"
+            size="md"
+          />
+        </div>
+        {sensorPills.length > 0 && (
           <div className="dashboard-plant-card__metrics">
-            <SensorPill
-              kind="air_temperature"
-              value={sensorsByKind.air_temperature?.last_value}
-              onClick={() => handleOpenMetric('air_temperature')}
-              disabled={!plant?.id}
-            />
-            <SensorPill
-              kind="air_humidity"
-              value={sensorsByKind.air_humidity?.last_value}
-              onClick={() => handleOpenMetric('air_humidity')}
-              disabled={!plant?.id}
-            />
-            <SensorPill
-              kind="soil_moisture"
-              value={sensorsByKind.soil_moisture?.last_value}
-              onClick={() => handleOpenMetric('soil_moisture')}
-              disabled={!plant?.id}
-            />
+            {sensorPills.map(({ kind, sensor }) => (
+              <SensorPill
+                key={`${kind}-${sensor.id}`}
+                kind={kind}
+                value={sensor.last_value}
+                onClick={() => handleOpenMetric(kind)}
+                disabled={!plant?.id}
+              />
+            ))}
             <SensorPill
               kind="watering"
               value={Boolean(wateringStatus)}
@@ -194,10 +206,8 @@ function DashboardPlantCard({
               </div>
             )}
           </div>
-        </div>
-      ) : (
-        <Text tone="muted" className="dashboard-plant-card__empty">Нет подключённых датчиков</Text>
-      )}
+        )}
+      </div>
 
       <div className="dashboard-plant-card__footer">
         <div className="dashboard-plant-card__actions">

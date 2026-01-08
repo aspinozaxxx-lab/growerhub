@@ -5,88 +5,14 @@ import { useDashboardData } from "../../features/dashboard/useDashboardData";
 import { useSensorStatsContext } from "../../features/sensors/SensorStatsContext";
 import { useWateringSidebar } from "../../features/watering/WateringSidebarContext";
 import { fetchPumpWateringStatus } from "../../api/pumps";
-import SensorPill from "../../components/ui/sensor-pill/SensorPill";
-import Button from "../../components/ui/Button";
-import Surface from "../../components/ui/Surface";
-import { Title, Text } from "../../components/ui/Typography";
+import { Title } from "../../components/ui/Typography";
 import AppPageState from "../../components/layout/AppPageState";
 import DashboardPlantCard from "../../components/plants/DashboardPlantCard";
 import "./AppDashboard.css";
 
-const SENSOR_KIND_MAP = {
-  SOIL_MOISTURE: 'soil_moisture',
-  AIR_TEMPERATURE: 'air_temperature',
-  AIR_HUMIDITY: 'air_humidity',
-};
-
-const SENSOR_TITLE_MAP = {
-  SOIL_MOISTURE: 'Влажность почвы',
-  AIR_TEMPERATURE: 'Температура воздуха',
-  AIR_HUMIDITY: 'Влажность воздуха',
-};
-
-function MetricPill({ sensor, deviceName, onOpenStats }) {
-  const kind = SENSOR_KIND_MAP[sensor.type] || 'soil_moisture';
-  const title = SENSOR_TITLE_MAP[sensor.type] || sensor.type || 'Датчик';
-  const handleClick = () => {
-    if (sensor?.id) {
-      onOpenStats({
-        mode: 'sensor',
-        sensorId: sensor.id,
-        metric: kind,
-        title,
-        subtitle: deviceName,
-      });
-    }
-  };
-  return (
-    <SensorPill
-      kind={kind}
-      value={sensor.last_value}
-      onClick={handleClick}
-      disabled={!sensor?.id}
-    />
-  );
-}
-
-function FreeDeviceCard({ device, onOpenStats }) {
-  const sensors = Array.isArray(device.sensors) ? device.sensors : [];
-  const pumps = Array.isArray(device.pumps) ? device.pumps : [];
-  return (
-    <div className="free-device-card">
-      <div className="free-device-card__header">
-        <div>
-          <div className="free-device-card__name">{device.name || device.device_id}</div>
-          <div className="free-device-card__id">{device.device_id}</div>
-          <div className="free-device-card__status">
-            {device.is_online ? "Онлайн" : "Оффлайн"}
-            <span className={`dashboard-status-dot ${device.is_online ? "is-online" : "is-offline"}`} aria-hidden="true" />
-          </div>
-        </div>
-        <div className="free-device-card__tag">Не привязано</div>
-      </div>
-
-      <div className="free-device-card__metrics">
-        {sensors.length === 0 && <div className="free-device-card__empty">Нет датчиков</div>}
-        {sensors.map((sensor) => (
-          <MetricPill key={sensor.id} sensor={sensor} deviceName={device.name || device.device_id} onOpenStats={onOpenStats} />
-        ))}
-      </div>
-
-      {pumps.length > 0 && (
-        <div className="free-device-card__pumps">
-          {pumps.map((pump) => (
-            <div key={pump.id} className="free-device-card__pump">Насос · канал {pump.channel ?? '-'}</div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function AppDashboard() {
   const { token } = useAuth();
-  const { plants, devices, freeDevices, isLoading, error } = useDashboardData();
+  const { plants, devices, isLoading, error } = useDashboardData();
   const { openSensorStats } = useSensorStatsContext();
   const { openWateringSidebar, setWateringStatus, wateringByPump } = useWateringSidebar();
   const navigate = useNavigate();
@@ -135,7 +61,7 @@ function AppDashboard() {
       {isLoading && <AppPageState kind="loading" title="Загрузка..." />}
       {error && <AppPageState kind="error" title={error} />}
 
-      {!isLoading && !error && plants.length === 0 && freeDevices.length === 0 && (
+      {!isLoading && !error && plants.length === 0 && (
         <AppPageState kind="empty" title="Пока нет данных. Добавьте растения и подключите устройства." />
       )}
 
@@ -164,19 +90,6 @@ function AppDashboard() {
         </div>
       )}
 
-      {!isLoading && !error && freeDevices.length > 0 && (
-        <Surface variant="section" padding="md" className="dashboard-section">
-          <div className="dashboard-section__header">
-            <Title level={2}>Свободные устройства</Title>
-            <Text tone="muted" className="dashboard-section__subtitle">Не привязаны к растениям</Text>
-          </div>
-          <div className="cards-grid">
-            {freeDevices.map((device) => (
-              <FreeDeviceCard key={device.id} device={device} onOpenStats={openSensorStats} />
-            ))}
-          </div>
-        </Surface>
-      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { fetchPlants } from '../../api/plants';
 import { fetchMyDevices } from '../../api/devices';
 import { isSessionExpiredError } from '../../api/client';
@@ -42,20 +42,10 @@ export function useDashboardData() {
     };
   }, [token]);
 
-  const freeDevices = useMemo(() => {
-    return devices.filter((device) => {
-      const sensors = Array.isArray(device.sensors) ? device.sensors : [];
-      const pumps = Array.isArray(device.pumps) ? device.pumps : [];
-      const hasSensorBindings = sensors.some((sensor) => Array.isArray(sensor.bound_plants) && sensor.bound_plants.length > 0);
-      const hasPumpBindings = pumps.some((pump) => Array.isArray(pump.bound_plants) && pump.bound_plants.length > 0);
-      return !hasSensorBindings && !hasPumpBindings;
-    });
-  }, [devices]);
 
   return {
     plants,
     devices,
-    freeDevices,
     isLoading,
     error,
   };

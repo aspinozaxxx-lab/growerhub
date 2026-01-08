@@ -81,7 +81,16 @@ function DeviceCard({ device, onEdit }) {
           <StatusBadge isOnline={device.is_online} />
         </div>
         <Button type="button" variant="ghost" size="sm" className="device-card__edit" onClick={handleEdit} aria-label="Редактировать">
-          ?
+          <svg className="device-card__edit-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M4 20h4l10-10-4-4-10 10v4zM14 6l4 4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         </Button>
       </div>
 

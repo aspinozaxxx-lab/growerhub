@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.ApiException;
+import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.HistoryDtos;
 import ru.growerhub.backend.api.dto.SensorDtos;
 import ru.growerhub.backend.user.UserEntity;
@@ -38,12 +39,13 @@ public class SensorController {
 
     @PutMapping("/api/sensors/{sensor_id}/bindings")
     @Transactional
-    public void updateBindings(
+    public CommonDtos.OkResponse updateBindings(
             @PathVariable("sensor_id") Integer sensorId,
             @RequestBody SensorDtos.SensorBindingUpdateRequest request,
             @AuthenticationPrincipal UserEntity user
     ) {
         sensorBindingService.updateBindings(sensorId, request.plantIds(), user);
+        return new CommonDtos.OkResponse(true);
     }
 
     @GetMapping("/api/sensors/{sensor_id}/history")

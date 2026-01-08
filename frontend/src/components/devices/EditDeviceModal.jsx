@@ -13,6 +13,7 @@ const SENSOR_TYPE_LABELS = {
 };
 
 const DEFAULT_PUMP_RATE = 2000;
+const MS_IN_DAY = 24 * 60 * 60 * 1000;
 
 function buildSensorTitle(sensor) {
   const label = sensor?.label;
@@ -27,6 +28,30 @@ function buildPumpTitle(pump) {
   const channel = pump?.channel;
   const base = label || 'Насос';
   return channel !== undefined && channel !== null ? `${base} · канал ${channel}` : base;
+}
+
+function formatPlantAge(plantedAt) {
+  if (!plantedAt) {
+    return 'нет даты';
+  }
+  const date = new Date(plantedAt);
+  if (Number.isNaN(date.getTime())) {
+    return 'нет даты';
+  }
+  const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / MS_IN_DAY));
+  if (days < 14) {
+    return `${days} дн.`;
+  }
+  const weeks = Math.max(1, Math.floor(days / 7));
+  return `${weeks} нед.`;
+}
+
+function buildPlantLabel(plant) {
+  const idPart = plant?.id !== null && plant?.id !== undefined ? plant.id : '-';
+  const namePart = plant?.name || 'Без названия';
+  const groupPart = plant?.plant_group?.name || 'Без группы';
+  const agePart = formatPlantAge(plant?.planted_at);
+  return `${idPart} · ${namePart} · ${groupPart} · ${agePart}`;
 }
 
 function EditDeviceModal({
@@ -212,7 +237,7 @@ function EditDeviceModal({
                     className={`edit-device__pill ${selected ? 'is-selected' : ''}`}
                     onClick={() => toggleSensorPlant(sensor.id, plant.id)}
                   >
-                    {plant.name}
+                    {buildPlantLabel(plant)}
                   </button>
                 );
               })}
@@ -238,7 +263,7 @@ function EditDeviceModal({
                       className={`edit-device__pill ${selected ? 'is-selected' : ''}`}
                       onClick={() => togglePumpPlant(pump.id, plant.id)}
                     >
-                      {plant.name}
+                      {buildPlantLabel(plant)}
                     </button>
                     {selected && (
                       <input
