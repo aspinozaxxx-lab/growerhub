@@ -1,14 +1,9 @@
 ﻿package ru.growerhub.backend.api;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,14 +17,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.DeviceDtos;
-import ru.growerhub.backend.db.DeviceEntity;
-import ru.growerhub.backend.db.DeviceRepository;
-import ru.growerhub.backend.db.DeviceStateLastEntity;
-import ru.growerhub.backend.db.DeviceStateLastRepository;
-import ru.growerhub.backend.db.PlantDeviceEntity;
-import ru.growerhub.backend.db.PlantDeviceRepository;
-import ru.growerhub.backend.db.SensorDataRepository;
-import ru.growerhub.backend.device.DeviceService;
+import ru.growerhub.backend.device.DeviceEntity;
+import ru.growerhub.backend.device.DeviceIngestionService;
+import ru.growerhub.backend.device.DeviceQueryService;
+import ru.growerhub.backend.device.DeviceRepository;
+import ru.growerhub.backend.device.DeviceStateLastRepository;
 import ru.growerhub.backend.mqtt.model.DeviceState;
 import ru.growerhub.backend.user.UserEntity;
 import ru.growerhub.backend.user.UserRepository;
@@ -38,29 +30,23 @@ import ru.growerhub.backend.user.UserRepository;
 @Validated
 public class DevicesController {
     private final DeviceRepository deviceRepository;
-    private final DeviceService deviceService;
-    private final SensorDataRepository sensorDataRepository;
+    private final DeviceIngestionService deviceIngestionService;
+    private final DeviceQueryService deviceQueryService;
     private final DeviceStateLastRepository deviceStateLastRepository;
-    private final PlantDeviceRepository plantDeviceRepository;
     private final UserRepository userRepository;
-    private final ObjectMapper objectMapper;
 
     public DevicesController(
             DeviceRepository deviceRepository,
-            DeviceService deviceService,
-            SensorDataRepository sensorDataRepository,
+            DeviceIngestionService deviceIngestionService,
+            DeviceQueryService deviceQueryService,
             DeviceStateLastRepository deviceStateLastRepository,
-            PlantDeviceRepository plantDeviceRepository,
-            UserRepository userRepository,
-            ObjectMapper objectMapper
+            UserRepository userRepository
     ) {
         this.deviceRepository = deviceRepository;
-        this.deviceService = deviceService;
-        this.sensorDataRepository = sensorDataRepository;
+        this.deviceIngestionService = deviceIngestionService;
+        this.deviceQueryService = deviceQueryService;
         this.deviceStateLastRepository = deviceStateLastRepository;
-        this.plantDeviceRepository = plantDeviceRepository;
         this.userRepository = userRepository;
-        this.objectMapper = objectMapper;
     }
 
     @PostMapping("/api/device/{device_id}/status")
@@ -84,8 +70,7 @@ public class DevicesController {
                 pump,
                 null
         );
-        deviceService.handleState(deviceId, state, now);
-
+        deviceIngestionService.handleState(deviceId, state, now);
         return new CommonDtos.MessageResponse("Status updated");
     }
 
@@ -95,25 +80,24 @@ public class DevicesController {
             @PathVariable("device_id") String deviceId
     ) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        DeviceEntity device = deviceService.ensureDeviceExists(deviceId, now);
+        DeviceEntity device = deviceIngestionService.ensureDeviceExists(deviceId, now);
         if (device == null) {
             device = DeviceEntity.create();
             device.setDeviceId(deviceId);
-            device.setName(deviceService.defaultName(deviceId));
+            device.setName(deviceIngestionService.defaultName(deviceId));
             device.setLastSeen(now);
-            deviceService.applyDefaults(device, deviceId);
+            deviceIngestionService.applyDefaults(device, deviceId);
             deviceRepository.save(device);
         }
 
         return new DeviceDtos.DeviceSettingsResponse(
-                defaultDouble(device.getTargetMoisture(), deviceService.defaultTargetMoisture()),
-                defaultInteger(device.getWateringDuration(), deviceService.defaultWateringDuration()),
-                defaultInteger(device.getWateringTimeout(), deviceService.defaultWateringTimeout()),
-                device.getWateringSpeedLph(),
-                defaultInteger(device.getLightOnHour(), deviceService.defaultLightOnHour()),
-                defaultInteger(device.getLightOffHour(), deviceService.defaultLightOffHour()),
-                defaultInteger(device.getLightDuration(), deviceService.defaultLightDuration()),
-                defaultBoolean(device.getUpdateAvailable(), deviceService.defaultUpdateAvailable())
+                defaultDouble(device.getTargetMoisture(), deviceIngestionService.defaultTargetMoisture()),
+                defaultInteger(device.getWateringDuration(), deviceIngestionService.defaultWateringDuration()),
+                defaultInteger(device.getWateringTimeout(), deviceIngestionService.defaultWateringTimeout()),
+                defaultInteger(device.getLightOnHour(), deviceIngestionService.defaultLightOnHour()),
+                defaultInteger(device.getLightOffHour(), deviceIngestionService.defaultLightOffHour()),
+                defaultInteger(device.getLightDuration(), deviceIngestionService.defaultLightDuration()),
+                defaultBoolean(device.getUpdateAvailable(), deviceIngestionService.defaultUpdateAvailable())
         );
     }
 
@@ -131,9 +115,6 @@ public class DevicesController {
         device.setTargetMoisture(request.targetMoisture());
         device.setWateringDuration(request.wateringDuration());
         device.setWateringTimeout(request.wateringTimeout());
-        if (request.wateringSpeedLph() != null) {
-            device.setWateringSpeedLph(request.wateringSpeedLph());
-        }
         device.setLightOnHour(request.lightOnHour());
         device.setLightOffHour(request.lightOffHour());
         device.setLightDuration(request.lightDuration());
@@ -144,62 +125,18 @@ public class DevicesController {
 
     @GetMapping("/api/devices")
     public List<DeviceDtos.DeviceResponse> listDevices() {
-        List<DeviceEntity> devices = deviceRepository.findAll();
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        Duration onlineWindow = Duration.ofMinutes(3);
-        List<DeviceDtos.DeviceResponse> responses = new ArrayList<>();
-        for (DeviceEntity device : devices) {
-            responses.add(toDeviceResponse(device, now, onlineWindow));
-        }
-        return responses;
+        return deviceQueryService.listDevices();
     }
 
     @GetMapping("/api/devices/my")
     public List<DeviceDtos.DeviceResponse> listMyDevices(@AuthenticationPrincipal UserEntity user) {
-        return deviceService.listMyDevices(user.getId());
+        return deviceQueryService.listMyDevices(user.getId());
     }
 
     @GetMapping("/api/admin/devices")
     public List<DeviceDtos.AdminDeviceResponse> listAdminDevices(@AuthenticationPrincipal UserEntity user) {
         requireAdmin(user);
-        List<DeviceEntity> devices = deviceRepository.findAll();
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        Duration onlineWindow = Duration.ofMinutes(3);
-        List<DeviceDtos.AdminDeviceResponse> responses = new ArrayList<>();
-        for (DeviceEntity device : devices) {
-            DeviceDtos.DeviceResponse base = toDeviceResponse(device, now, onlineWindow);
-            UserEntity owner = device.getUser();
-            DeviceDtos.DeviceOwnerInfoResponse ownerPayload = owner != null
-                    ? new DeviceDtos.DeviceOwnerInfoResponse(owner.getId(), owner.getEmail(), owner.getUsername())
-                    : null;
-            responses.add(new DeviceDtos.AdminDeviceResponse(
-                    base.id(),
-                    base.deviceId(),
-                    base.name(),
-                    base.isOnline(),
-                    base.soilMoisture(),
-                    base.airTemperature(),
-                    base.airHumidity(),
-                    base.isWatering(),
-                    base.isLightOn(),
-                    base.lastWatering(),
-                    base.lastSeen(),
-                    base.targetMoisture(),
-                    base.wateringDuration(),
-                    base.wateringTimeout(),
-                    base.wateringSpeedLph(),
-                    base.lightOnHour(),
-                    base.lightOffHour(),
-                    base.lightDuration(),
-                    base.currentVersion(),
-                    base.updateAvailable(),
-                    base.firmwareVersion(),
-                    base.userId(),
-                    base.plantIds(),
-                    ownerPayload
-            ));
-        }
-        return responses;
+        return deviceQueryService.listAdminDevices();
     }
 
     @PostMapping("/api/devices/assign-to-me")
@@ -221,9 +158,7 @@ public class DevicesController {
         }
 
         deviceRepository.save(device);
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        Duration onlineWindow = Duration.ofMinutes(3);
-        return toDeviceResponse(device, now, onlineWindow);
+        return deviceQueryService.buildDeviceResponse(device);
     }
 
     @PostMapping("/api/devices/{device_id}/unassign")
@@ -244,9 +179,7 @@ public class DevicesController {
 
         device.setUser(null);
         deviceRepository.save(device);
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        Duration onlineWindow = Duration.ofMinutes(3);
-        return toDeviceResponse(device, now, onlineWindow);
+        return deviceQueryService.buildDeviceResponse(device);
     }
 
     @PostMapping("/api/admin/devices/{device_id}/assign")
@@ -270,9 +203,7 @@ public class DevicesController {
         device.setUser(owner);
         deviceRepository.save(device);
 
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        Duration onlineWindow = Duration.ofMinutes(3);
-        DeviceDtos.DeviceResponse base = toDeviceResponse(device, now, onlineWindow);
+        DeviceDtos.DeviceResponse base = deviceQueryService.buildDeviceResponse(device);
         DeviceDtos.DeviceOwnerInfoResponse ownerPayload = new DeviceDtos.DeviceOwnerInfoResponse(
                 owner.getId(),
                 owner.getEmail(),
@@ -283,17 +214,10 @@ public class DevicesController {
                 base.deviceId(),
                 base.name(),
                 base.isOnline(),
-                base.soilMoisture(),
-                base.airTemperature(),
-                base.airHumidity(),
-                base.isWatering(),
-                base.isLightOn(),
-                base.lastWatering(),
                 base.lastSeen(),
                 base.targetMoisture(),
                 base.wateringDuration(),
                 base.wateringTimeout(),
-                base.wateringSpeedLph(),
                 base.lightOnHour(),
                 base.lightOffHour(),
                 base.lightDuration(),
@@ -301,7 +225,8 @@ public class DevicesController {
                 base.updateAvailable(),
                 base.firmwareVersion(),
                 base.userId(),
-                base.plantIds(),
+                base.sensors(),
+                base.pumps(),
                 ownerPayload
         );
     }
@@ -321,25 +246,16 @@ public class DevicesController {
         device.setUser(null);
         deviceRepository.save(device);
 
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        Duration onlineWindow = Duration.ofMinutes(3);
-        DeviceDtos.DeviceResponse base = toDeviceResponse(device, now, onlineWindow);
+        DeviceDtos.DeviceResponse base = deviceQueryService.buildDeviceResponse(device);
         return new DeviceDtos.AdminDeviceResponse(
                 base.id(),
                 base.deviceId(),
                 base.name(),
                 base.isOnline(),
-                base.soilMoisture(),
-                base.airTemperature(),
-                base.airHumidity(),
-                base.isWatering(),
-                base.isLightOn(),
-                base.lastWatering(),
                 base.lastSeen(),
                 base.targetMoisture(),
                 base.wateringDuration(),
                 base.wateringTimeout(),
-                base.wateringSpeedLph(),
                 base.lightOnHour(),
                 base.lightOffHour(),
                 base.lightDuration(),
@@ -347,7 +263,8 @@ public class DevicesController {
                 base.updateAvailable(),
                 base.firmwareVersion(),
                 base.userId(),
-                base.plantIds(),
+                base.sensors(),
+                base.pumps(),
                 null
         );
     }
@@ -362,7 +279,7 @@ public class DevicesController {
             throw new ApiException(HttpStatus.NOT_FOUND, "Device not found");
         }
 
-        sensorDataRepository.deleteAllByDeviceId(deviceId);
+        deviceStateLastRepository.deleteByDeviceId(deviceId);
         deviceRepository.delete(device);
         return new CommonDtos.MessageResponse("Device deleted");
     }
@@ -370,95 +287,6 @@ public class DevicesController {
     private void requireAdmin(UserEntity user) {
         if (user == null || !"admin".equals(user.getRole())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Nedostatochno prav");
-        }
-    }
-
-    private DeviceDtos.DeviceResponse toDeviceResponse(
-            DeviceEntity device,
-            LocalDateTime now,
-            Duration onlineWindow
-    ) {
-        DeviceStateSnapshot snapshot = resolveState(device, now, onlineWindow);
-        List<PlantDeviceEntity> links = plantDeviceRepository.findAllByDevice_Id(device.getId());
-        List<Integer> plantIds = new ArrayList<>();
-        for (PlantDeviceEntity link : links) {
-            if (link.getPlant() != null) {
-                plantIds.add(link.getPlant().getId());
-            }
-        }
-
-        UserEntity owner = device.getUser();
-        Integer ownerId = owner != null ? owner.getId() : null;
-        return new DeviceDtos.DeviceResponse(
-                device.getId(),
-                device.getDeviceId(),
-                defaultString(device.getName(), deviceService.defaultName(device.getDeviceId())),
-                snapshot.isOnline(),
-                defaultDouble(device.getSoilMoisture(), deviceService.defaultSoilMoisture()),
-                defaultDouble(device.getAirTemperature(), deviceService.defaultAirTemperature()),
-                defaultDouble(device.getAirHumidity(), deviceService.defaultAirHumidity()),
-                defaultBoolean(snapshot.isWatering(), deviceService.defaultIsWatering()),
-                defaultBoolean(device.getIsLightOn(), deviceService.defaultIsLightOn()),
-                device.getLastWatering(),
-                snapshot.lastSeen(),
-                defaultDouble(device.getTargetMoisture(), deviceService.defaultTargetMoisture()),
-                defaultInteger(device.getWateringDuration(), deviceService.defaultWateringDuration()),
-                defaultInteger(device.getWateringTimeout(), deviceService.defaultWateringTimeout()),
-                device.getWateringSpeedLph(),
-                defaultInteger(device.getLightOnHour(), deviceService.defaultLightOnHour()),
-                defaultInteger(device.getLightOffHour(), deviceService.defaultLightOffHour()),
-                defaultInteger(device.getLightDuration(), deviceService.defaultLightDuration()),
-                defaultString(device.getCurrentVersion(), deviceService.defaultCurrentVersion()),
-                defaultBoolean(device.getUpdateAvailable(), deviceService.defaultUpdateAvailable()),
-                snapshot.firmwareVersion(),
-                ownerId,
-                plantIds
-        );
-    }
-
-    private DeviceStateSnapshot resolveState(DeviceEntity device, LocalDateTime now, Duration onlineWindow) {
-        String firmwareVersion = "old";
-        Boolean isWatering = device.getIsWatering();
-        LocalDateTime lastSeen = device.getLastSeen();
-        boolean isOnline = lastSeen != null && Duration.between(lastSeen, now).compareTo(onlineWindow) <= 0;
-
-        DeviceStateLastEntity state = deviceStateLastRepository.findByDeviceId(device.getDeviceId()).orElse(null);
-        if (state == null) {
-            return new DeviceStateSnapshot(firmwareVersion, isWatering, lastSeen, isOnline);
-        }
-
-        Map<String, Object> payload = parseStateJson(state.getStateJson());
-        if (payload != null) {
-            Object fwVer = payload.get("fw_ver");
-            if (fwVer != null && !fwVer.toString().isBlank()) {
-                firmwareVersion = fwVer.toString();
-            }
-            Object manualObj = payload.get("manual_watering");
-            if (manualObj instanceof Map<?, ?> manual) {
-                Object statusObj = manual.get("status");
-                if (statusObj != null) {
-                    isWatering = "running".equals(statusObj.toString());
-                }
-            }
-        }
-
-        if (state.getUpdatedAt() != null) {
-            lastSeen = state.getUpdatedAt();
-            isOnline = Duration.between(lastSeen, now).compareTo(onlineWindow) <= 0;
-        }
-
-        return new DeviceStateSnapshot(firmwareVersion, isWatering, lastSeen, isOnline);
-    }
-
-    private Map<String, Object> parseStateJson(String stateJson) {
-        if (stateJson == null) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(stateJson, new TypeReference<Map<String, Object>>() {
-            });
-        } catch (Exception ex) {
-            return null;
         }
     }
 
@@ -472,12 +300,5 @@ public class DevicesController {
 
     private Boolean defaultBoolean(Boolean value, boolean fallback) {
         return value != null ? value : fallback;
-    }
-
-    private String defaultString(String value, String fallback) {
-        return value != null ? value : fallback;
-    }
-
-    private record DeviceStateSnapshot(String firmwareVersion, Boolean isWatering, LocalDateTime lastSeen, boolean isOnline) {
     }
 }

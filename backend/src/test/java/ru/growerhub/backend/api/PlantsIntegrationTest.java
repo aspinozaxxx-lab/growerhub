@@ -1,5 +1,4 @@
-﻿
-package ru.growerhub.backend.api;
+﻿package ru.growerhub.backend.api;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
@@ -28,22 +27,27 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.db.DeviceEntity;
-import ru.growerhub.backend.db.DeviceRepository;
-import ru.growerhub.backend.db.DeviceStateLastEntity;
-import ru.growerhub.backend.db.DeviceStateLastRepository;
-import ru.growerhub.backend.db.PlantDeviceEntity;
-import ru.growerhub.backend.db.PlantDeviceRepository;
-import ru.growerhub.backend.db.PlantEntity;
-import ru.growerhub.backend.db.PlantGroupEntity;
-import ru.growerhub.backend.db.PlantGroupRepository;
-import ru.growerhub.backend.db.PlantJournalEntryEntity;
-import ru.growerhub.backend.db.PlantJournalEntryRepository;
-import ru.growerhub.backend.db.PlantJournalPhotoEntity;
-import ru.growerhub.backend.db.PlantJournalPhotoRepository;
-import ru.growerhub.backend.db.PlantJournalWateringDetailsEntity;
-import ru.growerhub.backend.db.PlantJournalWateringDetailsRepository;
-import ru.growerhub.backend.db.PlantRepository;
+import ru.growerhub.backend.device.DeviceEntity;
+import ru.growerhub.backend.device.DeviceRepository;
+import ru.growerhub.backend.journal.PlantJournalEntryEntity;
+import ru.growerhub.backend.journal.PlantJournalEntryRepository;
+import ru.growerhub.backend.journal.PlantJournalPhotoEntity;
+import ru.growerhub.backend.journal.PlantJournalPhotoRepository;
+import ru.growerhub.backend.journal.PlantJournalWateringDetailsEntity;
+import ru.growerhub.backend.journal.PlantJournalWateringDetailsRepository;
+import ru.growerhub.backend.plant.PlantEntity;
+import ru.growerhub.backend.plant.PlantGroupEntity;
+import ru.growerhub.backend.plant.PlantGroupRepository;
+import ru.growerhub.backend.plant.PlantRepository;
+import ru.growerhub.backend.pump.PumpEntity;
+import ru.growerhub.backend.pump.PumpPlantBindingEntity;
+import ru.growerhub.backend.pump.PumpPlantBindingRepository;
+import ru.growerhub.backend.pump.PumpRepository;
+import ru.growerhub.backend.sensor.SensorEntity;
+import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
+import ru.growerhub.backend.sensor.SensorPlantBindingRepository;
+import ru.growerhub.backend.sensor.SensorRepository;
+import ru.growerhub.backend.sensor.SensorType;
 import ru.growerhub.backend.user.UserEntity;
 import ru.growerhub.backend.user.UserRepository;
 
@@ -70,10 +74,16 @@ class PlantsIntegrationTest extends IntegrationTestBase {
     private DeviceRepository deviceRepository;
 
     @Autowired
-    private DeviceStateLastRepository deviceStateLastRepository;
+    private SensorRepository sensorRepository;
 
     @Autowired
-    private PlantDeviceRepository plantDeviceRepository;
+    private SensorPlantBindingRepository sensorPlantBindingRepository;
+
+    @Autowired
+    private PumpPlantBindingRepository pumpPlantBindingRepository;
+
+    @Autowired
+    private PumpRepository pumpRepository;
 
     @Autowired
     private PlantJournalEntryRepository plantJournalEntryRepository;
@@ -158,7 +168,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .patch("/api/plant-groups/99999")
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("gruppa ne najdena"));
+                .body("detail", equalTo("gruppa ne naidena"));
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -166,7 +176,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .delete("/api/plant-groups/99999")
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("gruppa ne najdena"));
+                .body("detail", equalTo("gruppa ne naidena"));
     }
 
     @Test
@@ -240,7 +250,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .get("/api/plants/" + plantId)
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("rastenie ne najdeno"));
+                .body("detail", equalTo("rastenie ne naideno"));
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -277,21 +287,34 @@ class PlantsIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void listPlantsHandlesStateJson() {
+    void listPlantsIncludesSensorsAndPumps() {
         UserEntity owner = createUser("plant-state@example.com", "user");
         String token = buildToken(owner.getId());
         PlantEntity plant = createPlant(owner, "State");
         DeviceEntity device = createDevice(owner, "dev-state-plant");
-        PlantDeviceEntity link = PlantDeviceEntity.create();
-        link.setPlant(plant);
-        link.setDevice(device);
-        plantDeviceRepository.save(link);
 
-        DeviceStateLastEntity stored = DeviceStateLastEntity.create();
-        stored.setDeviceId(device.getDeviceId());
-        stored.setStateJson("{\"manual_watering\":{\"status\":\"running\"},\"fw_ver\":\"v5\"}");
-        stored.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
-        deviceStateLastRepository.save(stored);
+        SensorEntity sensor = SensorEntity.create();
+        sensor.setDevice(device);
+        sensor.setType(SensorType.SOIL_MOISTURE);
+        sensor.setChannel(0);
+        sensor.setDetected(true);
+        sensorRepository.save(sensor);
+
+        SensorPlantBindingEntity sensorBinding = SensorPlantBindingEntity.create();
+        sensorBinding.setPlant(plant);
+        sensorBinding.setSensor(sensor);
+        sensorPlantBindingRepository.save(sensorBinding);
+
+        PumpEntity pump = PumpEntity.create();
+        pump.setDevice(device);
+        pump.setChannel(0);
+        pumpRepository.save(pump);
+
+        PumpPlantBindingEntity pumpBinding = PumpPlantBindingEntity.create();
+        pumpBinding.setPlant(plant);
+        pumpBinding.setPump(pump);
+        pumpBinding.setRateMlPerHour(2000);
+        pumpPlantBindingRepository.save(pumpBinding);
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -300,9 +323,9 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(200)
                 .body("size()", equalTo(1))
-                .body("[0].devices", hasSize(1))
-                .body("[0].devices[0].firmware_version", equalTo("v5"))
-                .body("[0].devices[0].is_watering", equalTo(true));
+                .body("[0].sensors", hasSize(1))
+                .body("[0].sensors[0].type", equalTo("SOIL_MOISTURE"))
+                .body("[0].pumps", hasSize(1));
     }
 
     @Test
@@ -316,7 +339,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .get("/api/plants/99999")
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("rastenie ne najdeno"));
+                .body("detail", equalTo("rastenie ne naideno"));
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -326,7 +349,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .patch("/api/plants/99999")
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("rastenie ne najdeno"));
+                .body("detail", equalTo("rastenie ne naideno"));
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -334,63 +357,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .delete("/api/plants/99999")
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("rastenie ne najdeno"));
-    }
-
-    @Test
-    void attachAndDetachDevices() {
-        UserEntity owner = createUser("device-owner@example.com", "user");
-        String token = buildToken(owner.getId());
-        PlantEntity plant = createPlant(owner, "Rose");
-        DeviceEntity device = createDevice(owner, "dev-attach");
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .when()
-                .post("/api/plants/" + plant.getId() + "/devices/" + device.getId())
-                .then()
-                .statusCode(200)
-                .body("devices", hasSize(1));
-
-        List<PlantDeviceEntity> links = plantDeviceRepository.findAllByPlant_Id(plant.getId());
-        Assertions.assertEquals(1, links.size());
-
-        Response detach = given()
-                .header("Authorization", "Bearer " + token)
-                .when()
-                .delete("/api/plants/" + plant.getId() + "/devices/" + device.getId())
-                .then()
-                .statusCode(204)
-                .extract()
-                .response();
-        Assertions.assertEquals("", detach.asString());
-
-        UserEntity other = createUser("device-other@example.com", "user");
-        DeviceEntity otherDevice = createDevice(other, "dev-other");
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .when()
-                .post("/api/plants/" + plant.getId() + "/devices/" + otherDevice.getId())
-                .then()
-                .statusCode(404)
-                .body("detail", equalTo("ustrojstvo ne najdeno"));
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .when()
-                .delete("/api/plants/" + plant.getId() + "/devices/99999")
-                .then()
-                .statusCode(404)
-                .body("detail", equalTo("ustrojstvo ne najdeno"));
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .when()
-                .post("/api/plants/99999/devices/" + device.getId())
-                .then()
-                .statusCode(404)
-                .body("detail", equalTo("rastenie ne najdeno"));
+                .body("detail", equalTo("rastenie ne naideno"));
     }
 
     @Test
@@ -445,8 +412,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .when()
                 .delete("/api/plants/" + plant.getId() + "/journal/" + entryId)
                 .then()
-                .statusCode(200)
-                .body("message", equalTo("entry deleted"));
+                .statusCode(204);
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -454,7 +420,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .delete("/api/plants/" + plant.getId() + "/journal/" + entryId)
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("zapis' ne najdena"));
+                .body("detail", equalTo("zapis' ne naidena"));
     }
 
     @Test
@@ -504,7 +470,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         details.setWaterVolumeL(1.0);
         details.setDurationS(675);
         details.setPh(6.3);
-        details.setFertilizersPerLiter("G8M12B16 капель");
+        details.setFertilizersPerLiter("G8M12B16 kapel");
         plantJournalWateringDetailsRepository.save(details);
 
         given()
@@ -514,7 +480,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(200)
                 .body("size()", equalTo(1))
-                .body("[0].watering_details.fertilizers_per_liter", equalTo("G8M12B16 капель"));
+                .body("[0].watering_details.fertilizers_per_liter", equalTo("G8M12B16 kapel"));
     }
 
     @Test
@@ -569,11 +535,11 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         String body = response.asString();
         Assertions.assertTrue(body.startsWith("# "));
         Assertions.assertFalse(body.trim().startsWith("{"));
-        Assertions.assertTrue(body.contains("Название: ExportPlant"));
-        Assertions.assertTrue(body.contains("Дата посадки: 2025-01-01"));
+        Assertions.assertTrue(body.contains("Nazvanie: ExportPlant"));
+        Assertions.assertTrue(body.contains("Data posadki: 2025-01-01"));
         Assertions.assertTrue(body.contains("1,5"));
         Assertions.assertTrue(body.contains("udobreniya"));
-        Assertions.assertTrue(body.contains("Полив"));
+        Assertions.assertTrue(body.contains("Poliv"));
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -632,7 +598,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .get("/api/journal/photos/" + photo.getId())
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("foto ne najdeno ili nedostupno"));
+                .body("detail", equalTo("foto ne naideno ili nedostupno"));
 
         PlantJournalPhotoEntity empty = PlantJournalPhotoEntity.create();
         empty.setJournalEntry(entry);
@@ -678,7 +644,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .get("/api/journal/photos/" + photo.getId())
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("foto ne najdeno ili nedostupno"));
+                .body("detail", equalTo("foto ne naideno ili nedostupno"));
     }
 
     private UserEntity createUser(String email, String role) {
@@ -726,17 +692,21 @@ class PlantsIntegrationTest extends IntegrationTestBase {
     }
 
     private void clearDatabase() {
+        jdbcTemplate.update("DELETE FROM plant_metric_samples");
+        jdbcTemplate.update("DELETE FROM sensor_plant_bindings");
+        jdbcTemplate.update("DELETE FROM sensor_readings");
+        jdbcTemplate.update("DELETE FROM sensors");
+        jdbcTemplate.update("DELETE FROM pump_plant_bindings");
+        jdbcTemplate.update("DELETE FROM pumps");
         jdbcTemplate.update("DELETE FROM plant_journal_watering_details");
         jdbcTemplate.update("DELETE FROM plant_journal_entries");
         jdbcTemplate.update("DELETE FROM plant_journal_photos");
-        jdbcTemplate.update("DELETE FROM plant_devices");
         jdbcTemplate.update("DELETE FROM plants");
         jdbcTemplate.update("DELETE FROM plant_groups");
-        jdbcTemplate.update("DELETE FROM device_state_last");
-        jdbcTemplate.update("DELETE FROM sensor_data");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM user_auth_identities");
         jdbcTemplate.update("DELETE FROM user_refresh_tokens");
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+

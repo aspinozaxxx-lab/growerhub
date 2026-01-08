@@ -1,25 +1,61 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+﻿import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 const SensorStatsContext = createContext(undefined);
 
 function SensorStatsProvider({ children }) {
   const [state, setState] = useState({
     isOpen: false,
-    deviceId: null,
-    deviceName: null,
+    mode: null,
+    sensorId: null,
+    plantId: null,
     metric: null,
+    title: null,
+    subtitle: null,
   });
 
-  const openSensorStats = useCallback(({ deviceId, metric, deviceName }) => {
-    if (!deviceId || !metric) {
+  const openSensorStats = useCallback((payload) => {
+    if (!payload) {
       return;
     }
-    setState({
-      isOpen: true,
-      deviceId,
-      deviceName: deviceName || null,
+    const {
+      mode,
+      sensorId,
+      plantId,
       metric,
-    });
+      title,
+      subtitle,
+    } = payload;
+
+    if (mode === 'sensor') {
+      if (!sensorId) {
+        return;
+      }
+      setState({
+        isOpen: true,
+        mode,
+        sensorId,
+        plantId: null,
+        metric: metric || null,
+        title: title || null,
+        subtitle: subtitle || null,
+      });
+      return;
+    }
+
+    if (mode === 'plant') {
+      if (!plantId || !metric) {
+        return;
+      }
+      setState({
+        isOpen: true,
+        mode,
+        sensorId: null,
+        plantId,
+        metric,
+        title: title || null,
+        subtitle: subtitle || null,
+      });
+    }
   }, []);
 
   const closeSensorStats = useCallback(() => {

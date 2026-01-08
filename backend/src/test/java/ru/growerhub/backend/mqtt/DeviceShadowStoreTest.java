@@ -9,10 +9,9 @@ import java.time.ZoneOffset;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import ru.growerhub.backend.device.DeviceRepository;
 import ru.growerhub.backend.device.DeviceShadowStore;
-import ru.growerhub.backend.db.DeviceRepository;
-import ru.growerhub.backend.db.DeviceStateLastRepository;
-import ru.growerhub.backend.db.PlantDeviceRepository;
+import ru.growerhub.backend.device.DeviceStateLastRepository;
 import ru.growerhub.backend.mqtt.model.DeviceState;
 import ru.growerhub.backend.mqtt.model.ManualWateringState;
 
@@ -26,14 +25,12 @@ class DeviceShadowStoreTest {
         ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
         DeviceRepository deviceRepository = Mockito.mock(DeviceRepository.class);
         DeviceStateLastRepository stateRepository = Mockito.mock(DeviceStateLastRepository.class);
-        PlantDeviceRepository plantDeviceRepository = Mockito.mock(PlantDeviceRepository.class);
         DeviceShadowStore store = new DeviceShadowStore(
                 settings,
                 mapper,
                 clock,
                 deviceRepository,
-                stateRepository,
-                plantDeviceRepository
+                stateRepository
         );
 
         ManualWateringState manual = new ManualWateringState("running", 20, null, null, "corr");

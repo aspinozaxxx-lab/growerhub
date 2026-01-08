@@ -1,21 +1,94 @@
-﻿.modal__subtitle {
+﻿.edit-device__subtitle {
   color: #8aa3c6;
   font-size: 13px;
+  margin-bottom: 12px;
 }
 
-.modal__body {
+.edit-device__error {
+  color: #ffb3b3;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.edit-device__section {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-bottom: 16px;
 }
 
-.modal__state {
-  color: var(--text-2);
+.edit-device__section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c7d7ef;
 }
 
-.modal__error {
-  color: #ffb3b3;
-  font-size: 13px;
+.edit-device__item {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.edit-device__item-title {
+  font-weight: 600;
+  color: #eef3fb;
+}
+
+.edit-device__bindings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.edit-device__bindings--pump {
+  flex-direction: column;
+}
+
+.edit-device__pill {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #e5efff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-device__pill.is-selected {
+  background: rgba(107, 219, 168, 0.2);
+  border-color: rgba(107, 219, 168, 0.6);
+  color: #d9ffe9;
+}
+
+.edit-device__pill:focus-visible {
+  outline: 2px solid rgba(107, 219, 168, 0.6);
+  outline-offset: 2px;
+}
+
+.edit-device__pump-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-device__rate {
+  width: 90px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  color: #e5efff;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.edit-device__empty {
+  color: #8aa3c6;
+  font-size: 12px;
 }
 
 .modal__actions {

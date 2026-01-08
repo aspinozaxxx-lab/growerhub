@@ -1,102 +1,170 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
-import { fetchDeviceSettings } from '../../api/devices';
+import { updateSensorBindings } from '../../api/sensors';
+import { updatePumpBindings } from '../../api/pumps';
 import { isSessionExpiredError } from '../../api/client';
-import FormField from '../ui/FormField';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import './EditDeviceModal.css';
+
+const SENSOR_TYPE_LABELS = {
+  SOIL_MOISTURE: 'Влажность почвы',
+  AIR_TEMPERATURE: 'Температура воздуха',
+  AIR_HUMIDITY: 'Влажность воздуха',
+};
+
+const DEFAULT_PUMP_RATE = 2000;
+
+function buildSensorTitle(sensor) {
+  const label = sensor?.label;
+  const type = sensor?.type;
+  const channel = sensor?.channel;
+  const base = label || SENSOR_TYPE_LABELS[type] || type || 'Датчик';
+  return channel !== undefined && channel !== null ? `${base} · канал ${channel}` : base;
+}
+
+function buildPumpTitle(pump) {
+  const label = pump?.label;
+  const channel = pump?.channel;
+  const base = label || 'Насос';
+  return channel !== undefined && channel !== null ? `${base} · канал ${channel}` : base;
+}
 
 function EditDeviceModal({
   device,
   plants,
   onClose,
-  onSave,
-  isSaving,
-  error,
+  onSaved,
   token,
 }) {
-  const [wateringSpeed, setWateringSpeed] = useState('');
-  const [plantCsv, setPlantCsv] = useState('');
-  const [settings, setSettings] = useState(null);
-  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
-  const [settingsError, setSettingsError] = useState(null);
+  const [sensorBindings, setSensorBindings] = useState({});
+  const [pumpBindings, setPumpBindings] = useState({});
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const sensors = Array.isArray(device?.sensors) ? device.sensors : [];
+  const pumps = Array.isArray(device?.pumps) ? device.pumps : [];
+
+  const sortedPlants = useMemo(() => {
+    const list = Array.isArray(plants) ? plants.slice() : [];
+    return list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }, [plants]);
 
   useEffect(() => {
     if (!device) {
-      setSettings(null);
+      setSensorBindings({});
+      setPumpBindings({});
       return;
     }
-    let cancelled = false;
-    const load = async () => {
-      setIsLoadingSettings(true);
-      setSettingsError(null);
-      try {
-        const data = await fetchDeviceSettings(device.device_id, token);
-        if (cancelled) return;
-        setSettings(data);
-        if (data?.watering_speed_lph !== undefined && data?.watering_speed_lph !== null) {
-          setWateringSpeed(String(data.watering_speed_lph));
-        } else {
-          setWateringSpeed('');
-        }
-        if (device?.plant_ids && Array.isArray(device.plant_ids)) {
-          setPlantCsv(device.plant_ids.join(','));
-        } else {
-          setPlantCsv('');
-        }
-      } catch (err) {
-        if (!cancelled) {
-          if (isSessionExpiredError(err)) return;
-          setSettingsError(err?.message || 'Ne udalos zagruzit nastroiki');
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingSettings(false);
-        }
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [device, token]);
-
-  const plantMap = useMemo(() => {
-    const map = new Map();
-    plants.forEach((plant) => map.set(plant.id, plant.name));
-    return map;
-  }, [plants]);
-
-  const handleSubmit = (evt) => {
-    evt.preventDefault();
-    const parsedSpeed = wateringSpeed === '' ? null : Number(wateringSpeed);
-    if (parsedSpeed !== null && (Number.isNaN(parsedSpeed) || parsedSpeed <= 0)) {
-      return onSave({ error: 'watering_speed_lph must be > 0' });
-    }
-
-    const csv = plantCsv.trim();
-    const ids = csv === '' ? [] : csv.split(',').map((s) => s.trim()).filter(Boolean);
-    const parsedIds = [];
-    for (const idStr of ids) {
-      const num = Number(idStr);
-      if (!Number.isInteger(num) || num <= 0) {
-        return onSave({ error: 'plant_ids CSV invalid' });
-      }
-      parsedIds.push(num);
-    }
-
-    const fullSettings = settings ? { ...settings, watering_speed_lph: parsedSpeed } : { watering_speed_lph: parsedSpeed };
-
-    onSave({
-      watering_speed_lph: parsedSpeed,
-      plant_ids: parsedIds,
-      fullSettings,
+    const nextSensors = {};
+    sensors.forEach((sensor) => {
+      const bound = Array.isArray(sensor.bound_plants) ? sensor.bound_plants.map((p) => p.id) : [];
+      nextSensors[sensor.id] = bound;
     });
-  };
+    const nextPumps = {};
+    pumps.forEach((pump) => {
+      const bound = {};
+      if (Array.isArray(pump.bound_plants)) {
+        pump.bound_plants.forEach((plant) => {
+          bound[plant.id] = plant.rate_ml_per_hour ?? DEFAULT_PUMP_RATE;
+        });
+      }
+      nextPumps[pump.id] = bound;
+    });
+    setSensorBindings(nextSensors);
+    setPumpBindings(nextPumps);
+    setError(null);
+  }, [device, pumps, sensors]);
 
   if (!device) {
     return null;
   }
+
+  const toggleSensorPlant = (sensorId, plantId) => {
+    setSensorBindings((prev) => {
+      const current = prev[sensorId] || [];
+      const exists = current.includes(plantId);
+      const next = exists ? current.filter((id) => id !== plantId) : [...current, plantId];
+      return {
+        ...prev,
+        [sensorId]: next,
+      };
+    });
+  };
+
+  const togglePumpPlant = (pumpId, plantId) => {
+    setPumpBindings((prev) => {
+      const current = prev[pumpId] || {};
+      const next = { ...current };
+      if (next[plantId] !== undefined) {
+        delete next[plantId];
+      } else {
+        next[plantId] = DEFAULT_PUMP_RATE;
+      }
+      return {
+        ...prev,
+        [pumpId]: next,
+      };
+    });
+  };
+
+  const updatePumpRate = (pumpId, plantId, value) => {
+    const parsed = Number(value);
+    setPumpBindings((prev) => {
+      const current = prev[pumpId] || {};
+      return {
+        ...prev,
+        [pumpId]: {
+          ...current,
+          [plantId]: Number.isNaN(parsed) ? '' : parsed,
+        },
+      };
+    });
+  };
+
+  const validatePumpRates = () => {
+    for (const pump of pumps) {
+      const bound = pumpBindings[pump.id] || {};
+      for (const [plantId, rate] of Object.entries(bound)) {
+        const parsed = Number(rate);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+          return `rate_ml_per_hour dolzhen byt' > 0 (plant ${plantId})`;
+        }
+      }
+    }
+    return null;
+  };
+
+  const handleSave = async () => {
+    setError(null);
+    const rateError = validatePumpRates();
+    if (rateError) {
+      setError(rateError);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await Promise.all(
+        sensors.map((sensor) => updateSensorBindings(sensor.id, sensorBindings[sensor.id] || [], token)),
+      );
+      await Promise.all(
+        pumps.map((pump) => {
+          const bound = pumpBindings[pump.id] || {};
+          const items = Object.entries(bound).map(([plantId, rate]) => ({
+            plant_id: Number(plantId),
+            rate_ml_per_hour: Number(rate),
+          }));
+          return updatePumpBindings(pump.id, items, token);
+        }),
+      );
+      onSaved?.();
+    } catch (err) {
+      if (isSessionExpiredError(err)) return;
+      setError(err?.message || 'Ne udalos sohranit privyazki');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const footer = (
     <div className="modal__actions">
@@ -104,10 +172,10 @@ function EditDeviceModal({
         Отмена
       </Button>
       <Button
-        type="submit"
-        form="edit-device-form"
+        type="button"
         variant="primary"
-        disabled={isSaving || isLoadingSettings || !settings}
+        onClick={handleSave}
+        disabled={isSaving}
       >
         {isSaving ? 'Сохраняем...' : 'Сохранить'}
       </Button>
@@ -118,50 +186,78 @@ function EditDeviceModal({
     <Modal
       isOpen={Boolean(device)}
       onClose={onClose}
-      title="Настройки устройства"
+      title="Привязки датчиков и насосов"
       closeLabel="Закрыть"
       disableOverlayClose
       footer={footer}
-      size="sm"
+      size="lg"
     >
-      <form id="edit-device-form" className="modal__body" onSubmit={handleSubmit}>
-        <div className="modal__subtitle">{device.device_id}</div>
-        {isLoadingSettings && <div className="modal__state">Загружаем настройки...</div>}
-        {settingsError && <div className="modal__error">{settingsError}</div>}
-        <FormField label="Скорость полива (л/ч)" htmlFor="watering-speed">
-          <input
-            id="watering-speed"
-            type="number"
-            step="0.1"
-            min="0"
-            value={wateringSpeed}
-            onChange={(e) => {
-              setWateringSpeed(e.target.value);
-              setSettings((prev) => (prev ? { ...prev, watering_speed_lph: e.target.value === '' ? null : Number(e.target.value) } : prev));
-            }}
-            placeholder="Например, 1.5"
-            disabled={isLoadingSettings}
-          />
-        </FormField>
+      <div className="edit-device__subtitle">{device.name || device.device_id}</div>
+      {error && <div className="edit-device__error">{error}</div>}
 
-        <FormField
-          label="plant_ids (CSV)"
-          htmlFor="plant-csv"
-          hint={`Доступные id: ${plants.map((p) => `${p.id} (${plantMap.get(p.id) || ''})`).join(', ')}`}
-        >
-          <input
-            id="plant-csv"
-            type="text"
-            value={plantCsv}
-            onChange={(e) => setPlantCsv(e.target.value)}
-            placeholder="1,2,3"
-            disabled={isLoadingSettings}
-          />
-        </FormField>
+      <div className="edit-device__section">
+        <div className="edit-device__section-title">Датчики</div>
+        {sensors.length === 0 && <div className="edit-device__empty">Нет датчиков</div>}
+        {sensors.map((sensor) => (
+          <div key={sensor.id} className="edit-device__item">
+            <div className="edit-device__item-title">{buildSensorTitle(sensor)}</div>
+            <div className="edit-device__bindings">
+              {sortedPlants.length === 0 && <div className="edit-device__empty">Нет растений</div>}
+              {sortedPlants.map((plant) => {
+                const selected = (sensorBindings[sensor.id] || []).includes(plant.id);
+                return (
+                  <button
+                    key={plant.id}
+                    type="button"
+                    className={`edit-device__pill ${selected ? 'is-selected' : ''}`}
+                    onClick={() => toggleSensorPlant(sensor.id, plant.id)}
+                  >
+                    {plant.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
 
-        {error && <div className="modal__error">{error}</div>}
-        {!error && settingsError && <div className="modal__error">{settingsError}</div>}
-      </form>
+      <div className="edit-device__section">
+        <div className="edit-device__section-title">Насосы</div>
+        {pumps.length === 0 && <div className="edit-device__empty">Нет насосов</div>}
+        {pumps.map((pump) => (
+          <div key={pump.id} className="edit-device__item">
+            <div className="edit-device__item-title">{buildPumpTitle(pump)}</div>
+            <div className="edit-device__bindings edit-device__bindings--pump">
+              {sortedPlants.length === 0 && <div className="edit-device__empty">Нет растений</div>}
+              {sortedPlants.map((plant) => {
+                const selected = pumpBindings[pump.id] && pumpBindings[pump.id][plant.id] !== undefined;
+                return (
+                  <div key={plant.id} className="edit-device__pump-row">
+                    <button
+                      type="button"
+                      className={`edit-device__pill ${selected ? 'is-selected' : ''}`}
+                      onClick={() => togglePumpPlant(pump.id, plant.id)}
+                    >
+                      {plant.name}
+                    </button>
+                    {selected && (
+                      <input
+                        type="number"
+                        min="1"
+                        step="50"
+                        className="edit-device__rate"
+                        value={pumpBindings[pump.id][plant.id]}
+                        onChange={(e) => updatePumpRate(pump.id, plant.id, e.target.value)}
+                        aria-label="rate_ml_per_hour"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
     </Modal>
   );
 }

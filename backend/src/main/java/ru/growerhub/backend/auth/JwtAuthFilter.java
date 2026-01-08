@@ -73,12 +73,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if ("GET".equalsIgnoreCase(method) && "/api/firmware/versions".equals(path)) {
             return true;
         }
-        if ("GET".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/sensor-history", path)) {
-            return true;
-        }
-        if ("GET".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/watering-logs", path)) {
-            return true;
-        }
         if ("GET".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/settings", path)) {
             return true;
         }
@@ -178,3 +172,4 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         response.flushBuffer();
     }
 }
+

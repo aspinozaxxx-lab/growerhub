@@ -19,17 +19,22 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.db.DeviceEntity;
-import ru.growerhub.backend.db.DeviceRepository;
-import ru.growerhub.backend.db.DeviceStateLastEntity;
-import ru.growerhub.backend.db.DeviceStateLastRepository;
-import ru.growerhub.backend.db.MqttAckEntity;
-import ru.growerhub.backend.db.MqttAckRepository;
-import ru.growerhub.backend.db.SensorDataEntity;
-import ru.growerhub.backend.db.SensorDataRepository;
-import ru.growerhub.backend.device.DeviceService;
+import ru.growerhub.backend.device.DeviceEntity;
+import ru.growerhub.backend.device.DeviceIngestionService;
+import ru.growerhub.backend.device.DeviceRepository;
 import ru.growerhub.backend.device.DeviceShadowStore;
+import ru.growerhub.backend.device.DeviceStateLastEntity;
+import ru.growerhub.backend.device.DeviceStateLastRepository;
 import ru.growerhub.backend.mqtt.model.DeviceState;
+import ru.growerhub.backend.plant.PlantEntity;
+import ru.growerhub.backend.plant.PlantMetricSampleRepository;
+import ru.growerhub.backend.plant.PlantRepository;
+import ru.growerhub.backend.sensor.SensorEntity;
+import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
+import ru.growerhub.backend.sensor.SensorPlantBindingRepository;
+import ru.growerhub.backend.sensor.SensorReadingRepository;
+import ru.growerhub.backend.sensor.SensorRepository;
+import ru.growerhub.backend.sensor.SensorType;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -61,10 +66,22 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
     private DeviceShadowStore shadowStore;
 
     @Autowired
-    private SensorDataRepository sensorDataRepository;
+    private SensorReadingRepository sensorReadingRepository;
+
+    @Autowired
+    private SensorRepository sensorRepository;
+
+    @Autowired
+    private SensorPlantBindingRepository sensorPlantBindingRepository;
+
+    @Autowired
+    private PlantRepository plantRepository;
+
+    @Autowired
+    private PlantMetricSampleRepository plantMetricSampleRepository;
 
     @SpyBean
-    private DeviceService deviceService;
+    private DeviceIngestionService deviceIngestionService;
 
     @BeforeEach
     void setUp() {
@@ -127,7 +144,7 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
                 """;
         injectorSubscriber.injectState("gh/dev/" + deviceId + "/state", stateJson.getBytes(StandardCharsets.UTF_8));
 
-        verify(deviceService).handleState(eq(deviceId), any(DeviceState.class), any(LocalDateTime.class));
+        verify(deviceIngestionService).handleState(eq(deviceId), any(DeviceState.class), any(LocalDateTime.class));
 
         DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
         Assertions.assertNotNull(device);
@@ -145,30 +162,63 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void persistsSensorHistoryFromStateMessage() {
+    void persistsSensorAndPlantHistoryFromStateMessage() {
         String deviceId = "mqtt-sensor";
+        DeviceEntity device = DeviceEntity.create();
+        device.setDeviceId(deviceId);
+        deviceRepository.save(device);
+
+        PlantEntity plant = PlantEntity.create();
+        plant.setName("Sensor Plant");
+        plant.setPlantedAt(LocalDateTime.now(ZoneOffset.UTC));
+        plantRepository.save(plant);
+
+        SensorEntity airTemp = createSensor(device, SensorType.AIR_TEMPERATURE, 0);
+        SensorEntity airHum = createSensor(device, SensorType.AIR_HUMIDITY, 0);
+        SensorEntity soil0 = createSensor(device, SensorType.SOIL_MOISTURE, 0);
+
+        bindSensorToPlant(airTemp, plant);
+        bindSensorToPlant(airHum, plant);
+        bindSensorToPlant(soil0, plant);
+
         String stateJson = """
                 {"air":{"available":true,"temperature":22.0,"humidity":55.5},"soil":{"ports":[{"port":0,"detected":true,"percent":12},{"port":1,"detected":false}]},"pump":{"status":"on"},"light":{"status":"off"}}
                 """;
         injectorSubscriber.injectState("gh/dev/" + deviceId + "/state", stateJson.getBytes(StandardCharsets.UTF_8));
 
-        SensorDataEntity record = sensorDataRepository.findAll().stream().findFirst().orElse(null);
-        Assertions.assertNotNull(record);
-        Assertions.assertEquals(deviceId, record.getDeviceId());
-        Assertions.assertEquals(12.0, record.getSoilMoisture1());
-        Assertions.assertNull(record.getSoilMoisture2());
-        Assertions.assertEquals(22.0, record.getAirTemperature());
-        Assertions.assertEquals(55.5, record.getAirHumidity());
-        Assertions.assertEquals(true, record.getPumpRelayOn());
-        Assertions.assertEquals(false, record.getLightRelayOn());
-        Assertions.assertNotNull(record.getTimestamp());
+        Assertions.assertEquals(3, sensorReadingRepository.count());
+        Assertions.assertTrue(plantMetricSampleRepository.count() >= 3);
+    }
+
+    private SensorEntity createSensor(DeviceEntity device, SensorType type, int channel) {
+        SensorEntity sensor = SensorEntity.create();
+        sensor.setDevice(device);
+        sensor.setType(type);
+        sensor.setChannel(channel);
+        sensor.setDetected(true);
+        sensor.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        sensor.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        return sensorRepository.save(sensor);
+    }
+
+    private void bindSensorToPlant(SensorEntity sensor, PlantEntity plant) {
+        SensorPlantBindingEntity binding = SensorPlantBindingEntity.create();
+        binding.setSensor(sensor);
+        binding.setPlant(plant);
+        sensorPlantBindingRepository.save(binding);
     }
 
     private void clearDatabase() {
+        jdbcTemplate.update("DELETE FROM plant_metric_samples");
+        jdbcTemplate.update("DELETE FROM sensor_plant_bindings");
+        jdbcTemplate.update("DELETE FROM sensor_readings");
+        jdbcTemplate.update("DELETE FROM sensors");
+        jdbcTemplate.update("DELETE FROM pump_plant_bindings");
         jdbcTemplate.update("DELETE FROM mqtt_ack");
         jdbcTemplate.update("DELETE FROM device_state_last");
-        jdbcTemplate.update("DELETE FROM sensor_data");
+        jdbcTemplate.update("DELETE FROM pumps");
         jdbcTemplate.update("DELETE FROM devices");
+        jdbcTemplate.update("DELETE FROM plants");
     }
 
     @TestConfiguration

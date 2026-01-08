@@ -37,8 +37,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/upload-firmware").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/device/*/trigger-update").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/firmware/versions").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/device/*/sensor-history").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/device/*/watering-logs").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/devices").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/device/*").permitAll()
                         .requestMatchers("/api/**").authenticated()
@@ -49,3 +47,4 @@ public class SecurityConfig {
         return http.build();
     }
 }
+

@@ -9,13 +9,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.db.DeviceEntity;
-import ru.growerhub.backend.db.DeviceRepository;
-import ru.growerhub.backend.db.DeviceStateLastEntity;
-import ru.growerhub.backend.db.DeviceStateLastRepository;
-import ru.growerhub.backend.db.MqttAckEntity;
-import ru.growerhub.backend.db.MqttAckRepository;
-import ru.growerhub.backend.device.DeviceService;
+import ru.growerhub.backend.device.DeviceEntity;
+import ru.growerhub.backend.device.DeviceIngestionService;
+import ru.growerhub.backend.device.DeviceRepository;
+import ru.growerhub.backend.device.DeviceStateLastEntity;
+import ru.growerhub.backend.device.DeviceStateLastRepository;
 import ru.growerhub.backend.mqtt.model.DeviceState;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
 
@@ -30,7 +28,7 @@ public class MqttMessageHandler {
     private final DeviceStateLastRepository deviceStateLastRepository;
     private final MqttAckRepository mqttAckRepository;
     private final DeviceRepository deviceRepository;
-    private final DeviceService deviceService;
+    private final DeviceIngestionService deviceIngestionService;
     private final AckSettings ackSettings;
     private final DebugSettings debugSettings;
     private final Clock clock;
@@ -41,7 +39,7 @@ public class MqttMessageHandler {
             DeviceStateLastRepository deviceStateLastRepository,
             MqttAckRepository mqttAckRepository,
             DeviceRepository deviceRepository,
-            DeviceService deviceService,
+            DeviceIngestionService deviceIngestionService,
             AckSettings ackSettings,
             DebugSettings debugSettings,
             Clock clock
@@ -51,7 +49,7 @@ public class MqttMessageHandler {
         this.deviceStateLastRepository = deviceStateLastRepository;
         this.mqttAckRepository = mqttAckRepository;
         this.deviceRepository = deviceRepository;
-        this.deviceService = deviceService;
+        this.deviceIngestionService = deviceIngestionService;
         this.ackSettings = ackSettings;
         this.debugSettings = debugSettings;
         this.clock = clock;
@@ -74,7 +72,7 @@ public class MqttMessageHandler {
             return;
         }
         LocalDateTime now = LocalDateTime.now(clock);
-        deviceService.handleState(deviceId, state, now);
+        deviceIngestionService.handleState(deviceId, state, now);
         logger.info("MQTT state updated for {}", deviceId);
     }
 

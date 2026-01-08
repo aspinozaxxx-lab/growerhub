@@ -6,6 +6,12 @@
 - /api/devices/my i /api/plants teper' berut state iz shadow, a ne iz devices polya.
 - Manual watering kontroli perevedeny na DeviceService, dobavleny debug wrappery.
 - Integracionnye testy obnovleny: MQTT/HTTP status i cold start dlya air_temperature.
+- Vnedrena novaya schema sensors/pumps s M:N bindings, sensor_readings i plant_metric_samples; udaleny sensor_data i plant_devices.
+- Perestrukturirovany device/sensor/pump/plant/journal domeny i API: novye DTO i endpoints dlya bindings i history.
+- Manual'nyj poliv pereveden v pump domen, zhurnaly i metrika poliva zapisivayutsya po bindings.
+- Frontend peredelan pod sensors/pumps, novye grafiki plant/sensor history i UI privyazok.
+- Firmware API vosstanovlen pod /api/device/*/firmware i /api/upload-firmware; dobavlen storage dlya .bin.
+- Integracionnye testy obnovleny pod novye domennye servisy i MQTT ingest.
 
 ## 2025-12-31
 - MQTT packet size 1024, QoS0 state i diagnostika publish rezultatov.

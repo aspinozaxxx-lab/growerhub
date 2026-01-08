@@ -113,3 +113,14 @@ export async function deletePlantGroup(token, groupId) {
   }
   return response.json();
 }
+
+// Translitem: istoriya metrik rastenija.
+export async function fetchPlantHistory(plantId, hours, metrics, token) {
+  void token;
+  const metricsParam = metrics ? `&metrics=${encodeURIComponent(metrics)}` : '';
+  const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}/history?hours=${hours}${metricsParam}`);
+  if (!response.ok) {
+    throw new Error(`Failed to load plant history (${response.status})`);
+  }
+  return response.json();
+}

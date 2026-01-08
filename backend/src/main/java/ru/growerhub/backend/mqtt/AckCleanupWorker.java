@@ -1,4 +1,4 @@
-package ru.growerhub.backend.mqtt;
+﻿package ru.growerhub.backend.mqtt;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.db.MqttAckRepository;
 
 @Component
 public class AckCleanupWorker {

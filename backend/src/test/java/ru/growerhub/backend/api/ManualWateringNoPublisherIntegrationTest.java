@@ -21,12 +21,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.db.DeviceEntity;
-import ru.growerhub.backend.db.DeviceRepository;
-import ru.growerhub.backend.db.PlantDeviceEntity;
-import ru.growerhub.backend.db.PlantDeviceRepository;
-import ru.growerhub.backend.db.PlantEntity;
-import ru.growerhub.backend.db.PlantRepository;
+import ru.growerhub.backend.device.DeviceEntity;
+import ru.growerhub.backend.device.DeviceRepository;
+import ru.growerhub.backend.plant.PlantEntity;
+import ru.growerhub.backend.plant.PlantRepository;
+import ru.growerhub.backend.pump.PumpEntity;
+import ru.growerhub.backend.pump.PumpPlantBindingEntity;
+import ru.growerhub.backend.pump.PumpPlantBindingRepository;
+import ru.growerhub.backend.pump.PumpService;
 import ru.growerhub.backend.user.UserEntity;
 import ru.growerhub.backend.user.UserRepository;
 
@@ -53,7 +55,10 @@ class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
     private PlantRepository plantRepository;
 
     @Autowired
-    private PlantDeviceRepository plantDeviceRepository;
+    private PumpService pumpService;
+
+    @Autowired
+    private PumpPlantBindingRepository pumpPlantBindingRepository;
 
     @BeforeEach
     void setUp() {
@@ -65,13 +70,13 @@ class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
     @Test
     void startReturns503WhenPublisherMissing() {
         UserEntity user = createUser("owner-no-pub@example.com", "user");
-        DeviceEntity device = createDevice("mw-no-pub", user, null);
+        DeviceEntity device = createDevice("mw-no-pub", user);
+        PumpEntity pump = pumpService.ensureDefaultPump(device);
         PlantEntity plant = createPlant(user, "Mint");
-        linkPlant(plant, device);
+        bindPump(pump, plant, 2000);
         String token = buildToken(user.getId());
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", device.getDeviceId());
         payload.put("duration_s", 10);
 
         given()
@@ -79,7 +84,7 @@ class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
                 .contentType("application/json")
                 .body(payload)
                 .when()
-                .post("/api/manual-watering/start")
+                .post("/api/pumps/" + pump.getId() + "/watering/start")
                 .then()
                 .statusCode(503)
                 .body("detail", equalTo("MQTT publisher unavailable"));
@@ -119,12 +124,11 @@ class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
         return userRepository.save(user);
     }
 
-    private DeviceEntity createDevice(String deviceId, UserEntity owner, Double wateringSpeedLph) {
+    private DeviceEntity createDevice(String deviceId, UserEntity owner) {
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId(deviceId);
         device.setName("Device " + deviceId);
         device.setUser(owner);
-        device.setWateringSpeedLph(wateringSpeedLph);
         return deviceRepository.save(device);
     }
 
@@ -136,11 +140,12 @@ class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
         return plantRepository.save(plant);
     }
 
-    private void linkPlant(PlantEntity plant, DeviceEntity device) {
-        PlantDeviceEntity link = PlantDeviceEntity.create();
+    private void bindPump(PumpEntity pump, PlantEntity plant, int rate) {
+        PumpPlantBindingEntity link = PumpPlantBindingEntity.create();
+        link.setPump(pump);
         link.setPlant(plant);
-        link.setDevice(device);
-        plantDeviceRepository.save(link);
+        link.setRateMlPerHour(rate);
+        pumpPlantBindingRepository.save(link);
     }
 
     private String buildToken(int userId) {
@@ -154,14 +159,15 @@ class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
     }
 
     private void clearDatabase() {
+        jdbcTemplate.update("DELETE FROM plant_metric_samples");
+        jdbcTemplate.update("DELETE FROM pump_plant_bindings");
+        jdbcTemplate.update("DELETE FROM pumps");
         jdbcTemplate.update("DELETE FROM plant_journal_watering_details");
         jdbcTemplate.update("DELETE FROM plant_journal_entries");
         jdbcTemplate.update("DELETE FROM plant_journal_photos");
-        jdbcTemplate.update("DELETE FROM plant_devices");
         jdbcTemplate.update("DELETE FROM plants");
-        jdbcTemplate.update("DELETE FROM plant_groups");
         jdbcTemplate.update("DELETE FROM device_state_last");
-        jdbcTemplate.update("DELETE FROM sensor_data");
+        jdbcTemplate.update("DELETE FROM sensors");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM user_auth_identities");
         jdbcTemplate.update("DELETE FROM user_refresh_tokens");

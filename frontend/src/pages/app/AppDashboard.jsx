@@ -4,7 +4,7 @@ import { useAuth } from "../../features/auth/AuthContext";
 import { useDashboardData } from "../../features/dashboard/useDashboardData";
 import { useSensorStatsContext } from "../../features/sensors/SensorStatsContext";
 import { useWateringSidebar } from "../../features/watering/WateringSidebarContext";
-import { getManualWateringStatus } from "../../api/manualWatering";
+import { fetchPumpWateringStatus } from "../../api/pumps";
 import SensorPill from "../../components/ui/sensor-pill/SensorPill";
 import Button from "../../components/ui/Button";
 import Surface from "../../components/ui/Surface";
@@ -13,24 +13,45 @@ import AppPageState from "../../components/layout/AppPageState";
 import DashboardPlantCard from "../../components/plants/DashboardPlantCard";
 import "./AppDashboard.css";
 
-function MetricPill({ kind, value, metric, deviceId, onOpenStats, highlight = false }) {
+const SENSOR_KIND_MAP = {
+  SOIL_MOISTURE: 'soil_moisture',
+  AIR_TEMPERATURE: 'air_temperature',
+  AIR_HUMIDITY: 'air_humidity',
+};
+
+const SENSOR_TITLE_MAP = {
+  SOIL_MOISTURE: 'Влажность почвы',
+  AIR_TEMPERATURE: 'Температура воздуха',
+  AIR_HUMIDITY: 'Влажность воздуха',
+};
+
+function MetricPill({ sensor, deviceName, onOpenStats }) {
+  const kind = SENSOR_KIND_MAP[sensor.type] || 'soil_moisture';
+  const title = SENSOR_TITLE_MAP[sensor.type] || sensor.type || 'Датчик';
   const handleClick = () => {
-    if (deviceId && metric) {
-      onOpenStats({ deviceId, metric });
+    if (sensor?.id) {
+      onOpenStats({
+        mode: 'sensor',
+        sensorId: sensor.id,
+        metric: kind,
+        title,
+        subtitle: deviceName,
+      });
     }
   };
   return (
     <SensorPill
       kind={kind}
-      value={value}
+      value={sensor.last_value}
       onClick={handleClick}
-      highlight={highlight}
-      disabled={!deviceId || !metric}
+      disabled={!sensor?.id}
     />
   );
 }
 
 function FreeDeviceCard({ device, onOpenStats }) {
+  const sensors = Array.isArray(device.sensors) ? device.sensors : [];
+  const pumps = Array.isArray(device.pumps) ? device.pumps : [];
   return (
     <div className="free-device-card">
       <div className="free-device-card__header">
@@ -46,38 +67,19 @@ function FreeDeviceCard({ device, onOpenStats }) {
       </div>
 
       <div className="free-device-card__metrics">
-        <MetricPill
-          kind="air_temperature"
-          value={device.air_temperature}
-          metric="air_temperature"
-          deviceId={device.device_id}
-          onOpenStats={onOpenStats}
-        />
-        <MetricPill
-          kind="air_humidity"
-          value={device.air_humidity}
-          metric="air_humidity"
-          deviceId={device.device_id}
-          onOpenStats={onOpenStats}
-        />
-        <MetricPill
-          kind="soil_moisture"
-          value={device.soil_moisture}
-          metric="soil_moisture"
-          deviceId={device.device_id}
-          onOpenStats={onOpenStats}
-        />
-        <MetricPill
-          kind="watering"
-          value={device.is_watering}
-          metric="watering"
-          deviceId={device.device_id}
-          onOpenStats={onOpenStats}
-          highlight={Boolean(device.is_watering)}
-        />
+        {sensors.length === 0 && <div className="free-device-card__empty">Нет датчиков</div>}
+        {sensors.map((sensor) => (
+          <MetricPill key={sensor.id} sensor={sensor} deviceName={device.name || device.device_id} onOpenStats={onOpenStats} />
+        ))}
       </div>
 
-      {/* TODO: dobavit' knopku privyazki ustrojstva k rasteniyu */}
+      {pumps.length > 0 && (
+        <div className="free-device-card__pumps">
+          {pumps.map((pump) => (
+            <div key={pump.id} className="free-device-card__pump">Насос · канал {pump.channel ?? '-'}</div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -86,47 +88,36 @@ function AppDashboard() {
   const { token } = useAuth();
   const { plants, devices, freeDevices, isLoading, error } = useDashboardData();
   const { openSensorStats } = useSensorStatsContext();
-  const { openWateringSidebar, setWateringStatus, wateringByDevice } = useWateringSidebar();
+  const { openWateringSidebar, setWateringStatus, wateringByPump } = useWateringSidebar();
   const navigate = useNavigate();
 
   const handleOpenJournal = (plantId) => {
     navigate(`/app/plants/${plantId}/journal`);
   };
 
-  const deviceToPlantId = React.useMemo(() => {
-    const map = {};
-    (plants || []).forEach((plant) => {
-      (plant?.devices || []).forEach((device) => {
-        const deviceId = device?.device_id;
-        if (deviceId) {
-          map[deviceId] = plant.id;
-        }
-      });
-    });
-    return map;
-  }, [plants]);
-
   React.useEffect(() => {
-    // Translitem: vosstanavlivaem status aktivnogo poliva posle obnovleniya stranicy iz servernogo istochnika pravdy.
     let isCancelled = false;
     async function restoreStatuses() {
-      if (!token || !Array.isArray(devices) || devices.length === 0) return;
-      const ids = devices.map((d) => d?.device_id).filter(Boolean);
-      await Promise.all(ids.map(async (deviceId) => {
+      const pumpIds = devices
+        .flatMap((device) => Array.isArray(device.pumps) ? device.pumps : [])
+        .map((pump) => pump?.id)
+        .filter(Boolean);
+      const uniquePumpIds = [...new Set(pumpIds)];
+      if (!token || uniquePumpIds.length === 0) return;
+      await Promise.all(uniquePumpIds.map(async (pumpId) => {
         try {
-          const status = await getManualWateringStatus(deviceId, token);
+          const status = await fetchPumpWateringStatus(pumpId, token);
           if (isCancelled) return;
           const startTime = status.start_time || status.started_at || status.startTime || status.startedAt || null;
           const duration = status.duration ?? status.duration_s ?? status.durationS ?? null;
           const isRunning = status.status === 'running';
           if (isRunning && startTime && duration) {
-            setWateringStatus(deviceId, {
+            setWateringStatus(pumpId, {
               startTime,
               duration: Number(duration),
-              plantId: deviceToPlantId[deviceId] || null,
             });
           } else {
-            setWateringStatus(deviceId, null);
+            setWateringStatus(pumpId, null);
           }
         } catch (_err) {
           // Translitem: esli status ne udaetsya poluchit' (set'/auth), ne portim lokal'noe sostoyanie.
@@ -137,7 +128,7 @@ function AppDashboard() {
     return () => {
       isCancelled = true;
     };
-  }, [deviceToPlantId, devices, setWateringStatus, token]);
+  }, [devices, setWateringStatus, token]);
 
   return (
     <div className="dashboard">
@@ -155,7 +146,9 @@ function AppDashboard() {
           </div>
           <div className="cards-grid cards-grid--plants">
             {plants.map((plant) => {
-              const deviceKey = plant?.devices?.[0]?.device_id;
+              const pumpIds = Array.isArray(plant.pumps) ? plant.pumps.map((pump) => pump.id).filter(Boolean) : [];
+              const activePumpId = pumpIds.find((id) => wateringByPump[id]);
+              const wateringStatus = activePumpId ? wateringByPump[activePumpId] : null;
               return (
                 <DashboardPlantCard
                   key={plant.id}
@@ -163,7 +156,7 @@ function AppDashboard() {
                   onOpenStats={openSensorStats}
                   onOpenWatering={openWateringSidebar}
                   onOpenJournal={handleOpenJournal}
-                  wateringStatus={deviceKey ? wateringByDevice[deviceKey] : null}
+                  wateringStatus={wateringStatus}
                 />
               );
             })}
@@ -189,3 +182,4 @@ function AppDashboard() {
 }
 
 export default AppDashboard;
+

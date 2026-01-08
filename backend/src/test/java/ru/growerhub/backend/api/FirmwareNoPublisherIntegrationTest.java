@@ -1,4 +1,4 @@
-package ru.growerhub.backend.api;
+﻿package ru.growerhub.backend.api;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -17,8 +17,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.db.DeviceEntity;
-import ru.growerhub.backend.db.DeviceRepository;
+import ru.growerhub.backend.device.DeviceEntity;
+import ru.growerhub.backend.device.DeviceRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "MQTT_HOST=")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -75,17 +75,22 @@ class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
     }
 
     private void clearDatabase() {
+        jdbcTemplate.update("DELETE FROM plant_metric_samples");
+        jdbcTemplate.update("DELETE FROM sensor_plant_bindings");
+        jdbcTemplate.update("DELETE FROM sensor_readings");
+        jdbcTemplate.update("DELETE FROM sensors");
+        jdbcTemplate.update("DELETE FROM pump_plant_bindings");
+        jdbcTemplate.update("DELETE FROM pumps");
         jdbcTemplate.update("DELETE FROM plant_journal_watering_details");
         jdbcTemplate.update("DELETE FROM plant_journal_entries");
         jdbcTemplate.update("DELETE FROM plant_journal_photos");
-        jdbcTemplate.update("DELETE FROM plant_devices");
         jdbcTemplate.update("DELETE FROM plants");
         jdbcTemplate.update("DELETE FROM plant_groups");
         jdbcTemplate.update("DELETE FROM device_state_last");
-        jdbcTemplate.update("DELETE FROM sensor_data");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM user_auth_identities");
         jdbcTemplate.update("DELETE FROM user_refresh_tokens");
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+

@@ -42,10 +42,15 @@ export function useDashboardData() {
     };
   }, [token]);
 
-  const freeDevices = useMemo(
-    () => devices.filter((device) => !device.plant_ids || device.plant_ids.length === 0),
-    [devices],
-  );
+  const freeDevices = useMemo(() => {
+    return devices.filter((device) => {
+      const sensors = Array.isArray(device.sensors) ? device.sensors : [];
+      const pumps = Array.isArray(device.pumps) ? device.pumps : [];
+      const hasSensorBindings = sensors.some((sensor) => Array.isArray(sensor.bound_plants) && sensor.bound_plants.length > 0);
+      const hasPumpBindings = pumps.some((pump) => Array.isArray(pump.bound_plants) && pump.bound_plants.length > 0);
+      return !hasSensorBindings && !hasPumpBindings;
+    });
+  }, [devices]);
 
   return {
     plants,

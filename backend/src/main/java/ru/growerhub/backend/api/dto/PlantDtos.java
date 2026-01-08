@@ -1,11 +1,12 @@
-package ru.growerhub.backend.api.dto;
+﻿package ru.growerhub.backend.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.List;
-import ru.growerhub.backend.api.dto.DeviceDtos.DeviceResponse;
+import ru.growerhub.backend.api.dto.DeviceDtos.PumpResponse;
+import ru.growerhub.backend.api.dto.DeviceDtos.SensorResponse;
 
 public final class PlantDtos {
     private PlantDtos() {
@@ -62,7 +63,8 @@ public final class PlantDtos {
             @JsonProperty("growth_stage") String growthStage,
             @JsonProperty("user_id") Integer userId,
             @JsonProperty("plant_group") PlantGroupResponse plantGroup,
-            @JsonProperty("devices") List<DeviceResponse> devices
+            @JsonProperty("sensors") List<SensorResponse> sensors,
+            @JsonProperty("pumps") List<PumpResponse> pumps
     ) {
     }
 

@@ -11,6 +11,19 @@ import './DashboardPlantCard.css';
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
 
+const SENSOR_KIND_MAP = {
+  SOIL_MOISTURE: 'soil_moisture',
+  AIR_TEMPERATURE: 'air_temperature',
+  AIR_HUMIDITY: 'air_humidity',
+};
+
+const METRIC_LABELS = {
+  air_temperature: 'Температура воздуха',
+  air_humidity: 'Влажность воздуха',
+  soil_moisture: 'Влажность почвы',
+  watering: 'Поливы',
+};
+
 function formatAge(plantedAt) {
   if (!plantedAt) {
     return 'Дата неизвестна';
@@ -45,8 +58,10 @@ function DashboardPlantCard({
   wateringStatus,
   onOpenJournal,
 }) {
-  const primaryDevice = plant?.devices?.[0]; // TODO: zamenit' na vybor konkretnogo ustrojstva, esli ih neskol'ko.
   const [remainingSeconds, setRemainingSeconds] = React.useState(null);
+  const sensors = Array.isArray(plant?.sensors) ? plant.sensors : [];
+  const pumps = Array.isArray(plant?.pumps) ? plant.pumps : [];
+  const primaryPump = pumps[0];
 
   React.useEffect(() => {
     if (!wateringStatus || !wateringStatus.startTime || !wateringStatus.duration) {
@@ -82,15 +97,44 @@ function DashboardPlantCard({
   }, [plant?.planted_at]);
 
   const plantTypeId = normalizePlantTypeId(plant?.plant_type || DEFAULT_PLANT_TYPE_ID);
-  // Translitem: esli stadiya zadana v plant.growth_stage - berem ee; inache fallback na avto po vozrastu s uchetom tipa.
   const stageId = plant?.growth_stage && String(plant.growth_stage).trim()
     ? String(plant.growth_stage).trim()
     : getAutoStageFromAge(plantTypeId, ageDays);
   const showWateringBadge = wateringStatus && remainingSeconds !== null && remainingSeconds > 0;
 
+  const sensorsByKind = React.useMemo(() => {
+    const map = {};
+    sensors.forEach((sensor) => {
+      const kind = SENSOR_KIND_MAP[sensor.type];
+      if (!kind) return;
+      if (!map[kind]) {
+        map[kind] = sensor;
+        return;
+      }
+      const currentTs = map[kind]?.last_ts ? new Date(map[kind].last_ts).getTime() : 0;
+      const candidateTs = sensor.last_ts ? new Date(sensor.last_ts).getTime() : 0;
+      if (candidateTs > currentTs) {
+        map[kind] = sensor;
+      }
+    });
+    return map;
+  }, [sensors]);
+
+  const handleOpenMetric = (metric) => {
+    if (!plant?.id || !metric) return;
+    onOpenStats?.({
+      mode: 'plant',
+      plantId: plant.id,
+      metric,
+      title: METRIC_LABELS[metric] || metric,
+      subtitle: plant.name,
+    });
+  };
+
   const handleOpenWatering = () => {
-    if (primaryDevice?.device_id && onOpenWatering) {
-      onOpenWatering({ deviceId: primaryDevice.device_id, plantId: plant.id });
+    if (primaryPump?.id && onOpenWatering) {
+      const label = primaryPump.label || `Насос ${primaryPump.channel ?? ''}`;
+      onOpenWatering({ pumpId: primaryPump.id, pumpLabel: label, plantId: plant.id });
     }
   };
 
@@ -108,7 +152,7 @@ function DashboardPlantCard({
         </Text>
       </div>
 
-      {primaryDevice ? (
+      {sensors.length > 0 ? (
         <div className="dashboard-plant-card__body">
           <div className="dashboard-plant-card__avatar" aria-hidden="true">
             <PlantAvatar
@@ -121,28 +165,28 @@ function DashboardPlantCard({
           <div className="dashboard-plant-card__metrics">
             <SensorPill
               kind="air_temperature"
-              value={primaryDevice.air_temperature}
-              onClick={primaryDevice.device_id ? () => onOpenStats?.({ deviceId: primaryDevice.device_id, metric: 'air_temperature' }) : undefined}
-              disabled={!primaryDevice.device_id}
+              value={sensorsByKind.air_temperature?.last_value}
+              onClick={() => handleOpenMetric('air_temperature')}
+              disabled={!plant?.id}
             />
             <SensorPill
               kind="air_humidity"
-              value={primaryDevice.air_humidity}
-              onClick={primaryDevice.device_id ? () => onOpenStats?.({ deviceId: primaryDevice.device_id, metric: 'air_humidity' }) : undefined}
-              disabled={!primaryDevice.device_id}
+              value={sensorsByKind.air_humidity?.last_value}
+              onClick={() => handleOpenMetric('air_humidity')}
+              disabled={!plant?.id}
             />
             <SensorPill
               kind="soil_moisture"
-              value={primaryDevice.soil_moisture}
-              onClick={primaryDevice.device_id ? () => onOpenStats?.({ deviceId: primaryDevice.device_id, metric: 'soil_moisture' }) : undefined}
-              disabled={!primaryDevice.device_id}
+              value={sensorsByKind.soil_moisture?.last_value}
+              onClick={() => handleOpenMetric('soil_moisture')}
+              disabled={!plant?.id}
             />
             <SensorPill
               kind="watering"
-              value={primaryDevice.is_watering}
-              onClick={primaryDevice.device_id ? () => onOpenStats?.({ deviceId: primaryDevice.device_id, metric: 'watering' }) : undefined}
-              highlight={Boolean(primaryDevice.is_watering)}
-              disabled={!primaryDevice.device_id}
+              value={Boolean(wateringStatus)}
+              onClick={() => handleOpenMetric('watering')}
+              highlight={Boolean(wateringStatus)}
+              disabled={!plant?.id}
             />
             {showWateringBadge && (
               <div className="dashboard-plant-card__watering-badge">
@@ -152,7 +196,7 @@ function DashboardPlantCard({
           </div>
         </div>
       ) : (
-        <Text tone="muted" className="dashboard-plant-card__empty">Нет подключённых устройств</Text>
+        <Text tone="muted" className="dashboard-plant-card__empty">Нет подключённых датчиков</Text>
       )}
 
       <div className="dashboard-plant-card__footer">
@@ -161,7 +205,7 @@ function DashboardPlantCard({
             type="button"
             variant="secondary"
             onClick={handleOpenWatering}
-            disabled={!primaryDevice}
+            disabled={!primaryPump}
           >
             Полив
           </Button>
@@ -173,7 +217,7 @@ function DashboardPlantCard({
             Журнал
           </Button>
           <Link className="dashboard-plant-card__link" to="/app/plants">
-            Перейти →
+            Перейти >
           </Link>
         </div>
       </div>
@@ -182,3 +226,4 @@ function DashboardPlantCard({
 }
 
 export default DashboardPlantCard;
+

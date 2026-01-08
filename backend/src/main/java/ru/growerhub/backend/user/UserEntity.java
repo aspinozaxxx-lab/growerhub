@@ -1,4 +1,4 @@
-package ru.growerhub.backend.user;
+﻿package ru.growerhub.backend.user;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,10 +10,10 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import java.util.List;
-import ru.growerhub.backend.db.DeviceEntity;
-import ru.growerhub.backend.db.PlantEntity;
-import ru.growerhub.backend.db.PlantGroupEntity;
-import ru.growerhub.backend.db.PlantJournalEntryEntity;
+import ru.growerhub.backend.device.DeviceEntity;
+import ru.growerhub.backend.journal.PlantJournalEntryEntity;
+import ru.growerhub.backend.plant.PlantEntity;
+import ru.growerhub.backend.plant.PlantGroupEntity;
 import ru.growerhub.backend.db.UserAuthIdentityEntity;
 import ru.growerhub.backend.db.UserRefreshTokenEntity;
 

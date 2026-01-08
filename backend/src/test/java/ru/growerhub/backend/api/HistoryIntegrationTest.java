@@ -2,14 +2,20 @@
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,18 +25,20 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.db.DeviceEntity;
-import ru.growerhub.backend.db.DeviceRepository;
-import ru.growerhub.backend.db.PlantDeviceEntity;
-import ru.growerhub.backend.db.PlantDeviceRepository;
-import ru.growerhub.backend.db.PlantEntity;
-import ru.growerhub.backend.db.PlantJournalEntryEntity;
-import ru.growerhub.backend.db.PlantJournalEntryRepository;
-import ru.growerhub.backend.db.PlantJournalWateringDetailsEntity;
-import ru.growerhub.backend.db.PlantJournalWateringDetailsRepository;
-import ru.growerhub.backend.db.PlantRepository;
-import ru.growerhub.backend.db.SensorDataEntity;
-import ru.growerhub.backend.db.SensorDataRepository;
+import ru.growerhub.backend.device.DeviceEntity;
+import ru.growerhub.backend.device.DeviceRepository;
+import ru.growerhub.backend.plant.PlantEntity;
+import ru.growerhub.backend.plant.PlantMetricSampleEntity;
+import ru.growerhub.backend.plant.PlantMetricSampleRepository;
+import ru.growerhub.backend.plant.PlantMetricType;
+import ru.growerhub.backend.plant.PlantRepository;
+import ru.growerhub.backend.sensor.SensorEntity;
+import ru.growerhub.backend.sensor.SensorReadingEntity;
+import ru.growerhub.backend.sensor.SensorReadingRepository;
+import ru.growerhub.backend.sensor.SensorRepository;
+import ru.growerhub.backend.sensor.SensorType;
+import ru.growerhub.backend.user.UserEntity;
+import ru.growerhub.backend.user.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -43,7 +51,10 @@ class HistoryIntegrationTest extends IntegrationTestBase {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
-    private SensorDataRepository sensorDataRepository;
+    private SensorRepository sensorRepository;
+
+    @Autowired
+    private SensorReadingRepository sensorReadingRepository;
 
     @Autowired
     private DeviceRepository deviceRepository;
@@ -52,13 +63,10 @@ class HistoryIntegrationTest extends IntegrationTestBase {
     private PlantRepository plantRepository;
 
     @Autowired
-    private PlantDeviceRepository plantDeviceRepository;
+    private PlantMetricSampleRepository plantMetricSampleRepository;
 
     @Autowired
-    private PlantJournalEntryRepository plantJournalEntryRepository;
-
-    @Autowired
-    private PlantJournalWateringDetailsRepository plantJournalWateringDetailsRepository;
+    private UserRepository userRepository;
 
     @BeforeEach
     void setUp() {
@@ -70,184 +78,106 @@ class HistoryIntegrationTest extends IntegrationTestBase {
     @Test
     void sensorHistoryFiltersByHours() {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        SensorDataEntity fresh = SensorDataEntity.create();
-        fresh.setDeviceId("hist-device-1");
-        fresh.setTimestamp(now.minusHours(2));
-        fresh.setSoilMoisture(31.5);
-        fresh.setAirTemperature(24.2);
-        fresh.setAirHumidity(52.1);
-        sensorDataRepository.save(fresh);
+        UserEntity user = createUser("sensor-owner@example.com", "admin");
+        DeviceEntity device = createDevice("hist-device-1", user);
 
-        SensorDataEntity stale = SensorDataEntity.create();
-        stale.setDeviceId("hist-device-1");
-        stale.setTimestamp(now.minusDays(2));
-        stale.setSoilMoisture(28.0);
-        stale.setAirTemperature(19.4);
-        stale.setAirHumidity(40.0);
-        sensorDataRepository.save(stale);
+        SensorEntity sensor = createSensor(device, SensorType.SOIL_MOISTURE, 0);
+        SensorReadingEntity fresh = SensorReadingEntity.create();
+        fresh.setSensor(sensor);
+        fresh.setTs(now.minusHours(2));
+        fresh.setValueNumeric(31.5);
+        sensorReadingRepository.save(fresh);
 
-        SensorDataEntity other = SensorDataEntity.create();
-        other.setDeviceId("other-device");
-        other.setTimestamp(now.minusHours(1));
-        other.setSoilMoisture(44.0);
-        other.setAirTemperature(21.0);
-        other.setAirHumidity(48.0);
-        sensorDataRepository.save(other);
+        SensorReadingEntity stale = SensorReadingEntity.create();
+        stale.setSensor(sensor);
+        stale.setTs(now.minusDays(2));
+        stale.setValueNumeric(28.0);
+        sensorReadingRepository.save(stale);
+
+        String token = buildToken(user.getId());
 
         given()
+                .header("Authorization", "Bearer " + token)
                 .queryParam("hours", 24)
                 .when()
-                .get("/api/device/hist-device-1/sensor-history")
+                .get("/api/sensors/" + sensor.getId() + "/history")
                 .then()
                 .statusCode(200)
                 .body("size()", equalTo(1))
-                .body("[0].soil_moisture", equalTo(31.5f))
-                .body("[0].air_temperature", equalTo(24.2f))
-                .body("[0].air_humidity", equalTo(52.1f));
+                .body("[0].value", equalTo(31.5f));
     }
 
     @Test
-    void sensorDataHasRelayColumns() {
-        Integer light = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'SENSOR_DATA' AND column_name = 'LIGHT_RELAY_ON'",
-                Integer.class
-        );
-        Integer pump = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'SENSOR_DATA' AND column_name = 'PUMP_RELAY_ON'",
-                Integer.class
-        );
-        Integer soil1 = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'SENSOR_DATA' AND column_name = 'SOIL_MOISTURE_1'",
-                Integer.class
-        );
-        Integer soil2 = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'SENSOR_DATA' AND column_name = 'SOIL_MOISTURE_2'",
-                Integer.class
-        );
-
-        Assertions.assertEquals(1, light);
-        Assertions.assertEquals(1, pump);
-        Assertions.assertEquals(1, soil1);
-        Assertions.assertEquals(1, soil2);
-    }
-
-    @Test
-    void wateringLogsFiltersByDays() {
+    void plantHistoryFiltersByHoursAndMetric() {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        DeviceEntity device = DeviceEntity.create();
-        device.setDeviceId("hist-device-2");
-        deviceRepository.save(device);
+        UserEntity user = createUser("plant-owner@example.com", "user");
+        PlantEntity plant = createPlant(user, "History Plant");
 
-        PlantEntity plant = PlantEntity.create();
-        plant.setName("History Plant");
-        plant.setPlantedAt(now.minusDays(5));
-        plantRepository.save(plant);
-
-        PlantDeviceEntity link = PlantDeviceEntity.create();
-        link.setPlant(plant);
-        link.setDevice(device);
-        plantDeviceRepository.save(link);
-
-        PlantJournalEntryEntity recent = PlantJournalEntryEntity.create();
+        PlantMetricSampleEntity recent = PlantMetricSampleEntity.create();
         recent.setPlant(plant);
-        recent.setType("watering");
-        recent.setEventAt(now.minusDays(1));
-        plantJournalEntryRepository.save(recent);
+        recent.setMetricType(PlantMetricType.SOIL_MOISTURE);
+        recent.setTs(now.minusHours(1));
+        recent.setValueNumeric(40.0);
+        plantMetricSampleRepository.save(recent);
 
-        PlantJournalEntryEntity old = PlantJournalEntryEntity.create();
+        PlantMetricSampleEntity old = PlantMetricSampleEntity.create();
         old.setPlant(plant);
-        old.setType("watering");
-        old.setEventAt(now.minusDays(10));
-        plantJournalEntryRepository.save(old);
+        old.setMetricType(PlantMetricType.SOIL_MOISTURE);
+        old.setTs(now.minusDays(2));
+        old.setValueNumeric(20.0);
+        plantMetricSampleRepository.save(old);
 
-        PlantJournalWateringDetailsEntity recentDetails = PlantJournalWateringDetailsEntity.create();
-        recentDetails.setJournalEntry(recent);
-        recentDetails.setWaterVolumeL(0.5);
-        recentDetails.setDurationS(120);
-        recentDetails.setPh(6.2);
-        recentDetails.setFertilizersPerLiter("NPK 10-10-10");
-        plantJournalWateringDetailsRepository.save(recentDetails);
+        PlantMetricSampleEntity other = PlantMetricSampleEntity.create();
+        other.setPlant(plant);
+        other.setMetricType(PlantMetricType.AIR_TEMPERATURE);
+        other.setTs(now.minusHours(2));
+        other.setValueNumeric(21.0);
+        plantMetricSampleRepository.save(other);
 
-        PlantJournalWateringDetailsEntity oldDetails = PlantJournalWateringDetailsEntity.create();
-        oldDetails.setJournalEntry(old);
-        oldDetails.setWaterVolumeL(0.3);
-        oldDetails.setDurationS(90);
-        oldDetails.setPh(null);
-        oldDetails.setFertilizersPerLiter(null);
-        plantJournalWateringDetailsRepository.save(oldDetails);
+        String token = buildToken(user.getId());
 
         given()
-                .queryParam("days", 7)
+                .header("Authorization", "Bearer " + token)
+                .queryParam("hours", 24)
+                .queryParam("metrics", "SOIL_MOISTURE")
                 .when()
-                .get("/api/device/hist-device-2/watering-logs")
+                .get("/api/plants/" + plant.getId() + "/history")
                 .then()
                 .statusCode(200)
                 .body("size()", equalTo(1))
-                .body("[0].duration", equalTo(120))
-                .body("[0].water_used", equalTo(0.5f))
-                .body("[0].ph", equalTo(6.2f))
-                .body("[0].fertilizers_per_liter", equalTo("NPK 10-10-10"));
-    }
-
-    @Test
-    void historyMissingDeviceReturnsEmptyList() {
-        given()
-                .queryParam("hours", 24)
-                .when()
-                .get("/api/device/absent-device/sensor-history")
-                .then()
-                .statusCode(200)
-                .body("size()", equalTo(0));
-
-        given()
-                .queryParam("days", 7)
-                .when()
-                .get("/api/device/absent-device/watering-logs")
-                .then()
-                .statusCode(200)
-                .body("size()", equalTo(0));
-    }
-
-    @Test
-    void wateringLogsNoPlantsReturnsEmptyList() {
-        DeviceEntity device = DeviceEntity.create();
-        device.setDeviceId("no-plants");
-        deviceRepository.save(device);
-
-        given()
-                .queryParam("days", 7)
-                .when()
-                .get("/api/device/no-plants/watering-logs")
-                .then()
-                .statusCode(200)
-                .body("size()", equalTo(0));
+                .body("[0].metric_type", equalTo("SOIL_MOISTURE"))
+                .body("[0].value", equalTo(40.0f));
     }
 
     @Test
     void sensorHistoryDownsamplesTo200Points() {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        List<SensorDataEntity> bulk = new ArrayList<>();
+        UserEntity user = createUser("sensor-down@example.com", "admin");
+        DeviceEntity device = createDevice("many-points", user);
+        SensorEntity sensor = createSensor(device, SensorType.AIR_TEMPERATURE, 0);
+
+        List<SensorReadingEntity> bulk = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
-            SensorDataEntity item = SensorDataEntity.create();
-            item.setDeviceId("many-points");
-            item.setTimestamp(now.minusMinutes(i));
-            item.setSoilMoisture(30.0 + (i % 5));
-            item.setAirTemperature(20.0 + (i % 3));
-            item.setAirHumidity(50.0 + (i % 4));
+            SensorReadingEntity item = SensorReadingEntity.create();
+            item.setSensor(sensor);
+            item.setTs(now.minusMinutes(i));
+            item.setValueNumeric(20.0 + (i % 3));
             bulk.add(item);
         }
-        sensorDataRepository.saveAll(bulk);
+        sensorReadingRepository.saveAll(bulk);
 
+        String token = buildToken(user.getId());
         Response response = given()
+                .header("Authorization", "Bearer " + token)
                 .queryParam("hours", 1000)
                 .when()
-                .get("/api/device/many-points/sensor-history")
+                .get("/api/sensors/" + sensor.getId() + "/history")
                 .then()
                 .statusCode(200)
                 .extract()
                 .response();
 
-        List<String> timestamps = response.jsonPath().getList("timestamp");
+        List<String> timestamps = response.jsonPath().getList("ts");
         Assertions.assertTrue(timestamps.size() <= 200);
         List<LocalDateTime> parsed = new ArrayList<>();
         for (String ts : timestamps) {
@@ -259,73 +189,119 @@ class HistoryIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void sensorHistoryFiltersOutliers() {
+    void plantHistoryDownsamplesTo200Points() {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        for (int i = 0; i < 10; i++) {
-            SensorDataEntity normal = SensorDataEntity.create();
-            normal.setDeviceId("outliers");
-            normal.setTimestamp(now.minusMinutes(i));
-            normal.setSoilMoisture(40.0);
-            normal.setAirTemperature(22.0);
-            normal.setAirHumidity(55.0);
-            sensorDataRepository.save(normal);
+        UserEntity user = createUser("plant-down@example.com", "user");
+        PlantEntity plant = createPlant(user, "Downsample");
+
+        List<PlantMetricSampleEntity> bulk = new ArrayList<>();
+        for (int i = 0; i < 1000; i++) {
+            PlantMetricSampleEntity item = PlantMetricSampleEntity.create();
+            item.setPlant(plant);
+            item.setMetricType(PlantMetricType.SOIL_MOISTURE);
+            item.setTs(now.minusMinutes(i));
+            item.setValueNumeric(30.0 + (i % 5));
+            bulk.add(item);
         }
+        plantMetricSampleRepository.saveAll(bulk);
 
-        SensorDataEntity outlier1 = SensorDataEntity.create();
-        outlier1.setDeviceId("outliers");
-        outlier1.setTimestamp(now.minusMinutes(200));
-        outlier1.setSoilMoisture(150.0);
-        outlier1.setAirTemperature(-273.0);
-        outlier1.setAirHumidity(1000.0);
-        sensorDataRepository.save(outlier1);
-
-        SensorDataEntity outlier2 = SensorDataEntity.create();
-        outlier2.setDeviceId("outliers");
-        outlier2.setTimestamp(now.minusMinutes(201));
-        outlier2.setSoilMoisture(-10.0);
-        outlier2.setAirTemperature(999.0);
-        outlier2.setAirHumidity(-5.0);
-        sensorDataRepository.save(outlier2);
-
-        given()
-                .queryParam("hours", 500)
+        String token = buildToken(user.getId());
+        Response response = given()
+                .header("Authorization", "Bearer " + token)
+                .queryParam("hours", 1000)
+                .queryParam("metrics", "SOIL_MOISTURE")
                 .when()
-                .get("/api/device/outliers/sensor-history")
+                .get("/api/plants/" + plant.getId() + "/history")
                 .then()
                 .statusCode(200)
-                .body("size()", equalTo(10))
-                .body("[0].air_temperature", greaterThanOrEqualTo(-20.0f));
+                .extract()
+                .response();
+
+        List<String> timestamps = response.jsonPath().getList("ts");
+        Assertions.assertTrue(timestamps.size() <= 200);
+        List<LocalDateTime> parsed = new ArrayList<>();
+        for (String ts : timestamps) {
+            parsed.add(LocalDateTime.parse(ts));
+        }
+        List<LocalDateTime> sorted = new ArrayList<>(parsed);
+        sorted.sort(LocalDateTime::compareTo);
+        Assertions.assertEquals(sorted, parsed);
     }
 
     @Test
-    void sensorHistoryValidationReturns422() {
+    void plantHistoryRejectsUnknownMetric() {
+        UserEntity user = createUser("plant-bad@example.com", "user");
+        PlantEntity plant = createPlant(user, "BadMetric");
+        String token = buildToken(user.getId());
+
         given()
-                .queryParam("hours", "bad")
+                .header("Authorization", "Bearer " + token)
+                .queryParam("hours", 24)
+                .queryParam("metrics", "UNKNOWN")
                 .when()
-                .get("/api/device/validate/sensor-history")
+                .get("/api/plants/" + plant.getId() + "/history")
                 .then()
-                .statusCode(422);
+                .statusCode(422)
+                .body("detail", equalTo("neizvestnyi metric_type: UNKNOWN"));
     }
 
-    @Test
-    void wateringLogsValidationReturns422() {
-        given()
-                .queryParam("days", "bad")
-                .when()
-                .get("/api/device/validate/watering-logs")
-                .then()
-                .statusCode(422);
+    private UserEntity createUser(String email, String role) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        UserEntity user = UserEntity.create(email, null, role, true, now, now);
+        return userRepository.save(user);
+    }
+
+    private DeviceEntity createDevice(String deviceId, UserEntity owner) {
+        DeviceEntity device = DeviceEntity.create();
+        device.setDeviceId(deviceId);
+        device.setName("Device " + deviceId);
+        device.setUser(owner);
+        device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
+        return deviceRepository.save(device);
+    }
+
+    private SensorEntity createSensor(DeviceEntity device, SensorType type, int channel) {
+        SensorEntity sensor = SensorEntity.create();
+        sensor.setDevice(device);
+        sensor.setType(type);
+        sensor.setChannel(channel);
+        sensor.setDetected(true);
+        sensor.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        sensor.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        return sensorRepository.save(sensor);
+    }
+
+    private PlantEntity createPlant(UserEntity owner, String name) {
+        PlantEntity plant = PlantEntity.create();
+        plant.setName(name);
+        plant.setUser(owner);
+        plant.setPlantedAt(LocalDateTime.now(ZoneOffset.UTC));
+        return plantRepository.save(plant);
+    }
+
+    private String buildToken(int userId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("user_id", userId);
+        return Jwts.builder()
+                .setClaims(claims)
+                .setExpiration(Date.from(java.time.Instant.now().plusSeconds(3600)))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)), SignatureAlgorithm.HS256)
+                .compact();
     }
 
     private void clearDatabase() {
+        jdbcTemplate.update("DELETE FROM plant_metric_samples");
+        jdbcTemplate.update("DELETE FROM sensor_plant_bindings");
+        jdbcTemplate.update("DELETE FROM sensor_readings");
+        jdbcTemplate.update("DELETE FROM sensors");
+        jdbcTemplate.update("DELETE FROM pump_plant_bindings");
+        jdbcTemplate.update("DELETE FROM pumps");
         jdbcTemplate.update("DELETE FROM plant_journal_watering_details");
         jdbcTemplate.update("DELETE FROM plant_journal_entries");
         jdbcTemplate.update("DELETE FROM plant_journal_photos");
-        jdbcTemplate.update("DELETE FROM plant_devices");
         jdbcTemplate.update("DELETE FROM plants");
         jdbcTemplate.update("DELETE FROM plant_groups");
         jdbcTemplate.update("DELETE FROM device_state_last");
-        jdbcTemplate.update("DELETE FROM sensor_data");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM user_auth_identities");
         jdbcTemplate.update("DELETE FROM user_refresh_tokens");

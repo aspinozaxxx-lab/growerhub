@@ -34,29 +34,3 @@ export async function updateDeviceSettings(deviceId, settings, token) {
   }
   return response.json();
 }
-
-export async function assignDeviceToPlant(deviceId, plantId, token) {
-  void token;
-  const headers = {
-    'Content-Type': 'application/json',
-  };
-  const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}/devices/${encodeURIComponent(deviceId)}`, {
-    method: 'POST',
-    headers,
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to assign device (${response.status})`);
-  }
-  return response.json();
-}
-
-export async function unassignDeviceFromPlant(deviceId, plantId, token) {
-  void token;
-  const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}/devices/${encodeURIComponent(deviceId)}`, {
-    method: 'DELETE',
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to unassign device (${response.status})`);
-  }
-  return response.status === 204 ? null : response.json();
-}

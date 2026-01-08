@@ -43,10 +43,7 @@ function WateringTooltip({ active, payload, label }) {
   }
 
   const data = payload[0]?.payload || {};
-  const volume = data.water_used ?? data.value;
-  const duration = data.duration;
-  const ph = data.ph;
-  const fertilizers = data.fertilizers_per_liter;
+  const volume = data.value;
 
   return (
     <div className="recharts-default-tooltip">
@@ -54,15 +51,6 @@ function WateringTooltip({ active, payload, label }) {
       {volume !== undefined && volume !== null && (
         <p className="recharts-tooltip-item">{`Объём: ${formatSensorValue(volume)} л`}</p>
       )}
-      {duration !== undefined && duration !== null && (
-        <p className="recharts-tooltip-item">{`Длительность: ${duration} c`}</p>
-      )}
-      {ph !== undefined && ph !== null && <p className="recharts-tooltip-item">{`pH: ${ph}`}</p>}
-      {fertilizers ? (
-        <p className="recharts-tooltip-item">{`Удобрения: ${
-          typeof fertilizers === 'string' ? fertilizers : JSON.stringify(fertilizers)
-        }`}</p>
-      ) : null}
     </div>
   );
 }
@@ -134,18 +122,29 @@ function SensorChart({ metric, range, data }) {
 }
 
 function SensorStatsSidebar() {
-  const { isOpen, deviceId, deviceName, metric, closeSensorStats } = useSensorStatsContext();
-  const shouldLoad = isOpen && deviceId && metric;
-  const { activeRange, setRange, chartData, isLoading, error } = useSensorStats(
-    shouldLoad ? deviceId : null,
-    shouldLoad ? metric : null,
-  );
+  const {
+    isOpen,
+    mode,
+    sensorId,
+    plantId,
+    metric,
+    title,
+    subtitle,
+    closeSensorStats,
+  } = useSensorStatsContext();
 
-  const title = useMemo(() => {
-    const metricLabel = metric ? METRIC_LABELS[metric] || metric : '';
-    const deviceLabel = deviceName || deviceId || '';
-    return `${metricLabel}${deviceLabel ? ` - ${deviceLabel}` : ''}`;
-  }, [deviceId, deviceName, metric]);
+  const shouldLoad = isOpen && ((mode === 'sensor' && sensorId) || (mode === 'plant' && plantId && metric));
+  const { activeRange, setRange, chartData, isLoading, error } = useSensorStats({
+    mode: shouldLoad ? mode : null,
+    sensorId: shouldLoad ? sensorId : null,
+    plantId: shouldLoad ? plantId : null,
+    metric: shouldLoad ? metric : null,
+  });
+
+  const fallbackTitle = useMemo(() => {
+    const metricLabel = metric ? METRIC_LABELS[metric] || metric : 'История';
+    return metricLabel;
+  }, [metric]);
 
   if (!isOpen) {
     return null;
@@ -155,8 +154,8 @@ function SensorStatsSidebar() {
     <SidePanel
       isOpen={isOpen}
       onClose={closeSensorStats}
-      title={title}
-      subtitle={deviceName ? deviceId : ''}
+      title={title || fallbackTitle}
+      subtitle={subtitle || ''}
     >
       <div className="sensor-sidebar__ranges" role="group" aria-label="Диапазон">
         {RANGE_OPTIONS.map((option) => (

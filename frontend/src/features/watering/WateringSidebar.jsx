@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { startManualWatering, getManualWateringStatus } from '../../api/manualWatering';
+import { startPumpWatering, fetchPumpWateringStatus } from '../../api/pumps';
 import { isSessionExpiredError } from '../../api/client';
 import { useWateringSidebar } from './WateringSidebarContext';
 import FormField from '../../components/ui/FormField';
@@ -12,7 +12,8 @@ import './WateringSidebar.css';
 function WateringSidebar() {
   const {
     isOpen,
-    deviceId,
+    pumpId,
+    pumpLabel,
     plantId,
     closeWateringSidebar,
     setWateringStatus,
@@ -35,33 +36,36 @@ function WateringSidebar() {
   }, [isOpen]);
 
   const title = useMemo(() => {
-    return deviceId ? `Полив устройства ${deviceId}` : 'Полив';
-  }, [deviceId]);
+    if (pumpLabel) {
+      return `Полив: ${pumpLabel}`;
+    }
+    return pumpId ? `Полив насоса #${pumpId}` : 'Полив';
+  }, [pumpId, pumpLabel]);
 
   if (!isOpen) {
     return null;
   }
 
   const handleStart = async () => {
-    if (!deviceId) {
+    if (!pumpId) {
       return;
     }
     setIsSubmitting(true);
     setError(null);
     setSuccess(false);
     try {
-      await startManualWatering({
-        deviceId,
+      await startPumpWatering({
+        pumpId,
         waterVolumeL: waterVolume,
         ph: ph === '' ? null : Number(ph),
         fertilizersPerLiter: fertilizers || null,
         token,
       });
-      const status = await getManualWateringStatus(deviceId, token);
+      const status = await fetchPumpWateringStatus(pumpId, token);
       const startTime = status.start_time || status.started_at || status.startTime || status.startedAt || null;
       const duration = status.duration ?? status.duration_s ?? status.durationS ?? null;
       if (startTime && duration) {
-        setWateringStatus(deviceId, { startTime, duration: Number(duration), plantId });
+        setWateringStatus(pumpId, { startTime, duration: Number(duration) });
       }
       setSuccess(true);
     } catch (err) {

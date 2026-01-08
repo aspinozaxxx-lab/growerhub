@@ -33,7 +33,6 @@ public final class DeviceDtos {
             @JsonProperty("watering_duration") Integer wateringDuration,
             @NotNull
             @JsonProperty("watering_timeout") Integer wateringTimeout,
-            @JsonProperty("watering_speed_lph") Double wateringSpeedLph,
             @NotNull
             @JsonProperty("light_on_hour") Integer lightOnHour,
             @NotNull
@@ -47,7 +46,6 @@ public final class DeviceDtos {
             @JsonProperty("target_moisture") Double targetMoisture,
             @JsonProperty("watering_duration") Integer wateringDuration,
             @JsonProperty("watering_timeout") Integer wateringTimeout,
-            @JsonProperty("watering_speed_lph") Double wateringSpeedLph,
             @JsonProperty("light_on_hour") Integer lightOnHour,
             @JsonProperty("light_off_hour") Integer lightOffHour,
             @JsonProperty("light_duration") Integer lightDuration,
@@ -62,22 +60,54 @@ public final class DeviceDtos {
     ) {
     }
 
+    public record BoundPlantResponse(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("name") String name,
+            @JsonProperty("planted_at") LocalDateTime plantedAt,
+            @JsonProperty("growth_stage") String growthStage,
+            @JsonProperty("age_days") Integer ageDays
+    ) {
+    }
+
+    public record SensorResponse(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("type") String type,
+            @JsonProperty("channel") Integer channel,
+            @JsonProperty("label") String label,
+            @JsonProperty("detected") Boolean detected,
+            @JsonProperty("last_value") Double lastValue,
+            @JsonProperty("last_ts") LocalDateTime lastTs,
+            @JsonProperty("bound_plants") List<BoundPlantResponse> boundPlants
+    ) {
+    }
+
+    public record PumpBoundPlantResponse(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("name") String name,
+            @JsonProperty("planted_at") LocalDateTime plantedAt,
+            @JsonProperty("age_days") Integer ageDays,
+            @JsonProperty("rate_ml_per_hour") Integer rateMlPerHour
+    ) {
+    }
+
+    public record PumpResponse(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("channel") Integer channel,
+            @JsonProperty("label") String label,
+            @JsonProperty("is_running") Boolean isRunning,
+            @JsonProperty("bound_plants") List<PumpBoundPlantResponse> boundPlants
+    ) {
+    }
+
     public record DeviceResponse(
             @JsonProperty("id") Integer id,
             @JsonProperty("device_id") String deviceId,
             @JsonProperty("name") String name,
             @JsonProperty("is_online") Boolean isOnline,
-            @JsonProperty("soil_moisture") Double soilMoisture,
-            @JsonProperty("air_temperature") Double airTemperature,
-            @JsonProperty("air_humidity") Double airHumidity,
-            @JsonProperty("is_watering") Boolean isWatering,
-            @JsonProperty("is_light_on") Boolean isLightOn,
-            @JsonProperty("last_watering") LocalDateTime lastWatering,
             @JsonProperty("last_seen") LocalDateTime lastSeen,
             @JsonProperty("target_moisture") Double targetMoisture,
             @JsonProperty("watering_duration") Integer wateringDuration,
             @JsonProperty("watering_timeout") Integer wateringTimeout,
-            @JsonProperty("watering_speed_lph") Double wateringSpeedLph,
             @JsonProperty("light_on_hour") Integer lightOnHour,
             @JsonProperty("light_off_hour") Integer lightOffHour,
             @JsonProperty("light_duration") Integer lightDuration,
@@ -85,7 +115,8 @@ public final class DeviceDtos {
             @JsonProperty("update_available") Boolean updateAvailable,
             @JsonProperty("firmware_version") String firmwareVersion,
             @JsonProperty("user_id") Integer userId,
-            @JsonProperty("plant_ids") List<Integer> plantIds
+            @JsonProperty("sensors") List<SensorResponse> sensors,
+            @JsonProperty("pumps") List<PumpResponse> pumps
     ) {
     }
 
@@ -94,17 +125,10 @@ public final class DeviceDtos {
             @JsonProperty("device_id") String deviceId,
             @JsonProperty("name") String name,
             @JsonProperty("is_online") Boolean isOnline,
-            @JsonProperty("soil_moisture") Double soilMoisture,
-            @JsonProperty("air_temperature") Double airTemperature,
-            @JsonProperty("air_humidity") Double airHumidity,
-            @JsonProperty("is_watering") Boolean isWatering,
-            @JsonProperty("is_light_on") Boolean isLightOn,
-            @JsonProperty("last_watering") LocalDateTime lastWatering,
             @JsonProperty("last_seen") LocalDateTime lastSeen,
             @JsonProperty("target_moisture") Double targetMoisture,
             @JsonProperty("watering_duration") Integer wateringDuration,
             @JsonProperty("watering_timeout") Integer wateringTimeout,
-            @JsonProperty("watering_speed_lph") Double wateringSpeedLph,
             @JsonProperty("light_on_hour") Integer lightOnHour,
             @JsonProperty("light_off_hour") Integer lightOffHour,
             @JsonProperty("light_duration") Integer lightDuration,
@@ -112,7 +136,8 @@ public final class DeviceDtos {
             @JsonProperty("update_available") Boolean updateAvailable,
             @JsonProperty("firmware_version") String firmwareVersion,
             @JsonProperty("user_id") Integer userId,
-            @JsonProperty("plant_ids") List<Integer> plantIds,
+            @JsonProperty("sensors") List<SensorResponse> sensors,
+            @JsonProperty("pumps") List<PumpResponse> pumps,
             @JsonProperty("owner") DeviceOwnerInfoResponse owner
     ) {
     }

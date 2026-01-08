@@ -1,7 +1,7 @@
 ﻿.device-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 
 .device-card__header {
@@ -31,7 +31,7 @@
 .device-card__body {
   display: flex;
   gap: 10px;
-  align-items: stretch;
+  align-items: center;
 }
 
 .device-card__avatar {
@@ -46,11 +46,6 @@
   max-height: 72px;
 }
 
-.device-card--plant .device-card__avatar img {
-  max-width: 48px;
-  max-height: 48px;
-}
-
 .device-card__info {
   flex: 1;
   display: flex;
@@ -63,64 +58,79 @@
   font-size: 13px;
 }
 
-.device-card__metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 8px;
-}
-
-.device-card--plant {
-  gap: 6px;
-}
-
-.device-card__plant-header {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 8px;
-}
-
-.device-card__plant-meta {
+.device-card__section {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 10px;
 }
 
-.device-card__title--compact {
-  font-size: 16px;
+.device-card__section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #c7d7ef;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.device-card__subtitle--compact {
-  font-size: 12px;
-}
-
-.device-card--plant .device-card__status {
-  font-size: 12px;
-}
-
-.device-card__plant-metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: 6px;
-}
-
-.device-chip {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 10px;
-  padding: 6px 8px;
+.device-card__item {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.45);
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
+  gap: 12px;
+}
+
+.device-card__item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.device-card__item-title {
+  font-weight: 600;
   color: #eef3fb;
+  font-size: 13px;
 }
 
-.device-chip__label {
-  font-size: 12px;
+.device-card__item-status {
   color: #8aa3c6;
+  font-size: 12px;
 }
 
-.device-chip__value {
-  font-weight: 700;
-  margin-left: 6px;
+.device-card__bindings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  flex: 1;
+}
+
+.device-card__plant-pill {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: #e5efff;
+  white-space: nowrap;
+}
+
+.device-card__binding-empty {
+  color: #8aa3c6;
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .device-card__item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .device-card__bindings {
+    justify-content: flex-start;
+  }
 }

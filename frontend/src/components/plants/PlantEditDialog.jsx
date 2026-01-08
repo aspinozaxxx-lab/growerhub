@@ -17,21 +17,17 @@ import {
   updatePlantGroup,
   deletePlantGroup,
 } from '../../api/plants';
-import { assignDeviceToPlant, unassignDeviceFromPlant } from '../../api/devices';
-import DeviceCard from '../devices/DeviceCard';
 import FormField from '../ui/FormField';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import './PlantEditDialog.css';
 
-// Translitem: PlantEditDialog - dialog CRUD rastenija (polya, gruppy, privyazki ustrojstv); roditel delat refetch cherez onSaved().
+// Translitem: PlantEditDialog - dialog CRUD rastenija (polya i gruppy); privyazki vypolnyayutsya v ustrojstvah.
 function PlantEditDialog({
   isOpen,
   mode,
   plant,
-  plants,
   plantGroups,
-  devices,
   onClose,
   onSaved,
 }) {
@@ -43,29 +39,14 @@ function PlantEditDialog({
     growth_stage: '',
     planted_at: '',
     plant_group_id: null,
-    devices: [],
   });
   const [localGroups, setLocalGroups] = useState([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState('');
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const plantTypeOptions = useMemo(() => getPlantTypeOptions('ru'), []);
   const selectedTypeId = useMemo(() => normalizePlantTypeId(localPlant.plant_type), [localPlant.plant_type]);
   const stageOptions = useMemo(() => getStageOptionsForType('ru', selectedTypeId), [selectedTypeId]);
-
-  const assignedDevices = useMemo(() => Array.isArray(localPlant.devices) ? localPlant.devices : [], [localPlant.devices]);
-
-  const freeDevices = useMemo(() => {
-    const assignedIds = new Set((assignedDevices || []).map((d) => d.id));
-    const currentPlantId = plant?.id;
-    return (devices || []).filter((device) => {
-      if (assignedIds.has(device.id)) return false;
-      if (!Array.isArray(device.plant_ids) || device.plant_ids.length === 0) return true;
-      if (currentPlantId && device.plant_ids.includes(currentPlantId)) return false;
-      return device.plant_ids.length === 0;
-    });
-  }, [assignedDevices, devices, plant?.id]);
 
   const toLocalDateTimeInput = (isoValue) => {
     if (!isoValue) return '';
@@ -87,7 +68,6 @@ function PlantEditDialog({
     if (!isOpen) return;
     setError(null);
     setIsSaving(false);
-    setSelectedDeviceId('');
     setLocalGroups(Array.isArray(plantGroups) ? plantGroups : []);
     if (mode === 'edit' && plant) {
       setLocalPlant({
@@ -97,7 +77,6 @@ function PlantEditDialog({
         growth_stage: plant.growth_stage || '',
         planted_at: toLocalDateTimeInput(plant.planted_at),
         plant_group_id: plant.plant_group?.id ?? plant.plant_group_id ?? null,
-        devices: Array.isArray(plant.devices) ? plant.devices : [],
       });
     } else {
       setLocalPlant({
@@ -107,7 +86,6 @@ function PlantEditDialog({
         growth_stage: '',
         planted_at: '',
         plant_group_id: null,
-        devices: [],
       });
     }
   }, [isOpen, mode, plant, plantGroups]);
@@ -181,39 +159,6 @@ function PlantEditDialog({
     } catch (err) {
       if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Не удалось удалить группу');
-    }
-  };
-
-  const handleAttachDevice = async () => {
-    if (!plant?.id) return;
-    const deviceId = selectedDeviceId ? Number(selectedDeviceId) : null;
-    if (!deviceId) return;
-    try {
-      await assignDeviceToPlant(deviceId, plant.id, token);
-      const found = devices.find((d) => d.id === deviceId);
-      const newDevice = found || { id: deviceId, device_id: deviceId };
-      setLocalPlant((prev) => ({
-        ...prev,
-        devices: [...(prev.devices || []), newDevice],
-      }));
-      setSelectedDeviceId('');
-    } catch (err) {
-      if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось привязать устройство');
-    }
-  };
-
-  const handleDetachDevice = async (deviceId) => {
-    if (!plant?.id) return;
-    try {
-      await unassignDeviceFromPlant(deviceId, plant.id, token);
-      setLocalPlant((prev) => ({
-        ...prev,
-        devices: (prev.devices || []).filter((d) => d.id !== deviceId),
-      }));
-    } catch (err) {
-      if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось отвязать устройство');
     }
   };
 
@@ -364,54 +309,9 @@ function PlantEditDialog({
           </div>
         </div>
       </div>
-
-      <div className="plant-dialog__section">
-        <div className="plant-dialog__section-title">Устройства</div>
-        {mode === 'create' && (
-          <div className="plant-dialog__hint">Привязать устройства можно после сохранения растения.</div>
-        )}
-        {mode === 'edit' && (
-          <>
-            {assignedDevices.length === 0 && (
-              <div className="plant-dialog__hint">Нет привязанных устройств</div>
-            )}
-            {assignedDevices.length > 0 && (
-              <div className="plant-dialog__devices">
-                {assignedDevices.map((device) => (
-                  <div key={device.id} className="plant-dialog__device-row">
-                    <DeviceCard device={device} variant="plant" />
-                    <button
-                      type="button"
-                      className="plant-dialog__unlink"
-                      onClick={() => handleDetachDevice(device.id)}
-                    >
-                      Отвязать
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="plant-dialog__attach">
-              <select
-                value={selectedDeviceId}
-                onChange={(e) => setSelectedDeviceId(e.target.value)}
-              >
-                <option value="">Выберите устройство</option>
-                {freeDevices.map((device) => (
-                  <option key={device.id} value={device.id}>
-                    {device.name || device.device_id || `Device ${device.id}`}
-                  </option>
-                ))}
-              </select>
-              <button type="button" onClick={handleAttachDevice}>
-                Привязать
-              </button>
-            </div>
-          </>
-        )}
-      </div>
     </Modal>
   );
 }
 
 export default PlantEditDialog;
+

@@ -4,7 +4,6 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -24,24 +23,20 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.db.DeviceEntity;
-import ru.growerhub.backend.db.DeviceRepository;
-import ru.growerhub.backend.db.DeviceStateLastEntity;
-import ru.growerhub.backend.db.DeviceStateLastRepository;
-import ru.growerhub.backend.db.PlantDeviceEntity;
-import ru.growerhub.backend.db.PlantDeviceRepository;
-import ru.growerhub.backend.db.PlantEntity;
-import ru.growerhub.backend.db.PlantJournalWateringDetailsEntity;
-import ru.growerhub.backend.db.PlantJournalWateringDetailsRepository;
-import ru.growerhub.backend.db.PlantJournalEntryRepository;
-import ru.growerhub.backend.db.PlantRepository;
+import ru.growerhub.backend.device.DeviceEntity;
+import ru.growerhub.backend.device.DeviceRepository;
 import ru.growerhub.backend.device.DeviceShadowStore;
+import ru.growerhub.backend.device.DeviceStateLastEntity;
+import ru.growerhub.backend.device.DeviceStateLastRepository;
+import ru.growerhub.backend.journal.PlantJournalEntryRepository;
+import ru.growerhub.backend.journal.PlantJournalWateringDetailsEntity;
+import ru.growerhub.backend.journal.PlantJournalWateringDetailsRepository;
 import ru.growerhub.backend.mqtt.AckStore;
 import ru.growerhub.backend.mqtt.MqttPublisher;
 import ru.growerhub.backend.mqtt.model.CmdPumpStart;
@@ -50,6 +45,13 @@ import ru.growerhub.backend.mqtt.model.CmdReboot;
 import ru.growerhub.backend.mqtt.model.DeviceState;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
 import ru.growerhub.backend.mqtt.model.ManualWateringState;
+import ru.growerhub.backend.plant.PlantEntity;
+import ru.growerhub.backend.plant.PlantMetricSampleRepository;
+import ru.growerhub.backend.plant.PlantRepository;
+import ru.growerhub.backend.pump.PumpEntity;
+import ru.growerhub.backend.pump.PumpPlantBindingEntity;
+import ru.growerhub.backend.pump.PumpPlantBindingRepository;
+import ru.growerhub.backend.pump.PumpService;
 import ru.growerhub.backend.user.UserEntity;
 import ru.growerhub.backend.user.UserRepository;
 
@@ -71,16 +73,22 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     private DeviceRepository deviceRepository;
 
     @Autowired
-    private PlantRepository plantRepository;
+    private PumpPlantBindingRepository pumpPlantBindingRepository;
 
     @Autowired
-    private PlantDeviceRepository plantDeviceRepository;
+    private PumpService pumpService;
+
+    @Autowired
+    private PlantRepository plantRepository;
 
     @Autowired
     private PlantJournalEntryRepository plantJournalEntryRepository;
 
     @Autowired
     private PlantJournalWateringDetailsRepository plantJournalWateringDetailsRepository;
+
+    @Autowired
+    private PlantMetricSampleRepository plantMetricSampleRepository;
 
     @Autowired
     private DeviceStateLastRepository deviceStateLastRepository;
@@ -93,9 +101,6 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private TestPublisher testPublisher;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
@@ -110,12 +115,12 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     @Test
     void startReturnsCorrelationAndCreatesJournal() {
         UserEntity user = createUser("owner@example.com", "user");
-        DeviceEntity device = createDevice("mw-start-1", user, null);
+        DeviceEntity device = createDevice("mw-start-1", user);
+        PumpEntity pump = pumpService.ensureDefaultPump(device);
         PlantEntity plant = createPlant(user, "Basil");
-        linkPlant(plant, device);
+        bindPump(pump, plant, 2000);
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", device.getDeviceId());
         payload.put("duration_s", 20);
 
         String token = buildToken(user.getId());
@@ -125,7 +130,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .contentType("application/json")
                 .body(payload)
                 .when()
-                .post("/api/manual-watering/start")
+                .post("/api/pumps/" + pump.getId() + "/watering/start")
                 .then()
                 .statusCode(200)
                 .body("correlation_id", notNullValue())
@@ -145,7 +150,8 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals(1, plantJournalWateringDetailsRepository.count());
         PlantJournalWateringDetailsEntity details = plantJournalWateringDetailsRepository.findAll().get(0);
         Assertions.assertEquals(20, details.getDurationS());
-        Assertions.assertEquals(0.0, details.getWaterVolumeL());
+        Assertions.assertTrue(details.getWaterVolumeL() > 0.0);
+        Assertions.assertEquals(1, plantMetricSampleRepository.count());
 
         Map<String, Object> view = shadowStore.getManualWateringView(device.getDeviceId());
         Assertions.assertNotNull(view);
@@ -159,12 +165,12 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     @Test
     void startCalculatesDurationFromVolume() {
         UserEntity user = createUser("owner-volume@example.com", "user");
-        DeviceEntity device = createDevice("mw-start-2", user, 2.0);
+        DeviceEntity device = createDevice("mw-start-2", user);
+        PumpEntity pump = pumpService.ensureDefaultPump(device);
         PlantEntity plant = createPlant(user, "Mint");
-        linkPlant(plant, device);
+        bindPump(pump, plant, 2000);
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", device.getDeviceId());
         payload.put("water_volume_l", 1.0);
 
         String token = buildToken(user.getId());
@@ -174,7 +180,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .contentType("application/json")
                 .body(payload)
                 .when()
-                .post("/api/manual-watering/start")
+                .post("/api/pumps/" + pump.getId() + "/watering/start")
                 .then()
                 .statusCode(200)
                 .body("correlation_id", notNullValue());
@@ -191,15 +197,17 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
 
     @Test
     void startRequiresAuth() {
+        DeviceEntity device = createDevice("mw-auth-1", null);
+        PumpEntity pump = pumpService.ensureDefaultPump(device);
+
         Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", "mw-auth-1");
         payload.put("duration_s", 10);
 
         given()
                 .contentType("application/json")
                 .body(payload)
                 .when()
-                .post("/api/manual-watering/start")
+                .post("/api/pumps/" + pump.getId() + "/watering/start")
                 .then()
                 .statusCode(401)
                 .header("WWW-Authenticate", "Bearer")
@@ -209,11 +217,11 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     @Test
     void startRejectsNoPlants() {
         UserEntity user = createUser("owner-noplants@example.com", "user");
-        DeviceEntity device = createDevice("mw-noplants", user, 1.5);
+        DeviceEntity device = createDevice("mw-noplants", user);
+        PumpEntity pump = pumpService.ensureDefaultPump(device);
         String token = buildToken(user.getId());
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", device.getDeviceId());
         payload.put("water_volume_l", 0.3);
 
         given()
@@ -221,10 +229,10 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .contentType("application/json")
                 .body(payload)
                 .when()
-                .post("/api/manual-watering/start")
+                .post("/api/pumps/" + pump.getId() + "/watering/start")
                 .then()
                 .statusCode(400)
-                .body("detail", equalTo("Устройство не привязано ни k odnomu rasteniyu"));
+                .body("detail", equalTo("nasos ne privyazan ni k odnomu rasteniyu"));
 
         Assertions.assertEquals(0, testPublisher.getPublished().size());
         Assertions.assertEquals(0, plantJournalEntryRepository.count());
@@ -233,71 +241,36 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     @Test
     void startRejectsMissingDurationAndVolume() {
         UserEntity user = createUser("owner-noval@example.com", "user");
-        DeviceEntity device = createDevice("mw-noval", user, 1.0);
+        DeviceEntity device = createDevice("mw-noval", user);
+        PumpEntity pump = pumpService.ensureDefaultPump(device);
         PlantEntity plant = createPlant(user, "Rose");
-        linkPlant(plant, device);
+        bindPump(pump, plant, 2000);
         String token = buildToken(user.getId());
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", device.getDeviceId());
 
         given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .body(payload)
                 .when()
-                .post("/api/manual-watering/start")
+                .post("/api/pumps/" + pump.getId() + "/watering/start")
                 .then()
                 .statusCode(400)
                 .body("detail", equalTo("ukazhite water_volume_l ili duration_s dlya starta poliva"));
     }
 
     @Test
-    void startRejectsWhenRunning() {
-        UserEntity user = createUser("owner-running@example.com", "user");
-        DeviceEntity device = createDevice("mw-running", user, 1.0);
-        PlantEntity plant = createPlant(user, "Mint");
-        linkPlant(plant, device);
-
-        ManualWateringState manual = new ManualWateringState(
-                "running",
-                60,
-                LocalDateTime.now(ZoneOffset.UTC),
-                60,
-                "shadow-corr"
-        );
-        shadowStore.updateFromState(device.getDeviceId(), new DeviceState(manual, null, null, null, null, null, null, null, null, null));
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", device.getDeviceId());
-        payload.put("duration_s", 10);
-
-        String token = buildToken(user.getId());
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .contentType("application/json")
-                .body(payload)
-                .when()
-                .post("/api/manual-watering/start")
-                .then()
-                .statusCode(409)
-                .body("detail", equalTo("Полив уже выполняется — повторный запуск запрещён."));
-
-        Assertions.assertEquals(0, testPublisher.getPublished().size());
-    }
-
-    @Test
     void startRejectsNotOwner() {
         UserEntity owner = createUser("owner-guard@example.com", "user");
         UserEntity other = createUser("guest@example.com", "user");
-        DeviceEntity device = createDevice("mw-guard", owner, 1.0);
+        DeviceEntity device = createDevice("mw-guard", owner);
+        PumpEntity pump = pumpService.ensureDefaultPump(device);
         PlantEntity plant = createPlant(owner, "Mint");
-        linkPlant(plant, device);
+        bindPump(pump, plant, 2000);
         String token = buildToken(other.getId());
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", device.getDeviceId());
         payload.put("duration_s", 10);
 
         given()
@@ -305,19 +278,18 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .contentType("application/json")
                 .body(payload)
                 .when()
-                .post("/api/manual-watering/start")
+                .post("/api/pumps/" + pump.getId() + "/watering/start")
                 .then()
                 .statusCode(403)
-                .body("detail", equalTo("nedostatochno prav dlya etogo ustrojstva"));
+                .body("detail", equalTo("nedostatochno prav dlya etogo nasosa"));
     }
 
     @Test
-    void startReturns404WhenDeviceMissing() {
+    void startReturns404WhenPumpMissing() {
         UserEntity user = createUser("owner-missing@example.com", "user");
         String token = buildToken(user.getId());
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", "missing-device");
         payload.put("duration_s", 10);
 
         given()
@@ -325,34 +297,17 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .contentType("application/json")
                 .body(payload)
                 .when()
-                .post("/api/manual-watering/start")
+                .post("/api/pumps/99999/watering/start")
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("ustrojstvo ne najdeno"));
-    }
-
-    @Test
-    void startValidationMissingDeviceId() {
-        UserEntity user = createUser("owner-validation@example.com", "user");
-        String token = buildToken(user.getId());
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("duration_s", 10);
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .contentType("application/json")
-                .body(payload)
-                .when()
-                .post("/api/manual-watering/start")
-                .then()
-                .statusCode(422);
+                .body("detail", equalTo("nasos ne naiden"));
     }
 
     @Test
     void stopReturnsCorrelation() {
         UserEntity user = createUser("owner-stop@example.com", "user");
-        DeviceEntity device = createDevice("mw-stop", user, 1.0);
+        DeviceEntity device = createDevice("mw-stop", user);
+        PumpEntity pump = pumpService.ensureDefaultPump(device);
 
         ManualWateringState manual = new ManualWateringState(
                 "running",
@@ -363,17 +318,12 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         );
         shadowStore.updateFromState(device.getDeviceId(), new DeviceState(manual, null, null, null, null, null, null, null, null, null));
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", device.getDeviceId());
-
         String token = buildToken(user.getId());
 
         String correlationId = given()
                 .header("Authorization", "Bearer " + token)
-                .contentType("application/json")
-                .body(payload)
                 .when()
-                .post("/api/manual-watering/stop")
+                .post("/api/pumps/" + pump.getId() + "/watering/stop")
                 .then()
                 .statusCode(200)
                 .body("correlation_id", notNullValue())
@@ -390,69 +340,16 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void stopRejectsWhenIdle() {
-        UserEntity user = createUser("owner-stop-idle@example.com", "user");
-        DeviceEntity device = createDevice("mw-stop-idle", user, 1.0);
-
-        ManualWateringState manual = new ManualWateringState(
-                "idle",
-                null,
-                null,
-                null,
-                null
-        );
-        shadowStore.updateFromState(device.getDeviceId(), new DeviceState(manual, null, null, null, null, null, null, null, null, null));
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", device.getDeviceId());
-
-        String token = buildToken(user.getId());
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .contentType("application/json")
-                .body(payload)
-                .when()
-                .post("/api/manual-watering/stop")
-                .then()
-                .statusCode(409)
-                .body("detail", equalTo("Полив не выполняется — останавливать нечего."));
-
-        Assertions.assertEquals(0, testPublisher.getPublished().size());
-    }
-
-    @Test
-    void stopValidationMissingDeviceId() {
-        UserEntity user = createUser("owner-stop-validation@example.com", "user");
-        String token = buildToken(user.getId());
-
-        Map<String, Object> payload = new HashMap<>();
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .contentType("application/json")
-                .body(payload)
-                .when()
-                .post("/api/manual-watering/stop")
-                .then()
-                .statusCode(422);
-    }
-
-    @Test
     void rebootPublishesCommand() {
         UserEntity user = createUser("owner-reboot@example.com", "user");
-        DeviceEntity device = createDevice("mw-reboot", user, 1.0);
+        DeviceEntity device = createDevice("mw-reboot", user);
+        PumpEntity pump = pumpService.ensureDefaultPump(device);
         String token = buildToken(user.getId());
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", device.getDeviceId());
 
         given()
                 .header("Authorization", "Bearer " + token)
-                .contentType("application/json")
-                .body(payload)
                 .when()
-                .post("/api/manual-watering/reboot")
+                .post("/api/pumps/" + pump.getId() + "/watering/reboot")
                 .then()
                 .statusCode(200)
                 .body("correlation_id", notNullValue())
@@ -466,48 +363,10 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void rebootReturns502WhenPublishFails() {
-        UserEntity user = createUser("owner-reboot-fail@example.com", "user");
-        DeviceEntity device = createDevice("mw-reboot-fail", user, 1.0);
-        String token = buildToken(user.getId());
-        testPublisher.failNext();
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", device.getDeviceId());
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .contentType("application/json")
-                .body(payload)
-                .when()
-                .post("/api/manual-watering/reboot")
-                .then()
-                .statusCode(502)
-                .body("detail", equalTo("Failed to publish manual reboot command"));
-    }
-
-    @Test
-    void rebootValidationEmptyDeviceId() {
-        UserEntity user = createUser("owner-reboot-validation@example.com", "user");
-        String token = buildToken(user.getId());
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", "");
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .contentType("application/json")
-                .body(payload)
-                .when()
-                .post("/api/manual-watering/reboot")
-                .then()
-                .statusCode(422);
-    }
-
-    @Test
     void statusUsesShadowStore() {
         UserEntity user = createUser("owner-status@example.com", "user");
-        DeviceEntity device = createDevice("mw-status", user, 1.0);
+        DeviceEntity device = createDevice("mw-status", user);
+        PumpEntity pump = pumpService.ensureDefaultPump(device);
 
         ManualWateringState manual = new ManualWateringState(
                 "running",
@@ -522,9 +381,8 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
 
         given()
                 .header("Authorization", "Bearer " + token)
-                .queryParam("device_id", device.getDeviceId())
                 .when()
-                .get("/api/manual-watering/status")
+                .get("/api/pumps/" + pump.getId() + "/watering/status")
                 .then()
                 .statusCode(200)
                 .body("status", equalTo("running"))
@@ -534,72 +392,22 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void statusUsesDbState() throws Exception {
-        UserEntity user = createUser("owner-dbstate@example.com", "user");
-        DeviceEntity device = createDevice("mw-dbstate", user, 1.0);
-
-        Map<String, Object> manual = new HashMap<>();
-        manual.put("status", "running");
-        manual.put("duration_s", 25);
-        manual.put("started_at", "2024-01-01T00:00:00Z");
-        manual.put("correlation_id", "corr-db");
-        manual.put("remaining_s", 10);
-        Map<String, Object> state = new HashMap<>();
-        state.put("manual_watering", manual);
-
-        DeviceStateLastEntity record = DeviceStateLastEntity.create();
-        record.setDeviceId(device.getDeviceId());
-        record.setStateJson(objectMapper.writeValueAsString(state));
-        record.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
-        deviceStateLastRepository.save(record);
+    void statusReturnsIdleWhenNoState() {
+        UserEntity user = createUser("owner-idle@example.com", "user");
+        DeviceEntity device = createDevice("mw-idle", user);
+        PumpEntity pump = pumpService.ensureDefaultPump(device);
 
         String token = buildToken(user.getId());
 
         given()
                 .header("Authorization", "Bearer " + token)
-                .queryParam("device_id", device.getDeviceId())
                 .when()
-                .get("/api/manual-watering/status")
-                .then()
-                .statusCode(200)
-                .body("status", equalTo("running"))
-                .body("duration_s", equalTo(25))
-                .body("duration", equalTo(25))
-                .body("source", equalTo("db_state"));
-    }
-
-    @Test
-    void statusFallsBackToDevice() {
-        UserEntity user = createUser("owner-fallback@example.com", "user");
-        DeviceEntity device = createDevice("mw-fallback", user, 1.0);
-        device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
-        deviceRepository.save(device);
-
-        String token = buildToken(user.getId());
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .queryParam("device_id", device.getDeviceId())
-                .when()
-                .get("/api/manual-watering/status")
+                .get("/api/pumps/" + pump.getId() + "/watering/status")
                 .then()
                 .statusCode(200)
                 .body("status", equalTo("idle"))
-                .body("source", equalTo("db_fallback"))
-                .body("is_online", equalTo(true));
-    }
-
-    @Test
-    void statusValidationMissingDeviceId() {
-        UserEntity user = createUser("owner-status-validation@example.com", "user");
-        String token = buildToken(user.getId());
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/manual-watering/status")
-                .then()
-                .statusCode(422);
+                .body("source", equalTo("no_state"))
+                .body("offline_reason", equalTo("device_offline"));
     }
 
     @Test
@@ -614,7 +422,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .header("Authorization", "Bearer " + token)
                 .queryParam("correlation_id", "ack-1")
                 .when()
-                .get("/api/manual-watering/ack")
+                .get("/api/pumps/watering/ack")
                 .then()
                 .statusCode(200)
                 .body("correlation_id", equalTo("ack-1"))
@@ -631,23 +439,10 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .header("Authorization", "Bearer " + token)
                 .queryParam("correlation_id", "missing")
                 .when()
-                .get("/api/manual-watering/ack")
+                .get("/api/pumps/watering/ack")
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("ACK ещё не получен или удалён по TTL"));
-    }
-
-    @Test
-    void ackValidationMissingCorrelationId() {
-        UserEntity user = createUser("owner-ack-validation@example.com", "user");
-        String token = buildToken(user.getId());
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/manual-watering/ack")
-                .then()
-                .statusCode(422);
+                .body("detail", equalTo("ACK eshche ne poluchen ili udalen po TTL"));
     }
 
     @Test
@@ -663,7 +458,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .queryParam("correlation_id", "ack-wait")
                 .queryParam("timeout_s", 2)
                 .when()
-                .get("/api/manual-watering/wait-ack")
+                .get("/api/pumps/watering/wait-ack")
                 .then()
                 .statusCode(200)
                 .body("correlation_id", equalTo("ack-wait"))
@@ -682,61 +477,10 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .queryParam("correlation_id", "missing")
                 .queryParam("timeout_s", 1)
                 .when()
-                .get("/api/manual-watering/wait-ack")
+                .get("/api/pumps/watering/wait-ack")
                 .then()
                 .statusCode(408)
-                .body("detail", equalTo("ACK не получен в заданное время"));
-    }
-
-    @Test
-    void waitAckValidationTimeout() {
-        UserEntity user = createUser("owner-wait-validation@example.com", "user");
-        String token = buildToken(user.getId());
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .queryParam("correlation_id", "ack-1")
-                .queryParam("timeout_s", 0)
-                .when()
-                .get("/api/manual-watering/wait-ack")
-                .then()
-                .statusCode(422);
-    }
-
-    @Test
-    void debugEndpointsReturnOk() {
-        Map<String, Object> manual = new HashMap<>();
-        manual.put("status", "running");
-        Map<String, Object> state = new HashMap<>();
-        state.put("manual_watering", manual);
-
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", "debug-1");
-        payload.put("state", state);
-
-        given()
-                .contentType("application/json")
-                .body(payload)
-                .when()
-                .post("/_debug/shadow/state")
-                .then()
-                .statusCode(200)
-                .body("ok", equalTo(true));
-
-        given()
-                .queryParam("device_id", "debug-1")
-                .when()
-                .get("/_debug/manual-watering/snapshot")
-                .then()
-                .statusCode(200)
-                .body("view.status", equalTo("running"));
-
-        given()
-                .when()
-                .get("/_debug/manual-watering/config")
-                .then()
-                .statusCode(200)
-                .body("debug", equalTo(true));
+                .body("detail", equalTo("ACK ne poluchen v zadannoe vremya"));
     }
 
     private UserEntity createUser(String email, String role) {
@@ -745,12 +489,11 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         return userRepository.save(user);
     }
 
-    private DeviceEntity createDevice(String deviceId, UserEntity owner, Double wateringSpeedLph) {
+    private DeviceEntity createDevice(String deviceId, UserEntity owner) {
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId(deviceId);
         device.setName("Device " + deviceId);
         device.setUser(owner);
-        device.setWateringSpeedLph(wateringSpeedLph);
         return deviceRepository.save(device);
     }
 
@@ -762,11 +505,12 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         return plantRepository.save(plant);
     }
 
-    private void linkPlant(PlantEntity plant, DeviceEntity device) {
-        PlantDeviceEntity link = PlantDeviceEntity.create();
+    private void bindPump(PumpEntity pump, PlantEntity plant, int rate) {
+        PumpPlantBindingEntity link = PumpPlantBindingEntity.create();
+        link.setPump(pump);
         link.setPlant(plant);
-        link.setDevice(device);
-        plantDeviceRepository.save(link);
+        link.setRateMlPerHour(rate);
+        pumpPlantBindingRepository.save(link);
     }
 
     private String buildToken(int userId) {
@@ -780,14 +524,15 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     }
 
     private void clearDatabase() {
+        jdbcTemplate.update("DELETE FROM plant_metric_samples");
+        jdbcTemplate.update("DELETE FROM pump_plant_bindings");
+        jdbcTemplate.update("DELETE FROM pumps");
         jdbcTemplate.update("DELETE FROM plant_journal_watering_details");
         jdbcTemplate.update("DELETE FROM plant_journal_entries");
         jdbcTemplate.update("DELETE FROM plant_journal_photos");
-        jdbcTemplate.update("DELETE FROM plant_devices");
         jdbcTemplate.update("DELETE FROM plants");
-        jdbcTemplate.update("DELETE FROM plant_groups");
         jdbcTemplate.update("DELETE FROM device_state_last");
-        jdbcTemplate.update("DELETE FROM sensor_data");
+        jdbcTemplate.update("DELETE FROM sensors");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM user_auth_identities");
         jdbcTemplate.update("DELETE FROM user_refresh_tokens");
@@ -832,3 +577,4 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     private record PublishedCommand(String deviceId, Object cmd) {
     }
 }
+

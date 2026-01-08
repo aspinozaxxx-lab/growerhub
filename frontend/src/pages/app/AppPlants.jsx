@@ -1,7 +1,6 @@
 ﻿import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchPlants, fetchPlantGroups } from '../../api/plants';
-import { fetchMyDevices } from '../../api/devices';
 import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
 import PlantCard from '../../components/plants/PlantCard';
@@ -18,7 +17,6 @@ function AppPlants() {
   const navigate = useNavigate();
   const [plants, setPlants] = useState([]);
   const [plantGroups, setPlantGroups] = useState([]);
-  const [devices, setDevices] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -29,14 +27,12 @@ function AppPlants() {
     setIsLoading(true);
     setError(null);
     try {
-      const [plantsPayload, groupsPayload, devicesPayload] = await Promise.all([
+      const [plantsPayload, groupsPayload] = await Promise.all([
         fetchPlants(token),
         fetchPlantGroups(token),
-        fetchMyDevices(token),
       ]);
       setPlants(Array.isArray(plantsPayload) ? plantsPayload : []);
       setPlantGroups(Array.isArray(groupsPayload) ? groupsPayload : []);
-      setDevices(Array.isArray(devicesPayload) ? devicesPayload : []);
     } catch (err) {
       if (isSessionExpiredError(err)) return;
       setError(err?.message || 'Ne udalos zagruzit rasteniya');
@@ -105,9 +101,7 @@ function AppPlants() {
         isOpen={dialogOpen}
         mode={dialogMode}
         plant={selectedPlant}
-        plants={plants}
         plantGroups={plantGroups}
-        devices={devices}
         onClose={() => setDialogOpen(false)}
         onSaved={handleSaved}
       />
@@ -116,3 +110,4 @@ function AppPlants() {
 }
 
 export default AppPlants;
+

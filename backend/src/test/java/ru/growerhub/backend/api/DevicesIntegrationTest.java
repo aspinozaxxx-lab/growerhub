@@ -2,11 +2,14 @@
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -22,14 +25,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.db.DeviceEntity;
-import ru.growerhub.backend.db.DeviceRepository;
-import ru.growerhub.backend.db.DeviceStateLastEntity;
-import ru.growerhub.backend.db.DeviceStateLastRepository;
-import ru.growerhub.backend.db.SensorDataEntity;
-import ru.growerhub.backend.db.SensorDataRepository;
+import ru.growerhub.backend.device.DeviceEntity;
+import ru.growerhub.backend.device.DeviceRepository;
 import ru.growerhub.backend.device.DeviceShadowStore;
+import ru.growerhub.backend.device.DeviceStateLastEntity;
+import ru.growerhub.backend.device.DeviceStateLastRepository;
 import ru.growerhub.backend.mqtt.MqttMessageHandler;
+import ru.growerhub.backend.sensor.SensorReadingRepository;
+import ru.growerhub.backend.sensor.SensorRepository;
 import ru.growerhub.backend.user.UserEntity;
 import ru.growerhub.backend.user.UserRepository;
 
@@ -47,7 +50,10 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     private DeviceRepository deviceRepository;
 
     @Autowired
-    private SensorDataRepository sensorDataRepository;
+    private SensorRepository sensorRepository;
+
+    @Autowired
+    private SensorReadingRepository sensorReadingRepository;
 
     @Autowired
     private DeviceStateLastRepository deviceStateLastRepository;
@@ -73,7 +79,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void updateDeviceStatusCreatesDeviceAndSensorData() {
+    void updateDeviceStatusCreatesDeviceAndSensorReadings() {
         Map<String, Object> payload = new HashMap<>();
         payload.put("device_id", "dev-1");
         payload.put("soil_moisture", 12.5);
@@ -94,8 +100,8 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         DeviceEntity stored = deviceRepository.findByDeviceId("dev-1").orElse(null);
         Assertions.assertNotNull(stored);
         Assertions.assertEquals("Watering Device dev-1", stored.getName());
-        Assertions.assertEquals(12.5, stored.getSoilMoisture());
-        Assertions.assertEquals(1, sensorDataRepository.count());
+        Assertions.assertEquals(3, sensorRepository.count());
+        Assertions.assertEquals(3, sensorReadingRepository.count());
     }
 
     @Test
@@ -117,7 +123,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .statusCode(200)
                 .body("message", equalTo("Status updated"));
 
-        Assertions.assertEquals(1, sensorDataRepository.count());
+        Assertions.assertEquals(3, sensorReadingRepository.count());
     }
 
     @Test
@@ -181,7 +187,6 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         payload.put("target_moisture", 55.0);
         payload.put("watering_duration", 10);
         payload.put("watering_timeout", 100);
-        payload.put("watering_speed_lph", 1.5);
         payload.put("light_on_hour", 5);
         payload.put("light_off_hour", 20);
         payload.put("light_duration", 15);
@@ -198,7 +203,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         DeviceEntity stored = deviceRepository.findById(device.getId()).orElse(null);
         Assertions.assertNotNull(stored);
         Assertions.assertEquals(55.0, stored.getTargetMoisture());
-        Assertions.assertEquals(1.5, stored.getWateringSpeedLph());
+        Assertions.assertEquals(10, stored.getWateringDuration());
     }
 
     @Test
@@ -222,7 +227,8 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .statusCode(200)
                 .body("size()", equalTo(1))
                 .body("[0].firmware_version", equalTo("v2"))
-                .body("[0].is_watering", equalTo(true))
+                .body("[0].pumps.size()", equalTo(1))
+                .body("[0].pumps[0].is_running", equalTo(true))
                 .body("[0].is_online", equalTo(true));
     }
 
@@ -276,7 +282,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .statusCode(200)
                 .body("size()", equalTo(1))
                 .body("[0].firmware_version", equalTo("v3"))
-                .body("[0].is_watering", equalTo(true));
+                .body("[0].pumps[0].is_running", equalTo(true));
     }
 
     @Test
@@ -293,13 +299,17 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 payload.getBytes(StandardCharsets.UTF_8)
         );
 
-        given()
+        Response response = given()
                 .header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/devices/my")
                 .then()
                 .statusCode(200)
-                .body("[0].air_temperature", equalTo(23.5f));
+                .extract()
+                .response();
+
+        Float value = response.jsonPath().getFloat("[0].sensors.find { it.type == 'AIR_TEMPERATURE' }.last_value");
+        Assertions.assertEquals(23.5f, value);
     }
 
     @Test
@@ -324,24 +334,27 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(200);
 
-        given()
+        Response response = given()
                 .header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/devices/my")
                 .then()
                 .statusCode(200)
-                .body("[0].air_temperature", equalTo(22.0f));
+                .extract()
+                .response();
+
+        Float value = response.jsonPath().getFloat("[0].sensors.find { it.type == 'AIR_TEMPERATURE' }.last_value");
+        Assertions.assertEquals(22.0f, value);
     }
 
     @Test
-    void coldStartLoadsAirTemperatureFromDbState() throws Exception {
+    void coldStartLoadsFirmwareFromDbState() throws Exception {
         UserEntity user = createUser("cold-owner@example.com", "user");
         DeviceEntity device = createDevice("dev-cold", user);
         String token = buildToken(user.getId());
 
         Map<String, Object> state = new HashMap<>();
-        state.put("air_temperature", 19.0);
-        state.put("air_humidity", 55.0);
+        state.put("fw_ver", "v7");
         DeviceStateLastEntity record = DeviceStateLastEntity.create();
         record.setDeviceId(device.getDeviceId());
         record.setStateJson(objectMapper.writeValueAsString(state));
@@ -355,7 +368,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .get("/api/devices/my")
                 .then()
                 .statusCode(200)
-                .body("[0].air_temperature", equalTo(19.0f));
+                .body("[0].firmware_version", equalTo("v7"));
     }
 
     @Test
@@ -482,25 +495,34 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void deleteDeviceRemovesSensorData() {
-        DeviceEntity device = createDevice("dev-13", null);
-        SensorDataEntity sensor = SensorDataEntity.create();
-        sensor.setDeviceId(device.getDeviceId());
-        sensor.setSoilMoisture(1.0);
-        sensor.setAirTemperature(2.0);
-        sensor.setAirHumidity(3.0);
-        sensor.setTimestamp(LocalDateTime.now(ZoneOffset.UTC));
-        sensorDataRepository.save(sensor);
+    void deleteDeviceRemovesSensors() {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("device_id", "dev-13");
+        payload.put("soil_moisture", 12.5);
+        payload.put("air_temperature", 21.0);
+        payload.put("air_humidity", 40.0);
+        payload.put("is_watering", false);
+        payload.put("is_light_on", true);
+
+        given()
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .post("/api/device/dev-13/status")
+                .then()
+                .statusCode(200);
+
+        Assertions.assertEquals(3, sensorReadingRepository.count());
 
         given()
                 .when()
-                .delete("/api/device/" + device.getDeviceId())
+                .delete("/api/device/dev-13")
                 .then()
                 .statusCode(200)
                 .body("message", equalTo("Device deleted"));
 
-        Assertions.assertEquals(0, sensorDataRepository.count());
-        Assertions.assertTrue(deviceRepository.findById(device.getId()).isEmpty());
+        Assertions.assertEquals(0, sensorReadingRepository.count());
+        Assertions.assertTrue(deviceRepository.findByDeviceId("dev-13").isEmpty());
     }
 
     @Test
@@ -571,14 +593,18 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     }
 
     private void clearDatabase() {
+        jdbcTemplate.update("DELETE FROM plant_metric_samples");
+        jdbcTemplate.update("DELETE FROM sensor_plant_bindings");
+        jdbcTemplate.update("DELETE FROM sensor_readings");
+        jdbcTemplate.update("DELETE FROM sensors");
+        jdbcTemplate.update("DELETE FROM pump_plant_bindings");
+        jdbcTemplate.update("DELETE FROM pumps");
         jdbcTemplate.update("DELETE FROM plant_journal_watering_details");
         jdbcTemplate.update("DELETE FROM plant_journal_entries");
         jdbcTemplate.update("DELETE FROM plant_journal_photos");
-        jdbcTemplate.update("DELETE FROM plant_devices");
         jdbcTemplate.update("DELETE FROM plants");
         jdbcTemplate.update("DELETE FROM plant_groups");
         jdbcTemplate.update("DELETE FROM device_state_last");
-        jdbcTemplate.update("DELETE FROM sensor_data");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM user_auth_identities");
         jdbcTemplate.update("DELETE FROM user_refresh_tokens");

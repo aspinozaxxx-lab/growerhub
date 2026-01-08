@@ -5,18 +5,20 @@ const WateringSidebarContext = createContext(undefined);
 function WateringSidebarProvider({ children }) {
   const [state, setState] = useState({
     isOpen: false,
-    deviceId: null,
+    pumpId: null,
+    pumpLabel: null,
     plantId: null,
   });
-  const [wateringByDevice, setWateringByDevice] = useState({});
+  const [wateringByPump, setWateringByPump] = useState({});
 
-  const openWateringSidebar = useCallback(({ deviceId, plantId }) => {
-    if (!deviceId) {
+  const openWateringSidebar = useCallback(({ pumpId, pumpLabel, plantId }) => {
+    if (!pumpId) {
       return;
     }
     setState({
       isOpen: true,
-      deviceId,
+      pumpId,
+      pumpLabel: pumpLabel || null,
       plantId: plantId || null,
     });
   }, []);
@@ -28,19 +30,18 @@ function WateringSidebarProvider({ children }) {
     }));
   }, []);
 
-  const setWateringStatus = useCallback((deviceId, status) => {
-    if (!deviceId) return;
-    setWateringByDevice((prev) => {
+  const setWateringStatus = useCallback((pumpId, status) => {
+    if (!pumpId) return;
+    setWateringByPump((prev) => {
       if (!status) {
-        // Translitem: ochistka statusa esli poliv ne aktivnyj.
-        if (!prev[deviceId]) return prev;
+        if (!prev[pumpId]) return prev;
         const next = { ...prev };
-        delete next[deviceId];
+        delete next[pumpId];
         return next;
       }
       return {
         ...prev,
-        [deviceId]: status,
+        [pumpId]: status,
       };
     });
   }, []);
@@ -48,12 +49,12 @@ function WateringSidebarProvider({ children }) {
   const value = useMemo(
     () => ({
       ...state,
-      wateringByDevice,
+      wateringByPump,
       openWateringSidebar,
       closeWateringSidebar,
       setWateringStatus,
     }),
-    [closeWateringSidebar, openWateringSidebar, setWateringStatus, state, wateringByDevice],
+    [closeWateringSidebar, openWateringSidebar, setWateringStatus, state, wateringByPump],
   );
 
   return (
@@ -72,4 +73,3 @@ function useWateringSidebar() {
 }
 
 export { WateringSidebarProvider, useWateringSidebar };
-

@@ -62,6 +62,7 @@
     padding-right: 0;
   }
 }
+
 .free-device-card__header {
   display: flex;
   justify-content: space-between;
@@ -89,6 +90,26 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
+}
+
+.free-device-card__empty {
+  color: #8aa3c6;
+  font-size: 12px;
+}
+
+.free-device-card__pumps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.free-device-card__pump {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  padding: 4px 8px;
+  color: #c7d7ef;
+  font-size: 12px;
 }
 
 .dashboard-status-dot {
