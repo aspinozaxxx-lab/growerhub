@@ -5,8 +5,7 @@ on:
     branches: [ "main" ]
     paths:
       - "server/**"
-      - "static/**"
-      - "frontend/**"
+      - "static/**"     
   workflow_dispatch:
 
 jobs:
