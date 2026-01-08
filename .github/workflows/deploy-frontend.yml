@@ -1,0 +1,66 @@
+﻿name: Deploy Frontend
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "frontend/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-frontend-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy frontend
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://growerhub.ru/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Setup SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p 6733 growerhub.ru > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: SSH smoke test
+        run: |
+          ssh -p 6733 -o StrictHostKeyChecking=yes watering-admin@growerhub.ru "echo 'SSH OK'"
+
+      - name: Ensure frontend target dir exists
+        run: |
+          ssh -p 6733 -o StrictHostKeyChecking=yes watering-admin@growerhub.ru \
+            "mkdir -p /home/watering-admin/growerhub/frontend/dist && chmod 755 /home/watering-admin/growerhub/frontend/dist"
+
+      - name: Sync frontend dist to server
+        run: |
+          rsync -azv --delete \
+            --omit-dir-times --no-perms --no-owner --no-group \
+            -e "ssh -p 6733 -o StrictHostKeyChecking=yes" \
+            ./frontend/dist/ watering-admin@growerhub.ru:/home/watering-admin/growerhub/frontend/dist/
+
+      - name: Log deployed sha
+        run: |
+          echo "deployed sha: $GITHUB_SHA"

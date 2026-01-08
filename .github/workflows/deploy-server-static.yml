@@ -1,12 +1,18 @@
-name: CI/CD Server
+﻿name: Deploy Server + Static
 
 on:
   push:
     branches: [ "main" ]
     paths:
       - "server/**"
-      - "static/**"     
-  workflow_dispatch:
+      - "static/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-server-static-main
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -49,7 +55,7 @@ jobs:
       #  run: |
       #    . .venv/bin/activate
       #    pytest tests/test_auth_users.py::test_diag_authenticate_local_user_steps -q
-          
+
       - name: Run pytest
         working-directory: server
         run: |
@@ -75,19 +81,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-
-      - name: Install frontend deps
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
-
       - name: Setup SSH
         run: |
           install -m 700 -d ~/.ssh
@@ -100,18 +93,25 @@ jobs:
         run: |
           ssh -p 6733 -o StrictHostKeyChecking=yes watering-admin@growerhub.ru "echo 'SSH OK'"
 
-      - name: Ensure target dir exists
+      - name: Ensure target dirs exist
         run: |
           ssh -p 6733 -o StrictHostKeyChecking=yes watering-admin@growerhub.ru \
-            "mkdir -p /home/watering-admin/growerhub && chmod 755 /home/watering-admin/growerhub"
+            "mkdir -p /home/watering-admin/growerhub/server /home/watering-admin/growerhub/static && chmod 755 /home/watering-admin/growerhub/server /home/watering-admin/growerhub/static"
 
-      - name: Sync project to server
+      - name: Sync server to server host
         run: |
           rsync -azv --delete \
-            --exclude ".git/" --exclude ".venv/" --exclude "__pycache__/" --exclude "*.pyc" \
+            --exclude ".venv/" --exclude "__pycache__/" --exclude "*.pyc" \
             --omit-dir-times --no-perms --no-owner --no-group \
             -e "ssh -p 6733 -o StrictHostKeyChecking=yes" \
-            ./ watering-admin@growerhub.ru:/home/watering-admin/growerhub/
+            ./server/ watering-admin@growerhub.ru:/home/watering-admin/growerhub/server/
+
+      - name: Sync static to server host
+        run: |
+          rsync -azv --delete \
+            --omit-dir-times --no-perms --no-owner --no-group \
+            -e "ssh -p 6733 -o StrictHostKeyChecking=yes" \
+            ./static/ watering-admin@growerhub.ru:/home/watering-admin/growerhub/static/
 
       - name: Remote install dependencies
         run: |
