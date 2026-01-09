@@ -26,6 +26,7 @@ import ru.growerhub.backend.api.ApiValidationException;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.DeviceDtos;
 import ru.growerhub.backend.api.dto.PlantDtos;
+import ru.growerhub.backend.journal.JournalService;
 import ru.growerhub.backend.pump.PumpQueryService;
 import ru.growerhub.backend.pump.PumpView;
 import ru.growerhub.backend.sensor.SensorQueryService;
@@ -39,17 +40,20 @@ public class PlantController {
     private final PlantRepository plantRepository;
     private final SensorQueryService sensorQueryService;
     private final PumpQueryService pumpQueryService;
+    private final JournalService journalService;
 
     public PlantController(
             PlantGroupRepository plantGroupRepository,
             PlantRepository plantRepository,
             SensorQueryService sensorQueryService,
-            PumpQueryService pumpQueryService
+            PumpQueryService pumpQueryService,
+            JournalService journalService
     ) {
         this.plantGroupRepository = plantGroupRepository;
         this.plantRepository = plantRepository;
         this.sensorQueryService = sensorQueryService;
         this.pumpQueryService = pumpQueryService;
+        this.journalService = journalService;
     }
 
     @GetMapping("/api/plant-groups")
@@ -210,6 +214,27 @@ public class PlantController {
         return new CommonDtos.MessageResponse("plant deleted");
     }
 
+    @PostMapping("/api/plants/{plant_id}/harvest")
+    @Transactional
+    public CommonDtos.MessageResponse harvestPlant(
+            @PathVariable("plant_id") Integer plantId,
+            @Valid @RequestBody PlantDtos.PlantHarvestRequest request,
+            @AuthenticationPrincipal UserEntity user
+    ) {
+        PlantEntity plant = requireUserPlant(plantId, user);
+        plant.setHarvestedAt(request.harvestedAt());
+        plantRepository.save(plant);
+        journalService.createEntry(
+                plant,
+                user,
+                "harvest",
+                request.text(),
+                request.harvestedAt(),
+                null
+        );
+        return new CommonDtos.MessageResponse("plant harvested");
+    }
+
     @GetMapping("/api/admin/plants")
     public List<PlantDtos.AdminPlantResponse> listAdminPlants(
             @AuthenticationPrincipal UserEntity user
@@ -277,6 +302,7 @@ public class PlantController {
                 plant.getId(),
                 plant.getName(),
                 plant.getPlantedAt(),
+                plant.getHarvestedAt(),
                 plant.getPlantType(),
                 plant.getStrain(),
                 plant.getGrowthStage(),

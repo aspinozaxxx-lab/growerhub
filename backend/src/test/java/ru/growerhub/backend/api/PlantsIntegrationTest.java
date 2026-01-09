@@ -4,6 +4,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
 import io.jsonwebtoken.Jwts;
@@ -450,6 +451,45 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(404)
                 .body("detail", equalTo("rastenie ne naideno"));
+    }
+
+    @Test
+    void harvestUpdatesPlantAndCreatesJournalEntry() {
+        UserEntity owner = createUser("harvest-owner@example.com", "user");
+        String token = buildToken(owner.getId());
+        PlantEntity plant = createPlant(owner, "Harvested");
+
+        LocalDateTime harvestedAt = LocalDateTime.of(2026, 1, 9, 10, 15, 30);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("text", "first harvest");
+        payload.put("harvested_at", harvestedAt.toString());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .post("/api/plants/" + plant.getId() + "/harvest")
+                .then()
+                .statusCode(200)
+                .body("message", equalTo("plant harvested"));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/plants")
+                .then()
+                .statusCode(200)
+                .body("find { it.id == " + plant.getId() + " }.harvested_at", notNullValue());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/plants/" + plant.getId() + "/journal")
+                .then()
+                .statusCode(200)
+                .body("find { it.type == 'harvest' }.text", equalTo("first harvest"))
+                .body("find { it.type == 'harvest' }.event_at", equalTo(harvestedAt.toString()));
     }
 
     @Test

@@ -42,6 +42,9 @@ public class PlantEntity {
     @Column(name = "growth_stage", nullable = true, length = 255)
     private String growthStage;
 
+    @Column(name = "harvested_at", nullable = true)
+    private LocalDateTime harvestedAt;
+
     @ManyToOne
     @JoinColumn(name = "plant_group_id", nullable = true)
     @OnDelete(action = OnDeleteAction.SET_NULL)
@@ -110,6 +113,14 @@ public class PlantEntity {
 
     public void setGrowthStage(String growthStage) {
         this.growthStage = growthStage;
+    }
+
+    public LocalDateTime getHarvestedAt() {
+        return harvestedAt;
+    }
+
+    public void setHarvestedAt(LocalDateTime harvestedAt) {
+        this.harvestedAt = harvestedAt;
     }
 
     public PlantGroupEntity getPlantGroup() {

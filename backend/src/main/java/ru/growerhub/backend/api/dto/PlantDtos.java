@@ -54,10 +54,19 @@ public final class PlantDtos {
     ) {
     }
 
+    public record PlantHarvestRequest(
+            @JsonProperty("text") String text,
+            @NotNull
+            @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
+            @JsonProperty("harvested_at") LocalDateTime harvestedAt
+    ) {
+    }
+
     public record PlantResponse(
             @JsonProperty("id") Integer id,
             @JsonProperty("name") String name,
             @JsonProperty("planted_at") LocalDateTime plantedAt,
+            @JsonProperty("harvested_at") LocalDateTime harvestedAt,
             @JsonProperty("plant_type") String plantType,
             @JsonProperty("strain") String strain,
             @JsonProperty("growth_stage") String growthStage,

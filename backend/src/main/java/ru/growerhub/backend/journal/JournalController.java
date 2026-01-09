@@ -38,6 +38,7 @@ public class JournalController {
     private static final Set<String> JOURNAL_TYPES = Set.of(
             "watering",
             "feeding",
+            "harvest",
             "note",
             "photo",
             "other"
@@ -344,7 +345,7 @@ public class JournalController {
         if (!JOURNAL_TYPES.contains(type)) {
             ApiValidationErrorItem item = new ApiValidationErrorItem(
                     List.of("body", "type"),
-                    "Input should be 'watering' or 'feeding' or 'note' or 'photo' or 'other'",
+                    "Input should be 'watering' or 'feeding' or 'harvest' or 'note' or 'photo' or 'other'",
                     "literal_error"
             );
             throw new ApiValidationException(new ApiValidationError(List.of(item)));
