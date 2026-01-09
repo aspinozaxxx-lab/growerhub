@@ -16,33 +16,27 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.ApiException;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.PumpDtos;
-import ru.growerhub.backend.mqtt.model.ManualWateringAck;
-import ru.growerhub.backend.user.UserEntity;
+import ru.growerhub.backend.common.AuthenticatedUser;
 
 @RestController
 public class PumpController {
-    private final PumpBindingService pumpBindingService;
-    private final PumpWateringService pumpWateringService;
+    private final PumpFacade pumpFacade;
 
-    public PumpController(
-            PumpBindingService pumpBindingService,
-            PumpWateringService pumpWateringService
-    ) {
-        this.pumpBindingService = pumpBindingService;
-        this.pumpWateringService = pumpWateringService;
+    public PumpController(PumpFacade pumpFacade) {
+        this.pumpFacade = pumpFacade;
     }
 
     @PutMapping("/api/pumps/{pump_id}/bindings")
     public CommonDtos.OkResponse updateBindings(
             @PathVariable("pump_id") Integer pumpId,
             @Valid @RequestBody PumpDtos.PumpBindingUpdateRequest request,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        pumpBindingService.updateBindings(
+        pumpFacade.updateBindings(
                 pumpId,
                 request.items() != null
                         ? request.items().stream()
-                        .map(item -> new PumpBindingService.PumpBindingItem(item.plantId(), item.rateMlPerHour()))
+                        .map(item -> new PumpFacade.PumpBindingItem(item.plantId(), item.rateMlPerHour()))
                         .toList()
                         : null,
                 user
@@ -54,11 +48,11 @@ public class PumpController {
     public PumpDtos.PumpWateringStartResponse start(
             @PathVariable("pump_id") Integer pumpId,
             @Valid @RequestBody PumpDtos.PumpWateringStartRequest request,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        PumpWateringService.PumpStartResult result = pumpWateringService.start(
+        var result = pumpFacade.start(
                 pumpId,
-                new PumpWateringService.PumpWateringRequest(
+                new PumpFacade.PumpWateringRequest(
                         request.durationS(),
                         request.waterVolumeL(),
                         request.ph(),
@@ -72,27 +66,27 @@ public class PumpController {
     @PostMapping("/api/pumps/{pump_id}/watering/stop")
     public PumpDtos.PumpWateringStopResponse stop(
             @PathVariable("pump_id") Integer pumpId,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        PumpWateringService.PumpStopResult result = pumpWateringService.stop(pumpId, user);
+        var result = pumpFacade.stop(pumpId, user);
         return new PumpDtos.PumpWateringStopResponse(result.correlationId());
     }
 
     @PostMapping("/api/pumps/{pump_id}/watering/reboot")
     public PumpDtos.PumpWateringRebootResponse reboot(
             @PathVariable("pump_id") Integer pumpId,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        PumpWateringService.PumpRebootResult result = pumpWateringService.reboot(pumpId, user);
+        var result = pumpFacade.reboot(pumpId, user);
         return new PumpDtos.PumpWateringRebootResponse(result.correlationId(), result.message());
     }
 
     @GetMapping("/api/pumps/{pump_id}/watering/status")
     public PumpDtos.PumpWateringStatusResponse status(
             @PathVariable("pump_id") Integer pumpId,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        PumpWateringService.PumpStatusResult result = pumpWateringService.status(pumpId, user);
+        var result = pumpFacade.status(pumpId, user);
         Map<String, Object> view = result.view();
         if (view == null) {
             return new PumpDtos.PumpWateringStatusResponse(
@@ -129,12 +123,12 @@ public class PumpController {
     @GetMapping("/api/pumps/watering/ack")
     public PumpDtos.PumpWateringAckResponse ack(
             @RequestParam("correlation_id") String correlationId,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
         if (user == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
-        ManualWateringAck ack = pumpWateringService.getAck(correlationId);
+        PumpAck ack = pumpFacade.getAck(correlationId);
         if (ack == null) {
             throw new ApiException(HttpStatus.NOT_FOUND, "ACK eshche ne poluchen ili udalen po TTL");
         }
@@ -150,14 +144,14 @@ public class PumpController {
     public PumpDtos.PumpWateringAckResponse waitAck(
             @RequestParam("correlation_id") String correlationId,
             @RequestParam(value = "timeout_s", defaultValue = "5") @Min(1) @Max(15) Integer timeoutSeconds,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
         if (user == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
         long deadline = System.nanoTime() + timeoutSeconds * 1_000_000_000L;
         while (true) {
-            ManualWateringAck ack = pumpWateringService.getAck(correlationId);
+            PumpAck ack = pumpFacade.getAck(correlationId);
             if (ack != null) {
                 return new PumpDtos.PumpWateringAckResponse(
                         ack.correlationId(),

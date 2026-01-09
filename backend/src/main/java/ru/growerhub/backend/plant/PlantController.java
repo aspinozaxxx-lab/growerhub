@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,287 +25,175 @@ import ru.growerhub.backend.api.ApiValidationException;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.DeviceDtos;
 import ru.growerhub.backend.api.dto.PlantDtos;
-import ru.growerhub.backend.journal.JournalService;
-import ru.growerhub.backend.pump.PumpQueryService;
+import ru.growerhub.backend.common.AuthenticatedUser;
+import ru.growerhub.backend.pump.PumpFacade;
 import ru.growerhub.backend.pump.PumpView;
-import ru.growerhub.backend.sensor.SensorQueryService;
+import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.SensorView;
-import ru.growerhub.backend.user.UserEntity;
 
 @RestController
 @Validated
 public class PlantController {
-    private final PlantGroupRepository plantGroupRepository;
-    private final PlantRepository plantRepository;
-    private final SensorQueryService sensorQueryService;
-    private final PumpQueryService pumpQueryService;
-    private final JournalService journalService;
+    private final PlantFacade plantFacade;
+    private final SensorFacade sensorFacade;
+    private final PumpFacade pumpFacade;
 
     public PlantController(
-            PlantGroupRepository plantGroupRepository,
-            PlantRepository plantRepository,
-            SensorQueryService sensorQueryService,
-            PumpQueryService pumpQueryService,
-            JournalService journalService
+            PlantFacade plantFacade,
+            SensorFacade sensorFacade,
+            PumpFacade pumpFacade
     ) {
-        this.plantGroupRepository = plantGroupRepository;
-        this.plantRepository = plantRepository;
-        this.sensorQueryService = sensorQueryService;
-        this.pumpQueryService = pumpQueryService;
-        this.journalService = journalService;
+        this.plantFacade = plantFacade;
+        this.sensorFacade = sensorFacade;
+        this.pumpFacade = pumpFacade;
     }
 
     @GetMapping("/api/plant-groups")
     public List<PlantDtos.PlantGroupResponse> listPlantGroups(
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        List<PlantGroupEntity> groups = plantGroupRepository.findAllByUser_Id(user.getId());
-        return groups.stream().map(this::toGroupResponse).toList();
+        return plantFacade.listGroups(user).stream()
+                .map(group -> new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId()))
+                .toList();
     }
 
     @PostMapping("/api/plant-groups")
-    @Transactional
     public PlantDtos.PlantGroupResponse createPlantGroup(
             @Valid @RequestBody PlantDtos.PlantGroupCreateRequest request,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        PlantGroupEntity group = PlantGroupEntity.create();
-        group.setName(request.name());
-        group.setUser(user);
-        group.setCreatedAt(now);
-        group.setUpdatedAt(now);
-        plantGroupRepository.save(group);
-        return toGroupResponse(group);
+        PlantGroupInfo group = plantFacade.createGroup(request.name(), user);
+        return new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId());
     }
 
     @PatchMapping("/api/plant-groups/{group_id}")
-    @Transactional
     public PlantDtos.PlantGroupResponse updatePlantGroup(
             @PathVariable("group_id") Integer groupId,
             @Valid @RequestBody PlantDtos.PlantGroupUpdateRequest request,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        PlantGroupEntity group = plantGroupRepository.findByIdAndUser_Id(groupId, user.getId()).orElse(null);
-        if (group == null) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "gruppa ne naidena");
-        }
-        group.setName(request.name());
-        group.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
-        plantGroupRepository.save(group);
-        return toGroupResponse(group);
+        PlantGroupInfo group = plantFacade.updateGroup(groupId, request.name(), user);
+        return new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId());
     }
 
     @DeleteMapping("/api/plant-groups/{group_id}")
-    @Transactional
     public CommonDtos.MessageResponse deletePlantGroup(
             @PathVariable("group_id") Integer groupId,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        PlantGroupEntity group = plantGroupRepository.findByIdAndUser_Id(groupId, user.getId()).orElse(null);
-        if (group == null) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "gruppa ne naidena");
-        }
-        List<PlantEntity> plants = plantRepository.findAllByUser_IdAndPlantGroup_Id(user.getId(), groupId);
-        for (PlantEntity plant : plants) {
-            plant.setPlantGroup(null);
-        }
-        plantRepository.saveAll(plants);
-        plantGroupRepository.delete(group);
+        plantFacade.deleteGroup(groupId, user);
         return new CommonDtos.MessageResponse("group deleted");
     }
 
     @GetMapping("/api/plants")
     public List<PlantDtos.PlantResponse> listPlants(
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        List<PlantEntity> plants = plantRepository.findAllByUser_Id(user.getId());
+        List<PlantInfo> plants = plantFacade.listPlants(user);
         List<PlantDtos.PlantResponse> responses = new ArrayList<>();
-        for (PlantEntity plant : plants) {
-            responses.add(toPlantResponse(plant, user));
+        for (PlantInfo plant : plants) {
+            responses.add(toPlantResponse(plant));
         }
         return responses;
     }
 
     @PostMapping("/api/plants")
-    @Transactional
     public PlantDtos.PlantResponse createPlant(
             @Valid @RequestBody PlantDtos.PlantCreateRequest request,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        LocalDateTime plantedAt = request.plantedAt() != null ? request.plantedAt() : now;
-        PlantEntity plant = PlantEntity.create();
-        plant.setName(request.name());
-        plant.setPlantedAt(plantedAt);
-        plant.setUser(user);
-        plant.setPlantGroup(resolvePlantGroup(request.plantGroupId()));
-        plant.setPlantType(request.plantType());
-        plant.setStrain(request.strain());
-        plant.setGrowthStage(request.growthStage());
-        plant.setCreatedAt(now);
-        plant.setUpdatedAt(now);
-        plantRepository.save(plant);
-        return toPlantResponse(plant, user);
+        PlantInfo plant = plantFacade.createPlant(
+                new PlantFacade.PlantCreateCommand(
+                        request.name(),
+                        request.plantedAt(),
+                        request.plantGroupId(),
+                        request.plantType(),
+                        request.strain(),
+                        request.growthStage()
+                ),
+                user
+        );
+        return toPlantResponse(plant);
     }
 
     @GetMapping("/api/plants/{plant_id}")
     public PlantDtos.PlantResponse getPlant(
             @PathVariable("plant_id") Integer plantId,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        PlantEntity plant = requireUserPlant(plantId, user);
-        return toPlantResponse(plant, user);
+        PlantInfo plant = plantFacade.getPlant(plantId, user);
+        return toPlantResponse(plant);
     }
 
     @PatchMapping("/api/plants/{plant_id}")
-    @Transactional
     public PlantDtos.PlantResponse updatePlant(
             @PathVariable("plant_id") Integer plantId,
             @RequestBody JsonNode request,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        PlantEntity plant = requireUserPlant(plantId, user);
-        boolean changed = false;
-
-        if (request.has("name")) {
-            plant.setName(textValue(request.get("name")));
-            changed = true;
-        }
-        if (request.has("planted_at")) {
-            plant.setPlantedAt(parseDateValue(request.get("planted_at"), "planted_at"));
-            changed = true;
-        }
-        if (request.has("plant_group_id")) {
-            Integer groupId = intValue(request.get("plant_group_id"), "plant_group_id");
-            plant.setPlantGroup(groupId != null ? resolvePlantGroup(groupId) : null);
-            changed = true;
-        }
-        if (request.has("plant_type")) {
-            plant.setPlantType(textValue(request.get("plant_type")));
-            changed = true;
-        }
-        if (request.has("strain")) {
-            plant.setStrain(textValue(request.get("strain")));
-            changed = true;
-        }
-        if (request.has("growth_stage")) {
-            plant.setGrowthStage(textValue(request.get("growth_stage")));
-            changed = true;
-        }
-
-        if (changed) {
-            plant.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
-            plantRepository.save(plant);
-        }
-
-        return toPlantResponse(plant, user);
+        PlantFacade.PlantUpdateCommand command = parseUpdateCommand(request);
+        PlantInfo plant = plantFacade.updatePlant(plantId, command, user);
+        return toPlantResponse(plant);
     }
 
     @DeleteMapping("/api/plants/{plant_id}")
-    @Transactional
     public CommonDtos.MessageResponse deletePlant(
             @PathVariable("plant_id") Integer plantId,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        PlantEntity plant = requireUserPlant(plantId, user);
-        plantRepository.delete(plant);
+        plantFacade.deletePlant(plantId, user);
         return new CommonDtos.MessageResponse("plant deleted");
     }
 
     @PostMapping("/api/plants/{plant_id}/harvest")
-    @Transactional
     public CommonDtos.MessageResponse harvestPlant(
             @PathVariable("plant_id") Integer plantId,
             @Valid @RequestBody PlantDtos.PlantHarvestRequest request,
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        PlantEntity plant = requireUserPlant(plantId, user);
-        plant.setHarvestedAt(request.harvestedAt());
-        plantRepository.save(plant);
-        journalService.createEntry(
-                plant,
-                user,
-                "harvest",
-                request.text(),
-                request.harvestedAt(),
-                null
+        plantFacade.harvestPlant(
+                plantId,
+                new PlantFacade.PlantHarvestCommand(request.harvestedAt(), request.text()),
+                user
         );
         return new CommonDtos.MessageResponse("plant harvested");
     }
 
     @GetMapping("/api/admin/plants")
     public List<PlantDtos.AdminPlantResponse> listAdminPlants(
-            @AuthenticationPrincipal UserEntity user
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        requireAdmin(user);
-        List<PlantEntity> plants = plantRepository.findAll();
+        List<AdminPlantInfo> plants = plantFacade.listAdminPlants(user);
         List<PlantDtos.AdminPlantResponse> responses = new ArrayList<>();
-        for (PlantEntity plant : plants) {
-            UserEntity owner = plant.getUser();
-            PlantGroupEntity group = plant.getPlantGroup();
+        for (AdminPlantInfo plant : plants) {
             responses.add(new PlantDtos.AdminPlantResponse(
-                    plant.getId(),
-                    plant.getName(),
-                    owner != null ? owner.getEmail() : null,
-                    owner != null ? owner.getUsername() : null,
-                    owner != null ? owner.getId() : null,
-                    group != null ? group.getName() : null
+                    plant.id(),
+                    plant.name(),
+                    plant.ownerEmail(),
+                    plant.ownerUsername(),
+                    plant.ownerId(),
+                    plant.groupName()
             ));
         }
         return responses;
     }
 
-    private PlantEntity requireUserPlant(Integer plantId, UserEntity user) {
-        PlantEntity plant = plantRepository.findByIdAndUser_Id(plantId, user.getId()).orElse(null);
-        if (plant == null) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "rastenie ne naideno");
-        }
-        return plant;
-    }
-
-    private PlantGroupEntity resolvePlantGroup(Integer groupId) {
-        if (groupId == null) {
-            return null;
-        }
-        return plantGroupRepository.getReferenceById(groupId);
-    }
-
-    private PlantDtos.PlantGroupResponse toGroupResponse(PlantGroupEntity group) {
-        UserEntity owner = group.getUser();
-        return new PlantDtos.PlantGroupResponse(
-                group.getId(),
-                group.getName(),
-                owner != null ? owner.getId() : null
-        );
-    }
-
-    private PlantDtos.PlantResponse toPlantResponse(PlantEntity plant, UserEntity user) {
-        PlantGroupEntity group = plant.getPlantGroup();
-        PlantDtos.PlantGroupResponse groupResponse = null;
-        if (group != null) {
-            UserEntity owner = group.getUser();
-            groupResponse = new PlantDtos.PlantGroupResponse(
-                    group.getId(),
-                    group.getName(),
-                    owner != null ? owner.getId() : null
-            );
-        }
-
-        List<DeviceDtos.SensorResponse> sensors = mapSensors(sensorQueryService.listByPlant(plant));
-        List<DeviceDtos.PumpResponse> pumps = mapPumps(pumpQueryService.listByPlant(plant));
-
-        UserEntity owner = plant.getUser();
-        Integer ownerId = owner != null ? owner.getId() : null;
+    private PlantDtos.PlantResponse toPlantResponse(PlantInfo plant) {
+        PlantGroupInfo group = plant.plantGroup();
+        PlantDtos.PlantGroupResponse groupResponse = group != null
+                ? new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId())
+                : null;
+        List<DeviceDtos.SensorResponse> sensors = mapSensors(sensorFacade.listByPlantId(plant.id()));
+        List<DeviceDtos.PumpResponse> pumps = mapPumps(pumpFacade.listByPlantId(plant.id()));
         return new PlantDtos.PlantResponse(
-                plant.getId(),
-                plant.getName(),
-                plant.getPlantedAt(),
-                plant.getHarvestedAt(),
-                plant.getPlantType(),
-                plant.getStrain(),
-                plant.getGrowthStage(),
-                ownerId,
+                plant.id(),
+                plant.name(),
+                plant.plantedAt(),
+                plant.harvestedAt(),
+                plant.plantType(),
+                plant.strain(),
+                plant.growthStage(),
+                plant.userId(),
                 groupResponse,
                 sensors,
                 pumps
@@ -368,6 +255,46 @@ public class PlantController {
         return result;
     }
 
+    private PlantFacade.PlantUpdateCommand parseUpdateCommand(JsonNode request) {
+        String name = null;
+        LocalDateTime plantedAt = null;
+        Integer groupId = null;
+        boolean groupProvided = false;
+        String plantType = null;
+        String strain = null;
+        String growthStage = null;
+
+        if (request.has("name")) {
+            name = textValue(request.get("name"));
+        }
+        if (request.has("planted_at")) {
+            plantedAt = parseDateValue(request.get("planted_at"), "planted_at");
+        }
+        if (request.has("plant_group_id")) {
+            groupProvided = true;
+            groupId = intValue(request.get("plant_group_id"), "plant_group_id");
+        }
+        if (request.has("plant_type")) {
+            plantType = textValue(request.get("plant_type"));
+        }
+        if (request.has("strain")) {
+            strain = textValue(request.get("strain"));
+        }
+        if (request.has("growth_stage")) {
+            growthStage = textValue(request.get("growth_stage"));
+        }
+
+        return new PlantFacade.PlantUpdateCommand(
+                name,
+                plantedAt,
+                groupId,
+                groupProvided,
+                plantType,
+                strain,
+                growthStage
+        );
+    }
+
     private LocalDateTime parseDateValue(JsonNode node, String fieldName) {
         if (node == null || node.isNull()) {
             return null;
@@ -416,8 +343,8 @@ public class PlantController {
         return new ApiValidationException(new ApiValidationError(List.of(item)));
     }
 
-    private void requireAdmin(UserEntity user) {
-        if (user == null || !"admin".equals(user.getRole())) {
+    private void requireAdmin(AuthenticatedUser user) {
+        if (user == null || !user.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Nedostatochno prav");
         }
     }

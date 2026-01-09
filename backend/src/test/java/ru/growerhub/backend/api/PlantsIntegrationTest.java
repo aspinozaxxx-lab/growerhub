@@ -29,31 +29,30 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.DeviceRepository;
-import ru.growerhub.backend.device.DeviceShadowStore;
+import ru.growerhub.backend.device.DeviceShadowState;
+import ru.growerhub.backend.device.internal.DeviceRepository;
+import ru.growerhub.backend.device.internal.DeviceShadowStore;
 import ru.growerhub.backend.journal.PlantJournalEntryEntity;
-import ru.growerhub.backend.journal.PlantJournalEntryRepository;
+import ru.growerhub.backend.journal.internal.PlantJournalEntryRepository;
 import ru.growerhub.backend.journal.PlantJournalPhotoEntity;
-import ru.growerhub.backend.journal.PlantJournalPhotoRepository;
+import ru.growerhub.backend.journal.internal.PlantJournalPhotoRepository;
 import ru.growerhub.backend.journal.PlantJournalWateringDetailsEntity;
-import ru.growerhub.backend.journal.PlantJournalWateringDetailsRepository;
-import ru.growerhub.backend.mqtt.model.DeviceState;
-import ru.growerhub.backend.mqtt.model.ManualWateringState;
+import ru.growerhub.backend.journal.internal.PlantJournalWateringDetailsRepository;
 import ru.growerhub.backend.plant.PlantEntity;
 import ru.growerhub.backend.plant.PlantGroupEntity;
-import ru.growerhub.backend.plant.PlantGroupRepository;
-import ru.growerhub.backend.plant.PlantRepository;
+import ru.growerhub.backend.plant.internal.PlantGroupRepository;
+import ru.growerhub.backend.plant.internal.PlantRepository;
 import ru.growerhub.backend.pump.PumpEntity;
 import ru.growerhub.backend.pump.PumpPlantBindingEntity;
-import ru.growerhub.backend.pump.PumpPlantBindingRepository;
-import ru.growerhub.backend.pump.PumpRepository;
+import ru.growerhub.backend.pump.internal.PumpPlantBindingRepository;
+import ru.growerhub.backend.pump.internal.PumpRepository;
 import ru.growerhub.backend.sensor.SensorEntity;
 import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
-import ru.growerhub.backend.sensor.SensorPlantBindingRepository;
-import ru.growerhub.backend.sensor.SensorRepository;
+import ru.growerhub.backend.sensor.internal.SensorPlantBindingRepository;
+import ru.growerhub.backend.sensor.internal.SensorRepository;
 import ru.growerhub.backend.sensor.SensorType;
 import ru.growerhub.backend.user.UserEntity;
-import ru.growerhub.backend.user.UserRepository;
+import ru.growerhub.backend.user.internal.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -399,8 +398,14 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         pumpPlantBindingRepository.save(bindingB);
 
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        ManualWateringState manual = new ManualWateringState("running", 120, now, 120, "corr-plant");
-        DeviceState state = new DeviceState(manual, null, null, null, null, null, null, null, null, null);
+        DeviceShadowState.ManualWateringState manual = new DeviceShadowState.ManualWateringState(
+                "running",
+                120,
+                now,
+                120,
+                "corr-plant"
+        );
+        DeviceShadowState state = new DeviceShadowState(manual, null, null, null, null, null, null, null, null, null);
         shadowStore.updateFromState(device.getDeviceId(), state, now);
 
         Response response = given()
@@ -841,4 +846,5 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+
 

@@ -1,4 +1,4 @@
-package ru.growerhub.backend.api;
+﻿package ru.growerhub.backend.api;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -27,4 +27,5 @@ class HealthControllerTest extends IntegrationTestBase {
                 .andExpect(content().json("{\"status\":\"ok\"}"));
     }
 }
+
 

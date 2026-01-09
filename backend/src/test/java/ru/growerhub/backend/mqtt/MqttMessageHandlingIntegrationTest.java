@@ -20,20 +20,22 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.DeviceIngestionService;
-import ru.growerhub.backend.device.DeviceRepository;
-import ru.growerhub.backend.device.DeviceShadowStore;
+import ru.growerhub.backend.device.DeviceShadowState;
+import ru.growerhub.backend.device.internal.DeviceIngestionService;
+import ru.growerhub.backend.device.internal.DeviceRepository;
+import ru.growerhub.backend.device.internal.DeviceShadowStore;
 import ru.growerhub.backend.device.DeviceStateLastEntity;
-import ru.growerhub.backend.device.DeviceStateLastRepository;
-import ru.growerhub.backend.mqtt.model.DeviceState;
+import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
+import ru.growerhub.backend.device.internal.MqttAckEntity;
+import ru.growerhub.backend.device.internal.MqttAckRepository;
 import ru.growerhub.backend.plant.PlantEntity;
-import ru.growerhub.backend.plant.PlantMetricSampleRepository;
-import ru.growerhub.backend.plant.PlantRepository;
+import ru.growerhub.backend.plant.internal.PlantMetricSampleRepository;
+import ru.growerhub.backend.plant.internal.PlantRepository;
 import ru.growerhub.backend.sensor.SensorEntity;
 import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
-import ru.growerhub.backend.sensor.SensorPlantBindingRepository;
-import ru.growerhub.backend.sensor.SensorReadingRepository;
-import ru.growerhub.backend.sensor.SensorRepository;
+import ru.growerhub.backend.sensor.internal.SensorPlantBindingRepository;
+import ru.growerhub.backend.sensor.internal.SensorReadingRepository;
+import ru.growerhub.backend.sensor.internal.SensorRepository;
 import ru.growerhub.backend.sensor.SensorType;
 
 @SpringBootTest(
@@ -144,7 +146,7 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
                 """;
         injectorSubscriber.injectState("gh/dev/" + deviceId + "/state", stateJson.getBytes(StandardCharsets.UTF_8));
 
-        verify(deviceIngestionService).handleState(eq(deviceId), any(DeviceState.class), any(LocalDateTime.class));
+        verify(deviceIngestionService).handleState(eq(deviceId), any(DeviceShadowState.class), any(LocalDateTime.class));
 
         DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
         Assertions.assertNotNull(device);
@@ -229,3 +231,4 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         }
     }
 }
+

@@ -9,11 +9,11 @@ import java.time.ZoneOffset;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import ru.growerhub.backend.device.DeviceRepository;
-import ru.growerhub.backend.device.DeviceShadowStore;
-import ru.growerhub.backend.device.DeviceStateLastRepository;
-import ru.growerhub.backend.mqtt.model.DeviceState;
-import ru.growerhub.backend.mqtt.model.ManualWateringState;
+import ru.growerhub.backend.device.DeviceSettings;
+import ru.growerhub.backend.device.DeviceShadowState;
+import ru.growerhub.backend.device.internal.DeviceRepository;
+import ru.growerhub.backend.device.internal.DeviceShadowStore;
+import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
 
 class DeviceShadowStoreTest {
 
@@ -33,8 +33,14 @@ class DeviceShadowStoreTest {
                 stateRepository
         );
 
-        ManualWateringState manual = new ManualWateringState("running", 20, null, null, "corr");
-        store.updateFromState("device-1", new DeviceState(manual, null, null, null, null, null, null, null, null, null));
+        DeviceShadowState.ManualWateringState manual = new DeviceShadowState.ManualWateringState(
+                "running",
+                20,
+                null,
+                null,
+                "corr"
+        );
+        store.updateFromState("device-1", new DeviceShadowState(manual, null, null, null, null, null, null, null, null, null));
 
         Assertions.assertEquals(true, store.getManualWateringView("device-1").get("is_online"));
 
@@ -69,3 +75,4 @@ class DeviceShadowStoreTest {
         }
     }
 }
+

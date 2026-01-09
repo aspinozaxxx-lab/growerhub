@@ -1,5 +1,6 @@
 ﻿package ru.growerhub.backend.api;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import java.util.ArrayList;
@@ -9,12 +10,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
-import jakarta.servlet.http.HttpServletRequest;
+import ru.growerhub.backend.common.ApiError;
+import ru.growerhub.backend.common.DomainException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -27,6 +29,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ApiValidationException.class)
     public ResponseEntity<ApiValidationError> handleApiValidationException(ApiValidationException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(ex.getError());
+    }
+
+    @ExceptionHandler(DomainException.class)
+    public ResponseEntity<ApiError> handleDomainException(DomainException ex) {
+        HttpStatus status = resolveDomainStatus(ex.getCode());
+        return ResponseEntity.status(status).body(new ApiError(ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -106,5 +114,23 @@ public class ApiExceptionHandler {
                 "value_error"
         );
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(new ApiValidationError(List.of(item)));
+    }
+
+    private HttpStatus resolveDomainStatus(String code) {
+        if (code == null) {
+            return HttpStatus.BAD_REQUEST;
+        }
+        return switch (code) {
+            case "unauthorized" -> HttpStatus.UNAUTHORIZED;
+            case "forbidden" -> HttpStatus.FORBIDDEN;
+            case "not_found" -> HttpStatus.NOT_FOUND;
+            case "conflict" -> HttpStatus.CONFLICT;
+            case "unprocessable" -> HttpStatus.UNPROCESSABLE_ENTITY;
+            case "unavailable" -> HttpStatus.SERVICE_UNAVAILABLE;
+            case "bad_gateway" -> HttpStatus.BAD_GATEWAY;
+            case "internal_error" -> HttpStatus.INTERNAL_SERVER_ERROR;
+            case "bad_request" -> HttpStatus.BAD_REQUEST;
+            default -> HttpStatus.BAD_REQUEST;
+        };
     }
 }

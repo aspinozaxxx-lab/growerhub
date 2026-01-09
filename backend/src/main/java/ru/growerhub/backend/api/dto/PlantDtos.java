@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import ru.growerhub.backend.api.dto.DeviceDtos.PumpResponse;
 import ru.growerhub.backend.api.dto.DeviceDtos.SensorResponse;
+import ru.growerhub.backend.common.FlexibleLocalDateTimeDeserializer;
 
 public final class PlantDtos {
     private PlantDtos() {

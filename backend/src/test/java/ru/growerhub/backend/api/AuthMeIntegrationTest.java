@@ -1,4 +1,4 @@
-package ru.growerhub.backend.api;
+﻿package ru.growerhub.backend.api;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -192,3 +192,4 @@ class AuthMeIntegrationTest extends IntegrationTestBase {
                 .compact();
     }
 }
+

@@ -26,24 +26,24 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.DeviceRepository;
-import ru.growerhub.backend.device.DeviceShadowStore;
+import ru.growerhub.backend.device.internal.DeviceRepository;
+import ru.growerhub.backend.device.internal.DeviceShadowStore;
 import ru.growerhub.backend.device.DeviceStateLastEntity;
-import ru.growerhub.backend.device.DeviceStateLastRepository;
+import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
 import ru.growerhub.backend.mqtt.MqttMessageHandler;
 import ru.growerhub.backend.plant.PlantEntity;
 import ru.growerhub.backend.plant.PlantMetricSampleEntity;
-import ru.growerhub.backend.plant.PlantMetricSampleRepository;
+import ru.growerhub.backend.plant.internal.PlantMetricSampleRepository;
 import ru.growerhub.backend.plant.PlantMetricType;
-import ru.growerhub.backend.plant.PlantRepository;
+import ru.growerhub.backend.plant.internal.PlantRepository;
 import ru.growerhub.backend.sensor.SensorEntity;
 import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
-import ru.growerhub.backend.sensor.SensorPlantBindingRepository;
-import ru.growerhub.backend.sensor.SensorReadingRepository;
-import ru.growerhub.backend.sensor.SensorRepository;
+import ru.growerhub.backend.sensor.internal.SensorPlantBindingRepository;
+import ru.growerhub.backend.sensor.internal.SensorReadingRepository;
+import ru.growerhub.backend.sensor.internal.SensorRepository;
 import ru.growerhub.backend.sensor.SensorType;
 import ru.growerhub.backend.user.UserEntity;
-import ru.growerhub.backend.user.UserRepository;
+import ru.growerhub.backend.user.internal.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -680,3 +680,4 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+

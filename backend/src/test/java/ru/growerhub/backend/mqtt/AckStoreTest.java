@@ -1,4 +1,4 @@
-package ru.growerhub.backend.mqtt;
+﻿package ru.growerhub.backend.mqtt;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import ru.growerhub.backend.device.AckSettings;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
 
 class AckStoreTest {
@@ -68,3 +69,4 @@ class AckStoreTest {
         }
     }
 }
+

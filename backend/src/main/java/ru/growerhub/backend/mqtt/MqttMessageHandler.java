@@ -8,12 +8,9 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.DeviceIngestionService;
-import ru.growerhub.backend.device.DeviceRepository;
-import ru.growerhub.backend.device.DeviceStateLastEntity;
-import ru.growerhub.backend.device.DeviceStateLastRepository;
+import ru.growerhub.backend.device.AckSettings;
+import ru.growerhub.backend.device.DeviceFacade;
+import ru.growerhub.backend.device.DeviceShadowState;
 import ru.growerhub.backend.mqtt.model.DeviceState;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
 
@@ -25,10 +22,7 @@ public class MqttMessageHandler {
 
     private final ObjectMapper objectMapper;
     private final AckStore ackStore;
-    private final DeviceStateLastRepository deviceStateLastRepository;
-    private final MqttAckRepository mqttAckRepository;
-    private final DeviceRepository deviceRepository;
-    private final DeviceIngestionService deviceIngestionService;
+    private final DeviceFacade deviceFacade;
     private final AckSettings ackSettings;
     private final DebugSettings debugSettings;
     private final Clock clock;
@@ -36,20 +30,14 @@ public class MqttMessageHandler {
     public MqttMessageHandler(
             ObjectMapper objectMapper,
             AckStore ackStore,
-            DeviceStateLastRepository deviceStateLastRepository,
-            MqttAckRepository mqttAckRepository,
-            DeviceRepository deviceRepository,
-            DeviceIngestionService deviceIngestionService,
+            DeviceFacade deviceFacade,
             AckSettings ackSettings,
             DebugSettings debugSettings,
             Clock clock
     ) {
         this.objectMapper = objectMapper;
         this.ackStore = ackStore;
-        this.deviceStateLastRepository = deviceStateLastRepository;
-        this.mqttAckRepository = mqttAckRepository;
-        this.deviceRepository = deviceRepository;
-        this.deviceIngestionService = deviceIngestionService;
+        this.deviceFacade = deviceFacade;
         this.ackSettings = ackSettings;
         this.debugSettings = debugSettings;
         this.clock = clock;
@@ -72,11 +60,10 @@ public class MqttMessageHandler {
             return;
         }
         LocalDateTime now = LocalDateTime.now(clock);
-        deviceIngestionService.handleState(deviceId, state, now);
+        deviceFacade.handleState(deviceId, toShadowState(state), now);
         logger.info("MQTT state updated for {}", deviceId);
     }
 
-    @Transactional
     public void handleAckMessage(String topic, byte[] payload) {
         if (debugSettings.isDebug()) {
             logger.info("MQTT DEBUG ack topic={} payload={}", topic, safePayload(payload));
@@ -110,55 +97,8 @@ public class MqttMessageHandler {
 
         LocalDateTime receivedAt = LocalDateTime.now(clock);
         LocalDateTime expiresAt = resolveExpiresAt(receivedAt);
-        upsertAck(deviceId, correlationId, result, ack.status(), payloadMap, receivedAt, expiresAt);
-        touchLastSeen(deviceId, receivedAt);
+        deviceFacade.handleAck(deviceId, correlationId, result, ack.status(), payloadMap, receivedAt, expiresAt);
         logger.info("MQTT ack stored for {} correlation_id={}", deviceId, correlationId);
-    }
-
-    private void upsertAck(
-            String deviceId,
-            String correlationId,
-            String result,
-            String status,
-            Map<String, Object> payloadMap,
-            LocalDateTime receivedAt,
-            LocalDateTime expiresAt
-    ) {
-        String payloadJson;
-        try {
-            payloadJson = objectMapper.writeValueAsString(payloadMap);
-        } catch (Exception ex) {
-            throw new IllegalStateException(ex);
-        }
-        MqttAckEntity record = mqttAckRepository.findByCorrelationId(correlationId).orElse(null);
-        if (record == null) {
-            record = MqttAckEntity.create();
-            record.setCorrelationId(correlationId);
-        }
-        record.setDeviceId(deviceId);
-        record.setResult(result);
-        record.setStatus(status);
-        record.setPayloadJson(payloadJson);
-        record.setReceivedAt(receivedAt);
-        record.setExpiresAt(expiresAt);
-        mqttAckRepository.save(record);
-    }
-
-    private void touchLastSeen(String deviceId, LocalDateTime now) {
-        DeviceStateLastEntity record = deviceStateLastRepository.findByDeviceId(deviceId).orElse(null);
-        if (record == null) {
-            record = DeviceStateLastEntity.create();
-            record.setDeviceId(deviceId);
-            record.setStateJson("{}");
-        }
-        record.setUpdatedAt(now);
-        deviceStateLastRepository.save(record);
-
-        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
-        if (device != null) {
-            device.setLastSeen(now);
-            deviceRepository.save(device);
-        }
     }
 
     private LocalDateTime resolveExpiresAt(LocalDateTime receivedAt) {
@@ -196,5 +136,64 @@ public class MqttMessageHandler {
             return "";
         }
         return new String(payload, java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    private DeviceShadowState toShadowState(DeviceState state) {
+        if (state == null) {
+            return null;
+        }
+        DeviceShadowState.ManualWateringState manual = null;
+        if (state.manualWatering() != null) {
+            manual = new DeviceShadowState.ManualWateringState(
+                    state.manualWatering().status(),
+                    state.manualWatering().durationS(),
+                    state.manualWatering().startedAt(),
+                    state.manualWatering().remainingS(),
+                    state.manualWatering().correlationId()
+            );
+        }
+        DeviceShadowState.AirState air = state.air() != null
+                ? new DeviceShadowState.AirState(state.air().available(), state.air().temperature(), state.air().humidity())
+                : null;
+        DeviceShadowState.SoilState soil = state.soil() != null
+                ? new DeviceShadowState.SoilState(state.soil().ports() != null
+                ? state.soil().ports().stream()
+                .map(port -> port != null
+                        ? new DeviceShadowState.SoilPort(port.port(), port.detected(), port.percent())
+                        : null)
+                .toList()
+                : null)
+                : null;
+        DeviceShadowState.RelayState light = state.light() != null
+                ? new DeviceShadowState.RelayState(state.light().status())
+                : null;
+        DeviceShadowState.RelayState pump = state.pump() != null
+                ? new DeviceShadowState.RelayState(state.pump().status())
+                : null;
+        DeviceShadowState.ScenariosState scenarios = null;
+        if (state.scenarios() != null) {
+            DeviceShadowState.ScenarioState waterTime = state.scenarios().waterTime() != null
+                    ? new DeviceShadowState.ScenarioState(state.scenarios().waterTime().enabled())
+                    : null;
+            DeviceShadowState.ScenarioState waterMoisture = state.scenarios().waterMoisture() != null
+                    ? new DeviceShadowState.ScenarioState(state.scenarios().waterMoisture().enabled())
+                    : null;
+            DeviceShadowState.ScenarioState lightSchedule = state.scenarios().lightSchedule() != null
+                    ? new DeviceShadowState.ScenarioState(state.scenarios().lightSchedule().enabled())
+                    : null;
+            scenarios = new DeviceShadowState.ScenariosState(waterTime, waterMoisture, lightSchedule);
+        }
+        return new DeviceShadowState(
+                manual,
+                state.fwVer(),
+                state.soilMoisture(),
+                state.airTemperature(),
+                state.airHumidity(),
+                air,
+                soil,
+                light,
+                pump,
+                scenarios
+        );
     }
 }

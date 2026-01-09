@@ -30,30 +30,29 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.DeviceRepository;
-import ru.growerhub.backend.device.DeviceShadowStore;
+import ru.growerhub.backend.device.DeviceShadowState;
+import ru.growerhub.backend.device.internal.DeviceRepository;
+import ru.growerhub.backend.device.internal.DeviceShadowStore;
 import ru.growerhub.backend.device.DeviceStateLastEntity;
-import ru.growerhub.backend.device.DeviceStateLastRepository;
-import ru.growerhub.backend.journal.PlantJournalEntryRepository;
+import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
+import ru.growerhub.backend.journal.internal.PlantJournalEntryRepository;
 import ru.growerhub.backend.journal.PlantJournalWateringDetailsEntity;
-import ru.growerhub.backend.journal.PlantJournalWateringDetailsRepository;
+import ru.growerhub.backend.journal.internal.PlantJournalWateringDetailsRepository;
 import ru.growerhub.backend.mqtt.AckStore;
 import ru.growerhub.backend.mqtt.MqttPublisher;
 import ru.growerhub.backend.mqtt.model.CmdPumpStart;
 import ru.growerhub.backend.mqtt.model.CmdPumpStop;
 import ru.growerhub.backend.mqtt.model.CmdReboot;
-import ru.growerhub.backend.mqtt.model.DeviceState;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
-import ru.growerhub.backend.mqtt.model.ManualWateringState;
 import ru.growerhub.backend.plant.PlantEntity;
-import ru.growerhub.backend.plant.PlantMetricSampleRepository;
-import ru.growerhub.backend.plant.PlantRepository;
+import ru.growerhub.backend.plant.internal.PlantMetricSampleRepository;
+import ru.growerhub.backend.plant.internal.PlantRepository;
 import ru.growerhub.backend.pump.PumpEntity;
 import ru.growerhub.backend.pump.PumpPlantBindingEntity;
-import ru.growerhub.backend.pump.PumpPlantBindingRepository;
-import ru.growerhub.backend.pump.PumpService;
+import ru.growerhub.backend.pump.internal.PumpPlantBindingRepository;
+import ru.growerhub.backend.pump.internal.PumpService;
 import ru.growerhub.backend.user.UserEntity;
-import ru.growerhub.backend.user.UserRepository;
+import ru.growerhub.backend.user.internal.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -335,14 +334,17 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         DeviceEntity device = createDevice("mw-stop", user);
         PumpEntity pump = pumpService.ensureDefaultPump(device);
 
-        ManualWateringState manual = new ManualWateringState(
+        DeviceShadowState.ManualWateringState manual = new DeviceShadowState.ManualWateringState(
                 "running",
                 45,
                 LocalDateTime.now(ZoneOffset.UTC),
                 45,
                 "shadow-stop"
         );
-        shadowStore.updateFromState(device.getDeviceId(), new DeviceState(manual, null, null, null, null, null, null, null, null, null));
+        shadowStore.updateFromState(
+                device.getDeviceId(),
+                new DeviceShadowState(manual, null, null, null, null, null, null, null, null, null)
+        );
 
         String token = buildToken(user.getId());
 
@@ -394,14 +396,17 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         DeviceEntity device = createDevice("mw-status", user);
         PumpEntity pump = pumpService.ensureDefaultPump(device);
 
-        ManualWateringState manual = new ManualWateringState(
+        DeviceShadowState.ManualWateringState manual = new DeviceShadowState.ManualWateringState(
                 "running",
                 30,
                 LocalDateTime.now(ZoneOffset.UTC).withNano(0),
                 30,
                 "corr-status"
         );
-        shadowStore.updateFromState(device.getDeviceId(), new DeviceState(manual, null, null, null, null, null, null, null, null, null));
+        shadowStore.updateFromState(
+                device.getDeviceId(),
+                new DeviceShadowState(manual, null, null, null, null, null, null, null, null, null)
+        );
 
         String token = buildToken(user.getId());
 
@@ -603,4 +608,5 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     private record PublishedCommand(String deviceId, Object cmd) {
     }
 }
+
 

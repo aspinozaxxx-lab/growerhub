@@ -1,4 +1,4 @@
-package ru.growerhub.backend.mqtt;
+﻿package ru.growerhub.backend.mqtt;
 
 public class ManualInjectorSubscriber implements MqttSubscriber {
     private final MqttMessageHandler handler;
@@ -31,3 +31,4 @@ public class ManualInjectorSubscriber implements MqttSubscriber {
         return running;
     }
 }
+

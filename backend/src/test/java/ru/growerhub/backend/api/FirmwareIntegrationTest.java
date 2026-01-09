@@ -32,7 +32,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.DeviceRepository;
+import ru.growerhub.backend.device.internal.DeviceRepository;
 import ru.growerhub.backend.mqtt.MqttPublisher;
 import ru.growerhub.backend.mqtt.model.CmdOta;
 
@@ -380,4 +380,5 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
     private record PublishedCommand(String deviceId, Object cmd) {
     }
 }
+
 

@@ -17,9 +17,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
-import ru.growerhub.backend.api.ApiError;
-import ru.growerhub.backend.user.UserEntity;
-import ru.growerhub.backend.user.UserService;
+import ru.growerhub.backend.auth.internal.JwtService;
+import ru.growerhub.backend.common.ApiError;
+import ru.growerhub.backend.common.AuthenticatedUser;
+import ru.growerhub.backend.user.UserFacade;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -32,12 +33,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     );
 
     private final JwtService jwtService;
-    private final UserService userService;
+    private final UserFacade userFacade;
     private final ObjectMapper objectMapper;
 
-    public JwtAuthFilter(JwtService jwtService, UserService userService, ObjectMapper objectMapper) {
+    public JwtAuthFilter(JwtService jwtService, UserFacade userFacade, ObjectMapper objectMapper) {
         this.jwtService = jwtService;
-        this.userService = userService;
+        this.userFacade = userFacade;
         this.objectMapper = objectMapper;
     }
 
@@ -117,18 +118,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        UserEntity user = userService.findById(userId).orElse(null);
+        UserFacade.AuthUser user = userFacade.getAuthUser(userId);
         if (user == null) {
             writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "Polzovatel' ne najden", true);
             return;
         }
-        if (!user.isActive()) {
+        if (!user.active()) {
             writeError(response, HttpServletResponse.SC_FORBIDDEN, "Polzovatel' otkljuchen", false);
             return;
         }
 
+        AuthenticatedUser principal = new AuthenticatedUser(user.id(), user.role());
         UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(user, null, java.util.List.of());
+                new UsernamePasswordAuthenticationToken(principal, null, java.util.List.of());
         SecurityContextHolder.getContext().setAuthentication(authentication);
         filterChain.doFilter(request, response);
     }

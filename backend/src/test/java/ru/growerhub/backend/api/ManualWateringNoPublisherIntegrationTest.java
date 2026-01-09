@@ -22,15 +22,15 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.DeviceRepository;
+import ru.growerhub.backend.device.internal.DeviceRepository;
 import ru.growerhub.backend.plant.PlantEntity;
-import ru.growerhub.backend.plant.PlantRepository;
+import ru.growerhub.backend.plant.internal.PlantRepository;
 import ru.growerhub.backend.pump.PumpEntity;
 import ru.growerhub.backend.pump.PumpPlantBindingEntity;
-import ru.growerhub.backend.pump.PumpPlantBindingRepository;
-import ru.growerhub.backend.pump.PumpService;
+import ru.growerhub.backend.pump.internal.PumpPlantBindingRepository;
+import ru.growerhub.backend.pump.internal.PumpService;
 import ru.growerhub.backend.user.UserEntity;
-import ru.growerhub.backend.user.UserRepository;
+import ru.growerhub.backend.user.internal.UserRepository;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -174,3 +174,4 @@ class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+

@@ -9,10 +9,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.mqtt.model.DeviceState;
+import ru.growerhub.backend.device.DeviceShadowState;
+import ru.growerhub.backend.device.internal.DeviceIngestionService;
 import ru.growerhub.backend.sensor.SensorEntity;
-import ru.growerhub.backend.sensor.SensorReadingRepository;
-import ru.growerhub.backend.sensor.SensorRepository;
+import ru.growerhub.backend.sensor.SensorFacade;
+import ru.growerhub.backend.sensor.internal.SensorReadingRepository;
+import ru.growerhub.backend.sensor.internal.SensorRepository;
 import ru.growerhub.backend.sensor.SensorType;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -20,6 +22,9 @@ class DeviceIngestionServiceIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private DeviceIngestionService deviceIngestionService;
+
+    @Autowired
+    private SensorFacade sensorFacade;
 
     @Autowired
     private SensorRepository sensorRepository;
@@ -41,9 +46,9 @@ class DeviceIngestionServiceIntegrationTest extends IntegrationTestBase {
     @Test
     void handleStatePersistsSensorReadings() {
         LocalDateTime now = LocalDateTime.of(2024, 1, 1, 12, 0);
-        DeviceState state = new DeviceState(null, null, 10.0, 20.0, 30.0, null, null, null, null, null);
+        DeviceShadowState state = new DeviceShadowState(null, null, 10.0, 20.0, 30.0, null, null, null, null, null);
 
-        deviceIngestionService.handleState("device-1", state, now);
+        sensorFacade.recordMeasurements("device-1", deviceIngestionService.handleState("device-1", state, now), now);
 
         Assertions.assertEquals(3, sensorRepository.count());
         Assertions.assertEquals(3, sensorReadingRepository.count());
@@ -57,9 +62,9 @@ class DeviceIngestionServiceIntegrationTest extends IntegrationTestBase {
     @Test
     void handleStateSkipsSensorReadingsWhenEmpty() {
         LocalDateTime now = LocalDateTime.of(2024, 1, 1, 12, 0);
-        DeviceState state = new DeviceState(null, null, null, null, null, null, null, null, null, null);
+        DeviceShadowState state = new DeviceShadowState(null, null, null, null, null, null, null, null, null, null);
 
-        deviceIngestionService.handleState("device-2", state, now);
+        sensorFacade.recordMeasurements("device-2", deviceIngestionService.handleState("device-2", state, now), now);
 
         Assertions.assertEquals(0, sensorReadingRepository.count());
     }
@@ -67,15 +72,16 @@ class DeviceIngestionServiceIntegrationTest extends IntegrationTestBase {
     @Test
     void handleStatePersistsV2SensorReadings() {
         LocalDateTime now = LocalDateTime.of(2025, 1, 1, 12, 0);
-        DeviceState.AirState air = new DeviceState.AirState(true, 21.5, 50.0);
-        DeviceState.SoilPort port0 = new DeviceState.SoilPort(0, true, 40);
-        DeviceState.SoilPort port1 = new DeviceState.SoilPort(1, false, 70);
-        DeviceState.SoilState soil = new DeviceState.SoilState(List.of(port0, port1));
-        DeviceState state = new DeviceState(null, null, null, null, null, air, soil, null, null, null);
+        DeviceShadowState.AirState air = new DeviceShadowState.AirState(true, 21.5, 50.0);
+        DeviceShadowState.SoilPort port0 = new DeviceShadowState.SoilPort(0, true, 40);
+        DeviceShadowState.SoilPort port1 = new DeviceShadowState.SoilPort(1, false, 70);
+        DeviceShadowState.SoilState soil = new DeviceShadowState.SoilState(List.of(port0, port1));
+        DeviceShadowState state = new DeviceShadowState(null, null, null, null, null, air, soil, null, null, null);
 
-        deviceIngestionService.handleState("device-3", state, now);
+        sensorFacade.recordMeasurements("device-3", deviceIngestionService.handleState("device-3", state, now), now);
 
         Assertions.assertEquals(4, sensorRepository.count());
         Assertions.assertEquals(4, sensorReadingRepository.count());
     }
 }
+

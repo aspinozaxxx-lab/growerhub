@@ -1,4 +1,4 @@
-package ru.growerhub.backend.api;
+﻿package ru.growerhub.backend.api;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
@@ -23,15 +23,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.auth.AuthSettings;
-import ru.growerhub.backend.auth.PasswordHasher;
-import ru.growerhub.backend.auth.RefreshTokenService;
+import ru.growerhub.backend.auth.internal.AuthSettings;
+import ru.growerhub.backend.common.PasswordHasher;
+import ru.growerhub.backend.auth.internal.RefreshTokenService;
 import ru.growerhub.backend.db.UserAuthIdentityEntity;
 import ru.growerhub.backend.db.UserAuthIdentityRepository;
 import ru.growerhub.backend.db.UserRefreshTokenEntity;
 import ru.growerhub.backend.db.UserRefreshTokenRepository;
 import ru.growerhub.backend.user.UserEntity;
-import ru.growerhub.backend.user.UserRepository;
+import ru.growerhub.backend.user.internal.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -301,3 +301,4 @@ class AuthDomainIntegrationTest extends IntegrationTestBase {
                 .compact();
     }
 }
+
