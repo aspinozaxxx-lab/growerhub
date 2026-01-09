@@ -16,12 +16,13 @@ import './AppPlantJournal.css';
 const JOURNAL_TYPE_CONFIG = {
   watering: { label: 'Полив', icon: '💧', kind: 'watering' },
   feeding: { label: 'Уход', icon: '🧹', kind: 'care' },
+  harvest: { label: 'Сбор', icon: '??', kind: 'harvest' },
   photo: { label: 'Фото', icon: '📷', kind: 'photo' },
   note: { label: 'Наблюдение', icon: '👁', kind: 'observation' },
   other: { label: 'Наблюдение', icon: '👁', kind: 'observation' },
 };
 
-const BACKEND_TYPES = ['watering', 'feeding', 'photo', 'note', 'other'];
+const BACKEND_TYPES = ['watering', 'feeding', 'harvest', 'photo', 'note', 'other'];
 
 function toLocalDateKeyFromIso(isoString) {
   // Translitem: backend otdaet UTC datetime, a v UI nuzhen key v timezone Moskva.
@@ -205,7 +206,7 @@ function CalendarGrid({ startDate, endDate, entries, plantedAt, selectedDate, on
               {days.map((day) => {
                 const key = dateKeyFromString(day);
                 const entriesForDay = entriesByDate[key] || [];
-                const typeOrder = ['watering', 'feeding', 'note', 'other', 'photo'];
+                const typeOrder = ['watering', 'feeding', 'harvest', 'note', 'other', 'photo'];
                 const uniqueIcons = [];
                 typeOrder.forEach((t) => {
                   const hasType = entriesForDay.some((e) => e.type === t);
@@ -531,6 +532,7 @@ function AppPlantJournal() {
               >
                 <option value="watering">Полив</option>
                 <option value="feeding">Уход</option>
+                <option value="harvest">Сбор</option>
                 <option value="note">Наблюдение</option>
                 <option value="photo">Фото</option>
                 <option value="other">Наблюдение (other)</option>
@@ -575,3 +577,6 @@ function AppPlantJournal() {
 }
 
 export default AppPlantJournal;
+
+
+

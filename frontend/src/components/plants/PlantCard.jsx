@@ -27,7 +27,7 @@ const METRIC_LABELS = {
 };
 
 // Translitem: PlantCard - kartochka rasteniya na stranice spiska rastenij; pokazivaet metadannye i privyazannye sensory/pumpy.
-function PlantCard({ plant, onEdit, onOpenJournal }) {
+function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
   const { openSensorStats } = useSensorStatsContext();
   const plantedDate = plant?.planted_at ? new Date(plant.planted_at) : null;
 
@@ -52,6 +52,7 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
 
   const handleEdit = () => onEdit?.(plant);
   const handleOpenJournal = () => onOpenJournal?.(plant);
+  const handleHarvest = () => onHarvest?.(plant);
 
   const handleOpenMetric = (metric) => {
     if (!plant?.id || !metric) return;
@@ -155,6 +156,9 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
       </div>
 
       <div className="plant-card__footer">
+        <button type="button" className="plant-card__harvest" onClick={handleHarvest}>
+          Сбор
+        </button>
         <button type="button" className="plant-card__journal" onClick={handleOpenJournal}>
           Журнал
         </button>

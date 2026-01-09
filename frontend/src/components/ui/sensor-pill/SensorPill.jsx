@@ -29,6 +29,7 @@ function SensorPill({
   disabled = false,
   highlight = false,
   action = null,
+  className = '',
 }) {
   const iconMarkup = ICONS[kind] || iconUnknown;
   const unit = UNITS[kind] || '';
@@ -66,6 +67,7 @@ function SensorPill({
     computedHighlight ? 'is-highlight' : '',
     isClickable ? 'is-clickable' : '',
     disabled ? 'is-disabled' : '',
+    className,
   ]
     .filter(Boolean)
     .join(' ');

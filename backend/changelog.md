@@ -1,6 +1,8 @@
 ﻿# Changelog
 
 ## 2026-01-09
+- Plants: dobavlen harvested_at, endpoint harvest i tip zhurnala harvest dlya rastenij.
+- Frontend: knopka sbora s modal'koi i sekciya arhiva rastenij s mini-kartochkami i history.
 - Dashboard: status poliva pokazivaetsya dlya vseh rastenij s privyazannymi pumpami; plashki sensors/pumps renderjatsya nezavisimo.
 - Dashboard UI: kartochki rastenij kompaktnee, gruppirovka po plant_group, zagolovok udaljen, sidebar sticky bez prizhima k nizhu.
 - Plants UI: karandash na knopke redaktirovaniya i tekst 'Idet poliv...' na kartochkah pump.

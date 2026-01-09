@@ -62,6 +62,21 @@ export async function deletePlant(token, plantId) {
   return response.json();
 }
 
+// Translitem: sbornaja komanda urozhaya (text, harvested_at).
+export async function harvestPlant(plantId, payload, token) {
+  void token;
+  const headers = { 'Content-Type': 'application/json' };
+  const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}/harvest`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to harvest plant (${response.status})`);
+  }
+  return response.json();
+}
+
 // Translitem: zagruzka spiska grupp rastenij.
 export async function fetchPlantGroups(token) {
   void token;

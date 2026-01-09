@@ -3,3 +3,124 @@
   flex-direction: column;
   gap: 12px;
 }
+
+.app-plants__archive {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.app-plants__archive-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.archive-plant-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.archive-plant-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.archive-plant-card__title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.archive-plant-card__name {
+  margin: 0;
+}
+
+.archive-plant-card__group {
+  font-size: 13px;
+}
+
+.archive-plant-card__avatar {
+  width: 72px;
+}
+
+.archive-plant-card__dates {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.archive-plant-card__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: #e2e8f0;
+}
+
+.archive-plant-card__label {
+  color: #8aa3c6;
+}
+
+.archive-plant-card__value {
+  font-weight: 600;
+}
+
+.archive-plant-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.archive-plant-card__stats {
+  display: flex;
+  gap: 8px;
+}
+
+.archive-plant-card__stat-btn {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  justify-content: center;
+}
+
+.archive-plant-card__stat-btn .sensor-pill__value {
+  display: none;
+}
+
+.archive-plant-card__stat-btn .sensor-pill__icon {
+  width: 24px;
+  height: 24px;
+}
+
+.archive-plant-card__journal {
+  background: rgba(52, 211, 153, 0.15);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  color: #bbf7d0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.harvest-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.harvest-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.harvest-dialog__error {
+  color: #fca5a5;
+  font-size: 13px;
+}
