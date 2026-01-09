@@ -22,7 +22,10 @@ export function useDashboardData() {
           fetchMyDevices(token),
         ]);
         if (!isCancelled) {
-          setPlants(Array.isArray(plantsPayload) ? plantsPayload : []);
+          const nextPlants = Array.isArray(plantsPayload)
+            ? plantsPayload.filter((plant) => !plant?.harvested_at)
+            : [];
+          setPlants(nextPlants);
           setDevices(Array.isArray(devicesPayload) ? devicesPayload : []);
         }
       } catch (err) {

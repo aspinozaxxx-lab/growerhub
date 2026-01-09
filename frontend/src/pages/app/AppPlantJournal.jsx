@@ -16,7 +16,7 @@ import './AppPlantJournal.css';
 const JOURNAL_TYPE_CONFIG = {
   watering: { label: 'Полив', icon: '💧', kind: 'watering' },
   feeding: { label: 'Уход', icon: '🧹', kind: 'care' },
-  harvest: { label: 'Сбор', icon: '??', kind: 'harvest' },
+  harvest: { label: 'Сбор', icon: '🧺', kind: 'harvest' },
   photo: { label: 'Фото', icon: '📷', kind: 'photo' },
   note: { label: 'Наблюдение', icon: '👁', kind: 'observation' },
   other: { label: 'Наблюдение', icon: '👁', kind: 'observation' },
