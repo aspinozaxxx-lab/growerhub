@@ -29,12 +29,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.device.DeviceRepository;
+import ru.growerhub.backend.device.DeviceShadowStore;
 import ru.growerhub.backend.journal.PlantJournalEntryEntity;
 import ru.growerhub.backend.journal.PlantJournalEntryRepository;
 import ru.growerhub.backend.journal.PlantJournalPhotoEntity;
 import ru.growerhub.backend.journal.PlantJournalPhotoRepository;
 import ru.growerhub.backend.journal.PlantJournalWateringDetailsEntity;
 import ru.growerhub.backend.journal.PlantJournalWateringDetailsRepository;
+import ru.growerhub.backend.mqtt.model.DeviceState;
+import ru.growerhub.backend.mqtt.model.ManualWateringState;
 import ru.growerhub.backend.plant.PlantEntity;
 import ru.growerhub.backend.plant.PlantGroupEntity;
 import ru.growerhub.backend.plant.PlantGroupRepository;
@@ -74,6 +77,9 @@ class PlantsIntegrationTest extends IntegrationTestBase {
     private DeviceRepository deviceRepository;
 
     @Autowired
+    private DeviceShadowStore shadowStore;
+
+    @Autowired
     private SensorRepository sensorRepository;
 
     @Autowired
@@ -99,6 +105,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
         clearDatabase();
+        shadowStore.clear();
     }
 
     @Test
@@ -326,6 +333,91 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .body("[0].sensors", hasSize(1))
                 .body("[0].sensors[0].type", equalTo("SOIL_MOISTURE"))
                 .body("[0].pumps", hasSize(1));
+    }
+
+    @Test
+    void listPlantsDoesNotAttachUnboundPumps() {
+        UserEntity owner = createUser("plant-unbound@example.com", "user");
+        String token = buildToken(owner.getId());
+        PlantEntity plantBound = createPlant(owner, "Bound");
+        PlantEntity plantFree = createPlant(owner, "Free");
+        DeviceEntity device = createDevice(owner, "dev-unbound");
+
+        PumpEntity pump = PumpEntity.create();
+        pump.setDevice(device);
+        pump.setChannel(0);
+        pumpRepository.save(pump);
+
+        PumpPlantBindingEntity binding = PumpPlantBindingEntity.create();
+        binding.setPlant(plantBound);
+        binding.setPump(pump);
+        binding.setRateMlPerHour(2000);
+        pumpPlantBindingRepository.save(binding);
+
+        Response response = given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/plants")
+                .then()
+                .statusCode(200)
+                .extract()
+                .response();
+
+        int boundCount = response.jsonPath()
+                .getInt("find { it.id == " + plantBound.getId() + " }.pumps.size()");
+        int freeCount = response.jsonPath()
+                .getInt("find { it.id == " + plantFree.getId() + " }.pumps.size()");
+
+        Assertions.assertEquals(1, boundCount);
+        Assertions.assertEquals(0, freeCount);
+    }
+
+    @Test
+    void listPlantsShowsRunningPumpForAllBoundPlants() {
+        UserEntity owner = createUser("plant-running@example.com", "user");
+        String token = buildToken(owner.getId());
+        PlantEntity plantA = createPlant(owner, "A");
+        PlantEntity plantB = createPlant(owner, "B");
+        DeviceEntity device = createDevice(owner, "dev-running");
+
+        PumpEntity pump = PumpEntity.create();
+        pump.setDevice(device);
+        pump.setChannel(0);
+        pumpRepository.save(pump);
+
+        PumpPlantBindingEntity bindingA = PumpPlantBindingEntity.create();
+        bindingA.setPlant(plantA);
+        bindingA.setPump(pump);
+        bindingA.setRateMlPerHour(2000);
+        pumpPlantBindingRepository.save(bindingA);
+
+        PumpPlantBindingEntity bindingB = PumpPlantBindingEntity.create();
+        bindingB.setPlant(plantB);
+        bindingB.setPump(pump);
+        bindingB.setRateMlPerHour(2000);
+        pumpPlantBindingRepository.save(bindingB);
+
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        ManualWateringState manual = new ManualWateringState("running", 120, now, 120, "corr-plant");
+        DeviceState state = new DeviceState(manual, null, null, null, null, null, null, null, null, null);
+        shadowStore.updateFromState(device.getDeviceId(), state, now);
+
+        Response response = given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/plants")
+                .then()
+                .statusCode(200)
+                .extract()
+                .response();
+
+        boolean runningA = response.jsonPath()
+                .getBoolean("find { it.id == " + plantA.getId() + " }.pumps.find { it.id == " + pump.getId() + " }.is_running");
+        boolean runningB = response.jsonPath()
+                .getBoolean("find { it.id == " + plantB.getId() + " }.pumps.find { it.id == " + pump.getId() + " }.is_running");
+
+        Assertions.assertTrue(runningA);
+        Assertions.assertTrue(runningB);
     }
 
     @Test

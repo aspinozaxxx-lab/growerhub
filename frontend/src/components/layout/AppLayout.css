@@ -97,12 +97,14 @@
 
 .app-sidebar__inner {
   position: sticky;
-  top: 0;
+  top: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 24px 16px;
-  min-height: 100vh;
+  padding-bottom: 24px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   background: var(--surface-1);
   color: var(--text-1);
   border-radius: 18px;

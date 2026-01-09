@@ -1,7 +1,6 @@
 ﻿import React from 'react';
 import { Link } from 'react-router-dom';
 import PlantAvatar from '../plant-avatar/PlantAvatar';
-import { parseBackendTimestamp } from '../../utils/formatters';
 import { DEFAULT_PLANT_TYPE_ID, getAutoStageFromAge, normalizePlantTypeId } from '../../domain/plants';
 import SensorPill from '../ui/sensor-pill/SensorPill';
 import Button from '../ui/Button';
@@ -36,55 +35,15 @@ function formatAge(plantedAt) {
   return `${days} дн.`;
 }
 
-function formatRemaining(seconds) {
-  if (seconds === null || seconds === undefined) {
-    return '';
-  }
-  const clamped = Math.max(0, Math.ceil(seconds));
-  const minutes = Math.floor(clamped / 60);
-  const secs = clamped % 60;
-  const parts = [];
-  if (minutes > 0) {
-    parts.push(`${minutes} мин`);
-  }
-  parts.push(`${secs} с`);
-  return parts.join(' ');
-}
-
 function DashboardPlantCard({
   plant,
   onOpenStats,
   onOpenWatering,
-  wateringStatus,
   onOpenJournal,
 }) {
-  const [remainingSeconds, setRemainingSeconds] = React.useState(null);
   const sensors = Array.isArray(plant?.sensors) ? plant.sensors : [];
   const pumps = Array.isArray(plant?.pumps) ? plant.pumps : [];
   const primaryPump = pumps[0];
-
-  React.useEffect(() => {
-    if (!wateringStatus || !wateringStatus.startTime || !wateringStatus.duration) {
-      setRemainingSeconds(null);
-      return undefined;
-    }
-    const startTs = parseBackendTimestamp(wateringStatus.startTime)?.getTime();
-    if (!Number.isFinite(startTs)) {
-      setRemainingSeconds(null);
-      return undefined;
-    }
-    const durationMs = wateringStatus.duration * 1000;
-    const updateRemaining = () => {
-      const diffMs = startTs + durationMs - Date.now();
-      const next = diffMs <= 0 ? 0 : Math.ceil(diffMs / 1000);
-      setRemainingSeconds(next);
-    };
-    updateRemaining();
-    const interval = window.setInterval(updateRemaining, 1000);
-    return () => {
-      window.clearInterval(interval);
-    };
-  }, [wateringStatus]);
 
   const ageDays = React.useMemo(() => {
     if (!plant?.planted_at) return null;
@@ -100,7 +59,7 @@ function DashboardPlantCard({
   const stageId = plant?.growth_stage && String(plant.growth_stage).trim()
     ? String(plant.growth_stage).trim()
     : getAutoStageFromAge(plantTypeId, ageDays);
-  const showWateringBadge = wateringStatus && remainingSeconds !== null && remainingSeconds > 0;
+  const isWatering = pumps.some((pump) => pump && pump.is_running);
 
   const boundSensors = React.useMemo(() => {
     if (!plant?.id) {
@@ -141,6 +100,11 @@ function DashboardPlantCard({
       .filter(Boolean);
   }, [sensorsByKind]);
 
+  const hasMetrics = sensorPills.length > 0 || pumps.length > 0;
+  const bodyClassName = hasMetrics
+    ? 'dashboard-plant-card__body'
+    : 'dashboard-plant-card__body dashboard-plant-card__body--single';
+
   const handleOpenMetric = (metric) => {
     if (!plant?.id || !metric) return;
     onOpenStats?.({
@@ -173,36 +137,44 @@ function DashboardPlantCard({
         </Text>
       </div>
 
-      <div className="dashboard-plant-card__body">
+      <div className={bodyClassName}>
         <div className="dashboard-plant-card__avatar" aria-hidden="true">
           <PlantAvatar
             plantType={plantTypeId}
             stage={stageId}
             variant="card"
-            size="md"
+            size="sm"
           />
         </div>
-        {sensorPills.length > 0 && (
+        {hasMetrics && (
           <div className="dashboard-plant-card__metrics">
-            {sensorPills.map(({ kind, sensor }) => (
-              <SensorPill
-                key={`${kind}-${sensor.id}`}
-                kind={kind}
-                value={sensor.last_value}
-                onClick={() => handleOpenMetric(kind)}
-                disabled={!plant?.id}
-              />
-            ))}
-            <SensorPill
-              kind="watering"
-              value={Boolean(wateringStatus)}
-              onClick={() => handleOpenMetric('watering')}
-              highlight={Boolean(wateringStatus)}
-              disabled={!plant?.id}
-            />
-            {showWateringBadge && (
-              <div className="dashboard-plant-card__watering-badge">
-                Идёт полив · осталось {formatRemaining(remainingSeconds)}
+            {sensorPills.length > 0 && (
+              <div className="dashboard-plant-card__metrics-group">
+                {sensorPills.map(({ kind, sensor }) => (
+                  <SensorPill
+                    key={`${kind}-${sensor.id}`}
+                    kind={kind}
+                    value={sensor.last_value}
+                    onClick={() => handleOpenMetric(kind)}
+                    disabled={!plant?.id}
+                  />
+                ))}
+              </div>
+            )}
+            {pumps.length > 0 && (
+              <div className="dashboard-plant-card__metrics-group">
+                <SensorPill
+                  kind="watering"
+                  value={isWatering}
+                  onClick={() => handleOpenMetric('watering')}
+                  highlight={Boolean(isWatering)}
+                  disabled={!plant?.id}
+                />
+                {isWatering && (
+                  <div className="dashboard-plant-card__watering-badge">
+                    Идёт полив
+                  </div>
+                )}
               </div>
             )}
           </div>

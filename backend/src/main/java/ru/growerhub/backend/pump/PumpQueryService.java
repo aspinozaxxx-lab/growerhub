@@ -18,10 +18,16 @@ import ru.growerhub.backend.plant.PlantEntity;
 public class PumpQueryService {
     private final PumpService pumpService;
     private final PumpPlantBindingRepository bindingRepository;
+    private final PumpRunningStatusProvider runningStatusProvider;
 
-    public PumpQueryService(PumpService pumpService, PumpPlantBindingRepository bindingRepository) {
+    public PumpQueryService(
+            PumpService pumpService,
+            PumpPlantBindingRepository bindingRepository,
+            PumpRunningStatusProvider runningStatusProvider
+    ) {
         this.pumpService = pumpService;
         this.bindingRepository = bindingRepository;
+        this.runningStatusProvider = runningStatusProvider;
     }
 
     public List<PumpView> listByDevice(DeviceEntity device, DeviceState state) {
@@ -59,6 +65,10 @@ public class PumpQueryService {
             if (pump == null || pump.getId() == null) {
                 continue;
             }
+            Boolean isRunning = runningStatusProvider.isPumpRunning(
+                    resolveDeviceId(pump),
+                    pump.getChannel() != null ? pump.getChannel() : 0
+            );
             PumpView existing = byPump.get(pump.getId());
             List<PumpBoundPlantView> nextPlants = new ArrayList<>();
             if (existing != null && existing.boundPlants() != null) {
@@ -69,7 +79,7 @@ public class PumpQueryService {
                     pump.getId(),
                     pump.getChannel(),
                     pump.getLabel(),
-                    null,
+                    isRunning,
                     nextPlants
             ));
         }
@@ -129,5 +139,12 @@ public class PumpQueryService {
             return "on".equalsIgnoreCase(relay.status());
         }
         return null;
+    }
+
+    private String resolveDeviceId(PumpEntity pump) {
+        if (pump == null || pump.getDevice() == null) {
+            return null;
+        }
+        return pump.getDevice().getDeviceId();
     }
 }

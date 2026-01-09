@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  padding: var(--space-4);
+  padding: var(--space-3);
 }
 
 .dashboard-plant-card__top {
@@ -19,16 +19,20 @@
 
 .dashboard-plant-card__body {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(140px, 1fr);
-  column-gap: var(--space-3);
+  grid-template-columns: minmax(0, 2.5fr) minmax(120px, 1fr);
+  column-gap: var(--space-2);
   align-items: stretch;
+}
+
+.dashboard-plant-card__body--single {
+  grid-template-columns: 1fr;
 }
 
 .dashboard-plant-card__avatar {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 176px;
+  min-height: 120px;
   min-width: 0;
 }
 
@@ -40,11 +44,17 @@
 }
 
 .dashboard-plant-card__metrics {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-2);
   min-width: 0;
   box-sizing: border-box;
+}
+
+.dashboard-plant-card__metrics-group {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-1);
 }
 
 .dashboard-plant-card__empty {
@@ -70,23 +80,40 @@
 }
 
 .dashboard-plant-card__watering-badge {
-  margin-top: var(--space-2);
-  padding: 8px 10px;
-  border-radius: 10px;
+  margin-top: var(--space-1);
+  padding: 6px 8px;
+  border-radius: 8px;
   background: rgba(107, 219, 168, 0.12);
   color: #6bdba8;
   font-weight: 600;
+  font-size: 12px;
+}
+
+.dashboard-plant-card__metrics .sensor-pill {
+  padding: 6px 8px;
+  gap: 6px;
+  min-height: 32px;
+}
+
+.dashboard-plant-card__metrics .sensor-pill__icon {
+  width: 28px;
+  height: 28px;
+}
+
+.dashboard-plant-card__metrics .sensor-pill__icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 @media (min-width: 1024px) {
   /* Translitem: na desktop uvelichivaem "kartinku" rastenija i sdelajem metriki bolee kompaktnymi. */
   .dashboard-plant-card {
-    padding: var(--space-5);
-    gap: var(--space-4);
+    padding: var(--space-4);
+    gap: var(--space-3);
   }
 
   .dashboard-plant-card__avatar {
-    min-height: 240px;
+    min-height: 150px;
   }
 
   .dashboard-plant-card__metrics {
@@ -104,7 +131,7 @@
   }
 
   .dashboard-plant-card__body {
-    grid-template-columns: minmax(0, 3fr) minmax(calc(var(--space-6) * 4), 1fr);
+    grid-template-columns: minmax(0, 2.5fr) minmax(calc(var(--space-6) * 4), 1fr);
     align-items: stretch;
     gap: var(--space-2);
   }
@@ -116,8 +143,8 @@
   .dashboard-plant-card__metrics {
     padding-right: var(--space-1);
     min-width: 0;
-    display: grid;
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: var(--space-1);
   }
 

@@ -1,5 +1,11 @@
 ﻿# Changelog
 
+## 2026-01-09
+- Dashboard: status poliva pokazivaetsya dlya vseh rastenij s privyazannymi pumpami; plashki sensors/pumps renderjatsya nezavisimo.
+- Dashboard UI: kartochki rastenij kompaktnee, gruppirovka po plant_group, zagolovok udaljen, sidebar sticky bez prizhima k nizhu.
+- Plants UI: karandash na knopke redaktirovaniya i tekst 'Idet poliv...' na kartochkah pump.
+- Backend/testy: pump.is_running beretsya iz shadow dlya spiska plants; dobavleny integracionnye proverki bindings i running.
+
 ## 2026-01-08
 - DeviceShadowStore rasshiren do snapshot(meta+state) s cold start iz device_state_last.
 - DeviceService stal edinym provodnikom dlya dashboard response i manual_watering status.

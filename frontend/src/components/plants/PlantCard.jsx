@@ -77,7 +77,16 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
         </div>
         <div className="plant-card__actions">
           <button type="button" className="plant-card__edit" onClick={handleEdit} aria-label="Редактировать">
-            ?
+            <svg className="plant-card__edit-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M4 20h4l10-10-4-4-10 10v4zM14 6l4 4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
         </div>
       </div>
@@ -134,6 +143,9 @@ function PlantCard({ plant, onEdit, onOpenJournal }) {
               return (
                 <div key={pump.id} className="plant-card__pump">
                   <div className="plant-card__pump-title">Насос · канал {pump.channel ?? '-'}</div>
+                  {pump.is_running && (
+                    <div className="plant-card__pump-status">Идёт полив...</div>
+                  )}
                   {bound && <div className="plant-card__pump-rate">rate: {rate ?? '-'} мл/ч</div>}
                 </div>
               );

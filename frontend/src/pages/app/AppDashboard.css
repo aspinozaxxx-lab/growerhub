@@ -32,14 +32,14 @@
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 @media (min-width: 1024px) {
   /* Translitem: na desktop delaem kartochki rastenij zametno bol'she, ostavlyaya ostal'nye setki bez izmeneniy. */
   .cards-grid.cards-grid--plants {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
+    gap: 12px;
   }
 }
 
@@ -48,6 +48,21 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+.dashboard-group {
+  padding: var(--space-3);
+  border-radius: 16px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-1);
+  box-shadow: var(--shadow-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dashboard-group__title h3 {
+  margin: 0;
 }
 
 .free-device-card {
@@ -60,6 +75,10 @@
   .dashboard-section-plain {
     padding-left: 0;
     padding-right: 0;
+  }
+
+  .dashboard-group {
+    padding: var(--space-2);
   }
 }
 
