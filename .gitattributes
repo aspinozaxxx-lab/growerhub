@@ -1,2 +1,12 @@
 # Use LF everywhere
+# general fallback
 * text=auto eol=lf
+
+*.java text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
