@@ -1,15 +1,15 @@
-﻿# ADR-001: adapter composition exception
+﻿# ADR-001: исключение для композиции в адаптерах
 
-Status: prinjato
+Статус: принято
 
-## Pravilo po umolchaniju
+## Правило по умолчанию
 1 handler = 1 facade operation (R-ADAPTER-01).
 
-## Iskljuchenie
-Tolko dlya kompozitnyh REST-otvetov, kogda nuzhno agregirovat' dannye iz neskol'kih facade.
-Adapter v etih metodah mozet vyzyvat' neskol'ko facade tol'ko dlya agregacii/maapinga otveta.
+## Исключение
+Только для композитных REST-ответов, когда нужно агрегировать данные из нескольких facade.
+Адаптер в этих методах может вызывать несколько facade только для агрегации/маппинга ответа.
 
-## Gde razresheno (po faktu v kode)
+## Где разрешено (по факту в коде)
 PlantController:
 - GET /api/plants
 - POST /api/plants
@@ -23,14 +23,14 @@ DevicesController:
 - POST /api/admin/devices/{device_id}/assign
 - POST /api/admin/devices/{device_id}/unassign
 
-## Ogranichenija
-- Adapter ne importit *Entity/*Repository.
-- Adapter mozet vyzyvat' neskol'ko facade.
-- Logika tol'ko agregacija/maaping dannyh, bez pravil domena i bez tranzakcij.
-- Iskljuchenie dejstvuet tol'ko do pojavlenija normal'noj orchestration (sejchas ne vnedrjaem).
+## Ограничения
+- Адаптер не импортит *Entity/*Repository.
+- Адаптер может вызывать несколько facade.
+- Логика только агрегация/маппинг данных, без правил домена и без транзакций.
+- Исключение действует только до появления нормальной orchestration (сейчас не внедряем).
 
-## Kak proverit'
-- net importov *.Entity/*.Repository v REST adapterah;
-- v ukazannyh metodah tol'ko facade-vyzovy i mapping v REST DTO;
-- net @Transactional v adapterah dlya etih metodov;
-- net importov *.internal.* iz adapterov.
+## Как проверить
+- нет импортов *.Entity/*.Repository в REST адаптерах;
+- в указанных методах только facade-вызовы и mapping в REST DTO;
+- нет @Transactional в адаптерах для этих методов;
+- нет импортов *.internal.* из адаптеров.
