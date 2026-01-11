@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.auth.AuthMethodLocal;
 import ru.growerhub.backend.auth.AuthMethodProvider;
 import ru.growerhub.backend.auth.AuthMethods;
@@ -50,7 +49,6 @@ public class AuthService {
         this.refreshTokenService = refreshTokenService;
     }
 
-    @Transactional(readOnly = true)
     public UserEntity authenticateLocalUser(String email, String password) {
         Optional<UserEntity> userOpt = findUserByEmail(email);
         if (userOpt.isEmpty()) {
@@ -72,14 +70,12 @@ public class AuthService {
         return user;
     }
 
-    @Transactional
     public AuthTokens issueAccessAndRefresh(UserEntity user, HttpServletRequest request, HttpServletResponse response) {
         String accessToken = issueAccessToken(user);
         issueRefreshToken(user, request, response);
         return new AuthTokens(accessToken, "bearer");
     }
 
-    @Transactional
     public void issueRefreshToken(UserEntity user, HttpServletRequest request, HttpServletResponse response) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         String refreshRaw = refreshTokenService.generateToken();
@@ -101,7 +97,6 @@ public class AuthService {
         return jwtService.createAccessToken(Map.of("user_id", user.getId()));
     }
 
-    @Transactional
     public AuthTokens refreshTokens(HttpServletRequest request, HttpServletResponse response) {
         String refreshRaw = refreshTokenService.readToken(request).orElse(null);
         if (refreshRaw == null || refreshRaw.isEmpty()) {
@@ -148,7 +143,6 @@ public class AuthService {
         return new AuthTokens(accessToken, "bearer");
     }
 
-    @Transactional
     public void logout(HttpServletRequest request, HttpServletResponse response) {
         String refreshRaw = refreshTokenService.readToken(request).orElse(null);
         if (refreshRaw != null && !refreshRaw.isEmpty()) {
@@ -162,7 +156,6 @@ public class AuthService {
         refreshTokenService.clearCookie(response);
     }
 
-    @Transactional
     public AuthUserProfile updateProfile(UserEntity user, String email, String username) {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
@@ -187,7 +180,6 @@ public class AuthService {
         return toUserProfile(user);
     }
 
-    @Transactional
     public void changePassword(UserEntity user, String currentPassword, String newPassword) {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
@@ -206,7 +198,6 @@ public class AuthService {
         identityRepository.save(identity);
     }
 
-    @Transactional(readOnly = true)
     public AuthMethods authMethods(UserEntity user) {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
@@ -214,7 +205,6 @@ public class AuthService {
         return buildAuthMethods(user);
     }
 
-    @Transactional
     public AuthMethods configureLocal(UserEntity user, String email, String password) {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
@@ -251,7 +241,6 @@ public class AuthService {
         return buildAuthMethods(user);
     }
 
-    @Transactional
     public AuthMethods deleteMethod(UserEntity user, String provider) {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
@@ -275,7 +264,6 @@ public class AuthService {
         return buildAuthMethods(user);
     }
 
-    @Transactional(readOnly = true)
     public UserEntity resolveOptionalUser(String authorizationHeader) {
         if (authorizationHeader == null) {
             return null;
@@ -299,12 +287,10 @@ public class AuthService {
         }
     }
 
-    @Transactional(readOnly = true)
     public UserEntity findUserById(int userId) {
         return entityManager.find(UserEntity.class, userId);
     }
 
-    @Transactional(readOnly = true)
     public AuthUserProfile getProfile(Integer userId) {
         if (userId == null) {
             return null;

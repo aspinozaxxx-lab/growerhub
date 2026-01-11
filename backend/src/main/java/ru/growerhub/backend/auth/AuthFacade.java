@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.auth.internal.AuthService;
 import ru.growerhub.backend.auth.internal.SsoService;
 import ru.growerhub.backend.common.AuthenticatedUser;
@@ -22,6 +23,7 @@ public class AuthFacade {
         this.ssoService = ssoService;
     }
 
+    @Transactional(readOnly = true)
     public AuthUserProfile me(AuthenticatedUser user) {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
@@ -33,6 +35,7 @@ public class AuthFacade {
         return profile;
     }
 
+    @Transactional
     public AuthTokens login(String email, String password, HttpServletRequest request, HttpServletResponse response) {
         UserEntity user = authService.authenticateLocalUser(email, password);
         if (user == null) {
@@ -41,6 +44,7 @@ public class AuthFacade {
         return authService.issueAccessAndRefresh(user, request, response);
     }
 
+    @Transactional(readOnly = true)
     public SsoLoginResult ssoLogin(
             String provider,
             String redirectPath,
@@ -70,6 +74,7 @@ public class AuthFacade {
         return new SsoLoginResult(authUrl, wantsJson);
     }
 
+    @Transactional
     public SsoCallbackResult ssoCallback(
             String provider,
             String code,
@@ -146,14 +151,17 @@ public class AuthFacade {
         return new SsoCallbackResult(redirectTarget);
     }
 
+    @Transactional
     public AuthTokens refresh(HttpServletRequest request, HttpServletResponse response) {
         return authService.refreshTokens(request, response);
     }
 
+    @Transactional
     public void logout(HttpServletRequest request, HttpServletResponse response) {
         authService.logout(request, response);
     }
 
+    @Transactional
     public AuthUserProfile updateProfile(AuthenticatedUser user, String email, String username) {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
@@ -165,6 +173,7 @@ public class AuthFacade {
         return authService.updateProfile(entity, email, username);
     }
 
+    @Transactional
     public void changePassword(AuthenticatedUser user, String currentPassword, String newPassword) {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
@@ -176,6 +185,7 @@ public class AuthFacade {
         authService.changePassword(entity, currentPassword, newPassword);
     }
 
+    @Transactional(readOnly = true)
     public AuthMethods authMethods(AuthenticatedUser user) {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
@@ -187,6 +197,7 @@ public class AuthFacade {
         return authService.authMethods(entity);
     }
 
+    @Transactional
     public AuthMethods configureLocal(AuthenticatedUser user, String email, String password) {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
@@ -198,6 +209,7 @@ public class AuthFacade {
         return authService.configureLocal(entity, email, password);
     }
 
+    @Transactional
     public AuthMethods deleteMethod(AuthenticatedUser user, String provider) {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");

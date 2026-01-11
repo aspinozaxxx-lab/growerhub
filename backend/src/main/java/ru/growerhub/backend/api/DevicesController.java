@@ -161,8 +161,11 @@ public class DevicesController {
             @Valid @RequestBody DeviceDtos.AssignToMeRequest request,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        DeviceSummary summary = deviceFacade.assignToUser(request.deviceId(), user != null ? user.id() : null);
-        return mapDeviceResponse(summary);
+        DeviceFacade.DeviceAggregate aggregate = deviceFacade.assignToUserAggregate(
+                request.deviceId(),
+                user != null ? user.id() : null
+        );
+        return toDeviceResponse(aggregate);
     }
 
     @PostMapping("/api/devices/{device_id}/unassign")
@@ -171,8 +174,12 @@ public class DevicesController {
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         boolean isAdmin = user != null && user.isAdmin();
-        DeviceSummary summary = deviceFacade.unassignForUser(deviceId, user != null ? user.id() : null, isAdmin);
-        return mapDeviceResponse(summary);
+        DeviceFacade.DeviceAggregate aggregate = deviceFacade.unassignForUserAggregate(
+                deviceId,
+                user != null ? user.id() : null,
+                isAdmin
+        );
+        return toDeviceResponse(aggregate);
     }
 
     @PostMapping("/api/admin/devices/{device_id}/assign")
@@ -263,27 +270,9 @@ public class DevicesController {
 
     private DeviceDtos.DeviceResponse mapDeviceResponse(DeviceSummary summary) {
         DeviceShadowState state = deviceFacade.getShadowState(summary.deviceId());
-        List<DeviceDtos.SensorResponse> sensors = mapSensors(sensorFacade.listByDeviceId(summary.id()));
-        List<DeviceDtos.PumpResponse> pumps = mapPumps(pumpFacade.listByDeviceId(summary.id(), state));
-        return new DeviceDtos.DeviceResponse(
-                summary.id(),
-                summary.deviceId(),
-                summary.name(),
-                summary.isOnline(),
-                summary.lastSeen(),
-                summary.targetMoisture(),
-                summary.wateringDuration(),
-                summary.wateringTimeout(),
-                summary.lightOnHour(),
-                summary.lightOffHour(),
-                summary.lightDuration(),
-                summary.currentVersion(),
-                summary.updateAvailable(),
-                summary.firmwareVersion(),
-                summary.userId(),
-                sensors,
-                pumps
-        );
+        List<SensorView> sensors = sensorFacade.listByDeviceId(summary.id());
+        List<PumpView> pumps = pumpFacade.listByDeviceId(summary.id(), state);
+        return buildDeviceResponse(summary, sensors, pumps);
     }
 
     private List<DeviceDtos.SensorResponse> mapSensors(List<SensorView> views) {
@@ -339,6 +328,38 @@ public class DevicesController {
             ));
         }
         return result;
+    }
+
+    private DeviceDtos.DeviceResponse toDeviceResponse(DeviceFacade.DeviceAggregate aggregate) {
+        return buildDeviceResponse(aggregate.summary(), aggregate.sensors(), aggregate.pumps());
+    }
+
+    private DeviceDtos.DeviceResponse buildDeviceResponse(
+            DeviceSummary summary,
+            List<SensorView> sensors,
+            List<PumpView> pumps
+    ) {
+        List<DeviceDtos.SensorResponse> sensorResponses = mapSensors(sensors);
+        List<DeviceDtos.PumpResponse> pumpResponses = mapPumps(pumps);
+        return new DeviceDtos.DeviceResponse(
+                summary.id(),
+                summary.deviceId(),
+                summary.name(),
+                summary.isOnline(),
+                summary.lastSeen(),
+                summary.targetMoisture(),
+                summary.wateringDuration(),
+                summary.wateringTimeout(),
+                summary.lightOnHour(),
+                summary.lightOffHour(),
+                summary.lightDuration(),
+                summary.currentVersion(),
+                summary.updateAvailable(),
+                summary.firmwareVersion(),
+                summary.userId(),
+                sensorResponses,
+                pumpResponses
+        );
     }
 
     private void requireAdmin(AuthenticatedUser user) {

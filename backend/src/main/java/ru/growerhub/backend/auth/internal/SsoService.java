@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.db.UserAuthIdentityEntity;
 import ru.growerhub.backend.db.UserAuthIdentityRepository;
 import ru.growerhub.backend.user.UserEntity;
@@ -189,7 +188,6 @@ public class SsoService {
         }
     }
 
-    @Transactional
     public UserEntity getOrCreateUser(String provider, String subject, String email) {
         validateProvider(provider);
         UserAuthIdentityEntity identity = identityRepository
@@ -229,7 +227,6 @@ public class SsoService {
         return identityRepository.findByUser_IdAndProvider(userId, provider).orElse(null);
     }
 
-    @Transactional
     public UserAuthIdentityEntity linkIdentity(UserEntity user, String provider, String subject) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         UserAuthIdentityEntity identity = identityRepository

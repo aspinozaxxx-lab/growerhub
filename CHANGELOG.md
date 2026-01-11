@@ -5,6 +5,16 @@
 - refactor(backend): obshchie DTO/utility pereneseny v common (ApiError, AuthenticatedUser, PasswordHasher, FlexibleLocalDateTimeDeserializer).
 - fix(backend): obnavleny MQTT ack/pump/firmware gateway i device shadow, testy privyazany k novym paketam.
 - docs(arch): dobavlen ADR-001 po iskljucheniyu dlya kompozitnyh REST-otvetov.
+### fix(backend): devices assign/unassign cherez facade
+
+- fix(backend): DevicesController.assignToMe i unassignDevice teper’ zagruzhajut gotovyy DeviceAggregate iz DeviceFacade, adapter ne vyzyvaet SensorFacade/PumpFacade.
+- fix(backend): DeviceFacade agregiruet state/sensors/pumps i vozvrashchaet DeviceAggregate, adapter derzhit tolko odnu facade-operaciyu.
+
+### fix(backend): auth facade transaction boundaries
+
+- fix(backend): @Transactional pereneseny iz AuthService/SsoService v AuthFacade, facade kontroliruet transakcii.
+- fix(backend): AuthService i SsoService ostalis’ bez transaktsij; API zachivaet prezhnee povedenie i obnovlenny refresh/logout.
+
 ### fix(backend): flyway migraciya dlya sensor_data relay kolonok
 
 - fix(backend): dobavlen flyway i migraciya dlya kolonok light_relay_on/pump_relay_on/soil_moisture_1/soil_moisture_2 v sensor_data.
@@ -334,4 +344,5 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - Istorija polivov teper ispolzuet obem vody kak osnovnuyu metriku i v saidebare vidno ph i sostav udobrenij.
 - Dobavlena polnocennaja stranica zhurnala rastenija: prosmotr, dobavlenie, izmenenie, udalenie zhjurnalnyh zapisej. Fiks bitogo teksta v istorii polivov, normalnye podpisi.
 - sso callback: po umolchaniyu vozvrashchaet redirect s tokenom v URL, link-mode uhodit na `/static/profile.html`.
+
 

@@ -15,10 +15,14 @@ import ru.growerhub.backend.device.internal.DeviceRepository;
 import ru.growerhub.backend.device.internal.DeviceShadowStore;
 import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
 import ru.growerhub.backend.plant.PlantFacade;
+import org.springframework.context.annotation.Lazy;
+import ru.growerhub.backend.pump.PumpFacade;
 import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.SensorMeasurement;
 import ru.growerhub.backend.sensor.SensorReadingSummary;
+import ru.growerhub.backend.sensor.SensorView;
 import ru.growerhub.backend.user.UserEntity;
+import ru.growerhub.backend.pump.PumpView;
 
 @Service
 public class DeviceFacade {
@@ -30,6 +34,7 @@ public class DeviceFacade {
     private final DeviceAckService ackService;
     private final SensorFacade sensorFacade;
     private final PlantFacade plantFacade;
+    private final PumpFacade pumpFacade;
     private final EntityManager entityManager;
 
     public DeviceFacade(
@@ -41,6 +46,7 @@ public class DeviceFacade {
             DeviceAckService ackService,
             SensorFacade sensorFacade,
             PlantFacade plantFacade,
+            @Lazy PumpFacade pumpFacade,
             EntityManager entityManager
     ) {
         this.deviceRepository = deviceRepository;
@@ -51,6 +57,7 @@ public class DeviceFacade {
         this.ackService = ackService;
         this.sensorFacade = sensorFacade;
         this.plantFacade = plantFacade;
+        this.pumpFacade = pumpFacade;
         this.entityManager = entityManager;
     }
 
@@ -206,6 +213,18 @@ public class DeviceFacade {
     }
 
     @Transactional
+    public DeviceAggregate assignToUserAggregate(Integer deviceId, Integer userId) {
+        DeviceSummary summary = assignToUser(deviceId, userId);
+        return buildAggregate(summary);
+    }
+
+    @Transactional
+    public DeviceAggregate unassignForUserAggregate(Integer deviceId, Integer userId, boolean isAdmin) {
+        DeviceSummary summary = unassignForUser(deviceId, userId, isAdmin);
+        return buildAggregate(summary);
+    }
+
+    @Transactional
     public DeviceSummary adminAssign(Integer deviceId, Integer userId) {
         DeviceEntity device = requireDevice(deviceId);
         device.setUser(getUserReference(userId));
@@ -268,5 +287,20 @@ public class DeviceFacade {
 
     private Boolean defaultBoolean(Boolean value, boolean fallback) {
         return value != null ? value : fallback;
+    }
+
+    private DeviceAggregate buildAggregate(DeviceSummary summary) {
+        DeviceShadowState state = getShadowState(summary.deviceId());
+        List<SensorView> sensors = sensorFacade.listByDeviceId(summary.id());
+        List<PumpView> pumps = pumpFacade.listByDeviceId(summary.id(), state);
+        return new DeviceAggregate(summary, state, sensors, pumps);
+    }
+
+    public record DeviceAggregate(
+            DeviceSummary summary,
+            DeviceShadowState state,
+            List<SensorView> sensors,
+            List<PumpView> pumps
+    ) {
     }
 }
