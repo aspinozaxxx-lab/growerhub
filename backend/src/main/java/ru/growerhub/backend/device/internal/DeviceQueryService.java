@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.DeviceShadowState;
-import ru.growerhub.backend.device.DeviceSummary;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
+import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.user.UserEntity;
 
 @Service

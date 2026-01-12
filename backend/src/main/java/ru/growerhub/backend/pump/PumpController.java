@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.ApiException;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.PumpDtos;
-import ru.growerhub.backend.common.AuthenticatedUser;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
 
 @RestController
 public class PumpController {

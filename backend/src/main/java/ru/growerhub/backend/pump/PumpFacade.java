@@ -4,13 +4,14 @@ import jakarta.persistence.EntityManager;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.common.AuthenticatedUser;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.DeviceShadowState;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.plant.PlantEntity;
 import ru.growerhub.backend.pump.internal.PumpBindingService;
 import ru.growerhub.backend.pump.internal.PumpQueryService;
 import ru.growerhub.backend.pump.internal.PumpWateringService;
+import ru.growerhub.backend.pump.contract.PumpView;
 
 @Service
 public class PumpFacade {

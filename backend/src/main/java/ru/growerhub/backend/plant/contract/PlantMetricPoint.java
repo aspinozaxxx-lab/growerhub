@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.plant;
+﻿package ru.growerhub.backend.plant.contract;
 
 import java.time.LocalDateTime;
 

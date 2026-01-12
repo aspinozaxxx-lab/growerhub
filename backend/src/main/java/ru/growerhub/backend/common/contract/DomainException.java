@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.common;
+﻿package ru.growerhub.backend.common.contract;
 
 public class DomainException extends RuntimeException {
     private final String code;

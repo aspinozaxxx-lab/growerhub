@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import ru.growerhub.backend.device.DeviceSettings;
-import ru.growerhub.backend.device.DeviceShadowState;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.internal.DeviceRepository;
 import ru.growerhub.backend.device.internal.DeviceShadowStore;
 import ru.growerhub.backend.device.internal.DeviceStateLastRepository;

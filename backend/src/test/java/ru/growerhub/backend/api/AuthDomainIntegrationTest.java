@@ -24,7 +24,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.auth.internal.AuthSettings;
-import ru.growerhub.backend.common.PasswordHasher;
+import ru.growerhub.backend.common.component.PasswordHasher;
 import ru.growerhub.backend.auth.internal.RefreshTokenService;
 import ru.growerhub.backend.db.UserAuthIdentityEntity;
 import ru.growerhub.backend.db.UserAuthIdentityRepository;

@@ -17,16 +17,17 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.DeviceDtos;
-import ru.growerhub.backend.common.AuthenticatedUser;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.device.DeviceFacade;
-import ru.growerhub.backend.device.DeviceSettingsData;
-import ru.growerhub.backend.device.DeviceSettingsUpdate;
-import ru.growerhub.backend.device.DeviceShadowState;
-import ru.growerhub.backend.device.DeviceSummary;
+import ru.growerhub.backend.device.contract.DeviceAggregate;
+import ru.growerhub.backend.device.contract.DeviceSettingsData;
+import ru.growerhub.backend.device.contract.DeviceSettingsUpdate;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
+import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.pump.PumpFacade;
-import ru.growerhub.backend.pump.PumpView;
+import ru.growerhub.backend.pump.contract.PumpView;
 import ru.growerhub.backend.sensor.SensorFacade;
-import ru.growerhub.backend.sensor.SensorView;
+import ru.growerhub.backend.sensor.contract.SensorView;
 import ru.growerhub.backend.user.UserFacade;
 
 @RestController
@@ -161,7 +162,7 @@ public class DevicesController {
             @Valid @RequestBody DeviceDtos.AssignToMeRequest request,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        DeviceFacade.DeviceAggregate aggregate = deviceFacade.assignToUserAggregate(
+        DeviceAggregate aggregate = deviceFacade.assignToUserAggregate(
                 request.deviceId(),
                 user != null ? user.id() : null
         );
@@ -174,7 +175,7 @@ public class DevicesController {
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         boolean isAdmin = user != null && user.isAdmin();
-        DeviceFacade.DeviceAggregate aggregate = deviceFacade.unassignForUserAggregate(
+        DeviceAggregate aggregate = deviceFacade.unassignForUserAggregate(
                 deviceId,
                 user != null ? user.id() : null,
                 isAdmin
@@ -330,7 +331,7 @@ public class DevicesController {
         return result;
     }
 
-    private DeviceDtos.DeviceResponse toDeviceResponse(DeviceFacade.DeviceAggregate aggregate) {
+    private DeviceDtos.DeviceResponse toDeviceResponse(DeviceAggregate aggregate) {
         return buildDeviceResponse(aggregate.summary(), aggregate.sensors(), aggregate.pumps());
     }
 

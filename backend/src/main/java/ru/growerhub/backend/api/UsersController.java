@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import jakarta.validation.Valid;
 import ru.growerhub.backend.api.dto.UserDtos;
-import ru.growerhub.backend.common.AuthenticatedUser;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.user.UserFacade;
 
 @RestController

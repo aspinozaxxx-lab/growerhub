@@ -29,7 +29,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.DeviceShadowState;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.internal.DeviceRepository;
 import ru.growerhub.backend.device.internal.DeviceShadowStore;
 import ru.growerhub.backend.journal.PlantJournalEntryEntity;

@@ -3,7 +3,7 @@
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.time.LocalDateTime;
-import ru.growerhub.backend.common.FlexibleLocalDateTimeDeserializer;
+import ru.growerhub.backend.common.util.FlexibleLocalDateTimeDeserializer;
 
 public record ManualWateringState(
         @JsonProperty("status") String status,

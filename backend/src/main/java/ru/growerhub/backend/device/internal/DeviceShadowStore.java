@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
 import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.device.DeviceSettings;
-import ru.growerhub.backend.device.DeviceShadowState;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.DeviceStateLastEntity;
 
 @Component

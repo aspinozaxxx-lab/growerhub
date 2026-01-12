@@ -10,7 +10,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import ru.growerhub.backend.common.DomainException;
+import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.firmware.internal.FirmwareStorage;
 

@@ -3,7 +3,7 @@
 import java.time.LocalDateTime;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
-import ru.growerhub.backend.common.DomainException;
+import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.mqtt.model.CmdPumpStart;
 import ru.growerhub.backend.mqtt.model.CmdPumpStop;
 import ru.growerhub.backend.mqtt.model.CmdReboot;

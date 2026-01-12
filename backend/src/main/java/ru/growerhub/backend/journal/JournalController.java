@@ -16,7 +16,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.ApiException;
 import ru.growerhub.backend.api.dto.PlantDtos;
-import ru.growerhub.backend.common.AuthenticatedUser;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
+import ru.growerhub.backend.journal.contract.JournalEntry;
 
 @RestController
 @Validated

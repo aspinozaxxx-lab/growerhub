@@ -1,7 +1,9 @@
-﻿package ru.growerhub.backend.journal;
+﻿package ru.growerhub.backend.journal.contract;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import ru.growerhub.backend.journal.JournalPhoto;
+import ru.growerhub.backend.journal.JournalWateringDetails;
 
 public record JournalEntry(
         Integer id,

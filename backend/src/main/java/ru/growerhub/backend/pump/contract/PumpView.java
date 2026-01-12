@@ -1,6 +1,7 @@
-﻿package ru.growerhub.backend.pump;
+﻿package ru.growerhub.backend.pump.contract;
 
 import java.util.List;
+import ru.growerhub.backend.pump.PumpBoundPlantView;
 
 public record PumpView(
         Integer id,

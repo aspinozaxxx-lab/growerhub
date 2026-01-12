@@ -1,4 +1,4 @@
-package ru.growerhub.backend.common;
+﻿package ru.growerhub.backend.common.component;
 
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
@@ -10,7 +10,7 @@ import javax.crypto.spec.PBEKeySpec;
 import org.springframework.stereotype.Component;
 
 @Component
-public class PasswordHasher {
+public class PasswordHasher implements ru.growerhub.backend.common.contract.PasswordHasher {
     private static final String PREFIX = "$pbkdf2-sha256$";
     private static final int DEFAULT_ROUNDS = 29000;
     private static final int SALT_BYTES = 16;

@@ -1,12 +1,11 @@
-﻿package ru.growerhub.backend.device;
+﻿package ru.growerhub.backend.device.contract;
 
-public record DeviceSettingsData(
+public record DeviceSettingsUpdate(
         Double targetMoisture,
         Integer wateringDuration,
         Integer wateringTimeout,
         Integer lightOnHour,
         Integer lightOffHour,
-        Integer lightDuration,
-        Boolean updateAvailable
+        Integer lightDuration
 ) {
 }

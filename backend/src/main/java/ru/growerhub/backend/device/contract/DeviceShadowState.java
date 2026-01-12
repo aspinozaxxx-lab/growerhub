@@ -1,10 +1,10 @@
-﻿package ru.growerhub.backend.device;
+﻿package ru.growerhub.backend.device.contract;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.time.LocalDateTime;
 import java.util.List;
-import ru.growerhub.backend.common.FlexibleLocalDateTimeDeserializer;
+import ru.growerhub.backend.common.util.FlexibleLocalDateTimeDeserializer;
 
 public record DeviceShadowState(
         @JsonProperty("manual_watering") ManualWateringState manualWatering,

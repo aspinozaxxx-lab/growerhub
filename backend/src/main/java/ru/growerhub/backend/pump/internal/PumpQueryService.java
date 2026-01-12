@@ -11,13 +11,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.DeviceShadowState;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.plant.PlantEntity;
 import ru.growerhub.backend.pump.PumpBoundPlantView;
 import ru.growerhub.backend.pump.PumpEntity;
 import ru.growerhub.backend.pump.PumpPlantBindingEntity;
 import ru.growerhub.backend.pump.PumpRunningStatusProvider;
-import ru.growerhub.backend.pump.PumpView;
+import ru.growerhub.backend.pump.contract.PumpView;
 
 @Service
 public class PumpQueryService {

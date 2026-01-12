@@ -11,8 +11,8 @@ import java.util.Locale;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.common.AuthenticatedUser;
-import ru.growerhub.backend.common.DomainException;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
+import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.journal.PlantJournalEntryEntity;
 import ru.growerhub.backend.journal.PlantJournalPhotoEntity;
 import ru.growerhub.backend.journal.PlantJournalWateringDetailsEntity;
@@ -20,6 +20,7 @@ import ru.growerhub.backend.journal.internal.JournalService;
 import ru.growerhub.backend.journal.internal.PlantJournalEntryRepository;
 import ru.growerhub.backend.journal.internal.PlantJournalPhotoRepository;
 import ru.growerhub.backend.journal.internal.PlantJournalWateringDetailsRepository;
+import ru.growerhub.backend.journal.contract.JournalEntry;
 import ru.growerhub.backend.plant.PlantEntity;
 import ru.growerhub.backend.user.UserEntity;
 

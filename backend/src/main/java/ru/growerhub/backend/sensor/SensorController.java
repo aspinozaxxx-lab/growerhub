@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.HistoryDtos;
 import ru.growerhub.backend.api.dto.SensorDtos;
-import ru.growerhub.backend.common.AuthenticatedUser;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
 
 @RestController
 public class SensorController {

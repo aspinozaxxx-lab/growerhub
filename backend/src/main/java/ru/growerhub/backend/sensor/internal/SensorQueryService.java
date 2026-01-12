@@ -15,7 +15,7 @@ import ru.growerhub.backend.sensor.SensorBoundPlantView;
 import ru.growerhub.backend.sensor.SensorEntity;
 import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
 import ru.growerhub.backend.sensor.SensorReadingEntity;
-import ru.growerhub.backend.sensor.SensorView;
+import ru.growerhub.backend.sensor.contract.SensorView;
 
 @Service
 public class SensorQueryService {

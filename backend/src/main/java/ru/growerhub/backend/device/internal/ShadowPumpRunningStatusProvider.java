@@ -1,7 +1,7 @@
 ﻿package ru.growerhub.backend.device.internal;
 
 import org.springframework.stereotype.Service;
-import ru.growerhub.backend.device.DeviceShadowState;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.pump.PumpRunningStatusProvider;
 
 @Service

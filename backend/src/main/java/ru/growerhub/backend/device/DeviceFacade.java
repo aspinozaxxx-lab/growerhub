@@ -5,24 +5,29 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.common.DomainException;
+import ru.growerhub.backend.common.contract.DomainException;
+import ru.growerhub.backend.device.contract.DeviceAggregate;
+import ru.growerhub.backend.device.contract.DeviceSettingsData;
+import ru.growerhub.backend.device.contract.DeviceSettingsUpdate;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
+import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.device.internal.DeviceAckService;
 import ru.growerhub.backend.device.internal.DeviceIngestionService;
 import ru.growerhub.backend.device.internal.DeviceQueryService;
 import ru.growerhub.backend.device.internal.DeviceRepository;
 import ru.growerhub.backend.device.internal.DeviceShadowStore;
 import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
-import ru.growerhub.backend.plant.PlantFacade;
-import org.springframework.context.annotation.Lazy;
 import ru.growerhub.backend.pump.PumpFacade;
+import ru.growerhub.backend.pump.contract.PumpView;
+import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.SensorMeasurement;
 import ru.growerhub.backend.sensor.SensorReadingSummary;
-import ru.growerhub.backend.sensor.SensorView;
+import ru.growerhub.backend.sensor.contract.SensorView;
 import ru.growerhub.backend.user.UserEntity;
-import ru.growerhub.backend.pump.PumpView;
 
 @Service
 public class DeviceFacade {
@@ -294,13 +299,5 @@ public class DeviceFacade {
         List<SensorView> sensors = sensorFacade.listByDeviceId(summary.id());
         List<PumpView> pumps = pumpFacade.listByDeviceId(summary.id(), state);
         return new DeviceAggregate(summary, state, sensors, pumps);
-    }
-
-    public record DeviceAggregate(
-            DeviceSummary summary,
-            DeviceShadowState state,
-            List<SensorView> sensors,
-            List<PumpView> pumps
-    ) {
     }
 }

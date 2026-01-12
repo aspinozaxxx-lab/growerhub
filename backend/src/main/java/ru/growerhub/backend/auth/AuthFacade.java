@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.auth.internal.AuthService;
 import ru.growerhub.backend.auth.internal.SsoService;
-import ru.growerhub.backend.common.AuthenticatedUser;
-import ru.growerhub.backend.common.DomainException;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
+import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.db.UserAuthIdentityEntity;
 import ru.growerhub.backend.user.UserEntity;
 

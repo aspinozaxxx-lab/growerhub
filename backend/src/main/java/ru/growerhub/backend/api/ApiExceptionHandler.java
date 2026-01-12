@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
-import ru.growerhub.backend.common.ApiError;
-import ru.growerhub.backend.common.DomainException;
+import ru.growerhub.backend.common.contract.ApiError;
+import ru.growerhub.backend.common.contract.DomainException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {

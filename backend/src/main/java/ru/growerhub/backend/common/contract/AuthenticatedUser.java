@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.common;
+﻿package ru.growerhub.backend.common.contract;
 
 public record AuthenticatedUser(Integer id, String role) {
     public boolean isAdmin() {

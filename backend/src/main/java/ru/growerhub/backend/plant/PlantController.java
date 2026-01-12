@@ -25,11 +25,14 @@ import ru.growerhub.backend.api.ApiValidationException;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.DeviceDtos;
 import ru.growerhub.backend.api.dto.PlantDtos;
-import ru.growerhub.backend.common.AuthenticatedUser;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.pump.PumpFacade;
-import ru.growerhub.backend.pump.PumpView;
+import ru.growerhub.backend.pump.contract.PumpView;
 import ru.growerhub.backend.sensor.SensorFacade;
-import ru.growerhub.backend.sensor.SensorView;
+import ru.growerhub.backend.sensor.contract.SensorView;
+import ru.growerhub.backend.plant.contract.PlantGroupInfo;
+import ru.growerhub.backend.plant.contract.PlantInfo;
+import ru.growerhub.backend.plant.contract.PlantMetricPoint;
 
 @RestController
 @Validated

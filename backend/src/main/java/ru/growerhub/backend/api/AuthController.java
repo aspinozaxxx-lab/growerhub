@@ -24,8 +24,8 @@ import ru.growerhub.backend.auth.AuthMethodProvider;
 import ru.growerhub.backend.auth.AuthMethods;
 import ru.growerhub.backend.auth.AuthTokens;
 import ru.growerhub.backend.auth.AuthUserProfile;
-import ru.growerhub.backend.common.AuthenticatedUser;
-import ru.growerhub.backend.common.ApiError;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
+import ru.growerhub.backend.common.contract.ApiError;
 
 @RestController
 public class AuthController {
