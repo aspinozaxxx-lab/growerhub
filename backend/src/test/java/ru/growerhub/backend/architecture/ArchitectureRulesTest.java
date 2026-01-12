@@ -53,13 +53,26 @@ class ArchitectureRulesTest {
         }
     }
 
-    // pravilo: internal-dostup ogranichen v ramkakh domena
+    // pravilo: engine-pakety dostupny tolko svoemu domenu
     @Test
-    void internalModulesOnlyUsedByOwnDomain() {
+    void engineModulesOnlyUsedByOwnDomain() {
         for (String domain : DOMAINS) {
             ArchRule isolationRule = classes()
-                    .that().resideInAPackage("ru.growerhub.backend." + domain + ".internal..")
-                    .should().onlyBeAccessed().byClassesThat().resideInAPackage("ru.growerhub.backend." + domain + "..");
+                    .that().resideInAPackage("ru.growerhub.backend." + domain + ".engine..")
+                    .should().onlyBeAccessed().byClassesThat().resideInAPackage("ru.growerhub.backend." + domain + "..")
+                    .allowEmptyShould(true);
+            isolationRule.check(CLASSES);
+        }
+    }
+
+    // pravilo: jpa-pakety dostupny tolko svoemu domenu
+    @Test
+    void jpaModulesOnlyUsedByOwnDomain() {
+        for (String domain : DOMAINS) {
+            ArchRule isolationRule = classes()
+                    .that().resideInAPackage("ru.growerhub.backend." + domain + ".jpa..")
+                    .should().onlyBeAccessed().byClassesThat().resideInAPackage("ru.growerhub.backend." + domain + "..")
+                    .allowEmptyShould(true);
             isolationRule.check(CLASSES);
         }
     }
@@ -90,13 +103,17 @@ class ArchitectureRulesTest {
         noAnnotationRule("ru.growerhub.backend.common.util..", Entity.class).check(CLASSES);
     }
 
-    // pravilo: internal ne mozhet zaviset ot common.component
+    // pravilo: engine i jpa ne zavisyat ot common.component
     @Test
-    void internalShouldNotDependOnCommonComponent() {
-        ArchRule rule = noClasses()
-                .that().resideInAPackage("ru.growerhub.backend..internal..")
+    void engineAndJpaShouldNotDependOnCommonComponent() {
+        ArchRule engineRule = noClasses()
+                .that().resideInAPackage("ru.growerhub.backend..engine..")
                 .should().dependOnClassesThat().resideInAPackage("ru.growerhub.backend.common.component..");
-        rule.check(CLASSES);
+        ArchRule jpaRule = noClasses()
+                .that().resideInAPackage("ru.growerhub.backend..jpa..")
+                .should().dependOnClassesThat().resideInAPackage("ru.growerhub.backend.common.component..");
+        engineRule.allowEmptyShould(true).check(CLASSES);
+        jpaRule.allowEmptyShould(true).check(CLASSES);
     }
 
     // helper dlja pravila bez anotacij

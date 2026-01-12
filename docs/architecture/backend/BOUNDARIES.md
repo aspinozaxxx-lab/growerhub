@@ -2,17 +2,16 @@
 
 Примечание: документ конкретизирует RULES для backend; при вопросах импортов он приоритетнее.
 
-Матрица зависимостей (строка -> может импортировать столбец):
+Матрица зависимостей (строка → может импортировать столбец):
 
-- api-адаптер -> Facade доменов, публичные DTO доменов, ru.growerhub.backend.common, framework.
-- mqtt-адаптер -> Facade доменов, MQTT DTO/контракты, ru.growerhub.backend.common, framework.
-- домен -> свои internal/*, ru.growerhub.backend.common, другие домены только через их Facade и контрактные типы.
-- orchestration (если введем) -> Facade доменов, контрактные типы, ru.growerhub.backend.common.
-- ru.growerhub.backend.common -> стандартные библиотеки, утилиты.
+- api-адаптер → *.facade, *.contract, ru.growerhub.backend.common.*, framework.
+- mqtt-адаптер → *.facade, *.contract, ru.growerhub.backend.common.*, framework.
+- домен → facade/contract/engine/jpa своего домена, ru.growerhub.backend.common.*; другие домены только через их facade и contract.
+- ru.growerhub.backend.common.* → стандартные библиотеки и утилиты (без JPA и бизнес-логики).
 
 Запреты:
-- Запрещен импорт *.internal.* извне домена.
-- Адаптеры не импортируют JPA Entity/Repository.
-- Домены не импортируют internal других доменов.
-- ru.growerhub.backend.common не зависит от доменов или адаптеров.
-- Бизнес-логика не размещается в адаптерах.
+
+- Внешним модулям запрещён импорт *.engine.. и *.jpa.. чужого домена; доступ возможен только к *.facade.. и *.contract...
+- Адаптеры не импортируют JPA (@Entity, Repository) и не обращаются к *.jpa...
+- Домены не обращаются к engine/jpa других доменов.
+- Бизнес-логика не размещается в адаптерах; исключения допускаются только если явно зафиксированы в архитектурных документах (на данный момент действует ADR-001).
