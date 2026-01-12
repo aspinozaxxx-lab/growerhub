@@ -5,6 +5,14 @@
 - refactor(backend): obshchie DTO/utility pereneseny v common (ApiError, AuthenticatedUser, PasswordHasher, FlexibleLocalDateTimeDeserializer).
 - fix(backend): obnavleny MQTT ack/pump/firmware gateway i device shadow, testy privyazany k novym paketam.
 - docs(arch): dobavlen ADR-001 po iskljucheniyu dlya kompozitnyh REST-otvetov.
+
+### chore(backend): P2 architecture hygiene
+
+- hygiene: LF enforcement v .gitattributes dlya java/md/yml/js/ts fajlov.
+- tests: ArchUnit smoke tests proverayut facade/internal/common pravila.
+- contracts: public DTO per domen vozvrashchayutsya iz ru.growerhub.backend.<domain>.contract.
+- common: split na contract/util/component, dobavlen PasswordHasher interface dlya kontrakta.
+- docs: dobavleny entity-coupling.md s faktami pro svyazi device/plant/pump/sensor/journal/user.
 ### fix(backend): devices assign/unassign cherez facade
 
 - fix(backend): DevicesController.assignToMe i unassignDevice teper’ zagruzhajut gotovyy DeviceAggregate iz DeviceFacade, adapter ne vyzyvaet SensorFacade/PumpFacade.
@@ -344,5 +352,4 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - Istorija polivov teper ispolzuet obem vody kak osnovnuyu metriku i v saidebare vidno ph i sostav udobrenij.
 - Dobavlena polnocennaja stranica zhurnala rastenija: prosmotr, dobavlenie, izmenenie, udalenie zhjurnalnyh zapisej. Fiks bitogo teksta v istorii polivov, normalnye podpisi.
 - sso callback: po umolchaniyu vozvrashchaet redirect s tokenom v URL, link-mode uhodit na `/static/profile.html`.
-
 
