@@ -15,8 +15,7 @@ backend/BOUNDARIES фиксирует конкретную матрицу имп
 Состав:
 - ARCHITECTURE.md - общесистемная архитектура.
 - RULES.md - обязательные правила.
-- MIGRATION_PLAN.md - план перехода к целевой архитектуре.
-- backend/ARCHITECTURE.md - целевая архитектура backend.
+- backend/ARCHITECTURE.md - архитектура backend.
 - backend/BOUNDARIES.md - правила зависимостей backend.
 - frontend/ARCHITECTURE.md - фактическая архитектура frontend.
 - firmware/ARCHITECTURE.md - фактическая архитектура firmware (src2/test2).
