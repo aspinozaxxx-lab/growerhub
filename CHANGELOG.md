@@ -1,5 +1,6 @@
 ﻿### refactor(backend): fasady domenov i granicy adapterov
 
+- refactor(backend): domeny pereneseny na *Facade v korne + contract/engine/jpa, internal razlozhen; JPA svyazi mezhdu domenami zameneny na userId/plantId; razryv ciklov i lenivaya svyazka sensor->plant history cherez facade; ./gradlew clean test prohodit.
 - refactor(backend): dobavleny facade-klassy dlya device/plant/pump/sensor/journal/user/auth/firmware, servisy i repo pereneseny v internal.
 - refactor(backend): REST/MQTT adaptery perevedeny na facade bez importov entity/repository.
 - refactor(backend): obshchie DTO/utility pereneseny v common (ApiError, AuthenticatedUser, PasswordHasher, FlexibleLocalDateTimeDeserializer).
