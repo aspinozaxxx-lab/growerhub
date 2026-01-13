@@ -21,7 +21,7 @@ import ru.growerhub.backend.journal.internal.PlantJournalEntryRepository;
 import ru.growerhub.backend.journal.internal.PlantJournalPhotoRepository;
 import ru.growerhub.backend.journal.internal.PlantJournalWateringDetailsRepository;
 import ru.growerhub.backend.journal.contract.JournalEntry;
-import ru.growerhub.backend.plant.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.user.UserEntity;
 
 @Service
@@ -340,3 +340,4 @@ public class JournalFacade {
     public record WateringTarget(Integer plantId, int durationS, double waterVolumeL) {
     }
 }
+

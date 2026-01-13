@@ -12,8 +12,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.journal.PlantJournalEntryEntity;
-import ru.growerhub.backend.plant.PlantEntity;
-import ru.growerhub.backend.plant.PlantGroupEntity;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantGroupEntity;
 import ru.growerhub.backend.db.UserAuthIdentityEntity;
 import ru.growerhub.backend.db.UserRefreshTokenEntity;
 
@@ -164,3 +164,5 @@ public class UserEntity {
         return plantJournalEntries;
     }
 }
+
+

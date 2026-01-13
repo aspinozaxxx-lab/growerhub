@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.plant;
+﻿package ru.growerhub.backend.plant.contract;
 
 public record AdminPlantInfo(
         Integer id,
@@ -9,3 +9,4 @@ public record AdminPlantInfo(
         String groupName
 ) {
 }
+

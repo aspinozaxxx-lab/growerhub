@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.plant;
+﻿package ru.growerhub.backend.plant.contract;
 
 public enum PlantMetricType {
     SOIL_MOISTURE,
@@ -6,3 +6,4 @@ public enum PlantMetricType {
     AIR_HUMIDITY,
     WATERING_VOLUME_L
 }
+

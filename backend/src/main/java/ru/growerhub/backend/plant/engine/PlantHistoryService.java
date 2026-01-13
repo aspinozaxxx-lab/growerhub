@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.plant.internal;
+﻿package ru.growerhub.backend.plant.engine;
 
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
@@ -9,9 +9,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.plant.PlantEntity;
-import ru.growerhub.backend.plant.PlantMetricSampleEntity;
-import ru.growerhub.backend.plant.PlantMetricType;
+import ru.growerhub.backend.plant.contract.PlantMetricType;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
+import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
 import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
 import ru.growerhub.backend.sensor.SensorReadingSummary;
 import ru.growerhub.backend.sensor.SensorType;
@@ -112,3 +113,5 @@ public class PlantHistoryService {
         };
     }
 }
+
+

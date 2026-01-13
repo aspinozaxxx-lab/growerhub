@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.plant;
+﻿package ru.growerhub.backend.plant.facade;
 
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
@@ -13,14 +13,20 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.journal.JournalFacade;
+import ru.growerhub.backend.plant.contract.AdminPlantInfo;
 import ru.growerhub.backend.plant.contract.PlantGroupInfo;
 import ru.growerhub.backend.plant.contract.PlantInfo;
 import ru.growerhub.backend.plant.contract.PlantMetricPoint;
-import ru.growerhub.backend.plant.internal.PlantGroupRepository;
-import ru.growerhub.backend.plant.internal.PlantHistoryService;
-import ru.growerhub.backend.plant.internal.PlantMetricSampleRepository;
-import ru.growerhub.backend.plant.internal.PlantRepository;
+import ru.growerhub.backend.plant.contract.PlantMetricType;
+import ru.growerhub.backend.plant.engine.PlantHistoryService;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantGroupEntity;
+import ru.growerhub.backend.plant.jpa.PlantGroupRepository;
+import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
+import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
+import ru.growerhub.backend.plant.jpa.PlantRepository;
 import ru.growerhub.backend.sensor.SensorReadingSummary;
+import ru.growerhub.backend.sensor.contract.SensorView;
 import ru.growerhub.backend.user.UserEntity;
 
 @Service
@@ -361,3 +367,5 @@ public class PlantFacade {
     public record PlantHarvestCommand(LocalDateTime harvestedAt, String text) {
     }
 }
+
+

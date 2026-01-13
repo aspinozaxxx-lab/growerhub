@@ -22,7 +22,7 @@ import ru.growerhub.backend.device.internal.DeviceShadowStore;
 import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
 import ru.growerhub.backend.pump.PumpFacade;
 import ru.growerhub.backend.pump.contract.PumpView;
-import ru.growerhub.backend.plant.PlantFacade;
+import ru.growerhub.backend.plant.facade.PlantFacade;
 import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.SensorMeasurement;
 import ru.growerhub.backend.sensor.SensorReadingSummary;
@@ -301,3 +301,4 @@ public class DeviceFacade {
         return new DeviceAggregate(summary, state, sensors, pumps);
     }
 }
+

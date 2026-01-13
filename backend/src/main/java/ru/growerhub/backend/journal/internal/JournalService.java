@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.journal.PlantJournalEntryEntity;
 import ru.growerhub.backend.journal.PlantJournalPhotoEntity;
 import ru.growerhub.backend.journal.PlantJournalWateringDetailsEntity;
-import ru.growerhub.backend.plant.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.user.UserEntity;
 
 @Service
@@ -118,3 +118,4 @@ public class JournalService {
     public record WateringTarget(PlantEntity plant, int durationS, double waterVolumeL) {
     }
 }
+

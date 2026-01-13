@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import ru.growerhub.backend.plant.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.user.UserEntity;
 
 @Entity
@@ -141,3 +141,4 @@ public class PlantJournalEntryEntity {
         return photos;
     }
 }
+

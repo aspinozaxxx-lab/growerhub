@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.plant;
+﻿package ru.growerhub.backend.plant.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import ru.growerhub.backend.plant.contract.PlantMetricType;
 
 @Entity
 @Table(
@@ -99,3 +100,4 @@ public class PlantMetricSampleEntity {
         this.createdAt = createdAt;
     }
 }
+

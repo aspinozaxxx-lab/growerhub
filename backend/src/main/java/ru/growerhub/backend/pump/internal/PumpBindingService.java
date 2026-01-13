@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
-import ru.growerhub.backend.plant.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.pump.PumpEntity;
 import ru.growerhub.backend.pump.PumpPlantBindingEntity;
 
@@ -112,3 +112,4 @@ public class PumpBindingService {
     public record PumpBindingItem(Integer plantId, Integer rateMlPerHour) {
     }
 }
+

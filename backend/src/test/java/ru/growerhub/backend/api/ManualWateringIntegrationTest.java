@@ -44,9 +44,9 @@ import ru.growerhub.backend.mqtt.model.CmdPumpStart;
 import ru.growerhub.backend.mqtt.model.CmdPumpStop;
 import ru.growerhub.backend.mqtt.model.CmdReboot;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
-import ru.growerhub.backend.plant.PlantEntity;
-import ru.growerhub.backend.plant.internal.PlantMetricSampleRepository;
-import ru.growerhub.backend.plant.internal.PlantRepository;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
+import ru.growerhub.backend.plant.jpa.PlantRepository;
 import ru.growerhub.backend.pump.PumpEntity;
 import ru.growerhub.backend.pump.PumpPlantBindingEntity;
 import ru.growerhub.backend.pump.internal.PumpPlantBindingRepository;
@@ -608,5 +608,8 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     private record PublishedCommand(String deviceId, Object cmd) {
     }
 }
+
+
+
 
 

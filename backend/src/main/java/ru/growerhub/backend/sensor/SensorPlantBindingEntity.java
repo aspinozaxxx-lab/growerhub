@@ -11,7 +11,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import ru.growerhub.backend.plant.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
 
 @Entity
 @Table(
@@ -64,3 +64,4 @@ public class SensorPlantBindingEntity {
         this.plant = plant;
     }
 }
+

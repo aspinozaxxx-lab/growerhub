@@ -31,11 +31,11 @@ import ru.growerhub.backend.device.internal.DeviceShadowStore;
 import ru.growerhub.backend.device.DeviceStateLastEntity;
 import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
 import ru.growerhub.backend.mqtt.MqttMessageHandler;
-import ru.growerhub.backend.plant.PlantEntity;
-import ru.growerhub.backend.plant.PlantMetricSampleEntity;
-import ru.growerhub.backend.plant.internal.PlantMetricSampleRepository;
-import ru.growerhub.backend.plant.PlantMetricType;
-import ru.growerhub.backend.plant.internal.PlantRepository;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
+import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
+import ru.growerhub.backend.plant.contract.PlantMetricType;
+import ru.growerhub.backend.plant.jpa.PlantRepository;
 import ru.growerhub.backend.sensor.SensorEntity;
 import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
 import ru.growerhub.backend.sensor.internal.SensorPlantBindingRepository;
@@ -680,4 +680,9 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+
+
+
+
+
 

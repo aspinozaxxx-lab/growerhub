@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.plant;
+﻿package ru.growerhub.backend.plant.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -147,3 +147,4 @@ public class PlantEntity {
         this.updatedAt = updatedAt;
     }
 }
+

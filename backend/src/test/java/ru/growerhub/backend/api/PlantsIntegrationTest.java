@@ -38,10 +38,10 @@ import ru.growerhub.backend.journal.PlantJournalPhotoEntity;
 import ru.growerhub.backend.journal.internal.PlantJournalPhotoRepository;
 import ru.growerhub.backend.journal.PlantJournalWateringDetailsEntity;
 import ru.growerhub.backend.journal.internal.PlantJournalWateringDetailsRepository;
-import ru.growerhub.backend.plant.PlantEntity;
-import ru.growerhub.backend.plant.PlantGroupEntity;
-import ru.growerhub.backend.plant.internal.PlantGroupRepository;
-import ru.growerhub.backend.plant.internal.PlantRepository;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantGroupEntity;
+import ru.growerhub.backend.plant.jpa.PlantGroupRepository;
+import ru.growerhub.backend.plant.jpa.PlantRepository;
 import ru.growerhub.backend.pump.PumpEntity;
 import ru.growerhub.backend.pump.PumpPlantBindingEntity;
 import ru.growerhub.backend.pump.internal.PumpPlantBindingRepository;
@@ -846,5 +846,9 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+
+
+
+
 
 

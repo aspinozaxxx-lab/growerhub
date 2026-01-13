@@ -27,11 +27,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.device.internal.DeviceRepository;
-import ru.growerhub.backend.plant.PlantEntity;
-import ru.growerhub.backend.plant.PlantMetricSampleEntity;
-import ru.growerhub.backend.plant.internal.PlantMetricSampleRepository;
-import ru.growerhub.backend.plant.PlantMetricType;
-import ru.growerhub.backend.plant.internal.PlantRepository;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
+import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
+import ru.growerhub.backend.plant.contract.PlantMetricType;
+import ru.growerhub.backend.plant.jpa.PlantRepository;
 import ru.growerhub.backend.sensor.SensorEntity;
 import ru.growerhub.backend.sensor.SensorReadingEntity;
 import ru.growerhub.backend.sensor.internal.SensorReadingRepository;
@@ -308,4 +308,9 @@ class HistoryIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+
+
+
+
+
 

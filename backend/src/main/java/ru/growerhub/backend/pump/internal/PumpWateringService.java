@@ -18,8 +18,8 @@ import ru.growerhub.backend.pump.PumpAck;
 import ru.growerhub.backend.pump.PumpCommandGateway;
 import ru.growerhub.backend.pump.PumpEntity;
 import ru.growerhub.backend.pump.PumpPlantBindingEntity;
-import ru.growerhub.backend.plant.PlantEntity;
-import ru.growerhub.backend.plant.PlantFacade;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
+import ru.growerhub.backend.plant.facade.PlantFacade;
 
 @Service
 public class PumpWateringService {
@@ -174,3 +174,5 @@ public class PumpWateringService {
     public record PumpStatusResult(Map<String, Object> view) {
     }
 }
+
+

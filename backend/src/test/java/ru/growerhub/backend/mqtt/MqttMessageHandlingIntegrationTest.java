@@ -28,9 +28,9 @@ import ru.growerhub.backend.device.DeviceStateLastEntity;
 import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
 import ru.growerhub.backend.device.internal.MqttAckEntity;
 import ru.growerhub.backend.device.internal.MqttAckRepository;
-import ru.growerhub.backend.plant.PlantEntity;
-import ru.growerhub.backend.plant.internal.PlantMetricSampleRepository;
-import ru.growerhub.backend.plant.internal.PlantRepository;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
+import ru.growerhub.backend.plant.jpa.PlantRepository;
 import ru.growerhub.backend.sensor.SensorEntity;
 import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
 import ru.growerhub.backend.sensor.internal.SensorPlantBindingRepository;
@@ -231,4 +231,7 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         }
     }
 }
+
+
+
 

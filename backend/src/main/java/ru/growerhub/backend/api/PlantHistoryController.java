@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.plant;
+﻿package ru.growerhub.backend.api;
 
 import java.util.List;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.HistoryDtos;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
+import ru.growerhub.backend.plant.facade.PlantFacade;
 
 @RestController
 public class PlantHistoryController {
@@ -33,3 +34,4 @@ public class PlantHistoryController {
                 .toList();
     }
 }
+

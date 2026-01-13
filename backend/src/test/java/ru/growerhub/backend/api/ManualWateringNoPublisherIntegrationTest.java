@@ -23,8 +23,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.device.internal.DeviceRepository;
-import ru.growerhub.backend.plant.PlantEntity;
-import ru.growerhub.backend.plant.internal.PlantRepository;
+import ru.growerhub.backend.plant.jpa.PlantEntity;
+import ru.growerhub.backend.plant.jpa.PlantRepository;
 import ru.growerhub.backend.pump.PumpEntity;
 import ru.growerhub.backend.pump.PumpPlantBindingEntity;
 import ru.growerhub.backend.pump.internal.PumpPlantBindingRepository;
@@ -174,4 +174,6 @@ class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+
+
 
