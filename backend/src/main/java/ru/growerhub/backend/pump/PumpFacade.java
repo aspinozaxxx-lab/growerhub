@@ -1,15 +1,14 @@
 ﻿package ru.growerhub.backend.pump;
 
-import jakarta.persistence.EntityManager;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
-import ru.growerhub.backend.plant.jpa.PlantEntity;
-import ru.growerhub.backend.pump.internal.PumpBindingService;
-import ru.growerhub.backend.pump.internal.PumpQueryService;
-import ru.growerhub.backend.pump.internal.PumpWateringService;
+import ru.growerhub.backend.pump.engine.PumpBindingService;
+import ru.growerhub.backend.pump.engine.PumpQueryService;
+import ru.growerhub.backend.pump.engine.PumpService;
+import ru.growerhub.backend.pump.engine.PumpWateringService;
 import ru.growerhub.backend.pump.contract.PumpView;
 
 @Service
@@ -17,25 +16,25 @@ public class PumpFacade {
     private final PumpBindingService bindingService;
     private final PumpWateringService wateringService;
     private final PumpQueryService queryService;
-    private final EntityManager entityManager;
+    private final PumpService pumpService;
 
     public PumpFacade(
             PumpBindingService bindingService,
             PumpWateringService wateringService,
             PumpQueryService queryService,
-            EntityManager entityManager
+            PumpService pumpService
     ) {
         this.bindingService = bindingService;
         this.wateringService = wateringService;
         this.queryService = queryService;
-        this.entityManager = entityManager;
+        this.pumpService = pumpService;
     }
 
     @Transactional
     public void updateBindings(Integer pumpId, List<PumpBindingItem> items, AuthenticatedUser user) {
-        List<ru.growerhub.backend.pump.internal.PumpBindingService.PumpBindingItem> mapped = items != null
+        List<PumpBindingService.PumpBindingItem> mapped = items != null
                 ? items.stream()
-                .map(item -> new ru.growerhub.backend.pump.internal.PumpBindingService.PumpBindingItem(
+                .map(item -> new PumpBindingService.PumpBindingItem(
                         item.plantId(),
                         item.rateMlPerHour()
                 ))
@@ -85,8 +84,12 @@ public class PumpFacade {
 
     @Transactional(readOnly = true)
     public List<PumpView> listByPlantId(Integer plantId) {
-        PlantEntity plant = plantId != null ? entityManager.find(PlantEntity.class, plantId) : null;
-        return queryService.listByPlant(plant);
+        return queryService.listByPlantId(plantId);
+    }
+
+    @Transactional
+    public void deleteByDeviceId(Integer deviceId) {
+        pumpService.deleteAllByDeviceId(deviceId);
     }
 
     public record PumpBindingItem(Integer plantId, Integer rateMlPerHour) {

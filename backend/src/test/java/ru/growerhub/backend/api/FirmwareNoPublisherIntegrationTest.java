@@ -94,3 +94,4 @@ class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
     }
 }
 
+

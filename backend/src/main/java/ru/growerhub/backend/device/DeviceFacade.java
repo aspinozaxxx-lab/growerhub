@@ -29,9 +29,7 @@ import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.SensorMeasurement;
 import ru.growerhub.backend.sensor.SensorReadingSummary;
 import ru.growerhub.backend.sensor.contract.SensorView;
-import ru.growerhub.backend.sensor.internal.SensorRepository;
 import ru.growerhub.backend.user.UserEntity;
-import ru.growerhub.backend.pump.internal.PumpRepository;
 
 @Service
 public class DeviceFacade {
@@ -44,8 +42,6 @@ public class DeviceFacade {
     private final SensorFacade sensorFacade;
     private final PlantFacade plantFacade;
     private final PumpFacade pumpFacade;
-    private final SensorRepository sensorRepository;
-    private final PumpRepository pumpRepository;
     private final EntityManager entityManager;
 
     public DeviceFacade(
@@ -57,8 +53,6 @@ public class DeviceFacade {
             DeviceAckService ackService,
             SensorFacade sensorFacade,
             PlantFacade plantFacade,
-            SensorRepository sensorRepository,
-            PumpRepository pumpRepository,
             @Lazy PumpFacade pumpFacade,
             EntityManager entityManager
     ) {
@@ -71,8 +65,6 @@ public class DeviceFacade {
         this.sensorFacade = sensorFacade;
         this.plantFacade = plantFacade;
         this.pumpFacade = pumpFacade;
-        this.sensorRepository = sensorRepository;
-        this.pumpRepository = pumpRepository;
         this.entityManager = entityManager;
     }
 
@@ -263,8 +255,8 @@ public class DeviceFacade {
         }
         Integer id = device.getId();
         if (id != null) {
-            sensorRepository.deleteAllByDeviceId(id);
-            pumpRepository.deleteAllByDeviceId(id);
+            sensorFacade.deleteByDeviceId(id);
+            pumpFacade.deleteByDeviceId(id);
         }
         deviceStateLastRepository.deleteByDeviceId(deviceId);
         deviceRepository.delete(device);

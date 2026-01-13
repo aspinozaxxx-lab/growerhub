@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.pump;
+﻿package ru.growerhub.backend.pump.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,7 +11,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import ru.growerhub.backend.plant.jpa.PlantEntity;
 
 @Entity
 @Table(
@@ -32,10 +31,8 @@ public class PumpPlantBindingEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private PumpEntity pump;
 
-    @ManyToOne
-    @JoinColumn(name = "plant_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private PlantEntity plant;
+    @Column(name = "plant_id", nullable = false)
+    private Integer plantId;
 
     @Column(name = "rate_ml_per_hour", nullable = false)
     private Integer rateMlPerHour = 2000;
@@ -59,12 +56,12 @@ public class PumpPlantBindingEntity {
         this.pump = pump;
     }
 
-    public PlantEntity getPlant() {
-        return plant;
+    public Integer getPlantId() {
+        return plantId;
     }
 
-    public void setPlant(PlantEntity plant) {
-        this.plant = plant;
+    public void setPlantId(Integer plantId) {
+        this.plantId = plantId;
     }
 
     public Integer getRateMlPerHour() {
@@ -75,4 +72,5 @@ public class PumpPlantBindingEntity {
         this.rateMlPerHour = rateMlPerHour;
     }
 }
+
 

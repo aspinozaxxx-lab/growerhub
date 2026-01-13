@@ -31,11 +31,11 @@ import ru.growerhub.backend.device.jpa.MqttAckRepository;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
 import ru.growerhub.backend.plant.jpa.PlantRepository;
-import ru.growerhub.backend.sensor.SensorEntity;
-import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
-import ru.growerhub.backend.sensor.internal.SensorPlantBindingRepository;
-import ru.growerhub.backend.sensor.internal.SensorReadingRepository;
-import ru.growerhub.backend.sensor.internal.SensorRepository;
+import ru.growerhub.backend.sensor.jpa.SensorEntity;
+import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
+import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;
+import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
+import ru.growerhub.backend.sensor.jpa.SensorRepository;
 import ru.growerhub.backend.sensor.SensorType;
 
 @SpringBootTest(
@@ -206,7 +206,7 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
     private void bindSensorToPlant(SensorEntity sensor, PlantEntity plant) {
         SensorPlantBindingEntity binding = SensorPlantBindingEntity.create();
         binding.setSensor(sensor);
-        binding.setPlant(plant);
+        binding.setPlantId(plant.getId());
         sensorPlantBindingRepository.save(binding);
     }
 
@@ -231,6 +231,7 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         }
     }
 }
+
 
 
 

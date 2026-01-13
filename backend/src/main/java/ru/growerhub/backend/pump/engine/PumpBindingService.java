@@ -1,6 +1,5 @@
-﻿package ru.growerhub.backend.pump.internal;
+﻿package ru.growerhub.backend.pump.engine;
 
-import jakarta.persistence.EntityManager;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,26 +11,28 @@ import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.DeviceAccessService;
 import ru.growerhub.backend.device.contract.DeviceSummary;
-import ru.growerhub.backend.plant.jpa.PlantEntity;
-import ru.growerhub.backend.pump.PumpEntity;
-import ru.growerhub.backend.pump.PumpPlantBindingEntity;
+import ru.growerhub.backend.plant.PlantFacade;
+import ru.growerhub.backend.pump.jpa.PumpEntity;
+import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
+import ru.growerhub.backend.pump.jpa.PumpPlantBindingRepository;
+import ru.growerhub.backend.pump.jpa.PumpRepository;
 
 @Service
 public class PumpBindingService {
     private final PumpRepository pumpRepository;
     private final PumpPlantBindingRepository bindingRepository;
-    private final EntityManager entityManager;
+    private final PlantFacade plantFacade;
     private final DeviceAccessService deviceAccessService;
 
     public PumpBindingService(
             PumpRepository pumpRepository,
             PumpPlantBindingRepository bindingRepository,
-            EntityManager entityManager,
+            PlantFacade plantFacade,
             DeviceAccessService deviceAccessService
     ) {
         this.pumpRepository = pumpRepository;
         this.bindingRepository = bindingRepository;
-        this.entityManager = entityManager;
+        this.plantFacade = plantFacade;
         this.deviceAccessService = deviceAccessService;
     }
 
@@ -65,11 +66,11 @@ public class PumpBindingService {
 
         List<PumpPlantBindingEntity> current = bindingRepository.findAllByPump_Id(pumpId);
         Set<Integer> currentIds = current.stream()
-                .map(binding -> binding.getPlant().getId())
+                .map(PumpPlantBindingEntity::getPlantId)
                 .collect(Collectors.toSet());
 
         for (PumpPlantBindingEntity binding : current) {
-            Integer plantId = binding.getPlant() != null ? binding.getPlant().getId() : null;
+            Integer plantId = binding.getPlantId();
             if (plantId == null || !nextRates.containsKey(plantId)) {
                 bindingRepository.delete(binding);
             }
@@ -78,10 +79,10 @@ public class PumpBindingService {
         for (Map.Entry<Integer, Integer> entry : nextRates.entrySet()) {
             Integer plantId = entry.getKey();
             Integer rate = entry.getValue();
-            PlantEntity plant = resolvePlant(plantId, user);
+            plantFacade.requireOwnedPlantInfo(plantId, user);
             if (currentIds.contains(plantId)) {
                 for (PumpPlantBindingEntity binding : current) {
-                    if (binding.getPlant() != null && plantId.equals(binding.getPlant().getId())) {
+                    if (plantId.equals(binding.getPlantId())) {
                         binding.setRateMlPerHour(rate);
                         bindingRepository.save(binding);
                     }
@@ -90,23 +91,10 @@ public class PumpBindingService {
             }
             PumpPlantBindingEntity binding = PumpPlantBindingEntity.create();
             binding.setPump(pump);
-            binding.setPlant(plant);
+            binding.setPlantId(plantId);
             binding.setRateMlPerHour(rate);
             bindingRepository.save(binding);
         }
-    }
-
-    private PlantEntity resolvePlant(Integer plantId, AuthenticatedUser user) {
-        PlantEntity plant = entityManager.find(PlantEntity.class, plantId);
-        if (plant == null) {
-            throw new DomainException("not_found", "rastenie ne naideno");
-        }
-        if (!isAdmin(user)) {
-            if (plant.getUser() == null || !plant.getUser().getId().equals(user.id())) {
-                throw new DomainException("forbidden", "rastenie ne naideno");
-            }
-        }
-        return plant;
     }
 
     private boolean isAdmin(AuthenticatedUser user) {
@@ -116,4 +104,5 @@ public class PumpBindingService {
     public record PumpBindingItem(Integer plantId, Integer rateMlPerHour) {
     }
 }
+
 

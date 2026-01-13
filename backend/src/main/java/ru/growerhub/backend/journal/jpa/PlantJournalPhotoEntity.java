@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.journal;
+package ru.growerhub.backend.journal.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

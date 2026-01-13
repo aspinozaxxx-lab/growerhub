@@ -11,11 +11,13 @@ import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.DeviceAccessService;
 import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.sensor.contract.SensorView;
-import ru.growerhub.backend.sensor.internal.SensorBindingService;
-import ru.growerhub.backend.sensor.internal.SensorHistoryService;
-import ru.growerhub.backend.sensor.internal.SensorQueryService;
-import ru.growerhub.backend.sensor.internal.SensorReadingRepository;
-import ru.growerhub.backend.sensor.internal.SensorRepository;
+import ru.growerhub.backend.sensor.engine.SensorBindingService;
+import ru.growerhub.backend.sensor.engine.SensorHistoryService;
+import ru.growerhub.backend.sensor.engine.SensorQueryService;
+import ru.growerhub.backend.sensor.jpa.SensorEntity;
+import ru.growerhub.backend.sensor.jpa.SensorReadingEntity;
+import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
+import ru.growerhub.backend.sensor.jpa.SensorRepository;
 
 @Service
 public class SensorFacade {
@@ -71,6 +73,14 @@ public class SensorFacade {
     @Transactional(readOnly = true)
     public List<SensorView> listByPlantId(Integer plantId) {
         return queryService.listByPlantId(plantId);
+    }
+
+    @Transactional
+    public void deleteByDeviceId(Integer deviceId) {
+        if (deviceId == null) {
+            return;
+        }
+        sensorRepository.deleteAllByDeviceId(deviceId);
     }
 
     @Transactional

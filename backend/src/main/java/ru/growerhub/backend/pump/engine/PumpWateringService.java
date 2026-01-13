@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.pump.internal;
+﻿package ru.growerhub.backend.pump.engine;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -17,9 +17,10 @@ import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.journal.JournalFacade;
 import ru.growerhub.backend.pump.PumpAck;
 import ru.growerhub.backend.pump.PumpCommandGateway;
-import ru.growerhub.backend.pump.PumpEntity;
-import ru.growerhub.backend.pump.PumpPlantBindingEntity;
-import ru.growerhub.backend.plant.jpa.PlantEntity;
+import ru.growerhub.backend.pump.jpa.PumpEntity;
+import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
+import ru.growerhub.backend.pump.jpa.PumpPlantBindingRepository;
+import ru.growerhub.backend.pump.jpa.PumpRepository;
 import ru.growerhub.backend.plant.PlantFacade;
 
 @Service
@@ -146,13 +147,13 @@ public class PumpWateringService {
     private List<JournalFacade.WateringTarget> buildTargets(List<PumpPlantBindingEntity> bindings, int durationS) {
         List<JournalFacade.WateringTarget> targets = new ArrayList<>();
         for (PumpPlantBindingEntity binding : bindings) {
-            PlantEntity plant = binding.getPlant();
-            if (plant == null) {
+            Integer plantId = binding.getPlantId();
+            if (plantId == null) {
                 continue;
             }
             int rate = binding.getRateMlPerHour() != null ? binding.getRateMlPerHour() : 2000;
             double volumeL = rate / 1000.0 * durationS / 3600.0;
-            targets.add(new JournalFacade.WateringTarget(plant.getId(), durationS, volumeL));
+            targets.add(new JournalFacade.WateringTarget(plantId, durationS, volumeL));
         }
         return targets;
     }
@@ -202,6 +203,7 @@ public class PumpWateringService {
         return deviceAccessService.getDeviceSummary(pump.getDeviceId());
     }
 }
+
 
 
 

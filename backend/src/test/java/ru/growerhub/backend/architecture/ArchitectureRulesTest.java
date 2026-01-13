@@ -124,3 +124,4 @@ class ArchitectureRulesTest {
                 .allowEmptyShould(true);
     }
 }
+

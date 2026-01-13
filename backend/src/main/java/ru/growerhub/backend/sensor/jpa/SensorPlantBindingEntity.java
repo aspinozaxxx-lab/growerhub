@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.sensor;
+﻿package ru.growerhub.backend.sensor.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,7 +11,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import ru.growerhub.backend.plant.jpa.PlantEntity;
 
 @Entity
 @Table(
@@ -32,10 +31,8 @@ public class SensorPlantBindingEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private SensorEntity sensor;
 
-    @ManyToOne
-    @JoinColumn(name = "plant_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private PlantEntity plant;
+    @Column(name = "plant_id", nullable = false)
+    private Integer plantId;
 
     protected SensorPlantBindingEntity() {
     }
@@ -56,12 +53,13 @@ public class SensorPlantBindingEntity {
         this.sensor = sensor;
     }
 
-    public PlantEntity getPlant() {
-        return plant;
+    public Integer getPlantId() {
+        return plantId;
     }
 
-    public void setPlant(PlantEntity plant) {
-        this.plant = plant;
+    public void setPlantId(Integer plantId) {
+        this.plantId = plantId;
     }
 }
+
 

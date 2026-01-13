@@ -1,8 +1,8 @@
-﻿package ru.growerhub.backend.journal.internal;
+package ru.growerhub.backend.journal.jpa;
 
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
-import ru.growerhub.backend.journal.PlantJournalWateringDetailsEntity;
+import ru.growerhub.backend.journal.jpa.PlantJournalWateringDetailsEntity;
 
 public interface PlantJournalWateringDetailsRepository
         extends JpaRepository<PlantJournalWateringDetailsEntity, Integer> {

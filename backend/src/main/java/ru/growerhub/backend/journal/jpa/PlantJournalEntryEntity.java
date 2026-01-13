@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.journal;
+package ru.growerhub.backend.journal.jpa;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -6,17 +6,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.List;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-import ru.growerhub.backend.plant.jpa.PlantEntity;
-import ru.growerhub.backend.user.UserEntity;
 
 @Entity
 @Table(name = "plant_journal_entries")
@@ -27,15 +21,11 @@ public class PlantJournalEntryEntity {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "plant_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private PlantEntity plant;
+    @Column(name = "plant_id", nullable = false)
+    private Integer plantId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = true)
-    @OnDelete(action = OnDeleteAction.SET_NULL)
-    private UserEntity user;
+    @Column(name = "user_id", nullable = true)
+    private Integer userId;
 
     @Column(name = "type", nullable = false)
     private String type;
@@ -73,20 +63,20 @@ public class PlantJournalEntryEntity {
         return id;
     }
 
-    public PlantEntity getPlant() {
-        return plant;
+    public Integer getPlantId() {
+        return plantId;
     }
 
-    public void setPlant(PlantEntity plant) {
-        this.plant = plant;
+    public void setPlantId(Integer plantId) {
+        this.plantId = plantId;
     }
 
-    public UserEntity getUser() {
-        return user;
+    public Integer getUserId() {
+        return userId;
     }
 
-    public void setUser(UserEntity user) {
-        this.user = user;
+    public void setUserId(Integer userId) {
+        this.userId = userId;
     }
 
     public String getType() {
@@ -141,4 +131,3 @@ public class PlantJournalEntryEntity {
         return photos;
     }
 }
-

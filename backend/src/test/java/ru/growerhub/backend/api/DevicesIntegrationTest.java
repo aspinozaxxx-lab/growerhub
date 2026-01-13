@@ -36,11 +36,11 @@ import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
 import ru.growerhub.backend.plant.contract.PlantMetricType;
 import ru.growerhub.backend.plant.jpa.PlantRepository;
-import ru.growerhub.backend.sensor.SensorEntity;
-import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
-import ru.growerhub.backend.sensor.internal.SensorPlantBindingRepository;
-import ru.growerhub.backend.sensor.internal.SensorReadingRepository;
-import ru.growerhub.backend.sensor.internal.SensorRepository;
+import ru.growerhub.backend.sensor.jpa.SensorEntity;
+import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
+import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;
+import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
+import ru.growerhub.backend.sensor.jpa.SensorRepository;
 import ru.growerhub.backend.sensor.SensorType;
 import ru.growerhub.backend.user.UserEntity;
 import ru.growerhub.backend.user.internal.UserRepository;
@@ -139,7 +139,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
         SensorPlantBindingEntity binding = SensorPlantBindingEntity.create();
         binding.setSensor(sensor);
-        binding.setPlant(plant);
+        binding.setPlantId(plant.getId());
         sensorPlantBindingRepository.save(binding);
 
         Map<String, Object> payload = new HashMap<>();
@@ -680,6 +680,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+
 
 
 

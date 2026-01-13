@@ -32,24 +32,24 @@ import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.engine.DeviceShadowStore;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
-import ru.growerhub.backend.journal.PlantJournalEntryEntity;
-import ru.growerhub.backend.journal.internal.PlantJournalEntryRepository;
-import ru.growerhub.backend.journal.PlantJournalPhotoEntity;
-import ru.growerhub.backend.journal.internal.PlantJournalPhotoRepository;
-import ru.growerhub.backend.journal.PlantJournalWateringDetailsEntity;
-import ru.growerhub.backend.journal.internal.PlantJournalWateringDetailsRepository;
+import ru.growerhub.backend.journal.jpa.PlantJournalEntryEntity;
+import ru.growerhub.backend.journal.jpa.PlantJournalEntryRepository;
+import ru.growerhub.backend.journal.jpa.PlantJournalPhotoEntity;
+import ru.growerhub.backend.journal.jpa.PlantJournalPhotoRepository;
+import ru.growerhub.backend.journal.jpa.PlantJournalWateringDetailsEntity;
+import ru.growerhub.backend.journal.jpa.PlantJournalWateringDetailsRepository;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantGroupEntity;
 import ru.growerhub.backend.plant.jpa.PlantGroupRepository;
 import ru.growerhub.backend.plant.jpa.PlantRepository;
-import ru.growerhub.backend.pump.PumpEntity;
-import ru.growerhub.backend.pump.PumpPlantBindingEntity;
-import ru.growerhub.backend.pump.internal.PumpPlantBindingRepository;
-import ru.growerhub.backend.pump.internal.PumpRepository;
-import ru.growerhub.backend.sensor.SensorEntity;
-import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
-import ru.growerhub.backend.sensor.internal.SensorPlantBindingRepository;
-import ru.growerhub.backend.sensor.internal.SensorRepository;
+import ru.growerhub.backend.pump.jpa.PumpEntity;
+import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
+import ru.growerhub.backend.pump.jpa.PumpPlantBindingRepository;
+import ru.growerhub.backend.pump.jpa.PumpRepository;
+import ru.growerhub.backend.sensor.jpa.SensorEntity;
+import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
+import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;
+import ru.growerhub.backend.sensor.jpa.SensorRepository;
 import ru.growerhub.backend.sensor.SensorType;
 import ru.growerhub.backend.user.UserEntity;
 import ru.growerhub.backend.user.internal.UserRepository;
@@ -308,7 +308,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         sensorRepository.save(sensor);
 
         SensorPlantBindingEntity sensorBinding = SensorPlantBindingEntity.create();
-        sensorBinding.setPlant(plant);
+        sensorBinding.setPlantId(plant.getId());
         sensorBinding.setSensor(sensor);
         sensorPlantBindingRepository.save(sensorBinding);
 
@@ -318,7 +318,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         pumpRepository.save(pump);
 
         PumpPlantBindingEntity pumpBinding = PumpPlantBindingEntity.create();
-        pumpBinding.setPlant(plant);
+        pumpBinding.setPlantId(plant.getId());
         pumpBinding.setPump(pump);
         pumpBinding.setRateMlPerHour(2000);
         pumpPlantBindingRepository.save(pumpBinding);
@@ -349,7 +349,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         pumpRepository.save(pump);
 
         PumpPlantBindingEntity binding = PumpPlantBindingEntity.create();
-        binding.setPlant(plantBound);
+        binding.setPlantId(plantBound.getId());
         binding.setPump(pump);
         binding.setRateMlPerHour(2000);
         pumpPlantBindingRepository.save(binding);
@@ -386,13 +386,13 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         pumpRepository.save(pump);
 
         PumpPlantBindingEntity bindingA = PumpPlantBindingEntity.create();
-        bindingA.setPlant(plantA);
+        bindingA.setPlantId(plantA.getId());
         bindingA.setPump(pump);
         bindingA.setRateMlPerHour(2000);
         pumpPlantBindingRepository.save(bindingA);
 
         PumpPlantBindingEntity bindingB = PumpPlantBindingEntity.create();
-        bindingB.setPlant(plantB);
+        bindingB.setPlantId(plantB.getId());
         bindingB.setPump(pump);
         bindingB.setRateMlPerHour(2000);
         pumpPlantBindingRepository.save(bindingB);
@@ -567,8 +567,8 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         PlantEntity plant = createPlant(owner, "JournalText");
 
         PlantJournalEntryEntity entry = PlantJournalEntryEntity.create();
-        entry.setPlant(plant);
-        entry.setUser(owner);
+        entry.setPlantId(plant.getId());
+        entry.setUserId(owner.getId());
         entry.setType("note");
         entry.setText("obem_vody=1.50l; dlitelnost=675s; ph=6.3");
         entry.setEventAt(LocalDateTime.now(ZoneOffset.UTC));
@@ -593,8 +593,8 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         PlantEntity plant = createPlant(owner, "JournalDetails");
 
         PlantJournalEntryEntity entry = PlantJournalEntryEntity.create();
-        entry.setPlant(plant);
-        entry.setUser(owner);
+        entry.setPlantId(plant.getId());
+        entry.setUserId(owner.getId());
         entry.setType("watering");
         entry.setText("details");
         entry.setEventAt(LocalDateTime.now(ZoneOffset.UTC));
@@ -629,8 +629,8 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         plantRepository.save(plant);
 
         PlantJournalEntryEntity watering = PlantJournalEntryEntity.create();
-        watering.setPlant(plant);
-        watering.setUser(owner);
+        watering.setPlantId(plant.getId());
+        watering.setUserId(owner.getId());
         watering.setType("watering");
         watering.setText("");
         watering.setEventAt(LocalDateTime.of(2025, 1, 2, 8, 30));
@@ -646,8 +646,8 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         plantJournalWateringDetailsRepository.save(details);
 
         PlantJournalEntryEntity feeding = PlantJournalEntryEntity.create();
-        feeding.setPlant(plant);
-        feeding.setUser(owner);
+        feeding.setPlantId(plant.getId());
+        feeding.setUserId(owner.getId());
         feeding.setType("feeding");
         feeding.setText("podrezka listev");
         feeding.setEventAt(LocalDateTime.of(2025, 1, 2, 12, 0));
@@ -694,8 +694,8 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         PlantEntity plant = createPlant(owner, "PhotoPlant");
 
         PlantJournalEntryEntity entry = PlantJournalEntryEntity.create();
-        entry.setPlant(plant);
-        entry.setUser(owner);
+        entry.setPlantId(plant.getId());
+        entry.setUserId(owner.getId());
         entry.setType("photo");
         entry.setText("with data");
         entry.setEventAt(LocalDateTime.now(ZoneOffset.UTC));
@@ -759,8 +759,8 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         PlantEntity plant = createPlant(owner, "PhotoAccess");
 
         PlantJournalEntryEntity entry = PlantJournalEntryEntity.create();
-        entry.setPlant(plant);
-        entry.setUser(owner);
+        entry.setPlantId(plant.getId());
+        entry.setUserId(owner.getId());
         entry.setType("photo");
         entry.setText("private");
         entry.setEventAt(LocalDateTime.now(ZoneOffset.UTC));
@@ -846,6 +846,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+
 
 
 

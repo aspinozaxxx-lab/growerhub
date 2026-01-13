@@ -1,4 +1,4 @@
-package ru.growerhub.backend.api;
+﻿package ru.growerhub.backend.api;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -35,9 +35,9 @@ import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
 import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
-import ru.growerhub.backend.journal.internal.PlantJournalEntryRepository;
-import ru.growerhub.backend.journal.PlantJournalWateringDetailsEntity;
-import ru.growerhub.backend.journal.internal.PlantJournalWateringDetailsRepository;
+import ru.growerhub.backend.journal.jpa.PlantJournalEntryRepository;
+import ru.growerhub.backend.journal.jpa.PlantJournalWateringDetailsEntity;
+import ru.growerhub.backend.journal.jpa.PlantJournalWateringDetailsRepository;
 import ru.growerhub.backend.mqtt.AckStore;
 import ru.growerhub.backend.mqtt.MqttPublisher;
 import ru.growerhub.backend.mqtt.model.CmdPumpStart;
@@ -47,10 +47,10 @@ import ru.growerhub.backend.mqtt.model.ManualWateringAck;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
 import ru.growerhub.backend.plant.jpa.PlantRepository;
-import ru.growerhub.backend.pump.PumpEntity;
-import ru.growerhub.backend.pump.PumpPlantBindingEntity;
-import ru.growerhub.backend.pump.internal.PumpPlantBindingRepository;
-import ru.growerhub.backend.pump.internal.PumpService;
+import ru.growerhub.backend.pump.jpa.PumpEntity;
+import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
+import ru.growerhub.backend.pump.jpa.PumpPlantBindingRepository;
+import ru.growerhub.backend.pump.engine.PumpService;
 import ru.growerhub.backend.user.UserEntity;
 import ru.growerhub.backend.user.internal.UserRepository;
 
@@ -539,7 +539,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     private void bindPump(PumpEntity pump, PlantEntity plant, int rate) {
         PumpPlantBindingEntity link = PumpPlantBindingEntity.create();
         link.setPump(pump);
-        link.setPlant(plant);
+        link.setPlantId(plant.getId());
         link.setRateMlPerHour(rate);
         pumpPlantBindingRepository.save(link);
     }
@@ -608,6 +608,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     private record PublishedCommand(String deviceId, Object cmd) {
     }
 }
+
 
 
 

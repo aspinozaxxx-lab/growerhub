@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.pump.internal;
+﻿package ru.growerhub.backend.pump.engine;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -13,10 +13,12 @@ import org.springframework.stereotype.Service;
 import ru.growerhub.backend.device.DeviceAccessService;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.contract.DeviceSummary;
-import ru.growerhub.backend.plant.jpa.PlantEntity;
+import ru.growerhub.backend.plant.PlantFacade;
+import ru.growerhub.backend.plant.contract.PlantInfo;
 import ru.growerhub.backend.pump.PumpBoundPlantView;
-import ru.growerhub.backend.pump.PumpEntity;
-import ru.growerhub.backend.pump.PumpPlantBindingEntity;
+import ru.growerhub.backend.pump.jpa.PumpEntity;
+import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
+import ru.growerhub.backend.pump.jpa.PumpPlantBindingRepository;
 import ru.growerhub.backend.pump.PumpRunningStatusProvider;
 import ru.growerhub.backend.pump.contract.PumpView;
 
@@ -26,17 +28,20 @@ public class PumpQueryService {
     private final PumpPlantBindingRepository bindingRepository;
     private final PumpRunningStatusProvider runningStatusProvider;
     private final DeviceAccessService deviceAccessService;
+    private final PlantFacade plantFacade;
 
     public PumpQueryService(
             PumpService pumpService,
             PumpPlantBindingRepository bindingRepository,
             PumpRunningStatusProvider runningStatusProvider,
-            DeviceAccessService deviceAccessService
+            DeviceAccessService deviceAccessService,
+            PlantFacade plantFacade
     ) {
         this.pumpService = pumpService;
         this.bindingRepository = bindingRepository;
         this.runningStatusProvider = runningStatusProvider;
         this.deviceAccessService = deviceAccessService;
+        this.plantFacade = plantFacade;
     }
 
     public List<PumpView> listByDevice(Integer deviceId, DeviceShadowState state) {
@@ -60,11 +65,15 @@ public class PumpQueryService {
         return result;
     }
 
-    public List<PumpView> listByPlant(PlantEntity plant) {
-        if (plant == null || plant.getId() == null) {
+    public List<PumpView> listByPlantId(Integer plantId) {
+        if (plantId == null) {
             return List.of();
         }
-        List<PumpPlantBindingEntity> bindings = bindingRepository.findAllByPlant_Id(plant.getId());
+        PlantInfo plant = plantFacade.getPlantInfoById(plantId);
+        if (plant == null) {
+            return List.of();
+        }
+        List<PumpPlantBindingEntity> bindings = bindingRepository.findAllByPlantId(plantId);
         if (bindings.isEmpty()) {
             return List.of();
         }
@@ -83,7 +92,7 @@ public class PumpQueryService {
             if (existing != null && existing.boundPlants() != null) {
                 nextPlants.addAll(existing.boundPlants());
             }
-            nextPlants.add(toPlantView(binding.getPlant(), binding.getRateMlPerHour()));
+            nextPlants.add(toPlantView(plant, binding.getRateMlPerHour()));
             byPump.put(pump.getId(), new PumpView(
                     pump.getId(),
                     pump.getChannel(),
@@ -101,33 +110,42 @@ public class PumpQueryService {
                 .collect(Collectors.toList());
         Map<Integer, List<PumpBoundPlantView>> boundPlants = new HashMap<>();
         List<PumpPlantBindingEntity> bindings = bindingRepository.findAllByPump_IdIn(pumpIds);
+        Map<Integer, PlantInfo> plantCache = new HashMap<>();
         for (PumpPlantBindingEntity binding : bindings) {
             PumpEntity pump = binding.getPump();
             if (pump == null) {
                 continue;
             }
+            Integer plantId = binding.getPlantId();
+            if (plantId == null) {
+                continue;
+            }
+            PlantInfo plant = plantCache.computeIfAbsent(plantId, plantFacade::getPlantInfoById);
+            if (plant == null) {
+                continue;
+            }
             boundPlants.computeIfAbsent(pump.getId(), key -> new ArrayList<>())
-                    .add(toPlantView(binding.getPlant(), binding.getRateMlPerHour()));
+                    .add(toPlantView(plant, binding.getRateMlPerHour()));
         }
         return boundPlants;
     }
 
-    private PumpBoundPlantView toPlantView(PlantEntity plant, Integer rate) {
+    private PumpBoundPlantView toPlantView(PlantInfo plant, Integer rate) {
         if (plant == null) {
             return null;
         }
         Integer ageDays = null;
-        if (plant.getPlantedAt() != null) {
-            LocalDate plantedDate = plant.getPlantedAt().toLocalDate();
+        if (plant.plantedAt() != null) {
+            LocalDate plantedDate = plant.plantedAt().toLocalDate();
             ageDays = (int) ChronoUnit.DAYS.between(plantedDate, LocalDate.now(ZoneOffset.UTC));
             if (ageDays < 0) {
                 ageDays = 0;
             }
         }
         return new PumpBoundPlantView(
-                plant.getId(),
-                plant.getName(),
-                plant.getPlantedAt(),
+                plant.id(),
+                plant.name(),
+                plant.plantedAt(),
                 ageDays,
                 rate
         );
@@ -158,4 +176,5 @@ public class PumpQueryService {
         return summary != null ? summary.deviceId() : null;
     }
 }
+
 

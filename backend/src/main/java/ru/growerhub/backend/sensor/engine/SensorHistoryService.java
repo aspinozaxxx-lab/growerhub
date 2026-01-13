@@ -1,4 +1,4 @@
-package ru.growerhub.backend.sensor.internal;
+﻿package ru.growerhub.backend.sensor.engine;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -7,10 +7,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.device.DeviceAccessService;
 import ru.growerhub.backend.sensor.SensorMeasurement;
-import ru.growerhub.backend.sensor.SensorEntity;
-import ru.growerhub.backend.sensor.SensorReadingEntity;
 import ru.growerhub.backend.sensor.SensorReadingSummary;
-import ru.growerhub.backend.sensor.internal.SensorReadingRepository;
+import ru.growerhub.backend.sensor.jpa.SensorEntity;
+import ru.growerhub.backend.sensor.jpa.SensorReadingEntity;
+import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
+import ru.growerhub.backend.sensor.jpa.SensorRepository;
 
 @Service
 public class SensorHistoryService {
@@ -75,3 +76,4 @@ public class SensorHistoryService {
         return summaries;
     }
 }
+

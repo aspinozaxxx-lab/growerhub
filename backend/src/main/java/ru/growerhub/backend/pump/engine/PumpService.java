@@ -1,11 +1,12 @@
-﻿package ru.growerhub.backend.pump.internal;
+﻿package ru.growerhub.backend.pump.engine;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.pump.PumpEntity;
+import ru.growerhub.backend.pump.jpa.PumpEntity;
+import ru.growerhub.backend.pump.jpa.PumpRepository;
 
 @Service
 public class PumpService {
@@ -54,4 +55,13 @@ public class PumpService {
         }
         return pumps;
     }
+
+    @Transactional
+    public void deleteAllByDeviceId(Integer deviceId) {
+        if (deviceId == null) {
+            return;
+        }
+        pumpRepository.deleteAllByDeviceId(deviceId);
+    }
 }
+

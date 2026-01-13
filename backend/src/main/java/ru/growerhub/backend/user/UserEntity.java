@@ -10,7 +10,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import java.util.List;
-import ru.growerhub.backend.journal.PlantJournalEntryEntity;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantGroupEntity;
 import ru.growerhub.backend.db.UserAuthIdentityEntity;
@@ -59,9 +58,6 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "user")
     private List<PlantEntity> plants;
-
-    @OneToMany(mappedBy = "user")
-    private List<PlantJournalEntryEntity> plantJournalEntries;
 
     protected UserEntity() {
     }
@@ -152,9 +148,6 @@ public class UserEntity {
         return plants;
     }
 
-    public List<PlantJournalEntryEntity> getPlantJournalEntries() {
-        return plantJournalEntries;
-    }
 }
 
 

@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.sensor;
+﻿package ru.growerhub.backend.sensor.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -85,3 +85,4 @@ public class SensorReadingEntity {
         this.createdAt = createdAt;
     }
 }
+

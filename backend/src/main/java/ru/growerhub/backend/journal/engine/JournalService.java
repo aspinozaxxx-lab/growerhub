@@ -1,15 +1,15 @@
-﻿package ru.growerhub.backend.journal.internal;
+package ru.growerhub.backend.journal.engine;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.journal.PlantJournalEntryEntity;
-import ru.growerhub.backend.journal.PlantJournalPhotoEntity;
-import ru.growerhub.backend.journal.PlantJournalWateringDetailsEntity;
-import ru.growerhub.backend.plant.jpa.PlantEntity;
-import ru.growerhub.backend.user.UserEntity;
+import ru.growerhub.backend.journal.jpa.PlantJournalEntryEntity;
+import ru.growerhub.backend.journal.jpa.PlantJournalEntryRepository;
+import ru.growerhub.backend.journal.jpa.PlantJournalPhotoEntity;
+import ru.growerhub.backend.journal.jpa.PlantJournalPhotoRepository;
+import ru.growerhub.backend.journal.jpa.PlantJournalWateringDetailsEntity;
 
 @Service
 public class JournalService {
@@ -27,7 +27,7 @@ public class JournalService {
     @Transactional
     public void createWateringEntries(
             List<WateringTarget> targets,
-            UserEntity user,
+            Integer userId,
             LocalDateTime eventAt,
             Double ph,
             String fertilizersPerLiter
@@ -36,13 +36,12 @@ public class JournalService {
             return;
         }
         for (WateringTarget target : targets) {
-            PlantEntity plant = target.plant();
-            if (plant == null) {
+            if (target.plantId() == null) {
                 continue;
             }
             PlantJournalEntryEntity entry = PlantJournalEntryEntity.create();
-            entry.setPlant(plant);
-            entry.setUser(user);
+            entry.setPlantId(target.plantId());
+            entry.setUserId(userId);
             entry.setType("watering");
             entry.setText(buildWateringText(target.durationS(), target.waterVolumeL(), ph, fertilizersPerLiter));
             entry.setEventAt(eventAt);
@@ -59,16 +58,16 @@ public class JournalService {
 
     @Transactional
     public PlantJournalEntryEntity createEntry(
-            PlantEntity plant,
-            UserEntity user,
+            Integer plantId,
+            Integer userId,
             String type,
             String text,
             LocalDateTime eventAt,
             List<String> photoUrls
     ) {
         PlantJournalEntryEntity entry = PlantJournalEntryEntity.create();
-        entry.setPlant(plant);
-        entry.setUser(user);
+        entry.setPlantId(plantId);
+        entry.setUserId(userId);
         entry.setType(type);
         entry.setText(text);
         entry.setEventAt(eventAt);
@@ -115,7 +114,7 @@ public class JournalService {
         return String.join("; ", parts);
     }
 
-    public record WateringTarget(PlantEntity plant, int durationS, double waterVolumeL) {
+    public record WateringTarget(Integer plantId, int durationS, double waterVolumeL) {
     }
 }
 

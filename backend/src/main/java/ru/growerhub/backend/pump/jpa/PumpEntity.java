@@ -1,9 +1,7 @@
-﻿package ru.growerhub.backend.sensor;
+﻿package ru.growerhub.backend.pump.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -14,15 +12,15 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(
-    name = "sensors",
+    name = "pumps",
     indexes = {
-        @Index(name = "ix_sensors_id", columnList = "id")
+        @Index(name = "ix_pumps_id", columnList = "id")
     },
     uniqueConstraints = {
-        @UniqueConstraint(name = "uq_sensors_device_type_channel", columnNames = {"device_id", "type", "channel"})
+        @UniqueConstraint(name = "uq_pumps_device_channel", columnNames = {"device_id", "channel"})
     }
 )
-public class SensorEntity {
+public class PumpEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,18 +30,11 @@ public class SensorEntity {
     @Column(name = "device_id", nullable = false)
     private Integer deviceId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
-    private SensorType type;
-
     @Column(name = "channel", nullable = false)
     private Integer channel;
 
     @Column(name = "label", nullable = true)
     private String label;
-
-    @Column(name = "detected", nullable = false)
-    private boolean detected;
 
     @Column(name = "created_at", nullable = true)
     private LocalDateTime createdAt;
@@ -51,11 +42,11 @@ public class SensorEntity {
     @Column(name = "updated_at", nullable = true)
     private LocalDateTime updatedAt;
 
-    protected SensorEntity() {
+    protected PumpEntity() {
     }
 
-    public static SensorEntity create() {
-        return new SensorEntity();
+    public static PumpEntity create() {
+        return new PumpEntity();
     }
 
     public Integer getId() {
@@ -68,14 +59,6 @@ public class SensorEntity {
 
     public void setDeviceId(Integer deviceId) {
         this.deviceId = deviceId;
-    }
-
-    public SensorType getType() {
-        return type;
-    }
-
-    public void setType(SensorType type) {
-        this.type = type;
     }
 
     public Integer getChannel() {
@@ -94,14 +77,6 @@ public class SensorEntity {
         this.label = label;
     }
 
-    public boolean isDetected() {
-        return detected;
-    }
-
-    public void setDetected(boolean detected) {
-        this.detected = detected;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -118,3 +93,4 @@ public class SensorEntity {
         this.updatedAt = updatedAt;
     }
 }
+

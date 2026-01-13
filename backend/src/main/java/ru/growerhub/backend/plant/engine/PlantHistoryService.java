@@ -13,7 +13,7 @@ import ru.growerhub.backend.plant.contract.PlantMetricType;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
-import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
+import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
 import ru.growerhub.backend.sensor.SensorReadingSummary;
 import ru.growerhub.backend.sensor.SensorType;
 
@@ -52,13 +52,13 @@ public class PlantHistoryService {
         if (bindings.isEmpty()) {
             return;
         }
-        Map<Integer, List<PlantEntity>> plantsBySensor = new HashMap<>();
+        Map<Integer, List<Integer>> plantIdsBySensor = new HashMap<>();
         for (SensorPlantBindingEntity binding : bindings) {
-            if (binding.getSensor() == null || binding.getPlant() == null) {
+            if (binding.getSensor() == null || binding.getPlantId() == null) {
                 continue;
             }
-            plantsBySensor.computeIfAbsent(binding.getSensor().getId(), key -> new ArrayList<>())
-                    .add(binding.getPlant());
+            plantIdsBySensor.computeIfAbsent(binding.getSensor().getId(), key -> new ArrayList<>())
+                    .add(binding.getPlantId());
         }
         List<PlantMetricSampleEntity> samples = new ArrayList<>();
         for (SensorReadingSummary summary : summaries) {
@@ -69,11 +69,15 @@ public class PlantHistoryService {
             if (metricType == null) {
                 continue;
             }
-            List<PlantEntity> plants = plantsBySensor.get(summary.sensorId());
-            if (plants == null || plants.isEmpty()) {
+            List<Integer> plantIds = plantIdsBySensor.get(summary.sensorId());
+            if (plantIds == null || plantIds.isEmpty()) {
                 continue;
             }
-            for (PlantEntity plant : plants) {
+            for (Integer plantId : plantIds) {
+                PlantEntity plant = entityManager.find(PlantEntity.class, plantId);
+                if (plant == null) {
+                    continue;
+                }
                 PlantMetricSampleEntity sample = PlantMetricSampleEntity.create();
                 sample.setPlant(plant);
                 sample.setMetricType(metricType);

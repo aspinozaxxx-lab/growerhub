@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.sensor.internal;
+﻿package ru.growerhub.backend.sensor.engine;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -10,11 +10,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
-import ru.growerhub.backend.plant.jpa.PlantEntity;
+import ru.growerhub.backend.plant.PlantFacade;
+import ru.growerhub.backend.plant.contract.PlantInfo;
 import ru.growerhub.backend.sensor.SensorBoundPlantView;
-import ru.growerhub.backend.sensor.SensorEntity;
-import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
-import ru.growerhub.backend.sensor.SensorReadingEntity;
+import ru.growerhub.backend.sensor.jpa.SensorEntity;
+import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
+import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;
+import ru.growerhub.backend.sensor.jpa.SensorReadingEntity;
+import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
+import ru.growerhub.backend.sensor.jpa.SensorRepository;
 import ru.growerhub.backend.sensor.contract.SensorView;
 
 @Service
@@ -22,15 +26,18 @@ public class SensorQueryService {
     private final SensorRepository sensorRepository;
     private final SensorReadingRepository sensorReadingRepository;
     private final SensorPlantBindingRepository bindingRepository;
+    private final PlantFacade plantFacade;
 
     public SensorQueryService(
             SensorRepository sensorRepository,
             SensorReadingRepository sensorReadingRepository,
-            SensorPlantBindingRepository bindingRepository
+            SensorPlantBindingRepository bindingRepository,
+            PlantFacade plantFacade
     ) {
         this.sensorRepository = sensorRepository;
         this.sensorReadingRepository = sensorReadingRepository;
         this.bindingRepository = bindingRepository;
+        this.plantFacade = plantFacade;
     }
 
     public List<SensorView> listByDeviceId(Integer deviceId) {
@@ -66,23 +73,20 @@ public class SensorQueryService {
         if (plantId == null) {
             return List.of();
         }
-        List<SensorPlantBindingEntity> bindings = bindingRepository.findAllByPlant_Id(plantId);
+        PlantInfo plant = plantFacade.getPlantInfoById(plantId);
+        if (plant == null) {
+            return List.of();
+        }
+        List<SensorPlantBindingEntity> bindings = bindingRepository.findAllByPlantId(plantId);
         if (bindings.isEmpty()) {
             return List.of();
         }
         Map<Integer, SensorEntity> sensors = new HashMap<>();
-        PlantEntity plant = null;
         for (SensorPlantBindingEntity binding : bindings) {
             SensorEntity sensor = binding.getSensor();
             if (sensor != null) {
                 sensors.putIfAbsent(sensor.getId(), sensor);
             }
-            if (plant == null) {
-                plant = binding.getPlant();
-            }
-        }
-        if (plant == null) {
-            return List.of();
         }
         List<SensorView> result = new ArrayList<>();
         SensorBoundPlantView plantView = toPlantView(plant);
@@ -110,10 +114,18 @@ public class SensorQueryService {
                 .collect(Collectors.toList());
         Map<Integer, List<SensorBoundPlantView>> boundPlants = new HashMap<>();
         List<SensorPlantBindingEntity> bindings = bindingRepository.findAllBySensor_IdIn(sensorIds);
+        Map<Integer, PlantInfo> plantCache = new HashMap<>();
         for (SensorPlantBindingEntity binding : bindings) {
             SensorEntity sensor = binding.getSensor();
-            PlantEntity plant = binding.getPlant();
-            if (sensor == null || plant == null) {
+            if (sensor == null) {
+                continue;
+            }
+            Integer plantId = binding.getPlantId();
+            if (plantId == null) {
+                continue;
+            }
+            PlantInfo plant = plantCache.computeIfAbsent(plantId, plantFacade::getPlantInfoById);
+            if (plant == null) {
                 continue;
             }
             boundPlants.computeIfAbsent(sensor.getId(), key -> new ArrayList<>())
@@ -122,8 +134,8 @@ public class SensorQueryService {
         return boundPlants;
     }
 
-    private SensorBoundPlantView toPlantView(PlantEntity plant) {
-        LocalDateTime plantedAt = plant.getPlantedAt();
+    private SensorBoundPlantView toPlantView(PlantInfo plant) {
+        LocalDateTime plantedAt = plant.plantedAt();
         Integer ageDays = null;
         if (plantedAt != null) {
             LocalDate plantedDate = plantedAt.toLocalDate();
@@ -133,12 +145,13 @@ public class SensorQueryService {
             }
         }
         return new SensorBoundPlantView(
-                plant.getId(),
-                plant.getName(),
+                plant.id(),
+                plant.name(),
                 plantedAt,
-                plant.getGrowthStage(),
+                plant.growthStage(),
                 ageDays
         );
     }
 }
+
 

@@ -1,6 +1,5 @@
-﻿package ru.growerhub.backend.sensor.internal;
+﻿package ru.growerhub.backend.sensor.engine;
 
-import jakarta.persistence.EntityManager;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -10,26 +9,28 @@ import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.DeviceAccessService;
 import ru.growerhub.backend.device.contract.DeviceSummary;
-import ru.growerhub.backend.plant.jpa.PlantEntity;
-import ru.growerhub.backend.sensor.SensorEntity;
-import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
+import ru.growerhub.backend.plant.PlantFacade;
+import ru.growerhub.backend.sensor.jpa.SensorEntity;
+import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
+import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;
+import ru.growerhub.backend.sensor.jpa.SensorRepository;
 
 @Service
 public class SensorBindingService {
     private final SensorRepository sensorRepository;
     private final SensorPlantBindingRepository bindingRepository;
-    private final EntityManager entityManager;
+    private final PlantFacade plantFacade;
     private final DeviceAccessService deviceAccessService;
 
     public SensorBindingService(
             SensorRepository sensorRepository,
             SensorPlantBindingRepository bindingRepository,
-            EntityManager entityManager,
+            PlantFacade plantFacade,
             DeviceAccessService deviceAccessService
     ) {
         this.sensorRepository = sensorRepository;
         this.bindingRepository = bindingRepository;
-        this.entityManager = entityManager;
+        this.plantFacade = plantFacade;
         this.deviceAccessService = deviceAccessService;
     }
 
@@ -51,18 +52,18 @@ public class SensorBindingService {
         Set<Integer> currentIds = new HashSet<>();
         List<SensorPlantBindingEntity> current = bindingRepository.findAllBySensor_Id(sensorId);
         for (SensorPlantBindingEntity binding : current) {
-            PlantEntity plant = binding.getPlant();
-            if (plant != null) {
-                currentIds.add(plant.getId());
+            Integer plantId = binding.getPlantId();
+            if (plantId != null) {
+                currentIds.add(plantId);
             }
         }
 
         for (SensorPlantBindingEntity binding : current) {
-            PlantEntity plant = binding.getPlant();
-            if (plant == null) {
+            Integer plantId = binding.getPlantId();
+            if (plantId == null) {
                 continue;
             }
-            if (!nextIds.contains(plant.getId())) {
+            if (!nextIds.contains(plantId)) {
                 bindingRepository.delete(binding);
             }
         }
@@ -71,29 +72,17 @@ public class SensorBindingService {
             if (currentIds.contains(plantId)) {
                 continue;
             }
-            PlantEntity plant = resolvePlant(plantId, user);
+            plantFacade.requireOwnedPlantInfo(plantId, user);
             SensorPlantBindingEntity binding = SensorPlantBindingEntity.create();
             binding.setSensor(sensor);
-            binding.setPlant(plant);
+            binding.setPlantId(plantId);
             bindingRepository.save(binding);
         }
-    }
-
-    private PlantEntity resolvePlant(Integer plantId, AuthenticatedUser user) {
-        PlantEntity plant = entityManager.find(PlantEntity.class, plantId);
-        if (plant == null) {
-            throw new DomainException("not_found", "rastenie ne naideno");
-        }
-        if (!isAdmin(user)) {
-            if (plant.getUser() == null || !plant.getUser().getId().equals(user.id())) {
-                throw new DomainException("forbidden", "rastenie ne naideno");
-            }
-        }
-        return plant;
     }
 
     private boolean isAdmin(AuthenticatedUser user) {
         return user != null && user.isAdmin();
     }
 }
+
 

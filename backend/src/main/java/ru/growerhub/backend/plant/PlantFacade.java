@@ -237,6 +237,20 @@ public class PlantFacade {
         return payload;
     }
 
+    public PlantInfo requireOwnedPlantInfo(Integer plantId, AuthenticatedUser user) {
+        PlantEntity plant = requireUserPlant(plantId, user);
+        return toPlantInfo(plant);
+    }
+
+    @Transactional(readOnly = true)
+    public PlantInfo getPlantInfoById(Integer plantId) {
+        if (plantId == null) {
+            return null;
+        }
+        PlantEntity plant = plantRepository.findById(plantId).orElse(null);
+        return plant != null ? toPlantInfo(plant) : null;
+    }
+
     @Transactional
     public void recordFromSensorBindings(List<SensorReadingSummary> summaries) {
         plantHistoryService.recordFromSensorBindings(summaries);
