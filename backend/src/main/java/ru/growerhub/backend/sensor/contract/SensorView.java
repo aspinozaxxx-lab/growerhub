@@ -16,3 +16,4 @@ public record SensorView(
         List<SensorBoundPlantView> boundPlants
 ) {
 }
+

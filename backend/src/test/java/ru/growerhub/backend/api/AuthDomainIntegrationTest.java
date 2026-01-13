@@ -23,15 +23,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.auth.internal.AuthSettings;
+import ru.growerhub.backend.auth.engine.AuthSettings;
 import ru.growerhub.backend.common.component.PasswordHasher;
-import ru.growerhub.backend.auth.internal.RefreshTokenService;
+import ru.growerhub.backend.auth.engine.RefreshTokenService;
 import ru.growerhub.backend.db.UserAuthIdentityEntity;
 import ru.growerhub.backend.db.UserAuthIdentityRepository;
 import ru.growerhub.backend.db.UserRefreshTokenEntity;
 import ru.growerhub.backend.db.UserRefreshTokenRepository;
-import ru.growerhub.backend.user.UserEntity;
-import ru.growerhub.backend.user.internal.UserRepository;
+import ru.growerhub.backend.user.jpa.UserEntity;
+import ru.growerhub.backend.user.jpa.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -161,7 +161,7 @@ class AuthDomainIntegrationTest extends IntegrationTestBase {
         String refreshHash = refreshTokenService.hashToken(refreshRaw);
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         UserRefreshTokenEntity record = UserRefreshTokenEntity.create(
-                user,
+                user.getId(),
                 refreshHash,
                 now,
                 now.plusDays(30),
@@ -188,7 +188,7 @@ class AuthDomainIntegrationTest extends IntegrationTestBase {
         String refreshHash = refreshTokenService.hashToken(refreshRaw);
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         UserRefreshTokenEntity record = UserRefreshTokenEntity.create(
-                user,
+                user.getId(),
                 refreshHash,
                 now,
                 now.plusDays(30),
@@ -287,7 +287,8 @@ class AuthDomainIntegrationTest extends IntegrationTestBase {
 
     private UserAuthIdentityEntity createIdentity(UserEntity user, String provider, String subject, String passwordHash) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        UserAuthIdentityEntity identity = UserAuthIdentityEntity.create(user, provider, subject, passwordHash, now, now);
+        UserAuthIdentityEntity identity =
+                UserAuthIdentityEntity.create(user.getId(), provider, subject, passwordHash, now, now);
         return identityRepository.save(identity);
     }
 
@@ -301,5 +302,8 @@ class AuthDomainIntegrationTest extends IntegrationTestBase {
                 .compact();
     }
 }
+
+
+
 
 

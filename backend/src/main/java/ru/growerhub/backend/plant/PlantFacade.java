@@ -1,6 +1,5 @@
 ﻿package ru.growerhub.backend.plant;
 
-import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -8,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
@@ -27,7 +27,7 @@ import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
 import ru.growerhub.backend.plant.jpa.PlantRepository;
 import ru.growerhub.backend.sensor.SensorReadingSummary;
 import ru.growerhub.backend.sensor.contract.SensorView;
-import ru.growerhub.backend.user.UserEntity;
+import ru.growerhub.backend.user.UserFacade;
 
 @Service
 public class PlantFacade {
@@ -38,7 +38,7 @@ public class PlantFacade {
     private final PlantMetricSampleRepository plantMetricSampleRepository;
     private final PlantHistoryService plantHistoryService;
     private final JournalFacade journalFacade;
-    private final EntityManager entityManager;
+    private final UserFacade userFacade;
 
     public PlantFacade(
             PlantRepository plantRepository,
@@ -46,19 +46,19 @@ public class PlantFacade {
             PlantMetricSampleRepository plantMetricSampleRepository,
             PlantHistoryService plantHistoryService,
             JournalFacade journalFacade,
-            EntityManager entityManager
+            @Lazy UserFacade userFacade
     ) {
         this.plantRepository = plantRepository;
         this.plantGroupRepository = plantGroupRepository;
         this.plantMetricSampleRepository = plantMetricSampleRepository;
         this.plantHistoryService = plantHistoryService;
         this.journalFacade = journalFacade;
-        this.entityManager = entityManager;
+        this.userFacade = userFacade;
     }
 
     @Transactional(readOnly = true)
     public List<PlantGroupInfo> listGroups(AuthenticatedUser user) {
-        List<PlantGroupEntity> groups = plantGroupRepository.findAllByUser_Id(user.id());
+        List<PlantGroupEntity> groups = plantGroupRepository.findAllByUserId(user.id());
         return groups.stream().map(this::toGroupInfo).toList();
     }
 
@@ -67,7 +67,7 @@ public class PlantFacade {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         PlantGroupEntity group = PlantGroupEntity.create();
         group.setName(name);
-        group.setUser(requireUser(user));
+        group.setUserId(requireUserId(user));
         group.setCreatedAt(now);
         group.setUpdatedAt(now);
         plantGroupRepository.save(group);
@@ -76,7 +76,7 @@ public class PlantFacade {
 
     @Transactional
     public PlantGroupInfo updateGroup(Integer groupId, String name, AuthenticatedUser user) {
-        PlantGroupEntity group = plantGroupRepository.findByIdAndUser_Id(groupId, user.id()).orElse(null);
+        PlantGroupEntity group = plantGroupRepository.findByIdAndUserId(groupId, user.id()).orElse(null);
         if (group == null) {
             throw new DomainException("not_found", "gruppa ne naidena");
         }
@@ -88,11 +88,11 @@ public class PlantFacade {
 
     @Transactional
     public void deleteGroup(Integer groupId, AuthenticatedUser user) {
-        PlantGroupEntity group = plantGroupRepository.findByIdAndUser_Id(groupId, user.id()).orElse(null);
+        PlantGroupEntity group = plantGroupRepository.findByIdAndUserId(groupId, user.id()).orElse(null);
         if (group == null) {
             throw new DomainException("not_found", "gruppa ne naidena");
         }
-        List<PlantEntity> plants = plantRepository.findAllByUser_IdAndPlantGroup_Id(user.id(), groupId);
+        List<PlantEntity> plants = plantRepository.findAllByUserIdAndPlantGroup_Id(user.id(), groupId);
         for (PlantEntity plant : plants) {
             plant.setPlantGroup(null);
         }
@@ -102,7 +102,7 @@ public class PlantFacade {
 
     @Transactional(readOnly = true)
     public List<PlantInfo> listPlants(AuthenticatedUser user) {
-        List<PlantEntity> plants = plantRepository.findAllByUser_Id(user.id());
+        List<PlantEntity> plants = plantRepository.findAllByUserId(user.id());
         List<PlantInfo> responses = new ArrayList<>();
         for (PlantEntity plant : plants) {
             responses.add(toPlantInfo(plant));
@@ -117,7 +117,7 @@ public class PlantFacade {
         PlantEntity plant = PlantEntity.create();
         plant.setName(command.name());
         plant.setPlantedAt(plantedAt);
-        plant.setUser(requireUser(user));
+        plant.setUserId(requireUserId(user));
         plant.setPlantGroup(resolvePlantGroup(command.plantGroupId()));
         plant.setPlantType(command.plantType());
         plant.setStrain(command.strain());
@@ -200,14 +200,15 @@ public class PlantFacade {
         List<PlantEntity> plants = plantRepository.findAll();
         List<AdminPlantInfo> responses = new ArrayList<>();
         for (PlantEntity plant : plants) {
-            UserEntity owner = plant.getUser();
+            Integer ownerId = plant.getUserId();
+            UserFacade.UserProfile owner = ownerId != null ? userFacade.getUser(ownerId) : null;
             PlantGroupEntity group = plant.getPlantGroup();
             responses.add(new AdminPlantInfo(
                     plant.getId(),
                     plant.getName(),
-                    owner != null ? owner.getEmail() : null,
-                    owner != null ? owner.getUsername() : null,
-                    owner != null ? owner.getId() : null,
+                    owner != null ? owner.email() : null,
+                    owner != null ? owner.username() : null,
+                    owner != null ? owner.id() : null,
                     group != null ? group.getName() : null
             ));
         }
@@ -266,7 +267,7 @@ public class PlantFacade {
     }
 
     private PlantEntity requireUserPlant(Integer plantId, AuthenticatedUser user) {
-        PlantEntity plant = plantRepository.findByIdAndUser_Id(plantId, user.id()).orElse(null);
+        PlantEntity plant = plantRepository.findByIdAndUserId(plantId, user.id()).orElse(null);
         if (plant == null) {
             throw new DomainException("not_found", "rastenie ne naideno");
         }
@@ -281,11 +282,11 @@ public class PlantFacade {
     }
 
     private PlantGroupInfo toGroupInfo(PlantGroupEntity group) {
-        UserEntity owner = group.getUser();
+        Integer ownerId = group.getUserId();
         return new PlantGroupInfo(
                 group.getId(),
                 group.getName(),
-                owner != null ? owner.getId() : null
+                ownerId
         );
     }
 
@@ -293,15 +294,13 @@ public class PlantFacade {
         PlantGroupEntity group = plant.getPlantGroup();
         PlantGroupInfo groupInfo = null;
         if (group != null) {
-            UserEntity owner = group.getUser();
             groupInfo = new PlantGroupInfo(
                     group.getId(),
                     group.getName(),
-                    owner != null ? owner.getId() : null
+                    group.getUserId()
             );
         }
-        UserEntity owner = plant.getUser();
-        Integer ownerId = owner != null ? owner.getId() : null;
+        Integer ownerId = plant.getUserId();
         return new PlantInfo(
                 plant.getId(),
                 plant.getName(),
@@ -344,11 +343,11 @@ public class PlantFacade {
         return sampled;
     }
 
-    private UserEntity requireUser(AuthenticatedUser user) {
+    private Integer requireUserId(AuthenticatedUser user) {
         if (user == null) {
             throw new DomainException("forbidden", "polzovatel' ne naiden");
         }
-        return entityManager.getReference(UserEntity.class, user.id());
+        return user.id();
     }
 
     private void requireAdmin(AuthenticatedUser user) {
@@ -381,6 +380,8 @@ public class PlantFacade {
     public record PlantHarvestCommand(LocalDateTime harvestedAt, String text) {
     }
 }
+
+
 
 
 

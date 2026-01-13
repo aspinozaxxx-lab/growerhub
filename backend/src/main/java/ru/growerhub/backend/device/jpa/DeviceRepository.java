@@ -8,5 +8,5 @@ import ru.growerhub.backend.device.jpa.DeviceEntity;
 public interface DeviceRepository extends JpaRepository<DeviceEntity, Integer> {
     Optional<DeviceEntity> findByDeviceId(String deviceId);
 
-    List<DeviceEntity> findAllByUser_Id(Integer userId);
+    List<DeviceEntity> findAllByUserId(Integer userId);
 }

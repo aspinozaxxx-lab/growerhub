@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.auth.internal;
+﻿package ru.growerhub.backend.auth.engine;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -85,3 +85,5 @@ public class RefreshTokenService {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }
+
+

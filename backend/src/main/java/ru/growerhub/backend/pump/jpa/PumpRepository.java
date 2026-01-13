@@ -12,3 +12,4 @@ public interface PumpRepository extends JpaRepository<PumpEntity, Integer> {
     void deleteAllByDeviceId(Integer deviceId);
 }
 
+

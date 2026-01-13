@@ -13,3 +13,4 @@ public interface SensorPlantBindingRepository extends JpaRepository<SensorPlantB
     void deleteAllBySensor_Id(Integer sensorId);
 }
 
+

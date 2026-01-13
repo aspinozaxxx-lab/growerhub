@@ -1,16 +1,13 @@
-package ru.growerhub.backend.db;
+﻿package ru.growerhub.backend.db;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
-import ru.growerhub.backend.user.UserEntity;
 
 @Entity
 @Table(
@@ -33,9 +30,8 @@ public class UserAuthIdentityEntity {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserEntity user;
+    @Column(name = "user_id", nullable = false)
+    private Integer userId;
 
     @Column(name = "provider", nullable = false)
     private String provider;
@@ -56,7 +52,7 @@ public class UserAuthIdentityEntity {
     }
 
     public static UserAuthIdentityEntity create(
-            UserEntity user,
+            Integer userId,
             String provider,
             String providerSubject,
             String passwordHash,
@@ -64,7 +60,7 @@ public class UserAuthIdentityEntity {
             LocalDateTime updatedAt
     ) {
         UserAuthIdentityEntity identity = new UserAuthIdentityEntity();
-        identity.user = user;
+        identity.userId = userId;
         identity.provider = provider;
         identity.providerSubject = providerSubject;
         identity.passwordHash = passwordHash;
@@ -77,12 +73,12 @@ public class UserAuthIdentityEntity {
         return id;
     }
 
-    public UserEntity getUser() {
-        return user;
+    public Integer getUserId() {
+        return userId;
     }
 
-    public void setUser(UserEntity user) {
-        this.user = user;
+    public void setUserId(Integer userId) {
+        this.userId = userId;
     }
 
     public String getProvider() {
@@ -125,3 +121,5 @@ public class UserAuthIdentityEntity {
         this.updatedAt = updatedAt;
     }
 }
+
+

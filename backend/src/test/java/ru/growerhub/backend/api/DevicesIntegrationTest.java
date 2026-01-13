@@ -42,8 +42,8 @@ import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;
 import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
 import ru.growerhub.backend.sensor.jpa.SensorRepository;
 import ru.growerhub.backend.sensor.SensorType;
-import ru.growerhub.backend.user.UserEntity;
-import ru.growerhub.backend.user.internal.UserRepository;
+import ru.growerhub.backend.user.jpa.UserEntity;
+import ru.growerhub.backend.user.jpa.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -638,14 +638,14 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId(deviceId);
         device.setName("Device " + deviceId);
-        device.setUser(owner);
+        device.setUserId(owner != null ? owner.getId() : null);
         device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         return deviceRepository.save(device);
     }
 
     private PlantEntity createPlant(UserEntity owner, String name) {
         PlantEntity plant = PlantEntity.create();
-        plant.setUser(owner);
+        plant.setUserId(owner != null ? owner.getId() : null);
         plant.setName(name);
         plant.setPlantedAt(LocalDateTime.now(ZoneOffset.UTC));
         return plantRepository.save(plant);
@@ -680,6 +680,9 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+
+
+
 
 
 

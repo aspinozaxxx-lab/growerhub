@@ -1,8 +1,9 @@
-package ru.growerhub.backend.user.internal;
+﻿package ru.growerhub.backend.user.engine;
 
 import java.util.Optional;
 import org.springframework.stereotype.Service;
-import ru.growerhub.backend.user.UserEntity;
+import ru.growerhub.backend.user.jpa.UserEntity;
+import ru.growerhub.backend.user.jpa.UserRepository;
 
 @Service
 public class UserService {
@@ -16,3 +17,6 @@ public class UserService {
         return repository.findById(id);
     }
 }
+
+
+

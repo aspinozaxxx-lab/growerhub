@@ -13,3 +13,4 @@ public interface PumpPlantBindingRepository extends JpaRepository<PumpPlantBindi
     void deleteAllByPump_Id(Integer pumpId);
 }
 
+

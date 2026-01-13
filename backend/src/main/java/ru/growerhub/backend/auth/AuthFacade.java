@@ -6,12 +6,11 @@ import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.auth.internal.AuthService;
-import ru.growerhub.backend.auth.internal.SsoService;
+import ru.growerhub.backend.auth.engine.AuthService;
+import ru.growerhub.backend.auth.engine.SsoService;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.db.UserAuthIdentityEntity;
-import ru.growerhub.backend.user.UserEntity;
 
 @Service
 public class AuthFacade {
@@ -37,11 +36,11 @@ public class AuthFacade {
 
     @Transactional
     public AuthTokens login(String email, String password, HttpServletRequest request, HttpServletResponse response) {
-        UserEntity user = authService.authenticateLocalUser(email, password);
-        if (user == null) {
+        Integer userId = authService.authenticateLocalUser(email, password);
+        if (userId == null) {
             return null;
         }
-        return authService.issueAccessAndRefresh(user, request, response);
+        return authService.issueAccessAndRefresh(userId, request, response);
     }
 
     @Transactional(readOnly = true)
@@ -54,9 +53,8 @@ public class AuthFacade {
         if (!ssoService.isSupportedProvider(provider)) {
             throw new DomainException("not_found", "Provider not found");
         }
-        UserEntity currentUser = authService.resolveOptionalUser(authorization);
-        String mode = currentUser != null ? "link" : "login";
-        Integer currentUserId = currentUser != null ? currentUser.getId() : null;
+        Integer currentUserId = authService.resolveOptionalUserId(authorization);
+        String mode = currentUserId != null ? "link" : "login";
         String resolvedRedirectPath = redirectPath;
         if (resolvedRedirectPath == null || resolvedRedirectPath.isEmpty()) {
             resolvedRedirectPath = "link".equals(mode) ? "/static/profile.html" : "/app";
@@ -109,15 +107,15 @@ public class AuthFacade {
         }
 
         if ("login".equals(stateData.mode())) {
-            UserEntity user = ssoService.getOrCreateUser(provider, subject, profile.email());
-            String accessToken = authService.issueAccessToken(user);
+            Integer userId = ssoService.getOrCreateUser(provider, subject, profile.email());
+            String accessToken = authService.issueAccessToken(userId);
             String redirectTarget = stateData.redirectPath();
             if (redirectTarget == null || redirectTarget.isEmpty()) {
                 redirectTarget = "/app";
             }
             String separator = redirectTarget.contains("?") ? "&" : "?";
             String redirectWithToken = redirectTarget + separator + "access_token=" + accessToken;
-            authService.issueRefreshToken(user, request, response);
+            authService.issueRefreshToken(userId, request, response);
             return new SsoCallbackResult(redirectWithToken);
         }
 
@@ -131,7 +129,7 @@ public class AuthFacade {
         if (currentUserId == null) {
             throw new DomainException("unauthorized", "User required for link");
         }
-        UserEntity currentUser = authService.findUserById(currentUserId);
+        AuthUserProfile currentUser = authService.getProfile(currentUserId);
         if (currentUser == null) {
             throw new DomainException("not_found", "User not found");
         }
@@ -143,11 +141,11 @@ public class AuthFacade {
 
         UserAuthIdentityEntity identitySameSubject = ssoService.findIdentityBySubject(provider, subject);
         if (identitySameSubject != null
-                && identitySameSubject.getUser() != null
-                && !identitySameSubject.getUser().getId().equals(currentUser.getId())) {
+                && identitySameSubject.getUserId() != null
+                && !identitySameSubject.getUserId().equals(currentUser.id())) {
             throw new DomainException("conflict", "Identity already linked");
         }
-        ssoService.linkIdentity(currentUser, provider, subject);
+        ssoService.linkIdentity(currentUser.id(), provider, subject);
         return new SsoCallbackResult(redirectTarget);
     }
 
@@ -166,11 +164,7 @@ public class AuthFacade {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
-        UserEntity entity = authService.findUserById(user.id());
-        if (entity == null) {
-            throw new DomainException("unauthorized", "Not authenticated");
-        }
-        return authService.updateProfile(entity, email, username);
+        return authService.updateProfile(user.id(), email, username);
     }
 
     @Transactional
@@ -178,11 +172,7 @@ public class AuthFacade {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
-        UserEntity entity = authService.findUserById(user.id());
-        if (entity == null) {
-            throw new DomainException("unauthorized", "Not authenticated");
-        }
-        authService.changePassword(entity, currentPassword, newPassword);
+        authService.changePassword(user.id(), currentPassword, newPassword);
     }
 
     @Transactional(readOnly = true)
@@ -190,11 +180,7 @@ public class AuthFacade {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
-        UserEntity entity = authService.findUserById(user.id());
-        if (entity == null) {
-            throw new DomainException("unauthorized", "Not authenticated");
-        }
-        return authService.authMethods(entity);
+        return authService.authMethods(user.id());
     }
 
     @Transactional
@@ -202,11 +188,7 @@ public class AuthFacade {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
-        UserEntity entity = authService.findUserById(user.id());
-        if (entity == null) {
-            throw new DomainException("unauthorized", "Not authenticated");
-        }
-        return authService.configureLocal(entity, email, password);
+        return authService.configureLocal(user.id(), email, password);
     }
 
     @Transactional
@@ -214,11 +196,7 @@ public class AuthFacade {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
-        UserEntity entity = authService.findUserById(user.id());
-        if (entity == null) {
-            throw new DomainException("unauthorized", "Not authenticated");
-        }
-        return authService.deleteMethod(entity, provider);
+        return authService.deleteMethod(user.id(), provider);
     }
 
     public record SsoLoginResult(String authUrl, boolean json) {
@@ -227,3 +205,5 @@ public class AuthFacade {
     public record SsoCallbackResult(String redirectUrl) {
     }
 }
+
+

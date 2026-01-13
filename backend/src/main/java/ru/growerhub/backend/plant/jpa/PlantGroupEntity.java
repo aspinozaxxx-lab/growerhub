@@ -5,13 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-import ru.growerhub.backend.user.UserEntity;
 
 @Entity
 @Table(name = "plant_groups")
@@ -22,10 +17,8 @@ public class PlantGroupEntity {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = true)
-    @OnDelete(action = OnDeleteAction.SET_NULL)
-    private UserEntity user;
+    @Column(name = "user_id", nullable = true)
+    private Integer userId;
 
     @Column(name = "name", nullable = false)
     private String name;
@@ -47,12 +40,12 @@ public class PlantGroupEntity {
         return id;
     }
 
-    public UserEntity getUser() {
-        return user;
+    public Integer getUserId() {
+        return userId;
     }
 
-    public void setUser(UserEntity user) {
-        this.user = user;
+    public void setUserId(Integer userId) {
+        this.userId = userId;
     }
 
     public String getName() {
@@ -79,4 +72,6 @@ public class PlantGroupEntity {
         this.updatedAt = updatedAt;
     }
 }
+
+
 

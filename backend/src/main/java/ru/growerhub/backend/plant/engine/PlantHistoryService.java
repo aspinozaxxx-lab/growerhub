@@ -13,7 +13,7 @@ import ru.growerhub.backend.plant.contract.PlantMetricType;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
-import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
+import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.SensorReadingSummary;
 import ru.growerhub.backend.sensor.SensorType;
 
@@ -21,13 +21,16 @@ import ru.growerhub.backend.sensor.SensorType;
 public class PlantHistoryService {
     private final PlantMetricSampleRepository plantMetricSampleRepository;
     private final EntityManager entityManager;
+    private final SensorFacade sensorFacade;
 
     public PlantHistoryService(
             PlantMetricSampleRepository plantMetricSampleRepository,
-            EntityManager entityManager
+            EntityManager entityManager,
+            SensorFacade sensorFacade
     ) {
         this.plantMetricSampleRepository = plantMetricSampleRepository;
         this.entityManager = entityManager;
+        this.sensorFacade = sensorFacade;
     }
 
     @Transactional
@@ -42,23 +45,9 @@ public class PlantHistoryService {
         if (sensorIds.isEmpty()) {
             return;
         }
-        List<SensorPlantBindingEntity> bindings = entityManager
-                .createQuery(
-                        "select b from SensorPlantBindingEntity b where b.sensor.id in :sensorIds",
-                        SensorPlantBindingEntity.class
-                )
-                .setParameter("sensorIds", sensorIds)
-                .getResultList();
-        if (bindings.isEmpty()) {
+        Map<Integer, List<Integer>> plantIdsBySensor = sensorFacade.getPlantIdsBySensorIds(sensorIds);
+        if (plantIdsBySensor.isEmpty()) {
             return;
-        }
-        Map<Integer, List<Integer>> plantIdsBySensor = new HashMap<>();
-        for (SensorPlantBindingEntity binding : bindings) {
-            if (binding.getSensor() == null || binding.getPlantId() == null) {
-                continue;
-            }
-            plantIdsBySensor.computeIfAbsent(binding.getSensor().getId(), key -> new ArrayList<>())
-                    .add(binding.getPlantId());
         }
         List<PlantMetricSampleEntity> samples = new ArrayList<>();
         for (SensorReadingSummary summary : summaries) {
@@ -117,5 +106,6 @@ public class PlantHistoryService {
         };
     }
 }
+
 
 

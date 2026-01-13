@@ -29,8 +29,8 @@ import ru.growerhub.backend.pump.jpa.PumpEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingRepository;
 import ru.growerhub.backend.pump.engine.PumpService;
-import ru.growerhub.backend.user.UserEntity;
-import ru.growerhub.backend.user.internal.UserRepository;
+import ru.growerhub.backend.user.jpa.UserEntity;
+import ru.growerhub.backend.user.jpa.UserRepository;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -128,13 +128,13 @@ class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId(deviceId);
         device.setName("Device " + deviceId);
-        device.setUser(owner);
+        device.setUserId(owner != null ? owner.getId() : null);
         return deviceRepository.save(device);
     }
 
     private PlantEntity createPlant(UserEntity owner, String name) {
         PlantEntity plant = PlantEntity.create();
-        plant.setUser(owner);
+        plant.setUserId(owner != null ? owner.getId() : null);
         plant.setName(name);
         plant.setPlantedAt(LocalDateTime.now(ZoneOffset.UTC));
         return plantRepository.save(plant);
@@ -174,6 +174,9 @@ class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+
+
+
 
 
 

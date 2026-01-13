@@ -11,3 +11,4 @@ public interface SensorReadingRepository extends JpaRepository<SensorReadingEnti
     List<SensorReadingEntity> findAllBySensor_IdAndTsGreaterThanEqualOrderByTs(Integer sensorId, LocalDateTime ts);
 }
 
+

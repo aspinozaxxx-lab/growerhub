@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.firmware.internal;
+﻿package ru.growerhub.backend.firmware.engine;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -94,3 +94,5 @@ public class FirmwareStorage {
         }
     }
 }
+
+

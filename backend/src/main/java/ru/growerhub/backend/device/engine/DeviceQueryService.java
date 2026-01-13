@@ -1,4 +1,4 @@
-package ru.growerhub.backend.device.engine;
+﻿package ru.growerhub.backend.device.engine;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -10,7 +10,6 @@ import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
-import ru.growerhub.backend.user.UserEntity;
 
 @Service
 public class DeviceQueryService {
@@ -28,7 +27,7 @@ public class DeviceQueryService {
     }
 
     public List<DeviceSummary> listMyDevices(Integer userId) {
-        List<DeviceEntity> devices = deviceRepository.findAllByUser_Id(userId);
+        List<DeviceEntity> devices = deviceRepository.findAllByUserId(userId);
         List<DeviceSummary> responses = new ArrayList<>();
         for (DeviceEntity device : devices) {
             responses.add(buildDeviceSummary(device));
@@ -56,8 +55,6 @@ public class DeviceQueryService {
         boolean isOnline = snapshot != null ? snapshot.isOnline() : resolveOnlineFromDevice(device);
         String firmwareVersion = resolveFirmwareVersion(state);
 
-        UserEntity owner = device.getUser();
-        Integer ownerId = owner != null ? owner.getId() : null;
         return new DeviceSummary(
                 device.getId(),
                 device.getDeviceId(),
@@ -73,7 +70,7 @@ public class DeviceQueryService {
                 defaultString(device.getCurrentVersion(), DeviceDefaults.CURRENT_VERSION),
                 defaultBoolean(device.getUpdateAvailable(), DeviceDefaults.UPDATE_AVAILABLE),
                 firmwareVersion,
-                ownerId
+                device.getUserId()
         );
     }
 
@@ -108,3 +105,5 @@ public class DeviceQueryService {
         return value != null ? value : fallback;
     }
 }
+
+

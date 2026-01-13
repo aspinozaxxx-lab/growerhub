@@ -27,8 +27,8 @@ import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.db.UserAuthIdentityEntity;
 import ru.growerhub.backend.db.UserAuthIdentityRepository;
-import ru.growerhub.backend.user.UserEntity;
-import ru.growerhub.backend.user.internal.UserRepository;
+import ru.growerhub.backend.user.jpa.UserEntity;
+import ru.growerhub.backend.user.jpa.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -175,10 +175,10 @@ class UsersAdminIntegrationTest extends IntegrationTestBase {
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId("dev-delete");
         device.setName("Device dev-delete");
-        device.setUser(target);
+        device.setUserId(target.getId());
         deviceRepository.save(device);
         UserAuthIdentityEntity identity = UserAuthIdentityEntity.create(
-                target,
+                target.getId(),
                 "local",
                 null,
                 "hash",
@@ -197,7 +197,7 @@ class UsersAdminIntegrationTest extends IntegrationTestBase {
 
         DeviceEntity stored = deviceRepository.findById(device.getId()).orElse(null);
         Assertions.assertNotNull(stored);
-        Assertions.assertNull(stored.getUser());
+        Assertions.assertNull(stored.getUserId());
     }
 
     @Test
@@ -266,5 +266,8 @@ class UsersAdminIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+
+
+
 
 

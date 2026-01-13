@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.auth.internal;
+﻿package ru.growerhub.backend.auth.engine;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -45,3 +45,5 @@ public class JwtService {
         return createToken(claims, Duration.ofMinutes(authSettings.getAccessTokenExpireMinutes()));
     }
 }
+
+

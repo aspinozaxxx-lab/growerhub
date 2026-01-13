@@ -1,6 +1,5 @@
 ﻿package ru.growerhub.backend.device;
 
-import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -29,7 +28,6 @@ import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.SensorMeasurement;
 import ru.growerhub.backend.sensor.SensorReadingSummary;
 import ru.growerhub.backend.sensor.contract.SensorView;
-import ru.growerhub.backend.user.UserEntity;
 
 @Service
 public class DeviceFacade {
@@ -42,7 +40,6 @@ public class DeviceFacade {
     private final SensorFacade sensorFacade;
     private final PlantFacade plantFacade;
     private final PumpFacade pumpFacade;
-    private final EntityManager entityManager;
 
     public DeviceFacade(
             DeviceRepository deviceRepository,
@@ -53,8 +50,7 @@ public class DeviceFacade {
             DeviceAckService ackService,
             SensorFacade sensorFacade,
             PlantFacade plantFacade,
-            @Lazy PumpFacade pumpFacade,
-            EntityManager entityManager
+            @Lazy PumpFacade pumpFacade
     ) {
         this.deviceRepository = deviceRepository;
         this.deviceStateLastRepository = deviceStateLastRepository;
@@ -65,7 +61,6 @@ public class DeviceFacade {
         this.sensorFacade = sensorFacade;
         this.plantFacade = plantFacade;
         this.pumpFacade = pumpFacade;
-        this.entityManager = entityManager;
     }
 
     @Transactional
@@ -195,10 +190,10 @@ public class DeviceFacade {
     @Transactional
     public DeviceSummary assignToUser(Integer deviceId, Integer userId) {
         DeviceEntity device = requireDevice(deviceId);
-        UserEntity owner = device.getUser();
-        if (owner == null) {
-            device.setUser(getUserReference(userId));
-        } else if (!owner.getId().equals(userId)) {
+        Integer ownerId = device.getUserId();
+        if (ownerId == null) {
+            device.setUserId(userId);
+        } else if (!ownerId.equals(userId)) {
             throw new DomainException("bad_request", "ustrojstvo uzhe privyazano k drugomu polzovatelju");
         }
         deviceRepository.save(device);
@@ -208,13 +203,13 @@ public class DeviceFacade {
     @Transactional
     public DeviceSummary unassignForUser(Integer deviceId, Integer userId, boolean isAdmin) {
         DeviceEntity device = requireDevice(deviceId);
-        UserEntity owner = device.getUser();
         if (!isAdmin) {
-            if (owner == null || !owner.getId().equals(userId)) {
+            Integer ownerId = device.getUserId();
+            if (ownerId == null || !ownerId.equals(userId)) {
                 throw new DomainException("forbidden", "nedostatochno prav dlya otvyazki etogo ustrojstva");
             }
         }
-        device.setUser(null);
+        device.setUserId(null);
         deviceRepository.save(device);
         return deviceQueryService.buildDeviceSummary(device);
     }
@@ -234,7 +229,7 @@ public class DeviceFacade {
     @Transactional
     public DeviceSummary adminAssign(Integer deviceId, Integer userId) {
         DeviceEntity device = requireDevice(deviceId);
-        device.setUser(getUserReference(userId));
+        device.setUserId(userId);
         deviceRepository.save(device);
         return deviceQueryService.buildDeviceSummary(device);
     }
@@ -242,7 +237,7 @@ public class DeviceFacade {
     @Transactional
     public DeviceSummary adminUnassign(Integer deviceId) {
         DeviceEntity device = requireDevice(deviceId);
-        device.setUser(null);
+        device.setUserId(null);
         deviceRepository.save(device);
         return deviceQueryService.buildDeviceSummary(device);
     }
@@ -267,9 +262,9 @@ public class DeviceFacade {
         if (userId == null) {
             return;
         }
-        List<DeviceEntity> devices = deviceRepository.findAllByUser_Id(userId);
+        List<DeviceEntity> devices = deviceRepository.findAllByUserId(userId);
         for (DeviceEntity device : devices) {
-            device.setUser(null);
+            device.setUserId(null);
         }
         deviceRepository.saveAll(devices);
     }
@@ -280,13 +275,6 @@ public class DeviceFacade {
             throw new DomainException("not_found", "ustrojstvo ne najdeno");
         }
         return device;
-    }
-
-    private UserEntity getUserReference(Integer userId) {
-        if (userId == null) {
-            return null;
-        }
-        return entityManager.getReference(UserEntity.class, userId);
     }
 
     private Double defaultDouble(Double value, double fallback) {
@@ -309,5 +297,7 @@ public class DeviceFacade {
     }
 
 }
+
+
 
 

@@ -17,7 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
-import ru.growerhub.backend.auth.internal.JwtService;
+import ru.growerhub.backend.auth.engine.JwtService;
 import ru.growerhub.backend.common.contract.ApiError;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.user.UserFacade;

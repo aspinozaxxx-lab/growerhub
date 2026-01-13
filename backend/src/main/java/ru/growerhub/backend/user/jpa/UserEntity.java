@@ -1,19 +1,13 @@
-﻿package ru.growerhub.backend.user;
+﻿package ru.growerhub.backend.user.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
-import java.util.List;
-import ru.growerhub.backend.plant.jpa.PlantEntity;
-import ru.growerhub.backend.plant.jpa.PlantGroupEntity;
-import ru.growerhub.backend.db.UserAuthIdentityEntity;
-import ru.growerhub.backend.db.UserRefreshTokenEntity;
 
 @Entity
 @Table(
@@ -46,18 +40,6 @@ public class UserEntity {
 
     @Column(name = "updated_at", nullable = true)
     private LocalDateTime updatedAt;
-
-    @OneToMany(mappedBy = "user")
-    private List<UserAuthIdentityEntity> authIdentities;
-
-    @OneToMany(mappedBy = "user")
-    private List<UserRefreshTokenEntity> refreshTokens;
-
-    @OneToMany(mappedBy = "user")
-    private List<PlantGroupEntity> plantGroups;
-
-    @OneToMany(mappedBy = "user")
-    private List<PlantEntity> plants;
 
     protected UserEntity() {
     }
@@ -132,22 +114,8 @@ public class UserEntity {
         this.updatedAt = updatedAt;
     }
 
-    public List<UserAuthIdentityEntity> getAuthIdentities() {
-        return authIdentities;
-    }
-
-    public List<UserRefreshTokenEntity> getRefreshTokens() {
-        return refreshTokens;
-    }
-
-    public List<PlantGroupEntity> getPlantGroups() {
-        return plantGroups;
-    }
-
-    public List<PlantEntity> getPlants() {
-        return plants;
-    }
-
 }
+
+
 
 

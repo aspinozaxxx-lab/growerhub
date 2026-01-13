@@ -5,3 +5,4 @@ public enum SensorType {
     AIR_TEMPERATURE,
     AIR_HUMIDITY
 }
+

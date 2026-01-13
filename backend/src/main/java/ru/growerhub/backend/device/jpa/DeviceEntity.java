@@ -1,4 +1,4 @@
-package ru.growerhub.backend.device.jpa;
+﻿package ru.growerhub.backend.device.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -6,13 +6,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-import ru.growerhub.backend.user.UserEntity;
 
 @Entity
 @Table(
@@ -35,10 +30,8 @@ public class DeviceEntity {
     @Column(name = "name", nullable = true)
     private String name;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = true)
-    @OnDelete(action = OnDeleteAction.SET_NULL)
-    private UserEntity user;
+    @Column(name = "user_id", nullable = true)
+    private Integer userId;
 
     @Column(name = "last_seen", nullable = true)
     private LocalDateTime lastSeen;
@@ -100,12 +93,12 @@ public class DeviceEntity {
         this.name = name;
     }
 
-    public UserEntity getUser() {
-        return user;
+    public Integer getUserId() {
+        return userId;
     }
 
-    public void setUser(UserEntity user) {
-        this.user = user;
+    public void setUserId(Integer userId) {
+        this.userId = userId;
     }
 
     public LocalDateTime getLastSeen() {
@@ -196,3 +189,5 @@ public class DeviceEntity {
         this.firmwareUrl = firmwareUrl;
     }
 }
+
+

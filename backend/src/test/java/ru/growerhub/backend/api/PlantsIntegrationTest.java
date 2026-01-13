@@ -51,8 +51,8 @@ import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
 import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;
 import ru.growerhub.backend.sensor.jpa.SensorRepository;
 import ru.growerhub.backend.sensor.SensorType;
-import ru.growerhub.backend.user.UserEntity;
-import ru.growerhub.backend.user.internal.UserRepository;
+import ru.growerhub.backend.user.jpa.UserEntity;
+import ru.growerhub.backend.user.jpa.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -793,7 +793,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
     private PlantGroupEntity createGroup(UserEntity owner, String name) {
         PlantGroupEntity group = PlantGroupEntity.create();
         group.setName(name);
-        group.setUser(owner);
+        group.setUserId(owner != null ? owner.getId() : null);
         group.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
         group.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         return plantGroupRepository.save(group);
@@ -802,7 +802,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
     private PlantEntity createPlant(UserEntity owner, String name) {
         PlantEntity plant = PlantEntity.create();
         plant.setName(name);
-        plant.setUser(owner);
+        plant.setUserId(owner != null ? owner.getId() : null);
         plant.setPlantedAt(LocalDateTime.now(ZoneOffset.UTC));
         plant.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
         plant.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
@@ -813,7 +813,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId(deviceId);
         device.setName("Device " + deviceId);
-        device.setUser(owner);
+        device.setUserId(owner != null ? owner.getId() : null);
         device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         return deviceRepository.save(device);
     }
@@ -846,6 +846,9 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
+
+
+
 
 
 

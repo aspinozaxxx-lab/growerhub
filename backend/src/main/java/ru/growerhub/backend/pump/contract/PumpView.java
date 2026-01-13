@@ -11,3 +11,4 @@ public record PumpView(
         List<PumpBoundPlantView> boundPlants
 ) {
 }
+

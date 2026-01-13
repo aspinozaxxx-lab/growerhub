@@ -11,7 +11,6 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
-import ru.growerhub.backend.user.UserEntity;
 
 @Entity
 @Table(name = "plants")
@@ -22,10 +21,8 @@ public class PlantEntity {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = true)
-    @OnDelete(action = OnDeleteAction.SET_NULL)
-    private UserEntity user;
+    @Column(name = "user_id", nullable = true)
+    private Integer userId;
 
     @Column(name = "name", nullable = false)
     private String name;
@@ -67,12 +64,12 @@ public class PlantEntity {
         return id;
     }
 
-    public UserEntity getUser() {
-        return user;
+    public Integer getUserId() {
+        return userId;
     }
 
-    public void setUser(UserEntity user) {
-        this.user = user;
+    public void setUserId(Integer userId) {
+        this.userId = userId;
     }
 
     public String getName() {
@@ -147,4 +144,6 @@ public class PlantEntity {
         this.updatedAt = updatedAt;
     }
 }
+
+
 

@@ -13,3 +13,4 @@ public interface SensorRepository extends JpaRepository<SensorEntity, Integer> {
     void deleteAllByDeviceId(Integer deviceId);
 }
 
+

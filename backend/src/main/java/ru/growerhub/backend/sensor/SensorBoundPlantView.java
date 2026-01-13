@@ -10,3 +10,4 @@ public record SensorBoundPlantView(
         Integer ageDays
 ) {
 }
+

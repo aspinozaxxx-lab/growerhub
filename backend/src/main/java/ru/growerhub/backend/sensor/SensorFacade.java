@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
@@ -92,6 +93,11 @@ public class SensorFacade {
         return historyService.record(deviceId, measurements, ts);
     }
 
+    @Transactional(readOnly = true)
+    public Map<Integer, List<Integer>> getPlantIdsBySensorIds(List<Integer> sensorIds) {
+        return bindingService.getPlantIdsBySensorIds(sensorIds);
+    }
+
     private SensorEntity requireSensorAccess(Integer sensorId, AuthenticatedUser user) {
         SensorEntity sensor = sensorRepository.findById(sensorId).orElse(null);
         if (sensor == null) {
@@ -122,3 +128,4 @@ public class SensorFacade {
         return sampled;
     }
 }
+

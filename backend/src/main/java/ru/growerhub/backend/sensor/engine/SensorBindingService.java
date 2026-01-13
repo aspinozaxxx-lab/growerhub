@@ -1,8 +1,12 @@
 ﻿package ru.growerhub.backend.sensor.engine;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
@@ -25,7 +29,7 @@ public class SensorBindingService {
     public SensorBindingService(
             SensorRepository sensorRepository,
             SensorPlantBindingRepository bindingRepository,
-            PlantFacade plantFacade,
+            @Lazy PlantFacade plantFacade,
             DeviceAccessService deviceAccessService
     ) {
         this.sensorRepository = sensorRepository;
@@ -80,9 +84,33 @@ public class SensorBindingService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public Map<Integer, List<Integer>> getPlantIdsBySensorIds(List<Integer> sensorIds) {
+        if (sensorIds == null || sensorIds.isEmpty()) {
+            return Map.of();
+        }
+        List<SensorPlantBindingEntity> bindings = bindingRepository.findAllBySensor_IdIn(sensorIds);
+        if (bindings.isEmpty()) {
+            return Map.of();
+        }
+        Map<Integer, List<Integer>> result = new HashMap<>();
+        for (SensorPlantBindingEntity binding : bindings) {
+            if (binding.getSensor() == null || binding.getPlantId() == null) {
+                continue;
+            }
+            Integer sensorId = binding.getSensor().getId();
+            if (sensorId == null) {
+                continue;
+            }
+            result.computeIfAbsent(sensorId, key -> new ArrayList<>()).add(binding.getPlantId());
+        }
+        return result;
+    }
+
     private boolean isAdmin(AuthenticatedUser user) {
         return user != null && user.isAdmin();
     }
 }
+
 
 

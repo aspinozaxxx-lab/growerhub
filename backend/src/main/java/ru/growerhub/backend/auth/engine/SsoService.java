@@ -1,9 +1,8 @@
-﻿package ru.growerhub.backend.auth.internal;
+﻿package ru.growerhub.backend.auth.engine;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.JwtException;
-import jakarta.persistence.EntityManager;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -21,7 +20,7 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import ru.growerhub.backend.db.UserAuthIdentityEntity;
 import ru.growerhub.backend.db.UserAuthIdentityRepository;
-import ru.growerhub.backend.user.UserEntity;
+import ru.growerhub.backend.user.UserFacade;
 
 @Service
 public class SsoService {
@@ -29,22 +28,22 @@ public class SsoService {
 
     private final AuthSettings authSettings;
     private final JwtService jwtService;
-    private final EntityManager entityManager;
     private final UserAuthIdentityRepository identityRepository;
+    private final UserFacade userFacade;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
 
     public SsoService(
             AuthSettings authSettings,
             JwtService jwtService,
-            EntityManager entityManager,
             UserAuthIdentityRepository identityRepository,
+            UserFacade userFacade,
             ObjectMapper objectMapper
     ) {
         this.authSettings = authSettings;
         this.jwtService = jwtService;
-        this.entityManager = entityManager;
         this.identityRepository = identityRepository;
+        this.userFacade = userFacade;
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(10))
@@ -188,27 +187,27 @@ public class SsoService {
         }
     }
 
-    public UserEntity getOrCreateUser(String provider, String subject, String email) {
+    public Integer getOrCreateUser(String provider, String subject, String email) {
         validateProvider(provider);
         UserAuthIdentityEntity identity = identityRepository
                 .findByProviderAndProviderSubject(provider, subject)
                 .orElse(null);
         if (identity != null) {
-            return identity.getUser();
+            return identity.getUserId();
         }
 
         String normalizedEmail = (email != null && !email.isEmpty()) ? email : null;
-        UserEntity existingEmailUser = normalizedEmail != null ? findUserByEmail(normalizedEmail).orElse(null) : null;
+        UserFacade.UserProfile existingEmailUser =
+                normalizedEmail != null ? userFacade.findByEmail(normalizedEmail) : null;
         String userEmail = normalizedEmail != null ? normalizedEmail : provider + "_" + subject + "@example.invalid";
         if (existingEmailUser != null) {
             userEmail = provider + "_" + subject + "@example.invalid";
         }
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        UserEntity user = UserEntity.create(userEmail, null, "user", true, now, now);
-        entityManager.persist(user);
+        UserFacade.UserProfile user = userFacade.createExternalUser(userEmail, null);
 
         UserAuthIdentityEntity newIdentity = UserAuthIdentityEntity.create(
-                user,
+                user.id(),
                 provider,
                 subject,
                 null,
@@ -216,7 +215,7 @@ public class SsoService {
                 now
         );
         identityRepository.save(newIdentity);
-        return user;
+        return user.id();
     }
 
     public UserAuthIdentityEntity findIdentityBySubject(String provider, String subject) {
@@ -224,16 +223,16 @@ public class SsoService {
     }
 
     public UserAuthIdentityEntity findIdentityByProvider(Integer userId, String provider) {
-        return identityRepository.findByUser_IdAndProvider(userId, provider).orElse(null);
+        return identityRepository.findByUserIdAndProvider(userId, provider).orElse(null);
     }
 
-    public UserAuthIdentityEntity linkIdentity(UserEntity user, String provider, String subject) {
+    public UserAuthIdentityEntity linkIdentity(Integer userId, String provider, String subject) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         UserAuthIdentityEntity identity = identityRepository
-                .findByUser_IdAndProvider(user.getId(), provider)
+                .findByUserIdAndProvider(userId, provider)
                 .orElse(null);
         if (identity == null) {
-            identity = UserAuthIdentityEntity.create(user, provider, subject, null, now, now);
+            identity = UserAuthIdentityEntity.create(userId, provider, subject, null, now, now);
         } else {
             identity.setProviderSubject(subject);
             identity.setPasswordHash(null);
@@ -295,19 +294,6 @@ public class SsoService {
         return sb.toString();
     }
 
-    private Optional<UserEntity> findUserByEmail(String email) {
-        if (email == null || email.isBlank()) {
-            return Optional.empty();
-        }
-        return entityManager
-                .createQuery("select u from UserEntity u where u.email = :email", UserEntity.class)
-                .setParameter("email", email)
-                .setMaxResults(1)
-                .getResultList()
-                .stream()
-                .findFirst();
-    }
-
     private HttpResponse<String> sendRequest(HttpRequest request, String errorDetail) {
         try {
             return httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
@@ -344,3 +330,6 @@ public class SsoService {
     public static class SsoStateException extends RuntimeException {
     }
 }
+
+
+

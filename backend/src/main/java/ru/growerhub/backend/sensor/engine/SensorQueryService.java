@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.plant.contract.PlantInfo;
@@ -32,7 +33,7 @@ public class SensorQueryService {
             SensorRepository sensorRepository,
             SensorReadingRepository sensorReadingRepository,
             SensorPlantBindingRepository bindingRepository,
-            PlantFacade plantFacade
+            @Lazy PlantFacade plantFacade
     ) {
         this.sensorRepository = sensorRepository;
         this.sensorReadingRepository = sensorReadingRepository;
@@ -153,5 +154,6 @@ public class SensorQueryService {
         );
     }
 }
+
 
 

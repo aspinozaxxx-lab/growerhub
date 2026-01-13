@@ -156,7 +156,7 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals(30, device.getWateringDuration());
         Assertions.assertEquals(300, device.getWateringTimeout());
         Assertions.assertEquals(false, device.getUpdateAvailable());
-        Assertions.assertNull(device.getUser());
+        Assertions.assertNull(device.getUserId());
 
         DeviceStateLastEntity state = deviceStateLastRepository.findByDeviceId(deviceId).orElse(null);
         Assertions.assertNotNull(state);
@@ -231,6 +231,7 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         }
     }
 }
+
 
 
 

@@ -1,4 +1,4 @@
-package ru.growerhub.backend.db;
+﻿package ru.growerhub.backend.db;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -6,15 +6,10 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-import ru.growerhub.backend.user.UserEntity;
 
 @Entity
 @Table(
@@ -34,10 +29,8 @@ public class UserRefreshTokenEntity {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private UserEntity user;
+    @Column(name = "user_id", nullable = false)
+    private Integer userId;
 
     @Column(name = "token_hash", nullable = false, length = 64)
     private String tokenHash;
@@ -62,7 +55,7 @@ public class UserRefreshTokenEntity {
     }
 
     public static UserRefreshTokenEntity create(
-            UserEntity user,
+            Integer userId,
             String tokenHash,
             LocalDateTime createdAt,
             LocalDateTime expiresAt,
@@ -70,7 +63,7 @@ public class UserRefreshTokenEntity {
             String ip
     ) {
         UserRefreshTokenEntity record = new UserRefreshTokenEntity();
-        record.user = user;
+        record.userId = userId;
         record.tokenHash = tokenHash;
         record.createdAt = createdAt;
         record.expiresAt = expiresAt;
@@ -84,12 +77,12 @@ public class UserRefreshTokenEntity {
         return id;
     }
 
-    public UserEntity getUser() {
-        return user;
+    public Integer getUserId() {
+        return userId;
     }
 
-    public void setUser(UserEntity user) {
-        this.user = user;
+    public void setUserId(Integer userId) {
+        this.userId = userId;
     }
 
     public String getTokenHash() {
@@ -140,3 +133,5 @@ public class UserRefreshTokenEntity {
         this.ip = ip;
     }
 }
+
+

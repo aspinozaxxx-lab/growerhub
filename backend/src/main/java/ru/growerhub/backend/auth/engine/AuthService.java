@@ -1,13 +1,11 @@
-﻿package ru.growerhub.backend.auth.internal;
+﻿package ru.growerhub.backend.auth.engine;
 
-import jakarta.persistence.EntityManager;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.springframework.stereotype.Service;
 import ru.growerhub.backend.auth.AuthMethodLocal;
 import ru.growerhub.backend.auth.AuthMethodProvider;
@@ -20,46 +18,45 @@ import ru.growerhub.backend.db.UserAuthIdentityEntity;
 import ru.growerhub.backend.db.UserAuthIdentityRepository;
 import ru.growerhub.backend.db.UserRefreshTokenEntity;
 import ru.growerhub.backend.db.UserRefreshTokenRepository;
-import ru.growerhub.backend.user.UserEntity;
+import ru.growerhub.backend.user.UserFacade;
 
 @Service
 public class AuthService {
     private static final String PROVIDER_LOCAL = "local";
 
-    private final EntityManager entityManager;
     private final UserAuthIdentityRepository identityRepository;
     private final UserRefreshTokenRepository refreshTokenRepository;
     private final PasswordHasher passwordHasher;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final UserFacade userFacade;
 
     public AuthService(
-            EntityManager entityManager,
             UserAuthIdentityRepository identityRepository,
             UserRefreshTokenRepository refreshTokenRepository,
             PasswordHasher passwordHasher,
             JwtService jwtService,
-            RefreshTokenService refreshTokenService
+            RefreshTokenService refreshTokenService,
+            UserFacade userFacade
     ) {
-        this.entityManager = entityManager;
         this.identityRepository = identityRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordHasher = passwordHasher;
         this.jwtService = jwtService;
         this.refreshTokenService = refreshTokenService;
+        this.userFacade = userFacade;
     }
 
-    public UserEntity authenticateLocalUser(String email, String password) {
-        Optional<UserEntity> userOpt = findUserByEmail(email);
-        if (userOpt.isEmpty()) {
+    public Integer authenticateLocalUser(String email, String password) {
+        UserFacade.UserProfile user = userFacade.findByEmail(email);
+        if (user == null) {
             return null;
         }
-        UserEntity user = userOpt.get();
-        if (!user.isActive()) {
+        if (!user.active()) {
             return null;
         }
         UserAuthIdentityEntity identity = identityRepository
-                .findByUser_IdAndProvider(user.getId(), PROVIDER_LOCAL)
+                .findByUserIdAndProvider(user.id(), PROVIDER_LOCAL)
                 .orElse(null);
         if (identity == null) {
             return null;
@@ -67,22 +64,22 @@ public class AuthService {
         if (!passwordHasher.verify(password, identity.getPasswordHash())) {
             return null;
         }
-        return user;
+        return user.id();
     }
 
-    public AuthTokens issueAccessAndRefresh(UserEntity user, HttpServletRequest request, HttpServletResponse response) {
-        String accessToken = issueAccessToken(user);
-        issueRefreshToken(user, request, response);
+    public AuthTokens issueAccessAndRefresh(Integer userId, HttpServletRequest request, HttpServletResponse response) {
+        String accessToken = issueAccessToken(userId);
+        issueRefreshToken(userId, request, response);
         return new AuthTokens(accessToken, "bearer");
     }
 
-    public void issueRefreshToken(UserEntity user, HttpServletRequest request, HttpServletResponse response) {
+    public void issueRefreshToken(Integer userId, HttpServletRequest request, HttpServletResponse response) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         String refreshRaw = refreshTokenService.generateToken();
         String refreshHash = refreshTokenService.hashToken(refreshRaw);
         LocalDateTime expiresAt = refreshTokenService.expiresAt(now);
         UserRefreshTokenEntity record = UserRefreshTokenEntity.create(
-                user,
+                userId,
                 refreshHash,
                 now,
                 expiresAt,
@@ -93,8 +90,8 @@ public class AuthService {
         refreshTokenService.setCookie(response, refreshRaw);
     }
 
-    public String issueAccessToken(UserEntity user) {
-        return jwtService.createAccessToken(Map.of("user_id", user.getId()));
+    public String issueAccessToken(Integer userId) {
+        return jwtService.createAccessToken(Map.of("user_id", userId));
     }
 
     public AuthTokens refreshTokens(HttpServletRequest request, HttpServletResponse response) {
@@ -114,11 +111,12 @@ public class AuthService {
         if (!record.getExpiresAt().isAfter(now)) {
             throw new DomainException("unauthorized", "Refresh token expired");
         }
-        UserEntity user = entityManager.find(UserEntity.class, record.getUser().getId());
+        Integer userId = record.getUserId();
+        UserFacade.UserProfile user = userFacade.getUser(userId);
         if (user == null) {
             throw new DomainException("unauthorized", "User not found");
         }
-        if (!user.isActive()) {
+        if (!user.active()) {
             throw new DomainException("forbidden", "User disabled");
         }
 
@@ -129,7 +127,7 @@ public class AuthService {
         String nextRefreshHash = refreshTokenService.hashToken(nextRefreshRaw);
         LocalDateTime nextExpiresAt = refreshTokenService.expiresAt(now);
         UserRefreshTokenEntity nextRecord = UserRefreshTokenEntity.create(
-                user,
+                userId,
                 nextRefreshHash,
                 now,
                 nextExpiresAt,
@@ -139,7 +137,7 @@ public class AuthService {
         refreshTokenRepository.save(nextRecord);
         refreshTokenService.setCookie(response, nextRefreshRaw);
 
-        String accessToken = issueAccessToken(user);
+        String accessToken = issueAccessToken(userId);
         return new AuthTokens(accessToken, "bearer");
     }
 
@@ -156,36 +154,20 @@ public class AuthService {
         refreshTokenService.clearCookie(response);
     }
 
-    public AuthUserProfile updateProfile(UserEntity user, String email, String username) {
-        if (user == null) {
+    public AuthUserProfile updateProfile(Integer userId, String email, String username) {
+        UserFacade.UserProfile updated = userFacade.updateProfile(userId, email, username);
+        if (updated == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
-        boolean changed = false;
-        if (email != null) {
-            UserEntity existing = findUserByEmail(email).orElse(null);
-            if (existing != null && !existing.getId().equals(user.getId())) {
-                throw new DomainException("conflict", "Polzovatel' s takim email uzhe sushhestvuet");
-            }
-            user.setEmail(email);
-            changed = true;
-        }
-        if (username != null) {
-            user.setUsername(username);
-            changed = true;
-        }
-        if (changed) {
-            user.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
-            entityManager.merge(user);
-        }
-        return toUserProfile(user);
+        return toUserProfile(updated);
     }
 
-    public void changePassword(UserEntity user, String currentPassword, String newPassword) {
-        if (user == null) {
+    public void changePassword(Integer userId, String currentPassword, String newPassword) {
+        if (userId == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
         UserAuthIdentityEntity identity = identityRepository
-                .findByUser_IdAndProvider(user.getId(), PROVIDER_LOCAL)
+                .findByUserIdAndProvider(userId, PROVIDER_LOCAL)
                 .orElse(null);
         if (identity == null) {
             throw new DomainException("bad_request", "Local identity ne najdena");
@@ -198,34 +180,38 @@ public class AuthService {
         identityRepository.save(identity);
     }
 
-    public AuthMethods authMethods(UserEntity user) {
+    public AuthMethods authMethods(Integer userId) {
+        if (userId == null) {
+            throw new DomainException("unauthorized", "Not authenticated");
+        }
+        UserFacade.UserProfile user = userFacade.getUser(userId);
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
         return buildAuthMethods(user);
     }
 
-    public AuthMethods configureLocal(UserEntity user, String email, String password) {
+    public AuthMethods configureLocal(Integer userId, String email, String password) {
+        if (userId == null) {
+            throw new DomainException("unauthorized", "Not authenticated");
+        }
+
+        UserFacade.UserProfile user = userFacade.getUser(userId);
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
-        UserEntity existing = findUserByEmail(email).orElse(null);
-        if (existing != null && !existing.getId().equals(user.getId())) {
-            throw new DomainException("conflict", "Email uzhe zanyat");
-        }
 
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        if (!email.equals(user.getEmail())) {
-            user.setEmail(email);
-            user.setUpdatedAt(now);
+        if (email != null && !email.equals(user.email())) {
+            user = userFacade.updateProfile(userId, email, null);
         }
         UserAuthIdentityEntity identity = identityRepository
-                .findByUser_IdAndProvider(user.getId(), PROVIDER_LOCAL)
+                .findByUserIdAndProvider(user.id(), PROVIDER_LOCAL)
                 .orElse(null);
         String passwordHash = passwordHasher.hash(password);
         if (identity == null) {
             identity = UserAuthIdentityEntity.create(
-                    user,
+                    user.id(),
                     PROVIDER_LOCAL,
                     null,
                     passwordHash,
@@ -236,20 +222,19 @@ public class AuthService {
             identity.setPasswordHash(passwordHash);
             identity.setUpdatedAt(now);
         }
-        entityManager.merge(user);
         identityRepository.save(identity);
         return buildAuthMethods(user);
     }
 
-    public AuthMethods deleteMethod(UserEntity user, String provider) {
-        if (user == null) {
+    public AuthMethods deleteMethod(Integer userId, String provider) {
+        if (userId == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
         String normalized = provider == null ? "" : provider;
         if (!normalized.equals("local") && !normalized.equals("google") && !normalized.equals("yandex")) {
             throw new DomainException("not_found", "Provider not supported");
         }
-        List<UserAuthIdentityEntity> identities = identityRepository.findAllByUser_Id(user.getId());
+        List<UserAuthIdentityEntity> identities = identityRepository.findAllByUserId(userId);
         if (identities.size() <= 1) {
             throw new DomainException("conflict", "Nelzya udalit's poslednij sposob vhoda");
         }
@@ -261,10 +246,14 @@ public class AuthService {
             throw new DomainException("not_found", "Sposob vhoda ne najden");
         }
         identityRepository.delete(identity);
+        UserFacade.UserProfile user = userFacade.getUser(userId);
+        if (user == null) {
+            throw new DomainException("unauthorized", "Not authenticated");
+        }
         return buildAuthMethods(user);
     }
 
-    public UserEntity resolveOptionalUser(String authorizationHeader) {
+    public Integer resolveOptionalUserId(String authorizationHeader) {
         if (authorizationHeader == null) {
             return null;
         }
@@ -281,38 +270,23 @@ public class AuthService {
             if (userId == null) {
                 return null;
             }
-            return entityManager.find(UserEntity.class, userId);
+            UserFacade.AuthUser user = userFacade.getAuthUser(userId);
+            return user != null ? user.id() : null;
         } catch (Exception ex) {
             return null;
         }
-    }
-
-    public UserEntity findUserById(int userId) {
-        return entityManager.find(UserEntity.class, userId);
     }
 
     public AuthUserProfile getProfile(Integer userId) {
         if (userId == null) {
             return null;
         }
-        UserEntity user = entityManager.find(UserEntity.class, userId);
+        UserFacade.UserProfile user = userFacade.getUser(userId);
         return user != null ? toUserProfile(user) : null;
     }
 
-    private Optional<UserEntity> findUserByEmail(String email) {
-        if (email == null || email.isBlank()) {
-            return Optional.empty();
-        }
-        List<UserEntity> users = entityManager
-                .createQuery("select u from UserEntity u where u.email = :email", UserEntity.class)
-                .setParameter("email", email)
-                .setMaxResults(1)
-                .getResultList();
-        return users.stream().findFirst();
-    }
-
-    private AuthMethods buildAuthMethods(UserEntity user) {
-        List<UserAuthIdentityEntity> identities = identityRepository.findAllByUser_Id(user.getId());
+    private AuthMethods buildAuthMethods(UserFacade.UserProfile user) {
+        List<UserAuthIdentityEntity> identities = identityRepository.findAllByUserId(user.id());
         int total = identities.size();
         UserAuthIdentityEntity local = identities.stream()
                 .filter(identity -> PROVIDER_LOCAL.equals(identity.getProvider()))
@@ -334,7 +308,7 @@ public class AuthService {
 
         AuthMethodLocal localStatus = new AuthMethodLocal(
                 localActive,
-                user.getEmail(),
+                user.email(),
                 local != null && canDelete
         );
         AuthMethodProvider googleStatus = new AuthMethodProvider(
@@ -376,15 +350,18 @@ public class AuthService {
         return null;
     }
 
-    private AuthUserProfile toUserProfile(UserEntity user) {
+    private AuthUserProfile toUserProfile(UserFacade.UserProfile user) {
         return new AuthUserProfile(
-                user.getId(),
-                user.getEmail(),
-                user.getUsername(),
-                user.getRole(),
-                user.isActive(),
-                user.getCreatedAt(),
-                user.getUpdatedAt()
+                user.id(),
+                user.email(),
+                user.username(),
+                user.role(),
+                user.active(),
+                user.createdAt(),
+                user.updatedAt()
         );
     }
 }
+
+
+

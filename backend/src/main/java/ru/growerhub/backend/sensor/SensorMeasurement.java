@@ -2,3 +2,4 @@
 
 public record SensorMeasurement(SensorType type, int channel, Double value, boolean detected) {
 }
+

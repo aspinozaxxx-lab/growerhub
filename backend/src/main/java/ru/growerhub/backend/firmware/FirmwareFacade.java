@@ -12,7 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.DeviceAccessService;
 import ru.growerhub.backend.device.contract.DeviceFirmwareStatus;
-import ru.growerhub.backend.firmware.internal.FirmwareStorage;
+import ru.growerhub.backend.firmware.engine.FirmwareStorage;
 
 @Service
 public class FirmwareFacade {
@@ -109,3 +109,4 @@ public class FirmwareFacade {
         return baseUrl + "/firmware/" + version + ".bin";
     }
 }
+

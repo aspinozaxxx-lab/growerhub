@@ -3,6 +3,7 @@
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.DomainException;
@@ -10,7 +11,8 @@ import ru.growerhub.backend.common.component.PasswordHasher;
 import ru.growerhub.backend.db.UserAuthIdentityEntity;
 import ru.growerhub.backend.db.UserAuthIdentityRepository;
 import ru.growerhub.backend.device.DeviceFacade;
-import ru.growerhub.backend.user.internal.UserRepository;
+import ru.growerhub.backend.user.jpa.UserEntity;
+import ru.growerhub.backend.user.jpa.UserRepository;
 
 @Service
 public class UserFacade {
@@ -23,7 +25,7 @@ public class UserFacade {
             UserRepository userRepository,
             UserAuthIdentityRepository identityRepository,
             PasswordHasher passwordHasher,
-            DeviceFacade deviceFacade
+            @Lazy DeviceFacade deviceFacade
     ) {
         this.userRepository = userRepository;
         this.identityRepository = identityRepository;
@@ -44,6 +46,15 @@ public class UserFacade {
             return null;
         }
         UserEntity user = userRepository.findById(userId).orElse(null);
+        return user != null ? toProfile(user) : null;
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfile findByEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return null;
+        }
+        UserEntity user = userRepository.findByEmail(email).orElse(null);
         return user != null ? toProfile(user) : null;
     }
 
@@ -77,7 +88,7 @@ public class UserFacade {
         );
         userRepository.save(created);
         UserAuthIdentityEntity identity = UserAuthIdentityEntity.create(
-                created,
+                created.getId(),
                 "local",
                 null,
                 passwordHasher.hash(password),
@@ -85,6 +96,28 @@ public class UserFacade {
                 now
         );
         identityRepository.save(identity);
+        return toProfile(created);
+    }
+
+    @Transactional
+    public UserProfile createExternalUser(String email, String username) {
+        if (email == null || email.isBlank()) {
+            throw new DomainException("bad_request", "Email ne ukazan");
+        }
+        UserEntity existing = userRepository.findByEmail(email).orElse(null);
+        if (existing != null) {
+            throw new DomainException("conflict", "Polzovatel' s takim email uzhe sushhestvuet");
+        }
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        UserEntity created = UserEntity.create(
+                email,
+                username,
+                "user",
+                true,
+                now,
+                now
+        );
+        userRepository.save(created);
         return toProfile(created);
     }
 
@@ -115,13 +148,39 @@ public class UserFacade {
     }
 
     @Transactional
+    public UserProfile updateProfile(Integer userId, String email, String username) {
+        UserEntity user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return null;
+        }
+        boolean changed = false;
+        if (email != null) {
+            UserEntity existing = userRepository.findByEmail(email).orElse(null);
+            if (existing != null && !existing.getId().equals(user.getId())) {
+                throw new DomainException("conflict", "Polzovatel' s takim email uzhe sushhestvuet");
+            }
+            user.setEmail(email);
+            changed = true;
+        }
+        if (username != null) {
+            user.setUsername(username);
+            changed = true;
+        }
+        if (changed) {
+            user.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        }
+        userRepository.save(user);
+        return toProfile(user);
+    }
+
+    @Transactional
     public boolean deleteUser(Integer userId) {
         UserEntity target = userRepository.findById(userId).orElse(null);
         if (target == null) {
             return false;
         }
         deviceFacade.unassignDevicesForUser(userId);
-        identityRepository.deleteAllByUser_Id(userId);
+        identityRepository.deleteAllByUserId(userId);
         userRepository.delete(target);
         return true;
     }
@@ -152,3 +211,5 @@ public class UserFacade {
     public record AuthUser(Integer id, String role, boolean active) {
     }
 }
+
+
