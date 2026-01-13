@@ -11,15 +11,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
-import ru.growerhub.backend.device.DeviceFacade;
+import ru.growerhub.backend.device.DeviceAccessService;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
+import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.journal.JournalFacade;
 import ru.growerhub.backend.pump.PumpAck;
 import ru.growerhub.backend.pump.PumpCommandGateway;
 import ru.growerhub.backend.pump.PumpEntity;
 import ru.growerhub.backend.pump.PumpPlantBindingEntity;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
-import ru.growerhub.backend.plant.facade.PlantFacade;
+import ru.growerhub.backend.plant.PlantFacade;
 
 @Service
 public class PumpWateringService {
@@ -27,7 +28,7 @@ public class PumpWateringService {
     private final PumpPlantBindingRepository bindingRepository;
     private final JournalFacade journalFacade;
     private final PlantFacade plantFacade;
-    private final DeviceFacade deviceFacade;
+    private final DeviceAccessService deviceAccessService;
     private final PumpCommandGateway commandGateway;
 
     public PumpWateringService(
@@ -35,14 +36,14 @@ public class PumpWateringService {
             PumpPlantBindingRepository bindingRepository,
             JournalFacade journalFacade,
             PlantFacade plantFacade,
-            DeviceFacade deviceFacade,
+            DeviceAccessService deviceAccessService,
             PumpCommandGateway commandGateway
     ) {
         this.pumpRepository = pumpRepository;
         this.bindingRepository = bindingRepository;
         this.journalFacade = journalFacade;
         this.plantFacade = plantFacade;
-        this.deviceFacade = deviceFacade;
+        this.deviceAccessService = deviceAccessService;
         this.commandGateway = commandGateway;
     }
 
@@ -64,7 +65,11 @@ public class PumpWateringService {
 
         String correlationId = UUID.randomUUID().toString().replace("-", "");
         LocalDateTime startedAt = LocalDateTime.now(ZoneOffset.UTC);
-        commandGateway.publishStart(pump.getDevice().getDeviceId(), correlationId, startedAt, durationS);
+        String deviceId = resolveDeviceId(pump);
+        if (deviceId == null) {
+            throw new DomainException("not_found", "device not found for pump");
+        }
+        commandGateway.publishStart(deviceId, correlationId, startedAt, durationS);
 
         DeviceShadowState.ManualWateringState manualState = new DeviceShadowState.ManualWateringState(
                 "running",
@@ -73,7 +78,7 @@ public class PumpWateringService {
                 durationS,
                 correlationId
         );
-        deviceFacade.updateManualWateringState(pump.getDevice().getDeviceId(), manualState, startedAt);
+        deviceAccessService.updateManualWateringState(deviceId, manualState, startedAt);
 
         List<JournalFacade.WateringTarget> targets = buildTargets(bindings, durationS);
         journalFacade.createWateringEntries(targets, user, startedAt, request.ph(), request.fertilizersPerLiter());
@@ -87,21 +92,33 @@ public class PumpWateringService {
     public PumpStopResult stop(Integer pumpId, AuthenticatedUser user) {
         PumpEntity pump = requirePumpAccess(pumpId, user);
         String correlationId = UUID.randomUUID().toString().replace("-", "");
-        commandGateway.publishStop(pump.getDevice().getDeviceId(), correlationId, LocalDateTime.now(ZoneOffset.UTC));
+        String deviceId = resolveDeviceId(pump);
+        if (deviceId == null) {
+            throw new DomainException("not_found", "device not found for pump");
+        }
+        commandGateway.publishStop(deviceId, correlationId, LocalDateTime.now(ZoneOffset.UTC));
         return new PumpStopResult(correlationId);
     }
 
     public PumpRebootResult reboot(Integer pumpId, AuthenticatedUser user) {
         PumpEntity pump = requirePumpAccess(pumpId, user);
+        String deviceId = resolveDeviceId(pump);
+        if (deviceId == null) {
+            throw new DomainException("not_found", "device not found for pump");
+        }
         String correlationId = UUID.randomUUID().toString().replace("-", "");
         long issuedAt = Instant.now().getEpochSecond();
-        commandGateway.publishReboot(pump.getDevice().getDeviceId(), correlationId, issuedAt);
+        commandGateway.publishReboot(deviceId, correlationId, issuedAt);
         return new PumpRebootResult(correlationId, "reboot command published");
     }
 
     public PumpStatusResult status(Integer pumpId, AuthenticatedUser user) {
         PumpEntity pump = requirePumpAccess(pumpId, user);
-        Map<String, Object> view = deviceFacade.getManualWateringView(pump.getDevice().getDeviceId());
+        String deviceId = resolveDeviceId(pump);
+        if (deviceId == null) {
+            throw new DomainException("not_found", "device not found for pump");
+        }
+        Map<String, Object> view = deviceAccessService.getManualWateringView(deviceId);
         return new PumpStatusResult(view);
     }
 
@@ -149,10 +166,9 @@ public class PumpWateringService {
             throw new DomainException("forbidden", "nedostatochno prav dlya etogo nasosa");
         }
         if (!user.isAdmin()) {
-            if (pump.getDevice() == null || pump.getDevice().getUser() == null) {
-                throw new DomainException("forbidden", "nedostatochno prav dlya etogo nasosa");
-            }
-            if (!pump.getDevice().getUser().getId().equals(user.id())) {
+            DeviceSummary summary = resolveDeviceSummary(pump);
+            Integer ownerId = summary != null ? summary.userId() : null;
+            if (ownerId == null || !ownerId.equals(user.id())) {
                 throw new DomainException("forbidden", "nedostatochno prav dlya etogo nasosa");
             }
         }
@@ -173,6 +189,19 @@ public class PumpWateringService {
 
     public record PumpStatusResult(Map<String, Object> view) {
     }
+
+    private String resolveDeviceId(PumpEntity pump) {
+        DeviceSummary summary = resolveDeviceSummary(pump);
+        return summary != null ? summary.deviceId() : null;
+    }
+
+    private DeviceSummary resolveDeviceSummary(PumpEntity pump) {
+        if (pump == null || pump.getDeviceId() == null) {
+            return null;
+        }
+        return deviceAccessService.getDeviceSummary(pump.getDeviceId());
+    }
 }
+
 
 

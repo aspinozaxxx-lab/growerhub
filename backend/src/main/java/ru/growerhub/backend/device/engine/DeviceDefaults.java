@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.device.internal;
+package ru.growerhub.backend.device.engine;
 
 public final class DeviceDefaults {
     private DeviceDefaults() {

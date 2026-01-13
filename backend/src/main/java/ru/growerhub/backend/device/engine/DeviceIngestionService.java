@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.device.internal;
+package ru.growerhub.backend.device.engine;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
@@ -10,9 +10,11 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
-import ru.growerhub.backend.device.DeviceStateLastEntity;
+import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceRepository;
+import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
+import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
 import ru.growerhub.backend.sensor.SensorMeasurement;
 import ru.growerhub.backend.sensor.SensorType;
 

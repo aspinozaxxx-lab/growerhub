@@ -25,8 +25,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.internal.DeviceRepository;
+import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
@@ -262,7 +262,7 @@ class HistoryIntegrationTest extends IntegrationTestBase {
 
     private SensorEntity createSensor(DeviceEntity device, SensorType type, int channel) {
         SensorEntity sensor = SensorEntity.create();
-        sensor.setDevice(device);
+        sensor.setDeviceId(device.getId());
         sensor.setType(type);
         sensor.setChannel(channel);
         sensor.setDetected(true);

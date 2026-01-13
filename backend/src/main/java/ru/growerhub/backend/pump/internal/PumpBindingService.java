@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
+import ru.growerhub.backend.device.DeviceAccessService;
+import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.pump.PumpEntity;
 import ru.growerhub.backend.pump.PumpPlantBindingEntity;
@@ -19,15 +21,18 @@ public class PumpBindingService {
     private final PumpRepository pumpRepository;
     private final PumpPlantBindingRepository bindingRepository;
     private final EntityManager entityManager;
+    private final DeviceAccessService deviceAccessService;
 
     public PumpBindingService(
             PumpRepository pumpRepository,
             PumpPlantBindingRepository bindingRepository,
-            EntityManager entityManager
+            EntityManager entityManager,
+            DeviceAccessService deviceAccessService
     ) {
         this.pumpRepository = pumpRepository;
         this.bindingRepository = bindingRepository;
         this.entityManager = entityManager;
+        this.deviceAccessService = deviceAccessService;
     }
 
     @Transactional
@@ -37,10 +42,9 @@ public class PumpBindingService {
             throw new DomainException("not_found", "nasos ne naiden");
         }
         if (!isAdmin(user)) {
-            if (pump.getDevice() == null || pump.getDevice().getUser() == null) {
-                throw new DomainException("forbidden", "nedostatochno prav dlya etogo nasosa");
-            }
-            if (!pump.getDevice().getUser().getId().equals(user.id())) {
+            DeviceSummary deviceSummary = deviceAccessService.getDeviceSummary(pump.getDeviceId());
+            Integer ownerId = deviceSummary != null ? deviceSummary.userId() : null;
+            if (ownerId == null || !ownerId.equals(user.id())) {
                 throw new DomainException("forbidden", "nedostatochno prav dlya etogo nasosa");
             }
         }

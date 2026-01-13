@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.device.internal;
+package ru.growerhub.backend.device.engine;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.device.AckSettings;
+import ru.growerhub.backend.device.jpa.MqttAckRepository;
 
 @Component
 public class AckCleanupWorker {

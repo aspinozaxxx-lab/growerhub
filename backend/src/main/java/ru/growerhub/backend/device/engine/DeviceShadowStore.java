@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.device.internal;
+package ru.growerhub.backend.device.engine;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,10 +11,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
-import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.device.DeviceSettings;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
-import ru.growerhub.backend.device.DeviceStateLastEntity;
+import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceRepository;
+import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
+import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
 
 @Component
 public class DeviceShadowStore {

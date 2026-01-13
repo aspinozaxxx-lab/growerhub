@@ -25,11 +25,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.internal.DeviceRepository;
-import ru.growerhub.backend.device.internal.DeviceShadowStore;
-import ru.growerhub.backend.device.DeviceStateLastEntity;
-import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
+import ru.growerhub.backend.device.engine.DeviceShadowStore;
+import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceRepository;
+import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
+import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
 import ru.growerhub.backend.mqtt.MqttMessageHandler;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
@@ -129,7 +129,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         PlantEntity plant = createPlant(owner, "Lettuce");
 
         SensorEntity sensor = SensorEntity.create();
-        sensor.setDevice(device);
+        sensor.setDeviceId(device.getId());
         sensor.setType(SensorType.AIR_TEMPERATURE);
         sensor.setChannel(0);
         sensor.setDetected(true);

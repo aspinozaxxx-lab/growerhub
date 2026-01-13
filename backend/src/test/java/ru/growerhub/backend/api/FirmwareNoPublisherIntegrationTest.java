@@ -17,8 +17,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.internal.DeviceRepository;
+import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "MQTT_HOST=")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -93,5 +93,4 @@ class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
-
 

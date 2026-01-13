@@ -5,7 +5,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.pump.PumpEntity;
 
 @Service
@@ -19,22 +18,22 @@ public class PumpService {
     }
 
     @Transactional
-    public PumpEntity ensureDefaultPump(DeviceEntity device) {
-        return ensurePump(device, DEFAULT_CHANNEL);
+    public PumpEntity ensureDefaultPump(Integer deviceId) {
+        return ensurePump(deviceId, DEFAULT_CHANNEL);
     }
 
     @Transactional
-    public PumpEntity ensurePump(DeviceEntity device, int channel) {
-        if (device == null || device.getId() == null) {
+    public PumpEntity ensurePump(Integer deviceId, int channel) {
+        if (deviceId == null) {
             return null;
         }
-        PumpEntity existing = pumpRepository.findByDevice_IdAndChannel(device.getId(), channel).orElse(null);
+        PumpEntity existing = pumpRepository.findByDeviceIdAndChannel(deviceId, channel).orElse(null);
         if (existing != null) {
             return existing;
         }
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         PumpEntity pump = PumpEntity.create();
-        pump.setDevice(device);
+        pump.setDeviceId(deviceId);
         pump.setChannel(channel);
         pump.setCreatedAt(now);
         pump.setUpdatedAt(now);
@@ -42,13 +41,13 @@ public class PumpService {
     }
 
     @Transactional
-    public List<PumpEntity> listByDevice(DeviceEntity device, boolean ensureDefault) {
-        if (device == null || device.getId() == null) {
+    public List<PumpEntity> listByDevice(Integer deviceId, boolean ensureDefault) {
+        if (deviceId == null) {
             return List.of();
         }
-        List<PumpEntity> pumps = pumpRepository.findAllByDevice_Id(device.getId());
+        List<PumpEntity> pumps = pumpRepository.findAllByDeviceId(deviceId);
         if (pumps.isEmpty() && ensureDefault) {
-            PumpEntity created = ensureDefaultPump(device);
+            PumpEntity created = ensureDefaultPump(deviceId);
             if (created != null) {
                 return List.of(created);
             }

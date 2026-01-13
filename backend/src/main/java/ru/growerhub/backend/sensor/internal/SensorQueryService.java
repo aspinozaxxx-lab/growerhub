@@ -37,7 +37,7 @@ public class SensorQueryService {
         if (deviceId == null) {
             return List.of();
         }
-        List<SensorEntity> sensors = sensorRepository.findAllByDevice_Id(deviceId);
+        List<SensorEntity> sensors = sensorRepository.findAllByDeviceId(deviceId);
         if (sensors.isEmpty()) {
             return List.of();
         }

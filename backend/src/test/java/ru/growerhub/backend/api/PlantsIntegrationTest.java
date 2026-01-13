@@ -28,10 +28,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
-import ru.growerhub.backend.device.internal.DeviceRepository;
-import ru.growerhub.backend.device.internal.DeviceShadowStore;
+import ru.growerhub.backend.device.engine.DeviceShadowStore;
+import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.journal.PlantJournalEntryEntity;
 import ru.growerhub.backend.journal.internal.PlantJournalEntryRepository;
 import ru.growerhub.backend.journal.PlantJournalPhotoEntity;
@@ -301,7 +301,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         DeviceEntity device = createDevice(owner, "dev-state-plant");
 
         SensorEntity sensor = SensorEntity.create();
-        sensor.setDevice(device);
+        sensor.setDeviceId(device.getId());
         sensor.setType(SensorType.SOIL_MOISTURE);
         sensor.setChannel(0);
         sensor.setDetected(true);
@@ -313,7 +313,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         sensorPlantBindingRepository.save(sensorBinding);
 
         PumpEntity pump = PumpEntity.create();
-        pump.setDevice(device);
+        pump.setDeviceId(device.getId());
         pump.setChannel(0);
         pumpRepository.save(pump);
 
@@ -344,7 +344,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         DeviceEntity device = createDevice(owner, "dev-unbound");
 
         PumpEntity pump = PumpEntity.create();
-        pump.setDevice(device);
+        pump.setDeviceId(device.getId());
         pump.setChannel(0);
         pumpRepository.save(pump);
 
@@ -381,7 +381,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         DeviceEntity device = createDevice(owner, "dev-running");
 
         PumpEntity pump = PumpEntity.create();
-        pump.setDevice(device);
+        pump.setDeviceId(device.getId());
         pump.setChannel(0);
         pumpRepository.save(pump);
 

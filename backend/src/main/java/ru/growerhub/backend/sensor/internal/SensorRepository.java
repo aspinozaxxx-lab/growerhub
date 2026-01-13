@@ -7,7 +7,9 @@ import ru.growerhub.backend.sensor.SensorEntity;
 import ru.growerhub.backend.sensor.SensorType;
 
 public interface SensorRepository extends JpaRepository<SensorEntity, Integer> {
-    Optional<SensorEntity> findByDevice_IdAndTypeAndChannel(Integer deviceId, SensorType type, Integer channel);
+    Optional<SensorEntity> findByDeviceIdAndTypeAndChannel(Integer deviceId, SensorType type, Integer channel);
 
-    List<SensorEntity> findAllByDevice_Id(Integer deviceId);
+    List<SensorEntity> findAllByDeviceId(Integer deviceId);
+
+    void deleteAllByDeviceId(Integer deviceId);
 }

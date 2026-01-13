@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.api;
+package ru.growerhub.backend.api;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -21,8 +21,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.internal.DeviceRepository;
+import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantRepository;
 import ru.growerhub.backend.pump.PumpEntity;
@@ -71,7 +71,7 @@ class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
     void startReturns503WhenPublisherMissing() {
         UserEntity user = createUser("owner-no-pub@example.com", "user");
         DeviceEntity device = createDevice("mw-no-pub", user);
-        PumpEntity pump = pumpService.ensureDefaultPump(device);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
         PlantEntity plant = createPlant(user, "Mint");
         bindPump(pump, plant, 2000);
         String token = buildToken(user.getId());

@@ -23,8 +23,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.device.DeviceEntity;
-import ru.growerhub.backend.device.internal.DeviceRepository;
+import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.db.UserAuthIdentityEntity;
 import ru.growerhub.backend.db.UserAuthIdentityRepository;
 import ru.growerhub.backend.user.UserEntity;
@@ -266,5 +266,4 @@ class UsersAdminIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
-
 

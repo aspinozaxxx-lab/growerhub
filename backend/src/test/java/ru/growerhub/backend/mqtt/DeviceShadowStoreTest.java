@@ -11,9 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import ru.growerhub.backend.device.DeviceSettings;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
-import ru.growerhub.backend.device.internal.DeviceRepository;
-import ru.growerhub.backend.device.internal.DeviceShadowStore;
-import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
+import ru.growerhub.backend.device.engine.DeviceShadowStore;
+import ru.growerhub.backend.device.jpa.DeviceRepository;
+import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
 
 class DeviceShadowStoreTest {
 
@@ -75,4 +75,3 @@ class DeviceShadowStoreTest {
         }
     }
 }
-

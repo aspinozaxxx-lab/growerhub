@@ -1,31 +1,31 @@
-﻿package ru.growerhub.backend.sensor.internal;
+package ru.growerhub.backend.sensor.internal;
 
-import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.device.DeviceEntity;
+import ru.growerhub.backend.device.DeviceAccessService;
 import ru.growerhub.backend.sensor.SensorMeasurement;
 import ru.growerhub.backend.sensor.SensorEntity;
-import ru.growerhub.backend.sensor.SensorReadingSummary;
 import ru.growerhub.backend.sensor.SensorReadingEntity;
+import ru.growerhub.backend.sensor.SensorReadingSummary;
+import ru.growerhub.backend.sensor.internal.SensorReadingRepository;
 
 @Service
 public class SensorHistoryService {
-    private final EntityManager entityManager;
     private final SensorRepository sensorRepository;
     private final SensorReadingRepository sensorReadingRepository;
+    private final DeviceAccessService deviceAccessService;
 
     public SensorHistoryService(
-            EntityManager entityManager,
             SensorRepository sensorRepository,
-            SensorReadingRepository sensorReadingRepository
+            SensorReadingRepository sensorReadingRepository,
+            DeviceAccessService deviceAccessService
     ) {
-        this.entityManager = entityManager;
         this.sensorRepository = sensorRepository;
         this.sensorReadingRepository = sensorReadingRepository;
+        this.deviceAccessService = deviceAccessService;
     }
 
     @Transactional
@@ -33,8 +33,8 @@ public class SensorHistoryService {
         if (measurements == null || measurements.isEmpty()) {
             return List.of();
         }
-        DeviceEntity device = findDeviceByDeviceId(deviceId);
-        if (device == null) {
+        Integer devicePk = deviceAccessService.findDeviceId(deviceId);
+        if (devicePk == null) {
             return List.of();
         }
         List<SensorReadingSummary> summaries = new ArrayList<>();
@@ -43,14 +43,14 @@ public class SensorHistoryService {
             if (measurement == null) {
                 continue;
             }
-            SensorEntity sensor = sensorRepository.findByDevice_IdAndTypeAndChannel(
-                    device.getId(),
+            SensorEntity sensor = sensorRepository.findByDeviceIdAndTypeAndChannel(
+                    devicePk,
                     measurement.type(),
                     measurement.channel()
             ).orElse(null);
             if (sensor == null) {
                 sensor = SensorEntity.create();
-                sensor.setDevice(device);
+                sensor.setDeviceId(devicePk);
                 sensor.setType(measurement.type());
                 sensor.setChannel(measurement.channel());
                 sensor.setDetected(measurement.detected());
@@ -73,17 +73,5 @@ public class SensorHistoryService {
             }
         }
         return summaries;
-    }
-
-    private DeviceEntity findDeviceByDeviceId(String deviceId) {
-        if (deviceId == null) {
-            return null;
-        }
-        List<DeviceEntity> result = entityManager
-                .createQuery("select d from DeviceEntity d where d.deviceId = :deviceId", DeviceEntity.class)
-                .setParameter("deviceId", deviceId)
-                .setMaxResults(1)
-                .getResultList();
-        return result.isEmpty() ? null : result.get(0);
     }
 }

@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.device;
+package ru.growerhub.backend.device.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

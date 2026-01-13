@@ -1,9 +1,11 @@
-﻿package ru.growerhub.backend.device.internal;
+package ru.growerhub.backend.device.engine;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.Map;
 import org.springframework.stereotype.Service;
+import ru.growerhub.backend.device.jpa.MqttAckEntity;
+import ru.growerhub.backend.device.jpa.MqttAckRepository;
 
 @Service
 public class DeviceAckService {

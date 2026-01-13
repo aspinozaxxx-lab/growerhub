@@ -32,7 +32,7 @@ import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.contract.SensorView;
 import ru.growerhub.backend.plant.contract.AdminPlantInfo;
 import ru.growerhub.backend.plant.contract.PlantGroupInfo;
-import ru.growerhub.backend.plant.facade.PlantFacade;
+import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.plant.contract.PlantInfo;
 import ru.growerhub.backend.plant.contract.PlantMetricPoint;
 
@@ -354,4 +354,5 @@ public class PlantController {
         }
     }
 }
+
 

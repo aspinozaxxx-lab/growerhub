@@ -10,8 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
-import ru.growerhub.backend.device.DeviceEntity;
+import ru.growerhub.backend.device.DeviceAccessService;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
+import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.pump.PumpBoundPlantView;
 import ru.growerhub.backend.pump.PumpEntity;
@@ -24,19 +25,22 @@ public class PumpQueryService {
     private final PumpService pumpService;
     private final PumpPlantBindingRepository bindingRepository;
     private final PumpRunningStatusProvider runningStatusProvider;
+    private final DeviceAccessService deviceAccessService;
 
     public PumpQueryService(
             PumpService pumpService,
             PumpPlantBindingRepository bindingRepository,
-            PumpRunningStatusProvider runningStatusProvider
+            PumpRunningStatusProvider runningStatusProvider,
+            DeviceAccessService deviceAccessService
     ) {
         this.pumpService = pumpService;
         this.bindingRepository = bindingRepository;
         this.runningStatusProvider = runningStatusProvider;
+        this.deviceAccessService = deviceAccessService;
     }
 
-    public List<PumpView> listByDevice(DeviceEntity device, DeviceShadowState state) {
-        List<PumpEntity> pumps = pumpService.listByDevice(device, true);
+    public List<PumpView> listByDevice(Integer deviceId, DeviceShadowState state) {
+        List<PumpEntity> pumps = pumpService.listByDevice(deviceId, true);
         if (pumps.isEmpty()) {
             return List.of();
         }
@@ -147,10 +151,11 @@ public class PumpQueryService {
     }
 
     private String resolveDeviceId(PumpEntity pump) {
-        if (pump == null || pump.getDevice() == null) {
+        if (pump == null || pump.getDeviceId() == null) {
             return null;
         }
-        return pump.getDevice().getDeviceId();
+        DeviceSummary summary = deviceAccessService.getDeviceSummary(pump.getDeviceId());
+        return summary != null ? summary.deviceId() : null;
     }
 }
 

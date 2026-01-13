@@ -10,7 +10,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import java.util.List;
-import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.journal.PlantJournalEntryEntity;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantGroupEntity;
@@ -48,9 +47,6 @@ public class UserEntity {
 
     @Column(name = "updated_at", nullable = true)
     private LocalDateTime updatedAt;
-
-    @OneToMany(mappedBy = "user")
-    private List<DeviceEntity> devices;
 
     @OneToMany(mappedBy = "user")
     private List<UserAuthIdentityEntity> authIdentities;
@@ -138,10 +134,6 @@ public class UserEntity {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    public List<DeviceEntity> getDevices() {
-        return devices;
     }
 
     public List<UserAuthIdentityEntity> getAuthIdentities() {

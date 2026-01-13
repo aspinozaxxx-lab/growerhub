@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.plant.facade;
+﻿package ru.growerhub.backend.plant;
 
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
@@ -367,5 +367,6 @@ public class PlantFacade {
     public record PlantHarvestCommand(LocalDateTime harvestedAt, String text) {
     }
 }
+
 
 

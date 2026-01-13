@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.api;
+package ru.growerhub.backend.api;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
@@ -29,12 +29,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
-import ru.growerhub.backend.device.internal.DeviceRepository;
-import ru.growerhub.backend.device.internal.DeviceShadowStore;
-import ru.growerhub.backend.device.DeviceStateLastEntity;
-import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
+import ru.growerhub.backend.device.engine.DeviceShadowStore;
+import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceRepository;
+import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
+import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
 import ru.growerhub.backend.journal.internal.PlantJournalEntryRepository;
 import ru.growerhub.backend.journal.PlantJournalWateringDetailsEntity;
 import ru.growerhub.backend.journal.internal.PlantJournalWateringDetailsRepository;
@@ -115,7 +115,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     void startReturnsCorrelationAndCreatesJournal() {
         UserEntity user = createUser("owner@example.com", "user");
         DeviceEntity device = createDevice("mw-start-1", user);
-        PumpEntity pump = pumpService.ensureDefaultPump(device);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
         PlantEntity plant = createPlant(user, "Basil");
         bindPump(pump, plant, 2000);
 
@@ -165,7 +165,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     void startCalculatesDurationFromVolume() {
         UserEntity user = createUser("owner-volume@example.com", "user");
         DeviceEntity device = createDevice("mw-start-2", user);
-        PumpEntity pump = pumpService.ensureDefaultPump(device);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
         PlantEntity plant = createPlant(user, "Mint");
         bindPump(pump, plant, 2000);
 
@@ -198,7 +198,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     void updatePumpBindingsReturnsOk() {
         UserEntity user = createUser("owner-bindings@example.com", "user");
         DeviceEntity device = createDevice("mw-bindings", user);
-        PumpEntity pump = pumpService.ensureDefaultPump(device);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
         PlantEntity plant = createPlant(user, "Basil");
         String token = buildToken(user.getId());
 
@@ -223,7 +223,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     @Test
     void startRequiresAuth() {
         DeviceEntity device = createDevice("mw-auth-1", null);
-        PumpEntity pump = pumpService.ensureDefaultPump(device);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("duration_s", 10);
@@ -243,7 +243,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     void startRejectsNoPlants() {
         UserEntity user = createUser("owner-noplants@example.com", "user");
         DeviceEntity device = createDevice("mw-noplants", user);
-        PumpEntity pump = pumpService.ensureDefaultPump(device);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
         String token = buildToken(user.getId());
 
         Map<String, Object> payload = new HashMap<>();
@@ -267,7 +267,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     void startRejectsMissingDurationAndVolume() {
         UserEntity user = createUser("owner-noval@example.com", "user");
         DeviceEntity device = createDevice("mw-noval", user);
-        PumpEntity pump = pumpService.ensureDefaultPump(device);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
         PlantEntity plant = createPlant(user, "Rose");
         bindPump(pump, plant, 2000);
         String token = buildToken(user.getId());
@@ -290,7 +290,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         UserEntity owner = createUser("owner-guard@example.com", "user");
         UserEntity other = createUser("guest@example.com", "user");
         DeviceEntity device = createDevice("mw-guard", owner);
-        PumpEntity pump = pumpService.ensureDefaultPump(device);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
         PlantEntity plant = createPlant(owner, "Mint");
         bindPump(pump, plant, 2000);
         String token = buildToken(other.getId());
@@ -332,7 +332,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     void stopReturnsCorrelation() {
         UserEntity user = createUser("owner-stop@example.com", "user");
         DeviceEntity device = createDevice("mw-stop", user);
-        PumpEntity pump = pumpService.ensureDefaultPump(device);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
 
         DeviceShadowState.ManualWateringState manual = new DeviceShadowState.ManualWateringState(
                 "running",
@@ -371,7 +371,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     void rebootPublishesCommand() {
         UserEntity user = createUser("owner-reboot@example.com", "user");
         DeviceEntity device = createDevice("mw-reboot", user);
-        PumpEntity pump = pumpService.ensureDefaultPump(device);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
         String token = buildToken(user.getId());
 
         given()
@@ -394,7 +394,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     void statusUsesShadowStore() {
         UserEntity user = createUser("owner-status@example.com", "user");
         DeviceEntity device = createDevice("mw-status", user);
-        PumpEntity pump = pumpService.ensureDefaultPump(device);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
 
         DeviceShadowState.ManualWateringState manual = new DeviceShadowState.ManualWateringState(
                 "running",
@@ -426,7 +426,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     void statusReturnsIdleWhenNoState() {
         UserEntity user = createUser("owner-idle@example.com", "user");
         DeviceEntity device = createDevice("mw-idle", user);
-        PumpEntity pump = pumpService.ensureDefaultPump(device);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
 
         String token = buildToken(user.getId());
 

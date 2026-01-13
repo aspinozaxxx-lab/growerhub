@@ -14,20 +14,24 @@ import ru.growerhub.backend.device.contract.DeviceSettingsData;
 import ru.growerhub.backend.device.contract.DeviceSettingsUpdate;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.contract.DeviceSummary;
-import ru.growerhub.backend.device.internal.DeviceAckService;
-import ru.growerhub.backend.device.internal.DeviceIngestionService;
-import ru.growerhub.backend.device.internal.DeviceQueryService;
-import ru.growerhub.backend.device.internal.DeviceRepository;
-import ru.growerhub.backend.device.internal.DeviceShadowStore;
-import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
+import ru.growerhub.backend.device.engine.DeviceAckService;
+import ru.growerhub.backend.device.engine.DeviceIngestionService;
+import ru.growerhub.backend.device.engine.DeviceQueryService;
+import ru.growerhub.backend.device.engine.DeviceShadowStore;
+import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceRepository;
+import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
+import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
 import ru.growerhub.backend.pump.PumpFacade;
 import ru.growerhub.backend.pump.contract.PumpView;
-import ru.growerhub.backend.plant.facade.PlantFacade;
+import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.SensorMeasurement;
 import ru.growerhub.backend.sensor.SensorReadingSummary;
 import ru.growerhub.backend.sensor.contract.SensorView;
+import ru.growerhub.backend.sensor.internal.SensorRepository;
 import ru.growerhub.backend.user.UserEntity;
+import ru.growerhub.backend.pump.internal.PumpRepository;
 
 @Service
 public class DeviceFacade {
@@ -40,6 +44,8 @@ public class DeviceFacade {
     private final SensorFacade sensorFacade;
     private final PlantFacade plantFacade;
     private final PumpFacade pumpFacade;
+    private final SensorRepository sensorRepository;
+    private final PumpRepository pumpRepository;
     private final EntityManager entityManager;
 
     public DeviceFacade(
@@ -51,6 +57,8 @@ public class DeviceFacade {
             DeviceAckService ackService,
             SensorFacade sensorFacade,
             PlantFacade plantFacade,
+            SensorRepository sensorRepository,
+            PumpRepository pumpRepository,
             @Lazy PumpFacade pumpFacade,
             EntityManager entityManager
     ) {
@@ -63,6 +71,8 @@ public class DeviceFacade {
         this.sensorFacade = sensorFacade;
         this.plantFacade = plantFacade;
         this.pumpFacade = pumpFacade;
+        this.sensorRepository = sensorRepository;
+        this.pumpRepository = pumpRepository;
         this.entityManager = entityManager;
     }
 
@@ -251,6 +261,11 @@ public class DeviceFacade {
         if (device == null) {
             throw new DomainException("not_found", "Device not found");
         }
+        Integer id = device.getId();
+        if (id != null) {
+            sensorRepository.deleteAllByDeviceId(id);
+            pumpRepository.deleteAllByDeviceId(id);
+        }
         deviceStateLastRepository.deleteByDeviceId(deviceId);
         deviceRepository.delete(device);
     }
@@ -300,5 +315,7 @@ public class DeviceFacade {
         List<PumpView> pumps = pumpFacade.listByDeviceId(summary.id(), state);
         return new DeviceAggregate(summary, state, sensors, pumps);
     }
+
 }
+
 

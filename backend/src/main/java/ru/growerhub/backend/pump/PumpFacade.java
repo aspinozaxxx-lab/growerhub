@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
-import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.pump.internal.PumpBindingService;
@@ -81,8 +80,7 @@ public class PumpFacade {
 
     @Transactional(readOnly = true)
     public List<PumpView> listByDeviceId(Integer deviceId, DeviceShadowState state) {
-        DeviceEntity device = deviceId != null ? entityManager.find(DeviceEntity.class, deviceId) : null;
-        return queryService.listByDevice(device, state);
+        return queryService.listByDevice(deviceId, state);
     }
 
     @Transactional(readOnly = true)

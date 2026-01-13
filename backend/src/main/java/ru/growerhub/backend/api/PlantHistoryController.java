@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.HistoryDtos;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
-import ru.growerhub.backend.plant.facade.PlantFacade;
+import ru.growerhub.backend.plant.PlantFacade;
 
 @RestController
 public class PlantHistoryController {
@@ -34,4 +34,5 @@ public class PlantHistoryController {
                 .toList();
     }
 }
+
 

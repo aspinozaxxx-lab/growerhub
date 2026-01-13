@@ -10,7 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
-import ru.growerhub.backend.device.internal.DeviceIngestionService;
+import ru.growerhub.backend.device.engine.DeviceIngestionService;
 import ru.growerhub.backend.sensor.SensorEntity;
 import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.internal.SensorReadingRepository;
@@ -84,4 +84,3 @@ class DeviceIngestionServiceIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals(4, sensorReadingRepository.count());
     }
 }
-

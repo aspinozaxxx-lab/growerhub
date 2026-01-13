@@ -1,6 +1,5 @@
 ﻿package ru.growerhub.backend.firmware;
 
-import jakarta.persistence.EntityManager;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,7 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.growerhub.backend.common.contract.DomainException;
-import ru.growerhub.backend.device.DeviceEntity;
+import ru.growerhub.backend.device.DeviceAccessService;
+import ru.growerhub.backend.device.contract.DeviceFirmwareStatus;
 import ru.growerhub.backend.firmware.internal.FirmwareStorage;
 
 @Service
@@ -21,26 +21,26 @@ public class FirmwareFacade {
     private final FirmwareStorage firmwareStorage;
     private final ServerSettings serverSettings;
     private final FirmwareUpdateGateway updateGateway;
-    private final EntityManager entityManager;
+    private final DeviceAccessService deviceAccessService;
 
     public FirmwareFacade(
             FirmwareStorage firmwareStorage,
             ServerSettings serverSettings,
             FirmwareUpdateGateway updateGateway,
-            EntityManager entityManager
+            DeviceAccessService deviceAccessService
     ) {
         this.firmwareStorage = firmwareStorage;
         this.serverSettings = serverSettings;
         this.updateGateway = updateGateway;
-        this.entityManager = entityManager;
+        this.deviceAccessService = deviceAccessService;
     }
 
     public FirmwareCheckResult checkFirmwareUpdate(String deviceId) {
-        DeviceEntity device = findDeviceByDeviceId(deviceId);
-        if (device == null || !Boolean.TRUE.equals(device.getUpdateAvailable())) {
+        DeviceFirmwareStatus status = deviceAccessService.getFirmwareStatus(deviceId);
+        if (status == null || !Boolean.TRUE.equals(status.updateAvailable())) {
             return new FirmwareCheckResult(false, null, null);
         }
-        String latestVersion = device.getLatestVersion();
+        String latestVersion = status.latestVersion();
         if (latestVersion == null || latestVersion.isBlank()) {
             return new FirmwareCheckResult(false, null, null);
         }
@@ -63,8 +63,7 @@ public class FirmwareFacade {
 
     @Transactional
     public FirmwareTriggerResult triggerUpdate(String deviceId, String version) {
-        DeviceEntity device = findDeviceByDeviceId(deviceId);
-        if (device == null) {
+        if (deviceAccessService.findDeviceId(deviceId) == null) {
             throw new DomainException("not_found", "Device not found");
         }
         Path firmwarePath = firmwareStorage.resolveFirmwarePath(version);
@@ -85,10 +84,7 @@ public class FirmwareFacade {
         } catch (RuntimeException ex) {
             throw new DomainException("unavailable", "mqtt publish failed");
         }
-        device.setUpdateAvailable(true);
-        device.setLatestVersion(version);
-        device.setFirmwareUrl(firmwareUrl);
-        entityManager.merge(device);
+        deviceAccessService.markFirmwareUpdate(deviceId, version, firmwareUrl);
         return new FirmwareTriggerResult("accepted", version, firmwareUrl, sha256);
     }
 
@@ -100,18 +96,6 @@ public class FirmwareFacade {
         String mtime = DateTimeFormatter.ISO_OFFSET_DATE_TIME
                 .format(info.mtime().atOffset(ZoneOffset.UTC));
         return new FirmwareVersionInfo(info.version(), info.size(), info.sha256(), info.mtime());
-    }
-
-    private DeviceEntity findDeviceByDeviceId(String deviceId) {
-        if (deviceId == null) {
-            return null;
-        }
-        List<DeviceEntity> result = entityManager
-                .createQuery("select d from DeviceEntity d where d.deviceId = :deviceId", DeviceEntity.class)
-                .setParameter("deviceId", deviceId)
-                .setMaxResults(1)
-                .getResultList();
-        return result.isEmpty() ? null : result.get(0);
     }
 
     private String buildPublicFirmwareUrl(String version) {

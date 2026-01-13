@@ -44,7 +44,7 @@ class ArchitectureRulesTest {
     void eachDomainHasSingleFacade() {
         for (String domain : DOMAINS) {
             List<JavaClass> facades = CLASSES.stream()
-                    .filter(it -> it.getPackageName().startsWith("ru.growerhub.backend." + domain))
+                    .filter(it -> it.getPackageName().equals("ru.growerhub.backend." + domain))
                     .filter(it -> it.getSimpleName().endsWith("Facade"))
                     .filter(it -> it.getModifiers().contains(JavaModifier.PUBLIC))
                     .collect(Collectors.toList());
@@ -69,9 +69,6 @@ class ArchitectureRulesTest {
     @Test
     void jpaModulesOnlyUsedByOwnDomain() {
         for (String domain : DOMAINS) {
-            if ("plant".equals(domain)) {
-                continue;
-            }
             ArchRule isolationRule = classes()
                     .that().resideInAPackage("ru.growerhub.backend." + domain + ".jpa..")
                     .should().onlyBeAccessed().byClassesThat().resideInAPackage("ru.growerhub.backend." + domain + "..")

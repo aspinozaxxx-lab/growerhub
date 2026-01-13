@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
+import ru.growerhub.backend.device.DeviceAccessService;
+import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.sensor.contract.SensorView;
 import ru.growerhub.backend.sensor.internal.SensorBindingService;
 import ru.growerhub.backend.sensor.internal.SensorHistoryService;
@@ -24,19 +26,22 @@ public class SensorFacade {
     private final SensorQueryService queryService;
     private final SensorRepository sensorRepository;
     private final SensorReadingRepository sensorReadingRepository;
+    private final DeviceAccessService deviceAccessService;
 
     public SensorFacade(
             SensorBindingService bindingService,
             SensorHistoryService historyService,
             SensorQueryService queryService,
             SensorRepository sensorRepository,
-            SensorReadingRepository sensorReadingRepository
+            SensorReadingRepository sensorReadingRepository,
+            DeviceAccessService deviceAccessService
     ) {
         this.bindingService = bindingService;
         this.historyService = historyService;
         this.queryService = queryService;
         this.sensorRepository = sensorRepository;
         this.sensorReadingRepository = sensorReadingRepository;
+        this.deviceAccessService = deviceAccessService;
     }
 
     @Transactional
@@ -86,10 +91,9 @@ public class SensorFacade {
             throw new DomainException("forbidden", "nedostatochno prav dlya etogo sensora");
         }
         if (!user.isAdmin()) {
-            if (sensor.getDevice() == null || sensor.getDevice().getUser() == null) {
-                throw new DomainException("forbidden", "nedostatochno prav dlya etogo sensora");
-            }
-            if (!sensor.getDevice().getUser().getId().equals(user.id())) {
+            DeviceSummary summary = deviceAccessService.getDeviceSummary(sensor.getDeviceId());
+            Integer ownerId = summary != null ? summary.userId() : null;
+            if (ownerId == null || !ownerId.equals(user.id())) {
                 throw new DomainException("forbidden", "nedostatochno prav dlya etogo sensora");
             }
         }

@@ -19,15 +19,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
-import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
-import ru.growerhub.backend.device.internal.DeviceIngestionService;
-import ru.growerhub.backend.device.internal.DeviceRepository;
-import ru.growerhub.backend.device.internal.DeviceShadowStore;
-import ru.growerhub.backend.device.DeviceStateLastEntity;
-import ru.growerhub.backend.device.internal.DeviceStateLastRepository;
-import ru.growerhub.backend.device.internal.MqttAckEntity;
-import ru.growerhub.backend.device.internal.MqttAckRepository;
+import ru.growerhub.backend.device.engine.DeviceIngestionService;
+import ru.growerhub.backend.device.engine.DeviceShadowStore;
+import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceRepository;
+import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
+import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
+import ru.growerhub.backend.device.jpa.MqttAckEntity;
+import ru.growerhub.backend.device.jpa.MqttAckRepository;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
 import ru.growerhub.backend.plant.jpa.PlantRepository;
@@ -194,7 +194,7 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
 
     private SensorEntity createSensor(DeviceEntity device, SensorType type, int channel) {
         SensorEntity sensor = SensorEntity.create();
-        sensor.setDevice(device);
+        sensor.setDeviceId(device.getId());
         sensor.setType(type);
         sensor.setChannel(channel);
         sensor.setDetected(true);

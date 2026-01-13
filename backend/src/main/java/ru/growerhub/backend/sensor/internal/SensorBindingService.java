@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
+import ru.growerhub.backend.device.DeviceAccessService;
+import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.sensor.SensorEntity;
 import ru.growerhub.backend.sensor.SensorPlantBindingEntity;
@@ -17,15 +19,18 @@ public class SensorBindingService {
     private final SensorRepository sensorRepository;
     private final SensorPlantBindingRepository bindingRepository;
     private final EntityManager entityManager;
+    private final DeviceAccessService deviceAccessService;
 
     public SensorBindingService(
             SensorRepository sensorRepository,
             SensorPlantBindingRepository bindingRepository,
-            EntityManager entityManager
+            EntityManager entityManager,
+            DeviceAccessService deviceAccessService
     ) {
         this.sensorRepository = sensorRepository;
         this.bindingRepository = bindingRepository;
         this.entityManager = entityManager;
+        this.deviceAccessService = deviceAccessService;
     }
 
     @Transactional
@@ -35,10 +40,9 @@ public class SensorBindingService {
             throw new DomainException("not_found", "sensor ne naiden");
         }
         if (!isAdmin(user)) {
-            if (sensor.getDevice() == null || sensor.getDevice().getUser() == null) {
-                throw new DomainException("forbidden", "nedostatochno prav dlya etogo sensora");
-            }
-            if (!sensor.getDevice().getUser().getId().equals(user.id())) {
+            DeviceSummary summary = deviceAccessService.getDeviceSummary(sensor.getDeviceId());
+            Integer ownerId = summary != null ? summary.userId() : null;
+            if (ownerId == null || !ownerId.equals(user.id())) {
                 throw new DomainException("forbidden", "nedostatochno prav dlya etogo sensora");
             }
         }

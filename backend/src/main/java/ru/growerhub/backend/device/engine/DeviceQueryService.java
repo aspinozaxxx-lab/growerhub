@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.device.internal;
+package ru.growerhub.backend.device.engine;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -6,9 +6,10 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
-import ru.growerhub.backend.device.DeviceEntity;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.contract.DeviceSummary;
+import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.user.UserEntity;
 
 @Service

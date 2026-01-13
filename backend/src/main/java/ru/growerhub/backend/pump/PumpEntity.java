@@ -6,14 +6,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-import ru.growerhub.backend.device.DeviceEntity;
 
 @Entity
 @Table(
@@ -32,10 +27,8 @@ public class PumpEntity {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @ManyToOne
-    @JoinColumn(name = "device_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private DeviceEntity device;
+    @Column(name = "device_id", nullable = false)
+    private Integer deviceId;
 
     @Column(name = "channel", nullable = false)
     private Integer channel;
@@ -60,12 +53,12 @@ public class PumpEntity {
         return id;
     }
 
-    public DeviceEntity getDevice() {
-        return device;
+    public Integer getDeviceId() {
+        return deviceId;
     }
 
-    public void setDevice(DeviceEntity device) {
-        this.device = device;
+    public void setDeviceId(Integer deviceId) {
+        this.deviceId = deviceId;
     }
 
     public Integer getChannel() {
