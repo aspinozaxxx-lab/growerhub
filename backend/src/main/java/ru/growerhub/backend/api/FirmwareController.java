@@ -13,11 +13,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import ru.growerhub.backend.api.dto.FirmwareDtos;
-import ru.growerhub.backend.firmware.FirmwareCheckResult;
+import ru.growerhub.backend.firmware.contract.FirmwareCheckResult;
 import ru.growerhub.backend.firmware.FirmwareFacade;
-import ru.growerhub.backend.firmware.FirmwareTriggerResult;
-import ru.growerhub.backend.firmware.FirmwareUploadResult;
-import ru.growerhub.backend.firmware.FirmwareVersionInfo;
+import ru.growerhub.backend.firmware.contract.FirmwareTriggerResult;
+import ru.growerhub.backend.firmware.contract.FirmwareUploadResult;
+import ru.growerhub.backend.firmware.contract.FirmwareVersionInfo;
 
 @RestController
 @Validated

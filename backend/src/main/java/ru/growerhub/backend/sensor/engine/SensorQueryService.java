@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.plant.contract.PlantInfo;
-import ru.growerhub.backend.sensor.SensorBoundPlantView;
+import ru.growerhub.backend.sensor.contract.SensorBoundPlantView;
 import ru.growerhub.backend.sensor.jpa.SensorEntity;
 import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
 import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;

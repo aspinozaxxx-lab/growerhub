@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
-import ru.growerhub.backend.device.AckSettings;
+import ru.growerhub.backend.config.AckSettings;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
 
 @Component

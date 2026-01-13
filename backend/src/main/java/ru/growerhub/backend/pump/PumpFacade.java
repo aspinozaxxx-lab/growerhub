@@ -5,6 +5,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
+import ru.growerhub.backend.pump.contract.PumpAck;
+import ru.growerhub.backend.pump.contract.PumpRebootResult;
+import ru.growerhub.backend.pump.contract.PumpStartResult;
+import ru.growerhub.backend.pump.contract.PumpStatusResult;
+import ru.growerhub.backend.pump.contract.PumpStopResult;
 import ru.growerhub.backend.pump.engine.PumpBindingService;
 import ru.growerhub.backend.pump.engine.PumpQueryService;
 import ru.growerhub.backend.pump.engine.PumpService;
@@ -44,7 +49,7 @@ public class PumpFacade {
     }
 
     @Transactional
-    public PumpWateringService.PumpStartResult start(Integer pumpId, PumpWateringRequest request, AuthenticatedUser user) {
+    public PumpStartResult start(Integer pumpId, PumpWateringRequest request, AuthenticatedUser user) {
         return wateringService.start(
                 pumpId,
                 new PumpWateringService.PumpWateringRequest(
@@ -58,17 +63,17 @@ public class PumpFacade {
     }
 
     @Transactional
-    public PumpWateringService.PumpStopResult stop(Integer pumpId, AuthenticatedUser user) {
+    public PumpStopResult stop(Integer pumpId, AuthenticatedUser user) {
         return wateringService.stop(pumpId, user);
     }
 
     @Transactional
-    public PumpWateringService.PumpRebootResult reboot(Integer pumpId, AuthenticatedUser user) {
+    public PumpRebootResult reboot(Integer pumpId, AuthenticatedUser user) {
         return wateringService.reboot(pumpId, user);
     }
 
     @Transactional(readOnly = true)
-    public PumpWateringService.PumpStatusResult status(Integer pumpId, AuthenticatedUser user) {
+    public PumpStatusResult status(Integer pumpId, AuthenticatedUser user) {
         return wateringService.status(pumpId, user);
     }
 

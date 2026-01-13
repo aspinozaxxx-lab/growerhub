@@ -2,8 +2,8 @@
 
 import java.time.LocalDateTime;
 import java.util.List;
-import ru.growerhub.backend.sensor.SensorBoundPlantView;
-import ru.growerhub.backend.sensor.SensorType;
+import ru.growerhub.backend.sensor.contract.SensorBoundPlantView;
+import ru.growerhub.backend.sensor.contract.SensorType;
 
 public record SensorView(
         Integer id,

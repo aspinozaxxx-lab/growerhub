@@ -19,11 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.AuthDtos;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.auth.AuthFacade;
-import ru.growerhub.backend.auth.AuthMethodLocal;
-import ru.growerhub.backend.auth.AuthMethodProvider;
-import ru.growerhub.backend.auth.AuthMethods;
-import ru.growerhub.backend.auth.AuthTokens;
-import ru.growerhub.backend.auth.AuthUserProfile;
+import ru.growerhub.backend.auth.contract.AuthMethodLocal;
+import ru.growerhub.backend.auth.contract.AuthMethodProvider;
+import ru.growerhub.backend.auth.contract.AuthMethods;
+import ru.growerhub.backend.auth.contract.AuthTokens;
+import ru.growerhub.backend.auth.contract.AuthUserProfile;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.ApiError;
 

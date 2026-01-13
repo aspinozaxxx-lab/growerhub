@@ -9,7 +9,7 @@ import java.time.ZoneOffset;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import ru.growerhub.backend.device.DeviceSettings;
+import ru.growerhub.backend.config.DeviceSettings;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.engine.DeviceShadowStore;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
@@ -75,4 +75,3 @@ class DeviceShadowStoreTest {
         }
     }
 }
-

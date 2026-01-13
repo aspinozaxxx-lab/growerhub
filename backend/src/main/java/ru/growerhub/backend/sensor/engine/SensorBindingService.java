@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
-import ru.growerhub.backend.device.DeviceAccessService;
+import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.sensor.jpa.SensorEntity;
@@ -24,18 +24,18 @@ public class SensorBindingService {
     private final SensorRepository sensorRepository;
     private final SensorPlantBindingRepository bindingRepository;
     private final PlantFacade plantFacade;
-    private final DeviceAccessService deviceAccessService;
+    private final DeviceFacade deviceFacade;
 
     public SensorBindingService(
             SensorRepository sensorRepository,
             SensorPlantBindingRepository bindingRepository,
             @Lazy PlantFacade plantFacade,
-            DeviceAccessService deviceAccessService
+            @Lazy DeviceFacade deviceFacade
     ) {
         this.sensorRepository = sensorRepository;
         this.bindingRepository = bindingRepository;
         this.plantFacade = plantFacade;
-        this.deviceAccessService = deviceAccessService;
+        this.deviceFacade = deviceFacade;
     }
 
     @Transactional
@@ -45,7 +45,7 @@ public class SensorBindingService {
             throw new DomainException("not_found", "sensor ne naiden");
         }
         if (!isAdmin(user)) {
-            DeviceSummary summary = deviceAccessService.getDeviceSummary(sensor.getDeviceId());
+            DeviceSummary summary = deviceFacade.getDeviceSummary(sensor.getDeviceId());
             Integer ownerId = summary != null ? summary.userId() : null;
             if (ownerId == null || !ownerId.equals(user.id())) {
                 throw new DomainException("forbidden", "nedostatochno prav dlya etogo sensora");

@@ -2,8 +2,8 @@
 
 import java.time.LocalDateTime;
 import java.util.List;
-import ru.growerhub.backend.journal.JournalPhoto;
-import ru.growerhub.backend.journal.JournalWateringDetails;
+import ru.growerhub.backend.journal.contract.JournalPhoto;
+import ru.growerhub.backend.journal.contract.JournalWateringDetails;
 
 public record JournalEntry(
         Integer id,

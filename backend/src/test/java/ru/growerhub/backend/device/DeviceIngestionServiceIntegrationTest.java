@@ -15,7 +15,7 @@ import ru.growerhub.backend.sensor.jpa.SensorEntity;
 import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
 import ru.growerhub.backend.sensor.jpa.SensorRepository;
-import ru.growerhub.backend.sensor.SensorType;
+import ru.growerhub.backend.sensor.contract.SensorType;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class DeviceIngestionServiceIntegrationTest extends IntegrationTestBase {

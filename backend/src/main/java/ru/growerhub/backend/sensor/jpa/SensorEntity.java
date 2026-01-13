@@ -11,7 +11,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
-import ru.growerhub.backend.sensor.SensorType;
+import ru.growerhub.backend.sensor.contract.SensorType;
 
 @Entity
 @Table(

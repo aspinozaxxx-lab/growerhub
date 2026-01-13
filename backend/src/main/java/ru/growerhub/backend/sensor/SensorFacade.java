@@ -5,12 +5,16 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
-import ru.growerhub.backend.device.DeviceAccessService;
+import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceSummary;
+import ru.growerhub.backend.sensor.contract.SensorHistoryPoint;
+import ru.growerhub.backend.sensor.contract.SensorMeasurement;
+import ru.growerhub.backend.sensor.contract.SensorReadingSummary;
 import ru.growerhub.backend.sensor.contract.SensorView;
 import ru.growerhub.backend.sensor.engine.SensorBindingService;
 import ru.growerhub.backend.sensor.engine.SensorHistoryService;
@@ -29,7 +33,7 @@ public class SensorFacade {
     private final SensorQueryService queryService;
     private final SensorRepository sensorRepository;
     private final SensorReadingRepository sensorReadingRepository;
-    private final DeviceAccessService deviceAccessService;
+    private final DeviceFacade deviceFacade;
 
     public SensorFacade(
             SensorBindingService bindingService,
@@ -37,14 +41,14 @@ public class SensorFacade {
             SensorQueryService queryService,
             SensorRepository sensorRepository,
             SensorReadingRepository sensorReadingRepository,
-            DeviceAccessService deviceAccessService
+            @Lazy DeviceFacade deviceFacade
     ) {
         this.bindingService = bindingService;
         this.historyService = historyService;
         this.queryService = queryService;
         this.sensorRepository = sensorRepository;
         this.sensorReadingRepository = sensorReadingRepository;
-        this.deviceAccessService = deviceAccessService;
+        this.deviceFacade = deviceFacade;
     }
 
     @Transactional
@@ -107,7 +111,7 @@ public class SensorFacade {
             throw new DomainException("forbidden", "nedostatochno prav dlya etogo sensora");
         }
         if (!user.isAdmin()) {
-            DeviceSummary summary = deviceAccessService.getDeviceSummary(sensor.getDeviceId());
+            DeviceSummary summary = deviceFacade.getDeviceSummary(sensor.getDeviceId());
             Integer ownerId = summary != null ? summary.userId() : null;
             if (ownerId == null || !ownerId.equals(user.id())) {
                 throw new DomainException("forbidden", "nedostatochno prav dlya etogo sensora");

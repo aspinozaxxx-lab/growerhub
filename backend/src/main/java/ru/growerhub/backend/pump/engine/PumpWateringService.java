@@ -7,16 +7,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
-import ru.growerhub.backend.device.DeviceAccessService;
+import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.journal.JournalFacade;
-import ru.growerhub.backend.pump.PumpAck;
-import ru.growerhub.backend.pump.PumpCommandGateway;
+import ru.growerhub.backend.pump.contract.PumpAck;
+import ru.growerhub.backend.pump.contract.PumpRebootResult;
+import ru.growerhub.backend.pump.contract.PumpStartResult;
+import ru.growerhub.backend.pump.contract.PumpStatusResult;
+import ru.growerhub.backend.pump.contract.PumpStopResult;
+import ru.growerhub.backend.pump.contract.PumpCommandGateway;
 import ru.growerhub.backend.pump.jpa.PumpEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingRepository;
@@ -29,7 +34,7 @@ public class PumpWateringService {
     private final PumpPlantBindingRepository bindingRepository;
     private final JournalFacade journalFacade;
     private final PlantFacade plantFacade;
-    private final DeviceAccessService deviceAccessService;
+    private final DeviceFacade deviceFacade;
     private final PumpCommandGateway commandGateway;
 
     public PumpWateringService(
@@ -37,14 +42,14 @@ public class PumpWateringService {
             PumpPlantBindingRepository bindingRepository,
             JournalFacade journalFacade,
             PlantFacade plantFacade,
-            DeviceAccessService deviceAccessService,
+            @Lazy DeviceFacade deviceFacade,
             PumpCommandGateway commandGateway
     ) {
         this.pumpRepository = pumpRepository;
         this.bindingRepository = bindingRepository;
         this.journalFacade = journalFacade;
         this.plantFacade = plantFacade;
-        this.deviceAccessService = deviceAccessService;
+        this.deviceFacade = deviceFacade;
         this.commandGateway = commandGateway;
     }
 
@@ -79,7 +84,7 @@ public class PumpWateringService {
                 durationS,
                 correlationId
         );
-        deviceAccessService.updateManualWateringState(deviceId, manualState, startedAt);
+        deviceFacade.updateManualWateringState(deviceId, manualState, startedAt);
 
         List<JournalFacade.WateringTarget> targets = buildTargets(bindings, durationS);
         journalFacade.createWateringEntries(targets, user, startedAt, request.ph(), request.fertilizersPerLiter());
@@ -119,7 +124,7 @@ public class PumpWateringService {
         if (deviceId == null) {
             throw new DomainException("not_found", "device not found for pump");
         }
-        Map<String, Object> view = deviceAccessService.getManualWateringView(deviceId);
+        Map<String, Object> view = deviceFacade.getManualWateringView(deviceId);
         return new PumpStatusResult(view);
     }
 
@@ -179,18 +184,6 @@ public class PumpWateringService {
     public record PumpWateringRequest(Integer durationS, Double waterVolumeL, Double ph, String fertilizersPerLiter) {
     }
 
-    public record PumpStartResult(String correlationId) {
-    }
-
-    public record PumpStopResult(String correlationId) {
-    }
-
-    public record PumpRebootResult(String correlationId, String message) {
-    }
-
-    public record PumpStatusResult(Map<String, Object> view) {
-    }
-
     private String resolveDeviceId(PumpEntity pump) {
         DeviceSummary summary = resolveDeviceSummary(pump);
         return summary != null ? summary.deviceId() : null;
@@ -200,7 +193,7 @@ public class PumpWateringService {
         if (pump == null || pump.getDeviceId() == null) {
             return null;
         }
-        return deviceAccessService.getDeviceSummary(pump.getDeviceId());
+        return deviceFacade.getDeviceSummary(pump.getDeviceId());
     }
 }
 

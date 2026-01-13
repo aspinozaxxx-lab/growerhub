@@ -1,12 +1,18 @@
 ﻿package ru.growerhub.backend.auth;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.growerhub.backend.auth.contract.AuthMethods;
+import ru.growerhub.backend.auth.contract.AuthTokens;
+import ru.growerhub.backend.auth.contract.AuthUserProfile;
 import ru.growerhub.backend.auth.engine.AuthService;
+import ru.growerhub.backend.auth.engine.JwtService;
 import ru.growerhub.backend.auth.engine.SsoService;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
@@ -16,10 +22,12 @@ import ru.growerhub.backend.db.UserAuthIdentityEntity;
 public class AuthFacade {
     private final AuthService authService;
     private final SsoService ssoService;
+    private final JwtService jwtService;
 
-    public AuthFacade(AuthService authService, SsoService ssoService) {
+    public AuthFacade(AuthService authService, SsoService ssoService, JwtService jwtService) {
         this.authService = authService;
         this.ssoService = ssoService;
+        this.jwtService = jwtService;
     }
 
     @Transactional(readOnly = true)
@@ -197,6 +205,42 @@ public class AuthFacade {
             throw new DomainException("unauthorized", "Not authenticated");
         }
         return authService.deleteMethod(user.id(), provider);
+    }
+
+    public Integer parseUserId(String token) {
+        Claims claims;
+        try {
+            claims = jwtService.parseToken(token);
+        } catch (JwtException | IllegalArgumentException ex) {
+            return null;
+        }
+        return parseUserIdClaim(claims.get("user_id"));
+    }
+
+    private Integer parseUserIdClaim(Object rawValue) {
+        if (rawValue == null) {
+            return null;
+        }
+        if (rawValue instanceof Integer value) {
+            return value;
+        }
+        if (rawValue instanceof Long value) {
+            if (value > Integer.MAX_VALUE || value < Integer.MIN_VALUE) {
+                return null;
+            }
+            return value.intValue();
+        }
+        if (rawValue instanceof Number value) {
+            return value.intValue();
+        }
+        if (rawValue instanceof String value) {
+            try {
+                return Integer.parseInt(value);
+            } catch (NumberFormatException ex) {
+                return null;
+            }
+        }
+        return null;
     }
 
     public record SsoLoginResult(String authUrl, boolean json) {

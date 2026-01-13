@@ -3,7 +3,7 @@
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import ru.growerhub.backend.common.contract.DomainException;
-import ru.growerhub.backend.firmware.FirmwareUpdateGateway;
+import ru.growerhub.backend.firmware.contract.FirmwareUpdateGateway;
 import ru.growerhub.backend.mqtt.model.CmdOta;
 
 @Component

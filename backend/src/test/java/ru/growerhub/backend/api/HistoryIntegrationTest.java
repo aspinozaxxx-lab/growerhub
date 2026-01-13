@@ -36,7 +36,7 @@ import ru.growerhub.backend.sensor.jpa.SensorEntity;
 import ru.growerhub.backend.sensor.jpa.SensorReadingEntity;
 import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
 import ru.growerhub.backend.sensor.jpa.SensorRepository;
-import ru.growerhub.backend.sensor.SensorType;
+import ru.growerhub.backend.sensor.contract.SensorType;
 import ru.growerhub.backend.user.jpa.UserEntity;
 import ru.growerhub.backend.user.jpa.UserRepository;
 

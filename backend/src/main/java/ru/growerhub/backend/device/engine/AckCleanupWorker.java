@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.device.AckSettings;
+import ru.growerhub.backend.config.AckSettings;
 import ru.growerhub.backend.device.jpa.MqttAckRepository;
 
 @Component

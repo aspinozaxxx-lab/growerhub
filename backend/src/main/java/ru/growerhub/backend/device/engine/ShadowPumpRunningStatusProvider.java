@@ -1,8 +1,8 @@
-package ru.growerhub.backend.device.engine;
+﻿package ru.growerhub.backend.device.engine;
 
 import org.springframework.stereotype.Service;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
-import ru.growerhub.backend.pump.PumpRunningStatusProvider;
+import ru.growerhub.backend.pump.contract.PumpRunningStatusProvider;
 
 @Service
 public class ShadowPumpRunningStatusProvider implements PumpRunningStatusProvider {

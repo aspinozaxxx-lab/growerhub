@@ -1,4 +1,4 @@
-package ru.growerhub.backend.device.engine;
+﻿package ru.growerhub.backend.device.engine;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
@@ -15,8 +15,8 @@ import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
 import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
-import ru.growerhub.backend.sensor.SensorMeasurement;
-import ru.growerhub.backend.sensor.SensorType;
+import ru.growerhub.backend.sensor.contract.SensorMeasurement;
+import ru.growerhub.backend.sensor.contract.SensorType;
 
 @Service
 public class DeviceIngestionService {

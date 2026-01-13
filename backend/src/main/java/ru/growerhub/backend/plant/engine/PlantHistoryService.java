@@ -14,8 +14,8 @@ import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
 import ru.growerhub.backend.sensor.SensorFacade;
-import ru.growerhub.backend.sensor.SensorReadingSummary;
-import ru.growerhub.backend.sensor.SensorType;
+import ru.growerhub.backend.sensor.contract.SensorReadingSummary;
+import ru.growerhub.backend.sensor.contract.SensorType;
 
 @Service
 public class PlantHistoryService {

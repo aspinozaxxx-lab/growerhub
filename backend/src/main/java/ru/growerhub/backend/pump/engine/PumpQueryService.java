@@ -9,17 +9,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import ru.growerhub.backend.device.DeviceAccessService;
+import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.plant.contract.PlantInfo;
-import ru.growerhub.backend.pump.PumpBoundPlantView;
+import ru.growerhub.backend.pump.contract.PumpBoundPlantView;
 import ru.growerhub.backend.pump.jpa.PumpEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingRepository;
-import ru.growerhub.backend.pump.PumpRunningStatusProvider;
+import ru.growerhub.backend.pump.contract.PumpRunningStatusProvider;
 import ru.growerhub.backend.pump.contract.PumpView;
 
 @Service
@@ -27,20 +28,20 @@ public class PumpQueryService {
     private final PumpService pumpService;
     private final PumpPlantBindingRepository bindingRepository;
     private final PumpRunningStatusProvider runningStatusProvider;
-    private final DeviceAccessService deviceAccessService;
+    private final DeviceFacade deviceFacade;
     private final PlantFacade plantFacade;
 
     public PumpQueryService(
             PumpService pumpService,
             PumpPlantBindingRepository bindingRepository,
             PumpRunningStatusProvider runningStatusProvider,
-            DeviceAccessService deviceAccessService,
+            @Lazy DeviceFacade deviceFacade,
             PlantFacade plantFacade
     ) {
         this.pumpService = pumpService;
         this.bindingRepository = bindingRepository;
         this.runningStatusProvider = runningStatusProvider;
-        this.deviceAccessService = deviceAccessService;
+        this.deviceFacade = deviceFacade;
         this.plantFacade = plantFacade;
     }
 
@@ -172,7 +173,7 @@ public class PumpQueryService {
         if (pump == null || pump.getDeviceId() == null) {
             return null;
         }
-        DeviceSummary summary = deviceAccessService.getDeviceSummary(pump.getDeviceId());
+        DeviceSummary summary = deviceFacade.getDeviceSummary(pump.getDeviceId());
         return summary != null ? summary.deviceId() : null;
     }
 }

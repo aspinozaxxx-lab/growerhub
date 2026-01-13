@@ -8,8 +8,8 @@ import ru.growerhub.backend.mqtt.model.CmdPumpStart;
 import ru.growerhub.backend.mqtt.model.CmdPumpStop;
 import ru.growerhub.backend.mqtt.model.CmdReboot;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
-import ru.growerhub.backend.pump.PumpAck;
-import ru.growerhub.backend.pump.PumpCommandGateway;
+import ru.growerhub.backend.pump.contract.PumpAck;
+import ru.growerhub.backend.pump.contract.PumpCommandGateway;
 
 @Component
 public class MqttPumpCommandGateway implements PumpCommandGateway {

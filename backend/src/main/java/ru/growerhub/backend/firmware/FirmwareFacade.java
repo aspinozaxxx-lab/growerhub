@@ -10,9 +10,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.growerhub.backend.common.contract.DomainException;
-import ru.growerhub.backend.device.DeviceAccessService;
+import ru.growerhub.backend.config.ServerSettings;
+import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceFirmwareStatus;
+import ru.growerhub.backend.firmware.contract.FirmwareCheckResult;
+import ru.growerhub.backend.firmware.contract.FirmwareTriggerResult;
+import ru.growerhub.backend.firmware.contract.FirmwareUploadResult;
+import ru.growerhub.backend.firmware.contract.FirmwareVersionInfo;
 import ru.growerhub.backend.firmware.engine.FirmwareStorage;
+import ru.growerhub.backend.firmware.contract.FirmwareUpdateGateway;
 
 @Service
 public class FirmwareFacade {
@@ -21,22 +27,22 @@ public class FirmwareFacade {
     private final FirmwareStorage firmwareStorage;
     private final ServerSettings serverSettings;
     private final FirmwareUpdateGateway updateGateway;
-    private final DeviceAccessService deviceAccessService;
+    private final DeviceFacade deviceFacade;
 
     public FirmwareFacade(
             FirmwareStorage firmwareStorage,
             ServerSettings serverSettings,
             FirmwareUpdateGateway updateGateway,
-            DeviceAccessService deviceAccessService
+            DeviceFacade deviceFacade
     ) {
         this.firmwareStorage = firmwareStorage;
         this.serverSettings = serverSettings;
         this.updateGateway = updateGateway;
-        this.deviceAccessService = deviceAccessService;
+        this.deviceFacade = deviceFacade;
     }
 
     public FirmwareCheckResult checkFirmwareUpdate(String deviceId) {
-        DeviceFirmwareStatus status = deviceAccessService.getFirmwareStatus(deviceId);
+        DeviceFirmwareStatus status = deviceFacade.getFirmwareStatus(deviceId);
         if (status == null || !Boolean.TRUE.equals(status.updateAvailable())) {
             return new FirmwareCheckResult(false, null, null);
         }
@@ -63,7 +69,7 @@ public class FirmwareFacade {
 
     @Transactional
     public FirmwareTriggerResult triggerUpdate(String deviceId, String version) {
-        if (deviceAccessService.findDeviceId(deviceId) == null) {
+        if (deviceFacade.findDeviceId(deviceId) == null) {
             throw new DomainException("not_found", "Device not found");
         }
         Path firmwarePath = firmwareStorage.resolveFirmwarePath(version);
@@ -84,7 +90,7 @@ public class FirmwareFacade {
         } catch (RuntimeException ex) {
             throw new DomainException("unavailable", "mqtt publish failed");
         }
-        deviceAccessService.markFirmwareUpdate(deviceId, version, firmwareUrl);
+        deviceFacade.markFirmwareUpdate(deviceId, version, firmwareUrl);
         return new FirmwareTriggerResult("accepted", version, firmwareUrl, sha256);
     }
 

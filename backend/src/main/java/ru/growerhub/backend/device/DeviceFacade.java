@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.contract.DeviceAggregate;
+import ru.growerhub.backend.device.contract.DeviceFirmwareStatus;
 import ru.growerhub.backend.device.contract.DeviceSettingsData;
 import ru.growerhub.backend.device.contract.DeviceSettingsUpdate;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
@@ -25,8 +26,8 @@ import ru.growerhub.backend.pump.PumpFacade;
 import ru.growerhub.backend.pump.contract.PumpView;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.sensor.SensorFacade;
-import ru.growerhub.backend.sensor.SensorMeasurement;
-import ru.growerhub.backend.sensor.SensorReadingSummary;
+import ru.growerhub.backend.sensor.contract.SensorMeasurement;
+import ru.growerhub.backend.sensor.contract.SensorReadingSummary;
 import ru.growerhub.backend.sensor.contract.SensorView;
 
 @Service
@@ -61,6 +62,38 @@ public class DeviceFacade {
         this.sensorFacade = sensorFacade;
         this.plantFacade = plantFacade;
         this.pumpFacade = pumpFacade;
+    }
+
+    public Integer findDeviceId(String deviceId) {
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        return device != null ? device.getId() : null;
+    }
+
+    @Transactional(readOnly = true)
+    public DeviceSummary getDeviceSummary(Integer deviceId) {
+        DeviceEntity device = deviceRepository.findById(deviceId).orElse(null);
+        return device != null ? deviceQueryService.buildDeviceSummary(device) : null;
+    }
+
+    @Transactional(readOnly = true)
+    public DeviceFirmwareStatus getFirmwareStatus(String deviceId) {
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        if (device == null) {
+            return null;
+        }
+        return new DeviceFirmwareStatus(device.getUpdateAvailable(), device.getLatestVersion(), device.getFirmwareUrl());
+    }
+
+    @Transactional
+    public void markFirmwareUpdate(String deviceId, String version, String firmwareUrl) {
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        if (device == null) {
+            throw new DomainException("not_found", "Device not found");
+        }
+        device.setUpdateAvailable(true);
+        device.setLatestVersion(version);
+        device.setFirmwareUrl(firmwareUrl);
+        deviceRepository.save(device);
     }
 
     @Transactional

@@ -21,6 +21,9 @@ import ru.growerhub.backend.journal.jpa.PlantJournalPhotoEntity;
 import ru.growerhub.backend.journal.jpa.PlantJournalPhotoRepository;
 import ru.growerhub.backend.journal.jpa.PlantJournalWateringDetailsEntity;
 import ru.growerhub.backend.journal.jpa.PlantJournalWateringDetailsRepository;
+import ru.growerhub.backend.journal.contract.JournalPhoto;
+import ru.growerhub.backend.journal.contract.JournalPhotoData;
+import ru.growerhub.backend.journal.contract.JournalWateringDetails;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.plant.contract.PlantInfo;
 

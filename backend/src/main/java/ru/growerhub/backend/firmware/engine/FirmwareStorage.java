@@ -12,8 +12,8 @@ import java.util.HexFormat;
 import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import ru.growerhub.backend.firmware.FirmwareSettings;
-import ru.growerhub.backend.firmware.FirmwareVersionInfo;
+import ru.growerhub.backend.config.FirmwareSettings;
+import ru.growerhub.backend.firmware.contract.FirmwareVersionInfo;
 
 @Component
 public class FirmwareStorage {

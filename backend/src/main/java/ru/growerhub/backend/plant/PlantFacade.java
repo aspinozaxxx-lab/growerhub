@@ -25,7 +25,7 @@ import ru.growerhub.backend.plant.jpa.PlantGroupRepository;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
 import ru.growerhub.backend.plant.jpa.PlantRepository;
-import ru.growerhub.backend.sensor.SensorReadingSummary;
+import ru.growerhub.backend.sensor.contract.SensorReadingSummary;
 import ru.growerhub.backend.sensor.contract.SensorView;
 import ru.growerhub.backend.user.UserFacade;
 

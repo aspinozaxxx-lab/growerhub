@@ -5,11 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
-import ru.growerhub.backend.device.DeviceAccessService;
+import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.pump.jpa.PumpEntity;
@@ -22,18 +23,18 @@ public class PumpBindingService {
     private final PumpRepository pumpRepository;
     private final PumpPlantBindingRepository bindingRepository;
     private final PlantFacade plantFacade;
-    private final DeviceAccessService deviceAccessService;
+    private final DeviceFacade deviceFacade;
 
     public PumpBindingService(
             PumpRepository pumpRepository,
             PumpPlantBindingRepository bindingRepository,
             PlantFacade plantFacade,
-            DeviceAccessService deviceAccessService
+            @Lazy DeviceFacade deviceFacade
     ) {
         this.pumpRepository = pumpRepository;
         this.bindingRepository = bindingRepository;
         this.plantFacade = plantFacade;
-        this.deviceAccessService = deviceAccessService;
+        this.deviceFacade = deviceFacade;
     }
 
     @Transactional
@@ -43,7 +44,7 @@ public class PumpBindingService {
             throw new DomainException("not_found", "nasos ne naiden");
         }
         if (!isAdmin(user)) {
-            DeviceSummary deviceSummary = deviceAccessService.getDeviceSummary(pump.getDeviceId());
+            DeviceSummary deviceSummary = deviceFacade.getDeviceSummary(pump.getDeviceId());
             Integer ownerId = deviceSummary != null ? deviceSummary.userId() : null;
             if (ownerId == null || !ownerId.equals(user.id())) {
                 throw new DomainException("forbidden", "nedostatochno prav dlya etogo nasosa");
