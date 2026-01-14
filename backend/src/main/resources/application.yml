@@ -61,7 +61,7 @@ server:
 
 advisor:
   # Priznak vklyucheniya advisor.
-  enabled: true
+  enabled: false
   watering:
     # TTL rekomendacii poliva.
     ttl: "24h"
@@ -70,7 +70,7 @@ advisor:
       # Base URL dlya LLM.
       baseUrl: "https://api.deepseek.com/v1/chat/completions"
       # API key dlya LLM.
-      apiKey: "sk-0a2867b7fe554a9fb41757ce3b0f144f"
+      apiKey: "sk-0a2867b7fe554a9fb41757ce3b0f144f_4234234"
       # Model LLM.
       model: "deepseek-chat"
       # Timeout zaprosa (sek).
