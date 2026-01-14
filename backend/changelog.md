@@ -1,5 +1,8 @@
 ﻿# Changelog
 
+## 2026-01-14
+- Backend: parametry i defolty vyneseny v application.yml.
+
 ## 2026-01-09
 - Plants: dobavlen harvested_at, endpoint harvest i tip zhurnala harvest dlya rastenij.
 - Frontend: knopka sbora s modal'koi i sekciya arhiva rastenij s mini-kartochkami i history.
