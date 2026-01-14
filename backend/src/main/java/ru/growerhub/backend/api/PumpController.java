@@ -1,8 +1,6 @@
 ﻿package ru.growerhub.backend.api;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.ApiException;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.PumpDtos;
+import ru.growerhub.backend.common.config.pump.PumpAckWaitSettings;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.pump.PumpFacade;
 import ru.growerhub.backend.pump.contract.PumpAck;
@@ -23,9 +22,11 @@ import ru.growerhub.backend.pump.contract.PumpAck;
 @RestController
 public class PumpController {
     private final PumpFacade pumpFacade;
+    private final PumpAckWaitSettings ackWaitSettings;
 
-    public PumpController(PumpFacade pumpFacade) {
+    public PumpController(PumpFacade pumpFacade, PumpAckWaitSettings ackWaitSettings) {
         this.pumpFacade = pumpFacade;
+        this.ackWaitSettings = ackWaitSettings;
     }
 
     @PutMapping("/api/pumps/{pump_id}/bindings")
@@ -145,13 +146,19 @@ public class PumpController {
     @GetMapping("/api/pumps/watering/wait-ack")
     public PumpDtos.PumpWateringAckResponse waitAck(
             @RequestParam("correlation_id") String correlationId,
-            @RequestParam(value = "timeout_s", defaultValue = "5") @Min(1) @Max(15) Integer timeoutSeconds,
+            @RequestParam(value = "timeout_s", required = false) Integer timeoutSeconds,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         if (user == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
-        long deadline = System.nanoTime() + timeoutSeconds * 1_000_000_000L;
+        int resolvedTimeout = timeoutSeconds != null
+                ? timeoutSeconds
+                : ackWaitSettings.getDefaultTimeoutSeconds();
+        if (resolvedTimeout < 1 || resolvedTimeout > ackWaitSettings.getMaxTimeoutSeconds()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "timeout_s nekorrektnyi");
+        }
+        long deadline = System.nanoTime() + resolvedTimeout * 1_000_000_000L;
         while (true) {
             PumpAck ack = pumpFacade.getAck(correlationId);
             if (ack != null) {
@@ -169,7 +176,7 @@ public class PumpController {
                 );
             }
             try {
-                Thread.sleep(500);
+                Thread.sleep(ackWaitSettings.getPollIntervalMs());
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();
                 throw new ApiException(

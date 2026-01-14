@@ -13,20 +13,22 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import ru.growerhub.backend.auth.jpa.UserAuthIdentityEntity;
 import ru.growerhub.backend.auth.jpa.UserAuthIdentityRepository;
+import ru.growerhub.backend.common.config.auth.AuthSsoSettings;
 import ru.growerhub.backend.user.UserFacade;
 
 @Service
 public class SsoService {
-    private static final Set<String> SUPPORTED_PROVIDERS = Set.of("google", "yandex");
-
     private final AuthSettings authSettings;
+    private final AuthSsoSettings ssoSettings;
     private final JwtService jwtService;
     private final UserAuthIdentityRepository identityRepository;
     private final UserFacade userFacade;
@@ -35,23 +37,25 @@ public class SsoService {
 
     public SsoService(
             AuthSettings authSettings,
+            AuthSsoSettings ssoSettings,
             JwtService jwtService,
             UserAuthIdentityRepository identityRepository,
             UserFacade userFacade,
             ObjectMapper objectMapper
     ) {
         this.authSettings = authSettings;
+        this.ssoSettings = ssoSettings;
         this.jwtService = jwtService;
         this.identityRepository = identityRepository;
         this.userFacade = userFacade;
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
+                .connectTimeout(Duration.ofSeconds(ssoSettings.getConnectTimeoutSeconds()))
                 .build();
     }
 
     public boolean isSupportedProvider(String provider) {
-        return provider != null && SUPPORTED_PROVIDERS.contains(provider);
+        return provider != null && supportedProviders().contains(provider);
     }
 
     public String buildCallbackUri(String provider) {
@@ -71,7 +75,7 @@ public class SsoService {
         payload.put("mode", mode);
         payload.put("redirect_path", redirectPath);
         payload.put("current_user_id", currentUserId);
-        return jwtService.createToken(payload, Duration.ofMinutes(10));
+        return jwtService.createToken(payload, Duration.ofMinutes(ssoSettings.getStateTtlMinutes()));
     }
 
     public SsoState verifyState(String state) {
@@ -91,7 +95,7 @@ public class SsoService {
                 .map(Object::toString)
                 .orElse(null);
         Object currentUserId = payload.get("current_user_id");
-        if (provider == null || !SUPPORTED_PROVIDERS.contains(provider)) {
+        if (provider == null || !supportedProviders().contains(provider)) {
             throw new SsoStateException();
         }
         if (mode == null || (!mode.equals("login") && !mode.equals("link"))) {
@@ -126,7 +130,7 @@ public class SsoService {
         data.put("client_secret", cfg.clientSecret());
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(cfg.tokenUrl()))
-                .timeout(Duration.ofSeconds(10))
+                .timeout(Duration.ofSeconds(ssoSettings.getRequestTimeoutSeconds()))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(encodeParams(data)))
                 .build();
@@ -149,7 +153,7 @@ public class SsoService {
         }
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(cfg.userinfoUrl()))
-                .timeout(Duration.ofSeconds(10))
+                .timeout(Duration.ofSeconds(ssoSettings.getRequestTimeoutSeconds()))
                 .header("Authorization", "Bearer " + rawToken)
                 .GET()
                 .build();
@@ -292,6 +296,14 @@ public class SsoService {
             sb.append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
         }
         return sb.toString();
+    }
+
+    private Set<String> supportedProviders() {
+        List<String> providers = ssoSettings.getSupportedProviders();
+        if (providers == null || providers.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(providers);
     }
 
     private HttpResponse<String> sendRequest(HttpRequest request, String errorDetail) {

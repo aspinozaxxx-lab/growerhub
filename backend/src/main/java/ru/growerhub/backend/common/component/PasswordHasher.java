@@ -8,20 +8,24 @@ import java.util.Base64;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import org.springframework.stereotype.Component;
+import ru.growerhub.backend.common.config.security.PasswordPbkdf2Settings;
 
 @Component
 public class PasswordHasher implements ru.growerhub.backend.common.contract.PasswordHasher {
     private static final String PREFIX = "$pbkdf2-sha256$";
-    private static final int DEFAULT_ROUNDS = 29000;
-    private static final int SALT_BYTES = 16;
-    private static final int HASH_BYTES = 32;
+    private final PasswordPbkdf2Settings settings;
     private final SecureRandom secureRandom = new SecureRandom();
 
+    public PasswordHasher(PasswordPbkdf2Settings settings) {
+        this.settings = settings;
+    }
+
     public String hash(String plainPassword) {
-        byte[] salt = new byte[SALT_BYTES];
+        byte[] salt = new byte[settings.getSaltBytes()];
         secureRandom.nextBytes(salt);
-        byte[] digest = pbkdf2(plainPassword.toCharArray(), salt, DEFAULT_ROUNDS, HASH_BYTES);
-        return PREFIX + DEFAULT_ROUNDS + "$" + ab64Encode(salt) + "$" + ab64Encode(digest);
+        int rounds = settings.getRounds();
+        byte[] digest = pbkdf2(plainPassword.toCharArray(), salt, rounds, settings.getHashBytes());
+        return PREFIX + rounds + "$" + ab64Encode(salt) + "$" + ab64Encode(digest);
     }
 
     public boolean verify(String plainPassword, String storedHash) {

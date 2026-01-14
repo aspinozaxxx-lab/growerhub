@@ -8,6 +8,7 @@ import java.util.Map;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.growerhub.backend.common.config.sensor.SensorHistorySettings;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.DeviceFacade;
@@ -26,14 +27,13 @@ import ru.growerhub.backend.sensor.jpa.SensorRepository;
 
 @Service
 public class SensorFacade {
-    private static final int MAX_HISTORY_POINTS = 200;
-
     private final SensorBindingService bindingService;
     private final SensorHistoryService historyService;
     private final SensorQueryService queryService;
     private final SensorRepository sensorRepository;
     private final SensorReadingRepository sensorReadingRepository;
     private final DeviceFacade deviceFacade;
+    private final SensorHistorySettings historySettings;
 
     public SensorFacade(
             SensorBindingService bindingService,
@@ -41,7 +41,8 @@ public class SensorFacade {
             SensorQueryService queryService,
             SensorRepository sensorRepository,
             SensorReadingRepository sensorReadingRepository,
-            @Lazy DeviceFacade deviceFacade
+            @Lazy DeviceFacade deviceFacade,
+            SensorHistorySettings historySettings
     ) {
         this.bindingService = bindingService;
         this.historyService = historyService;
@@ -49,6 +50,7 @@ public class SensorFacade {
         this.sensorRepository = sensorRepository;
         this.sensorReadingRepository = sensorReadingRepository;
         this.deviceFacade = deviceFacade;
+        this.historySettings = historySettings;
     }
 
     @Transactional
@@ -59,10 +61,11 @@ public class SensorFacade {
     @Transactional(readOnly = true)
     public List<SensorHistoryPoint> getHistory(Integer sensorId, Integer hours, AuthenticatedUser user) {
         SensorEntity sensor = requireSensorAccess(sensorId, user);
-        LocalDateTime since = LocalDateTime.now(ZoneOffset.UTC).minusHours(hours != null ? hours : 24);
+        int defaultHours = historySettings.getDefaultHours();
+        LocalDateTime since = LocalDateTime.now(ZoneOffset.UTC).minusHours(hours != null ? hours : defaultHours);
         List<SensorReadingEntity> rows = sensorReadingRepository
                 .findAllBySensor_IdAndTsGreaterThanEqualOrderByTs(sensor.getId(), since);
-        List<SensorReadingEntity> sampled = downsample(rows, MAX_HISTORY_POINTS);
+        List<SensorReadingEntity> sampled = downsample(rows, historySettings.getMaxPoints());
         List<SensorHistoryPoint> payload = new ArrayList<>();
         for (SensorReadingEntity row : sampled) {
             payload.add(new SensorHistoryPoint(row.getTs(), row.getValueNumeric()));

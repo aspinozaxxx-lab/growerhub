@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import ru.growerhub.backend.common.config.pump.PumpWateringSettings;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.DeviceFacade;
@@ -35,6 +36,7 @@ public class PumpWateringService {
     private final PlantFacade plantFacade;
     private final DeviceFacade deviceFacade;
     private final PumpCommandGateway commandGateway;
+    private final PumpWateringSettings wateringSettings;
 
     public PumpWateringService(
             PumpRepository pumpRepository,
@@ -42,7 +44,8 @@ public class PumpWateringService {
             JournalFacade journalFacade,
             PlantFacade plantFacade,
             @Lazy DeviceFacade deviceFacade,
-            PumpCommandGateway commandGateway
+            PumpCommandGateway commandGateway,
+            PumpWateringSettings wateringSettings
     ) {
         this.pumpRepository = pumpRepository;
         this.bindingRepository = bindingRepository;
@@ -50,6 +53,7 @@ public class PumpWateringService {
         this.plantFacade = plantFacade;
         this.deviceFacade = deviceFacade;
         this.commandGateway = commandGateway;
+        this.wateringSettings = wateringSettings;
     }
 
     public PumpStartResult start(Integer pumpId, PumpWateringRequest request, AuthenticatedUser user) {
@@ -136,7 +140,9 @@ public class PumpWateringService {
         }
         double sumRate = 0.0;
         for (PumpPlantBindingEntity binding : bindings) {
-            int rate = binding.getRateMlPerHour() != null ? binding.getRateMlPerHour() : 2000;
+            int rate = binding.getRateMlPerHour() != null
+                    ? binding.getRateMlPerHour()
+                    : wateringSettings.getDefaultRateMlPerHour();
             sumRate += rate;
         }
         double avgRateMlPerHour = sumRate / bindings.size();
@@ -154,7 +160,9 @@ public class PumpWateringService {
             if (plantId == null) {
                 continue;
             }
-            int rate = binding.getRateMlPerHour() != null ? binding.getRateMlPerHour() : 2000;
+            int rate = binding.getRateMlPerHour() != null
+                    ? binding.getRateMlPerHour()
+                    : wateringSettings.getDefaultRateMlPerHour();
             double volumeL = rate / 1000.0 * durationS / 3600.0;
             targets.add(new JournalFacade.WateringTarget(plantId, durationS, volumeL));
         }

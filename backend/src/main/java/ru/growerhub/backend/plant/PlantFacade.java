@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.growerhub.backend.common.config.plant.PlantHistorySettings;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.journal.JournalFacade;
@@ -31,14 +32,13 @@ import ru.growerhub.backend.user.UserFacade;
 
 @Service
 public class PlantFacade {
-    private static final int MAX_HISTORY_POINTS = 200;
-
     private final PlantRepository plantRepository;
     private final PlantGroupRepository plantGroupRepository;
     private final PlantMetricSampleRepository plantMetricSampleRepository;
     private final PlantHistoryService plantHistoryService;
     private final JournalFacade journalFacade;
     private final UserFacade userFacade;
+    private final PlantHistorySettings historySettings;
 
     public PlantFacade(
             PlantRepository plantRepository,
@@ -46,7 +46,8 @@ public class PlantFacade {
             PlantMetricSampleRepository plantMetricSampleRepository,
             PlantHistoryService plantHistoryService,
             JournalFacade journalFacade,
-            @Lazy UserFacade userFacade
+            @Lazy UserFacade userFacade,
+            PlantHistorySettings historySettings
     ) {
         this.plantRepository = plantRepository;
         this.plantGroupRepository = plantGroupRepository;
@@ -54,6 +55,7 @@ public class PlantFacade {
         this.plantHistoryService = plantHistoryService;
         this.journalFacade = journalFacade;
         this.userFacade = userFacade;
+        this.historySettings = historySettings;
     }
 
     @Transactional(readOnly = true)
@@ -224,11 +226,12 @@ public class PlantFacade {
     ) {
         PlantEntity plant = requireUserPlant(plantId, user);
         List<PlantMetricType> metricTypes = parseMetricTypes(metrics);
-        LocalDateTime since = LocalDateTime.now(ZoneOffset.UTC).minusHours(hours != null ? hours : 24);
+        int defaultHours = historySettings.getDefaultHours();
+        LocalDateTime since = LocalDateTime.now(ZoneOffset.UTC).minusHours(hours != null ? hours : defaultHours);
         List<PlantMetricSampleEntity> rows = plantMetricSampleRepository
                 .findAllByPlant_IdAndMetricTypeInAndTsGreaterThanEqualOrderByTs(plant.getId(), metricTypes, since);
         List<PlantMetricPoint> payload = new ArrayList<>();
-        for (PlantMetricSampleEntity row : downsample(rows, MAX_HISTORY_POINTS)) {
+        for (PlantMetricSampleEntity row : downsample(rows, historySettings.getMaxPoints())) {
             payload.add(new PlantMetricPoint(
                     row.getMetricType() != null ? row.getMetricType().name() : null,
                     row.getTs(),
@@ -332,10 +335,10 @@ public class PlantFacade {
     }
 
     private List<PlantMetricSampleEntity> downsample(List<PlantMetricSampleEntity> points, int maxPoints) {
-        if (points.size() <= MAX_HISTORY_POINTS) {
+        if (points.size() <= maxPoints) {
             return points;
         }
-        int step = (int) Math.ceil(points.size() / (double) MAX_HISTORY_POINTS);
+        int step = (int) Math.ceil(points.size() / (double) maxPoints);
         List<PlantMetricSampleEntity> sampled = new ArrayList<>();
         for (int i = 0; i < points.size(); i += step) {
             sampled.add(points.get(i));

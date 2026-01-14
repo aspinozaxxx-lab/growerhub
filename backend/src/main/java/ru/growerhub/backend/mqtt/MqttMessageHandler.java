@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import ru.growerhub.backend.common.config.AckSettings;
+import ru.growerhub.backend.common.config.mqtt.MqttTopicSettings;
 import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.mqtt.model.DeviceState;
@@ -17,8 +18,6 @@ import ru.growerhub.backend.mqtt.model.ManualWateringAck;
 @Component
 public class MqttMessageHandler {
     private static final Logger logger = LoggerFactory.getLogger(MqttMessageHandler.class);
-    private static final String STATE_SUFFIX = "/state";
-    private static final String ACK_SUFFIX = "/state/ack";
 
     private final ObjectMapper objectMapper;
     private final AckStore ackStore;
@@ -26,6 +25,7 @@ public class MqttMessageHandler {
     private final AckSettings ackSettings;
     private final DebugSettings debugSettings;
     private final Clock clock;
+    private final MqttTopicSettings topicSettings;
 
     public MqttMessageHandler(
             ObjectMapper objectMapper,
@@ -33,7 +33,8 @@ public class MqttMessageHandler {
             DeviceFacade deviceFacade,
             AckSettings ackSettings,
             DebugSettings debugSettings,
-            Clock clock
+            Clock clock,
+            MqttTopicSettings topicSettings
     ) {
         this.objectMapper = objectMapper;
         this.ackStore = ackStore;
@@ -41,13 +42,14 @@ public class MqttMessageHandler {
         this.ackSettings = ackSettings;
         this.debugSettings = debugSettings;
         this.clock = clock;
+        this.topicSettings = topicSettings;
     }
 
     public void handleStateMessage(String topic, byte[] payload) {
         if (debugSettings.isDebug()) {
             logger.info("MQTT DEBUG state topic={} payload={}", topic, safePayload(payload));
         }
-        String deviceId = extractDeviceId(topic, STATE_SUFFIX, 4);
+        String deviceId = extractDeviceId(topic, topicSettings.getStateSuffix(), 4);
         if (deviceId == null) {
             logger.warn("MQTT state topic mismatch: {}", topic);
             return;
@@ -68,7 +70,7 @@ public class MqttMessageHandler {
         if (debugSettings.isDebug()) {
             logger.info("MQTT DEBUG ack topic={} payload={}", topic, safePayload(payload));
         }
-        String deviceId = extractDeviceId(topic, ACK_SUFFIX, 5);
+        String deviceId = extractDeviceId(topic, topicSettings.getAckSuffix(), 5);
         if (deviceId == null) {
             logger.warn("MQTT ack topic mismatch: {}", topic);
             return;

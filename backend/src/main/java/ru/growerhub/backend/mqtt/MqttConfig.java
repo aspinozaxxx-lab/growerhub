@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Conditional;
+import ru.growerhub.backend.common.config.mqtt.MqttTopicSettings;
 
 @Configuration
 public class MqttConfig {
@@ -25,7 +26,12 @@ public class MqttConfig {
     @Bean
     @Conditional(MqttEnabledCondition.class)
     @ConditionalOnMissingBean(MqttSubscriber.class)
-    MqttSubscriber mqttSubscriber(MqttSettings settings, DebugSettings debugSettings, MqttMessageHandler handler) {
-        return new PahoMqttSubscriber(settings, debugSettings, handler);
+    MqttSubscriber mqttSubscriber(
+            MqttSettings settings,
+            DebugSettings debugSettings,
+            MqttTopicSettings topicSettings,
+            MqttMessageHandler handler
+    ) {
+        return new PahoMqttSubscriber(settings, debugSettings, topicSettings, handler);
     }
 }

@@ -6,6 +6,9 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import ru.growerhub.backend.common.config.DeviceSettings;
+import ru.growerhub.backend.common.config.device.DeviceDefaultsSettings;
+import ru.growerhub.backend.common.config.device.DeviceFirmwareSettings;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
@@ -13,17 +16,24 @@ import ru.growerhub.backend.device.jpa.DeviceRepository;
 
 @Service
 public class DeviceQueryService {
-    private static final String DEFAULT_FIRMWARE_VERSION = "old";
-
     private final DeviceRepository deviceRepository;
     private final DeviceShadowStore shadowStore;
+    private final DeviceDefaultsSettings defaultsSettings;
+    private final DeviceFirmwareSettings firmwareSettings;
+    private final DeviceSettings deviceSettings;
 
     public DeviceQueryService(
             DeviceRepository deviceRepository,
-            DeviceShadowStore shadowStore
+            DeviceShadowStore shadowStore,
+            DeviceDefaultsSettings defaultsSettings,
+            DeviceFirmwareSettings firmwareSettings,
+            DeviceSettings deviceSettings
     ) {
         this.deviceRepository = deviceRepository;
         this.shadowStore = shadowStore;
+        this.defaultsSettings = defaultsSettings;
+        this.firmwareSettings = firmwareSettings;
+        this.deviceSettings = deviceSettings;
     }
 
     public List<DeviceSummary> listMyDevices(Integer userId) {
@@ -61,14 +71,14 @@ public class DeviceQueryService {
                 defaultString(device.getName(), DeviceDefaults.defaultName(device.getDeviceId())),
                 isOnline,
                 lastSeen,
-                defaultDouble(device.getTargetMoisture(), DeviceDefaults.TARGET_MOISTURE),
-                defaultInteger(device.getWateringDuration(), DeviceDefaults.WATERING_DURATION),
-                defaultInteger(device.getWateringTimeout(), DeviceDefaults.WATERING_TIMEOUT),
-                defaultInteger(device.getLightOnHour(), DeviceDefaults.LIGHT_ON_HOUR),
-                defaultInteger(device.getLightOffHour(), DeviceDefaults.LIGHT_OFF_HOUR),
-                defaultInteger(device.getLightDuration(), DeviceDefaults.LIGHT_DURATION),
-                defaultString(device.getCurrentVersion(), DeviceDefaults.CURRENT_VERSION),
-                defaultBoolean(device.getUpdateAvailable(), DeviceDefaults.UPDATE_AVAILABLE),
+                defaultDouble(device.getTargetMoisture(), defaultsSettings.getTargetMoisture()),
+                defaultInteger(device.getWateringDuration(), defaultsSettings.getWateringDurationSeconds()),
+                defaultInteger(device.getWateringTimeout(), defaultsSettings.getWateringTimeoutSeconds()),
+                defaultInteger(device.getLightOnHour(), defaultsSettings.getLightOnHour()),
+                defaultInteger(device.getLightOffHour(), defaultsSettings.getLightOffHour()),
+                defaultInteger(device.getLightDuration(), defaultsSettings.getLightDurationHours()),
+                defaultString(device.getCurrentVersion(), defaultsSettings.getCurrentVersion()),
+                defaultBoolean(device.getUpdateAvailable(), defaultsSettings.isUpdateAvailable()),
                 firmwareVersion,
                 device.getUserId()
         );
@@ -79,12 +89,13 @@ public class DeviceQueryService {
             return false;
         }
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        return Duration.between(device.getLastSeen(), now).compareTo(Duration.ofMinutes(3)) <= 0;
+        int threshold = deviceSettings.getOnlineThresholdS();
+        return Duration.between(device.getLastSeen(), now).getSeconds() <= threshold;
     }
 
     private String resolveFirmwareVersion(DeviceShadowState state) {
         if (state == null || state.fwVer() == null || state.fwVer().isBlank()) {
-            return DEFAULT_FIRMWARE_VERSION;
+            return firmwareSettings.getDefaultVersion();
         }
         return state.fwVer();
     }

@@ -1,12 +1,98 @@
-﻿ack:
+ack:
+  # TTL dlya ack (sek).
   ttlSeconds: 180
+  # Period ochistki ack (sek).
   cleanupPeriodSeconds: 60
 
 device:
+  # Porog online statusa (sek).
   onlineThresholdS: 60
+  defaults:
+    # Cel' vlazhnosti (procent).
+    targetMoisture: 40.0
+    # Dlitel'nost' poliva (sek).
+    wateringDurationSeconds: 30
+    # Timeout poliva (sek).
+    wateringTimeoutSeconds: 300
+    # Chas vklyuchenija sveta.
+    lightOnHour: 6
+    # Chas vyklyuchenija sveta.
+    lightOffHour: 22
+    # Dlitel'nost' sveta (chasy).
+    lightDurationHours: 16
+    # Tekushchaja versija firmware.
+    currentVersion: "1.0.0"
+    # Poslednjaja versija firmware.
+    latestVersion: "1.0.0"
+    # Priznak dostupnosti update.
+    updateAvailable: false
+  firmware:
+    # Versija po umolchaniju.
+    defaultVersion: "old"
+
+auth:
+  sso:
+    # Spisok podderzhivaemyh providerov.
+    supportedProviders: ["google", "yandex"]
+    # Timeout soedinenija (sek).
+    connectTimeoutSeconds: 10
+    # Timeout zaprosa (sek).
+    requestTimeoutSeconds: 10
+    # Vremja zhizni state-tokena (min).
+    stateTtlMinutes: 10
+
+security:
+  password:
+    pbkdf2:
+      # Kolichestvo iteracij.
+      rounds: 29000
+      # Razmer soli (bytes).
+      saltBytes: 16
+      # Razmer hesha (bytes).
+      hashBytes: 32
 
 firmware:
+  # Katalog binarnikov firmware.
   binariesDir: "server/firmware_binaries"
 
 server:
+  # Public base URL.
   publicBaseUrl: "https://growerhub.ru"
+
+plant:
+  history:
+    # Maksimal'noe kolichestvo tochek.
+    maxPoints: 200
+    # Chasy istorii po umolchaniju.
+    defaultHours: 24
+
+sensor:
+  history:
+    # Maksimal'noe kolichestvo tochek.
+    maxPoints: 200
+    # Chasy istorii po umolchaniju.
+    defaultHours: 24
+
+pump:
+  watering:
+    # Defoltnyi rashod (ml/ch).
+    defaultRateMlPerHour: 2000
+  ack:
+    wait:
+      # Timeout ozhidanija ACK po umolchaniju (sek).
+      defaultTimeoutSeconds: 5
+      # Maksimal'nyi timeout ACK (sek).
+      maxTimeoutSeconds: 15
+      # Interval polling (ms).
+      pollIntervalMs: 500
+
+mqtt:
+  topics:
+    # Topic dlya state.
+    state: "gh/dev/+/state"
+    # Topic dlya ack.
+    ack: "gh/dev/+/state/ack"
+    # Suffiks dlya state.
+    stateSuffix: "/state"
+    # Suffiks dlya ack.
+    ackSuffix: "/state/ack"

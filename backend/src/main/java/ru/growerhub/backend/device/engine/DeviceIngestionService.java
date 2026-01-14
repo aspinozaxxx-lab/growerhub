@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
+import ru.growerhub.backend.common.config.device.DeviceDefaultsSettings;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
@@ -24,13 +25,15 @@ public class DeviceIngestionService {
     private final DeviceShadowStore shadowStore;
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
+    private final DeviceDefaultsSettings defaultsSettings;
 
     public DeviceIngestionService(
             DeviceRepository deviceRepository,
             DeviceStateLastRepository deviceStateLastRepository,
             DeviceShadowStore shadowStore,
             ObjectMapper objectMapper,
-            PlatformTransactionManager transactionManager
+            PlatformTransactionManager transactionManager,
+            DeviceDefaultsSettings defaultsSettings
     ) {
         this.deviceRepository = deviceRepository;
         this.deviceStateLastRepository = deviceStateLastRepository;
@@ -38,6 +41,7 @@ public class DeviceIngestionService {
         this.objectMapper = objectMapper;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        this.defaultsSettings = defaultsSettings;
     }
 
     public List<SensorMeasurement> handleState(String deviceId, DeviceShadowState state, LocalDateTime now) {
@@ -66,31 +70,31 @@ public class DeviceIngestionService {
             device.setName(DeviceDefaults.defaultName(deviceId));
         }
         if (device.getTargetMoisture() == null) {
-            device.setTargetMoisture(DeviceDefaults.TARGET_MOISTURE);
+            device.setTargetMoisture(defaultsSettings.getTargetMoisture());
         }
         if (device.getWateringDuration() == null) {
-            device.setWateringDuration(DeviceDefaults.WATERING_DURATION);
+            device.setWateringDuration(defaultsSettings.getWateringDurationSeconds());
         }
         if (device.getWateringTimeout() == null) {
-            device.setWateringTimeout(DeviceDefaults.WATERING_TIMEOUT);
+            device.setWateringTimeout(defaultsSettings.getWateringTimeoutSeconds());
         }
         if (device.getLightOnHour() == null) {
-            device.setLightOnHour(DeviceDefaults.LIGHT_ON_HOUR);
+            device.setLightOnHour(defaultsSettings.getLightOnHour());
         }
         if (device.getLightOffHour() == null) {
-            device.setLightOffHour(DeviceDefaults.LIGHT_OFF_HOUR);
+            device.setLightOffHour(defaultsSettings.getLightOffHour());
         }
         if (device.getLightDuration() == null) {
-            device.setLightDuration(DeviceDefaults.LIGHT_DURATION);
+            device.setLightDuration(defaultsSettings.getLightDurationHours());
         }
         if (device.getCurrentVersion() == null) {
-            device.setCurrentVersion(DeviceDefaults.CURRENT_VERSION);
+            device.setCurrentVersion(defaultsSettings.getCurrentVersion());
         }
         if (device.getLatestVersion() == null) {
-            device.setLatestVersion(DeviceDefaults.LATEST_VERSION);
+            device.setLatestVersion(defaultsSettings.getLatestVersion());
         }
         if (device.getUpdateAvailable() == null) {
-            device.setUpdateAvailable(DeviceDefaults.UPDATE_AVAILABLE);
+            device.setUpdateAvailable(defaultsSettings.isUpdateAvailable());
         }
     }
 
@@ -99,35 +103,35 @@ public class DeviceIngestionService {
     }
 
     public double defaultTargetMoisture() {
-        return DeviceDefaults.TARGET_MOISTURE;
+        return defaultsSettings.getTargetMoisture();
     }
 
     public int defaultWateringDuration() {
-        return DeviceDefaults.WATERING_DURATION;
+        return defaultsSettings.getWateringDurationSeconds();
     }
 
     public int defaultWateringTimeout() {
-        return DeviceDefaults.WATERING_TIMEOUT;
+        return defaultsSettings.getWateringTimeoutSeconds();
     }
 
     public int defaultLightOnHour() {
-        return DeviceDefaults.LIGHT_ON_HOUR;
+        return defaultsSettings.getLightOnHour();
     }
 
     public int defaultLightOffHour() {
-        return DeviceDefaults.LIGHT_OFF_HOUR;
+        return defaultsSettings.getLightOffHour();
     }
 
     public int defaultLightDuration() {
-        return DeviceDefaults.LIGHT_DURATION;
+        return defaultsSettings.getLightDurationHours();
     }
 
     public String defaultCurrentVersion() {
-        return DeviceDefaults.CURRENT_VERSION;
+        return defaultsSettings.getCurrentVersion();
     }
 
     public boolean defaultUpdateAvailable() {
-        return DeviceDefaults.UPDATE_AVAILABLE;
+        return defaultsSettings.isUpdateAvailable();
     }
 
     private void upsertDeviceState(String deviceId, DeviceShadowState state, LocalDateTime updatedAt) {

@@ -14,21 +14,27 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.SmartLifecycle;
+import ru.growerhub.backend.common.config.mqtt.MqttTopicSettings;
 
 public class PahoMqttSubscriber implements MqttSubscriber, SmartLifecycle {
     private static final Logger logger = LoggerFactory.getLogger(PahoMqttSubscriber.class);
-    private static final String STATE_TOPIC = "gh/dev/+/state";
-    private static final String ACK_TOPIC = "gh/dev/+/state/ack";
 
     private final MqttSettings settings;
     private final DebugSettings debugSettings;
+    private final MqttTopicSettings topicSettings;
     private final MqttMessageHandler handler;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private MqttClient client;
 
-    public PahoMqttSubscriber(MqttSettings settings, DebugSettings debugSettings, MqttMessageHandler handler) {
+    public PahoMqttSubscriber(
+            MqttSettings settings,
+            DebugSettings debugSettings,
+            MqttTopicSettings topicSettings,
+            MqttMessageHandler handler
+    ) {
         this.settings = settings;
         this.debugSettings = debugSettings;
+        this.topicSettings = topicSettings;
         this.handler = handler;
     }
 
@@ -88,10 +94,10 @@ public class PahoMqttSubscriber implements MqttSubscriber, SmartLifecycle {
     }
 
     private void subscribeAll() throws MqttException {
-        client.subscribe(STATE_TOPIC, 1);
-        client.subscribe(ACK_TOPIC, 1);
-        logger.info("mqtt: subscribed to {} qos=1", STATE_TOPIC);
-        logger.info("mqtt: subscribed to {} qos=1", ACK_TOPIC);
+        client.subscribe(topicSettings.getState(), 1);
+        client.subscribe(topicSettings.getAck(), 1);
+        logger.info("mqtt: subscribed to {} qos=1", topicSettings.getState());
+        logger.info("mqtt: subscribed to {} qos=1", topicSettings.getAck());
     }
 
     private MqttConnectOptions buildConnectOptions() {
@@ -140,9 +146,9 @@ public class PahoMqttSubscriber implements MqttSubscriber, SmartLifecycle {
                 logger.info("MQTT DEBUG message topic={} payload={}", topic, new String(payload, StandardCharsets.UTF_8));
             }
             try {
-                if (topic != null && topic.endsWith("/state/ack")) {
+                if (topic != null && topic.endsWith(topicSettings.getAckSuffix())) {
                     handler.handleAckMessage(topic, payload);
-                } else if (topic != null && topic.endsWith("/state")) {
+                } else if (topic != null && topic.endsWith(topicSettings.getStateSuffix())) {
                     handler.handleStateMessage(topic, payload);
                 }
             } catch (Exception ex) {
