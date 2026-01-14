@@ -70,7 +70,7 @@ advisor:
       # Base URL dlya LLM.
       baseUrl: "https://api.deepseek.com/v1/chat/completions"
       # API key dlya LLM.
-      apiKey: ""
+      apiKey: "sk-0a2867b7fe554a9fb41757ce3b0f144f"
       # Model LLM.
       model: "deepseek-chat"
       # Timeout zaprosa (sek).
