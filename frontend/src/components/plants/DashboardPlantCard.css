@@ -89,6 +89,23 @@
   font-size: 12px;
 }
 
+.dashboard-plant-card__watering-advice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-1);
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 204, 102, 0.18);
+  color: #f5c16a;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.dashboard-plant-card__watering-advice-icon {
+  font-size: 14px;
+}
+
 .dashboard-plant-card__metrics .sensor-pill {
   padding: 6px 8px;
   gap: 6px;

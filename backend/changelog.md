@@ -1,4 +1,12 @@
-﻿# Changelog
+# Changelog
+
+## 2026-01-14
+- Advisor: dobavlen domen advisor dlya rekomendacij poliva s keshom i LLM gateway.
+- Plant history: dobavlena bucket-istorija po metrikam dlya 2h shagov.
+- Journal: dobavlen read metod poslednego poliva dlya rastenija.
+- API: PlantResponse rasshiren watering_previous i watering_advice.
+- DB: migraciya dlya advisor_watering_advice.
+- Testy: dobavleny proverki kesh/perevalidaciya i bucketed history.
 
 ## 2026-01-14
 - Backend: parametry i defolty vyneseny v application.yml.

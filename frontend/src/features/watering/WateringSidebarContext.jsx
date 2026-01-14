@@ -8,10 +8,12 @@ function WateringSidebarProvider({ children }) {
     pumpId: null,
     pumpLabel: null,
     plantId: null,
+    wateringAdvice: null,
+    wateringPrevious: null,
   });
   const [wateringByPump, setWateringByPump] = useState({});
 
-  const openWateringSidebar = useCallback(({ pumpId, pumpLabel, plantId }) => {
+  const openWateringSidebar = useCallback(({ pumpId, pumpLabel, plantId, wateringAdvice, wateringPrevious }) => {
     if (!pumpId) {
       return;
     }
@@ -20,6 +22,8 @@ function WateringSidebarProvider({ children }) {
       pumpId,
       pumpLabel: pumpLabel || null,
       plantId: plantId || null,
+      wateringAdvice: wateringAdvice || null,
+      wateringPrevious: wateringPrevious || null,
     });
   }, []);
 

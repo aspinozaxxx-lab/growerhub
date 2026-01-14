@@ -26,6 +26,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 class ArchitectureRulesTest {
     // spisok domenov dlya facade-pravila
     private static final String[] DOMAINS = {
+            "advisor",
             "auth",
             "device",
             "firmware",

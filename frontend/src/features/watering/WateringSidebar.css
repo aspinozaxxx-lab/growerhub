@@ -1,5 +1,14 @@
-﻿.gh-panel__body .gh-control[type="range"] {
+.gh-panel__body .gh-control[type="range"] {
   padding: 0;
   background: transparent;
   border: none;
+}
+
+.watering-recommendation {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 4px;
+  background: linear-gradient(90deg, #f7c15a, #6bdba8);
+  -webkit-background-clip: text;
+  color: transparent;
 }

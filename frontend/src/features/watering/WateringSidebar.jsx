@@ -15,6 +15,8 @@ function WateringSidebar() {
     pumpId,
     pumpLabel,
     plantId,
+    wateringAdvice,
+    wateringPrevious,
     closeWateringSidebar,
     setWateringStatus,
   } = useWateringSidebar();
@@ -33,7 +35,22 @@ function WateringSidebar() {
       return;
     }
     setSuccess(false);
-  }, [isOpen]);
+    if (wateringPrevious && wateringPrevious.water_volume_l !== null && wateringPrevious.water_volume_l !== undefined) {
+      setWaterVolume(Number(wateringPrevious.water_volume_l));
+    } else {
+      setWaterVolume(0.5);
+    }
+    if (wateringPrevious && wateringPrevious.ph !== null && wateringPrevious.ph !== undefined) {
+      setPh(String(wateringPrevious.ph));
+    } else {
+      setPh('');
+    }
+    if (wateringPrevious && wateringPrevious.fertilizers_per_liter) {
+      setFertilizers(wateringPrevious.fertilizers_per_liter);
+    } else {
+      setFertilizers('');
+    }
+  }, [isOpen, wateringPrevious]);
 
   const title = useMemo(() => {
     if (pumpLabel) {
@@ -95,6 +112,11 @@ function WateringSidebar() {
         />
       </FormField>
       <div className="gh-hint">{waterVolume.toFixed(1)} l</div>
+      {wateringAdvice && (
+        <div className="watering-recommendation">
+          Rekomendaciya: {wateringAdvice.recommended_water_volume_l ?? '—'} l
+        </div>
+      )}
 
       <FormField label="pH (opcionalno)" htmlFor="water-ph">
         <input
@@ -106,6 +128,11 @@ function WateringSidebar() {
           placeholder="6.5"
         />
       </FormField>
+      {wateringAdvice && (
+        <div className="watering-recommendation">
+          Rekomendaciya: {wateringAdvice.recommended_ph ?? '—'}
+        </div>
+      )}
 
       <FormField label="Udobreniya na litr (opcionalno)" htmlFor="water-fertilizers">
         <textarea
@@ -116,6 +143,11 @@ function WateringSidebar() {
           placeholder="NPK 10-10-10"
         />
       </FormField>
+      {wateringAdvice && (
+        <div className="watering-recommendation">
+          Rekomendaciya: {wateringAdvice.recommended_fertilizers_per_liter ?? '—'}
+        </div>
+      )}
 
       {error && <div className="sensor-sidebar__state sensor-sidebar__state--error">{error}</div>}
       {success && <div className="sensor-sidebar__state">Poliv zapushchen</div>}

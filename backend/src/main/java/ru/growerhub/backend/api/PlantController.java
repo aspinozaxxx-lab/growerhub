@@ -25,6 +25,10 @@ import ru.growerhub.backend.api.ApiValidationException;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.DeviceDtos;
 import ru.growerhub.backend.api.dto.PlantDtos;
+import ru.growerhub.backend.advisor.AdvisorFacade;
+import ru.growerhub.backend.advisor.contract.WateringAdvice;
+import ru.growerhub.backend.advisor.contract.WateringAdviceBundle;
+import ru.growerhub.backend.advisor.contract.WateringPrevious;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.pump.PumpFacade;
 import ru.growerhub.backend.pump.contract.PumpView;
@@ -34,7 +38,6 @@ import ru.growerhub.backend.plant.contract.AdminPlantInfo;
 import ru.growerhub.backend.plant.contract.PlantGroupInfo;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.plant.contract.PlantInfo;
-import ru.growerhub.backend.plant.contract.PlantMetricPoint;
 
 @RestController
 @Validated
@@ -42,15 +45,18 @@ public class PlantController {
     private final PlantFacade plantFacade;
     private final SensorFacade sensorFacade;
     private final PumpFacade pumpFacade;
+    private final AdvisorFacade advisorFacade;
 
     public PlantController(
             PlantFacade plantFacade,
             SensorFacade sensorFacade,
-            PumpFacade pumpFacade
+            PumpFacade pumpFacade,
+            AdvisorFacade advisorFacade
     ) {
         this.plantFacade = plantFacade;
         this.sensorFacade = sensorFacade;
         this.pumpFacade = pumpFacade;
+        this.advisorFacade = advisorFacade;
     }
 
     @GetMapping("/api/plant-groups")
@@ -97,7 +103,7 @@ public class PlantController {
         List<PlantInfo> plants = plantFacade.listPlants(user);
         List<PlantDtos.PlantResponse> responses = new ArrayList<>();
         for (PlantInfo plant : plants) {
-            responses.add(toPlantResponse(plant));
+            responses.add(toPlantResponse(plant, user));
         }
         return responses;
     }
@@ -118,7 +124,7 @@ public class PlantController {
                 ),
                 user
         );
-        return toPlantResponse(plant);
+        return toPlantResponse(plant, user);
     }
 
     @GetMapping("/api/plants/{plant_id}")
@@ -127,7 +133,7 @@ public class PlantController {
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         PlantInfo plant = plantFacade.getPlant(plantId, user);
-        return toPlantResponse(plant);
+        return toPlantResponse(plant, user);
     }
 
     @PatchMapping("/api/plants/{plant_id}")
@@ -138,7 +144,7 @@ public class PlantController {
     ) {
         PlantFacade.PlantUpdateCommand command = parseUpdateCommand(request);
         PlantInfo plant = plantFacade.updatePlant(plantId, command, user);
-        return toPlantResponse(plant);
+        return toPlantResponse(plant, user);
     }
 
     @DeleteMapping("/api/plants/{plant_id}")
@@ -183,13 +189,16 @@ public class PlantController {
         return responses;
     }
 
-    private PlantDtos.PlantResponse toPlantResponse(PlantInfo plant) {
+    private PlantDtos.PlantResponse toPlantResponse(PlantInfo plant, AuthenticatedUser user) {
         PlantGroupInfo group = plant.plantGroup();
         PlantDtos.PlantGroupResponse groupResponse = group != null
                 ? new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId())
                 : null;
         List<DeviceDtos.SensorResponse> sensors = mapSensors(sensorFacade.listByPlantId(plant.id()));
         List<DeviceDtos.PumpResponse> pumps = mapPumps(pumpFacade.listByPlantId(plant.id()));
+        WateringAdviceBundle bundle = advisorFacade.getWateringAdvice(plant.id(), user);
+        PlantDtos.PlantWateringPreviousResponse previousResponse = toWateringPrevious(bundle);
+        PlantDtos.PlantWateringAdviceResponse adviceResponse = toWateringAdvice(bundle);
         return new PlantDtos.PlantResponse(
                 plant.id(),
                 plant.name(),
@@ -201,7 +210,42 @@ public class PlantController {
                 plant.userId(),
                 groupResponse,
                 sensors,
-                pumps
+                pumps,
+                previousResponse,
+                adviceResponse
+        );
+    }
+
+    private PlantDtos.PlantWateringPreviousResponse toWateringPrevious(WateringAdviceBundle bundle) {
+        if (bundle == null) {
+            return null;
+        }
+        WateringPrevious previous = bundle.previous();
+        if (previous == null) {
+            return null;
+        }
+        return new PlantDtos.PlantWateringPreviousResponse(
+                previous.waterVolumeL(),
+                previous.ph(),
+                previous.fertilizersPerLiter(),
+                previous.eventAt()
+        );
+    }
+
+    private PlantDtos.PlantWateringAdviceResponse toWateringAdvice(WateringAdviceBundle bundle) {
+        if (bundle == null) {
+            return null;
+        }
+        WateringAdvice advice = bundle.advice();
+        if (advice == null) {
+            return null;
+        }
+        return new PlantDtos.PlantWateringAdviceResponse(
+                advice.isDue(),
+                advice.recommendedWaterVolumeL(),
+                advice.recommendedPh(),
+                advice.recommendedFertilizersPerLiter(),
+                advice.validUntil()
         );
     }
 
@@ -354,5 +398,3 @@ public class PlantController {
         }
     }
 }
-
-

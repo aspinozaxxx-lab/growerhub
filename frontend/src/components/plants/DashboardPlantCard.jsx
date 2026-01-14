@@ -23,6 +23,30 @@ const METRIC_LABELS = {
   watering: 'Поливы',
 };
 
+function formatNumber(value, digits) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return null;
+  }
+  return Number(value).toFixed(digits);
+}
+
+function buildWateringTooltip(advice) {
+  if (!advice) {
+    return '';
+  }
+  const volume = formatNumber(advice.recommended_water_volume_l, 2);
+  const ph = formatNumber(advice.recommended_ph, 2);
+  const fertilizers = advice.recommended_fertilizers_per_liter || 'нет';
+  if (!volume) {
+    return '';
+  }
+  const parts = [`Полить: ${volume} L`, `Удобрения: ${fertilizers}`];
+  if (ph) {
+    parts.push(`pH: ${ph}`);
+  }
+  return parts.join(', ');
+}
+
 function formatAge(plantedAt) {
   if (!plantedAt) {
     return 'Дата неизвестна';
@@ -60,6 +84,9 @@ function DashboardPlantCard({
     ? String(plant.growth_stage).trim()
     : getAutoStageFromAge(plantTypeId, ageDays);
   const isWatering = pumps.some((pump) => pump && pump.is_running);
+  const wateringAdvice = plant?.watering_advice || null;
+  const wateringPrevious = plant?.watering_previous || null;
+  const wateringTooltip = React.useMemo(() => buildWateringTooltip(wateringAdvice), [wateringAdvice]);
 
   const boundSensors = React.useMemo(() => {
     if (!plant?.id) {
@@ -119,7 +146,13 @@ function DashboardPlantCard({
   const handleOpenWatering = () => {
     if (primaryPump?.id && onOpenWatering) {
       const label = primaryPump.label || `Насос ${primaryPump.channel ?? ''}`;
-      onOpenWatering({ pumpId: primaryPump.id, pumpLabel: label, plantId: plant.id });
+      onOpenWatering({
+        pumpId: primaryPump.id,
+        pumpLabel: label,
+        plantId: plant.id,
+        wateringAdvice,
+        wateringPrevious,
+      });
     }
   };
 
@@ -170,6 +203,12 @@ function DashboardPlantCard({
                   highlight={Boolean(isWatering)}
                   disabled={!plant?.id}
                 />
+                {wateringAdvice?.is_due && (
+                  <div className="dashboard-plant-card__watering-advice" title={wateringTooltip}>
+                    <span className="dashboard-plant-card__watering-advice-icon" aria-hidden="true">💧</span>
+                    <span className="dashboard-plant-card__watering-advice-text">Пора полить</span>
+                  </div>
+                )}
                 {isWatering && (
                   <div className="dashboard-plant-card__watering-badge">
                     Идёт полив
@@ -208,4 +247,3 @@ function DashboardPlantCard({
 }
 
 export default DashboardPlantCard;
-

@@ -1,10 +1,12 @@
 ﻿package ru.growerhub.backend.plant;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.context.annotation.Lazy;
@@ -18,6 +20,7 @@ import ru.growerhub.backend.plant.contract.AdminPlantInfo;
 import ru.growerhub.backend.plant.contract.PlantGroupInfo;
 import ru.growerhub.backend.plant.contract.PlantInfo;
 import ru.growerhub.backend.plant.contract.PlantMetricPoint;
+import ru.growerhub.backend.plant.contract.PlantMetricBucketPoint;
 import ru.growerhub.backend.plant.contract.PlantMetricType;
 import ru.growerhub.backend.plant.engine.PlantHistoryService;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
@@ -237,6 +240,62 @@ public class PlantFacade {
                     row.getTs(),
                     row.getValueNumeric()
             ));
+        }
+        return payload;
+    }
+
+    /**
+     * Vozvrashchaet bucket-istoriyu po metrikam s shagnom po vremeni (znachenie = poslednee v bucket).
+     */
+    @Transactional(readOnly = true)
+    public List<PlantMetricBucketPoint> getBucketedHistory(
+            Integer plantId,
+            AuthenticatedUser user,
+            List<PlantMetricType> metricTypes,
+            LocalDateTime since,
+            Duration bucketDuration
+    ) {
+        if (metricTypes == null || metricTypes.isEmpty() || since == null || bucketDuration == null) {
+            return List.of();
+        }
+        PlantEntity plant = requireUserPlant(plantId, user);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        long bucketSeconds = Math.max(1, bucketDuration.getSeconds());
+        long totalSeconds = Math.max(0, Duration.between(since, now).getSeconds());
+        int bucketCount = (int) Math.max(1, totalSeconds / bucketSeconds);
+
+        List<PlantMetricSampleEntity> rows = plantMetricSampleRepository
+                .findAllByPlant_IdAndMetricTypeInAndTsGreaterThanEqualOrderByTs(plant.getId(), metricTypes, since);
+        Map<PlantMetricType, List<PlantMetricSampleEntity>> byMetric = new java.util.HashMap<>();
+        for (PlantMetricSampleEntity row : rows) {
+            if (row.getMetricType() == null) {
+                continue;
+            }
+            byMetric.computeIfAbsent(row.getMetricType(), key -> new ArrayList<>()).add(row);
+        }
+
+        List<PlantMetricBucketPoint> payload = new ArrayList<>();
+        List<PlantMetricType> distinctMetrics = metricTypes.stream().distinct().toList();
+        for (PlantMetricType metricType : distinctMetrics) {
+            List<PlantMetricSampleEntity> samples = byMetric.getOrDefault(metricType, List.of());
+            int index = 0;
+            for (int i = 0; i < bucketCount; i++) {
+                LocalDateTime bucketStart = since.plusSeconds(bucketSeconds * i);
+                LocalDateTime bucketEnd = bucketStart.plusSeconds(bucketSeconds);
+                Double value = null;
+                while (index < samples.size()) {
+                    PlantMetricSampleEntity sample = samples.get(index);
+                    LocalDateTime ts = sample.getTs();
+                    if (ts == null || !ts.isBefore(bucketEnd)) {
+                        break;
+                    }
+                    if (!ts.isBefore(bucketStart)) {
+                        value = sample.getValueNumeric();
+                    }
+                    index++;
+                }
+                payload.add(new PlantMetricBucketPoint(metricType.name(), bucketStart, value));
+            }
         }
         return payload;
     }

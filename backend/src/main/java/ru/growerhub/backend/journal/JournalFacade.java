@@ -24,6 +24,7 @@ import ru.growerhub.backend.journal.jpa.PlantJournalWateringDetailsRepository;
 import ru.growerhub.backend.journal.contract.JournalPhoto;
 import ru.growerhub.backend.journal.contract.JournalPhotoData;
 import ru.growerhub.backend.journal.contract.JournalWateringDetails;
+import ru.growerhub.backend.journal.contract.JournalWateringInfo;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.plant.contract.PlantInfo;
 
@@ -68,6 +69,33 @@ public class JournalFacade {
             responses.add(toJournalEntry(entry));
         }
         return responses;
+    }
+
+    /**
+     * Vozvrashchaet poslednii poliv dlya rastenija.
+     */
+    @Transactional(readOnly = true)
+    public JournalWateringInfo getLastWatering(Integer plantId, AuthenticatedUser user) {
+        plantFacade.requireOwnedPlantInfo(plantId, user);
+        PlantJournalEntryEntity entry = entryRepository
+                .findTopByPlantIdAndTypeOrderByEventAtDesc(plantId, "watering")
+                .orElse(null);
+        if (entry == null) {
+            return null;
+        }
+        PlantJournalWateringDetailsEntity details = wateringDetailsRepository
+                .findByJournalEntry_Id(entry.getId())
+                .orElse(null);
+        if (details == null) {
+            return null;
+        }
+        return new JournalWateringInfo(
+                details.getWaterVolumeL(),
+                details.getDurationS(),
+                details.getPh(),
+                details.getFertilizersPerLiter(),
+                entry.getEventAt()
+        );
     }
 
     @Transactional(readOnly = true)

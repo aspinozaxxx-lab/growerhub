@@ -74,7 +74,26 @@ public final class PlantDtos {
             @JsonProperty("user_id") Integer userId,
             @JsonProperty("plant_group") PlantGroupResponse plantGroup,
             @JsonProperty("sensors") List<SensorResponse> sensors,
-            @JsonProperty("pumps") List<PumpResponse> pumps
+            @JsonProperty("pumps") List<PumpResponse> pumps,
+            @JsonProperty("watering_previous") PlantWateringPreviousResponse wateringPrevious,
+            @JsonProperty("watering_advice") PlantWateringAdviceResponse wateringAdvice
+    ) {
+    }
+
+    public record PlantWateringPreviousResponse(
+            @JsonProperty("water_volume_l") Double waterVolumeL,
+            @JsonProperty("ph") Double ph,
+            @JsonProperty("fertilizers_per_liter") String fertilizersPerLiter,
+            @JsonProperty("event_at") LocalDateTime eventAt
+    ) {
+    }
+
+    public record PlantWateringAdviceResponse(
+            @JsonProperty("is_due") Boolean isDue,
+            @JsonProperty("recommended_water_volume_l") Double recommendedWaterVolumeL,
+            @JsonProperty("recommended_ph") Double recommendedPh,
+            @JsonProperty("recommended_fertilizers_per_liter") String recommendedFertilizersPerLiter,
+            @JsonProperty("valid_until") LocalDateTime validUntil
     ) {
     }
 

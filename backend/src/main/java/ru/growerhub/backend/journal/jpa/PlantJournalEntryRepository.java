@@ -28,6 +28,8 @@ public interface PlantJournalEntryRepository extends JpaRepository<PlantJournalE
 
     List<PlantJournalEntryEntity> findAllByPlantIdOrderByEventAtAsc(Integer plantId);
 
+    Optional<PlantJournalEntryEntity> findTopByPlantIdAndTypeOrderByEventAtDesc(Integer plantId, String type);
+
     Optional<PlantJournalEntryEntity> findByIdAndPlantIdAndUserId(Integer id, Integer plantId, Integer userId);
 
     void deleteAllByPlantId(Integer plantId);

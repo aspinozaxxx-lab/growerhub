@@ -59,6 +59,23 @@ server:
   # Public base URL.
   publicBaseUrl: "https://growerhub.ru"
 
+advisor:
+  # Priznak vklyucheniya advisor.
+  enabled: false
+  watering:
+    # TTL rekomendacii poliva.
+    ttl: "24h"
+  llm:
+    deepseek:
+      # Base URL dlya LLM.
+      baseUrl: "https://api.deepseek.com/v1/chat/completions"
+      # API key dlya LLM.
+      apiKey: ""
+      # Model LLM.
+      model: "deepseek-chat"
+      # Timeout zaprosa (sek).
+      requestTimeoutSeconds: 15
+
 plant:
   history:
     # Maksimal'noe kolichestvo tochek.
