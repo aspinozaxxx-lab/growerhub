@@ -61,7 +61,7 @@ server:
 
 advisor:
   # Priznak vklyucheniya advisor.
-  enabled: false
+  enabled: true
   watering:
     # TTL rekomendacii poliva.
     ttl: "24h"
