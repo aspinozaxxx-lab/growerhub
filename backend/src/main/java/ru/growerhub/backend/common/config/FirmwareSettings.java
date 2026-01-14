@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.config;
+﻿﻿﻿package ru.growerhub.backend.common.config;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;

@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.config;
+﻿﻿﻿package ru.growerhub.backend.common.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.CacheControl;

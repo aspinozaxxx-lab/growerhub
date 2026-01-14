@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.mqtt;
+﻿﻿package ru.growerhub.backend.mqtt;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,7 +8,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import ru.growerhub.backend.config.AckSettings;
+import ru.growerhub.backend.common.config.AckSettings;
 import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.mqtt.model.DeviceState;

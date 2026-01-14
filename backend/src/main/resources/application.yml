@@ -1,0 +1,12 @@
+﻿ack:
+  ttlSeconds: 180
+  cleanupPeriodSeconds: 60
+
+device:
+  onlineThresholdS: 60
+
+firmware:
+  binariesDir: "server/firmware_binaries"
+
+server:
+  publicBaseUrl: "https://growerhub.ru"

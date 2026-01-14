@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.firmware;
+﻿﻿package ru.growerhub.backend.firmware;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.growerhub.backend.common.contract.DomainException;
-import ru.growerhub.backend.config.ServerSettings;
+import ru.growerhub.backend.common.config.ServerSettings;
 import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceFirmwareStatus;
 import ru.growerhub.backend.firmware.contract.FirmwareCheckResult;

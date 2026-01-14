@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.config.security;
+﻿﻿﻿package ru.growerhub.backend.common.config.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;

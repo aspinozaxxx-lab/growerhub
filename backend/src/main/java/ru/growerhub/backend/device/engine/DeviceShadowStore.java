@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
-import ru.growerhub.backend.config.DeviceSettings;
+import ru.growerhub.backend.common.config.DeviceSettings;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;

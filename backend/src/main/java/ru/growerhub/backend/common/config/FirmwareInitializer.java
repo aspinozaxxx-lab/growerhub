@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.config;
+﻿﻿﻿package ru.growerhub.backend.common.config;
 
 import java.io.IOException;
 import java.nio.file.Files;

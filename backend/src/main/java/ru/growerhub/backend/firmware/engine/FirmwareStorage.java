@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.firmware.engine;
+﻿﻿package ru.growerhub.backend.firmware.engine;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,7 +12,7 @@ import java.util.HexFormat;
 import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
-import ru.growerhub.backend.config.FirmwareSettings;
+import ru.growerhub.backend.common.config.FirmwareSettings;
 import ru.growerhub.backend.firmware.contract.FirmwareVersionInfo;
 
 @Component

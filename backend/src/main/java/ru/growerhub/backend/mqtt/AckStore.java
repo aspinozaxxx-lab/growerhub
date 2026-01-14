@@ -1,11 +1,11 @@
-﻿package ru.growerhub.backend.mqtt;
+﻿﻿package ru.growerhub.backend.mqtt;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
-import ru.growerhub.backend.config.AckSettings;
+import ru.growerhub.backend.common.config.AckSettings;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
 
 @Component
