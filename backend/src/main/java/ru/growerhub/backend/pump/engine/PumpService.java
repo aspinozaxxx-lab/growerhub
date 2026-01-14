@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.pump.jpa.PumpEntity;
 import ru.growerhub.backend.pump.jpa.PumpRepository;
 
@@ -18,12 +17,10 @@ public class PumpService {
         this.pumpRepository = pumpRepository;
     }
 
-    @Transactional
     public PumpEntity ensureDefaultPump(Integer deviceId) {
         return ensurePump(deviceId, DEFAULT_CHANNEL);
     }
 
-    @Transactional
     public PumpEntity ensurePump(Integer deviceId, int channel) {
         if (deviceId == null) {
             return null;
@@ -41,7 +38,6 @@ public class PumpService {
         return pumpRepository.save(pump);
     }
 
-    @Transactional
     public List<PumpEntity> listByDevice(Integer deviceId, boolean ensureDefault) {
         if (deviceId == null) {
             return List.of();
@@ -56,7 +52,6 @@ public class PumpService {
         return pumps;
     }
 
-    @Transactional
     public void deleteAllByDeviceId(Integer deviceId) {
         if (deviceId == null) {
             return;

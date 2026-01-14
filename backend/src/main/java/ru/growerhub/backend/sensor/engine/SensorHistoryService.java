@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.sensor.contract.SensorMeasurement;
 import ru.growerhub.backend.sensor.contract.SensorReadingSummary;
@@ -30,7 +29,6 @@ public class SensorHistoryService {
         this.deviceFacade = deviceFacade;
     }
 
-    @Transactional
     public List<SensorReadingSummary> record(String deviceId, List<SensorMeasurement> measurements, LocalDateTime ts) {
         if (measurements == null || measurements.isEmpty()) {
             return List.of();

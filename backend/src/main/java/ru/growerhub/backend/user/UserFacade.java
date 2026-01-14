@@ -6,10 +6,9 @@ import java.util.List;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.growerhub.backend.auth.AuthFacade;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.common.component.PasswordHasher;
-import ru.growerhub.backend.db.UserAuthIdentityEntity;
-import ru.growerhub.backend.db.UserAuthIdentityRepository;
 import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.user.jpa.UserEntity;
 import ru.growerhub.backend.user.jpa.UserRepository;
@@ -17,19 +16,19 @@ import ru.growerhub.backend.user.jpa.UserRepository;
 @Service
 public class UserFacade {
     private final UserRepository userRepository;
-    private final UserAuthIdentityRepository identityRepository;
     private final PasswordHasher passwordHasher;
+    private final AuthFacade authFacade;
     private final DeviceFacade deviceFacade;
 
     public UserFacade(
             UserRepository userRepository,
-            UserAuthIdentityRepository identityRepository,
             PasswordHasher passwordHasher,
+            @Lazy AuthFacade authFacade,
             @Lazy DeviceFacade deviceFacade
     ) {
         this.userRepository = userRepository;
-        this.identityRepository = identityRepository;
         this.passwordHasher = passwordHasher;
+        this.authFacade = authFacade;
         this.deviceFacade = deviceFacade;
     }
 
@@ -87,15 +86,7 @@ public class UserFacade {
                 now
         );
         userRepository.save(created);
-        UserAuthIdentityEntity identity = UserAuthIdentityEntity.create(
-                created.getId(),
-                "local",
-                null,
-                passwordHasher.hash(password),
-                now,
-                now
-        );
-        identityRepository.save(identity);
+        authFacade.createLocalIdentity(created.getId(), passwordHasher.hash(password), now);
         return toProfile(created);
     }
 
@@ -180,7 +171,7 @@ public class UserFacade {
             return false;
         }
         deviceFacade.unassignDevicesForUser(userId);
-        identityRepository.deleteAllByUserId(userId);
+        authFacade.deleteIdentities(userId);
         userRepository.delete(target);
         return true;
     }

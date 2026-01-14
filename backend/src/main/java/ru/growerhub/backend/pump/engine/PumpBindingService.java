@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.DeviceFacade;
@@ -37,7 +36,6 @@ public class PumpBindingService {
         this.deviceFacade = deviceFacade;
     }
 
-    @Transactional
     public void updateBindings(Integer pumpId, List<PumpBindingItem> items, AuthenticatedUser user) {
         PumpEntity pump = pumpRepository.findById(pumpId).orElse(null);
         if (pump == null) {

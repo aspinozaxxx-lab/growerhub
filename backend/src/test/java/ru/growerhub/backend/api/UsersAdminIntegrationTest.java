@@ -25,8 +25,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
-import ru.growerhub.backend.db.UserAuthIdentityEntity;
-import ru.growerhub.backend.db.UserAuthIdentityRepository;
+import ru.growerhub.backend.auth.jpa.UserAuthIdentityEntity;
+import ru.growerhub.backend.auth.jpa.UserAuthIdentityRepository;
 import ru.growerhub.backend.user.jpa.UserEntity;
 import ru.growerhub.backend.user.jpa.UserRepository;
 

@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.db;
+﻿﻿package ru.growerhub.backend.auth.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

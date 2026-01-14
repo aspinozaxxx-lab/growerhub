@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Set;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.DeviceFacade;
@@ -38,7 +37,6 @@ public class SensorBindingService {
         this.deviceFacade = deviceFacade;
     }
 
-    @Transactional
     public void updateBindings(Integer sensorId, List<Integer> plantIds, AuthenticatedUser user) {
         SensorEntity sensor = sensorRepository.findById(sensorId).orElse(null);
         if (sensor == null) {
@@ -84,7 +82,6 @@ public class SensorBindingService {
         }
     }
 
-    @Transactional(readOnly = true)
     public Map<Integer, List<Integer>> getPlantIdsBySensorIds(List<Integer> sensorIds) {
         if (sensorIds == null || sensorIds.isEmpty()) {
             return Map.of();

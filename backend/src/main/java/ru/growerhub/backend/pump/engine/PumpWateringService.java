@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.DeviceFacade;
@@ -53,7 +52,6 @@ public class PumpWateringService {
         this.commandGateway = commandGateway;
     }
 
-    @Transactional
     public PumpStartResult start(Integer pumpId, PumpWateringRequest request, AuthenticatedUser user) {
         PumpEntity pump = requirePumpAccess(pumpId, user);
         List<PumpPlantBindingEntity> bindings = bindingRepository.findAllByPump_Id(pumpId);

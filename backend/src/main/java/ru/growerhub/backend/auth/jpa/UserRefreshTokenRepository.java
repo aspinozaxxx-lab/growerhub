@@ -1,4 +1,4 @@
-package ru.growerhub.backend.db;
+package ru.growerhub.backend.auth.jpa;
 
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;

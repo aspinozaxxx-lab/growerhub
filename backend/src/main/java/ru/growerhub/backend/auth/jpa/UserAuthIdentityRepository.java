@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.db;
+﻿﻿package ru.growerhub.backend.auth.jpa;
 
 import java.util.List;
 import java.util.Optional;

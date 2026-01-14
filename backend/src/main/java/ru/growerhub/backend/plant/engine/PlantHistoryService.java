@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.plant.contract.PlantMetricType;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
@@ -33,7 +32,6 @@ public class PlantHistoryService {
         this.sensorFacade = sensorFacade;
     }
 
-    @Transactional
     public void recordFromSensorBindings(List<SensorReadingSummary> summaries) {
         if (summaries == null || summaries.isEmpty()) {
             return;
@@ -81,7 +79,6 @@ public class PlantHistoryService {
         }
     }
 
-    @Transactional
     public void recordWateringEvent(PlantEntity plant, double volumeL, LocalDateTime eventAt) {
         if (plant == null) {
             return;

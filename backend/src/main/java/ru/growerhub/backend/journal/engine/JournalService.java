@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.journal.jpa.PlantJournalEntryEntity;
 import ru.growerhub.backend.journal.jpa.PlantJournalEntryRepository;
 import ru.growerhub.backend.journal.jpa.PlantJournalPhotoEntity;
@@ -24,7 +23,6 @@ public class JournalService {
         this.photoRepository = photoRepository;
     }
 
-    @Transactional
     public void createWateringEntries(
             List<WateringTarget> targets,
             Integer userId,
@@ -56,7 +54,6 @@ public class JournalService {
         }
     }
 
-    @Transactional
     public PlantJournalEntryEntity createEntry(
             Integer plantId,
             Integer userId,
@@ -89,7 +86,6 @@ public class JournalService {
         return entry;
     }
 
-    @Transactional
     public PlantJournalEntryEntity updateEntry(PlantJournalEntryEntity entry, String type, String text) {
         if (type != null) {
             entry.setType(type);
@@ -117,4 +113,3 @@ public class JournalService {
     public record WateringTarget(Integer plantId, int durationS, double waterVolumeL) {
     }
 }
-

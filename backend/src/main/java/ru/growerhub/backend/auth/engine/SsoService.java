@@ -18,8 +18,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Service;
-import ru.growerhub.backend.db.UserAuthIdentityEntity;
-import ru.growerhub.backend.db.UserAuthIdentityRepository;
+import ru.growerhub.backend.auth.jpa.UserAuthIdentityEntity;
+import ru.growerhub.backend.auth.jpa.UserAuthIdentityRepository;
 import ru.growerhub.backend.user.UserFacade;
 
 @Service

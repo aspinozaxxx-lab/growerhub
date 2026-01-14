@@ -26,10 +26,10 @@ import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.auth.engine.AuthSettings;
 import ru.growerhub.backend.common.component.PasswordHasher;
 import ru.growerhub.backend.auth.engine.RefreshTokenService;
-import ru.growerhub.backend.db.UserAuthIdentityEntity;
-import ru.growerhub.backend.db.UserAuthIdentityRepository;
-import ru.growerhub.backend.db.UserRefreshTokenEntity;
-import ru.growerhub.backend.db.UserRefreshTokenRepository;
+import ru.growerhub.backend.auth.jpa.UserAuthIdentityEntity;
+import ru.growerhub.backend.auth.jpa.UserAuthIdentityRepository;
+import ru.growerhub.backend.auth.jpa.UserRefreshTokenEntity;
+import ru.growerhub.backend.auth.jpa.UserRefreshTokenRepository;
 import ru.growerhub.backend.user.jpa.UserEntity;
 import ru.growerhub.backend.user.jpa.UserRepository;
 

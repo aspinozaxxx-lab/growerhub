@@ -14,10 +14,10 @@ import ru.growerhub.backend.auth.contract.AuthTokens;
 import ru.growerhub.backend.auth.contract.AuthUserProfile;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.common.contract.PasswordHasher;
-import ru.growerhub.backend.db.UserAuthIdentityEntity;
-import ru.growerhub.backend.db.UserAuthIdentityRepository;
-import ru.growerhub.backend.db.UserRefreshTokenEntity;
-import ru.growerhub.backend.db.UserRefreshTokenRepository;
+import ru.growerhub.backend.auth.jpa.UserAuthIdentityEntity;
+import ru.growerhub.backend.auth.jpa.UserAuthIdentityRepository;
+import ru.growerhub.backend.auth.jpa.UserRefreshTokenEntity;
+import ru.growerhub.backend.auth.jpa.UserRefreshTokenRepository;
 import ru.growerhub.backend.user.UserFacade;
 
 @Service
@@ -251,6 +251,28 @@ public class AuthService {
             throw new DomainException("unauthorized", "Not authenticated");
         }
         return buildAuthMethods(user);
+    }
+
+    public void createLocalIdentity(Integer userId, String passwordHash, LocalDateTime now) {
+        if (userId == null) {
+            throw new DomainException("bad_request", "user_id ne ukazan");
+        }
+        UserAuthIdentityEntity identity = UserAuthIdentityEntity.create(
+                userId,
+                "local",
+                null,
+                passwordHash,
+                now,
+                now
+        );
+        identityRepository.save(identity);
+    }
+
+    public void deleteIdentities(Integer userId) {
+        if (userId == null) {
+            return;
+        }
+        identityRepository.deleteAllByUserId(userId);
     }
 
     public Integer resolveOptionalUserId(String authorizationHeader) {

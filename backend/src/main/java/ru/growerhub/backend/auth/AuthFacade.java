@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Service;
@@ -16,7 +17,7 @@ import ru.growerhub.backend.auth.engine.JwtService;
 import ru.growerhub.backend.auth.engine.SsoService;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
-import ru.growerhub.backend.db.UserAuthIdentityEntity;
+import ru.growerhub.backend.auth.jpa.UserAuthIdentityEntity;
 
 @Service
 public class AuthFacade {
@@ -205,6 +206,14 @@ public class AuthFacade {
             throw new DomainException("unauthorized", "Not authenticated");
         }
         return authService.deleteMethod(user.id(), provider);
+    }
+
+    public void createLocalIdentity(Integer userId, String passwordHash, LocalDateTime now) {
+        authService.createLocalIdentity(userId, passwordHash, now);
+    }
+
+    public void deleteIdentities(Integer userId) {
+        authService.deleteIdentities(userId);
     }
 
     public Integer parseUserId(String token) {
