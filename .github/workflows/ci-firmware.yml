@@ -32,5 +32,5 @@ jobs:
       - name: Show PlatformIO version
         run: pio --version
 
-      - name: Run WiFiService tests
-        run: pio test -e wifi_service_test_legacy -v
+      - name: Run tests
+        run: pio test -e test -v
