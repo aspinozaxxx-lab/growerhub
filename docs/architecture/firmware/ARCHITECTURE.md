@@ -1,4 +1,4 @@
-﻿# Firmware: фактическая архитектура (v2, src2/test2)
+﻿# Firmware: фактическая архитектура (v2, src/test)
 
 Слои:
 - core: Context, EventQueue, Scheduler, AppRuntime.
@@ -29,5 +29,5 @@ State и команды:
 - State формируется в StateModule и публикуется через MqttService.
 - MQTT команды обрабатывает CommandRouterModule через события из MqttService/EventQueue.
 
-Тесты (test2/test_v2):
+Тесты (test/test_v2):
 - Набор unit-тестов модулей и сервисов (command_router, config_sync, mqtt_codec, time_service и др.).

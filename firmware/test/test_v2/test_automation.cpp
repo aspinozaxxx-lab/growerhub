@@ -66,7 +66,7 @@ static void PrimeScanner(Modules::SensorHubModule& hub) {
 
 void test_auto_moisture_port0() {
   Services::StorageService storage;
-  storage.SetRootForTests("test2/tmp/test_storage_auto");
+  storage.SetRootForTests("test/tmp/test_storage_auto");
   Core::Context ctx{};
   storage.Init(ctx);
 
@@ -125,7 +125,7 @@ void test_auto_moisture_port0() {
 
 void test_auto_moisture_port1() {
   Services::StorageService storage;
-  storage.SetRootForTests("test2/tmp/test_storage_auto2");
+  storage.SetRootForTests("test/tmp/test_storage_auto2");
   Core::Context ctx{};
   storage.Init(ctx);
 
@@ -181,7 +181,7 @@ void test_auto_moisture_port1() {
 
 void test_auto_min_time_between() {
   Services::StorageService storage;
-  storage.SetRootForTests("test2/tmp/test_storage_auto3");
+  storage.SetRootForTests("test/tmp/test_storage_auto3");
   Core::Context ctx{};
   storage.Init(ctx);
 
@@ -237,7 +237,7 @@ void test_auto_min_time_between() {
 
 void test_auto_schedule_trigger_once() {
   Services::StorageService storage;
-  storage.SetRootForTests("test2/tmp/test_storage_auto4");
+  storage.SetRootForTests("test/tmp/test_storage_auto4");
   Core::Context ctx{};
   storage.Init(ctx);
 
@@ -288,7 +288,7 @@ void test_auto_schedule_trigger_once() {
 
 void test_light_schedule_overnight() {
   Services::StorageService storage;
-  storage.SetRootForTests("test2/tmp/test_storage_auto5");
+  storage.SetRootForTests("test/tmp/test_storage_auto5");
   Core::Context ctx{};
   storage.Init(ctx);
 

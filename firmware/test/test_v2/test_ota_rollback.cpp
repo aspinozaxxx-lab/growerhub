@@ -12,7 +12,7 @@ static void RollbackHook() {
 
 void test_ota_pending_confirm() {
   Services::StorageService storage;
-  storage.SetRootForTests("test2/tmp/test_storage_ota1");
+  storage.SetRootForTests("test/tmp/test_storage_ota1");
   Core::Context ctx{};
   storage.Init(ctx);
 
@@ -30,7 +30,7 @@ void test_ota_pending_confirm() {
 
 void test_ota_boot_failures_trigger() {
   Services::StorageService storage;
-  storage.SetRootForTests("test2/tmp/test_storage_ota2");
+  storage.SetRootForTests("test/tmp/test_storage_ota2");
   Core::Context ctx{};
   storage.Init(ctx);
 
@@ -50,7 +50,7 @@ void test_ota_boot_failures_trigger() {
 
 void test_ota_timeout_trigger() {
   Services::StorageService storage;
-  storage.SetRootForTests("test2/tmp/test_storage_ota3");
+  storage.SetRootForTests("test/tmp/test_storage_ota3");
   Core::Context ctx{};
   storage.Init(ctx);
 

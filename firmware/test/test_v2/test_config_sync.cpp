@@ -12,9 +12,9 @@
 #include "util/JsonUtil.h"
 
 void test_config_sync_apply_retained() {
-  std::remove("test2/tmp/test_storage_sync/cfg/scenarios.json");
-  std::remove("test2/tmp/test_storage_sync/cfg");
-  std::remove("test2/tmp/test_storage_sync");
+  std::remove("test/tmp/test_storage_sync/cfg/scenarios.json");
+  std::remove("test/tmp/test_storage_sync/cfg");
+  std::remove("test/tmp/test_storage_sync");
 
   Core::Scheduler scheduler;
   Core::EventQueue queue;
@@ -25,7 +25,7 @@ void test_config_sync_apply_retained() {
   const char* device_id = "grovika_040AB1";
 
   Core::Context ctx{&scheduler, &queue, &mqtt, &storage, nullptr, nullptr, &sync, nullptr, nullptr, &hw, device_id};
-  storage.SetRootForTests("test2/tmp/test_storage_sync");
+  storage.SetRootForTests("test/tmp/test_storage_sync");
   storage.Init(ctx);
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);

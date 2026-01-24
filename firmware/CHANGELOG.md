@@ -1,3 +1,6 @@
+﻿## 2026-01-24
+- refactor: udalena legacy src/test, v2 pereexal v src/test, obnovlen platformio.ini i puti test storage.
+
 ﻿# Changelog
 
 ## 2026-01-06
@@ -10,7 +13,7 @@
 ## 2025-12-28
 - fix(v2): dobavlen MQTT connect/reconnect v MqttService (setServer, retry 5s, rc reason).
 - feat(v2): rasshireny logi [WIFI]/[CFG]/[MQTT]/[STATE]/[CMD] dlya podklyucheniya, konfiguracii, publish i rx.
-- docs(v2): Dobavleny dokumentacionnye kommentarii (shapki fajlov + opisaniya parametrov publichnyh API) dlya v2 src2.
+- docs(v2): Dobavleny dokumentacionnye kommentarii (shapki fajlov + opisaniya parametrov publichnyh API) dlya v2 src.
 - feat(v2): migraciya proshivki Grovika v novyj karkas (runtime, modulnaya arhitektura, MQTT cmd/ack/state).
 - feat(v2): AP + web-setup dlya Wi-Fi, builtin defaults, zapis wifi.json.
 - feat(v2): storage na LittleFS, retained cfg sync (scenarios.json), validaciya i migraciya shemy.
@@ -20,7 +23,7 @@
 - remove(v2): udalena REST telemetriya (HTTP POST status) iz v2.
 - test(v2): 39 unity-testov (native) - codec/ack, config/storage, wifi/web, soil/automation, ota rollback, dht22, scheduler/event queue.
 - fix(v2): device_id teper' stroitsya kak v legacy (grovika_ + 3 bajta MAC, verhnij registr), dobavlen DeviceIdentity i unity-test.
-- test(v2): test_storage_* ubrany iz korna, testovye khranilishcha pereneseny v test2/tmp, dobavlen gitignore.
+- test(v2): test_storage_* ubrany iz korna, testovye khranilishcha pereneseny v test/tmp, dobavlen gitignore.
 - fix(v2): DHT22 otklyuchen po umolchaniyu; LittleFS sozdaet /cfg i defolt scenarii/device.json bez oshibok.
 - fix(v2): web-portal Wi-Fi prinimaet /save po GET i POST dlya sohraneniya.
 

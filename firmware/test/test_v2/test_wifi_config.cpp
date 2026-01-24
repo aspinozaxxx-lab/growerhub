@@ -8,9 +8,9 @@
 #include "util/JsonUtil.h"
 
 static void CleanupWifiConfigStorage() {
-  std::remove("test2/tmp/test_storage_wifi_config/cfg/wifi.json");
-  std::remove("test2/tmp/test_storage_wifi_config/cfg");
-  std::remove("test2/tmp/test_storage_wifi_config");
+  std::remove("test/tmp/test_storage_wifi_config/cfg/wifi.json");
+  std::remove("test/tmp/test_storage_wifi_config/cfg");
+  std::remove("test/tmp/test_storage_wifi_config");
 }
 
 void test_wifi_config_codec_storage() {
@@ -20,7 +20,7 @@ void test_wifi_config_codec_storage() {
   Services::StorageService storage;
   ctx.storage = &storage;
 
-  storage.SetRootForTests("test2/tmp/test_storage_wifi_config");
+  storage.SetRootForTests("test/tmp/test_storage_wifi_config");
   storage.Init(ctx);
 
   const char* ssids[] = {"HomeWiFi", "OfficeWiFi"};

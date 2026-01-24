@@ -3,7 +3,7 @@
 Компоненты:
 - Frontend (React).
 - Backend (Java).
-- Firmware (C++ src2).
+- Firmware (C++ src).
 - Devices (железо).
 - DB.
 - MQTT broker.

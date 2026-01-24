@@ -18,5 +18,5 @@ backend/BOUNDARIES фиксирует конкретную матрицу имп
 - backend/ARCHITECTURE.md - архитектура backend.
 - backend/BOUNDARIES.md - правила зависимостей backend.
 - frontend/ARCHITECTURE.md - фактическая архитектура frontend.
-- firmware/ARCHITECTURE.md - фактическая архитектура firmware (src2/test2).
+- firmware/ARCHITECTURE.md - фактическая архитектура firmware (src/test).
 - adr/README.md - когда и как оформлять ADR.

@@ -6,9 +6,9 @@
 #include "services/WiFiService.h"
 
 static void CleanupWifiStorage() {
-  std::remove("test2/tmp/test_storage_wifi/cfg/wifi.json");
-  std::remove("test2/tmp/test_storage_wifi/cfg");
-  std::remove("test2/tmp/test_storage_wifi");
+  std::remove("test/tmp/test_storage_wifi/cfg/wifi.json");
+  std::remove("test/tmp/test_storage_wifi/cfg");
+  std::remove("test/tmp/test_storage_wifi");
 }
 
 void test_wifi_defaults_builtin() {
@@ -19,7 +19,7 @@ void test_wifi_defaults_builtin() {
   Services::WiFiService wifi;
   ctx.storage = &storage;
 
-  storage.SetRootForTests("test2/tmp/test_storage_wifi");
+  storage.SetRootForTests("test/tmp/test_storage_wifi");
   storage.Init(ctx);
   wifi.Init(ctx);
 
@@ -37,7 +37,7 @@ void test_wifi_defaults_user_override() {
   Services::WiFiService wifi;
   ctx.storage = &storage;
 
-  storage.SetRootForTests("test2/tmp/test_storage_wifi");
+  storage.SetRootForTests("test/tmp/test_storage_wifi");
   storage.Init(ctx);
 
   const char* payload =
