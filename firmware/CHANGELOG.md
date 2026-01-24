@@ -1,4 +1,5 @@
 ﻿## 2026-01-24
+- test: vklyuchen UNITY 64-bit support dlya native test env.
 - ci: CI pereshel na env test.
 - refactor: udalena legacy src/test, v2 pereexal v src/test, obnovlen platformio.ini i puti test storage.
 
