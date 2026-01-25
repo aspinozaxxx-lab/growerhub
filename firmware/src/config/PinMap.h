@@ -24,6 +24,10 @@ struct PinMap {
   uint8_t soil_adc_pins[2];
   // Pin datchika DHT22.
   uint8_t dht_pin;
+  // Pin SDA dlya I2C RTC.
+  uint8_t rtc_sda_pin;
+  // Pin SCL dlya I2C RTC.
+  uint8_t rtc_scl_pin;
 };
 
 }

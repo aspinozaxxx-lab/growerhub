@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <ctime>
 
+#include "config/HardwareProfile.h"
 #include "util/Logger.h"
 
 #if defined(ARDUINO)
@@ -27,11 +28,6 @@ namespace {
   const uint8_t kTimeRegStart = 0x00;
   // Kolichestvo registrov vremeni (sek-min-hour-wday-day-month-year).
   const size_t kTimeRegCount = 7;
-  // Pin SDA dlya I2C RTC (ESP32 po umolchaniyu).
-  const uint8_t kRtcSdaPin = 21;
-  // Pin SCL dlya I2C RTC (ESP32 po umolchaniyu).
-  const uint8_t kRtcSclPin = 22;
-
   // Dekodiruet BCD znachenie v desyatichnoe.
   bool DecodeBcd(uint8_t value, uint8_t* out) {
     if (!out) {
@@ -161,7 +157,8 @@ namespace {
 // Inicializaciya RTC DS3231 po I2C.
 bool Ds3231Driver::Init() {
 #if defined(ARDUINO)
-  if (!Wire.begin(kRtcSdaPin, kRtcSclPin)) {
+  const Config::HardwareProfile& profile = Config::GetHardwareProfile();
+  if (!Wire.begin(profile.pins.rtc_sda_pin, profile.pins.rtc_scl_pin)) {
     Util::Logger::Info("RTC: wire begin fail");
     ready_ = false;
     return false;

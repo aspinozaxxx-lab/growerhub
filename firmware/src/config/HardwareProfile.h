@@ -31,14 +31,24 @@ struct HardwareProfile {
  * Vozvrashaet defoltnyi profil zheleza.
  */
 inline const HardwareProfile& GetHardwareProfile() {
-  static const HardwareProfile profile = {
+  static const HardwareProfile default_profile = {
       "default",
-      {4, false, 5, false, {34, 35}, 15},
+      {4, false, 5, false, {34, 35}, 15, 21, 22},
       2,
       true,
       true,
       300000};
-  return profile;
+#if defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
+  static const HardwareProfile esp32c3_supermini_profile = {
+      "esp32c3_supermini",
+      {3, false, 5, false, {0, 0}, 1, 4, 5},
+      1,
+      true,
+      true,
+      300000};
+  return esp32c3_supermini_profile;
+#endif
+  return default_profile;
 }
 
 }
