@@ -432,14 +432,13 @@ WiFiNetworkList WiFiService::GetPreferredNetworks() const {
 bool WiFiService::LoadUserNetworks(WiFiNetworkList& out) const {
   out.count = 0;
   if (!storage_) {
-    Util::Logger::Info("[CFG] wifi.json skip: no storage");
+    Util::Logger::Info("[WIFI] cfg file missing -> builtin defaults");
     return false;
   }
   if (!storage_->Exists("/cfg/wifi.json")) {
-    Util::Logger::Info("[CFG] wifi.json not_found");
+    Util::Logger::Info("[WIFI] cfg file missing -> builtin defaults");
     return false;
   }
-  Util::Logger::Info("[CFG] wifi.json found");
   char json[2048];
   if (!storage_->ReadFile("/cfg/wifi.json", json, sizeof(json))) {
     Util::Logger::Info("[CFG] wifi.json read_fail");
@@ -450,7 +449,11 @@ bool WiFiService::LoadUserNetworks(WiFiNetworkList& out) const {
     out.count = 0;
     return false;
   }
-  return out.count > 0;
+  if (out.count > 0) {
+    Util::Logger::Info("[WIFI] cfg file loaded");
+    return true;
+  }
+  return false;
 }
 
 WiFiNetworkList WiFiService::LoadBuiltinNetworks() {

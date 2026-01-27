@@ -219,6 +219,11 @@ void CommandRouterModule::RebootIfSafeInternal(const char* correlation_id, bool 
     state_->PublishState(false);
   }
 
+  const char* reason_text = reason && reason[0] != '\0' ? reason : (send_ack ? "cmd" : "request");
+  char log_buf[160];
+  std::snprintf(log_buf, sizeof(log_buf), "[SYS] restart reason=%s", reason_text);
+  Util::Logger::Info(log_buf);
+
   SleepMs(kRebootGraceDelayMs);
   if (rebooter_) {
     rebooter_->Restart();

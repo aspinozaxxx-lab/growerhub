@@ -99,37 +99,22 @@ static bool EnsureDefaultDevice(StorageService& storage) {
 void StorageService::Init(Core::Context& ctx) {
   (void)ctx;
   Util::Logger::Info("[CFG] storage init");
+  mounted_ = true;
 
 #if defined(ARDUINO)
-  bool mounted = LittleFS.begin();
-  bool formatted = false;
-  if (mounted) {
-    char buf[128];
-    std::snprintf(buf,
-                  sizeof(buf),
-                  "[CFG] littlefs zapusk ok total=%lu used=%lu",
-                  static_cast<unsigned long>(LittleFS.totalBytes()),
-                  static_cast<unsigned long>(LittleFS.usedBytes()));
-    Util::Logger::Info(buf);
+  mounted_ = LittleFS.begin();
+  if (mounted_) {
+    Util::Logger::Info("[FS] mount ok");
   } else {
-    Util::Logger::Info("[CFG] littlefs zapusk fail");
-  }
-  if (!mounted) {
-    mounted = LittleFS.begin(true);
-    formatted = mounted;
-    if (mounted) {
-      char buf[128];
-      std::snprintf(buf,
-                    sizeof(buf),
-                    "[CFG] littlefs zapusk ok posle format total=%lu used=%lu",
-                    static_cast<unsigned long>(LittleFS.totalBytes()),
-                    static_cast<unsigned long>(LittleFS.usedBytes()));
-      Util::Logger::Info(buf);
-    } else {
-      Util::Logger::Info("[CFG] littlefs zapusk fail posle format");
+    Util::Logger::Info("[FS] mount failed -> format");
+    const bool formatted = LittleFS.format();
+    Util::Logger::Info(formatted ? "[FS] format ok" : "[FS] format failed");
+    mounted_ = LittleFS.begin();
+    if (mounted_) {
+      Util::Logger::Info("[FS] mount ok");
     }
   }
-  if (mounted) {
+  if (mounted_) {
     if (!EnsureCfgDir()) {
       Util::Logger::Info("[CFG] littlefs mkdir /cfg fail");
     }
@@ -161,6 +146,9 @@ bool StorageService::ReadFile(const char* path, char* out, size_t out_size) {
   }
 
 #if defined(ARDUINO)
+  if (!mounted_) {
+    return false;
+  }
   File file = LittleFS.open(full_path, "r");
   if (!file) {
     return false;
@@ -199,6 +187,9 @@ bool StorageService::WriteFileAtomic(const char* path, const char* payload) {
   std::snprintf(temp_path, sizeof(temp_path), "%s.tmp", full_path);
 
 #if defined(ARDUINO)
+  if (!mounted_) {
+    return false;
+  }
   File file = LittleFS.open(temp_path, "w");
   if (!file) {
     return false;
@@ -245,6 +236,9 @@ bool StorageService::Exists(const char* path) const {
   }
 
 #if defined(ARDUINO)
+  if (!mounted_) {
+    return false;
+  }
   return LittleFS.exists(full_path);
 #else
   FILE* file = std::fopen(full_path, "r");

@@ -159,6 +159,11 @@ void AppRuntime::InitModules() {
 }
 
 void AppRuntime::DispatchEvent(const Event& event) {
+  if (event.type == Core::EventType::kWifiStaUp) {
+    mqtt_service_.SetWifiReady(true);
+  } else if (event.type == Core::EventType::kWifiStaDown) {
+    mqtt_service_.SetWifiReady(false);
+  }
   wifi_service_.OnEvent(context_, event);
   for (size_t i = 0; i < modules_.size(); ++i) {
     modules_[i]->OnEvent(context_, event);
@@ -172,5 +177,4 @@ void AppRuntime::HeartbeatTask(Context& ctx, uint32_t now_ms) {
 }
 
 }
-
 

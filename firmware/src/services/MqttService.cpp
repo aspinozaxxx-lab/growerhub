@@ -84,6 +84,8 @@ void MqttService::Init(Core::Context& ctx) {
   device_id_ = ctx.device_id;
   last_attempt_ms_ = 0;
   last_connected_ = false;
+  wifi_ready_ = false;
+  last_skip_log_ms_ = 0;
   Util::Logger::Info("[MQTT] init");
 #if defined(ARDUINO)
   active_instance_ = this;
@@ -101,9 +103,6 @@ void MqttService::Init(Core::Context& ctx) {
                 mqtt_host_,
                 static_cast<unsigned int>(mqtt_port_));
   Util::Logger::Info(log_buf);
-
-  const uint32_t now_ms = millis();
-  TryConnect(now_ms);
 #endif
 }
 
@@ -219,6 +218,16 @@ bool MqttService::IsConnected() {
 
 void MqttService::Loop() {
 #if defined(ARDUINO)
+  const uint32_t now_ms = millis();
+  if (!wifi_ready_) {
+    if (last_skip_log_ms_ == 0 ||
+        static_cast<int32_t>(now_ms - last_skip_log_ms_) >= static_cast<int32_t>(kReconnectIntervalMs)) {
+      Util::Logger::Info("[NET] wifi not ready -> skip mqtt");
+      last_skip_log_ms_ = now_ms;
+    }
+    return;
+  }
+  last_skip_log_ms_ = 0;
   const bool connected = mqtt_client_.connected();
   if (connected) {
     mqtt_client_.loop();
@@ -234,7 +243,6 @@ void MqttService::Loop() {
     Util::Logger::Info(log_buf);
   }
   if (!connected) {
-    const uint32_t now_ms = millis();
     if (now_ms - last_attempt_ms_ >= kReconnectIntervalMs) {
       TryConnect(now_ms);
     }
@@ -259,6 +267,30 @@ void MqttService::Loop() {
     }
   }
 #endif
+#endif
+}
+
+void MqttService::SetWifiReady(bool ready) {
+  if (ready == wifi_ready_) {
+    return;
+  }
+  wifi_ready_ = ready;
+#if defined(ARDUINO)
+  if (wifi_ready_) {
+    Util::Logger::Info("[NET] wifi ready -> start mqtt");
+    const uint32_t now_ms = millis();
+    last_attempt_ms_ = 0;
+    TryConnect(now_ms);
+  } else {
+    Util::Logger::Info("[NET] wifi lost -> stop mqtt");
+    if (mqtt_client_.connected()) {
+      mqtt_client_.disconnect();
+    }
+    last_connected_ = false;
+    last_attempt_ms_ = 0;
+  }
+#else
+  Util::Logger::Info(ready ? "[NET] wifi ready -> start mqtt" : "[NET] wifi lost -> stop mqtt");
 #endif
 }
 

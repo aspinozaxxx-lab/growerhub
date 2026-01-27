@@ -55,6 +55,11 @@ class MqttService {
    * Obrabatyvaet MQTT loop (Arduino).
    */
   void Loop();
+  /**
+   * Ustanavlivaet sostoyanie Wi-Fi dlya gate MQTT.
+   * @param ready Flag GOT_IP dlya STA.
+   */
+  void SetWifiReady(bool ready);
 
 #if defined(UNIT_TEST)
   /**
@@ -90,6 +95,8 @@ class MqttService {
   uint32_t last_attempt_ms_ = 0;
   bool last_connected_ = false;
   bool connected_ = false;
+  bool wifi_ready_ = false;
+  uint32_t last_skip_log_ms_ = 0;
 
 #if defined(ARDUINO)
   static constexpr size_t kPendingTopicMax = 128;
