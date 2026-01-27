@@ -47,7 +47,7 @@ inline const HardwareProfile& GetHardwareProfile() {
       {3, false, 5, false, {0, 0}, 1, 4, 5},
       1,
       true,
-      false,
+      true,
       300000,
       60};
   return esp32c3_supermini_profile;

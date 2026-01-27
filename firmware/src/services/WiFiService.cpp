@@ -26,7 +26,6 @@
 #include <esp_heap_caps.h>
 #endif
 #if defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
-#include "esp_log.h"
 #include "esp_wifi.h"
 #include "esp_wifi_types.h"
 #endif
@@ -34,12 +33,12 @@
 
 namespace Services {
 
-static const uint32_t kStaAttemptTimeoutMs = 20000;
+static const uint32_t kStaAttemptIntervalMs = 5000;
 static const char* kApSsidPrefix = "Grovika-";
 static const char* kApPassword = "grovika123";
 
 #if defined(ARDUINO) && defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
-static const char* C3WifiReasonName(uint8_t reason) {
+static const char* WifiReasonName(uint8_t reason) {
   switch (reason) {
     case WIFI_REASON_UNSPECIFIED:
       return "UNSPECIFIED";
@@ -160,27 +159,33 @@ static const char* C3WifiReasonName(uint8_t reason) {
   }
 }
 
-static bool g_c3_sta_disconnected = false;
-static bool g_c3_sta_got_ip = false;
-static uint8_t g_c3_last_disconnect_reason = 0;
-
-static void C3WifiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
+static void WiFiLogEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
   switch (event) {
-    case ARDUINO_EVENT_WIFI_STA_START:
-      break;
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+      Util::Logger::Info("[WIFI] sta_connected");
       break;
-    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
-      g_c3_last_disconnect_reason = info.wifi_sta_disconnected.reason;
-      g_c3_sta_disconnected = true;
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
+      const String ip = WiFi.localIP().toString();
+      const int rssi = WiFi.RSSI();
+      char log_buf[128];
+      std::snprintf(log_buf,
+                    sizeof(log_buf),
+                    "[WIFI] sta_got_ip ip=%s rssi=%d",
+                    ip.c_str(),
+                    rssi);
+      Util::Logger::Info(log_buf);
       break;
-    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
-      g_c3_sta_got_ip = true;
+    }
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: {
+      char log_buf[128];
+      std::snprintf(log_buf,
+                    sizeof(log_buf),
+                    "[WIFI] sta_disconnected reason=%s(%u)",
+                    WifiReasonName(info.wifi_sta_disconnected.reason),
+                    static_cast<unsigned int>(info.wifi_sta_disconnected.reason));
+      Util::Logger::Info(log_buf);
       break;
-    case ARDUINO_EVENT_WIFI_AP_START:
-      break;
-    case ARDUINO_EVENT_WIFI_AP_STOP:
-      break;
+    }
     default:
       break;
   }
@@ -318,30 +323,26 @@ void WiFiService::Init(Core::Context& ctx) {
   preferred_ = GetPreferredNetworks();
   sta_index_ = 0;
   last_attempt_ms_ = 0;
-  sta_state_ = StaState::kIdle;
   last_status_ = -1;
   ap_started_ = false;
   last_attempt_ssid_[0] = '\0';
 #if defined(ARDUINO) && defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
-  static bool c3_events_bound = false;
-  if (!c3_events_bound) {
-    WiFi.onEvent(C3WifiEvent);
-    c3_events_bound = true;
+  static bool events_bound = false;
+  if (!events_bound) {
+    WiFi.onEvent(WiFiLogEvent);
+    events_bound = true;
   }
-  esp_log_level_set("wifi", ESP_LOG_DEBUG);
-  g_c3_sta_disconnected = false;
-  g_c3_sta_got_ip = false;
-  g_c3_last_disconnect_reason = 0;
 #endif
   Util::Logger::Info("[WIFI] init");
 
   StartAccessPoint();
 #if defined(ARDUINO) && defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
+  // primenyaem tx power do pervogo STA connect
   const Config::HardwareProfile& hw = ctx.hardware ? *ctx.hardware : Config::GetHardwareProfile();
   if (std::strcmp(hw.name, "esp32c3_supermini") == 0 && hw.wifi_tx_power_qdbm > 0) {
     esp_wifi_set_max_tx_power(hw.wifi_tx_power_qdbm);
-    char log_buf[96];
     const float dbm = static_cast<float>(hw.wifi_tx_power_qdbm) / 4.0f;
+    char log_buf[96];
     if (hw.wifi_tx_power_qdbm % 4 == 0) {
       std::snprintf(log_buf,
                     sizeof(log_buf),
@@ -372,109 +373,29 @@ void WiFiService::Loop(Core::Context& ctx, uint32_t now_ms) {
 #if defined(ARDUINO)
   const int status = static_cast<int>(WiFi.status());
   if (status != last_status_) {
-    const char* ssid = last_attempt_ssid_[0] != '\0' ? last_attempt_ssid_ : "unknown";
-    const String current_ssid = WiFi.SSID();
-    if (current_ssid.length() > 0) {
-      ssid = current_ssid.c_str();
-    }
-    const String ip = WiFi.localIP().toString();
-    const int rssi = WiFi.RSSI();
-    char log_buf[256];
     if (status == WL_CONNECTED) {
-      std::snprintf(log_buf,
-                    sizeof(log_buf),
-                    "[WIFI] sta_up ssid=%s ip=%s rssi=%d status=%d",
-                    ssid,
-                    ip.c_str(),
-                    rssi,
-                    status);
-      Util::Logger::Info(log_buf);
       if (event_queue_) {
         Core::Event event{};
         event.type = Core::EventType::kWifiStaUp;
         event_queue_->Push(event);
       }
     } else if (last_status_ == WL_CONNECTED) {
-      std::snprintf(log_buf,
-                    sizeof(log_buf),
-                    "[WIFI] sta_down ssid=%s ip=%s rssi=%d status=%d",
-                    ssid,
-                    ip.c_str(),
-                    rssi,
-                    status);
-      Util::Logger::Info(log_buf);
       if (event_queue_) {
         Core::Event event{};
         event.type = Core::EventType::kWifiStaDown;
         event_queue_->Push(event);
       }
-    } else if (status == WL_CONNECT_FAILED || status == WL_NO_SSID_AVAIL || status == WL_DISCONNECTED) {
-      std::snprintf(log_buf,
-                    sizeof(log_buf),
-                    "[WIFI] sta_error ssid=%s ip=%s rssi=%d status=%d",
-                    ssid,
-                    ip.c_str(),
-                    rssi,
-                    status);
-      Util::Logger::Info(log_buf);
-    } else {
-      std::snprintf(log_buf,
-                    sizeof(log_buf),
-                    "[WIFI] sta_status ssid=%s ip=%s rssi=%d status=%d",
-                    ssid,
-                    ip.c_str(),
-                    rssi,
-                    status);
-      Util::Logger::Info(log_buf);
     }
     last_status_ = status;
   }
 
   if (status == WL_CONNECTED) {
-    sta_state_ = StaState::kConnected;
     return;
   }
-#if defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
-  if (g_c3_sta_got_ip) {
-    g_c3_sta_got_ip = false;
-    WiFi.setSleep(true);
-    sta_state_ = StaState::kConnected;
-    return;
-  }
-#endif
   if (preferred_.count == 0) {
-    sta_state_ = StaState::kIdle;
     return;
   }
-#if defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
-  if (g_c3_sta_disconnected) {
-    g_c3_sta_disconnected = false;
-    char log_buf[128];
-    std::snprintf(log_buf,
-                  sizeof(log_buf),
-                  "[WIFI] sta_disconnected reason=%u name=%s",
-                  static_cast<unsigned int>(g_c3_last_disconnect_reason),
-                  C3WifiReasonName(g_c3_last_disconnect_reason));
-    Util::Logger::Info(log_buf);
-    sta_state_ = StaState::kIdle;
-    sta_index_ = (sta_index_ + 1) % preferred_.count;
-    StartStaConnect(now_ms);
-    return;
-  }
-#endif
-  if (sta_state_ == StaState::kConnecting) {
-    if (now_ms - last_attempt_ms_ >= kStaAttemptTimeoutMs) {
-      char log_buf[128];
-      std::snprintf(log_buf,
-                    sizeof(log_buf),
-                    "[WIFI] sta_timeout ssid=%s ms=%lu",
-                    last_attempt_ssid_[0] ? last_attempt_ssid_ : "unknown",
-                    static_cast<unsigned long>(now_ms - last_attempt_ms_));
-      Util::Logger::Info(log_buf);
-      sta_state_ = StaState::kIdle;
-      sta_index_ = (sta_index_ + 1) % preferred_.count;
-      StartStaConnect(now_ms);
-    }
+  if (now_ms - last_attempt_ms_ < kStaAttemptIntervalMs) {
     return;
   }
   StartStaConnect(now_ms);
@@ -493,12 +414,6 @@ void WiFiService::OnEvent(Core::Context& ctx, const Core::Event& event) {
   last_attempt_ms_ = 0;
   last_attempt_ssid_[0] = '\0';
   last_status_ = -1;
-  sta_state_ = StaState::kIdle;
-#if defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
-  g_c3_sta_disconnected = false;
-  g_c3_sta_got_ip = false;
-  g_c3_last_disconnect_reason = 0;
-#endif
 #if defined(ARDUINO)
   WiFi.disconnect(true);
   StartStaConnect(0);
@@ -522,9 +437,6 @@ bool WiFiService::LoadUserNetworks(WiFiNetworkList& out) const {
   }
   if (!storage_->Exists("/cfg/wifi.json")) {
     Util::Logger::Info("[CFG] wifi.json not_found");
-#if defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
-    Util::Logger::Info("[CFG] wifi.json net, reboot otklyuchen, ap aktivan");
-#endif
     return false;
   }
   Util::Logger::Info("[CFG] wifi.json found");
@@ -627,9 +539,6 @@ void WiFiService::StartStaConnect(uint32_t now_ms) {
     return;
   }
 #if defined(ARDUINO)
-  if (sta_state_ == StaState::kConnecting) {
-    return;
-  }
   LogHeap("wifi_before_sta_connect");
   if (sta_index_ >= preferred_.count) {
     sta_index_ = 0;
@@ -639,46 +548,11 @@ void WiFiService::StartStaConnect(uint32_t now_ms) {
   char log_buf[128];
   std::snprintf(log_buf, sizeof(log_buf), "[WIFI] sta_connect ssid=%s", last_attempt_ssid_);
   Util::Logger::Info(log_buf);
-#if defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
-  static char c3_ssid_buf[kWifiSsidMaxLen + 1] = {};
-  static char c3_pass_buf[kWifiPasswordMaxLen + 1] = {};
-  CopyField(network.ssid, c3_ssid_buf, sizeof(c3_ssid_buf));
-  CopyField(network.password, c3_pass_buf, sizeof(c3_pass_buf));
-  static bool c3_scanned = false;
-  if (!c3_scanned) {
-    c3_scanned = true;
-    const int count = WiFi.scanNetworks();
-    bool found = false;
-    for (int i = 0; i < count; ++i) {
-      if (WiFi.SSID(i) == "JR") {
-        found = true;
-        const int rssi = WiFi.RSSI(i);
-        const int channel = WiFi.channel(i);
-        const uint8_t auth = static_cast<uint8_t>(WiFi.encryptionType(i));
-        (void)rssi;
-        (void)channel;
-        (void)auth;
-        break;
-      }
-    }
-    (void)found;
-  }
-  WiFi.setSleep(false);
-#endif
   WiFi.disconnect(true);
-  const wl_status_t begin_rc = WiFi.begin(
-#if defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
-      c3_ssid_buf,
-      c3_pass_buf
-#else
-      network.ssid,
-      network.password
-#endif
-  );
-  (void)begin_rc;
+  WiFi.begin(network.ssid, network.password);
 #endif
   last_attempt_ms_ = now_ms;
-  sta_state_ = StaState::kConnecting;
+  sta_index_ = (sta_index_ + 1) % preferred_.count;
 }
 
 void WiFiService::StartAccessPoint() {
@@ -693,9 +567,8 @@ void WiFiService::StartAccessPoint() {
   char log_buf[128];
   std::snprintf(log_buf,
                 sizeof(log_buf),
-                "[WIFI] ap_start ssid=%s ok=%s",
-                ap_ssid,
-                ap_started_ ? "true" : "false");
+                "[WIFI] ap_start ssid=%s",
+                ap_ssid);
   Util::Logger::Info(log_buf);
   if (ap_started_ && event_queue_) {
     Core::Event event{};
