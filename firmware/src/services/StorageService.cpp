@@ -103,15 +103,33 @@ void StorageService::Init(Core::Context& ctx) {
 #if defined(ARDUINO)
   bool mounted = LittleFS.begin();
   bool formatted = false;
-  if (!mounted) {
-    Util::Logger::Info("[CFG] littlefs mount fail, format");
-    mounted = LittleFS.begin(true);
-    formatted = mounted;
+  if (mounted) {
+    char buf[128];
+    std::snprintf(buf,
+                  sizeof(buf),
+                  "[CFG] littlefs zapusk ok total=%lu used=%lu",
+                  static_cast<unsigned long>(LittleFS.totalBytes()),
+                  static_cast<unsigned long>(LittleFS.usedBytes()));
+    Util::Logger::Info(buf);
+  } else {
+    Util::Logger::Info("[CFG] littlefs zapusk fail");
   }
   if (!mounted) {
-    Util::Logger::Info("[CFG] littlefs mount fail after format");
-  } else {
-    Util::Logger::Info(formatted ? "[CFG] littlefs mount ok after format" : "[CFG] littlefs mount ok");
+    mounted = LittleFS.begin(true);
+    formatted = mounted;
+    if (mounted) {
+      char buf[128];
+      std::snprintf(buf,
+                    sizeof(buf),
+                    "[CFG] littlefs zapusk ok posle format total=%lu used=%lu",
+                    static_cast<unsigned long>(LittleFS.totalBytes()),
+                    static_cast<unsigned long>(LittleFS.usedBytes()));
+      Util::Logger::Info(buf);
+    } else {
+      Util::Logger::Info("[CFG] littlefs zapusk fail posle format");
+    }
+  }
+  if (mounted) {
     if (!EnsureCfgDir()) {
       Util::Logger::Info("[CFG] littlefs mkdir /cfg fail");
     }

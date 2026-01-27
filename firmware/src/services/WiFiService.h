@@ -64,6 +64,12 @@ class WiFiService {
   static bool ParseWifiConfig(const char* json, WiFiNetworkList& out);
 
  private:
+  enum class StaState {
+    kIdle,
+    kConnecting,
+    kConnected,
+  };
+
   bool LoadUserNetworks(WiFiNetworkList& out) const;
   static WiFiNetworkList LoadBuiltinNetworks();
   static bool ExtractStringField(const char* start,
@@ -80,6 +86,7 @@ class WiFiService {
   WiFiNetworkList preferred_{};
   size_t sta_index_ = 0;
   uint32_t last_attempt_ms_ = 0;
+  StaState sta_state_ = StaState::kIdle;
   char last_attempt_ssid_[kWifiSsidMaxLen + 1] = {};
   bool ap_started_ = false;
   int last_status_ = -1;
