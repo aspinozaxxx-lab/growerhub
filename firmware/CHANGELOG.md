@@ -1,4 +1,8 @@
-﻿## 2026-01-24
+﻿## 2026-01-27
+- feat(firmware): ogranichenie moshchnosti Wi-Fi TX dlya profilya esp32c3_supermini (qdbm).
+- refactor(firmware): ubrany diagnosticheskie [C3DBG] logi WiFiService i logirovanie SSID/parolya.
+
+## 2026-01-24
 - test: vklyuchen UNITY 64-bit support dlya native test env.
 - ci: CI pereshel na env test.
 - refactor: udalena legacy src/test, v2 pereexal v src/test, obnovlen platformio.ini i puti test storage.

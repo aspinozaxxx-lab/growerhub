@@ -25,6 +25,8 @@ struct HardwareProfile {
   bool dht_auto_reboot_on_fail; // flag: avto_reboot_pri_dht_fail
   // Maksimalnaya dlitelnost raboty nasosa.
   uint32_t pump_max_runtime_ms;
+  // Maksimalnaya moshchnost Wi-Fi TX v qdbm (0.25 dBm).
+  int wifi_tx_power_qdbm;
 };
 
 /**
@@ -37,15 +39,17 @@ inline const HardwareProfile& GetHardwareProfile() {
       2,
       true,
       true,
-      300000};
+      300000,
+      0};
 #if defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
   static const HardwareProfile esp32c3_supermini_profile = {
       "esp32c3_supermini",
       {3, false, 5, false, {0, 0}, 1, 4, 5},
       1,
       true,
-      true,
-      300000};
+      false,
+      300000,
+      60};
   return esp32c3_supermini_profile;
 #endif
   return default_profile;
