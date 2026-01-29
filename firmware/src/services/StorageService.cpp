@@ -15,6 +15,7 @@
 
 #if defined(ARDUINO)
 #include <LittleFS.h>
+#include <esp_rom_sys.h>
 #endif
 
 #if defined(UNIT_TEST)
@@ -50,7 +51,10 @@ static const char* kCfgDir = "/cfg"; // katalog dlya cfg
 static const char* kScenariosPath = "/cfg/scenarios.json"; // defolt scenarii v2
 static const char* kDevicePath = "/cfg/device.json"; // sostoyanie OTA
 
-static bool EnsureCfgDir() {
+static bool EnsureCfgDir(bool storage_mounted) {
+  if (!storage_mounted) {
+    return false;
+  }
   // sozdanie /cfg dlya chistogo LittleFS
   if (LittleFS.exists(kCfgDir)) {
     return true;
@@ -99,23 +103,29 @@ static bool EnsureDefaultDevice(StorageService& storage) {
 void StorageService::Init(Core::Context& ctx) {
   (void)ctx;
   Util::Logger::Info("[CFG] storage init");
-  mounted_ = true;
+  storage_mounted_ = true;
 
 #if defined(ARDUINO)
-  mounted_ = LittleFS.begin();
-  if (mounted_) {
+  storage_mounted_ = LittleFS.begin();
+  if (storage_mounted_) {
     Util::Logger::Info("[FS] mount ok");
   } else {
     Util::Logger::Info("[FS] mount failed -> format");
     const bool formatted = LittleFS.format();
     Util::Logger::Info(formatted ? "[FS] format ok" : "[FS] format failed");
-    mounted_ = LittleFS.begin();
-    if (mounted_) {
+    storage_mounted_ = LittleFS.begin();
+    if (storage_mounted_) {
       Util::Logger::Info("[FS] mount ok");
     }
   }
-  if (mounted_) {
-    if (!EnsureCfgDir()) {
+  if (!storage_mounted_) {
+    Util::Logger::Info("[FS] mount failed");
+    // Ultra-ranniy fallback log do Serial.
+    ets_printf("[FS] mount failed\n");
+    return;
+  }
+  if (storage_mounted_) {
+    if (!EnsureCfgDir(storage_mounted_)) {
       Util::Logger::Info("[CFG] littlefs mkdir /cfg fail");
     }
     if (!EnsureDefaultScenarios(*this)) {
@@ -146,7 +156,7 @@ bool StorageService::ReadFile(const char* path, char* out, size_t out_size) {
   }
 
 #if defined(ARDUINO)
-  if (!mounted_) {
+  if (!storage_mounted_) {
     return false;
   }
   File file = LittleFS.open(full_path, "r");
@@ -187,7 +197,7 @@ bool StorageService::WriteFileAtomic(const char* path, const char* payload) {
   std::snprintf(temp_path, sizeof(temp_path), "%s.tmp", full_path);
 
 #if defined(ARDUINO)
-  if (!mounted_) {
+  if (!storage_mounted_) {
     return false;
   }
   File file = LittleFS.open(temp_path, "w");
@@ -236,7 +246,7 @@ bool StorageService::Exists(const char* path) const {
   }
 
 #if defined(ARDUINO)
-  if (!mounted_) {
+  if (!storage_mounted_) {
     return false;
   }
   return LittleFS.exists(full_path);
@@ -295,6 +305,9 @@ bool StorageService::EnsureDirForPath(const char* path) const {
   dir[len] = '\0';
 
 #if defined(ARDUINO)
+  if (!storage_mounted_) {
+    return false;
+  }
   if (LittleFS.exists(dir)) {
     return true;
   }

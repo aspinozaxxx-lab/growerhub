@@ -157,7 +157,12 @@ static bool LoadNetworksFromStorage(StorageService* storage,
                                     char* json_buf,
                                     size_t json_buf_size) {
   out.count = 0;
-  if (!storage || !storage->Exists(kWifiConfigPath)) {
+  if (!storage) {
+    Util::Logger::Info("[WIFI] cfg file missing -> builtin defaults");
+    return false;
+  }
+  if (!storage->Exists(kWifiConfigPath)) {
+    Util::Logger::Info("[WIFI] cfg file missing -> builtin defaults");
     return false;
   }
   if (!storage->ReadFile(kWifiConfigPath, json_buf, json_buf_size)) {

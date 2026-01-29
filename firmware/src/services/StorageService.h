@@ -54,7 +54,8 @@ class StorageService {
 #if defined(UNIT_TEST)
   char root_path_[128];
 #endif
-  bool mounted_ = false;
+  // Flag sostoyaniya primontirovannogo storage.
+  bool storage_mounted_ = false;
 };
 
 }
