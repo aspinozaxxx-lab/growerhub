@@ -250,12 +250,18 @@ public class DeviceFacade {
     @Transactional
     public DeviceAggregate assignToUserAggregate(Integer deviceId, Integer userId) {
         DeviceSummary summary = assignToUser(deviceId, userId);
+        if (summary != null) {
+            pumpFacade.ensureDefaultPump(summary.id());
+        }
         return buildAggregate(summary);
     }
 
     @Transactional
     public DeviceAggregate unassignForUserAggregate(Integer deviceId, Integer userId, boolean isAdmin) {
         DeviceSummary summary = unassignForUser(deviceId, userId, isAdmin);
+        if (summary != null) {
+            pumpFacade.ensureDefaultPump(summary.id());
+        }
         return buildAggregate(summary);
     }
 

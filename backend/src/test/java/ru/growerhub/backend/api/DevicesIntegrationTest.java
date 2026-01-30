@@ -37,6 +37,7 @@ import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
 import ru.growerhub.backend.plant.contract.PlantMetricType;
 import ru.growerhub.backend.plant.jpa.PlantRepository;
 import ru.growerhub.backend.pump.jpa.PumpRepository;
+import ru.growerhub.backend.pump.jpa.PumpEntity;
 import ru.growerhub.backend.sensor.jpa.SensorEntity;
 import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
 import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;
@@ -274,6 +275,12 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     @Test
     void listDevicesUsesState() throws Exception {
         DeviceEntity device = createDevice("dev-5", null);
+        PumpEntity pump = PumpEntity.create();
+        pump.setDeviceId(device.getId());
+        pump.setChannel(0);
+        pump.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        pump.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        pumpRepository.save(pump);
         Map<String, Object> manual = new HashMap<>();
         manual.put("status", "running");
         Map<String, Object> state = new HashMap<>();
@@ -327,6 +334,12 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     void listMyDevicesHandlesStateJson() throws Exception {
         UserEntity user = createUser("state-owner@example.com", "user");
         DeviceEntity device = createDevice("dev-state", user);
+        PumpEntity pump = PumpEntity.create();
+        pump.setDeviceId(device.getId());
+        pump.setChannel(0);
+        pump.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        pump.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+        pumpRepository.save(pump);
         Map<String, Object> manual = new HashMap<>();
         manual.put("status", "running");
         Map<String, Object> state = new HashMap<>();
@@ -502,6 +515,49 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
         long after = pumpRepository.count();
         Assertions.assertEquals(before, after);
+    }
+
+    @Test
+    void listMyDevicesNeDelayetInsertPumps() {
+        UserEntity user = createUser("no-pumps-owner@example.com", "user");
+        createDevice("dev-no-pumps-my", user);
+        long before = pumpRepository.count();
+        String token = buildToken(user.getId());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/devices/my")
+                .then()
+                .statusCode(200);
+
+        long after = pumpRepository.count();
+        Assertions.assertEquals(before, after);
+    }
+
+    @Test
+    void assignToMeSozdaetDefaultPump() {
+        UserEntity user = createUser("assign-pump@example.com", "user");
+        DeviceEntity device = createDevice("dev-assign-pump", null);
+        long before = pumpRepository.count();
+        String token = buildToken(user.getId());
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("device_id", device.getId());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .post("/api/devices/assign-to-me")
+                .then()
+                .statusCode(200)
+                .body("user_id", equalTo(user.getId()));
+
+        long after = pumpRepository.count();
+        Assertions.assertEquals(before + 1, after);
+        Assertions.assertEquals(1, pumpRepository.findAllByDeviceId(device.getId()).size());
     }
 
     @Test

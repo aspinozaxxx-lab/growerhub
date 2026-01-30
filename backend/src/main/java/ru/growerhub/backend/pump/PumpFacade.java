@@ -93,6 +93,11 @@ public class PumpFacade {
     }
 
     @Transactional
+    public void ensureDefaultPump(Integer deviceId) {
+        pumpService.ensureDefaultPump(deviceId);
+    }
+
+    @Transactional
     public void deleteByDeviceId(Integer deviceId) {
         pumpService.deleteAllByDeviceId(deviceId);
     }

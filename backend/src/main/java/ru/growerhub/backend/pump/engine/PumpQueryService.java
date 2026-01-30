@@ -46,7 +46,7 @@ public class PumpQueryService {
     }
 
     public List<PumpView> listByDevice(Integer deviceId, DeviceShadowState state) {
-        List<PumpEntity> pumps = pumpService.listByDevice(deviceId, true);
+        List<PumpEntity> pumps = pumpService.listByDevice(deviceId, false);
         if (pumps.isEmpty()) {
             return List.of();
         }

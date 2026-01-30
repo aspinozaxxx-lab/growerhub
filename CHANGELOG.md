@@ -1,5 +1,6 @@
 ﻿### refactor(backend): fasady domenov i granicy adapterov
 
+- fix(backend): read-path pumpov ne vyzyvaet ensure; default pump sozdaetsya tol'ko v write-cepochkah.
 - refactor(backend): domeny pereneseny na *Facade v korne + contract/engine/jpa, internal razlozhen; JPA svyazi mezhdu domenami zameneny na userId/plantId; razryv ciklov i lenivaya svyazka sensor->plant history cherez facade; ./gradlew clean test prohodit.
 - refactor(backend): dobavleny facade-klassy dlya device/plant/pump/sensor/journal/user/auth/firmware, servisy i repo pereneseny v internal.
 - refactor(backend): REST/MQTT adaptery perevedeny na facade bez importov entity/repository.
@@ -353,4 +354,3 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - Istorija polivov teper ispolzuet obem vody kak osnovnuyu metriku i v saidebare vidno ph i sostav udobrenij.
 - Dobavlena polnocennaja stranica zhurnala rastenija: prosmotr, dobavlenie, izmenenie, udalenie zhjurnalnyh zapisej. Fiks bitogo teksta v istorii polivov, normalnye podpisi.
 - sso callback: po umolchaniyu vozvrashchaet redirect s tokenom v URL, link-mode uhodit na `/static/profile.html`.
-
