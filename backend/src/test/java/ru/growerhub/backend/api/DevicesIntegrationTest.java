@@ -36,6 +36,7 @@ import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
 import ru.growerhub.backend.plant.contract.PlantMetricType;
 import ru.growerhub.backend.plant.jpa.PlantRepository;
+import ru.growerhub.backend.pump.jpa.PumpRepository;
 import ru.growerhub.backend.sensor.jpa.SensorEntity;
 import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
 import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;
@@ -75,6 +76,9 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private DeviceStateLastRepository deviceStateLastRepository;
+
+    @Autowired
+    private PumpRepository pumpRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -480,6 +484,24 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         Object orphanOwner = response.jsonPath().get("find { it.device_id == 'dev-orphan' }.owner");
         Assertions.assertNull(noOwner);
         Assertions.assertNull(orphanOwner);
+    }
+
+    @Test
+    void adminDevicesDoesNotInsertPumps() {
+        UserEntity admin = createUser("admin-pumps@example.com", "admin");
+        createDevice("dev-no-pumps", null);
+        long before = pumpRepository.count();
+        String token = buildToken(admin.getId());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/admin/devices")
+                .then()
+                .statusCode(200);
+
+        long after = pumpRepository.count();
+        Assertions.assertEquals(before, after);
     }
 
     @Test

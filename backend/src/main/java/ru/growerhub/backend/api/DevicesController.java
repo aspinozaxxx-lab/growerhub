@@ -128,7 +128,8 @@ public class DevicesController {
         List<DeviceSummary> devices = deviceFacade.listAdminDevices();
         List<DeviceDtos.AdminDeviceResponse> responses = new ArrayList<>();
         for (DeviceSummary summary : devices) {
-            DeviceDtos.DeviceResponse base = mapDeviceResponse(summary);
+            // Translitem: v admin-spiske ne deregaem pump/sensor facade, chtoby ne bylo zapisey v BD.
+            DeviceDtos.DeviceResponse base = mapAdminDeviceResponse(summary);
             // Translitem: owner mozhet byt' null pri neprivyazannom ili udalyonnom polzovatele.
             Integer ownerId = summary.userId();
             UserFacade.UserProfile owner = ownerId != null ? userFacade.getUser(ownerId) : null;
@@ -276,6 +277,28 @@ public class DevicesController {
         List<SensorView> sensors = sensorFacade.listByDeviceId(summary.id());
         List<PumpView> pumps = pumpFacade.listByDeviceId(summary.id(), state);
         return buildDeviceResponse(summary, sensors, pumps);
+    }
+
+    private DeviceDtos.DeviceResponse mapAdminDeviceResponse(DeviceSummary summary) {
+        return new DeviceDtos.DeviceResponse(
+                summary.id(),
+                summary.deviceId(),
+                summary.name(),
+                summary.isOnline(),
+                summary.lastSeen(),
+                summary.targetMoisture(),
+                summary.wateringDuration(),
+                summary.wateringTimeout(),
+                summary.lightOnHour(),
+                summary.lightOffHour(),
+                summary.lightDuration(),
+                summary.currentVersion(),
+                summary.updateAvailable(),
+                summary.firmwareVersion(),
+                summary.userId(),
+                List.of(),
+                List.of()
+        );
     }
 
     private List<DeviceDtos.SensorResponse> mapSensors(List<SensorView> views) {
