@@ -129,7 +129,9 @@ public class DevicesController {
         List<DeviceDtos.AdminDeviceResponse> responses = new ArrayList<>();
         for (DeviceSummary summary : devices) {
             DeviceDtos.DeviceResponse base = mapDeviceResponse(summary);
-            UserFacade.UserProfile owner = summary.userId() != null ? userFacade.getUser(summary.userId()) : null;
+            // Translitem: owner mozhet byt' null pri neprivyazannom ili udalyonnom polzovatele.
+            Integer ownerId = summary.userId();
+            UserFacade.UserProfile owner = ownerId != null ? userFacade.getUser(ownerId) : null;
             DeviceDtos.DeviceOwnerInfoResponse ownerPayload = owner != null
                     ? new DeviceDtos.DeviceOwnerInfoResponse(owner.id(), owner.email(), owner.username())
                     : null;

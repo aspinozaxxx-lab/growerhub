@@ -459,6 +459,30 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void adminDevicesHandlesMissingOwner() {
+        UserEntity admin = createUser("admin-missing@example.com", "admin");
+        createDevice("dev-no-owner", null);
+        DeviceEntity orphan = createDevice("dev-orphan", null);
+        orphan.setUserId(9999);
+        deviceRepository.save(orphan);
+        String token = buildToken(admin.getId());
+
+        Response response = given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/admin/devices")
+                .then()
+                .statusCode(200)
+                .extract()
+                .response();
+
+        Object noOwner = response.jsonPath().get("find { it.device_id == 'dev-no-owner' }.owner");
+        Object orphanOwner = response.jsonPath().get("find { it.device_id == 'dev-orphan' }.owner");
+        Assertions.assertNull(noOwner);
+        Assertions.assertNull(orphanOwner);
+    }
+
+    @Test
     void assignToMeHandlesConflict() {
         UserEntity first = createUser("first@example.com", "user");
         UserEntity second = createUser("second@example.com", "user");
