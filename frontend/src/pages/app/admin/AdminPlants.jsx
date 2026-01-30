@@ -2,12 +2,15 @@
 import AppPageHeader from '../../../components/layout/AppPageHeader';
 import AppPageState from '../../../components/layout/AppPageState';
 import Surface from '../../../components/ui/Surface';
+import { useAuth } from '../../../features/auth/AuthContext';
 import { isSessionExpiredError } from '../../../api/client';
 import { fetchAdminPlants } from '../../../api/admin';
 import './AdminPages.css';
 
 // Translitem: admin-stranica prosmotra rasteniy.
 function AdminPlants() {
+  // Translitem: token dlya admin API.
+  const { token } = useAuth();
   // Translitem: sostoyanie spiska rasteniy.
   const [plants, setPlants] = useState([]);
   // Translitem: indikator zagruzki spiska.
@@ -20,7 +23,7 @@ function AdminPlants() {
     setIsLoading(true);
     setError('');
     try {
-      const data = await fetchAdminPlants();
+      const data = await fetchAdminPlants(token);
       const list = Array.isArray(data) ? data : [];
       setPlants(list);
     } catch (err) {
@@ -29,7 +32,7 @@ function AdminPlants() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     loadPlants();

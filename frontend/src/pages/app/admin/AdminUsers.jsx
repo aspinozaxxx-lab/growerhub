@@ -4,6 +4,7 @@ import AppPageState from '../../../components/layout/AppPageState';
 import Surface from '../../../components/ui/Surface';
 import FormField from '../../../components/ui/FormField';
 import Button from '../../../components/ui/Button';
+import { useAuth } from '../../../features/auth/AuthContext';
 import { isSessionExpiredError } from '../../../api/client';
 import {
   createAdminUser,
@@ -34,6 +35,8 @@ const buildDraftsFromUsers = (list) => {
 
 // Translitem: admin-stranica upravleniya polzovatelyami.
 function AdminUsers() {
+  // Translitem: token dlya admin API.
+  const { token } = useAuth();
   // Translitem: sostoyanie spiska polzovateley.
   const [users, setUsers] = useState([]);
   // Translitem: drafty redaktirovaniya polzovateley po id.
@@ -59,7 +62,7 @@ function AdminUsers() {
     setIsLoading(true);
     setError('');
     try {
-      const data = await fetchAdminUsers();
+      const data = await fetchAdminUsers(token);
       const list = Array.isArray(data) ? data : [];
       setUsers(list);
       setDrafts(buildDraftsFromUsers(list));
@@ -69,7 +72,7 @@ function AdminUsers() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     loadUsers();
@@ -106,7 +109,7 @@ function AdminUsers() {
         username: createForm.username.trim(),
         role: createForm.role,
         password: createForm.password,
-      });
+      }, token);
       setCreateForm({
         email: '',
         username: '',
@@ -120,7 +123,7 @@ function AdminUsers() {
     } finally {
       setIsCreating(false);
     }
-  }, [createForm, isCreating, loadUsers]);
+  }, [createForm, isCreating, loadUsers, token]);
 
   // Translitem: sohranyaem izmeneniya po polzovatelyu.
   const handleSave = useCallback(async (userId) => {
@@ -133,7 +136,7 @@ function AdminUsers() {
         username: draft.username || '',
         role: draft.role || 'user',
         is_active: Boolean(draft.is_active),
-      });
+      }, token);
       await loadUsers();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
@@ -141,7 +144,7 @@ function AdminUsers() {
     } finally {
       setRowActionId(null);
     }
-  }, [drafts, loadUsers, rowActionId]);
+  }, [drafts, loadUsers, rowActionId, token]);
 
   // Translitem: udalyaem polzovatelya.
   const handleDelete = useCallback(async (userId) => {
@@ -149,7 +152,7 @@ function AdminUsers() {
     setRowActionId(userId);
     setError('');
     try {
-      await deleteAdminUser(userId);
+      await deleteAdminUser(userId, token);
       await loadUsers();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
@@ -157,7 +160,7 @@ function AdminUsers() {
     } finally {
       setRowActionId(null);
     }
-  }, [loadUsers, rowActionId]);
+  }, [loadUsers, rowActionId, token]);
 
   // Translitem: dostupnost tekuschih draft-dannyh po polzovatelyam.
   const preparedUsers = useMemo(() => users.map((user) => ({

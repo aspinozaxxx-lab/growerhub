@@ -17,8 +17,10 @@ async function readErrorDetail(response, fallback) {
 }
 
 // Translitem: poluchaem spisok polzovateley dlya admin-tablicy.
-export async function fetchAdminUsers() {
-  const response = await apiFetch('/api/users');
+export async function fetchAdminUsers(token) {
+  const response = await apiFetch('/api/users', token ? {
+    headers: { Authorization: `Bearer ${token}` },
+  } : undefined);
   if (!response.ok) {
     const message = await readErrorDetail(response, 'Ne udalos zagruzit polzovateley');
     throw new Error(message || DEFAULT_ERROR_MESSAGE);
@@ -27,10 +29,10 @@ export async function fetchAdminUsers() {
 }
 
 // Translitem: sozdanie polzovatelya dlya admin-razdela.
-export async function createAdminUser(payload) {
+export async function createAdminUser(payload, token) {
   const response = await apiFetch('/api/users', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
@@ -41,10 +43,10 @@ export async function createAdminUser(payload) {
 }
 
 // Translitem: obnovlenie polzovatelya v admin-razdele.
-export async function updateAdminUser(userId, payload) {
+export async function updateAdminUser(userId, payload, token) {
   const response = await apiFetch(`/api/users/${userId}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
@@ -55,9 +57,10 @@ export async function updateAdminUser(userId, payload) {
 }
 
 // Translitem: udalenie polzovatelya v admin-razdele.
-export async function deleteAdminUser(userId) {
+export async function deleteAdminUser(userId, token) {
   const response = await apiFetch(`/api/users/${userId}`, {
     method: 'DELETE',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
   if (!response.ok) {
     const message = await readErrorDetail(response, 'Ne udalos udalit polzovatelya');
@@ -67,8 +70,10 @@ export async function deleteAdminUser(userId) {
 }
 
 // Translitem: poluchaem spisok ustroystv dlya admin-tablicy.
-export async function fetchAdminDevices() {
-  const response = await apiFetch('/api/admin/devices');
+export async function fetchAdminDevices(token) {
+  const response = await apiFetch('/api/admin/devices', token ? {
+    headers: { Authorization: `Bearer ${token}` },
+  } : undefined);
   if (!response.ok) {
     const message = await readErrorDetail(response, 'Ne udalos zagruzit ustroystva');
     throw new Error(message || DEFAULT_ERROR_MESSAGE);
@@ -77,10 +82,10 @@ export async function fetchAdminDevices() {
 }
 
 // Translitem: privyazka ustroystva k polzovatelyu (admin).
-export async function adminAssignDevice(deviceId, userId) {
+export async function adminAssignDevice(deviceId, userId, token) {
   const response = await apiFetch(`/api/admin/devices/${deviceId}/assign`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: JSON.stringify({ user_id: userId }),
   });
   if (!response.ok) {
@@ -91,9 +96,10 @@ export async function adminAssignDevice(deviceId, userId) {
 }
 
 // Translitem: otvyazka ustroystva ot polzovatelya (admin).
-export async function adminUnassignDevice(deviceId) {
+export async function adminUnassignDevice(deviceId, token) {
   const response = await apiFetch(`/api/admin/devices/${deviceId}/unassign`, {
     method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
   if (!response.ok) {
     const message = await readErrorDetail(response, 'Ne udalos otvyazat ustroystvo');
@@ -103,8 +109,10 @@ export async function adminUnassignDevice(deviceId) {
 }
 
 // Translitem: poluchaem spisok rasteniy dlya admin-tablicy.
-export async function fetchAdminPlants() {
-  const response = await apiFetch('/api/admin/plants');
+export async function fetchAdminPlants(token) {
+  const response = await apiFetch('/api/admin/plants', token ? {
+    headers: { Authorization: `Bearer ${token}` },
+  } : undefined);
   if (!response.ok) {
     const message = await readErrorDetail(response, 'Ne udalos zagruzit rasteniya');
     throw new Error(message || DEFAULT_ERROR_MESSAGE);

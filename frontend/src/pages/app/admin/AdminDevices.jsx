@@ -3,6 +3,7 @@ import AppPageHeader from '../../../components/layout/AppPageHeader';
 import AppPageState from '../../../components/layout/AppPageState';
 import Surface from '../../../components/ui/Surface';
 import Button from '../../../components/ui/Button';
+import { useAuth } from '../../../features/auth/AuthContext';
 import { isSessionExpiredError } from '../../../api/client';
 import {
   adminAssignDevice,
@@ -13,6 +14,8 @@ import './AdminPages.css';
 
 // Translitem: admin-stranica upravleniya ustroystvami.
 function AdminDevices() {
+  // Translitem: token dlya admin API.
+  const { token } = useAuth();
   // Translitem: sostoyanie spiska ustroystv.
   const [devices, setDevices] = useState([]);
   // Translitem: znacheniya user_id dlya privyazki po id ustroystva.
@@ -29,7 +32,7 @@ function AdminDevices() {
     setIsLoading(true);
     setError('');
     try {
-      const data = await fetchAdminDevices();
+      const data = await fetchAdminDevices(token);
       const list = Array.isArray(data) ? data : [];
       setDevices(list);
       const nextValues = {};
@@ -43,7 +46,7 @@ function AdminDevices() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     loadDevices();
@@ -69,7 +72,7 @@ function AdminDevices() {
     setRowActionId(deviceId);
     setError('');
     try {
-      await adminAssignDevice(deviceId, userId);
+      await adminAssignDevice(deviceId, userId, token);
       await loadDevices();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
@@ -77,7 +80,7 @@ function AdminDevices() {
     } finally {
       setRowActionId(null);
     }
-  }, [assignValues, loadDevices, rowActionId]);
+  }, [assignValues, loadDevices, rowActionId, token]);
 
   // Translitem: otvyazyvaem ustroystvo ot polzovatelya.
   const handleUnassign = useCallback(async (deviceId) => {
@@ -85,7 +88,7 @@ function AdminDevices() {
     setRowActionId(deviceId);
     setError('');
     try {
-      await adminUnassignDevice(deviceId);
+      await adminUnassignDevice(deviceId, token);
       await loadDevices();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
@@ -93,7 +96,7 @@ function AdminDevices() {
     } finally {
       setRowActionId(null);
     }
-  }, [loadDevices, rowActionId]);
+  }, [loadDevices, rowActionId, token]);
 
   // Translitem: podsobiraem tekst o vladeletse ustroystva.
   const preparedDevices = useMemo(() => devices.map((device) => {
