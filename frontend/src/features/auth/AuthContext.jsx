@@ -1,5 +1,5 @@
 ﻿import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { registerAuthHandlers } from '../../api/client';
+import { apiFetch, registerAuthHandlers } from '../../api/client';
 
 const STORAGE_KEY = 'gh_access_token';
 
@@ -43,21 +43,11 @@ function AuthProvider({ children }) {
 
   const loadCurrentUser = useCallback(async (providedToken) => {
     const effectiveToken = providedToken || localStorage.getItem(STORAGE_KEY);
-    if (!effectiveToken) {
-      setUser(null);
-      setToken(null);
-      setStatus('unauthorized');
-      return { success: false };
-    }
-
     setStatus((prev) => (prev === 'authorized' ? prev : 'loading'));
 
     try {
-      const response = await fetch('/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${effectiveToken}`,
-        },
-      });
+      // Translitem: ispol'zuem apiFetch dlya auto-refresh access tokena.
+      const response = await apiFetch('/api/auth/me');
 
       if (!response.ok) {
         throw new Error('unauthorized');
@@ -65,7 +55,8 @@ function AuthProvider({ children }) {
 
       const data = await response.json();
       setUser(data);
-      setToken(effectiveToken);
+      const refreshedToken = localStorage.getItem(STORAGE_KEY) || effectiveToken;
+      setToken(refreshedToken);
       setStatus('authorized');
       setError(null);
 
