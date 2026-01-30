@@ -9,6 +9,11 @@ import AppDashboard from './pages/app/AppDashboard';
 import AppDevices from './pages/app/AppDevices';
 import AppPlants from './pages/app/AppPlants';
 import AppProfile from './pages/app/AppProfile';
+import AdminLayout from './pages/app/admin/AdminLayout';
+import AdminUsers from './pages/app/admin/AdminUsers';
+import AdminDevices from './pages/app/admin/AdminDevices';
+import AdminPlants from './pages/app/admin/AdminPlants';
+import RequireAdmin from './features/auth/RequireAdmin';
 import AppPlantJournal from './pages/app/AppPlantJournal';
 import LoginPage from './pages/app/LoginPage';
 import RequireAuth from './features/auth/RequireAuth';
@@ -47,6 +52,19 @@ function App() {
           <Route path="plants/:plantId/journal" element={<AppPlantJournal />} />
           <Route path="devices" element={<AppDevices />} />
           <Route path="profile" element={<AppProfile />} />
+          <Route
+            path="admin"
+            element={(
+              <RequireAdmin>
+                <AdminLayout />
+              </RequireAdmin>
+            )}
+          >
+            <Route index element={<Navigate to="devices" replace />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="devices" element={<AdminDevices />} />
+            <Route path="plants" element={<AdminPlants />} />
+          </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

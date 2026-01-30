@@ -181,7 +181,18 @@ function AppProfile() {
 
   return (
     <div className="app-profile">
-      <AppPageHeader title="Профиль" />
+      <AppPageHeader
+        title="Профиль"
+        right={user && user.role === 'admin' ? (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => navigate('/app/admin/devices')}
+          >
+            Администрирование
+          </Button>
+        ) : null}
+      />
       <AppGrid min={320}>
         <Surface variant="card" padding="md" className="profile-card">
           <div className="profile-row">

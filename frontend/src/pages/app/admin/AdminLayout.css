@@ -1,0 +1,47 @@
+﻿.admin-layout {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-layout__surface {
+  display: block;
+}
+
+.admin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-nav__link,
+.admin-nav__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-2);
+  color: var(--text-1);
+  background: var(--surface-2);
+  text-decoration: none;
+  font-weight: 600;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.admin-nav__link:hover,
+.admin-nav__back:hover {
+  border-color: var(--accent);
+  color: var(--text-1);
+}
+
+.admin-nav__link.is-active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  border-color: rgba(95, 212, 145, 0.4);
+  color: #0b1524;
+}
+
+.admin-layout__content {
+  display: grid;
+  gap: 16px;
+}

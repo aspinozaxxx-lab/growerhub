@@ -1,32 +1,31 @@
 ﻿# MCU — GPIO usage
-
-MCU: ESP32 devboard  
-Источник истины по GPIO: firmware (настройки / хардкод)
-
 ## Используемые сигналы
-- SOIL_A_ADC
-- SOIL_B_ADC
-- PUMP_CTRL
-- LIGHT_RELAY (Grow Light)
-- RTC_SDA
-- RTC_SCL
-- DHT22_DATA (если используется)
-- LED_STATUS (если используется)
+- SOIL_A_ADC    |   Датчик влажности почвы (аналоговый)
+- SOIL_B_ADC    |   Датчик влажности почвы (аналоговый)
+- PUMP_CTRL     |   Реле (Mosfet) включаещее насос
+- LIGHT_RELAY   |   Реле (Mosfet) включаещее освещение
+- RTC_SDA       |   RTC модуль
+- RTC_SCL       |   RTC модуль
+- DHT22_DATA    |   Датчик температуры и влажности (цифровой)
 
-## GPIO mapping
-(заполняется по firmware)
+## MCU: ESP32 devboard  
+Signal      | GPIO 
+SOIL_A_ADC  | GPIO34 
+SOIL_B_ADC  | GPIO35 
+PUMP_CTRL   | GPIO4 
+LIGHT_RELAY | GPIO5 
+RTC_SDA     | GPIO21 
+RTC_SCL     | GPIO22 
+DHT22_DATA  | GPIO15 
 
-| Signal | GPIO | Источник |
-|---|---:|---|
-| SOIL_A_ADC | GPIO34 | firmware/src/Application.cpp:410 |
-| SOIL_B_ADC | GPIO35 | not found in firmware |
-| PUMP_CTRL | GPIO4 | firmware/src/Application.cpp:434 |
-| LIGHT_RELAY | GPIO5 | firmware/src/Application.cpp:435 |
-| RTC_SDA | GPIO21 | firmware/src/System/SystemClock.h:15 |
-| RTC_SCL | GPIO22 | firmware/src/System/SystemClock.h:16 |
-| DHT22_DATA | GPIO15 | firmware/src/Application.cpp:413 |
-| LED_STATUS | GPIO__ | not found in firmware |
+## MCU: ESP32-С3 Supermini  
+Signal      | GPIO 
+SOIL_A_ADC  | GPIO0 
+SOIL_B_ADC  | not used 
+PUMP_CTRL   | GPIO3 
+LIGHT_RELAY | not used (заглушка на 11 пин)
+RTC_SDA     | GPIO4 
+RTC_SCL     | GPIO5 
+DHT22_DATA  | GPIO1 
+Мощьность wifi ограничена до 15dBm (иначе не подлючается)
 
-Примечания:
-- ADC входы должны работать от 0–3.3V
-- Предпочтительно использовать ADC1 (если применимо)
