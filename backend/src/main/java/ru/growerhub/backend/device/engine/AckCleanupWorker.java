@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.config.AckSettings;
 import ru.growerhub.backend.device.jpa.MqttAckRepository;
 
@@ -24,6 +25,7 @@ public class AckCleanupWorker {
     }
 
     @Scheduled(fixedDelayString = "${ACK_CLEANUP_PERIOD_SECONDS:60}000")
+    @Transactional
     public void cleanupExpired() {
         int ttlSeconds = ackSettings.getTtlSeconds();
         if (ttlSeconds <= 0) {

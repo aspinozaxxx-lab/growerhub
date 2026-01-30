@@ -1,5 +1,7 @@
 ﻿### refactor(backend): fasady domenov i granicy adapterov
 
+- fix(backend): tranzakciya dlya cleanup ack-delete v scheduled worker.
+
 - fix(backend): read-path pumpov ne vyzyvaet ensure; default pump sozdaetsya tol'ko v write-cepochkah.
 - refactor(backend): domeny pereneseny na *Facade v korne + contract/engine/jpa, internal razlozhen; JPA svyazi mezhdu domenami zameneny na userId/plantId; razryv ciklov i lenivaya svyazka sensor->plant history cherez facade; ./gradlew clean test prohodit.
 - refactor(backend): dobavleny facade-klassy dlya device/plant/pump/sensor/journal/user/auth/firmware, servisy i repo pereneseny v internal.
