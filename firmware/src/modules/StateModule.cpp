@@ -105,9 +105,6 @@ void StateModule::PublishState(bool retained) {
   if (dht_available) {
     payload += ",\"temperature\":" + std::to_string(dht.temperature_c);
     payload += ",\"humidity\":" + std::to_string(dht.humidity);
-  } else if (has_dht) {
-    // Fallback znacheniya dlya DHT error.
-    payload += ",\"temperature\":-200,\"humidity\":0";
   } else {
     payload += ",\"temperature\":null,\"humidity\":null";
   }
@@ -162,3 +159,4 @@ void StateModule::PublishState(bool retained) {
 }
 
 }
+

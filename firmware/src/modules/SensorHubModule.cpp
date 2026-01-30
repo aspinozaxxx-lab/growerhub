@@ -146,10 +146,12 @@ void SensorHubModule::ReadDht(uint32_t now_ms) {
   if (last_dht_reboot_ms_ != 0 && now_ms - last_dht_reboot_ms_ < kDhtRebootCooldownMs) {
     return;
   }
-  // DHT error: reboot otklyuchen, tol'ko sbros pending flagov.
-  dht_reboot_pending_ = false;
-  dht_event_pending_ = false;
-  (void)now_ms;
+  if (pump_blocked_) {
+    dht_reboot_pending_ = true;
+    dht_event_pending_ = true;
+    return;
+  }
+  RequestReboot(now_ms);
 }
 
 void SensorHubModule::RequestReboot(uint32_t now_ms) {
