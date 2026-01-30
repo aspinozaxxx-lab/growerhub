@@ -558,6 +558,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         UserEntity user = createUser("member@example.com", "user");
         DeviceEntity device = createDevice("dev-11", null);
         String token = buildToken(admin.getId());
+        long before = pumpRepository.count();
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("user_id", user.getId());
@@ -572,6 +573,8 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .statusCode(200)
                 .body("owner.id", equalTo(user.getId()));
 
+        Assertions.assertEquals(before, pumpRepository.count());
+
         given()
                 .header("Authorization", "Bearer " + token)
                 .when()
@@ -579,6 +582,8 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(200)
                 .body("owner", equalTo(null));
+
+        Assertions.assertEquals(before, pumpRepository.count());
     }
 
     @Test

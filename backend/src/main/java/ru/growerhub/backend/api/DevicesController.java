@@ -198,7 +198,8 @@ public class DevicesController {
             throw new ApiException(HttpStatus.NOT_FOUND, "polzovatel' ne najden");
         }
         DeviceSummary summary = deviceFacade.adminAssign(deviceId, request.userId());
-        DeviceDtos.DeviceResponse base = mapDeviceResponse(summary);
+        // Translitem: admin-response bez vyzovov pump/sensor facade.
+        DeviceDtos.DeviceResponse base = mapAdminDeviceResponse(summary);
         DeviceDtos.DeviceOwnerInfoResponse ownerPayload = new DeviceDtos.DeviceOwnerInfoResponse(
                 owner.id(),
                 owner.email(),
@@ -233,7 +234,8 @@ public class DevicesController {
     ) {
         requireAdmin(user);
         DeviceSummary summary = deviceFacade.adminUnassign(deviceId);
-        DeviceDtos.DeviceResponse base = mapDeviceResponse(summary);
+        // Translitem: admin-response bez vyzovov pump/sensor facade.
+        DeviceDtos.DeviceResponse base = mapAdminDeviceResponse(summary);
         return new DeviceDtos.AdminDeviceResponse(
                 base.id(),
                 base.deviceId(),
