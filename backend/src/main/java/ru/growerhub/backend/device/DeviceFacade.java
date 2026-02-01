@@ -111,6 +111,11 @@ public class DeviceFacade {
     @Transactional
     public void handleState(String deviceId, DeviceShadowState state, LocalDateTime now) {
         List<SensorMeasurement> measurements = deviceIngestionService.handleState(deviceId, state, now);
+        // Translitem: pri auto-provision garantiruem default pump dlya novogo device.
+        Integer devicePk = findDeviceId(deviceId);
+        if (devicePk != null) {
+            pumpFacade.ensureDefaultPump(devicePk);
+        }
         List<SensorReadingSummary> summaries = sensorFacade.recordMeasurements(deviceId, measurements, now);
         plantFacade.recordFromSensorBindings(summaries);
     }

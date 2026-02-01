@@ -403,6 +403,43 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void mqttStateAutoProvisionCreatesDefaultPump() {
+        String deviceId = "dev-auto-provision";
+        String payload = """
+                {"air_temperature":22.5,"air_humidity":45.0}
+                """;
+
+        mqttMessageHandler.handleStateMessage(
+                "gh/dev/" + deviceId + "/state",
+                payload.getBytes(StandardCharsets.UTF_8)
+        );
+
+        DeviceEntity stored = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        Assertions.assertNotNull(stored);
+        Assertions.assertTrue(pumpRepository.findAllByDeviceId(stored.getId()).size() >= 1);
+
+        UserEntity admin = createUser("admin-provision@example.com", "admin");
+        String adminToken = buildToken(admin.getId());
+
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .delete("/api/admin/devices/" + stored.getId())
+                .then()
+                .statusCode(200)
+                .body("message", equalTo("Device deleted"));
+
+        mqttMessageHandler.handleStateMessage(
+                "gh/dev/" + deviceId + "/state",
+                payload.getBytes(StandardCharsets.UTF_8)
+        );
+
+        DeviceEntity recreated = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        Assertions.assertNotNull(recreated);
+        Assertions.assertTrue(pumpRepository.findAllByDeviceId(recreated.getId()).size() >= 1);
+    }
+
+    @Test
     void httpStatusPopulatesAirTemperatureInMyDevices() {
         UserEntity user = createUser("http-owner@example.com", "user");
         DeviceEntity device = createDevice("dev-http-temp", user);
