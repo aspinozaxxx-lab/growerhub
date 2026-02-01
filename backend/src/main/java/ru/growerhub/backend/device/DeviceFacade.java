@@ -14,6 +14,7 @@ import ru.growerhub.backend.device.contract.DeviceSettingsData;
 import ru.growerhub.backend.device.contract.DeviceSettingsUpdate;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.contract.DeviceSummary;
+import ru.growerhub.backend.device.engine.AckCleanupService;
 import ru.growerhub.backend.device.engine.DeviceAckService;
 import ru.growerhub.backend.device.engine.DeviceIngestionService;
 import ru.growerhub.backend.device.engine.DeviceQueryService;
@@ -38,6 +39,7 @@ public class DeviceFacade {
     private final DeviceQueryService deviceQueryService;
     private final DeviceShadowStore shadowStore;
     private final DeviceAckService ackService;
+    private final AckCleanupService ackCleanupService;
     private final SensorFacade sensorFacade;
     private final PlantFacade plantFacade;
     private final PumpFacade pumpFacade;
@@ -49,6 +51,7 @@ public class DeviceFacade {
             DeviceQueryService deviceQueryService,
             DeviceShadowStore shadowStore,
             DeviceAckService ackService,
+            AckCleanupService ackCleanupService,
             SensorFacade sensorFacade,
             PlantFacade plantFacade,
             @Lazy PumpFacade pumpFacade
@@ -59,6 +62,7 @@ public class DeviceFacade {
         this.deviceQueryService = deviceQueryService;
         this.shadowStore = shadowStore;
         this.ackService = ackService;
+        this.ackCleanupService = ackCleanupService;
         this.sensorFacade = sensorFacade;
         this.plantFacade = plantFacade;
         this.pumpFacade = pumpFacade;
@@ -115,6 +119,12 @@ public class DeviceFacade {
     ) {
         ackService.upsertAck(deviceId, correlationId, result, status, payloadMap, receivedAt, expiresAt);
         touchLastSeen(deviceId, receivedAt);
+    }
+
+    // Translitem: facade-orientirovannaya ochistka ACK v tranzakcii dlya scheduled worker.
+    @Transactional
+    public int cleanupExpiredAcks() {
+        return ackCleanupService.cleanupExpired();
     }
 
     @Transactional

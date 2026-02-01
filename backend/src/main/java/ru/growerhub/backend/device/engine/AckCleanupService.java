@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.config.AckSettings;
 import ru.growerhub.backend.device.jpa.MqttAckRepository;
 
@@ -23,8 +22,7 @@ public class AckCleanupService {
         this.clock = clock;
     }
 
-    // Translitem: ochistka ACK v tranzakcii, chtoby deleteExpired ne padal bez active tx.
-    @Transactional
+    // Translitem: ochistka ACK bez tranzakcii; oborachivaetsya na urovne facade.
     public int cleanupExpired() {
         int ttlSeconds = ackSettings.getTtlSeconds();
         if (ttlSeconds <= 0) {
