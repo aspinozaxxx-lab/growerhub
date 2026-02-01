@@ -144,20 +144,18 @@ growerhub/<br>
 
 ---
 
-## ⚡ Быстрый старт
-cd firmware && pio run --target upload<br>
-sudo systemctl status growerhub growerhub-deploy-agent
+## Команды
 
-🔧 Системные сервисы<br>
-growerhub.service<br>
-growerhub-deploy-agent.service<br>
+🔧 Мониторинг<br>
+sudo -n /usr/bin/docker logs -f --tail=200 growerhub-java-backend<br>
+Просмотр очередей MQTT<br>
+mosquitto_sub -h localhost -p 1883 -u mosquitto-admin -P qazwsxedc -t 'gh/#' -v
 
 ⚙️ Запуск плейбуков Ansible<br>
 ansible-playbook -i inventory/hosts.ini playbooks/gh_tools_pgadmin.yml<br>
 ansible-playbook -i inventory/hosts.ini playbooks/fastapi.yml -K --ask-vault-pass
 
-Просмотр очередей MQTT<br>
-mosquitto_sub -h localhost -p 1883 -u mosquitto-admin -P qazwsxedc -t 'gh/#' -v
+
 
 🔒 Переменные окружения<br>
 sudo systemctl edit watering-deploy-agent.service
