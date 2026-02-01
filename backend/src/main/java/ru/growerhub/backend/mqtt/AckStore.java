@@ -1,4 +1,4 @@
-﻿﻿package ru.growerhub.backend.mqtt;
+﻿package ru.growerhub.backend.mqtt;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -6,10 +6,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
 import ru.growerhub.backend.common.config.AckSettings;
+import ru.growerhub.backend.device.contract.DeviceAckStore;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
 
 @Component
-public class AckStore {
+public class AckStore implements DeviceAckStore {
     private final Map<String, AckEntry> storage = new ConcurrentHashMap<>();
     private final AckSettings ackSettings;
     private final Clock clock;
@@ -37,6 +38,14 @@ public class AckStore {
 
     public void clear() {
         storage.clear();
+    }
+
+    @Override
+    public void remove(String deviceId) {
+        if (deviceId == null || deviceId.isBlank()) {
+            return;
+        }
+        storage.entrySet().removeIf(entry -> deviceId.equals(entry.getValue().deviceId()));
     }
 
     public int cleanupExpired() {

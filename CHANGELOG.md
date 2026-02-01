@@ -1,4 +1,9 @@
-﻿### refactor(backend): fasady domenov i granicy adapterov
+﻿### fix(admin): hard delete device s polnoy ochistkoy
+
+- fix(backend): admin-delete udalyaet device, mqtt_ack i device_state_last, chistit sensors/pumps i in-memory shadow/ack store.
+- fix(front): v admin spiske ustroystv dobavlena knopka "Udalit'" s confirm i refetch spiska.
+- tests: dobavlen integration test dlya admin delete device.
+### refactor(backend): fasady domenov i granicy adapterov
 
 - fix(backend): tranzakciya dlya cleanup ack-delete v scheduled worker.
 

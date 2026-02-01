@@ -11,6 +11,8 @@ import ru.growerhub.backend.device.jpa.MqttAckEntity;
 public interface MqttAckRepository extends JpaRepository<MqttAckEntity, Integer> {
     Optional<MqttAckEntity> findByCorrelationId(String correlationId);
 
+    int deleteByDeviceId(String deviceId);
+
     @Modifying
     @Query("delete from MqttAckEntity ack where ack.expiresAt is not null and ack.expiresAt <= :now")
     int deleteExpired(@Param("now") LocalDateTime now);

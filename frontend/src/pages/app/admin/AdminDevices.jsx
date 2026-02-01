@@ -8,6 +8,7 @@ import { isSessionExpiredError } from '../../../api/client';
 import {
   adminAssignDevice,
   adminUnassignDevice,
+  deleteAdminDevice,
   fetchAdminDevices,
 } from '../../../api/admin';
 import './AdminPages.css';
@@ -98,6 +99,25 @@ function AdminDevices() {
     }
   }, [loadDevices, rowActionId, token]);
 
+  // Translitem: udalyaem ustroystvo.
+  const handleDelete = useCallback(async (deviceId, deviceLabel) => {
+    if (rowActionId) return;
+    const label = deviceLabel ? ` ${deviceLabel}` : '';
+    const confirmed = window.confirm(`Удалить устройство${label}? Данные будут удалены безвозвратно.`);
+    if (!confirmed) return;
+    setRowActionId(deviceId);
+    setError('');
+    try {
+      await deleteAdminDevice(deviceId, token);
+      await loadDevices();
+    } catch (err) {
+      if (isSessionExpiredError(err)) return;
+      setError(err?.message || 'Ne udalos udalit ustroystvo');
+    } finally {
+      setRowActionId(null);
+    }
+  }, [loadDevices, rowActionId, token]);
+
   // Translitem: podsobiraem tekst o vladeletse ustroystva.
   const preparedDevices = useMemo(() => devices.map((device) => {
     const owner = device.owner;
@@ -161,6 +181,15 @@ function AdminDevices() {
                       disabled={rowActionId === device.id}
                     >
                       Отвязать
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="danger"
+                      onClick={() => handleDelete(device.id, device.device_id)}
+                      disabled={rowActionId === device.id}
+                    >
+                      Удалить
                     </Button>
                   </div>
                 </td>

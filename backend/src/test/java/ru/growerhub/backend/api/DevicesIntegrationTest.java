@@ -26,11 +26,16 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.engine.DeviceShadowStore;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
 import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
+import ru.growerhub.backend.device.jpa.MqttAckEntity;
+import ru.growerhub.backend.device.jpa.MqttAckRepository;
 import ru.growerhub.backend.mqtt.MqttMessageHandler;
+import ru.growerhub.backend.mqtt.AckStore;
+import ru.growerhub.backend.mqtt.model.ManualWateringAck;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
@@ -79,6 +84,9 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     private DeviceStateLastRepository deviceStateLastRepository;
 
     @Autowired
+    private MqttAckRepository mqttAckRepository;
+
+    @Autowired
     private PumpRepository pumpRepository;
 
     @Autowired
@@ -91,6 +99,9 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     private DeviceShadowStore shadowStore;
 
     @Autowired
+    private AckStore ackStore;
+
+    @Autowired
     private MqttMessageHandler mqttMessageHandler;
 
     @BeforeEach
@@ -99,6 +110,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         RestAssured.port = port;
         clearDatabase();
         shadowStore.clear();
+        ackStore.clear();
     }
 
     @Test
@@ -643,6 +655,79 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void adminDeleteDeviceRemovesAllData() {
+        UserEntity admin = createUser("admin-delete@example.com", "admin");
+        DeviceEntity device = createDevice("dev-admin-delete", null);
+        String token = buildToken(admin.getId());
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+
+        PumpEntity pump = PumpEntity.create();
+        pump.setDeviceId(device.getId());
+        pump.setChannel(0);
+        pump.setCreatedAt(now);
+        pump.setUpdatedAt(now);
+        pumpRepository.save(pump);
+
+        SensorEntity sensor = SensorEntity.create();
+        sensor.setDeviceId(device.getId());
+        sensor.setType(SensorType.AIR_TEMPERATURE);
+        sensor.setChannel(0);
+        sensor.setDetected(true);
+        sensor.setCreatedAt(now);
+        sensor.setUpdatedAt(now);
+        sensorRepository.save(sensor);
+
+        DeviceStateLastEntity state = DeviceStateLastEntity.create();
+        state.setDeviceId(device.getDeviceId());
+        state.setStateJson("{\"fw_ver\":\"v1\"}");
+        state.setUpdatedAt(now);
+        deviceStateLastRepository.save(state);
+
+        MqttAckEntity ack = MqttAckEntity.create();
+        ack.setCorrelationId("corr-admin-delete");
+        ack.setDeviceId(device.getDeviceId());
+        ack.setResult("accepted");
+        ack.setStatus("ok");
+        ack.setPayloadJson("{\"result\":\"accepted\"}");
+        ack.setReceivedAt(now);
+        ack.setExpiresAt(now.plusSeconds(60));
+        mqttAckRepository.save(ack);
+
+        ackStore.put(device.getDeviceId(), new ManualWateringAck("mem-corr", "accepted", null, "ok"));
+        shadowStore.updateFromState(device.getDeviceId(), new DeviceShadowState(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        ));
+
+        Assertions.assertNotNull(ackStore.get("mem-corr"));
+        Assertions.assertNotNull(shadowStore.getLastState(device.getDeviceId()));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .delete("/api/admin/devices/" + device.getId())
+                .then()
+                .statusCode(200)
+                .body("message", equalTo("Device deleted"));
+
+        Assertions.assertTrue(deviceRepository.findById(device.getId()).isEmpty());
+        Assertions.assertTrue(deviceStateLastRepository.findByDeviceId(device.getDeviceId()).isEmpty());
+        Assertions.assertTrue(mqttAckRepository.findByCorrelationId("corr-admin-delete").isEmpty());
+        Assertions.assertTrue(pumpRepository.findAllByDeviceId(device.getId()).isEmpty());
+        Assertions.assertTrue(sensorRepository.findAllByDeviceId(device.getId()).isEmpty());
+        Assertions.assertNull(ackStore.get("mem-corr"));
+        Assertions.assertNull(shadowStore.getLastState(device.getDeviceId()));
+    }
+
+    @Test
     void adminAssignMissingUserReturns404() {
         UserEntity admin = createUser("admin2@example.com", "admin");
         DeviceEntity device = createDevice("dev-12", null);
@@ -781,6 +866,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM plants");
         jdbcTemplate.update("DELETE FROM plant_groups");
         jdbcTemplate.update("DELETE FROM device_state_last");
+        jdbcTemplate.update("DELETE FROM mqtt_ack");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM user_auth_identities");
         jdbcTemplate.update("DELETE FROM user_refresh_tokens");

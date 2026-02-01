@@ -258,6 +258,20 @@ public class DevicesController {
         );
     }
 
+    @DeleteMapping("/api/admin/devices/{device_id}")
+    public CommonDtos.MessageResponse adminDeleteDevice(
+            @PathVariable("device_id") Integer deviceId,
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
+        requireAdmin(user);
+        DeviceSummary summary = deviceFacade.getDeviceSummary(deviceId);
+        if (summary == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "ustrojstvo ne najdeno");
+        }
+        deviceFacade.deleteDevice(summary.deviceId());
+        return new CommonDtos.MessageResponse("Device deleted");
+    }
+
     @DeleteMapping("/api/device/{device_id}")
     public CommonDtos.MessageResponse deleteDevice(
             @PathVariable("device_id") String deviceId

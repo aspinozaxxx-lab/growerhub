@@ -14,6 +14,7 @@ import ru.growerhub.backend.device.contract.DeviceSettingsData;
 import ru.growerhub.backend.device.contract.DeviceSettingsUpdate;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.contract.DeviceSummary;
+import ru.growerhub.backend.device.contract.DeviceAckStore;
 import ru.growerhub.backend.device.engine.AckCleanupService;
 import ru.growerhub.backend.device.engine.DeviceAckService;
 import ru.growerhub.backend.device.engine.DeviceIngestionService;
@@ -23,6 +24,7 @@ import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
 import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
+import ru.growerhub.backend.device.jpa.MqttAckRepository;
 import ru.growerhub.backend.pump.PumpFacade;
 import ru.growerhub.backend.pump.contract.PumpView;
 import ru.growerhub.backend.plant.PlantFacade;
@@ -40,6 +42,8 @@ public class DeviceFacade {
     private final DeviceShadowStore shadowStore;
     private final DeviceAckService ackService;
     private final AckCleanupService ackCleanupService;
+    private final MqttAckRepository mqttAckRepository;
+    private final DeviceAckStore ackStore;
     private final SensorFacade sensorFacade;
     private final PlantFacade plantFacade;
     private final PumpFacade pumpFacade;
@@ -52,6 +56,8 @@ public class DeviceFacade {
             DeviceShadowStore shadowStore,
             DeviceAckService ackService,
             AckCleanupService ackCleanupService,
+            MqttAckRepository mqttAckRepository,
+            DeviceAckStore ackStore,
             SensorFacade sensorFacade,
             PlantFacade plantFacade,
             @Lazy PumpFacade pumpFacade
@@ -63,6 +69,8 @@ public class DeviceFacade {
         this.shadowStore = shadowStore;
         this.ackService = ackService;
         this.ackCleanupService = ackCleanupService;
+        this.mqttAckRepository = mqttAckRepository;
+        this.ackStore = ackStore;
         this.sensorFacade = sensorFacade;
         this.plantFacade = plantFacade;
         this.pumpFacade = pumpFacade;
@@ -303,7 +311,10 @@ public class DeviceFacade {
             pumpFacade.deleteByDeviceId(id);
         }
         deviceStateLastRepository.deleteByDeviceId(deviceId);
+        mqttAckRepository.deleteByDeviceId(deviceId);
         deviceRepository.delete(device);
+        shadowStore.remove(deviceId);
+        ackStore.remove(deviceId);
     }
 
     @Transactional

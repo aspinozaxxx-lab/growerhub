@@ -51,6 +51,13 @@ public class DeviceShadowStore {
         storage.put(deviceId, new ShadowEntry(state, updatedAt));
     }
 
+    public void remove(String deviceId) {
+        if (deviceId == null || deviceId.isBlank()) {
+            return;
+        }
+        storage.remove(deviceId);
+    }
+
     public void updateFromStateAndPersist(String deviceId, DeviceShadowState state, LocalDateTime updatedAt) {
         updateFromState(deviceId, state, updatedAt);
         if (deviceStateLastRepository == null) {

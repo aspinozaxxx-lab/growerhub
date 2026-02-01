@@ -108,6 +108,19 @@ export async function adminUnassignDevice(deviceId, token) {
   return response.json();
 }
 
+// Translitem: udalenie ustroystva v admin-razdele.
+export async function deleteAdminDevice(deviceId, token) {
+  const response = await apiFetch(`/api/admin/devices/${encodeURIComponent(deviceId)}`, {
+    method: 'DELETE',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Ne udalos udalit ustroystvo');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return true;
+}
+
 // Translitem: poluchaem spisok rasteniy dlya admin-tablicy.
 export async function fetchAdminPlants(token) {
   const response = await apiFetch('/api/admin/plants', token ? {
