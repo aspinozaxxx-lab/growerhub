@@ -1,40 +1,22 @@
 package ru.growerhub.backend.device.engine;
 
-import java.time.Clock;
-import java.time.LocalDateTime;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-import ru.growerhub.backend.common.config.AckSettings;
-import ru.growerhub.backend.device.jpa.MqttAckRepository;
 
 @Component
 public class AckCleanupWorker {
-    private static final Logger logger = LoggerFactory.getLogger(AckCleanupWorker.class);
+    // Translitem: period ochistki ACK v ms, istochnik - ACK_CLEANUP_PERIOD_SECONDS (sekundy).
+    private static final String CLEANUP_DELAY_MS = "${ACK_CLEANUP_PERIOD_SECONDS:60}000";
 
-    private final MqttAckRepository mqttAckRepository;
-    private final AckSettings ackSettings;
-    private final Clock clock;
+    private final AckCleanupService cleanupService;
 
-    public AckCleanupWorker(MqttAckRepository mqttAckRepository, AckSettings ackSettings, Clock clock) {
-        this.mqttAckRepository = mqttAckRepository;
-        this.ackSettings = ackSettings;
-        this.clock = clock;
+    public AckCleanupWorker(AckCleanupService cleanupService) {
+        this.cleanupService = cleanupService;
     }
 
-    @Scheduled(fixedDelayString = "${ACK_CLEANUP_PERIOD_SECONDS:60}000")
-    @Transactional
+    // Translitem: scheduled-vyzov prosto delegiruet ochistku v servis s tranzakciej.
+    @Scheduled(fixedDelayString = CLEANUP_DELAY_MS)
     public void cleanupExpired() {
-        int ttlSeconds = ackSettings.getTtlSeconds();
-        if (ttlSeconds <= 0) {
-            return;
-        }
-        LocalDateTime now = LocalDateTime.now(clock);
-        int deleted = mqttAckRepository.deleteExpired(now);
-        if (deleted > 0) {
-            logger.info("Ack cleanup deleted {} rows", deleted);
-        }
+        cleanupService.cleanupExpired();
     }
 }
