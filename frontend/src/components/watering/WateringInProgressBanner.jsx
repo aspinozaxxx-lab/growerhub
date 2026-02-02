@@ -38,7 +38,7 @@ function WateringInProgressBanner({ isWatering, remainingSeconds, onStop, disabl
 
   return (
     <div className="watering-progress" role="status" aria-live="polite">
-      <span className="watering-progress__text">Poliv eshche {label}</span>
+      <span className="watering-progress__text">Полив еще {label}</span>
       <Button
         variant="ghost"
         size="sm"
@@ -46,7 +46,7 @@ function WateringInProgressBanner({ isWatering, remainingSeconds, onStop, disabl
         disabled={disabled}
         isLoading={isStopping}
       >
-        Ostanovit'
+        Остановить
       </Button>
     </div>
   );
