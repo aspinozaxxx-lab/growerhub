@@ -112,7 +112,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void startReturnsCorrelationAndCreatesJournal() {
+    void startReturnsCorrelationAndStoresShadow() {
         UserEntity user = createUser("owner@example.com", "user");
         DeviceEntity device = createDevice("mw-start-1", user);
         PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
@@ -145,12 +145,9 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals(20, cmd.durationS());
         Assertions.assertEquals(correlationId, cmd.correlationId());
 
-        Assertions.assertEquals(1, plantJournalEntryRepository.count());
-        Assertions.assertEquals(1, plantJournalWateringDetailsRepository.count());
-        PlantJournalWateringDetailsEntity details = plantJournalWateringDetailsRepository.findAll().get(0);
-        Assertions.assertEquals(20, details.getDurationS());
-        Assertions.assertTrue(details.getWaterVolumeL() > 0.0);
-        Assertions.assertEquals(1, plantMetricSampleRepository.count());
+        Assertions.assertEquals(0, plantJournalEntryRepository.count());
+        Assertions.assertEquals(0, plantJournalWateringDetailsRepository.count());
+        Assertions.assertEquals(0, plantMetricSampleRepository.count());
 
         Map<String, Object> view = shadowStore.getManualWateringView(device.getDeviceId());
         Assertions.assertNotNull(view);
@@ -189,9 +186,16 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         CmdPumpStart cmd = (CmdPumpStart) published.cmd();
         Assertions.assertEquals(1800, cmd.durationS());
 
-        PlantJournalWateringDetailsEntity details = plantJournalWateringDetailsRepository.findAll().get(0);
-        Assertions.assertEquals(1800, details.getDurationS());
-        Assertions.assertEquals(1.0, details.getWaterVolumeL());
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/pumps/" + pump.getId() + "/watering/status")
+                .then()
+                .statusCode(200)
+                .body("duration_s", equalTo(1800));
+
+        Assertions.assertEquals(0, plantJournalEntryRepository.count());
+        Assertions.assertEquals(0, plantJournalWateringDetailsRepository.count());
     }
 
     @Test
@@ -329,26 +333,48 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void stopReturnsCorrelation() {
+    void stopCreatesJournalWithActualDurationAndIdempotent() {
         UserEntity user = createUser("owner-stop@example.com", "user");
         DeviceEntity device = createDevice("mw-stop", user);
         PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
+        PlantEntity plant = createPlant(user, "Basil");
+        bindPump(pump, plant, 2000);
 
+        String token = buildToken(user.getId());
+
+        Map<String, Object> startPayload = new HashMap<>();
+        startPayload.put("duration_s", 120);
+
+        String startCorrelation = given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(startPayload)
+                .when()
+                .post("/api/pumps/" + pump.getId() + "/watering/start")
+                .then()
+                .statusCode(200)
+                .body("correlation_id", notNullValue())
+                .extract()
+                .path("correlation_id");
+
+        LocalDateTime startedAt = LocalDateTime.now(ZoneOffset.UTC).minusSeconds(5);
         DeviceShadowState.ManualWateringState manual = new DeviceShadowState.ManualWateringState(
                 "running",
-                45,
-                LocalDateTime.now(ZoneOffset.UTC),
-                45,
-                "shadow-stop"
+                120,
+                startedAt,
+                115,
+                startCorrelation,
+                1.0,
+                6.3,
+                "g1",
+                null
         );
         shadowStore.updateFromState(
                 device.getDeviceId(),
                 new DeviceShadowState(manual, null, null, null, null, null, null, null, null, null)
         );
 
-        String token = buildToken(user.getId());
-
-        String correlationId = given()
+        String stopCorrelation = given()
                 .header("Authorization", "Bearer " + token)
                 .when()
                 .post("/api/pumps/" + pump.getId() + "/watering/stop")
@@ -358,13 +384,34 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .extract()
                 .path("correlation_id");
 
-        Assertions.assertEquals(1, testPublisher.getPublished().size());
-        PublishedCommand published = testPublisher.getPublished().get(0);
+        Assertions.assertEquals(2, testPublisher.getPublished().size());
+        PublishedCommand published = testPublisher.getPublished().get(1);
         Assertions.assertEquals(device.getDeviceId(), published.deviceId());
         Assertions.assertTrue(published.cmd() instanceof CmdPumpStop);
         CmdPumpStop cmd = (CmdPumpStop) published.cmd();
         Assertions.assertEquals("pump.stop", cmd.type());
-        Assertions.assertEquals(correlationId, cmd.correlationId());
+        Assertions.assertEquals(stopCorrelation, cmd.correlationId());
+
+        Assertions.assertEquals(1, plantJournalEntryRepository.count());
+        Assertions.assertEquals(1, plantJournalWateringDetailsRepository.count());
+        PlantJournalWateringDetailsEntity details = plantJournalWateringDetailsRepository.findAll().get(0);
+        Assertions.assertTrue(details.getDurationS() < 120);
+        Assertions.assertTrue(details.getDurationS() >= 0);
+        Assertions.assertTrue(details.getWaterVolumeL() > 0.0);
+        Assertions.assertEquals(1, plantMetricSampleRepository.count());
+
+        Map<String, Object> view = shadowStore.getManualWateringView(device.getDeviceId());
+        Assertions.assertEquals("completed", view.get("status"));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .post("/api/pumps/" + pump.getId() + "/watering/stop")
+                .then()
+                .statusCode(200);
+
+        Assertions.assertEquals(1, plantJournalEntryRepository.count());
+        Assertions.assertEquals(1, plantJournalWateringDetailsRepository.count());
     }
 
     @Test
@@ -401,7 +448,11 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 30,
                 LocalDateTime.now(ZoneOffset.UTC).withNano(0),
                 30,
-                "corr-status"
+                "corr-status",
+                null,
+                null,
+                null,
+                null
         );
         shadowStore.updateFromState(
                 device.getDeviceId(),

@@ -151,7 +151,11 @@ public class MqttMessageHandler {
                     state.manualWatering().durationS(),
                     state.manualWatering().startedAt(),
                     state.manualWatering().remainingS(),
-                    state.manualWatering().correlationId()
+                    state.manualWatering().correlationId(),
+                    null,
+                    null,
+                    null,
+                    null
             );
         }
         DeviceShadowState.AirState air = state.air() != null

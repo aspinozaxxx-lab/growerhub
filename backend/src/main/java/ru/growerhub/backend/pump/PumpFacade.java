@@ -72,7 +72,7 @@ public class PumpFacade {
         return wateringService.reboot(pumpId, user);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public PumpStatusResult status(Integer pumpId, AuthenticatedUser user) {
         return wateringService.status(pumpId, user);
     }

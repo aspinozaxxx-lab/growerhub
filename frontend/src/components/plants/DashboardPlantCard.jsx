@@ -6,6 +6,8 @@ import SensorPill from '../ui/sensor-pill/SensorPill';
 import Button from '../ui/Button';
 import Surface from '../ui/Surface';
 import { Title, Text } from '../ui/Typography';
+import WateringInProgressBanner from '../watering/WateringInProgressBanner';
+import usePumpWateringStatus from '../../features/watering/usePumpWateringStatus';
 import './DashboardPlantCard.css';
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
@@ -68,6 +70,8 @@ function DashboardPlantCard({
   const sensors = Array.isArray(plant?.sensors) ? plant.sensors : [];
   const pumps = Array.isArray(plant?.pumps) ? plant.pumps : [];
   const primaryPump = pumps[0];
+  const runningPump = pumps.find((pump) => pump && pump.is_running) || null;
+  const activePump = runningPump || primaryPump;
 
   const ageDays = React.useMemo(() => {
     if (!plant?.planted_at) return null;
@@ -83,7 +87,11 @@ function DashboardPlantCard({
   const stageId = plant?.growth_stage && String(plant.growth_stage).trim()
     ? String(plant.growth_stage).trim()
     : getAutoStageFromAge(plantTypeId, ageDays);
-  const isWatering = pumps.some((pump) => pump && pump.is_running);
+  const isWateringFallback = pumps.some((pump) => pump && pump.is_running);
+  const { remainingSeconds, isRunning, stop } = usePumpWateringStatus(activePump?.id, {
+    enabled: Boolean(activePump?.id && isWateringFallback),
+  });
+  const isWatering = isRunning !== null && isRunning !== undefined ? isRunning : isWateringFallback;
   const wateringAdvice = plant?.watering_advice || null;
   const wateringPrevious = plant?.watering_previous || null;
   const wateringTooltip = React.useMemo(() => buildWateringTooltip(wateringAdvice), [wateringAdvice]);
@@ -209,11 +217,11 @@ function DashboardPlantCard({
                     <span className="dashboard-plant-card__watering-advice-text">Пора полить</span>
                   </div>
                 )}
-                {isWatering && (
-                  <div className="dashboard-plant-card__watering-badge">
-                    Идёт полив
-                  </div>
-                )}
+                <WateringInProgressBanner
+                  isWatering={isWatering}
+                  remainingSeconds={remainingSeconds}
+                  onStop={stop}
+                />
               </div>
             )}
           </div>

@@ -1,0 +1,21 @@
+﻿.watering-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(107, 219, 168, 0.12);
+  color: #6bdba8;
+  font-weight: 600;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.watering-progress__text {
+  white-space: nowrap;
+}
+
+.watering-progress .gh-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+}

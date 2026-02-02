@@ -24,7 +24,11 @@ public record DeviceShadowState(
             @JsonProperty("started_at") @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
             LocalDateTime startedAt,
             @JsonProperty("remaining_s") Integer remainingS,
-            @JsonProperty("correlation_id") String correlationId
+            @JsonProperty("correlation_id") String correlationId,
+            @JsonProperty("water_volume_l") Double waterVolumeL,
+            @JsonProperty("ph") Double ph,
+            @JsonProperty("fertilizers_per_liter") String fertilizersPerLiter,
+            @JsonProperty("journal_written_for_correlation_id") String journalWrittenForCorrelationId
     ) {
     }
 

@@ -38,7 +38,11 @@ class DeviceShadowStoreTest {
                 20,
                 null,
                 null,
-                "corr"
+                "corr",
+                null,
+                null,
+                null,
+                null
         );
         store.updateFromState("device-1", new DeviceShadowState(manual, null, null, null, null, null, null, null, null, null));
 

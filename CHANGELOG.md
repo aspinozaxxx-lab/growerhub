@@ -1,4 +1,9 @@
-﻿### fix(admin): hard delete device s polnoy ochistkoy
+﻿### fix(watering): stop i UI
+
+- fix(backend): ostanovka poliva s fakticheskim duration i zapis' v zhurnal tol'ko pri zavershenii (stop/estestvennoe).
+- fix(front): UI-banner "Poliv eshche m:ss" + knopka "Ostanovit'" na dashboard/plants/devices cherez odin komponent i hook.
+
+### fix(admin): hard delete device s polnoy ochistkoy
 
 - fix(backend): admin-delete udalyaet device, mqtt_ack i device_state_last, chistit sensors/pumps i in-memory shadow/ack store.
 - fix(front): v admin spiske ustroystv dobavlena knopka "Udalit'" s confirm i refetch spiska.
@@ -361,3 +366,4 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - Istorija polivov teper ispolzuet obem vody kak osnovnuyu metriku i v saidebare vidno ph i sostav udobrenij.
 - Dobavlena polnocennaja stranica zhurnala rastenija: prosmotr, dobavlenie, izmenenie, udalenie zhjurnalnyh zapisej. Fiks bitogo teksta v istorii polivov, normalnye podpisi.
 - sso callback: po umolchaniyu vozvrashchaet redirect s tokenom v URL, link-mode uhodit na `/static/profile.html`.
+

@@ -48,7 +48,8 @@ public class DeviceShadowStore {
     }
 
     public void updateFromState(String deviceId, DeviceShadowState state, LocalDateTime updatedAt) {
-        storage.put(deviceId, new ShadowEntry(state, updatedAt));
+        DeviceShadowState merged = mergeManualWateringState(deviceId, state);
+        storage.put(deviceId, new ShadowEntry(merged, updatedAt));
     }
 
     public void remove(String deviceId) {
@@ -224,6 +225,71 @@ public class DeviceShadowStore {
             return null;
         }
         return value.atOffset(ZoneOffset.UTC).withNano(0).format(ISO_UTC);
+    }
+
+    private DeviceShadowState mergeManualWateringState(String deviceId, DeviceShadowState next) {
+        if (next == null) {
+            return null;
+        }
+        DeviceShadowState.ManualWateringState current = next.manualWatering();
+        if (current == null) {
+            return next;
+        }
+        ShadowEntry prevEntry = storage.get(deviceId);
+        DeviceShadowState prevState = prevEntry != null ? prevEntry.state() : null;
+        DeviceShadowState.ManualWateringState prev = prevState != null ? prevState.manualWatering() : null;
+        if (prev == null) {
+            return next;
+        }
+        String correlationId = preferNonBlank(current.correlationId(), prev.correlationId());
+        boolean sameCorrelation = correlationId != null && correlationId.equals(prev.correlationId());
+        if (!sameCorrelation) {
+            return next;
+        }
+        String currentJournal = current.journalWrittenForCorrelationId();
+        String prevJournal = prev.journalWrittenForCorrelationId();
+        String journalWritten = preferNonBlank(currentJournal, prevJournal);
+        boolean alreadyWritten = journalWritten != null && journalWritten.equals(correlationId);
+        String status = preferNonBlank(current.status(), prev.status());
+        if (alreadyWritten && (currentJournal == null || currentJournal.isBlank())) {
+            if (prev.status() != null && !prev.status().isBlank()) {
+                status = prev.status();
+            }
+        }
+        DeviceShadowState.ManualWateringState mergedManual = new DeviceShadowState.ManualWateringState(
+                status,
+                preferNonNull(current.durationS(), prev.durationS()),
+                preferNonNull(current.startedAt(), prev.startedAt()),
+                preferNonNull(current.remainingS(), prev.remainingS()),
+                correlationId,
+                preferNonNull(current.waterVolumeL(), prev.waterVolumeL()),
+                preferNonNull(current.ph(), prev.ph()),
+                preferNonBlank(current.fertilizersPerLiter(), prev.fertilizersPerLiter()),
+                journalWritten
+        );
+        return new DeviceShadowState(
+                mergedManual,
+                next.fwVer(),
+                next.soilMoisture(),
+                next.airTemperature(),
+                next.airHumidity(),
+                next.air(),
+                next.soil(),
+                next.light(),
+                next.pump(),
+                next.scenarios()
+        );
+    }
+
+    private <T> T preferNonNull(T value, T fallback) {
+        return value != null ? value : fallback;
+    }
+
+    private String preferNonBlank(String value, String fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        return value;
     }
 
     private record ShadowEntry(DeviceShadowState state, LocalDateTime updatedAt) {

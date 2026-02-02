@@ -403,7 +403,11 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 120,
                 now,
                 120,
-                "corr-plant"
+                "corr-plant",
+                null,
+                null,
+                null,
+                null
         );
         DeviceShadowState state = new DeviceShadowState(manual, null, null, null, null, null, null, null, null, null);
         shadowStore.updateFromState(device.getDeviceId(), state, now);

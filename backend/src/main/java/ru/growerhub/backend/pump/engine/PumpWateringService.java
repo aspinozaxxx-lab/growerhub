@@ -1,6 +1,7 @@
 ﻿package ru.growerhub.backend.pump.engine;
 
 import java.time.Instant;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -71,6 +72,11 @@ public class PumpWateringService {
             throw new DomainException("bad_request", "ukazhite water_volume_l ili duration_s dlya starta poliva");
         }
 
+        Double plannedWaterVolumeL = request.waterVolumeL();
+        if (plannedWaterVolumeL == null) {
+            plannedWaterVolumeL = calculateTotalVolumeFromDuration(bindings, durationS);
+        }
+
         String correlationId = UUID.randomUUID().toString().replace("-", "");
         LocalDateTime startedAt = LocalDateTime.now(ZoneOffset.UTC);
         String deviceId = resolveDeviceId(pump);
@@ -84,15 +90,13 @@ public class PumpWateringService {
                 durationS,
                 startedAt,
                 durationS,
-                correlationId
+                correlationId,
+                plannedWaterVolumeL,
+                request.ph(),
+                request.fertilizersPerLiter(),
+                null
         );
         deviceFacade.updateManualWateringState(deviceId, manualState, startedAt);
-
-        List<JournalFacade.WateringTarget> targets = buildTargets(bindings, durationS);
-        journalFacade.createWateringEntries(targets, user, startedAt, request.ph(), request.fertilizersPerLiter());
-        for (JournalFacade.WateringTarget target : targets) {
-            plantFacade.recordWateringEvent(target.plantId(), target.waterVolumeL(), startedAt);
-        }
 
         return new PumpStartResult(correlationId);
     }
@@ -104,7 +108,9 @@ public class PumpWateringService {
         if (deviceId == null) {
             throw new DomainException("not_found", "device not found for pump");
         }
-        commandGateway.publishStop(deviceId, correlationId, LocalDateTime.now(ZoneOffset.UTC));
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        commandGateway.publishStop(deviceId, correlationId, now);
+        finalizeWateringIfNeeded(pump, deviceId, user, true, now);
         return new PumpStopResult(correlationId);
     }
 
@@ -126,6 +132,8 @@ public class PumpWateringService {
         if (deviceId == null) {
             throw new DomainException("not_found", "device not found for pump");
         }
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        finalizeWateringIfNeeded(pump, deviceId, user, false, now);
         Map<String, Object> view = deviceFacade.getManualWateringView(deviceId);
         return new PumpStatusResult(view);
     }
@@ -167,6 +175,134 @@ public class PumpWateringService {
             targets.add(new JournalFacade.WateringTarget(plantId, durationS, volumeL));
         }
         return targets;
+    }
+
+    private Double calculateTotalVolumeFromDuration(List<PumpPlantBindingEntity> bindings, int durationS) {
+        if (bindings == null || bindings.isEmpty() || durationS <= 0) {
+            return null;
+        }
+        double totalVolumeL = 0.0;
+        for (PumpPlantBindingEntity binding : bindings) {
+            int rate = binding.getRateMlPerHour() != null
+                    ? binding.getRateMlPerHour()
+                    : wateringSettings.getDefaultRateMlPerHour();
+            totalVolumeL += rate / 1000.0 * durationS / 3600.0;
+        }
+        return totalVolumeL > 0.0 ? totalVolumeL : null;
+    }
+
+    private int calculateActualDurationSeconds(LocalDateTime startedAt, LocalDateTime now, Integer plannedDurationS) {
+        if (startedAt == null || now == null) {
+            return 0;
+        }
+        long elapsed = Duration.between(startedAt, now).getSeconds();
+        if (elapsed < 0) {
+            elapsed = 0;
+        }
+        if (plannedDurationS != null) {
+            elapsed = Math.min(elapsed, plannedDurationS);
+        }
+        if (elapsed > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return (int) elapsed;
+    }
+
+    private boolean shouldFinalizeWatering(DeviceShadowState.ManualWateringState manual, LocalDateTime now) {
+        if (manual == null) {
+            return false;
+        }
+        String status = manual.status();
+        if (status != null && !"running".equalsIgnoreCase(status)) {
+            return true;
+        }
+        Integer remainingS = manual.remainingS();
+        if (remainingS != null && remainingS <= 0) {
+            return true;
+        }
+        Integer plannedDurationS = manual.durationS();
+        if (plannedDurationS != null && manual.startedAt() != null) {
+            long elapsed = Duration.between(manual.startedAt(), now).getSeconds();
+            return elapsed >= plannedDurationS;
+        }
+        return false;
+    }
+
+    private List<JournalFacade.WateringTarget> remapTargetsWithDuration(
+            List<JournalFacade.WateringTarget> targets,
+            int actualDurationS
+    ) {
+        List<JournalFacade.WateringTarget> mapped = new ArrayList<>();
+        if (targets == null || targets.isEmpty()) {
+            return mapped;
+        }
+        for (JournalFacade.WateringTarget target : targets) {
+            if (target == null || target.plantId() == null) {
+                continue;
+            }
+            mapped.add(new JournalFacade.WateringTarget(
+                    target.plantId(),
+                    actualDurationS,
+                    target.waterVolumeL()
+            ));
+        }
+        return mapped;
+    }
+
+    private void finalizeWateringIfNeeded(
+            PumpEntity pump,
+            String deviceId,
+            AuthenticatedUser user,
+            boolean forceFinish,
+            LocalDateTime now
+    ) {
+        DeviceShadowState shadow = deviceFacade.getShadowState(deviceId);
+        DeviceShadowState.ManualWateringState manual = shadow != null ? shadow.manualWatering() : null;
+        if (manual == null) {
+            return;
+        }
+        String correlationId = manual.correlationId();
+        if (correlationId == null || correlationId.isBlank()) {
+            return;
+        }
+        if (correlationId.equals(manual.journalWrittenForCorrelationId())) {
+            return;
+        }
+        if (!forceFinish && !shouldFinalizeWatering(manual, now)) {
+            return;
+        }
+        LocalDateTime startedAt = manual.startedAt();
+        if (startedAt == null) {
+            return;
+        }
+        Integer plannedDurationS = manual.durationS();
+        int actualDurationS = calculateActualDurationSeconds(startedAt, now, plannedDurationS);
+        int volumeDurationS = plannedDurationS != null ? plannedDurationS : actualDurationS;
+        List<PumpPlantBindingEntity> bindings = bindingRepository.findAllByPump_Id(pump.getId());
+        List<JournalFacade.WateringTarget> plannedTargets = buildTargets(bindings, volumeDurationS);
+        List<JournalFacade.WateringTarget> actualTargets = remapTargetsWithDuration(plannedTargets, actualDurationS);
+        journalFacade.createWateringEntries(
+                actualTargets,
+                user,
+                startedAt,
+                manual.ph(),
+                manual.fertilizersPerLiter()
+        );
+        for (JournalFacade.WateringTarget target : actualTargets) {
+            plantFacade.recordWateringEvent(target.plantId(), target.waterVolumeL(), startedAt);
+        }
+        DeviceShadowState.ManualWateringState completed = new DeviceShadowState.ManualWateringState(
+                "completed",
+                volumeDurationS,
+                startedAt,
+                0,
+                correlationId,
+                manual.waterVolumeL(),
+                manual.ph(),
+                manual.fertilizersPerLiter(),
+                correlationId
+        );
+        deviceFacade.updateManualWateringState(deviceId, completed, now);
     }
 
     private PumpEntity requirePumpAccess(Integer pumpId, AuthenticatedUser user) {

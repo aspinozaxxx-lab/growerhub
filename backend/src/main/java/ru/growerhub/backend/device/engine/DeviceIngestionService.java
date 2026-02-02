@@ -52,7 +52,8 @@ public class DeviceIngestionService {
             deviceRepository.save(device);
         }
         shadowStore.updateFromState(deviceId, state, now);
-        upsertDeviceState(deviceId, state, now);
+        DeviceShadowState merged = shadowStore.getLastState(deviceId);
+        upsertDeviceState(deviceId, merged != null ? merged : state, now);
         return extractMeasurements(state);
     }
 

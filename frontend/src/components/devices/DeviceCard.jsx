@@ -5,6 +5,8 @@ import SensorPill from '../ui/sensor-pill/SensorPill';
 import Button from '../ui/Button';
 import Surface from '../ui/Surface';
 import { Title, Text } from '../ui/Typography';
+import WateringInProgressBanner from '../watering/WateringInProgressBanner';
+import usePumpWateringStatus from '../../features/watering/usePumpWateringStatus';
 import './DeviceCard.css';
 
 const SENSOR_KIND_MAP = {
@@ -43,6 +45,52 @@ function buildPumpTitle(pump) {
     return base;
   }
   return `${base} · канал ${pump.channel}`;
+}
+
+function DevicePumpRow({ pump }) {
+  const isWateringFallback = pump?.is_running === true;
+  const { remainingSeconds, isRunning, stop } = usePumpWateringStatus(pump?.id, {
+    enabled: Boolean(pump?.id && isWateringFallback),
+  });
+  const hasStatus = isRunning !== null && isRunning !== undefined;
+  const isWatering = hasStatus ? isRunning : isWateringFallback;
+  const statusLabel = hasStatus
+    ? (isRunning ? 'Выполняется' : 'Остановлен')
+    : (pump.is_running === null || pump.is_running === undefined
+      ? 'Нет данных'
+      : pump.is_running
+        ? 'Выполняется'
+        : 'Остановлен');
+  const boundPlants = Array.isArray(pump.bound_plants) ? pump.bound_plants : [];
+
+  return (
+    <div className="device-card__item">
+      <div className="device-card__item-main">
+        <div className="device-card__item-title">{buildPumpTitle(pump)}</div>
+        <div className="device-card__item-status">
+          {isWatering ? (
+            <WateringInProgressBanner
+              isWatering={isWatering}
+              remainingSeconds={remainingSeconds}
+              onStop={stop}
+            />
+          ) : (
+            statusLabel
+          )}
+        </div>
+      </div>
+      <div className="device-card__bindings">
+        {boundPlants.length === 0 && <span className="device-card__binding-empty">Нет привязок</span>}
+        {boundPlants.map((plant) => {
+          const rate = plant.rate_ml_per_hour;
+          const label = rate ? `${plant.name} · ${rate} мл/ч` : plant.name;
+          return (
+            <span key={plant.id} className="device-card__plant-pill">{label}</span>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function DeviceCard({ device, onEdit }) {
@@ -133,32 +181,9 @@ function DeviceCard({ device, onEdit }) {
       <div className="device-card__section">
         <div className="device-card__section-title">Насосы</div>
         {pumps.length === 0 && <div className="device-card__empty">Нет насосов</div>}
-        {pumps.map((pump) => {
-          const boundPlants = Array.isArray(pump.bound_plants) ? pump.bound_plants : [];
-          const statusLabel = pump.is_running === null || pump.is_running === undefined
-            ? 'Нет данных'
-            : pump.is_running
-              ? 'Выполняется'
-              : 'Остановлен';
-          return (
-            <div key={pump.id} className="device-card__item">
-              <div className="device-card__item-main">
-                <div className="device-card__item-title">{buildPumpTitle(pump)}</div>
-                <div className="device-card__item-status">{statusLabel}</div>
-              </div>
-              <div className="device-card__bindings">
-                {boundPlants.length === 0 && <span className="device-card__binding-empty">Нет привязок</span>}
-                {boundPlants.map((plant) => {
-                  const rate = plant.rate_ml_per_hour;
-                  const label = rate ? `${plant.name} · ${rate} мл/ч` : plant.name;
-                  return (
-                    <span key={plant.id} className="device-card__plant-pill">{label}</span>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
+        {pumps.map((pump) => (
+          <DevicePumpRow key={pump.id} pump={pump} />
+        ))}
       </div>
     </Surface>
   );

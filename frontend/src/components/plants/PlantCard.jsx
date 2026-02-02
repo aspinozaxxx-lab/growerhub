@@ -11,6 +11,8 @@ import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext
 import SensorPill from '../ui/sensor-pill/SensorPill';
 import Surface from '../ui/Surface';
 import { Title, Text } from '../ui/Typography';
+import WateringInProgressBanner from '../watering/WateringInProgressBanner';
+import usePumpWateringStatus from '../../features/watering/usePumpWateringStatus';
 import './PlantCard.css';
 
 const SENSOR_KIND_MAP = {
@@ -25,6 +27,26 @@ const METRIC_LABELS = {
   soil_moisture: 'Влажность почвы',
   watering: 'Поливы',
 };
+
+function PlantPumpRow({ pump, rate, showRate }) {
+  const isWateringFallback = Boolean(pump?.is_running);
+  const { remainingSeconds, isRunning, stop } = usePumpWateringStatus(pump?.id, {
+    enabled: Boolean(pump?.id && isWateringFallback),
+  });
+  const isWatering = isRunning !== null && isRunning !== undefined ? isRunning : isWateringFallback;
+
+  return (
+    <div className="plant-card__pump">
+      <div className="plant-card__pump-title">Насос · канал {pump.channel ?? '-'}</div>
+      <WateringInProgressBanner
+        isWatering={isWatering}
+        remainingSeconds={remainingSeconds}
+        onStop={stop}
+      />
+      {showRate && <div className="plant-card__pump-rate">rate: {rate ?? '-'} мл/ч</div>}
+    </div>
+  );
+}
 
 // Translitem: PlantCard - kartochka rasteniya na stranice spiska rastenij; pokazivaet metadannye i privyazannye sensory/pumpy.
 function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
@@ -141,15 +163,7 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
                 ? pump.bound_plants.find((bp) => bp.id === plant.id)
                 : null;
               const rate = bound?.rate_ml_per_hour;
-              return (
-                <div key={pump.id} className="plant-card__pump">
-                  <div className="plant-card__pump-title">Насос · канал {pump.channel ?? '-'}</div>
-                  {pump.is_running && (
-                    <div className="plant-card__pump-status">Идёт полив...</div>
-                  )}
-                  {bound && <div className="plant-card__pump-rate">rate: {rate ?? '-'} мл/ч</div>}
-                </div>
-              );
+              return <PlantPumpRow key={pump.id} pump={pump} rate={rate} showRate={Boolean(bound)} />;
             })}
           </div>
         )}
