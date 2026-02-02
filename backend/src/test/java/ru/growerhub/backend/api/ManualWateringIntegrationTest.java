@@ -333,7 +333,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void stopCreatesJournalWithActualDurationAndIdempotent() {
+    void stopCreatesJournalWithActualDurationAndIdempotent() throws InterruptedException {
         UserEntity user = createUser("owner-stop@example.com", "user");
         DeviceEntity device = createDevice("mw-stop", user);
         PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
@@ -343,9 +343,10 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         String token = buildToken(user.getId());
 
         Map<String, Object> startPayload = new HashMap<>();
-        startPayload.put("duration_s", 120);
+        startPayload.put("duration_s", 10);
+        startPayload.put("water_volume_l", 1.0);
 
-        String startCorrelation = given()
+        given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .body(startPayload)
@@ -353,26 +354,9 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .post("/api/pumps/" + pump.getId() + "/watering/start")
                 .then()
                 .statusCode(200)
-                .body("correlation_id", notNullValue())
-                .extract()
-                .path("correlation_id");
+                .body("correlation_id", notNullValue());
 
-        LocalDateTime startedAt = LocalDateTime.now(ZoneOffset.UTC).minusSeconds(5);
-        DeviceShadowState.ManualWateringState manual = new DeviceShadowState.ManualWateringState(
-                "running",
-                120,
-                startedAt,
-                115,
-                startCorrelation,
-                1.0,
-                6.3,
-                "g1",
-                null
-        );
-        shadowStore.updateFromState(
-                device.getDeviceId(),
-                new DeviceShadowState(manual, null, null, null, null, null, null, null, null, null)
-        );
+        Thread.sleep(2500);
 
         String stopCorrelation = given()
                 .header("Authorization", "Bearer " + token)
@@ -395,9 +379,12 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals(1, plantJournalEntryRepository.count());
         Assertions.assertEquals(1, plantJournalWateringDetailsRepository.count());
         PlantJournalWateringDetailsEntity details = plantJournalWateringDetailsRepository.findAll().get(0);
-        Assertions.assertTrue(details.getDurationS() < 120);
+        Assertions.assertTrue(details.getDurationS() < 10);
         Assertions.assertTrue(details.getDurationS() >= 0);
         Assertions.assertTrue(details.getWaterVolumeL() > 0.0);
+        Assertions.assertTrue(details.getWaterVolumeL() < 1.0);
+        double expectedVolume = 1.0 * details.getDurationS() / 10.0;
+        Assertions.assertTrue(Math.abs(details.getWaterVolumeL() - expectedVolume) < 0.05);
         Assertions.assertEquals(1, plantMetricSampleRepository.count());
 
         Map<String, Object> view = shadowStore.getManualWateringView(device.getDeviceId());

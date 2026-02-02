@@ -1,7 +1,9 @@
 ﻿package ru.growerhub.backend.pump.engine;
 
-import java.time.Instant;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -230,20 +232,29 @@ public class PumpWateringService {
 
     private List<JournalFacade.WateringTarget> remapTargetsWithDuration(
             List<JournalFacade.WateringTarget> targets,
-            int actualDurationS
+            Integer plannedDurationS,
+            int actualDurationS,
+            double plannedVolumeScale
     ) {
         List<JournalFacade.WateringTarget> mapped = new ArrayList<>();
         if (targets == null || targets.isEmpty()) {
             return mapped;
         }
+        boolean hasPlannedDuration = plannedDurationS != null && plannedDurationS > 0;
         for (JournalFacade.WateringTarget target : targets) {
             if (target == null || target.plantId() == null) {
                 continue;
             }
+            double volumeL = target.waterVolumeL() * plannedVolumeScale;
+            if (hasPlannedDuration) {
+                volumeL = calculateActualVolumeL(volumeL, plannedDurationS, actualDurationS);
+            } else {
+                volumeL = roundVolumeL(volumeL);
+            }
             mapped.add(new JournalFacade.WateringTarget(
                     target.plantId(),
                     actualDurationS,
-                    target.waterVolumeL()
+                    volumeL
             ));
         }
         return mapped;
@@ -280,7 +291,13 @@ public class PumpWateringService {
         int volumeDurationS = plannedDurationS != null ? plannedDurationS : actualDurationS;
         List<PumpPlantBindingEntity> bindings = bindingRepository.findAllByPump_Id(pump.getId());
         List<JournalFacade.WateringTarget> plannedTargets = buildTargets(bindings, volumeDurationS);
-        List<JournalFacade.WateringTarget> actualTargets = remapTargetsWithDuration(plannedTargets, actualDurationS);
+        double plannedVolumeScale = calculatePlannedVolumeScale(plannedTargets, manual.waterVolumeL());
+        List<JournalFacade.WateringTarget> actualTargets = remapTargetsWithDuration(
+                plannedTargets,
+                plannedDurationS,
+                actualDurationS,
+                plannedVolumeScale
+        );
         journalFacade.createWateringEntries(
                 actualTargets,
                 user,
@@ -303,6 +320,40 @@ public class PumpWateringService {
                 correlationId
         );
         deviceFacade.updateManualWateringState(deviceId, completed, now);
+    }
+
+    private double calculateActualVolumeL(double plannedVolumeL, int plannedDurationS, int actualDurationS) {
+        if (plannedDurationS <= 0) {
+            return roundVolumeL(plannedVolumeL);
+        }
+        int clampedDurationS = Math.max(0, Math.min(actualDurationS, plannedDurationS));
+        double volumeL = plannedVolumeL * (double) clampedDurationS / (double) plannedDurationS;
+        double clampedVolume = Math.max(0.0, Math.min(volumeL, plannedVolumeL));
+        return roundVolumeL(clampedVolume);
+    }
+
+    private double calculatePlannedVolumeScale(
+            List<JournalFacade.WateringTarget> plannedTargets,
+            Double plannedTotalVolumeL
+    ) {
+        if (plannedTotalVolumeL == null || plannedTargets == null || plannedTargets.isEmpty()) {
+            return 1.0;
+        }
+        double sum = 0.0;
+        for (JournalFacade.WateringTarget target : plannedTargets) {
+            if (target == null) {
+                continue;
+            }
+            sum += target.waterVolumeL();
+        }
+        if (sum <= 0.0) {
+            return 1.0;
+        }
+        return plannedTotalVolumeL / sum;
+    }
+
+    private double roundVolumeL(double value) {
+        return BigDecimal.valueOf(value).setScale(3, RoundingMode.HALF_UP).doubleValue();
     }
 
     private PumpEntity requirePumpAccess(Integer pumpId, AuthenticatedUser user) {
