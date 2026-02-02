@@ -28,7 +28,7 @@ function AdminPlants() {
       setPlants(list);
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Ne udalos zagruzit rasteniya');
+      setError(err?.message || 'Не удалось загрузить растения');
     } finally {
       setIsLoading(false);
     }

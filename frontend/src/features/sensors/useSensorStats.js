@@ -64,7 +64,7 @@ export function useSensorStats({ mode, sensorId, plantId, metric }) {
         }
       } catch (err) {
         if (isSessionExpiredError(err)) return;
-        setError(err?.message || 'Ne udalos zagruzit istoriyu');
+        setError(err?.message || 'Не удалось загрузить историю');
       } finally {
         setIsLoading(false);
       }

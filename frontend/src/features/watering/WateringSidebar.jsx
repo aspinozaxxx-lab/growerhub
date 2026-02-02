@@ -114,11 +114,11 @@ function WateringSidebar() {
       <div className="gh-hint">{waterVolume.toFixed(1)} l</div>
       {wateringAdvice && (
         <div className="watering-recommendation">
-          Rekomendaciya: {wateringAdvice.recommended_water_volume_l ?? '—'} l
+          Рекомендация: {wateringAdvice.recommended_water_volume_l ?? '—'} l
         </div>
       )}
 
-      <FormField label="pH (opcionalno)" htmlFor="water-ph">
+      <FormField label="pH (опционально)" htmlFor="water-ph">
         <input
           id="water-ph"
           type="number"
@@ -130,11 +130,11 @@ function WateringSidebar() {
       </FormField>
       {wateringAdvice && (
         <div className="watering-recommendation">
-          Rekomendaciya: {wateringAdvice.recommended_ph ?? '—'}
+          Рекомендация: {wateringAdvice.recommended_ph ?? '—'}
         </div>
       )}
 
-      <FormField label="Udobreniya na litr (opcionalno)" htmlFor="water-fertilizers">
+      <FormField label="Удобрения на литр (опционально)" htmlFor="water-fertilizers">
         <textarea
           id="water-fertilizers"
           rows={3}
@@ -145,7 +145,7 @@ function WateringSidebar() {
       </FormField>
       {wateringAdvice && (
         <div className="watering-recommendation">
-          Rekomendaciya: {wateringAdvice.recommended_fertilizers_per_liter ?? '—'}
+          Рекомендация: {wateringAdvice.recommended_fertilizers_per_liter ?? '—'}
         </div>
       )}
 

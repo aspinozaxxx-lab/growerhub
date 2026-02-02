@@ -35,7 +35,7 @@ function AppDevices() {
       } catch (err) {
         if (!cancelled) {
           if (isSessionExpiredError(err)) return;
-          setError(err?.message || 'Ne udalos zagruzit dannye');
+          setError(err?.message || 'Не удалось загрузить данные');
         }
       } finally {
         if (!cancelled) {
@@ -55,7 +55,7 @@ function AppDevices() {
       setDevices(Array.isArray(devs) ? devs : []);
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Ne udalos obnovit ustrojstva');
+      setError(err?.message || 'Не удалось обновить устройства');
     }
   };
 

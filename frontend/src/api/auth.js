@@ -8,7 +8,7 @@ export async function fetchAuthMethods(token) {
   void token;
   const response = await apiFetch('/api/auth/methods');
   if (!response.ok) {
-    throw new Error(`Ne udalos zagruzit sposoby vhoda (${response.status})`);
+    throw new Error(`Не удалось загрузить способы входа (${response.status})`);
   }
   return response.json();
 }
@@ -23,11 +23,11 @@ export async function linkSsoMethod(provider, redirectPath, token) {
   const response = await apiFetch(url, { headers });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || `Ne udalos nachat privyazku (${response.status})`);
+    throw new Error(errorData.detail || `Не удалось начать привязку (${response.status})`);
   }
   const data = await response.json();
   if (!data?.url) {
-    throw new Error('Ne poluchen url dlya SSO');
+    throw new Error('Не получен URL для SSO');
   }
   return data.url;
 }
@@ -42,7 +42,7 @@ export async function unlinkAuthMethod(provider, token) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.detail || `Ne udalos udalit's sposob vhoda (${response.status})`);
+    throw new Error(data.detail || `Не удалось удалить способ входа (${response.status})`);
   }
   return data;
 }
@@ -62,7 +62,7 @@ export async function setLocalLogin(email, password, token) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.detail || `Ne udalos sohranit lokal'nyj vhod (${response.status})`);
+    throw new Error(data.detail || `Не удалось сохранить локальный вход (${response.status})`);
   }
   return data;
 }
@@ -85,7 +85,7 @@ export async function changePassword(currentPassword, newPassword, token) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.detail || `Ne udalos izmenit parol' (${response.status})`);
+    throw new Error(data.detail || `Не удалось изменить пароль (${response.status})`);
   }
   return data;
 }

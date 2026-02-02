@@ -43,7 +43,7 @@ function AdminDevices() {
       setAssignValues(nextValues);
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Ne udalos zagruzit ustroystva');
+      setError(err?.message || 'Не удалось загрузить устройства');
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +67,7 @@ function AdminDevices() {
     const rawValue = assignValues[deviceId] || '';
     const userId = Number(rawValue);
     if (!userId) {
-      setError('Ukazhite user_id');
+      setError('Укажите user_id');
       return;
     }
     setRowActionId(deviceId);
@@ -77,7 +77,7 @@ function AdminDevices() {
       await loadDevices();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Ne udalos privyazat ustroystvo');
+      setError(err?.message || 'Не удалось привязать устройство');
     } finally {
       setRowActionId(null);
     }
@@ -93,7 +93,7 @@ function AdminDevices() {
       await loadDevices();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Ne udalos otvyazat ustroystvo');
+      setError(err?.message || 'Не удалось отвязать устройство');
     } finally {
       setRowActionId(null);
     }
@@ -112,7 +112,7 @@ function AdminDevices() {
       await loadDevices();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Ne udalos udalit ustroystvo');
+      setError(err?.message || 'Не удалось удалить устройство');
     } finally {
       setRowActionId(null);
     }

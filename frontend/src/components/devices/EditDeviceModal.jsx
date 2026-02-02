@@ -152,7 +152,7 @@ function EditDeviceModal({
       for (const [plantId, rate] of Object.entries(bound)) {
         const parsed = Number(rate);
         if (!Number.isFinite(parsed) || parsed <= 0) {
-          return `rate_ml_per_hour dolzhen byt' > 0 (plant ${plantId})`;
+          return `rate_ml_per_hour должен быть > 0 (растение ${plantId})`;
         }
       }
     }
@@ -185,7 +185,7 @@ function EditDeviceModal({
       onSaved?.();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Ne udalos sohranit privyazki');
+      setError(err?.message || 'Не удалось сохранить привязки');
     } finally {
       setIsSaving(false);
     }

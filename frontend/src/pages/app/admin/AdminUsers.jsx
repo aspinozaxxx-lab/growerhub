@@ -68,7 +68,7 @@ function AdminUsers() {
       setDrafts(buildDraftsFromUsers(list));
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Ne udalos zagruzit polzovateley');
+      setError(err?.message || 'Не удалось загрузить пользователей');
     } finally {
       setIsLoading(false);
     }
@@ -119,7 +119,7 @@ function AdminUsers() {
       await loadUsers();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Ne udalos sozdat polzovatelya');
+      setError(err?.message || 'Не удалось создать пользователя');
     } finally {
       setIsCreating(false);
     }
@@ -140,7 +140,7 @@ function AdminUsers() {
       await loadUsers();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Ne udalos sohranit izmeneniya');
+      setError(err?.message || 'Не удалось сохранить изменения');
     } finally {
       setRowActionId(null);
     }
@@ -156,7 +156,7 @@ function AdminUsers() {
       await loadUsers();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Ne udalos udalit polzovatelya');
+      setError(err?.message || 'Не удалось удалить пользователя');
     } finally {
       setRowActionId(null);
     }

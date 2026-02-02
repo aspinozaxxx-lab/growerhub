@@ -1,7 +1,7 @@
 ﻿import { apiFetch } from './client';
 
 // Translitem: fallback-soobshchenie dlya oshibok admin API.
-const DEFAULT_ERROR_MESSAGE = 'Ne udalos vypolnit zapros';
+const DEFAULT_ERROR_MESSAGE = 'Не удалось выполнить запрос';
 
 // Translitem: chitaem detail iz JSON-otveta ili vozvraschaem fallback.
 async function readErrorDetail(response, fallback) {
@@ -22,7 +22,7 @@ export async function fetchAdminUsers(token) {
     headers: { Authorization: `Bearer ${token}` },
   } : undefined);
   if (!response.ok) {
-    const message = await readErrorDetail(response, 'Ne udalos zagruzit polzovateley');
+    const message = await readErrorDetail(response, 'Не удалось загрузить пользователей');
     throw new Error(message || DEFAULT_ERROR_MESSAGE);
   }
   return response.json();
@@ -36,7 +36,7 @@ export async function createAdminUser(payload, token) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    const message = await readErrorDetail(response, 'Ne udalos sozdat polzovatelya');
+    const message = await readErrorDetail(response, 'Не удалось создать пользователя');
     throw new Error(message || DEFAULT_ERROR_MESSAGE);
   }
   return response.json();
@@ -50,7 +50,7 @@ export async function updateAdminUser(userId, payload, token) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    const message = await readErrorDetail(response, 'Ne udalos sohranit izmeneniya');
+    const message = await readErrorDetail(response, 'Не удалось сохранить изменения');
     throw new Error(message || DEFAULT_ERROR_MESSAGE);
   }
   return response.json();
@@ -63,7 +63,7 @@ export async function deleteAdminUser(userId, token) {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
   if (!response.ok) {
-    const message = await readErrorDetail(response, 'Ne udalos udalit polzovatelya');
+    const message = await readErrorDetail(response, 'Не удалось удалить пользователя');
     throw new Error(message || DEFAULT_ERROR_MESSAGE);
   }
   return true;
@@ -75,7 +75,7 @@ export async function fetchAdminDevices(token) {
     headers: { Authorization: `Bearer ${token}` },
   } : undefined);
   if (!response.ok) {
-    const message = await readErrorDetail(response, 'Ne udalos zagruzit ustroystva');
+    const message = await readErrorDetail(response, 'Не удалось загрузить устройства');
     throw new Error(message || DEFAULT_ERROR_MESSAGE);
   }
   return response.json();
@@ -89,7 +89,7 @@ export async function adminAssignDevice(deviceId, userId, token) {
     body: JSON.stringify({ user_id: userId }),
   });
   if (!response.ok) {
-    const message = await readErrorDetail(response, 'Ne udalos privyazat ustroystvo');
+    const message = await readErrorDetail(response, 'Не удалось привязать устройство');
     throw new Error(message || DEFAULT_ERROR_MESSAGE);
   }
   return response.json();
@@ -102,7 +102,7 @@ export async function adminUnassignDevice(deviceId, token) {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
   if (!response.ok) {
-    const message = await readErrorDetail(response, 'Ne udalos otvyazat ustroystvo');
+    const message = await readErrorDetail(response, 'Не удалось отвязать устройство');
     throw new Error(message || DEFAULT_ERROR_MESSAGE);
   }
   return response.json();
@@ -115,7 +115,7 @@ export async function deleteAdminDevice(deviceId, token) {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
   if (!response.ok) {
-    const message = await readErrorDetail(response, 'Ne udalos udalit ustroystvo');
+    const message = await readErrorDetail(response, 'Не удалось удалить устройство');
     throw new Error(message || DEFAULT_ERROR_MESSAGE);
   }
   return true;
@@ -127,7 +127,7 @@ export async function fetchAdminPlants(token) {
     headers: { Authorization: `Bearer ${token}` },
   } : undefined);
   if (!response.ok) {
-    const message = await readErrorDetail(response, 'Ne udalos zagruzit rasteniya');
+    const message = await readErrorDetail(response, 'Не удалось загрузить растения');
     throw new Error(message || DEFAULT_ERROR_MESSAGE);
   }
   return response.json();
