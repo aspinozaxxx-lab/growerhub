@@ -87,7 +87,7 @@ function WateringSidebar() {
       setSuccess(true);
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Ne udalos startovat poliv');
+      setError(err?.message || 'Не удалось запустить полив');
     } finally {
       setIsSubmitting(false);
     }
@@ -98,9 +98,9 @@ function WateringSidebar() {
       isOpen={isOpen}
       onClose={closeWateringSidebar}
       title={title}
-      subtitle={plantId ? `Plant #${plantId}` : ''}
+      subtitle={plantId ? `Растение №${plantId}` : ''}
     >
-      <FormField label="Obem vody, l" htmlFor="water-volume">
+      <FormField label="Объем воды, l" htmlFor="water-volume">
         <input
           id="water-volume"
           type="range"
@@ -150,10 +150,10 @@ function WateringSidebar() {
       )}
 
       {error && <div className="sensor-sidebar__state sensor-sidebar__state--error">{error}</div>}
-      {success && <div className="sensor-sidebar__state">Poliv zapushchen</div>}
+      {success && <div className="sensor-sidebar__state">Полив запущен</div>}
 
       <Button variant="primary" onClick={handleStart} disabled={isSubmitting} style={{ width: '100%', marginTop: 12 }}>
-        {isSubmitting ? 'Zapusk...' : 'Nachat poliv'}
+        {isSubmitting ? 'Запуск...' : 'Начать полив'}
       </Button>
     </SidePanel>
   );
