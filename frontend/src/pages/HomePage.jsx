@@ -34,9 +34,7 @@ function HomePage() {
           <a className="hero-cta" href="/app">
             {hero.cta}
           </a>
-          <a className="hero-cta" href="/static/index.html">
-            Открыть старое приложение (legacy)
-          </a>
+
         </div>
         <div className="card">
           <h3>{secondary.title}</h3>

@@ -1,4 +1,8 @@
-﻿### fix(watering): stop i UI
+﻿### fix(front): ubraны ssylki na legacy iz novogo fronta
+
+- fix(front): udaleny ssylki na /static/index.html iz home CTA i header menu.
+
+### fix(watering): stop i UI
 
 - fix(backend): ostanovka poliva s fakticheskim duration i zapis' v zhurnal tol'ko pri zavershenii (stop/estestvennoe).
 - fix(front): UI-banner "Poliv eshche m:ss" + knopka "Ostanovit'" na dashboard/plants/devices cherez odin komponent i hook.
