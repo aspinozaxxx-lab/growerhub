@@ -113,3 +113,7 @@ mqtt:
     stateSuffix: "/state"
     # Suffiks dlya ack.
     ackSuffix: "/state/ack"
+
+app:
+  debug:
+    plantsTiming: true

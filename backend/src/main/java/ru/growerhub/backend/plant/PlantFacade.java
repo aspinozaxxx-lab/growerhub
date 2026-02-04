@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.growerhub.backend.diagnostics.PlantTiming;
 import ru.growerhub.backend.common.config.plant.PlantHistorySettings;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
@@ -107,12 +108,17 @@ public class PlantFacade {
 
     @Transactional(readOnly = true)
     public List<PlantInfo> listPlants(AuthenticatedUser user) {
-        List<PlantEntity> plants = plantRepository.findAllByUserId(user.id());
-        List<PlantInfo> responses = new ArrayList<>();
-        for (PlantEntity plant : plants) {
-            responses.add(toPlantInfo(plant));
+        long start = PlantTiming.startTimer();
+        try {
+            List<PlantEntity> plants = plantRepository.findAllByUserId(user.id());
+            List<PlantInfo> responses = new ArrayList<>();
+            for (PlantEntity plant : plants) {
+                responses.add(toPlantInfo(plant));
+            }
+            return responses;
+        } finally {
+            PlantTiming.recordPlantList(start);
         }
-        return responses;
     }
 
     @Transactional

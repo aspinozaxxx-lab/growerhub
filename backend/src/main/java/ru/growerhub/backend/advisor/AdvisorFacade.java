@@ -14,6 +14,7 @@ import ru.growerhub.backend.advisor.contract.WateringPrevious;
 import ru.growerhub.backend.advisor.engine.WateringAdviceContext;
 import ru.growerhub.backend.advisor.engine.WateringAdviceEngine;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
+import ru.growerhub.backend.diagnostics.PlantTiming;
 import ru.growerhub.backend.journal.JournalFacade;
 import ru.growerhub.backend.journal.contract.JournalWateringInfo;
 import ru.growerhub.backend.plant.PlantFacade;
@@ -47,46 +48,55 @@ public class AdvisorFacade {
      */
     @Transactional
     public WateringAdviceBundle getWateringAdvice(Integer plantId, AuthenticatedUser user) {
-        PlantInfo plant = plantFacade.getPlant(plantId, user);
-        JournalWateringInfo lastWatering = journalFacade.getLastWatering(plantId, user);
-        WateringPrevious previous = lastWatering != null
-                ? new WateringPrevious(
-                lastWatering.waterVolumeL(),
-                lastWatering.ph(),
-                lastWatering.fertilizersPerLiter(),
-                lastWatering.eventAt()
-        )
-                : null;
+        long adviceStart = PlantTiming.startTimer();
+        try {
+            PlantInfo plant = plantFacade.getPlant(plantId, user);
+            long journalStart = PlantTiming.startTimer();
+            JournalWateringInfo lastWatering = journalFacade.getLastWatering(plantId, user);
+            PlantTiming.recordJournal(journalStart);
+            WateringPrevious previous = lastWatering != null
+                    ? new WateringPrevious(
+                    lastWatering.waterVolumeL(),
+                    lastWatering.ph(),
+                    lastWatering.fertilizersPerLiter(),
+                    lastWatering.eventAt()
+            )
+                    : null;
 
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        LocalDateTime since = now.minusHours(WATERING_HISTORY_HOURS);
-        List<PlantMetricType> metrics = List.of(
-                PlantMetricType.SOIL_MOISTURE,
-                PlantMetricType.AIR_TEMPERATURE,
-                PlantMetricType.AIR_HUMIDITY
-        );
-        List<PlantMetricBucketPoint> history = plantFacade.getBucketedHistory(
-                plantId,
-                user,
-                metrics,
-                since,
-                WATERING_HISTORY_BUCKET
-        );
-        Integer ageDays = resolveAgeDays(plant != null ? plant.plantedAt() : null);
-        WateringAdviceContext context = new WateringAdviceContext(
-                plantId,
-                plant,
-                ageDays,
-                previous,
-                history,
-                FERTILIZERS_NAME,
-                FERTILIZERS_FORMAT
-        );
-        WateringAdvice advice = adviceEngine.resolveAdvice(
-                context,
-                lastWatering != null ? lastWatering.eventAt() : null
-        );
-        return new WateringAdviceBundle(previous, advice);
+            LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+            LocalDateTime since = now.minusHours(WATERING_HISTORY_HOURS);
+            List<PlantMetricType> metrics = List.of(
+                    PlantMetricType.SOIL_MOISTURE,
+                    PlantMetricType.AIR_TEMPERATURE,
+                    PlantMetricType.AIR_HUMIDITY
+            );
+            long historyStart = PlantTiming.startTimer();
+            List<PlantMetricBucketPoint> history = plantFacade.getBucketedHistory(
+                    plantId,
+                    user,
+                    metrics,
+                    since,
+                    WATERING_HISTORY_BUCKET
+            );
+            PlantTiming.recordHistory(historyStart);
+            Integer ageDays = resolveAgeDays(plant != null ? plant.plantedAt() : null);
+            WateringAdviceContext context = new WateringAdviceContext(
+                    plantId,
+                    plant,
+                    ageDays,
+                    previous,
+                    history,
+                    FERTILIZERS_NAME,
+                    FERTILIZERS_FORMAT
+            );
+            WateringAdvice advice = adviceEngine.resolveAdvice(
+                    context,
+                    lastWatering != null ? lastWatering.eventAt() : null
+            );
+            return new WateringAdviceBundle(previous, advice);
+        } finally {
+            PlantTiming.recordAdvice(plantId, adviceStart);
+        }
     }
 
     private Integer resolveAgeDays(LocalDateTime plantedAt) {

@@ -22,6 +22,7 @@ import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingRepository;
 import ru.growerhub.backend.pump.contract.PumpRunningStatusProvider;
 import ru.growerhub.backend.pump.contract.PumpView;
+import ru.growerhub.backend.diagnostics.PlantTiming;
 
 @Service
 public class PumpQueryService {
@@ -67,42 +68,47 @@ public class PumpQueryService {
     }
 
     public List<PumpView> listByPlantId(Integer plantId) {
-        if (plantId == null) {
-            return List.of();
-        }
-        PlantInfo plant = plantFacade.getPlantInfoById(plantId);
-        if (plant == null) {
-            return List.of();
-        }
-        List<PumpPlantBindingEntity> bindings = bindingRepository.findAllByPlantId(plantId);
-        if (bindings.isEmpty()) {
-            return List.of();
-        }
-        Map<Integer, PumpView> byPump = new HashMap<>();
-        for (PumpPlantBindingEntity binding : bindings) {
-            PumpEntity pump = binding.getPump();
-            if (pump == null || pump.getId() == null) {
-                continue;
+        long start = PlantTiming.startTimer();
+        try {
+            if (plantId == null) {
+                return List.of();
             }
-            Boolean isRunning = runningStatusProvider.isPumpRunning(
-                    resolveDeviceId(pump),
-                    pump.getChannel() != null ? pump.getChannel() : 0
-            );
-            PumpView existing = byPump.get(pump.getId());
-            List<PumpBoundPlantView> nextPlants = new ArrayList<>();
-            if (existing != null && existing.boundPlants() != null) {
-                nextPlants.addAll(existing.boundPlants());
+            PlantInfo plant = plantFacade.getPlantInfoById(plantId);
+            if (plant == null) {
+                return List.of();
             }
-            nextPlants.add(toPlantView(plant, binding.getRateMlPerHour()));
-            byPump.put(pump.getId(), new PumpView(
-                    pump.getId(),
-                    pump.getChannel(),
-                    pump.getLabel(),
-                    isRunning,
-                    nextPlants
-            ));
+            List<PumpPlantBindingEntity> bindings = bindingRepository.findAllByPlantId(plantId);
+            if (bindings.isEmpty()) {
+                return List.of();
+            }
+            Map<Integer, PumpView> byPump = new HashMap<>();
+            for (PumpPlantBindingEntity binding : bindings) {
+                PumpEntity pump = binding.getPump();
+                if (pump == null || pump.getId() == null) {
+                    continue;
+                }
+                Boolean isRunning = runningStatusProvider.isPumpRunning(
+                        resolveDeviceId(pump),
+                        pump.getChannel() != null ? pump.getChannel() : 0
+                );
+                PumpView existing = byPump.get(pump.getId());
+                List<PumpBoundPlantView> nextPlants = new ArrayList<>();
+                if (existing != null && existing.boundPlants() != null) {
+                    nextPlants.addAll(existing.boundPlants());
+                }
+                nextPlants.add(toPlantView(plant, binding.getRateMlPerHour()));
+                byPump.put(pump.getId(), new PumpView(
+                        pump.getId(),
+                        pump.getChannel(),
+                        pump.getLabel(),
+                        isRunning,
+                        nextPlants
+                ));
+            }
+            return new ArrayList<>(byPump.values());
+        } finally {
+            PlantTiming.recordPumps(plantId, start);
         }
-        return new ArrayList<>(byPump.values());
     }
 
     private Map<Integer, List<PumpBoundPlantView>> loadBindings(List<PumpEntity> pumps) {

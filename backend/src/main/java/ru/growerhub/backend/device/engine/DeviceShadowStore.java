@@ -17,6 +17,7 @@ import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
 import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
+import ru.growerhub.backend.diagnostics.PlantTiming;
 
 @Component
 public class DeviceShadowStore {
@@ -83,9 +84,13 @@ public class DeviceShadowStore {
     public DeviceSnapshot getSnapshotOrLoad(String deviceId) {
         ShadowEntry entry = storage.get(deviceId);
         if (entry != null && entry.updatedAt() != null) {
+            PlantTiming.recordShadowHit();
             return new DeviceSnapshot(entry.state(), entry.updatedAt(), isOnline(entry.updatedAt()), SnapshotSource.MEMORY);
         }
+        PlantTiming.recordShadowMiss();
+        long loadStart = PlantTiming.startTimer();
         DeviceSnapshot loaded = loadFromDb(deviceId);
+        PlantTiming.recordShadowLoad(loadStart);
         if (loaded == null) {
             return null;
         }
@@ -202,10 +207,13 @@ public class DeviceShadowStore {
         if (stateJson == null || objectMapper == null) {
             return null;
         }
+        long start = PlantTiming.startTimer();
         try {
             return objectMapper.readValue(stateJson, DeviceShadowState.class);
         } catch (Exception ex) {
             return null;
+        } finally {
+            PlantTiming.recordShadowJson(start);
         }
     }
 

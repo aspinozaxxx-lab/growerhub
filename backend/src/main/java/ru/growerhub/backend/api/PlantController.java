@@ -8,6 +8,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -38,6 +39,7 @@ import ru.growerhub.backend.plant.contract.AdminPlantInfo;
 import ru.growerhub.backend.plant.contract.PlantGroupInfo;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.plant.contract.PlantInfo;
+import ru.growerhub.backend.diagnostics.PlantTiming;
 
 @RestController
 @Validated
@@ -100,12 +102,24 @@ public class PlantController {
     public List<PlantDtos.PlantResponse> listPlants(
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        List<PlantInfo> plants = plantFacade.listPlants(user);
-        List<PlantDtos.PlantResponse> responses = new ArrayList<>();
-        for (PlantInfo plant : plants) {
-            responses.add(toPlantResponse(plant, user));
+        boolean timingEnabled = PlantTiming.isEnabled();
+        String requestId = timingEnabled ? UUID.randomUUID().toString() : null;
+        if (timingEnabled) {
+            PlantTiming.startRequest(requestId);
         }
-        return responses;
+        long totalStart = timingEnabled ? System.nanoTime() : 0L;
+        List<PlantDtos.PlantResponse> responses = new ArrayList<>();
+        try {
+            List<PlantInfo> plants = plantFacade.listPlants(user);
+            for (PlantInfo plant : plants) {
+                responses.add(toPlantResponse(plant, user));
+            }
+            return responses;
+        } finally {
+            if (timingEnabled) {
+                PlantTiming.finishRequest(responses.size(), System.nanoTime() - totalStart);
+            }
+        }
     }
 
     @PostMapping("/api/plants")
