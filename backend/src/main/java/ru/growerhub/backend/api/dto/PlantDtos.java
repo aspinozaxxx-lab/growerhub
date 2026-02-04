@@ -80,6 +80,40 @@ public final class PlantDtos {
     ) {
     }
 
+    public record PlantListResponse(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("name") String name,
+            @JsonProperty("planted_at") LocalDateTime plantedAt,
+            @JsonProperty("harvested_at") LocalDateTime harvestedAt,
+            @JsonProperty("plant_type") String plantType,
+            @JsonProperty("strain") String strain,
+            @JsonProperty("growth_stage") String growthStage,
+            @JsonProperty("user_id") Integer userId,
+            @JsonProperty("plant_group") PlantGroupResponse plantGroup,
+            @JsonProperty("sensors") List<PlantListSensorResponse> sensors,
+            @JsonProperty("pumps") List<PlantListPumpResponse> pumps
+    ) {
+    }
+
+    public record PlantListSensorResponse(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("type") String type,
+            @JsonProperty("channel") Integer channel,
+            @JsonProperty("label") String label,
+            @JsonProperty("detected") Boolean detected,
+            @JsonProperty("last_value") Double lastValue,
+            @JsonProperty("last_ts") LocalDateTime lastTs
+    ) {
+    }
+
+    public record PlantListPumpResponse(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("channel") Integer channel,
+            @JsonProperty("label") String label,
+            @JsonProperty("is_running") Boolean isRunning
+    ) {
+    }
+
     public record PlantWateringPreviousResponse(
             @JsonProperty("water_volume_l") Double waterVolumeL,
             @JsonProperty("ph") Double ph,

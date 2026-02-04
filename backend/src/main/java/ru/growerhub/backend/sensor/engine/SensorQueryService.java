@@ -115,6 +115,45 @@ public class SensorQueryService {
         }
     }
 
+    public List<SensorView> listByPlantIdLight(Integer plantId) {
+        long start = PlantTiming.startTimer();
+        try {
+            if (plantId == null) {
+                return List.of();
+            }
+            List<SensorPlantBindingEntity> bindings = bindingRepository.findAllByPlantId(plantId);
+            if (bindings.isEmpty()) {
+                return List.of();
+            }
+            Map<Integer, SensorEntity> sensors = new HashMap<>();
+            for (SensorPlantBindingEntity binding : bindings) {
+                SensorEntity sensor = binding.getSensor();
+                if (sensor != null) {
+                    sensors.putIfAbsent(sensor.getId(), sensor);
+                }
+            }
+            List<SensorView> result = new ArrayList<>();
+            for (SensorEntity sensor : sensors.values()) {
+                SensorReadingEntity last = sensorReadingRepository
+                        .findTopBySensor_IdOrderByTsDesc(sensor.getId())
+                        .orElse(null);
+                result.add(new SensorView(
+                        sensor.getId(),
+                        sensor.getType(),
+                        sensor.getChannel(),
+                        sensor.getLabel(),
+                        sensor.isDetected(),
+                        last != null ? last.getValueNumeric() : null,
+                        last != null ? last.getTs() : null,
+                        List.of()
+                ));
+            }
+            return result;
+        } finally {
+            PlantTiming.recordSensors(plantId, start);
+        }
+    }
+
     private Map<Integer, List<SensorBoundPlantView>> loadBindings(List<SensorEntity> sensors) {
         List<Integer> sensorIds = sensors.stream()
                 .map(SensorEntity::getId)

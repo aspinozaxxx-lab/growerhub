@@ -83,6 +83,11 @@ public class SensorFacade {
         return queryService.listByPlantId(plantId);
     }
 
+    @Transactional(readOnly = true)
+    public List<SensorView> listByPlantIdLight(Integer plantId) {
+        return queryService.listByPlantIdLight(plantId);
+    }
+
     @Transactional
     public void deleteByDeviceId(Integer deviceId) {
         if (deviceId == null) {

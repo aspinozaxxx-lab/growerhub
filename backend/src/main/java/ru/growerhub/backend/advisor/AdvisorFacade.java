@@ -1,4 +1,4 @@
-package ru.growerhub.backend.advisor;
+﻿package ru.growerhub.backend.advisor;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -14,6 +14,7 @@ import ru.growerhub.backend.advisor.contract.WateringPrevious;
 import ru.growerhub.backend.advisor.engine.WateringAdviceContext;
 import ru.growerhub.backend.advisor.engine.WateringAdviceEngine;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
+import ru.growerhub.backend.common.config.advisor.AdvisorSettings;
 import ru.growerhub.backend.diagnostics.PlantTiming;
 import ru.growerhub.backend.journal.JournalFacade;
 import ru.growerhub.backend.journal.contract.JournalWateringInfo;
@@ -32,15 +33,18 @@ public class AdvisorFacade {
     private final PlantFacade plantFacade;
     private final JournalFacade journalFacade;
     private final WateringAdviceEngine adviceEngine;
+    private final AdvisorSettings advisorSettings;
 
     public AdvisorFacade(
             PlantFacade plantFacade,
             JournalFacade journalFacade,
-            WateringAdviceEngine adviceEngine
+            WateringAdviceEngine adviceEngine,
+            AdvisorSettings advisorSettings
     ) {
         this.plantFacade = plantFacade;
         this.journalFacade = journalFacade;
         this.adviceEngine = adviceEngine;
+        this.advisorSettings = advisorSettings;
     }
 
     /**
@@ -48,6 +52,9 @@ public class AdvisorFacade {
      */
     @Transactional
     public WateringAdviceBundle getWateringAdvice(Integer plantId, AuthenticatedUser user) {
+        if (!advisorSettings.isEnabled()) {
+            return null;
+        }
         long adviceStart = PlantTiming.startTimer();
         try {
             PlantInfo plant = plantFacade.getPlant(plantId, user);

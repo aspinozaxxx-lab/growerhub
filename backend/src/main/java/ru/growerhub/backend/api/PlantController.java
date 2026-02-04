@@ -99,7 +99,7 @@ public class PlantController {
     }
 
     @GetMapping("/api/plants")
-    public List<PlantDtos.PlantResponse> listPlants(
+    public List<PlantDtos.PlantListResponse> listPlants(
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         boolean timingEnabled = PlantTiming.isEnabled();
@@ -108,11 +108,11 @@ public class PlantController {
             PlantTiming.startRequest(requestId);
         }
         long totalStart = timingEnabled ? System.nanoTime() : 0L;
-        List<PlantDtos.PlantResponse> responses = new ArrayList<>();
+        List<PlantDtos.PlantListResponse> responses = new ArrayList<>();
         try {
             List<PlantInfo> plants = plantFacade.listPlants(user);
             for (PlantInfo plant : plants) {
-                responses.add(toPlantResponse(plant, user));
+                responses.add(toPlantListResponse(plant));
             }
             return responses;
         } finally {
@@ -230,6 +230,30 @@ public class PlantController {
         );
     }
 
+    private PlantDtos.PlantListResponse toPlantListResponse(PlantInfo plant) {
+        PlantGroupInfo group = plant.plantGroup();
+        PlantDtos.PlantGroupResponse groupResponse = group != null
+                ? new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId())
+                : null;
+        List<PlantDtos.PlantListSensorResponse> sensors =
+                mapListSensors(sensorFacade.listByPlantIdLight(plant.id()));
+        List<PlantDtos.PlantListPumpResponse> pumps =
+                mapListPumps(pumpFacade.listByPlantIdLight(plant.id()));
+        return new PlantDtos.PlantListResponse(
+                plant.id(),
+                plant.name(),
+                plant.plantedAt(),
+                plant.harvestedAt(),
+                plant.plantType(),
+                plant.strain(),
+                plant.growthStage(),
+                plant.userId(),
+                groupResponse,
+                sensors,
+                pumps
+        );
+    }
+
     private PlantDtos.PlantWateringPreviousResponse toWateringPrevious(WateringAdviceBundle bundle) {
         if (bundle == null) {
             return null;
@@ -313,6 +337,35 @@ public class PlantController {
                     view.label(),
                     view.isRunning(),
                     plants
+            ));
+        }
+        return result;
+    }
+
+    private List<PlantDtos.PlantListSensorResponse> mapListSensors(List<SensorView> views) {
+        List<PlantDtos.PlantListSensorResponse> result = new ArrayList<>();
+        for (SensorView view : views) {
+            result.add(new PlantDtos.PlantListSensorResponse(
+                    view.id(),
+                    view.type() != null ? view.type().name() : null,
+                    view.channel(),
+                    view.label(),
+                    view.detected(),
+                    view.lastValue(),
+                    view.lastTs()
+            ));
+        }
+        return result;
+    }
+
+    private List<PlantDtos.PlantListPumpResponse> mapListPumps(List<PumpView> views) {
+        List<PlantDtos.PlantListPumpResponse> result = new ArrayList<>();
+        for (PumpView view : views) {
+            result.add(new PlantDtos.PlantListPumpResponse(
+                    view.id(),
+                    view.channel(),
+                    view.label(),
+                    view.isRunning()
             ));
         }
         return result;

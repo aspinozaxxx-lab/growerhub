@@ -100,6 +100,10 @@ function DashboardPlantCard({
     if (!plant?.id) {
       return sensors;
     }
+    const hasBoundInfo = sensors.some((sensor) => Array.isArray(sensor.bound_plants));
+    if (!hasBoundInfo) {
+      return sensors;
+    }
     return sensors.filter((sensor) => {
       const boundPlants = Array.isArray(sensor.bound_plants) ? sensor.bound_plants : [];
       return boundPlants.some((bound) => bound.id === plant.id);

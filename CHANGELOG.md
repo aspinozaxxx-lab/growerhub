@@ -1,4 +1,10 @@
-﻿### fix(backend): plants timing sql stats compat
+﻿### fix(backend): plants list light i advisor gating
+
+- fix(backend): /api/plants vozvrashchaet light kontrakt bez watering_previous/watering_advice i bez bound_plants v sensors/pumps.
+- fix(backend): advisor.enabled=false delaet ranniy vyhod bez journal/history/llm.
+- fix(front): dashboard ne zavisit ot bound_plants v spiske rastenij.
+
+### fix(backend): plants timing sql stats compat
 
 - fix(backend): diag PlantTiming ne polagaetsya na Hibernate getQueryExecutionTotalTime (sqlTotalMs ostavlen -1 pri otsutstvii metoda).
 

@@ -323,16 +323,29 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         pumpBinding.setRateMlPerHour(2000);
         pumpPlantBindingRepository.save(pumpBinding);
 
-        given()
+        Response response = given()
                 .header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/plants")
                 .then()
                 .statusCode(200)
-                .body("size()", equalTo(1))
-                .body("[0].sensors", hasSize(1))
-                .body("[0].sensors[0].type", equalTo("SOIL_MOISTURE"))
-                .body("[0].pumps", hasSize(1));
+                .extract()
+                .response();
+
+        List<Map<String, Object>> plants = response.jsonPath().getList("$");
+        Assertions.assertEquals(1, plants.size());
+        Map<String, Object> payload = plants.get(0);
+        Assertions.assertFalse(payload.containsKey("watering_previous"));
+        Assertions.assertFalse(payload.containsKey("watering_advice"));
+
+        List<Map<String, Object>> sensors = response.jsonPath().getList("[0].sensors");
+        Assertions.assertEquals(1, sensors.size());
+        Assertions.assertEquals("SOIL_MOISTURE", sensors.get(0).get("type"));
+        Assertions.assertFalse(sensors.get(0).containsKey("bound_plants"));
+
+        List<Map<String, Object>> pumps = response.jsonPath().getList("[0].pumps");
+        Assertions.assertEquals(1, pumps.size());
+        Assertions.assertFalse(pumps.get(0).containsKey("bound_plants"));
     }
 
     @Test

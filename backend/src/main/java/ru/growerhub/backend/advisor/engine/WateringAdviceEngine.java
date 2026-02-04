@@ -1,4 +1,4 @@
-package ru.growerhub.backend.advisor.engine;
+﻿package ru.growerhub.backend.advisor.engine;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -44,13 +44,13 @@ public class WateringAdviceEngine {
         if (context == null || context.plantId() == null) {
             return null;
         }
+        if (!advisorSettings.isEnabled()) {
+            return null;
+        }
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         AdvisorWateringAdviceEntity cached = adviceRepository.findByPlantId(context.plantId()).orElse(null);
         if (isCacheValid(cached, lastWateringEventAt, now)) {
             return toContract(cached);
-        }
-        if (!advisorSettings.isEnabled()) {
-            return null;
         }
         String prompt = buildPrompt(context);
         String response = gateway.requestWateringAdvice(prompt);

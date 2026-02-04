@@ -111,6 +111,43 @@ public class PumpQueryService {
         }
     }
 
+    public List<PumpView> listByPlantIdLight(Integer plantId) {
+        long start = PlantTiming.startTimer();
+        try {
+            if (plantId == null) {
+                return List.of();
+            }
+            List<PumpPlantBindingEntity> bindings = bindingRepository.findAllByPlantId(plantId);
+            if (bindings.isEmpty()) {
+                return List.of();
+            }
+            Map<Integer, PumpView> byPump = new HashMap<>();
+            for (PumpPlantBindingEntity binding : bindings) {
+                PumpEntity pump = binding.getPump();
+                if (pump == null || pump.getId() == null) {
+                    continue;
+                }
+                if (byPump.containsKey(pump.getId())) {
+                    continue;
+                }
+                Boolean isRunning = runningStatusProvider.isPumpRunning(
+                        resolveDeviceId(pump),
+                        pump.getChannel() != null ? pump.getChannel() : 0
+                );
+                byPump.put(pump.getId(), new PumpView(
+                        pump.getId(),
+                        pump.getChannel(),
+                        pump.getLabel(),
+                        isRunning,
+                        List.of()
+                ));
+            }
+            return new ArrayList<>(byPump.values());
+        } finally {
+            PlantTiming.recordPumps(plantId, start);
+        }
+    }
+
     private Map<Integer, List<PumpBoundPlantView>> loadBindings(List<PumpEntity> pumps) {
         List<Integer> pumpIds = pumps.stream()
                 .map(PumpEntity::getId)

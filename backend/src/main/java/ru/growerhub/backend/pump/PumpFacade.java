@@ -92,6 +92,11 @@ public class PumpFacade {
         return queryService.listByPlantId(plantId);
     }
 
+    @Transactional(readOnly = true)
+    public List<PumpView> listByPlantIdLight(Integer plantId) {
+        return queryService.listByPlantIdLight(plantId);
+    }
+
     @Transactional
     public void ensureDefaultPump(Integer deviceId) {
         pumpService.ensureDefaultPump(deviceId);
