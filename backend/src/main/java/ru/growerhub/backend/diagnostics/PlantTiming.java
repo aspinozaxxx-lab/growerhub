@@ -178,7 +178,6 @@ public class PlantTiming {
         private long sqlCount = -1;
         private long sqlTotalMs = -1;
         private long sqlCountStart = -1;
-        private long sqlTimeStart = -1;
         private boolean sqlEnabled;
         private long sensorsMaxNs;
         private Integer sensorsMaxPlantId;
@@ -197,7 +196,6 @@ public class PlantTiming {
             }
             sqlEnabled = true;
             sqlCountStart = stats.getPrepareStatementCount();
-            sqlTimeStart = stats.getQueryExecutionTotalTime();
         }
 
         private void markSqlEnd(Statistics stats) {
@@ -205,7 +203,7 @@ public class PlantTiming {
                 return;
             }
             sqlCount = stats.getPrepareStatementCount() - sqlCountStart;
-            sqlTotalMs = stats.getQueryExecutionTotalTime() - sqlTimeStart;
+            sqlTotalMs = -1;
         }
 
         private void addSensors(Integer plantId, long durationNs) {

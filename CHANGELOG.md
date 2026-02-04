@@ -1,4 +1,8 @@
-﻿### fix(front): ubraны ssylki na legacy iz novogo fronta
+﻿### fix(backend): plants timing sql stats compat
+
+- fix(backend): diag PlantTiming ne polagaetsya na Hibernate getQueryExecutionTotalTime (sqlTotalMs ostavlen -1 pri otsutstvii metoda).
+
+### fix(front): ubraны ssylki na legacy iz novogo fronta
 
 - fix(front): udaleny ssylki na /static/index.html iz home CTA i header menu.
 
