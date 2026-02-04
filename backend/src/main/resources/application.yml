@@ -116,4 +116,4 @@ mqtt:
 
 app:
   debug:
-    plantsTiming: true
+    plantsTiming: false
