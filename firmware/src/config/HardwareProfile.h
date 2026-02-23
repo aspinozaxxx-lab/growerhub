@@ -39,7 +39,7 @@ inline const HardwareProfile& GetHardwareProfile() {
       2,
       true,
       true,
-      300000,
+      3600000,
       0};
 #if defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
   static const HardwareProfile esp32c3_supermini_profile = {
@@ -48,7 +48,7 @@ inline const HardwareProfile& GetHardwareProfile() {
       1,
       true,
       false,
-      300000,
+      3600000,
       60};
   return esp32c3_supermini_profile;
 #endif
