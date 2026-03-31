@@ -308,6 +308,7 @@ public class PlantController {
                     view.channel(),
                     view.label(),
                     view.detected(),
+                    view.status() != null ? view.status().name() : null,
                     view.lastValue(),
                     view.lastTs(),
                     plants
@@ -351,6 +352,7 @@ public class PlantController {
                     view.channel(),
                     view.label(),
                     view.detected(),
+                    view.status() != null ? view.status().name() : null,
                     view.lastValue(),
                     view.lastTs()
             ));

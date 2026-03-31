@@ -9,14 +9,19 @@
 
 #include <cstdint>
 
-#if defined(ARDUINO)
-class DHT;
-#endif
-
 namespace Drivers {
 
 class Dht22Sensor {
  public:
+  enum class ReadError : uint8_t {
+    kNone = 0,
+    kNoResponse = 1,
+    kTimeout = 2,
+    kChecksum = 3,
+    kInvalidFrame = 4,
+    kReadFailed = 5
+  };
+
   /**
    * Init datchika na ukazannom pine.
    * @param pin GPIO pin datchika.
@@ -41,6 +46,18 @@ class Dht22Sensor {
    * Vozvrashaet poslednyuyu vlazhnost.
    */
   float GetLastHumidity() const;
+  /**
+   * Vozvrashaet kod posledney oshibki chteniya.
+   */
+  ReadError GetLastError() const;
+  /**
+   * Vozvrashaet tekstovyi kod posledney oshibki chteniya.
+   */
+  const char* GetLastErrorCode() const;
+  /**
+   * Vozvrashaet pin datchika.
+   */
+  uint8_t GetPin() const;
 
 #if defined(UNIT_TEST)
   // Tip hook dlya podmeny chteniya v testah.
@@ -50,6 +67,11 @@ class Dht22Sensor {
    * @param hook Ukazatel na funkciyu chteniya.
    */
   void SetReadHook(ReadHook hook);
+  /**
+   * Ustanavlivaet prinuditelnyi kod oshibki dlya testov.
+   * @param error Kod oshibki, kotoryi nado vernut pri neudachnom chtenii.
+   */
+  void SetForcedErrorForTests(ReadError error);
 #endif
 
  private:
@@ -61,13 +83,11 @@ class Dht22Sensor {
   float last_humidity_ = 0.0f;
   uint32_t last_attempt_ms_ = 0;
   bool has_read_ = false;
-
-#if defined(ARDUINO)
-  ::DHT* dht_ = nullptr;
-#endif
+  ReadError last_error_ = ReadError::kNone;
 
 #if defined(UNIT_TEST)
   ReadHook read_hook_ = nullptr;
+  ReadError forced_error_ = ReadError::kNone;
 #endif
 };
 

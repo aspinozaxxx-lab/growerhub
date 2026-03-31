@@ -1,5 +1,13 @@
-﻿package ru.growerhub.backend.sensor.contract;
+package ru.growerhub.backend.sensor.contract;
 
-public record SensorMeasurement(SensorType type, int channel, Double value, boolean detected) {
+import java.time.LocalDateTime;
+
+public record SensorMeasurement(
+        SensorType type,
+        int channel,
+        Double value,
+        boolean detected,
+        SensorStatus status,
+        LocalDateTime statusObservedAt
+) {
 }
-

@@ -24,6 +24,7 @@ import ru.growerhub.backend.device.engine.DeviceIngestionService;
 import ru.growerhub.backend.device.engine.DeviceShadowStore;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
+import ru.growerhub.backend.device.jpa.DeviceServiceEventRepository;
 import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
 import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
 import ru.growerhub.backend.device.jpa.MqttAckEntity;
@@ -36,6 +37,7 @@ import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
 import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;
 import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
 import ru.growerhub.backend.sensor.jpa.SensorRepository;
+import ru.growerhub.backend.sensor.contract.SensorStatus;
 import ru.growerhub.backend.sensor.contract.SensorType;
 
 @SpringBootTest(
@@ -81,6 +83,9 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private PlantMetricSampleRepository plantMetricSampleRepository;
+
+    @Autowired
+    private DeviceServiceEventRepository deviceServiceEventRepository;
 
     @SpyBean
     private DeviceIngestionService deviceIngestionService;
@@ -192,6 +197,59 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         Assertions.assertTrue(plantMetricSampleRepository.count() >= 3);
     }
 
+    @Test
+    void stateStatusUpdatesLogicalAirSensorsAndSoilPort() {
+        String deviceId = "mqtt-status";
+        String stateJson = """
+                {"air":{"available":false,"status":"ERROR"},"soil":{"ports":[{"port":0,"detected":false,"status":"DISCONNECTED"}]}}
+                """;
+
+        injectorSubscriber.injectState("gh/dev/" + deviceId + "/state", stateJson.getBytes(StandardCharsets.UTF_8));
+
+        SensorEntity airTemp = sensorRepository.findByDeviceIdAndTypeAndChannel(
+                deviceRepository.findByDeviceId(deviceId).orElseThrow().getId(),
+                SensorType.AIR_TEMPERATURE,
+                0
+        ).orElse(null);
+        SensorEntity airHum = sensorRepository.findByDeviceIdAndTypeAndChannel(
+                deviceRepository.findByDeviceId(deviceId).orElseThrow().getId(),
+                SensorType.AIR_HUMIDITY,
+                0
+        ).orElse(null);
+        SensorEntity soil = sensorRepository.findByDeviceIdAndTypeAndChannel(
+                deviceRepository.findByDeviceId(deviceId).orElseThrow().getId(),
+                SensorType.SOIL_MOISTURE,
+                0
+        ).orElse(null);
+
+        Assertions.assertNotNull(airTemp);
+        Assertions.assertNotNull(airHum);
+        Assertions.assertNotNull(soil);
+        Assertions.assertEquals(SensorStatus.ERROR, airTemp.getStatus());
+        Assertions.assertEquals(SensorStatus.ERROR, airHum.getStatus());
+        Assertions.assertEquals(SensorStatus.DISCONNECTED, soil.getStatus());
+        Assertions.assertEquals(0, sensorReadingRepository.count());
+    }
+
+    @Test
+    void persistsDeviceServiceEventsFromEventsTopic() {
+        String deviceId = "mqtt-event";
+        String eventJson = """
+                {"type":"SENSOR_READ_ERROR","ts":"2025-01-01T01:00:00Z","failure_id":"fail-1","sensor_scope":"air","sensor_type":"AIR","channel":0,"error_code":"read_error","auto_reboot":true}
+                """;
+
+        injectorSubscriber.injectEvent("gh/dev/" + deviceId + "/events", eventJson.getBytes(StandardCharsets.UTF_8));
+
+        Assertions.assertEquals(1, deviceServiceEventRepository.count());
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        Assertions.assertNotNull(device);
+        var row = deviceServiceEventRepository.findAll().get(0);
+        Assertions.assertEquals(device.getId(), row.getDeviceId());
+        Assertions.assertEquals("air", row.getSensorScope());
+        Assertions.assertEquals("AIR", row.getSensorType());
+        Assertions.assertEquals("fail-1", row.getFailureId());
+    }
+
     private SensorEntity createSensor(DeviceEntity device, SensorType type, int channel) {
         SensorEntity sensor = SensorEntity.create();
         sensor.setDeviceId(device.getId());
@@ -218,6 +276,7 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM pump_plant_bindings");
         jdbcTemplate.update("DELETE FROM mqtt_ack");
         jdbcTemplate.update("DELETE FROM device_state_last");
+        jdbcTemplate.update("DELETE FROM device_service_events");
         jdbcTemplate.update("DELETE FROM pumps");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM plants");
@@ -231,7 +290,6 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         }
     }
 }
-
 
 
 

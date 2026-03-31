@@ -27,6 +27,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.engine.DeviceShadowStore;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
+import ru.growerhub.backend.device.jpa.DeviceServiceEventEntity;
+import ru.growerhub.backend.device.jpa.DeviceServiceEventRepository;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
@@ -48,6 +50,7 @@ import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
 import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;
 import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
 import ru.growerhub.backend.sensor.jpa.SensorRepository;
+import ru.growerhub.backend.sensor.contract.SensorStatus;
 import ru.growerhub.backend.sensor.contract.SensorType;
 import ru.growerhub.backend.user.jpa.UserEntity;
 import ru.growerhub.backend.user.jpa.UserRepository;
@@ -88,6 +91,9 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private PumpRepository pumpRepository;
+
+    @Autowired
+    private DeviceServiceEventRepository deviceServiceEventRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -403,6 +409,31 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void mqttStatePopulatesSensorStatusInMyDevices() {
+        UserEntity user = createUser("mqtt-status-owner@example.com", "user");
+        DeviceEntity device = createDevice("dev-mqtt-status", user);
+        String token = buildToken(user.getId());
+        String payload = """
+                {"air":{"available":false,"status":"ERROR"},"soil":{"ports":[{"port":0,"detected":false,"status":"DISCONNECTED"}]}}
+                """;
+
+        mqttMessageHandler.handleStateMessage(
+                "gh/dev/" + device.getDeviceId() + "/state",
+                payload.getBytes(StandardCharsets.UTF_8)
+        );
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/devices/my")
+                .then()
+                .statusCode(200)
+                .body("[0].sensors.find { it.type == 'AIR_TEMPERATURE' }.status", equalTo("ERROR"))
+                .body("[0].sensors.find { it.type == 'AIR_HUMIDITY' }.status", equalTo("ERROR"))
+                .body("[0].sensors.find { it.type == 'SOIL_MOISTURE' }.status", equalTo("DISCONNECTED"));
+    }
+
+    @Test
     void mqttStateAutoProvisionCreatesDefaultPump() {
         String deviceId = "dev-auto-provision";
         String payload = """
@@ -564,6 +595,35 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
         long after = pumpRepository.count();
         Assertions.assertEquals(before, after);
+    }
+
+    @Test
+    void adminDevicesReturnsRecentServiceEvents() {
+        UserEntity admin = createUser("admin-events@example.com", "admin");
+        DeviceEntity device = createDevice("dev-admin-events", null);
+        String token = buildToken(admin.getId());
+
+        DeviceServiceEventEntity event = DeviceServiceEventEntity.create();
+        event.setDeviceId(device.getId());
+        event.setEventType(ru.growerhub.backend.device.contract.DeviceServiceEventType.SENSOR_READ_ERROR);
+        event.setSensorScope("air");
+        event.setSensorType("AIR");
+        event.setChannel(0);
+        event.setFailureId("fail-admin-1");
+        event.setErrorCode("read_error");
+        event.setEventAt(LocalDateTime.now(ZoneOffset.UTC).minusSeconds(1));
+        event.setReceivedAt(LocalDateTime.now(ZoneOffset.UTC));
+        deviceServiceEventRepository.save(event);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/admin/devices")
+                .then()
+                .statusCode(200)
+                .body("[0].service_events.size()", equalTo(1))
+                .body("[0].service_events[0].type", equalTo("SENSOR_READ_ERROR"))
+                .body("[0].service_events[0].failure_id", equalTo("fail-admin-1"));
     }
 
     @Test
@@ -904,13 +964,13 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM plant_groups");
         jdbcTemplate.update("DELETE FROM device_state_last");
         jdbcTemplate.update("DELETE FROM mqtt_ack");
+        jdbcTemplate.update("DELETE FROM device_service_events");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM user_auth_identities");
         jdbcTemplate.update("DELETE FROM user_refresh_tokens");
         jdbcTemplate.update("DELETE FROM users");
     }
 }
-
 
 
 

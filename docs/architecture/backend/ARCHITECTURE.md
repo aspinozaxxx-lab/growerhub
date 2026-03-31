@@ -18,6 +18,11 @@
 - user: пользователи, профиль и админка пользователей.
 - advisor: система запроса рекомендаций у ИИ сервера
 
+Распределение ответственности для sensor status:
+- `sensor` домен хранит текущий status logical sensor record и отдает его в пользовательские DTO.
+- `device` домен хранит service event journal устройства для админки.
+- MQTT adapter только парсит `state/events` и делегирует обработку через facade.
+
 Инфраструктура:
 - DB (JPA) внутри доменов.
 - MQTT publisher/subscriber - инфраструктура доменов через Facade.

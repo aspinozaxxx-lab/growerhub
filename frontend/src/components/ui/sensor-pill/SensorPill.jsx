@@ -8,6 +8,14 @@ import iconWatering from './assets/watering.svg?raw';
 import iconPump from './assets/pump.svg?raw';
 import iconUnknown from './assets/unknown.svg?raw';
 
+const WARNING_ICON = `
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 3.5L21 19H3L12 3.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M12 9V13.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="12" cy="17" r="1.1" fill="currentColor"/>
+</svg>
+`;
+
 const ICONS = {
   air_temperature: iconTemperature,
   air_humidity: iconAirHumidity,
@@ -22,9 +30,26 @@ const UNITS = {
   soil_moisture: '%',
 };
 
+function buildStatusTooltip(kind, status) {
+  if (!status || status === 'OK') {
+    return '';
+  }
+  if (status === 'DISCONNECTED') {
+    return 'datchik otklyuchen';
+  }
+  if (status === 'ERROR') {
+    if (kind === 'soil_moisture') {
+      return 'proverte datchik vlazhnosti pochvy';
+    }
+    return 'proverte datchik temperatury';
+  }
+  return '';
+}
+
 function SensorPill({
   kind,
   value,
+  status = 'OK',
   onClick,
   disabled = false,
   highlight = false,
@@ -38,6 +63,8 @@ function SensorPill({
 
   const isWatering = kind === 'watering';
   const isPump = kind === 'pump';
+  const statusTooltip = buildStatusTooltip(kind, status);
+  const showWarning = !isWatering && !isPump && Boolean(statusTooltip);
 
   let displayValue = value;
   let displayUnit = unit;
@@ -95,6 +122,14 @@ function SensorPill({
           </span>
         ) : null}
       </span>
+      {showWarning ? (
+        <span
+          className="sensor-pill__warning"
+          title={statusTooltip}
+          aria-label={statusTooltip}
+          dangerouslySetInnerHTML={{ __html: WARNING_ICON }}
+        />
+      ) : null}
     </Element>
   );
 }

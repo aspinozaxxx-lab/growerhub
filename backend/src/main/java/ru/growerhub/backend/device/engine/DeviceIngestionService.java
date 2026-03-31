@@ -16,6 +16,7 @@ import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
 import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
 import ru.growerhub.backend.sensor.contract.SensorMeasurement;
+import ru.growerhub.backend.sensor.contract.SensorStatus;
 import ru.growerhub.backend.sensor.contract.SensorType;
 
 @Service
@@ -54,7 +55,7 @@ public class DeviceIngestionService {
         shadowStore.updateFromState(deviceId, state, now);
         DeviceShadowState merged = shadowStore.getLastState(deviceId);
         upsertDeviceState(deviceId, merged != null ? merged : state, now);
-        return extractMeasurements(state);
+        return extractMeasurements(state, now);
     }
 
     public DeviceEntity ensureDeviceExists(String deviceId, LocalDateTime now) {
@@ -152,29 +153,40 @@ public class DeviceIngestionService {
         deviceStateLastRepository.save(record);
     }
 
-    private List<SensorMeasurement> extractMeasurements(DeviceShadowState state) {
+    private List<SensorMeasurement> extractMeasurements(DeviceShadowState state, LocalDateTime observedAt) {
         List<SensorMeasurement> measurements = new ArrayList<>();
         if (state == null) {
             return measurements;
         }
         if (state.soilMoisture() != null) {
-            measurements.add(new SensorMeasurement(SensorType.SOIL_MOISTURE, 0, state.soilMoisture(), true));
+            measurements.add(new SensorMeasurement(SensorType.SOIL_MOISTURE, 0, state.soilMoisture(), true, SensorStatus.OK, observedAt));
         }
         if (state.airTemperature() != null) {
-            measurements.add(new SensorMeasurement(SensorType.AIR_TEMPERATURE, 0, state.airTemperature(), true));
+            measurements.add(new SensorMeasurement(SensorType.AIR_TEMPERATURE, 0, state.airTemperature(), true, SensorStatus.OK, observedAt));
         }
         if (state.airHumidity() != null) {
-            measurements.add(new SensorMeasurement(SensorType.AIR_HUMIDITY, 0, state.airHumidity(), true));
+            measurements.add(new SensorMeasurement(SensorType.AIR_HUMIDITY, 0, state.airHumidity(), true, SensorStatus.OK, observedAt));
         }
         DeviceShadowState.AirState air = state.air();
         if (air != null) {
-            boolean available = Boolean.TRUE.equals(air.available());
-            if (air.temperature() != null && available) {
-                measurements.add(new SensorMeasurement(SensorType.AIR_TEMPERATURE, 0, air.temperature(), true));
-            }
-            if (air.humidity() != null && available) {
-                measurements.add(new SensorMeasurement(SensorType.AIR_HUMIDITY, 0, air.humidity(), true));
-            }
+            SensorStatus status = resolveAirStatus(air);
+            boolean detected = status != SensorStatus.DISCONNECTED;
+            measurements.add(new SensorMeasurement(
+                    SensorType.AIR_TEMPERATURE,
+                    0,
+                    air.temperature(),
+                    detected,
+                    status,
+                    observedAt
+            ));
+            measurements.add(new SensorMeasurement(
+                    SensorType.AIR_HUMIDITY,
+                    0,
+                    air.humidity(),
+                    detected,
+                    status,
+                    observedAt
+            ));
         }
         DeviceShadowState.SoilState soil = state.soil();
         if (soil != null && soil.ports() != null) {
@@ -184,12 +196,31 @@ public class DeviceIngestionService {
                 }
                 boolean detected = Boolean.TRUE.equals(port.detected());
                 Double value = port.percent() != null ? port.percent().doubleValue() : null;
-                if (value != null || detected) {
-                    measurements.add(new SensorMeasurement(SensorType.SOIL_MOISTURE, port.port(), value, detected));
-                }
+                SensorStatus status = resolveSoilStatus(port);
+                measurements.add(new SensorMeasurement(SensorType.SOIL_MOISTURE, port.port(), value, detected, status, observedAt));
             }
         }
         return measurements;
+    }
+
+    private SensorStatus resolveAirStatus(DeviceShadowState.AirState air) {
+        if (air == null) {
+            return SensorStatus.DISCONNECTED;
+        }
+        if (air.status() != null) {
+            return air.status();
+        }
+        return Boolean.TRUE.equals(air.available()) ? SensorStatus.OK : SensorStatus.DISCONNECTED;
+    }
+
+    private SensorStatus resolveSoilStatus(DeviceShadowState.SoilPort port) {
+        if (port == null) {
+            return SensorStatus.DISCONNECTED;
+        }
+        if (port.status() != null) {
+            return port.status();
+        }
+        return Boolean.TRUE.equals(port.detected()) ? SensorStatus.OK : SensorStatus.DISCONNECTED;
     }
 
     private void createIfMissing(String deviceId, LocalDateTime now) {

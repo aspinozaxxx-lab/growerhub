@@ -31,6 +31,8 @@ void test_sensor_hub_pump_block();
 void test_state_soil_serialization();
 void test_state_pump_status_and_started_at();
 void test_state_started_at_null_without_time();
+void test_dht_error_event_without_reboot();
+void test_dht_startup_grace_delays_disconnected();
 void test_auto_moisture_port0();
 void test_auto_moisture_port1();
 void test_auto_min_time_between();
@@ -88,6 +90,8 @@ int main(int argc, char** argv) {
   RUN_TEST(test_state_soil_serialization);
   RUN_TEST(test_state_pump_status_and_started_at);
   RUN_TEST(test_state_started_at_null_without_time);
+  RUN_TEST(test_dht_error_event_without_reboot);
+  RUN_TEST(test_dht_startup_grace_delays_disconnected);
   RUN_TEST(test_auto_moisture_port0);
   RUN_TEST(test_auto_moisture_port1);
   RUN_TEST(test_auto_min_time_between);
@@ -108,5 +112,3 @@ int main(int argc, char** argv) {
   RUN_TEST(test_rtc_weekday_calc);
   return UNITY_END();
 }
-
-

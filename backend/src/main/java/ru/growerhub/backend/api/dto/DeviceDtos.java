@@ -75,9 +75,23 @@ public final class DeviceDtos {
             @JsonProperty("channel") Integer channel,
             @JsonProperty("label") String label,
             @JsonProperty("detected") Boolean detected,
+            @JsonProperty("status") String status,
             @JsonProperty("last_value") Double lastValue,
             @JsonProperty("last_ts") LocalDateTime lastTs,
             @JsonProperty("bound_plants") List<BoundPlantResponse> boundPlants
+    ) {
+    }
+
+    public record DeviceServiceEventResponse(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("type") String type,
+            @JsonProperty("sensor_scope") String sensorScope,
+            @JsonProperty("sensor_type") String sensorType,
+            @JsonProperty("channel") Integer channel,
+            @JsonProperty("failure_id") String failureId,
+            @JsonProperty("error_code") String errorCode,
+            @JsonProperty("event_at") LocalDateTime eventAt,
+            @JsonProperty("received_at") LocalDateTime receivedAt
     ) {
     }
 
@@ -138,7 +152,8 @@ public final class DeviceDtos {
             @JsonProperty("user_id") Integer userId,
             @JsonProperty("sensors") List<SensorResponse> sensors,
             @JsonProperty("pumps") List<PumpResponse> pumps,
-            @JsonProperty("owner") DeviceOwnerInfoResponse owner
+            @JsonProperty("owner") DeviceOwnerInfoResponse owner,
+            @JsonProperty("service_events") List<DeviceServiceEventResponse> serviceEvents
     ) {
     }
 

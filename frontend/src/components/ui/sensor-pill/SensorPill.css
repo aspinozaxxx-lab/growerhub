@@ -59,9 +59,26 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+  flex: 1 1 auto;
 }
 
 .sensor-pill__unit {
   font-weight: 600;
   color: var(--text-2);
+}
+
+.sensor-pill__warning {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #f4c15d;
+  flex: 0 0 auto;
+}
+
+.sensor-pill__warning svg {
+  width: 18px;
+  height: 18px;
+  display: block;
 }

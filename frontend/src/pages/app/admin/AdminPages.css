@@ -91,3 +91,25 @@
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+
+.admin-event-list {
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.admin-event-list__item {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-event-list__title {
+  color: var(--text-1);
+  font-size: 13px;
+}
+
+.admin-event-list__meta,
+.admin-event-list__empty {
+  color: var(--text-3);
+  font-size: 12px;
+}

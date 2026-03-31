@@ -101,6 +101,7 @@ public final class PlantDtos {
             @JsonProperty("channel") Integer channel,
             @JsonProperty("label") String label,
             @JsonProperty("detected") Boolean detected,
+            @JsonProperty("status") String status,
             @JsonProperty("last_value") Double lastValue,
             @JsonProperty("last_ts") LocalDateTime lastTs
     ) {

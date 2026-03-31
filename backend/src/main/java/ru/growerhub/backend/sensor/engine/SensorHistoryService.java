@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.sensor.contract.SensorMeasurement;
 import ru.growerhub.backend.sensor.contract.SensorReadingSummary;
+import ru.growerhub.backend.sensor.contract.SensorStatus;
 import ru.growerhub.backend.sensor.jpa.SensorEntity;
 import ru.growerhub.backend.sensor.jpa.SensorReadingEntity;
 import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
@@ -54,10 +55,23 @@ public class SensorHistoryService {
                 sensor.setType(measurement.type());
                 sensor.setChannel(measurement.channel());
                 sensor.setDetected(measurement.detected());
+                sensor.setStatus(measurement.status());
+                sensor.setStatusChangedAt(measurement.statusObservedAt() != null ? measurement.statusObservedAt() : ts);
+                if (measurement.status() == SensorStatus.ERROR) {
+                    sensor.setLastErrorAt(measurement.statusObservedAt() != null ? measurement.statusObservedAt() : ts);
+                }
                 sensor.setCreatedAt(now);
             }
             if (measurement.detected() != sensor.isDetected()) {
                 sensor.setDetected(measurement.detected());
+            }
+            SensorStatus nextStatus = measurement.status();
+            if (nextStatus != sensor.getStatus()) {
+                sensor.setStatus(nextStatus);
+                sensor.setStatusChangedAt(measurement.statusObservedAt() != null ? measurement.statusObservedAt() : ts);
+            }
+            if (nextStatus == SensorStatus.ERROR) {
+                sensor.setLastErrorAt(measurement.statusObservedAt() != null ? measurement.statusObservedAt() : ts);
             }
             sensor.setUpdatedAt(now);
             sensorRepository.save(sensor);
@@ -75,5 +89,4 @@ public class SensorHistoryService {
         return summaries;
     }
 }
-
 

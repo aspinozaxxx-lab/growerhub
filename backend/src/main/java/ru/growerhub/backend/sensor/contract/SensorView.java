@@ -11,9 +11,9 @@ public record SensorView(
         Integer channel,
         String label,
         boolean detected,
+        SensorStatus status,
         Double lastValue,
         LocalDateTime lastTs,
         List<SensorBoundPlantView> boundPlants
 ) {
 }
-

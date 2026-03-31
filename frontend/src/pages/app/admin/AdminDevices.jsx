@@ -14,6 +14,33 @@ import {
 import './AdminPages.css';
 
 // Translitem: admin-stranica upravleniya ustroystvami.
+function formatEventTime(value) {
+  if (!value) {
+    return '';
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleString('ru-RU');
+}
+
+function buildEventLabel(event) {
+  if (!event?.type) {
+    return '';
+  }
+  if (event.type === 'SENSOR_READ_ERROR') {
+    if (event.sensor_scope === 'soil' && event.channel !== null && event.channel !== undefined) {
+      return `SENSOR_READ_ERROR · soil:${event.channel}`;
+    }
+    return 'SENSOR_READ_ERROR · air';
+  }
+  if (event.type === 'DEVICE_REBOOT_SENSOR_FAILURE') {
+    return 'DEVICE_REBOOT_SENSOR_FAILURE';
+  }
+  return event.type;
+}
+
 function AdminDevices() {
   // Translitem: token dlya admin API.
   const { token } = useAuth();
@@ -142,13 +169,14 @@ function AdminDevices() {
               <th>Device ID</th>
               <th>Название</th>
               <th>Владелец</th>
+              <th>Сервисные события</th>
               <th>Действия</th>
             </tr>
           </thead>
           <tbody>
             {preparedDevices.length === 0 && !isLoading ? (
               <tr>
-                <td colSpan="5" className="admin-table__empty">Нет данных</td>
+                <td colSpan="6" className="admin-table__empty">Нет данных</td>
               </tr>
             ) : preparedDevices.map((device) => (
               <tr key={device.id}>
@@ -156,6 +184,16 @@ function AdminDevices() {
                 <td>{device.device_id}</td>
                 <td>{device.name || ''}</td>
                 <td>{device.ownerText}</td>
+                <td>
+                  <div className="admin-event-list">
+                    {Array.isArray(device.service_events) && device.service_events.length > 0 ? device.service_events.map((event) => (
+                      <div key={event.id} className="admin-event-list__item" title={event.error_code || ''}>
+                        <div className="admin-event-list__title">{buildEventLabel(event)}</div>
+                        <div className="admin-event-list__meta">{formatEventTime(event.received_at || event.event_at)}</div>
+                      </div>
+                    )) : <span className="admin-event-list__empty">Нет событий</span>}
+                  </div>
+                </td>
                 <td>
                   <div className="admin-row-actions">
                     <input

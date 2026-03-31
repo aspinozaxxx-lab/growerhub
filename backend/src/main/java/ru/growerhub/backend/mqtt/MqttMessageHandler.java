@@ -11,8 +11,10 @@ import org.springframework.stereotype.Component;
 import ru.growerhub.backend.common.config.AckSettings;
 import ru.growerhub.backend.common.config.mqtt.MqttTopicSettings;
 import ru.growerhub.backend.device.DeviceFacade;
+import ru.growerhub.backend.device.contract.DeviceServiceEventData;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.mqtt.model.DeviceState;
+import ru.growerhub.backend.mqtt.model.DeviceServiceEventMessage;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
 
 @Component
@@ -103,6 +105,40 @@ public class MqttMessageHandler {
         logger.info("MQTT ack stored for {} correlation_id={}", deviceId, correlationId);
     }
 
+    public void handleEventMessage(String topic, byte[] payload) {
+        if (debugSettings.isDebug()) {
+            logger.info("MQTT DEBUG event topic={} payload={}", topic, safePayload(payload));
+        }
+        String deviceId = extractDeviceId(topic, topicSettings.getEventsSuffix(), 4);
+        if (deviceId == null) {
+            logger.warn("MQTT event topic mismatch: {}", topic);
+            return;
+        }
+        DeviceServiceEventMessage event;
+        try {
+            event = objectMapper.readValue(payload, DeviceServiceEventMessage.class);
+        } catch (Exception ex) {
+            logger.warn("Ne udalos razobrat event ot {}: {}", deviceId, ex.getMessage());
+            return;
+        }
+        if (event.type() == null || event.type().isBlank()) {
+            logger.warn("MQTT event bez type ot {}: {}", deviceId, safePayload(payload));
+            return;
+        }
+        LocalDateTime receivedAt = LocalDateTime.now(clock);
+        deviceFacade.handleServiceEvent(deviceId, new DeviceServiceEventData(
+                event.type(),
+                event.sensorScope(),
+                event.sensorType(),
+                event.channel(),
+                event.failureId(),
+                event.errorCode(),
+                event.ts(),
+                safePayload(payload)
+        ), receivedAt);
+        logger.info("MQTT event stored for {} type={}", deviceId, event.type());
+    }
+
     private LocalDateTime resolveExpiresAt(LocalDateTime receivedAt) {
         int ttl = ackSettings.getTtlSeconds();
         if (ttl <= 0) {
@@ -159,13 +195,17 @@ public class MqttMessageHandler {
             );
         }
         DeviceShadowState.AirState air = state.air() != null
-                ? new DeviceShadowState.AirState(state.air().available(), state.air().temperature(), state.air().humidity())
+                ? new DeviceShadowState.AirState(
+                        state.air().available(),
+                        state.air().temperature(),
+                        state.air().humidity(),
+                        state.air().status())
                 : null;
         DeviceShadowState.SoilState soil = state.soil() != null
                 ? new DeviceShadowState.SoilState(state.soil().ports() != null
                 ? state.soil().ports().stream()
                 .map(port -> port != null
-                        ? new DeviceShadowState.SoilPort(port.port(), port.detected(), port.percent())
+                        ? new DeviceShadowState.SoilPort(port.port(), port.detected(), port.percent(), port.status())
                         : null)
                 .toList()
                 : null)

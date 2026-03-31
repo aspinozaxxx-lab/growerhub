@@ -57,6 +57,7 @@ void test_dht_nan_unavailable() {
   float humidity = 0.0f;
   TEST_ASSERT_FALSE(sensor.Read(0, &temp, &humidity));
   TEST_ASSERT_FALSE(sensor.IsAvailable());
+  TEST_ASSERT_EQUAL_STRING("invalid_frame", sensor.GetLastErrorCode());
 }
 
 void test_dht_fail_triggers_reboot_event() {

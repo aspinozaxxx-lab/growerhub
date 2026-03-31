@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.plant.contract.PlantInfo;
 import ru.growerhub.backend.sensor.contract.SensorBoundPlantView;
+import ru.growerhub.backend.sensor.contract.SensorStatus;
 import ru.growerhub.backend.sensor.jpa.SensorEntity;
 import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
 import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;
@@ -63,6 +64,7 @@ public class SensorQueryService {
                     sensor.getChannel(),
                     sensor.getLabel(),
                     sensor.isDetected(),
+                    resolveStatus(sensor),
                     last != null ? last.getValueNumeric() : null,
                     last != null ? last.getTs() : null,
                     boundPlants
@@ -104,6 +106,7 @@ public class SensorQueryService {
                         sensor.getChannel(),
                         sensor.getLabel(),
                         sensor.isDetected(),
+                        resolveStatus(sensor),
                         last != null ? last.getValueNumeric() : null,
                         last != null ? last.getTs() : null,
                         List.of(plantView)
@@ -143,6 +146,7 @@ public class SensorQueryService {
                         sensor.getChannel(),
                         sensor.getLabel(),
                         sensor.isDetected(),
+                        resolveStatus(sensor),
                         last != null ? last.getValueNumeric() : null,
                         last != null ? last.getTs() : null,
                         List.of()
@@ -198,7 +202,10 @@ public class SensorQueryService {
                 ageDays
         );
     }
-}
 
+    private SensorStatus resolveStatus(SensorEntity sensor) {
+        return sensor != null && sensor.getStatus() != null ? sensor.getStatus() : SensorStatus.DISCONNECTED;
+    }
+}
 
 

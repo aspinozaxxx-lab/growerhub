@@ -15,6 +15,7 @@ import ru.growerhub.backend.sensor.jpa.SensorEntity;
 import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
 import ru.growerhub.backend.sensor.jpa.SensorRepository;
+import ru.growerhub.backend.sensor.contract.SensorStatus;
 import ru.growerhub.backend.sensor.contract.SensorType;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -39,6 +40,7 @@ class DeviceIngestionServiceIntegrationTest extends IntegrationTestBase {
     void setUp() {
         jdbcTemplate.update("DELETE FROM sensor_readings");
         jdbcTemplate.update("DELETE FROM sensors");
+        jdbcTemplate.update("DELETE FROM device_service_events");
         jdbcTemplate.update("DELETE FROM device_state_last");
         jdbcTemplate.update("DELETE FROM devices");
     }
@@ -72,9 +74,9 @@ class DeviceIngestionServiceIntegrationTest extends IntegrationTestBase {
     @Test
     void handleStatePersistsV2SensorReadings() {
         LocalDateTime now = LocalDateTime.of(2025, 1, 1, 12, 0);
-        DeviceShadowState.AirState air = new DeviceShadowState.AirState(true, 21.5, 50.0);
-        DeviceShadowState.SoilPort port0 = new DeviceShadowState.SoilPort(0, true, 40);
-        DeviceShadowState.SoilPort port1 = new DeviceShadowState.SoilPort(1, false, 70);
+        DeviceShadowState.AirState air = new DeviceShadowState.AirState(true, 21.5, 50.0, SensorStatus.OK);
+        DeviceShadowState.SoilPort port0 = new DeviceShadowState.SoilPort(0, true, 40, SensorStatus.OK);
+        DeviceShadowState.SoilPort port1 = new DeviceShadowState.SoilPort(1, false, 70, SensorStatus.DISCONNECTED);
         DeviceShadowState.SoilState soil = new DeviceShadowState.SoilState(List.of(port0, port1));
         DeviceShadowState state = new DeviceShadowState(null, null, null, null, null, air, soil, null, null, null);
 
@@ -83,5 +85,27 @@ class DeviceIngestionServiceIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals(4, sensorRepository.count());
         Assertions.assertEquals(4, sensorReadingRepository.count());
     }
-}
 
+    @Test
+    void handleStateStoresStatusesWithoutNumericValues() {
+        LocalDateTime now = LocalDateTime.of(2025, 1, 1, 13, 0);
+        DeviceShadowState.AirState air = new DeviceShadowState.AirState(false, null, null, SensorStatus.ERROR);
+        DeviceShadowState.SoilPort port0 = new DeviceShadowState.SoilPort(0, false, null, SensorStatus.DISCONNECTED);
+        DeviceShadowState.SoilState soil = new DeviceShadowState.SoilState(List.of(port0));
+        DeviceShadowState state = new DeviceShadowState(null, null, null, null, null, air, soil, null, null, null);
+
+        sensorFacade.recordMeasurements("device-4", deviceIngestionService.handleState("device-4", state, now), now);
+
+        Assertions.assertEquals(3, sensorRepository.count());
+        Assertions.assertEquals(0, sensorReadingRepository.count());
+
+        List<SensorEntity> sensors = sensorRepository.findAll();
+        Assertions.assertTrue(sensors.stream().anyMatch(sensor -> sensor.getType() == SensorType.AIR_TEMPERATURE
+                && sensor.getStatus() == SensorStatus.ERROR));
+        Assertions.assertTrue(sensors.stream().anyMatch(sensor -> sensor.getType() == SensorType.AIR_HUMIDITY
+                && sensor.getStatus() == SensorStatus.ERROR));
+        Assertions.assertTrue(sensors.stream().anyMatch(sensor -> sensor.getType() == SensorType.SOIL_MOISTURE
+                && sensor.getChannel() == 0
+                && sensor.getStatus() == SensorStatus.DISCONNECTED));
+    }
+}

@@ -11,6 +11,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
+import ru.growerhub.backend.sensor.contract.SensorStatus;
 import ru.growerhub.backend.sensor.contract.SensorType;
 
 @Entity
@@ -45,6 +46,16 @@ public class SensorEntity {
 
     @Column(name = "detected", nullable = false)
     private boolean detected;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = true)
+    private SensorStatus status;
+
+    @Column(name = "status_changed_at", nullable = true)
+    private LocalDateTime statusChangedAt;
+
+    @Column(name = "last_error_at", nullable = true)
+    private LocalDateTime lastErrorAt;
 
     @Column(name = "created_at", nullable = true)
     private LocalDateTime createdAt;
@@ -103,6 +114,30 @@ public class SensorEntity {
         this.detected = detected;
     }
 
+    public SensorStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(SensorStatus status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getStatusChangedAt() {
+        return statusChangedAt;
+    }
+
+    public void setStatusChangedAt(LocalDateTime statusChangedAt) {
+        this.statusChangedAt = statusChangedAt;
+    }
+
+    public LocalDateTime getLastErrorAt() {
+        return lastErrorAt;
+    }
+
+    public void setLastErrorAt(LocalDateTime lastErrorAt) {
+        this.lastErrorAt = lastErrorAt;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -119,5 +154,4 @@ public class SensorEntity {
         this.updatedAt = updatedAt;
     }
 }
-
 

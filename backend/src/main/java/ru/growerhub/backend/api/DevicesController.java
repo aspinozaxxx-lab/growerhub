@@ -4,7 +4,9 @@ import jakarta.validation.Valid;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
@@ -20,6 +22,7 @@ import ru.growerhub.backend.api.dto.DeviceDtos;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceAggregate;
+import ru.growerhub.backend.device.contract.DeviceServiceEventView;
 import ru.growerhub.backend.device.contract.DeviceSettingsData;
 import ru.growerhub.backend.device.contract.DeviceSettingsUpdate;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
@@ -28,6 +31,7 @@ import ru.growerhub.backend.pump.PumpFacade;
 import ru.growerhub.backend.pump.contract.PumpView;
 import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.contract.SensorView;
+import ru.growerhub.backend.sensor.contract.SensorStatus;
 import ru.growerhub.backend.user.UserFacade;
 
 @RestController
@@ -61,9 +65,9 @@ public class DevicesController {
         Integer soilPercent = request.soilMoisture() != null
                 ? (int) Math.round(request.soilMoisture())
                 : null;
-        DeviceShadowState.SoilPort soilPort = new DeviceShadowState.SoilPort(0, true, soilPercent);
+        DeviceShadowState.SoilPort soilPort = new DeviceShadowState.SoilPort(0, true, soilPercent, SensorStatus.OK);
         DeviceShadowState.SoilState soil = new DeviceShadowState.SoilState(List.of(soilPort));
-        DeviceShadowState.AirState air = new DeviceShadowState.AirState(true, request.airTemperature(), request.airHumidity());
+        DeviceShadowState.AirState air = new DeviceShadowState.AirState(true, request.airTemperature(), request.airHumidity(), SensorStatus.OK);
         DeviceShadowState state = new DeviceShadowState(
                 null,
                 null,
@@ -126,6 +130,11 @@ public class DevicesController {
     public List<DeviceDtos.AdminDeviceResponse> listAdminDevices(@AuthenticationPrincipal AuthenticatedUser user) {
         requireAdmin(user);
         List<DeviceSummary> devices = deviceFacade.listAdminDevices();
+        List<Integer> deviceIds = devices.stream()
+                .map(DeviceSummary::id)
+                .toList();
+        Map<Integer, List<DeviceServiceEventView>> eventsByDevice =
+                deviceFacade.listRecentServiceEventsByDeviceIds(deviceIds, 5);
         List<DeviceDtos.AdminDeviceResponse> responses = new ArrayList<>();
         for (DeviceSummary summary : devices) {
             // Translitem: v admin-spiske ne deregaem pump/sensor facade, chtoby ne bylo zapisey v BD.
@@ -154,7 +163,8 @@ public class DevicesController {
                     base.userId(),
                     base.sensors(),
                     base.pumps(),
-                    ownerPayload
+                    ownerPayload,
+                    mapServiceEvents(eventsByDevice.getOrDefault(summary.id(), List.of()))
             ));
         }
         return responses;
@@ -223,7 +233,8 @@ public class DevicesController {
                 base.userId(),
                 base.sensors(),
                 base.pumps(),
-                ownerPayload
+                ownerPayload,
+                Collections.emptyList()
         );
     }
 
@@ -254,7 +265,8 @@ public class DevicesController {
                 base.userId(),
                 base.sensors(),
                 base.pumps(),
-                null
+                null,
+                Collections.emptyList()
         );
     }
 
@@ -338,9 +350,28 @@ public class DevicesController {
                     view.channel(),
                     view.label(),
                     view.detected(),
+                    view.status() != null ? view.status().name() : null,
                     view.lastValue(),
                     view.lastTs(),
                     plants
+            ));
+        }
+        return result;
+    }
+
+    private List<DeviceDtos.DeviceServiceEventResponse> mapServiceEvents(List<DeviceServiceEventView> views) {
+        List<DeviceDtos.DeviceServiceEventResponse> result = new ArrayList<>();
+        for (DeviceServiceEventView view : views) {
+            result.add(new DeviceDtos.DeviceServiceEventResponse(
+                    view.id(),
+                    view.eventType() != null ? view.eventType().name() : null,
+                    view.sensorScope(),
+                    view.sensorType(),
+                    view.channel(),
+                    view.failureId(),
+                    view.errorCode(),
+                    view.eventAt(),
+                    view.receivedAt()
             ));
         }
         return result;

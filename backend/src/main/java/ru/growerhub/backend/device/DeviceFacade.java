@@ -9,16 +9,19 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.contract.DeviceAggregate;
+import ru.growerhub.backend.device.contract.DeviceAckStore;
 import ru.growerhub.backend.device.contract.DeviceFirmwareStatus;
+import ru.growerhub.backend.device.contract.DeviceServiceEventData;
+import ru.growerhub.backend.device.contract.DeviceServiceEventView;
 import ru.growerhub.backend.device.contract.DeviceSettingsData;
 import ru.growerhub.backend.device.contract.DeviceSettingsUpdate;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.contract.DeviceSummary;
-import ru.growerhub.backend.device.contract.DeviceAckStore;
 import ru.growerhub.backend.device.engine.AckCleanupService;
 import ru.growerhub.backend.device.engine.DeviceAckService;
 import ru.growerhub.backend.device.engine.DeviceIngestionService;
 import ru.growerhub.backend.device.engine.DeviceQueryService;
+import ru.growerhub.backend.device.engine.DeviceServiceEventService;
 import ru.growerhub.backend.device.engine.DeviceShadowStore;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
@@ -44,6 +47,7 @@ public class DeviceFacade {
     private final AckCleanupService ackCleanupService;
     private final MqttAckRepository mqttAckRepository;
     private final DeviceAckStore ackStore;
+    private final DeviceServiceEventService deviceServiceEventService;
     private final SensorFacade sensorFacade;
     private final PlantFacade plantFacade;
     private final PumpFacade pumpFacade;
@@ -58,6 +62,7 @@ public class DeviceFacade {
             AckCleanupService ackCleanupService,
             MqttAckRepository mqttAckRepository,
             DeviceAckStore ackStore,
+            DeviceServiceEventService deviceServiceEventService,
             SensorFacade sensorFacade,
             PlantFacade plantFacade,
             @Lazy PumpFacade pumpFacade
@@ -71,6 +76,7 @@ public class DeviceFacade {
         this.ackCleanupService = ackCleanupService;
         this.mqttAckRepository = mqttAckRepository;
         this.ackStore = ackStore;
+        this.deviceServiceEventService = deviceServiceEventService;
         this.sensorFacade = sensorFacade;
         this.plantFacade = plantFacade;
         this.pumpFacade = pumpFacade;
@@ -132,6 +138,11 @@ public class DeviceFacade {
     ) {
         ackService.upsertAck(deviceId, correlationId, result, status, payloadMap, receivedAt, expiresAt);
         touchLastSeen(deviceId, receivedAt);
+    }
+
+    @Transactional
+    public void handleServiceEvent(String deviceId, DeviceServiceEventData event, LocalDateTime receivedAt) {
+        deviceServiceEventService.recordEvent(deviceId, event, receivedAt);
     }
 
     // Translitem: facade-orientirovannaya ochistka ACK v tranzakcii dlya scheduled worker.
@@ -243,6 +254,11 @@ public class DeviceFacade {
         return deviceQueryService.listAdminDevices();
     }
 
+    @Transactional(readOnly = true)
+    public Map<Integer, List<DeviceServiceEventView>> listRecentServiceEventsByDeviceIds(List<Integer> deviceIds, int limitPerDevice) {
+        return deviceServiceEventService.listRecentByDeviceIds(deviceIds, limitPerDevice);
+    }
+
     @Transactional
     public DeviceSummary assignToUser(Integer deviceId, Integer userId) {
         DeviceEntity device = requireDevice(deviceId);
@@ -314,6 +330,7 @@ public class DeviceFacade {
         if (id != null) {
             sensorFacade.deleteByDeviceId(id);
             pumpFacade.deleteByDeviceId(id);
+            deviceServiceEventService.deleteByDeviceId(id);
         }
         deviceStateLastRepository.deleteByDeviceId(deviceId);
         mqttAckRepository.deleteByDeviceId(deviceId);
@@ -362,7 +379,6 @@ public class DeviceFacade {
     }
 
 }
-
 
 
 

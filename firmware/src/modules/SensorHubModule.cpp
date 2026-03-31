@@ -23,6 +23,7 @@ namespace Modules {
 static const uint32_t kScanIntervalMs = 5000;
 static const uint32_t kRescanDelayMs = 2000;
 static const uint32_t kDhtReadIntervalMs = 5000;
+static const uint32_t kSensorBootGraceMs = 30000;
 static const uint8_t kDhtFailThreshold = 3;
 static const uint32_t kDhtRebootCooldownMs = 300000;
 
@@ -35,6 +36,14 @@ void SensorHubModule::Init(Core::Context& ctx) {
   device_id_ = ctx.device_id;
   dht_enabled_ = profile.has_dht22;
   dht_auto_reboot_ = profile.dht_auto_reboot_on_fail;
+  boot_started_ms_ = 0;
+  for (size_t i = 0; i < Drivers::Rj9PortScanner::kMaxPorts; ++i) {
+    soil_status_[i] = SensorStatus::kDisconnected;
+    soil_seen_once_[i] = false;
+  }
+  dht_status_ = SensorStatus::kOk;
+  dht_seen_once_ = false;
+  ResetDhtErrorEpisode();
   if (dht_enabled_) {
     dht_.Init(profile.pins.dht_pin);
   }
@@ -100,7 +109,27 @@ bool SensorHubModule::GetDhtReading(DhtReading* out) const {
   out->available = dht_available_;
   out->temperature_c = dht_temp_c_;
   out->humidity = dht_humidity_;
+  out->status = dht_status_;
   return true;
+}
+
+SensorHubModule::SensorStatus SensorHubModule::GetSoilPortStatus(uint8_t port) const {
+  if (port >= Drivers::Rj9PortScanner::kMaxPorts) {
+    return SensorStatus::kDisconnected;
+  }
+  return soil_status_[port];
+}
+
+const char* SensorHubModule::StatusToString(SensorStatus status) {
+  switch (status) {
+    case SensorStatus::kError:
+      return "ERROR";
+    case SensorStatus::kDisconnected:
+      return "DISCONNECTED";
+    case SensorStatus::kOk:
+    default:
+      return "OK";
+  }
 }
 
 #if defined(UNIT_TEST)
@@ -122,23 +151,45 @@ void SensorHubModule::ScanNow(uint32_t now_ms) {
   }
   scanner_.Scan();
   last_scan_ms_ = now_ms;
+  UpdateSoilStatuses(now_ms);
 }
 
 void SensorHubModule::ReadDht(uint32_t now_ms) {
   float temperature = 0.0f;
   float humidity = 0.0f;
+  const SensorStatus prev_status = dht_status_;
   const bool ok = dht_.Read(now_ms, &temperature, &humidity);
   if (ok) {
     dht_available_ = true;
+    dht_status_ = SensorStatus::kOk;
+    dht_seen_once_ = true;
     dht_temp_c_ = temperature;
     dht_humidity_ = humidity;
     dht_fail_count_ = 0;
+    ResetDhtErrorEpisode();
     return;
   }
 
   dht_available_ = false;
+  UpdateDhtStatusOnFailure(now_ms, dht_.GetLastError());
+  if (dht_status_ == SensorStatus::kError && prev_status != SensorStatus::kError) {
+    char log_buf[192];
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "[SENSOR] oshibka chteniya air datchika pin=%u code=%s",
+                  static_cast<unsigned int>(dht_.GetPin()),
+                  dht_.GetLastErrorCode());
+    Util::Logger::Info(log_buf);
+  }
   if (dht_fail_count_ < 0xFF) {
     dht_fail_count_++;
+  }
+  if (dht_status_ != SensorStatus::kError) {
+    dht_reboot_pending_ = false;
+    return;
+  }
+  if (!dht_error_event_sent_) {
+    PublishSensorReadErrorEvent(now_ms, dht_.GetLastErrorCode());
   }
   if (!dht_auto_reboot_ || dht_fail_count_ < kDhtFailThreshold) {
     return;
@@ -148,17 +199,167 @@ void SensorHubModule::ReadDht(uint32_t now_ms) {
   }
   if (pump_blocked_) {
     dht_reboot_pending_ = true;
-    dht_event_pending_ = true;
     return;
   }
   RequestReboot(now_ms);
+}
+
+void SensorHubModule::UpdateSoilStatuses(uint32_t now_ms) {
+  const size_t port_count = scanner_.GetPortCount();
+  const bool grace_elapsed = now_ms >= boot_started_ms_ + kSensorBootGraceMs;
+  for (size_t port = 0; port < Drivers::Rj9PortScanner::kMaxPorts; ++port) {
+    if (port >= port_count) {
+      soil_status_[port] = SensorStatus::kDisconnected;
+      continue;
+    }
+    const bool detected = scanner_.IsDetected(static_cast<uint8_t>(port));
+    if (detected) {
+      soil_seen_once_[port] = true;
+      soil_status_[port] = SensorStatus::kOk;
+      continue;
+    }
+    if (soil_seen_once_[port] || grace_elapsed) {
+      soil_status_[port] = SensorStatus::kDisconnected;
+    }
+  }
+}
+
+void SensorHubModule::UpdateDhtStatusOnFailure(uint32_t now_ms, Drivers::Dht22Sensor::ReadError error) {
+  const bool grace_elapsed = now_ms >= boot_started_ms_ + kSensorBootGraceMs;
+  if (dht_seen_once_) {
+    dht_status_ = SensorStatus::kError;
+    return;
+  }
+  switch (error) {
+    case Drivers::Dht22Sensor::ReadError::kChecksum:
+    case Drivers::Dht22Sensor::ReadError::kInvalidFrame:
+    case Drivers::Dht22Sensor::ReadError::kReadFailed:
+      dht_status_ = SensorStatus::kError;
+      return;
+    case Drivers::Dht22Sensor::ReadError::kTimeout:
+      dht_status_ = grace_elapsed ? SensorStatus::kDisconnected : SensorStatus::kOk;
+      return;
+    case Drivers::Dht22Sensor::ReadError::kNoResponse:
+    case Drivers::Dht22Sensor::ReadError::kNone:
+    default:
+      dht_status_ = grace_elapsed ? SensorStatus::kDisconnected : SensorStatus::kOk;
+      return;
+  }
+}
+
+void SensorHubModule::PublishSensorReadErrorEvent(uint32_t now_ms, const char* error_code) {
+  if (dht_failure_id_[0] == '\0') {
+    dht_failure_seq_++;
+    std::snprintf(dht_failure_id_, sizeof(dht_failure_id_), "dht-%lu", static_cast<unsigned long>(dht_failure_seq_));
+  }
+  PublishServiceEvent(
+      "SENSOR_READ_ERROR",
+      now_ms,
+      dht_failure_id_,
+      error_code,
+      dht_auto_reboot_,
+      dht_fail_count_);
+  dht_error_event_sent_ = true;
+}
+
+void SensorHubModule::PublishRebootEvent(uint32_t now_ms) {
+  PublishServiceEvent(
+      "DEVICE_REBOOT_SENSOR_FAILURE",
+      now_ms,
+      dht_failure_id_,
+      dht_.GetLastErrorCode(),
+      true,
+      dht_fail_count_);
+}
+
+bool SensorHubModule::BuildIsoTimestamp(char* out, size_t out_size) const {
+  if (!out || out_size == 0 || !time_) {
+    return false;
+  }
+  Services::TimeFields fields{};
+  if (!time_->GetTime(&fields)) {
+    return false;
+  }
+  std::snprintf(out,
+                out_size,
+                "%04u-%02u-%02uT%02u:%02u:%02uZ",
+                static_cast<unsigned int>(fields.year),
+                static_cast<unsigned int>(fields.month),
+                static_cast<unsigned int>(fields.day),
+                static_cast<unsigned int>(fields.hour),
+                static_cast<unsigned int>(fields.minute),
+                static_cast<unsigned int>(fields.second));
+  return true;
+}
+
+void SensorHubModule::PublishServiceEvent(
+    const char* event_type,
+    uint32_t now_ms,
+    const char* failure_id,
+    const char* error_code,
+    bool auto_reboot,
+    uint8_t errors_count) {
+  (void)now_ms;
+  if (!mqtt_ || !mqtt_->IsConnected() || !device_id_ || !event_type) {
+    return;
+  }
+  char topic[128];
+  if (!Services::Topics::BuildEventsTopic(topic, sizeof(topic), device_id_)) {
+    return;
+  }
+  char ts[32];
+  const bool has_ts = BuildIsoTimestamp(ts, sizeof(ts));
+  char payload[384];
+  std::snprintf(payload,
+                sizeof(payload),
+                "{\"type\":\"%s\",\"ts\":%s,\"failure_id\":%s,\"sensor_scope\":\"air\",\"sensor_type\":\"AIR\",\"channel\":0,\"error_code\":%s,\"auto_reboot\":%s,\"errors_count\":%u}",
+                event_type,
+                has_ts ? "\"" : "null",
+                failure_id && failure_id[0] != '\0' ? "\"" : "null",
+                error_code && error_code[0] != '\0' ? "\"" : "null",
+                auto_reboot ? "true" : "false",
+                static_cast<unsigned int>(errors_count));
+  if (has_ts) {
+    std::snprintf(payload,
+                  sizeof(payload),
+                  "{\"type\":\"%s\",\"ts\":\"%s\",\"failure_id\":%s%s%s,\"sensor_scope\":\"air\",\"sensor_type\":\"AIR\",\"channel\":0,\"error_code\":%s%s%s,\"auto_reboot\":%s,\"errors_count\":%u}",
+                  event_type,
+                  ts,
+                  failure_id && failure_id[0] != '\0' ? "\"" : "null",
+                  failure_id && failure_id[0] != '\0' ? failure_id : "",
+                  failure_id && failure_id[0] != '\0' ? "\"" : "",
+                  error_code && error_code[0] != '\0' ? "\"" : "null",
+                  error_code && error_code[0] != '\0' ? error_code : "",
+                  error_code && error_code[0] != '\0' ? "\"" : "",
+                  auto_reboot ? "true" : "false",
+                  static_cast<unsigned int>(errors_count));
+  } else {
+    std::snprintf(payload,
+                  sizeof(payload),
+                  "{\"type\":\"%s\",\"ts\":null,\"failure_id\":%s%s%s,\"sensor_scope\":\"air\",\"sensor_type\":\"AIR\",\"channel\":0,\"error_code\":%s%s%s,\"auto_reboot\":%s,\"errors_count\":%u}",
+                  event_type,
+                  failure_id && failure_id[0] != '\0' ? "\"" : "null",
+                  failure_id && failure_id[0] != '\0' ? failure_id : "",
+                  failure_id && failure_id[0] != '\0' ? "\"" : "",
+                  error_code && error_code[0] != '\0' ? "\"" : "null",
+                  error_code && error_code[0] != '\0' ? error_code : "",
+                  error_code && error_code[0] != '\0' ? "\"" : "",
+                  auto_reboot ? "true" : "false",
+                  static_cast<unsigned int>(errors_count));
+  }
+  mqtt_->Publish(topic, payload, false, 1);
+}
+
+void SensorHubModule::ResetDhtErrorEpisode() {
+  dht_error_event_sent_ = false;
+  dht_failure_id_[0] = '\0';
 }
 
 void SensorHubModule::RequestReboot(uint32_t now_ms) {
   if (!event_queue_) {
     return;
   }
-  const uint8_t errors_count = dht_fail_count_;
+  PublishRebootEvent(now_ms);
   Core::Event event{};
   event.type = Core::EventType::kRebootRequest;
   event.value = now_ms;
@@ -168,52 +369,8 @@ void SensorHubModule::RequestReboot(uint32_t now_ms) {
 
   dht_reboot_pending_ = false;
   last_dht_reboot_ms_ = now_ms;
-  PublishDhtFailEvent(now_ms, errors_count);
-  dht_event_pending_ = false;
   dht_fail_count_ = 0;
-}
-
-void SensorHubModule::PublishDhtFailEvent(uint32_t now_ms, uint8_t errors_count) {
-  if (!mqtt_ || !mqtt_->IsConnected() || !device_id_) {
-    return;
-  }
-  char topic[128];
-  if (!Services::Topics::BuildEventsTopic(topic, sizeof(topic), device_id_)) {
-    return;
-  }
-
-  char ts[32];
-  bool has_ts = false;
-  if (time_) {
-    Services::TimeFields fields{};
-    if (time_->GetTime(&fields)) {
-      std::snprintf(ts,
-                    sizeof(ts),
-                    "%04u-%02u-%02uT%02u:%02u:%02uZ",
-                    static_cast<unsigned int>(fields.year),
-                    static_cast<unsigned int>(fields.month),
-                    static_cast<unsigned int>(fields.day),
-                    static_cast<unsigned int>(fields.hour),
-                    static_cast<unsigned int>(fields.minute),
-                    static_cast<unsigned int>(fields.second));
-      has_ts = true;
-    }
-  }
-
-  char payload[160];
-  if (has_ts) {
-    std::snprintf(payload,
-                  sizeof(payload),
-                  "{\"type\":\"sensor.dht22.fail\",\"ts\":\"%s\",\"errors_count\":%u}",
-                  ts,
-                  static_cast<unsigned int>(errors_count));
-  } else {
-    std::snprintf(payload,
-                  sizeof(payload),
-                  "{\"type\":\"sensor.dht22.fail\",\"ts\":null,\"errors_count\":%u}",
-                  static_cast<unsigned int>(errors_count));
-  }
-  mqtt_->Publish(topic, payload, false, 1);
+  ResetDhtErrorEpisode();
 }
 
 }

@@ -4,6 +4,13 @@
 - fix(backend): advisor.enabled=false delaet ranniy vyhod bez journal/history/llm.
 - fix(front): dashboard ne zavisit ot bound_plants v spiske rastenij.
 
+### fix(sensor-status): safe-read, statuses i service events
+
+- fix(firmware): DHT22 chtenie perevedeno na safe-read bez padeniya, dobavleny `air.status` i `soil.ports[].status`, boot grace 30s i service events `SENSOR_READ_ERROR` / `DEVICE_REBOOT_SENSOR_FAILURE`.
+- fix(backend): backend podpisan na MQTT events, hranit current sensor status i device-level service events, prokidyvaet `status` vo vse sensor DTO i admin `/api/admin/devices`.
+- fix(front): SensorPill pokazyvaet warning-ikonku s tooltip dlya `ERROR` / `DISCONNECTED`, admin UI pokazyvaet poslednie service events po ustroystvam.
+- docs(arch): obnovlen MQTT kontrakt dlya state/events.
+
 ### fix(backend): plants timing sql stats compat
 
 - fix(backend): diag PlantTiming ne polagaetsya na Hibernate getQueryExecutionTotalTime (sqlTotalMs ostavlen -1 pri otsutstvii metoda).
@@ -380,4 +387,3 @@ feat(server): dobavil firmware_version v /api/devices (fw_ver ili "old")
 - Istorija polivov teper ispolzuet obem vody kak osnovnuyu metriku i v saidebare vidno ph i sostav udobrenij.
 - Dobavlena polnocennaja stranica zhurnala rastenija: prosmotr, dobavlenie, izmenenie, udalenie zhjurnalnyh zapisej. Fiks bitogo teksta v istorii polivov, normalnye podpisi.
 - sso callback: po umolchaniyu vozvrashchaet redirect s tokenom v URL, link-mode uhodit na `/static/profile.html`.
-

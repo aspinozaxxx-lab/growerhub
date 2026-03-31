@@ -164,6 +164,7 @@ function DeviceCard({ device, onEdit }) {
                 <SensorPill
                   kind={kind}
                   value={sensor.last_value}
+                  status={sensor.status}
                   onClick={() => handleSensorStats(sensor)}
                 />
               </div>

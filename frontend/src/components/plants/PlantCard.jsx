@@ -145,6 +145,7 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
                   key={sensor.id}
                   kind={kind}
                   value={sensor.last_value}
+                  status={sensor.status}
                   onClick={() => handleOpenMetric(kind)}
                 />
               );

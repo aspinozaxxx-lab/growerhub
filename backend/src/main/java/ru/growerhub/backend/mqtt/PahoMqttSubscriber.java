@@ -96,8 +96,10 @@ public class PahoMqttSubscriber implements MqttSubscriber, SmartLifecycle {
     private void subscribeAll() throws MqttException {
         client.subscribe(topicSettings.getState(), 1);
         client.subscribe(topicSettings.getAck(), 1);
+        client.subscribe(topicSettings.getEvents(), 1);
         logger.info("mqtt: subscribed to {} qos=1", topicSettings.getState());
         logger.info("mqtt: subscribed to {} qos=1", topicSettings.getAck());
+        logger.info("mqtt: subscribed to {} qos=1", topicSettings.getEvents());
     }
 
     private MqttConnectOptions buildConnectOptions() {
@@ -148,6 +150,8 @@ public class PahoMqttSubscriber implements MqttSubscriber, SmartLifecycle {
             try {
                 if (topic != null && topic.endsWith(topicSettings.getAckSuffix())) {
                     handler.handleAckMessage(topic, payload);
+                } else if (topic != null && topic.endsWith(topicSettings.getEventsSuffix())) {
+                    handler.handleEventMessage(topic, payload);
                 } else if (topic != null && topic.endsWith(topicSettings.getStateSuffix())) {
                     handler.handleStateMessage(topic, payload);
                 }

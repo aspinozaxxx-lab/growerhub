@@ -102,6 +102,9 @@ void StateModule::PublishState(bool retained) {
   const bool dht_available = has_dht && dht.available;
   payload += ",\"air\":{";
   payload += "\"available\":" + std::string(dht_available ? "true" : "false");
+  if (has_dht) {
+    payload += ",\"status\":\"" + std::string(Modules::SensorHubModule::StatusToString(dht.status)) + "\"";
+  }
   if (dht_available) {
     payload += ",\"temperature\":" + std::to_string(dht.temperature_c);
     payload += ",\"humidity\":" + std::to_string(dht.humidity);
@@ -116,9 +119,12 @@ void StateModule::PublishState(bool retained) {
     payload += ",\"soil\":{\"ports\":[";
     for (size_t i = 0; i < port_count; ++i) {
       const bool detected = scanner->IsDetected(static_cast<uint8_t>(i));
+      const char* status = Modules::SensorHubModule::StatusToString(
+          sensor_hub_->GetSoilPortStatus(static_cast<uint8_t>(i)));
       payload += "{";
       payload += "\"port\":" + std::to_string(static_cast<int>(i)) + ",";
       payload += "\"detected\":" + std::string(detected ? "true" : "false");
+      payload += ",\"status\":\"" + std::string(status) + "\"";
       if (detected) {
         payload += ",\"percent\":" + std::to_string(static_cast<int>(scanner->GetLastPercent(static_cast<uint8_t>(i))));
       }
@@ -159,4 +165,3 @@ void StateModule::PublishState(bool retained) {
 }
 
 }
-

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.time.LocalDateTime;
 import java.util.List;
 import ru.growerhub.backend.common.util.FlexibleLocalDateTimeDeserializer;
+import ru.growerhub.backend.sensor.contract.SensorStatus;
 
 public record DeviceShadowState(
         @JsonProperty("manual_watering") ManualWateringState manualWatering,
@@ -35,7 +36,8 @@ public record DeviceShadowState(
     public record AirState(
             @JsonProperty("available") Boolean available,
             @JsonProperty("temperature") Double temperature,
-            @JsonProperty("humidity") Double humidity
+            @JsonProperty("humidity") Double humidity,
+            @JsonProperty("status") SensorStatus status
     ) {
     }
 
@@ -47,7 +49,8 @@ public record DeviceShadowState(
     public record SoilPort(
             @JsonProperty("port") Integer port,
             @JsonProperty("detected") Boolean detected,
-            @JsonProperty("percent") Integer percent
+            @JsonProperty("percent") Integer percent,
+            @JsonProperty("status") SensorStatus status
     ) {
     }
 

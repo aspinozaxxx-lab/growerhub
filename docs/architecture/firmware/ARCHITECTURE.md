@@ -28,6 +28,17 @@
 State и команды:
 - State формируется в StateModule и публикуется через MqttService.
 - MQTT команды обрабатывает CommandRouterModule через события из MqttService/EventQueue.
+- State включает sensor status:
+  - `air.status = OK | DISCONNECTED | ERROR`
+  - `soil.ports[].status = OK | DISCONNECTED | ERROR`
+- Service events публикуются в существующий `events` topic:
+  - `SENSOR_READ_ERROR`
+  - `DEVICE_REBOOT_SENSOR_FAILURE`
+
+Логика датчиков:
+- Air status общий для физического DHT.
+- Soil status вычисляется по конкретному порту.
+- После boot используется grace period 30 секунд для различения `DISCONNECTED` и дальнейших ошибок чтения.
 
 Тесты (test/test_v2):
 - Набор unit-тестов модулей и сервисов (command_router, config_sync, mqtt_codec, time_service и др.).

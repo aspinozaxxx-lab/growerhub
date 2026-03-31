@@ -109,10 +109,14 @@ mqtt:
     state: "gh/dev/+/state"
     # Topic dlya ack.
     ack: "gh/dev/+/state/ack"
+    # Topic dlya service events.
+    events: "gh/dev/+/events"
     # Suffiks dlya state.
     stateSuffix: "/state"
     # Suffiks dlya ack.
     ackSuffix: "/state/ack"
+    # Suffiks dlya service events.
+    eventsSuffix: "/events"
 
 app:
   debug:

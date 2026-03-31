@@ -50,6 +50,7 @@ import ru.growerhub.backend.sensor.jpa.SensorEntity;
 import ru.growerhub.backend.sensor.jpa.SensorPlantBindingEntity;
 import ru.growerhub.backend.sensor.jpa.SensorPlantBindingRepository;
 import ru.growerhub.backend.sensor.jpa.SensorRepository;
+import ru.growerhub.backend.sensor.contract.SensorStatus;
 import ru.growerhub.backend.sensor.contract.SensorType;
 import ru.growerhub.backend.user.jpa.UserEntity;
 import ru.growerhub.backend.user.jpa.UserRepository;
@@ -305,6 +306,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         sensor.setType(SensorType.SOIL_MOISTURE);
         sensor.setChannel(0);
         sensor.setDetected(true);
+        sensor.setStatus(SensorStatus.OK);
         sensorRepository.save(sensor);
 
         SensorPlantBindingEntity sensorBinding = SensorPlantBindingEntity.create();
@@ -341,6 +343,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         List<Map<String, Object>> sensors = response.jsonPath().getList("[0].sensors");
         Assertions.assertEquals(1, sensors.size());
         Assertions.assertEquals("SOIL_MOISTURE", sensors.get(0).get("type"));
+        Assertions.assertEquals("OK", sensors.get(0).get("status"));
         Assertions.assertFalse(sensors.get(0).containsKey("bound_plants"));
 
         List<Map<String, Object>> pumps = response.jsonPath().getList("[0].pumps");
@@ -857,13 +860,13 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM plant_journal_photos");
         jdbcTemplate.update("DELETE FROM plants");
         jdbcTemplate.update("DELETE FROM plant_groups");
+        jdbcTemplate.update("DELETE FROM device_service_events");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM user_auth_identities");
         jdbcTemplate.update("DELETE FROM user_refresh_tokens");
         jdbcTemplate.update("DELETE FROM users");
     }
 }
-
 
 
 

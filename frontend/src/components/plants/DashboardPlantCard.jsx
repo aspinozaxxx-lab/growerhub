@@ -200,6 +200,7 @@ function DashboardPlantCard({
                     key={`${kind}-${sensor.id}`}
                     kind={kind}
                     value={sensor.last_value}
+                    status={sensor.status}
                     onClick={() => handleOpenMetric(kind)}
                     disabled={!plant?.id}
                   />
@@ -250,7 +251,7 @@ function DashboardPlantCard({
             Журнал
           </Button>
           <Link className="dashboard-plant-card__link" to="/app/plants">
-            Перейти >
+            Перейти {'>'}
           </Link>
         </div>
       </div>

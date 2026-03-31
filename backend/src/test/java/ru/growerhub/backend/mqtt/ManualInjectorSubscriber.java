@@ -16,6 +16,10 @@ public class ManualInjectorSubscriber implements MqttSubscriber {
         handler.handleAckMessage(topic, payload);
     }
 
+    public void injectEvent(String topic, byte[] payload) {
+        handler.handleEventMessage(topic, payload);
+    }
+
     @Override
     public void start() {
         running = true;
@@ -31,5 +35,4 @@ public class ManualInjectorSubscriber implements MqttSubscriber {
         return running;
     }
 }
-
 

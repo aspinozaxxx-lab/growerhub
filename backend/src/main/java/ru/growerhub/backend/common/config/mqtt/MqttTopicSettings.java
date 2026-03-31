@@ -7,8 +7,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class MqttTopicSettings {
     private String state = "gh/dev/+/state";
     private String ack = "gh/dev/+/state/ack";
+    private String events = "gh/dev/+/events";
     private String stateSuffix = "/state";
     private String ackSuffix = "/state/ack";
+    private String eventsSuffix = "/events";
 
     public String getState() {
         return state;
@@ -40,5 +42,21 @@ public class MqttTopicSettings {
 
     public void setAckSuffix(String ackSuffix) {
         this.ackSuffix = ackSuffix;
+    }
+
+    public String getEvents() {
+        return events;
+    }
+
+    public void setEvents(String events) {
+        this.events = events;
+    }
+
+    public String getEventsSuffix() {
+        return eventsSuffix;
+    }
+
+    public void setEventsSuffix(String eventsSuffix) {
+        this.eventsSuffix = eventsSuffix;
     }
 }

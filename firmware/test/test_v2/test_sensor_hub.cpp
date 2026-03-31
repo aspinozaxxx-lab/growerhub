@@ -16,6 +16,7 @@ static uint16_t g_samples_hub[2][9];
 // Indeksy vyborok dlya feykovogo ADC.
 static size_t g_index_hub[2];
 // Buffer payload state dlya proverok.
+static char g_last_topic[128];
 static char g_state_payload[512];
 // ID ustroystva dlya testov.
 static const char* kDeviceId = "grovika_040AB1";
@@ -43,6 +44,12 @@ static void PublishHook(const char* topic, const char* payload, bool retain, int
   (void)topic;
   (void)retain;
   (void)qos;
+  if (topic) {
+    std::strncpy(g_last_topic, topic, sizeof(g_last_topic) - 1);
+    g_last_topic[sizeof(g_last_topic) - 1] = '\0';
+  } else {
+    g_last_topic[0] = '\0';
+  }
   if (!payload) {
     g_state_payload[0] = '\0';
     return;
@@ -157,6 +164,101 @@ void test_state_soil_serialization() {
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"status\":\"off\"") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"air\"") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"available\":true") != nullptr);
+  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"air\":{\"available\":true,\"status\":\"OK\"") != nullptr);
+  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"status\":\"DISCONNECTED\"") != nullptr);
+  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"status\":\"OK\"") != nullptr);
+}
+
+// Proverka service events i statusa ERROR pri oshibke air-datchika bez reboota.
+void test_dht_error_event_without_reboot() {
+  Core::Scheduler scheduler;
+  Core::EventQueue queue;
+  Services::MqttService mqtt;
+  Modules::SensorHubModule hub;
+  Config::HardwareProfile hw = Config::GetHardwareProfile();
+  hw.has_dht22 = true;
+  hw.dht_auto_reboot_on_fail = false;
+
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw, kDeviceId};
+  mqtt.Init(ctx);
+  mqtt.SetConnectedForTests(true);
+  mqtt.SetPublishHook(&PublishHook);
+  hub.Init(ctx);
+
+  Drivers::Dht22Sensor* dht = hub.GetDhtSensor();
+  TEST_ASSERT_NOT_NULL(dht);
+  dht->SetReadHook([](float* out_temp_c, float* out_humidity) {
+    if (!out_temp_c || !out_humidity) {
+      return false;
+    }
+    *out_temp_c = NAN;
+    *out_humidity = NAN;
+    return true;
+  });
+
+  g_last_topic[0] = '\0';
+  g_state_payload[0] = '\0';
+  hub.OnTick(ctx, 0);
+  TEST_ASSERT_TRUE(std::strstr(g_last_topic, "/events") != nullptr);
+  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"type\":\"SENSOR_READ_ERROR\"") != nullptr);
+  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"error_code\":\"invalid_frame\"") != nullptr);
+
+  Modules::SensorHubModule::DhtReading reading{};
+  TEST_ASSERT_TRUE(hub.GetDhtReading(&reading));
+  TEST_ASSERT_EQUAL_INT(static_cast<int>(Modules::SensorHubModule::SensorStatus::kError),
+                        static_cast<int>(reading.status));
+}
+
+// Proverka startup grace dlya air-datchika pri otsutstvii otveta.
+void test_dht_startup_grace_delays_disconnected() {
+  Core::Scheduler scheduler;
+  Core::EventQueue queue;
+  Services::MqttService mqtt;
+  Modules::SensorHubModule hub;
+  Config::HardwareProfile hw = Config::GetHardwareProfile();
+  hw.has_dht22 = true;
+  hw.dht_auto_reboot_on_fail = true;
+
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw, kDeviceId};
+  mqtt.Init(ctx);
+  mqtt.SetConnectedForTests(true);
+  mqtt.SetPublishHook(&PublishHook);
+  hub.Init(ctx);
+
+  Drivers::Dht22Sensor* dht = hub.GetDhtSensor();
+  TEST_ASSERT_NOT_NULL(dht);
+  dht->SetForcedErrorForTests(Drivers::Dht22Sensor::ReadError::kNoResponse);
+  dht->SetReadHook([](float* out_temp_c, float* out_humidity) {
+    (void)out_temp_c;
+    (void)out_humidity;
+    return false;
+  });
+
+  g_last_topic[0] = '\0';
+  g_state_payload[0] = '\0';
+
+  hub.OnTick(ctx, 0);
+  Modules::SensorHubModule::DhtReading reading{};
+  TEST_ASSERT_TRUE(hub.GetDhtReading(&reading));
+  TEST_ASSERT_EQUAL_INT(static_cast<int>(Modules::SensorHubModule::SensorStatus::kOk),
+                        static_cast<int>(reading.status));
+  TEST_ASSERT_EQUAL_CHAR('\0', g_last_topic[0]);
+
+  hub.OnTick(ctx, 5000);
+  hub.OnTick(ctx, 10000);
+  hub.OnTick(ctx, 15000);
+  hub.OnTick(ctx, 20000);
+  hub.OnTick(ctx, 25000);
+  TEST_ASSERT_TRUE(hub.GetDhtReading(&reading));
+  TEST_ASSERT_EQUAL_INT(static_cast<int>(Modules::SensorHubModule::SensorStatus::kOk),
+                        static_cast<int>(reading.status));
+  TEST_ASSERT_EQUAL_CHAR('\0', g_last_topic[0]);
+
+  hub.OnTick(ctx, 30000);
+  TEST_ASSERT_TRUE(hub.GetDhtReading(&reading));
+  TEST_ASSERT_EQUAL_INT(static_cast<int>(Modules::SensorHubModule::SensorStatus::kDisconnected),
+                        static_cast<int>(reading.status));
+  TEST_ASSERT_EQUAL_CHAR('\0', g_last_topic[0]);
 }
 
 // Proverka pump status i started_at v state.

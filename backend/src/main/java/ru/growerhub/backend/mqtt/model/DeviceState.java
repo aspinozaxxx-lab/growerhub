@@ -2,6 +2,7 @@
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+import ru.growerhub.backend.sensor.contract.SensorStatus;
 
 public record DeviceState(
         @JsonProperty("manual_watering") ManualWateringState manualWatering,
@@ -19,7 +20,8 @@ public record DeviceState(
     public record AirState(
             @JsonProperty("available") Boolean available,
             @JsonProperty("temperature") Double temperature,
-            @JsonProperty("humidity") Double humidity
+            @JsonProperty("humidity") Double humidity,
+            @JsonProperty("status") SensorStatus status
     ) {
     }
 
@@ -33,7 +35,8 @@ public record DeviceState(
     public record SoilPort(
             @JsonProperty("port") Integer port,
             @JsonProperty("detected") Boolean detected,
-            @JsonProperty("percent") Integer percent
+            @JsonProperty("percent") Integer percent,
+            @JsonProperty("status") SensorStatus status
     ) {
     }
 
