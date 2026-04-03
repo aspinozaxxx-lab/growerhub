@@ -344,10 +344,12 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals(1, sensors.size());
         Assertions.assertEquals("SOIL_MOISTURE", sensors.get(0).get("type"));
         Assertions.assertEquals("OK", sensors.get(0).get("status"));
+        Assertions.assertEquals(true, sensors.get(0).get("is_online"));
         Assertions.assertFalse(sensors.get(0).containsKey("bound_plants"));
 
         List<Map<String, Object>> pumps = response.jsonPath().getList("[0].pumps");
         Assertions.assertEquals(1, pumps.size());
+        Assertions.assertEquals(true, pumps.get(0).get("is_online"));
         Assertions.assertFalse(pumps.get(0).containsKey("bound_plants"));
     }
 
@@ -867,7 +869,6 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
-
 
 
 

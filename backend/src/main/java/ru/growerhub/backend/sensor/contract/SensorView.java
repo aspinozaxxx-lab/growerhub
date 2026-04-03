@@ -7,6 +7,7 @@ import ru.growerhub.backend.sensor.contract.SensorType;
 
 public record SensorView(
         Integer id,
+        Integer deviceId,
         SensorType type,
         Integer channel,
         String label,

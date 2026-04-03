@@ -201,6 +201,7 @@ function DashboardPlantCard({
                     kind={kind}
                     value={sensor.last_value}
                     status={sensor.status}
+                    isOffline={sensor.is_online === false}
                     onClick={() => handleOpenMetric(kind)}
                     disabled={!plant?.id}
                   />
@@ -212,6 +213,7 @@ function DashboardPlantCard({
                 <SensorPill
                   kind="watering"
                   value={isWatering}
+                  isOffline={activePump?.is_online === false}
                   onClick={() => handleOpenMetric('watering')}
                   highlight={Boolean(isWatering)}
                   disabled={!plant?.id}

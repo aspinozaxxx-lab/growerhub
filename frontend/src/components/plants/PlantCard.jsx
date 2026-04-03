@@ -146,6 +146,7 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
                   kind={kind}
                   value={sensor.last_value}
                   status={sensor.status}
+                  isOffline={sensor.is_online === false}
                   onClick={() => handleOpenMetric(kind)}
                 />
               );

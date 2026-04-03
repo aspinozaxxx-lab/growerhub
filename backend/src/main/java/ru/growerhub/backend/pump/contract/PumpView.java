@@ -5,10 +5,10 @@ import ru.growerhub.backend.pump.contract.PumpBoundPlantView;
 
 public record PumpView(
         Integer id,
+        Integer deviceId,
         Integer channel,
         String label,
         Boolean isRunning,
         List<PumpBoundPlantView> boundPlants
 ) {
 }
-

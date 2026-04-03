@@ -60,6 +60,7 @@ public class SensorQueryService {
             List<SensorBoundPlantView> boundPlants = boundPlantsBySensor.getOrDefault(sensor.getId(), List.of());
             result.add(new SensorView(
                     sensor.getId(),
+                    sensor.getDeviceId(),
                     sensor.getType(),
                     sensor.getChannel(),
                     sensor.getLabel(),
@@ -102,6 +103,7 @@ public class SensorQueryService {
                         .orElse(null);
                 result.add(new SensorView(
                         sensor.getId(),
+                        sensor.getDeviceId(),
                         sensor.getType(),
                         sensor.getChannel(),
                         sensor.getLabel(),
@@ -142,6 +144,7 @@ public class SensorQueryService {
                         .orElse(null);
                 result.add(new SensorView(
                         sensor.getId(),
+                        sensor.getDeviceId(),
                         sensor.getType(),
                         sensor.getChannel(),
                         sensor.getLabel(),
@@ -207,5 +210,4 @@ public class SensorQueryService {
         return sensor != null && sensor.getStatus() != null ? sensor.getStatus() : SensorStatus.DISCONNECTED;
     }
 }
-
 

@@ -7,6 +7,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,7 @@ import ru.growerhub.backend.advisor.contract.WateringAdvice;
 import ru.growerhub.backend.advisor.contract.WateringAdviceBundle;
 import ru.growerhub.backend.advisor.contract.WateringPrevious;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
+import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.pump.PumpFacade;
 import ru.growerhub.backend.pump.contract.PumpView;
 import ru.growerhub.backend.sensor.SensorFacade;
@@ -48,17 +50,20 @@ public class PlantController {
     private final SensorFacade sensorFacade;
     private final PumpFacade pumpFacade;
     private final AdvisorFacade advisorFacade;
+    private final DeviceFacade deviceFacade;
 
     public PlantController(
             PlantFacade plantFacade,
             SensorFacade sensorFacade,
             PumpFacade pumpFacade,
-            AdvisorFacade advisorFacade
+            AdvisorFacade advisorFacade,
+            DeviceFacade deviceFacade
     ) {
         this.plantFacade = plantFacade;
         this.sensorFacade = sensorFacade;
         this.pumpFacade = pumpFacade;
         this.advisorFacade = advisorFacade;
+        this.deviceFacade = deviceFacade;
     }
 
     @GetMapping("/api/plant-groups")
@@ -235,10 +240,11 @@ public class PlantController {
         PlantDtos.PlantGroupResponse groupResponse = group != null
                 ? new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId())
                 : null;
-        List<PlantDtos.PlantListSensorResponse> sensors =
-                mapListSensors(sensorFacade.listByPlantIdLight(plant.id()));
-        List<PlantDtos.PlantListPumpResponse> pumps =
-                mapListPumps(pumpFacade.listByPlantIdLight(plant.id()));
+        List<SensorView> sensorViews = sensorFacade.listByPlantIdLight(plant.id());
+        List<PumpView> pumpViews = pumpFacade.listByPlantIdLight(plant.id());
+        HashMap<Integer, Boolean> onlineByDeviceId = new HashMap<>();
+        List<PlantDtos.PlantListSensorResponse> sensors = mapListSensors(sensorViews, onlineByDeviceId);
+        List<PlantDtos.PlantListPumpResponse> pumps = mapListPumps(pumpViews, onlineByDeviceId);
         return new PlantDtos.PlantListResponse(
                 plant.id(),
                 plant.name(),
@@ -343,7 +349,7 @@ public class PlantController {
         return result;
     }
 
-    private List<PlantDtos.PlantListSensorResponse> mapListSensors(List<SensorView> views) {
+    private List<PlantDtos.PlantListSensorResponse> mapListSensors(List<SensorView> views, HashMap<Integer, Boolean> onlineByDeviceId) {
         List<PlantDtos.PlantListSensorResponse> result = new ArrayList<>();
         for (SensorView view : views) {
             result.add(new PlantDtos.PlantListSensorResponse(
@@ -351,6 +357,7 @@ public class PlantController {
                     view.type() != null ? view.type().name() : null,
                     view.channel(),
                     view.label(),
+                    resolveDeviceOnline(view.deviceId(), onlineByDeviceId),
                     view.detected(),
                     view.status() != null ? view.status().name() : null,
                     view.lastValue(),
@@ -360,17 +367,32 @@ public class PlantController {
         return result;
     }
 
-    private List<PlantDtos.PlantListPumpResponse> mapListPumps(List<PumpView> views) {
+    private List<PlantDtos.PlantListPumpResponse> mapListPumps(List<PumpView> views, HashMap<Integer, Boolean> onlineByDeviceId) {
         List<PlantDtos.PlantListPumpResponse> result = new ArrayList<>();
         for (PumpView view : views) {
             result.add(new PlantDtos.PlantListPumpResponse(
                     view.id(),
                     view.channel(),
                     view.label(),
+                    resolveDeviceOnline(view.deviceId(), onlineByDeviceId),
                     view.isRunning()
             ));
         }
         return result;
+    }
+
+    private Boolean resolveDeviceOnline(Integer deviceId, HashMap<Integer, Boolean> onlineByDeviceId) {
+        if (deviceId == null) {
+            return null;
+        }
+        Boolean cached = onlineByDeviceId.get(deviceId);
+        if (cached != null) {
+            return cached;
+        }
+        var summary = deviceFacade.getDeviceSummary(deviceId);
+        Boolean isOnline = summary != null ? summary.isOnline() : null;
+        onlineByDeviceId.put(deviceId, isOnline);
+        return isOnline;
     }
 
     private PlantFacade.PlantUpdateCommand parseUpdateCommand(JsonNode request) {

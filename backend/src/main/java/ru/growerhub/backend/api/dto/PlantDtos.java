@@ -100,6 +100,7 @@ public final class PlantDtos {
             @JsonProperty("type") String type,
             @JsonProperty("channel") Integer channel,
             @JsonProperty("label") String label,
+            @JsonProperty("is_online") Boolean isOnline,
             @JsonProperty("detected") Boolean detected,
             @JsonProperty("status") String status,
             @JsonProperty("last_value") Double lastValue,
@@ -111,6 +112,7 @@ public final class PlantDtos {
             @JsonProperty("id") Integer id,
             @JsonProperty("channel") Integer channel,
             @JsonProperty("label") String label,
+            @JsonProperty("is_online") Boolean isOnline,
             @JsonProperty("is_running") Boolean isRunning
     ) {
     }

@@ -58,6 +58,7 @@ public class PumpQueryService {
             List<PumpBoundPlantView> boundPlants = boundPlantsByPump.getOrDefault(pump.getId(), List.of());
             result.add(new PumpView(
                     pump.getId(),
+                    pump.getDeviceId(),
                     pump.getChannel(),
                     pump.getLabel(),
                     isRunning,
@@ -99,6 +100,7 @@ public class PumpQueryService {
                 nextPlants.add(toPlantView(plant, binding.getRateMlPerHour()));
                 byPump.put(pump.getId(), new PumpView(
                         pump.getId(),
+                        pump.getDeviceId(),
                         pump.getChannel(),
                         pump.getLabel(),
                         isRunning,
@@ -136,6 +138,7 @@ public class PumpQueryService {
                 );
                 byPump.put(pump.getId(), new PumpView(
                         pump.getId(),
+                        pump.getDeviceId(),
                         pump.getChannel(),
                         pump.getLabel(),
                         isRunning,
@@ -220,6 +223,5 @@ public class PumpQueryService {
         return summary != null ? summary.deviceId() : null;
     }
 }
-
 
 
