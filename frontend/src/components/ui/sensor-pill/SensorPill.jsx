@@ -16,6 +16,15 @@ const WARNING_ICON = `
 </svg>
 `;
 
+const OFFLINE_ICON = `
+<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M5 9.5C9.4 6.2 14.6 6.2 19 9.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M8 13C10.5 11.2 13.5 11.2 16 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M12 17H12.01" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M4 4L20 20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+</svg>
+`;
+
 const ICONS = {
   air_temperature: iconTemperature,
   air_humidity: iconAirHumidity,
@@ -35,13 +44,13 @@ function buildStatusTooltip(kind, status) {
     return '';
   }
   if (status === 'DISCONNECTED') {
-    return 'datchik otklyuchen';
+    return 'Датчик отключен';
   }
   if (status === 'ERROR') {
     if (kind === 'soil_moisture') {
-      return 'proverte datchik vlazhnosti pochvy';
+      return 'Проверьте датчик влажности почвы';
     }
-    return 'proverte datchik temperatury';
+    return 'Проверьте датчик температуры';
   }
   return '';
 }
@@ -50,6 +59,7 @@ function SensorPill({
   kind,
   value,
   status = 'OK',
+  isOffline = false,
   onClick,
   disabled = false,
   highlight = false,
@@ -64,7 +74,10 @@ function SensorPill({
   const isWatering = kind === 'watering';
   const isPump = kind === 'pump';
   const statusTooltip = buildStatusTooltip(kind, status);
-  const showWarning = !isWatering && !isPump && Boolean(statusTooltip);
+  const indicatorTooltip = isOffline ? 'Устройство не в сети' : statusTooltip;
+  const indicatorIcon = isOffline ? OFFLINE_ICON : WARNING_ICON;
+  const indicatorClassName = isOffline ? 'sensor-pill__indicator is-offline' : 'sensor-pill__indicator is-warning';
+  const showIndicator = isOffline || (!isWatering && !isPump && Boolean(statusTooltip));
 
   let displayValue = value;
   let displayUnit = unit;
@@ -122,12 +135,12 @@ function SensorPill({
           </span>
         ) : null}
       </span>
-      {showWarning ? (
+      {showIndicator ? (
         <span
-          className="sensor-pill__warning"
-          title={statusTooltip}
-          aria-label={statusTooltip}
-          dangerouslySetInnerHTML={{ __html: WARNING_ICON }}
+          className={indicatorClassName}
+          title={indicatorTooltip}
+          aria-label={indicatorTooltip}
+          dangerouslySetInnerHTML={{ __html: indicatorIcon }}
         />
       ) : null}
     </Element>

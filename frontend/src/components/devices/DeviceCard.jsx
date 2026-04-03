@@ -47,7 +47,7 @@ function buildPumpTitle(pump) {
   return `${base} · канал ${pump.channel}`;
 }
 
-function DevicePumpRow({ pump }) {
+function DevicePumpRow({ pump, isOnline }) {
   const isWateringFallback = pump?.is_running === true;
   const { remainingSeconds, isRunning, stop } = usePumpWateringStatus(pump?.id, {
     enabled: Boolean(pump?.id && isWateringFallback),
@@ -68,7 +68,13 @@ function DevicePumpRow({ pump }) {
       <div className="device-card__item-main">
         <div className="device-card__item-title">{buildPumpTitle(pump)}</div>
         <div className="device-card__item-status">
-          {isWatering ? (
+          {!isOnline ? (
+            <SensorPill
+              kind="watering"
+              value={isWatering}
+              isOffline
+            />
+          ) : isWatering ? (
             <WateringInProgressBanner
               isWatering={isWatering}
               remainingSeconds={remainingSeconds}
@@ -165,6 +171,7 @@ function DeviceCard({ device, onEdit }) {
                   kind={kind}
                   value={sensor.last_value}
                   status={sensor.status}
+                  isOffline={!device.is_online}
                   onClick={() => handleSensorStats(sensor)}
                 />
               </div>
@@ -183,7 +190,7 @@ function DeviceCard({ device, onEdit }) {
         <div className="device-card__section-title">Насосы</div>
         {pumps.length === 0 && <div className="device-card__empty">Нет насосов</div>}
         {pumps.map((pump) => (
-          <DevicePumpRow key={pump.id} pump={pump} />
+          <DevicePumpRow key={pump.id} pump={pump} isOnline={Boolean(device.is_online)} />
         ))}
       </div>
     </Surface>

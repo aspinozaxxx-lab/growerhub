@@ -67,17 +67,24 @@
   color: var(--text-2);
 }
 
-.sensor-pill__warning {
+.sensor-pill__indicator {
   width: 18px;
   height: 18px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #f4c15d;
   flex: 0 0 auto;
 }
 
-.sensor-pill__warning svg {
+.sensor-pill__indicator.is-warning {
+  color: #f4c15d;
+}
+
+.sensor-pill__indicator.is-offline {
+  color: #8aa3c6;
+}
+
+.sensor-pill__indicator svg {
   width: 18px;
   height: 18px;
   display: block;
