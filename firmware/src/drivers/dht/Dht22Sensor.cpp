@@ -8,60 +8,12 @@
 #include "drivers/dht/Dht22Sensor.h"
 
 #include <cmath>
-#include <cstring>
 
 #if defined(ARDUINO)
-#include <Arduino.h>
+#include <DHT.h>
 #endif
 
 namespace Drivers {
-
-#if defined(ARDUINO)
-namespace {
-
-static bool ReadFrame(uint8_t pin, uint8_t* data, Dht22Sensor::ReadError* out_error) {
-  if (!data || !out_error) {
-    return false;
-  }
-  std::memset(data, 0, 5);
-
-  pinMode(pin, OUTPUT);
-  digitalWrite(pin, LOW);
-  delay(20);
-  digitalWrite(pin, HIGH);
-  delayMicroseconds(40);
-  pinMode(pin, INPUT_PULLUP);
-
-  const unsigned long response_low = pulseIn(pin, LOW, 120);
-  const unsigned long response_high = pulseIn(pin, HIGH, 120);
-  if (response_low == 0 || response_high == 0) {
-    *out_error = Dht22Sensor::ReadError::kNoResponse;
-    return false;
-  }
-
-  for (uint8_t bit = 0; bit < 40; ++bit) {
-    const unsigned long low_len = pulseIn(pin, LOW, 120);
-    const unsigned long high_len = pulseIn(pin, HIGH, 120);
-    if (low_len == 0 || high_len == 0) {
-      *out_error = Dht22Sensor::ReadError::kTimeout;
-      return false;
-    }
-    data[bit / 8] <<= 1;
-    if (high_len > 50) {
-      data[bit / 8] |= 1;
-    }
-  }
-
-  const uint8_t checksum = static_cast<uint8_t>(data[0] + data[1] + data[2] + data[3]);
-  if (checksum != data[4]) {
-    *out_error = Dht22Sensor::ReadError::kChecksum;
-    return false;
-  }
-  return true;
-}
-
-}
-#endif
 
 void Dht22Sensor::Init(uint8_t pin) {
   pin_ = pin;
@@ -72,7 +24,11 @@ void Dht22Sensor::Init(uint8_t pin) {
   has_read_ = false;
   last_error_ = ReadError::kNone;
 #if defined(ARDUINO)
-  pinMode(pin_, INPUT_PULLUP);
+  if (dht_) {
+    delete dht_;
+  }
+  dht_ = new DHT(pin_, DHT22);
+  dht_->begin();
 #endif
 }
 
@@ -104,19 +60,13 @@ bool Dht22Sensor::Read(uint32_t now_ms, float* out_temp_c, float* out_humidity) 
     return false;
   }
 #else
-  uint8_t data[5];
-  if (!ReadFrame(pin_, data, &last_error_)) {
+  if (!dht_) {
     available_ = false;
+    last_error_ = ReadError::kReadFailed;
     return false;
   }
-  const uint16_t raw_humidity = static_cast<uint16_t>((static_cast<uint16_t>(data[0]) << 8) | data[1]);
-  const uint16_t raw_temperature = static_cast<uint16_t>((static_cast<uint16_t>(data[2]) << 8) | data[3]);
-  humidity = static_cast<float>(raw_humidity) / 10.0f;
-  int16_t signed_temperature = static_cast<int16_t>(raw_temperature & 0x7FFF);
-  if ((raw_temperature & 0x8000U) != 0) {
-    signed_temperature = -signed_temperature;
-  }
-  temperature = static_cast<float>(signed_temperature) / 10.0f;
+  humidity = dht_->readHumidity();
+  temperature = dht_->readTemperature();
 #endif
 
   if (std::isnan(humidity) || std::isnan(temperature)) {

@@ -9,6 +9,10 @@
 
 #include <cstdint>
 
+#if defined(ARDUINO)
+class DHT;
+#endif
+
 namespace Drivers {
 
 class Dht22Sensor {
@@ -84,6 +88,10 @@ class Dht22Sensor {
   uint32_t last_attempt_ms_ = 0;
   bool has_read_ = false;
   ReadError last_error_ = ReadError::kNone;
+
+#if defined(ARDUINO)
+  ::DHT* dht_ = nullptr;
+#endif
 
 #if defined(UNIT_TEST)
   ReadHook read_hook_ = nullptr;
