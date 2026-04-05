@@ -5,6 +5,7 @@ import { fetchMyDevices } from '../../api/devices';
 import { fetchPlants } from '../../api/plants';
 import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
+import { useWateringSidebar } from '../../features/watering/WateringSidebarContext';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import AppGrid from '../../components/layout/AppGrid';
@@ -12,6 +13,7 @@ import './AppDevices.css';
 
 function AppDevices() {
   const { token } = useAuth();
+  const { refreshVersion } = useWateringSidebar();
   const [devices, setDevices] = useState([]);
   const [plants, setPlants] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +49,7 @@ function AppDevices() {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [refreshVersion, token]);
 
   const refreshDevices = async () => {
     try {

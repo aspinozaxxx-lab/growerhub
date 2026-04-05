@@ -19,6 +19,7 @@ function WateringSidebar() {
     wateringPrevious,
     closeWateringSidebar,
     setWateringStatus,
+    requestWateringRefresh,
   } = useWateringSidebar();
   const { token } = useAuth();
   const [waterVolume, setWaterVolume] = useState(0.5);
@@ -78,11 +79,15 @@ function WateringSidebar() {
         fertilizersPerLiter: fertilizers || null,
         token,
       });
-      const status = await fetchPumpWateringStatus(pumpId, token);
-      const startTime = status.start_time || status.started_at || status.startTime || status.startedAt || null;
-      const duration = status.duration ?? status.duration_s ?? status.durationS ?? null;
-      if (startTime && duration) {
-        setWateringStatus(pumpId, { startTime, duration: Number(duration) });
+      setWateringStatus(pumpId, { status: 'running' });
+      requestWateringRefresh();
+      try {
+        const status = await fetchPumpWateringStatus(pumpId, token);
+        setWateringStatus(pumpId, status);
+      } catch (statusError) {
+        if (isSessionExpiredError(statusError)) {
+          return;
+        }
       }
       setSuccess(true);
     } catch (err) {

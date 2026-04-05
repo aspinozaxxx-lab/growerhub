@@ -4,6 +4,7 @@ import { fetchPlants, fetchPlantGroups, harvestPlant } from '../../api/plants';
 import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
+import { useWateringSidebar } from '../../features/watering/WateringSidebarContext';
 import PlantCard from '../../components/plants/PlantCard';
 import PlantEditDialog from '../../components/plants/PlantEditDialog';
 import PlantAvatar from '../../components/plant-avatar/PlantAvatar';
@@ -107,6 +108,7 @@ function ArchivePlantCard({ plant, onOpenJournal, onOpenMetric }) {
 function AppPlants() {
   const { token } = useAuth();
   const { openSensorStats } = useSensorStatsContext();
+  const { refreshVersion } = useWateringSidebar();
   const navigate = useNavigate();
   const [plants, setPlants] = useState([]);
   const [plantGroups, setPlantGroups] = useState([]);
@@ -144,7 +146,7 @@ function AppPlants() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData, refreshVersion]);
 
   const handleOpenJournal = (plant) => {
     navigate(`/app/plants/${plant.id}/journal`);

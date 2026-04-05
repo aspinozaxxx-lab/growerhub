@@ -3,9 +3,11 @@ import { fetchPlants } from '../../api/plants';
 import { fetchMyDevices } from '../../api/devices';
 import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { useWateringSidebar } from '../watering/WateringSidebarContext';
 
 export function useDashboardData() {
   const { token } = useAuth();
+  const { refreshVersion } = useWateringSidebar();
   const [plants, setPlants] = useState([]);
   const [devices, setDevices] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +45,7 @@ export function useDashboardData() {
     return () => {
       isCancelled = true;
     };
-  }, [token]);
+  }, [refreshVersion, token]);
 
 
   return {
