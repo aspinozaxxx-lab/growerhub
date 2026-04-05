@@ -32,6 +32,7 @@ void test_state_soil_serialization();
 void test_state_pump_status_and_started_at();
 void test_state_started_at_null_without_time();
 void test_dht_error_event_without_reboot();
+void test_dht_read_failed_reports_error();
 void test_dht_startup_grace_delays_disconnected();
 void test_auto_moisture_port0();
 void test_auto_moisture_port1();
@@ -91,6 +92,7 @@ int main(int argc, char** argv) {
   RUN_TEST(test_state_pump_status_and_started_at);
   RUN_TEST(test_state_started_at_null_without_time);
   RUN_TEST(test_dht_error_event_without_reboot);
+  RUN_TEST(test_dht_read_failed_reports_error);
   RUN_TEST(test_dht_startup_grace_delays_disconnected);
   RUN_TEST(test_auto_moisture_port0);
   RUN_TEST(test_auto_moisture_port1);

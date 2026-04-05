@@ -25,6 +25,7 @@ static const uint32_t kRescanDelayMs = 2000;
 static const uint32_t kDhtReadIntervalMs = 5000;
 static const uint32_t kSensorBootGraceMs = 30000;
 static const uint8_t kDhtFailThreshold = 3;
+static const uint32_t kDhtAutoRebootMinUptimeMs = 300000;
 static const uint32_t kDhtRebootCooldownMs = 300000;
 
 void SensorHubModule::Init(Core::Context& ctx) {
@@ -192,6 +193,9 @@ void SensorHubModule::ReadDht(uint32_t now_ms) {
     PublishSensorReadErrorEvent(now_ms, dht_.GetLastErrorCode());
   }
   if (!dht_auto_reboot_ || dht_fail_count_ < kDhtFailThreshold) {
+    return;
+  }
+  if (now_ms < kDhtAutoRebootMinUptimeMs) {
     return;
   }
   if (last_dht_reboot_ms_ != 0 && now_ms - last_dht_reboot_ms_ < kDhtRebootCooldownMs) {

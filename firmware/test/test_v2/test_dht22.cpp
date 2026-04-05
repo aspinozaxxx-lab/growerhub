@@ -82,6 +82,9 @@ void test_dht_fail_triggers_reboot_event() {
   hub.OnTick(ctx, 10000);
 
   Core::Event event{};
+  TEST_ASSERT_FALSE(queue.Pop(event));
+
+  hub.OnTick(ctx, 300000);
   TEST_ASSERT_TRUE(queue.Pop(event));
   TEST_ASSERT_EQUAL_INT(static_cast<int>(Core::EventType::kRebootRequest),
                         static_cast<int>(event.type));

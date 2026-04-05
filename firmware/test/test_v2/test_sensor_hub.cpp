@@ -209,6 +209,44 @@ void test_dht_error_event_without_reboot() {
                         static_cast<int>(reading.status));
 }
 
+// Proverka safe obrabotki oshibki chteniya air-datchika bez padeniya.
+void test_dht_read_failed_reports_error() {
+  Core::Scheduler scheduler;
+  Core::EventQueue queue;
+  Services::MqttService mqtt;
+  Modules::SensorHubModule hub;
+  Config::HardwareProfile hw = Config::GetHardwareProfile();
+  hw.has_dht22 = true;
+  hw.dht_auto_reboot_on_fail = false;
+
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw, kDeviceId};
+  mqtt.Init(ctx);
+  mqtt.SetConnectedForTests(true);
+  mqtt.SetPublishHook(&PublishHook);
+  hub.Init(ctx);
+
+  Drivers::Dht22Sensor* dht = hub.GetDhtSensor();
+  TEST_ASSERT_NOT_NULL(dht);
+  dht->SetForcedErrorForTests(Drivers::Dht22Sensor::ReadError::kReadFailed);
+  dht->SetReadHook([](float* out_temp_c, float* out_humidity) {
+    (void)out_temp_c;
+    (void)out_humidity;
+    return false;
+  });
+
+  g_last_topic[0] = '\0';
+  g_state_payload[0] = '\0';
+  hub.OnTick(ctx, 0);
+  TEST_ASSERT_TRUE(std::strstr(g_last_topic, "/events") != nullptr);
+  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"type\":\"SENSOR_READ_ERROR\"") != nullptr);
+  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"error_code\":\"read_failed\"") != nullptr);
+
+  Modules::SensorHubModule::DhtReading reading{};
+  TEST_ASSERT_TRUE(hub.GetDhtReading(&reading));
+  TEST_ASSERT_EQUAL_INT(static_cast<int>(Modules::SensorHubModule::SensorStatus::kError),
+                        static_cast<int>(reading.status));
+}
+
 // Proverka startup grace dlya air-datchika pri otsutstvii otveta.
 void test_dht_startup_grace_delays_disconnected() {
   Core::Scheduler scheduler;

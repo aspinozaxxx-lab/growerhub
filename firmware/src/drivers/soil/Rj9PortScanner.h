@@ -72,7 +72,7 @@ class Rj9PortScanner {
   uint8_t last_percent_[kMaxPorts]{};
   uint8_t good_count_[kMaxPorts]{};
   uint8_t bad_count_[kMaxPorts]{};
-  uint16_t dry_value_ = 4095;
+  uint16_t dry_value_ = 3315;
   uint16_t wet_value_ = 1800;
   AdcReader adc_reader_ = nullptr;
 };
