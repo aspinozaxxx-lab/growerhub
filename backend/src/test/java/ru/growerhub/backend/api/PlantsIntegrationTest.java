@@ -425,6 +425,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 null,
                 null,
                 null,
+                null,
                 null
         );
         DeviceShadowState state = new DeviceShadowState(manual, null, null, null, null, null, null, null, null, null);
@@ -869,7 +870,6 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
-
 
 
 
