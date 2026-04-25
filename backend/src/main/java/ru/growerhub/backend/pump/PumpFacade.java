@@ -1,5 +1,6 @@
 ﻿package ru.growerhub.backend.pump;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,6 +83,11 @@ public class PumpFacade {
         return wateringService.getAck(correlationId);
     }
 
+    @Transactional
+    public void finalizeWateringByDeviceId(String deviceId, LocalDateTime now) {
+        wateringService.finalizeWateringByDeviceId(deviceId, now);
+    }
+
     @Transactional(readOnly = true)
     public List<PumpView> listByDeviceId(Integer deviceId, DeviceShadowState state) {
         return queryService.listByDevice(deviceId, state);
@@ -113,5 +119,3 @@ public class PumpFacade {
     public record PumpWateringRequest(Integer durationS, Double waterVolumeL, Double ph, String fertilizersPerLiter) {
     }
 }
-
-

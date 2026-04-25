@@ -270,6 +270,7 @@ public class DeviceShadowStore {
                 preferNonNull(current.startedAt(), prev.startedAt()),
                 preferNonNull(current.remainingS(), prev.remainingS()),
                 correlationId,
+                preferNonNull(current.pumpId(), prev.pumpId()),
                 preferNonNull(current.waterVolumeL(), prev.waterVolumeL()),
                 preferNonNull(current.ph(), prev.ph()),
                 preferNonBlank(current.fertilizersPerLiter(), prev.fertilizersPerLiter()),

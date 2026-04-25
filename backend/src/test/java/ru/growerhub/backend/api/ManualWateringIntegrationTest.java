@@ -15,6 +15,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Assertions;
@@ -29,6 +31,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
+import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.engine.DeviceShadowStore;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
@@ -50,6 +53,7 @@ import ru.growerhub.backend.plant.jpa.PlantRepository;
 import ru.growerhub.backend.pump.jpa.PumpEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingRepository;
+import ru.growerhub.backend.pump.jpa.PumpRepository;
 import ru.growerhub.backend.pump.engine.PumpService;
 import ru.growerhub.backend.user.jpa.UserEntity;
 import ru.growerhub.backend.user.jpa.UserRepository;
@@ -72,7 +76,13 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     private DeviceRepository deviceRepository;
 
     @Autowired
+    private DeviceFacade deviceFacade;
+
+    @Autowired
     private PumpPlantBindingRepository pumpPlantBindingRepository;
+
+    @Autowired
+    private PumpRepository pumpRepository;
 
     @Autowired
     private PumpService pumpService;
@@ -196,6 +206,130 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
 
         Assertions.assertEquals(0, plantJournalEntryRepository.count());
         Assertions.assertEquals(0, plantJournalWateringDetailsRepository.count());
+    }
+
+    @Test
+    void stateUpdateFinalizesWateringAndWritesJournal() {
+        UserEntity user = createUser("owner-finalize@example.com", "user");
+        DeviceEntity device = createDevice("mw-finalize", user);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
+        PlantEntity plant = createPlant(user, "Dill");
+        bindPump(pump, plant, 1800);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("duration_s", 5);
+
+        String token = buildToken(user.getId());
+
+        String correlationId = given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .post("/api/pumps/" + pump.getId() + "/watering/start")
+                .then()
+                .statusCode(200)
+                .body("correlation_id", notNullValue())
+                .extract()
+                .path("correlation_id");
+
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        DeviceShadowState state = new DeviceShadowState(
+                new DeviceShadowState.ManualWateringState(
+                        "idle",
+                        null,
+                        null,
+                        0,
+                        correlationId,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                ),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        deviceFacade.handleState(device.getDeviceId(), state, now);
+
+        Assertions.assertEquals(1, plantJournalEntryRepository.count());
+        Assertions.assertEquals(1, plantJournalWateringDetailsRepository.count());
+    }
+
+    @Test
+    void stateUpdateFinalizesOnlyRunningPumpAndWritesForAllItsPlants() {
+        UserEntity user = createUser("owner-finalize-multi@example.com", "user");
+        DeviceEntity device = createDevice("mw-finalize-multi", user);
+        PumpEntity defaultPump = pumpService.ensureDefaultPump(device.getId());
+        PumpEntity secondPump = PumpEntity.create();
+        secondPump.setDeviceId(device.getId());
+        secondPump.setChannel(1);
+        secondPump = pumpRepository.save(secondPump);
+
+        PlantEntity plantA = createPlant(user, "Pump-A plant");
+        PlantEntity plantB = createPlant(user, "Pump-B plant #1");
+        PlantEntity plantC = createPlant(user, "Pump-B plant #2");
+        bindPump(defaultPump, plantA, 1200);
+        bindPump(secondPump, plantB, 1800);
+        bindPump(secondPump, plantC, 1500);
+
+        String token = buildToken(user.getId());
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("duration_s", 5);
+
+        String correlationId = given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .post("/api/pumps/" + secondPump.getId() + "/watering/start")
+                .then()
+                .statusCode(200)
+                .body("correlation_id", notNullValue())
+                .extract()
+                .path("correlation_id");
+
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        DeviceShadowState state = new DeviceShadowState(
+                new DeviceShadowState.ManualWateringState(
+                        "idle",
+                        null,
+                        null,
+                        0,
+                        correlationId,
+                        secondPump.getId(),
+                        null,
+                        null,
+                        null,
+                        null
+                ),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        deviceFacade.handleState(device.getDeviceId(), state, now);
+
+        Assertions.assertEquals(2, plantJournalEntryRepository.count());
+        Set<Integer> plantIds = plantJournalEntryRepository.findAll().stream()
+                .map(entry -> entry.getPlantId())
+                .collect(Collectors.toSet());
+        Assertions.assertEquals(Set.of(plantB.getId(), plantC.getId()), plantIds);
+        Assertions.assertFalse(plantIds.contains(plantA.getId()));
     }
 
     @Test
@@ -439,6 +573,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 null,
                 null,
                 null,
+                null,
                 null
         );
         shadowStore.updateFromState(
@@ -646,11 +781,6 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     private record PublishedCommand(String deviceId, Object cmd) {
     }
 }
-
-
-
-
-
 
 
 

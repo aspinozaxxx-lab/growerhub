@@ -191,6 +191,7 @@ public class MqttMessageHandler {
                     null,
                     null,
                     null,
+                    null,
                     null
             );
         }

@@ -26,6 +26,7 @@ public record DeviceShadowState(
             LocalDateTime startedAt,
             @JsonProperty("remaining_s") Integer remainingS,
             @JsonProperty("correlation_id") String correlationId,
+            @JsonProperty("pump_id") Integer pumpId,
             @JsonProperty("water_volume_l") Double waterVolumeL,
             @JsonProperty("ph") Double ph,
             @JsonProperty("fertilizers_per_liter") String fertilizersPerLiter,

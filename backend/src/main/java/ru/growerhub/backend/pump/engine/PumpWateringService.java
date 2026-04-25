@@ -93,6 +93,7 @@ public class PumpWateringService {
                 startedAt,
                 durationS,
                 correlationId,
+                pump.getId(),
                 plannedWaterVolumeL,
                 request.ph(),
                 request.fertilizersPerLiter(),
@@ -142,6 +143,54 @@ public class PumpWateringService {
 
     public PumpAck getAck(String correlationId) {
         return commandGateway.getAck(correlationId);
+    }
+
+    public void finalizeWateringByDeviceId(String deviceId, LocalDateTime now) {
+        if (deviceId == null || deviceId.isBlank()) {
+            return;
+        }
+        DeviceShadowState shadow = deviceFacade.getShadowState(deviceId);
+        DeviceShadowState.ManualWateringState manual = shadow != null ? shadow.manualWatering() : null;
+        if (manual == null) {
+            return;
+        }
+        PumpEntity pump = resolvePumpForFinalization(deviceId, manual);
+        if (pump == null) {
+            return;
+        }
+        AuthenticatedUser ownerUser = resolveOwnerUser(pump);
+        if (ownerUser == null) {
+            return;
+        }
+        finalizeWateringIfNeeded(pump, deviceId, ownerUser, false, now);
+    }
+
+    private PumpEntity resolvePumpForFinalization(String deviceId, DeviceShadowState.ManualWateringState manual) {
+        if (manual == null) {
+            return null;
+        }
+        Integer manualPumpId = manual.pumpId();
+        if (manualPumpId != null) {
+            PumpEntity byManualId = pumpRepository.findById(manualPumpId).orElse(null);
+            if (byManualId == null) {
+                return null;
+            }
+            String pumpDeviceId = resolveDeviceId(byManualId);
+            if (pumpDeviceId == null || !pumpDeviceId.equals(deviceId)) {
+                return null;
+            }
+            return byManualId;
+        }
+
+        Integer devicePk = deviceFacade.findDeviceId(deviceId);
+        if (devicePk == null) {
+            return null;
+        }
+        List<PumpEntity> pumps = pumpRepository.findAllByDeviceId(devicePk);
+        if (pumps == null || pumps.size() != 1) {
+            return null;
+        }
+        return pumps.get(0);
     }
 
     private int calculateDurationFromVolume(List<PumpPlantBindingEntity> bindings, double volumeL) {
@@ -314,6 +363,7 @@ public class PumpWateringService {
                 startedAt,
                 0,
                 correlationId,
+                pump.getId(),
                 manual.waterVolumeL(),
                 manual.ph(),
                 manual.fertilizersPerLiter(),
@@ -388,9 +438,14 @@ public class PumpWateringService {
         }
         return deviceFacade.getDeviceSummary(pump.getDeviceId());
     }
+
+    private AuthenticatedUser resolveOwnerUser(PumpEntity pump) {
+        DeviceSummary summary = resolveDeviceSummary(pump);
+        if (summary == null || summary.userId() == null) {
+            return null;
+        }
+        return new AuthenticatedUser(summary.userId(), "user");
+    }
 }
-
-
-
 
 
