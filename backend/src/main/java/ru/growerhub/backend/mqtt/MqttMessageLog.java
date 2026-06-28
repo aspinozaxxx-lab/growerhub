@@ -74,7 +74,7 @@ public class MqttMessageLog {
     private int resolveLimit(Integer limit) {
         int capacity = Math.max(1, settings.getRecentMessagesLimit());
         if (limit == null || limit <= 0) {
-            return Math.min(100, capacity);
+            return capacity;
         }
         return Math.min(limit, capacity);
     }

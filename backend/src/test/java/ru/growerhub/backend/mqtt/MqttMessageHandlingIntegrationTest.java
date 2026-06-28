@@ -87,6 +87,9 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
     @Autowired
     private DeviceServiceEventRepository deviceServiceEventRepository;
 
+    @Autowired
+    private MqttMessageLog messageLog;
+
     @SpyBean
     private DeviceIngestionService deviceIngestionService;
 
@@ -95,6 +98,7 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         clearDatabase();
         ackStore.clear();
         shadowStore.clear();
+        messageLog.clear();
     }
 
     @Test
@@ -250,6 +254,20 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals("fail-1", row.getFailureId());
     }
 
+    @Test
+    void recordsRawMessageBeforeRouting() {
+        injectorSubscriber.injectMessage(
+                "unknown/topic",
+                "not-json".getBytes(StandardCharsets.UTF_8)
+        );
+
+        var messages = messageLog.list(null, null, null);
+        Assertions.assertEquals(1, messages.size());
+        Assertions.assertEquals("unknown/topic", messages.get(0).topic());
+        Assertions.assertEquals("raw", messages.get(0).kind());
+        Assertions.assertEquals("not-json", messages.get(0).payload());
+    }
+
     private SensorEntity createSensor(DeviceEntity device, SensorType type, int channel) {
         SensorEntity sensor = SensorEntity.create();
         sensor.setDeviceId(device.getId());
@@ -290,7 +308,6 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         }
     }
 }
-
 
 
 

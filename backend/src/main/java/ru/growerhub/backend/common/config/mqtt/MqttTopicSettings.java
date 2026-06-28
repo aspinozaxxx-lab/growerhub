@@ -5,12 +5,21 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 // Nastroyki mqtt topikov.
 @ConfigurationProperties(prefix = "mqtt.topics")
 public class MqttTopicSettings {
+    private String listen = "#";
     private String state = "gh/dev/+/state";
     private String ack = "gh/dev/+/state/ack";
     private String events = "gh/dev/+/events";
     private String stateSuffix = "/state";
     private String ackSuffix = "/state/ack";
     private String eventsSuffix = "/events";
+
+    public String getListen() {
+        return listen;
+    }
+
+    public void setListen(String listen) {
+        this.listen = listen;
+    }
 
     public String getState() {
         return state;

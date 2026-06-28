@@ -9,7 +9,13 @@ import { isSessionExpiredError } from '../../../api/client';
 import { fetchAdminMqttMessages } from '../../../api/admin';
 import './AdminPages.css';
 
-const LIMIT_OPTIONS = [25, 50, 100, 200];
+const LIMIT_OPTIONS = [
+  { value: '', label: 'Все' },
+  { value: '25', label: '25' },
+  { value: '50', label: '50' },
+  { value: '100', label: '100' },
+  { value: '200', label: '200' },
+];
 
 function normalizeFilters(filters) {
   return {
@@ -46,13 +52,13 @@ function AdminMqtt() {
   const [filters, setFilters] = useState({
     topic: '',
     sender: '',
-    limit: '100',
+    limit: '',
   });
   // Translitem: filtry, po kotorym zagruzhen tekuschij spisok.
   const [appliedFilters, setAppliedFilters] = useState({
     topic: '',
     sender: '',
-    limit: '100',
+    limit: '',
   });
   // Translitem: indikator zagruzki spiska.
   const [isLoading, setIsLoading] = useState(false);
@@ -94,7 +100,7 @@ function AdminMqtt() {
     const nextFilters = {
       topic: '',
       sender: '',
-      limit: '100',
+      limit: '',
     };
     setFilters(nextFilters);
     setAppliedFilters(nextFilters);
@@ -133,8 +139,8 @@ function AdminMqtt() {
                 value={filters.limit}
                 onChange={(event) => handleFilterChange('limit', event.target.value)}
               >
-                {LIMIT_OPTIONS.map((limit) => (
-                  <option key={limit} value={limit}>{limit}</option>
+                {LIMIT_OPTIONS.map((option) => (
+                  <option key={option.value || 'all'} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </FormField>

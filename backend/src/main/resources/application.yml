@@ -109,6 +109,8 @@ mqtt:
   # Maksimal'naja dlina payload v poslednih MQTT soobshchenijah.
   recentPayloadChars: 4096
   topics:
+    # Topic dlya diagnosticheskoj podpiski.
+    listen: "#"
     # Topic dlya state.
     state: "gh/dev/+/state"
     # Topic dlya ack.

@@ -95,6 +95,33 @@ class AdminMqttControllerIntegrationTest extends IntegrationTestBase {
                 .body("[0].direction", equalTo("in"));
     }
 
+    @Test
+    void listMessagesWithoutFiltersReturnsWholeBuffer() {
+        UserEntity admin = createUser("mqtt-admin-all@example.com", "admin");
+        String token = buildToken(admin.getId());
+
+        messageLog.recordInbound(
+                "unknown/topic",
+                "raw".getBytes(StandardCharsets.UTF_8),
+                "raw"
+        );
+        messageLog.recordInbound(
+                "gh/dev/device-a/state",
+                "{\"soil_moisture\":42}".getBytes(StandardCharsets.UTF_8),
+                "state"
+        );
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/admin/mqtt/messages")
+                .then()
+                .statusCode(200)
+                .body("", hasSize(2))
+                .body("[0].topic", equalTo("gh/dev/device-a/state"))
+                .body("[1].topic", equalTo("unknown/topic"));
+    }
+
     private UserEntity createUser(String email, String role) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         return userRepository.save(UserEntity.create(email, null, role, true, now, now));

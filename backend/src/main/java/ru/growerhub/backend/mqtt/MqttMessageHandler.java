@@ -50,8 +50,18 @@ public class MqttMessageHandler {
         this.messageLog = messageLog;
     }
 
+    public void handleInboundMessage(String topic, byte[] payload) {
+        messageLog.recordInbound(topic, payload, resolveKind(topic));
+        if (topic != null && topic.endsWith(topicSettings.getAckSuffix())) {
+            handleAckMessage(topic, payload);
+        } else if (topic != null && topic.endsWith(topicSettings.getEventsSuffix())) {
+            handleEventMessage(topic, payload);
+        } else if (topic != null && topic.endsWith(topicSettings.getStateSuffix())) {
+            handleStateMessage(topic, payload);
+        }
+    }
+
     public void handleStateMessage(String topic, byte[] payload) {
-        messageLog.recordInbound(topic, payload, "state");
         if (debugSettings.isDebug()) {
             logger.info("MQTT DEBUG state topic={} payload={}", topic, safePayload(payload));
         }
@@ -73,7 +83,6 @@ public class MqttMessageHandler {
     }
 
     public void handleAckMessage(String topic, byte[] payload) {
-        messageLog.recordInbound(topic, payload, "ack");
         if (debugSettings.isDebug()) {
             logger.info("MQTT DEBUG ack topic={} payload={}", topic, safePayload(payload));
         }
@@ -111,7 +120,6 @@ public class MqttMessageHandler {
     }
 
     public void handleEventMessage(String topic, byte[] payload) {
-        messageLog.recordInbound(topic, payload, "event");
         if (debugSettings.isDebug()) {
             logger.info("MQTT DEBUG event topic={} payload={}", topic, safePayload(payload));
         }
@@ -151,6 +159,22 @@ public class MqttMessageHandler {
             return null;
         }
         return receivedAt.plusSeconds(ttl);
+    }
+
+    private String resolveKind(String topic) {
+        if (topic == null) {
+            return "raw";
+        }
+        if (topic.endsWith(topicSettings.getAckSuffix())) {
+            return "ack";
+        }
+        if (topic.endsWith(topicSettings.getEventsSuffix())) {
+            return "event";
+        }
+        if (topic.endsWith(topicSettings.getStateSuffix())) {
+            return "state";
+        }
+        return "raw";
     }
 
     private String extractDeviceId(String topic, String suffix, int expectedParts) {

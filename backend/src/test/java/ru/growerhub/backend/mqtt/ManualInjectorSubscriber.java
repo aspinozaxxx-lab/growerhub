@@ -20,6 +20,10 @@ public class ManualInjectorSubscriber implements MqttSubscriber {
         handler.handleEventMessage(topic, payload);
     }
 
+    public void injectMessage(String topic, byte[] payload) {
+        handler.handleInboundMessage(topic, payload);
+    }
+
     @Override
     public void start() {
         running = true;
@@ -35,4 +39,3 @@ public class ManualInjectorSubscriber implements MqttSubscriber {
         return running;
     }
 }
-
