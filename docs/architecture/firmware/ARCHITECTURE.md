@@ -1,44 +1,28 @@
-﻿# Firmware: фактическая архитектура (v2, src/test)
+# Firmware
 
-Слои:
-- core: Context, EventQueue, Scheduler, AppRuntime.
-- modules: StateModule, CommandRouterModule, ActuatorModule, SensorHubModule, ConfigSyncModule, AutomationModule, OtaModule.
-- services: MqttService, WiFiService, WebConfigService, StorageService, TimeService, DeviceIdentity.
-- drivers: dht, soil, relay, rtc.
-- util: JsonUtil, Logger, MqttCodec.
-- config: BuildFlags, HardwareProfile, PinMap.
+Firmware управляет устройством, читает датчики, управляет исполнительными устройствами, публикует state и service events, принимает команды через MQTT.
 
-Модули и ответственность:
-- StateModule: формирование и публикация state.
-- CommandRouterModule: обработка MQTT команд и reboot, отправка ACK.
-- ActuatorModule: насос/свет и состояние ручного полива.
-- SensorHubModule: сканирование портов и чтение датчиков.
-- ConfigSyncModule: синхронизация конфигурации сценариев.
-- AutomationModule: автоматизация полива и света.
-- OtaModule: подтверждение OTA и rollback.
+## Структура
 
-Сервисы:
-- MqttService: подключение, publish/subscribe, доставка сообщений в EventQueue.
-- WiFiService: STA/AP режимы и список сетей.
-- WebConfigService: web-конфиг Wi-Fi и запись конфигурации.
-- StorageService: файловое хранилище конфигураций/состояний.
-- TimeService: время, NTP/RTC синхронизация и таймстемпы.
-- DeviceIdentity: формирование device_id из MAC.
+- `src/app` - точка сборки приложения.
+- `src/core` - runtime, context, event queue, scheduler и базовый интерфейс module.
+- `src/modules` - прикладные модули устройства.
+- `src/services` - Wi-Fi, MQTT, storage, time, OTA, web config и device identity.
+- `src/drivers` - драйверы DHT, soil, relay и RTC.
+- `src/config` - build flags, hardware profile и pin map.
+- `src/util` - JSON, logging и MQTT codec.
+- `test` - unit-тесты PlatformIO.
 
-State и команды:
-- State формируется в StateModule и публикуется через MqttService.
-- MQTT команды обрабатывает CommandRouterModule через события из MqttService/EventQueue.
-- State включает sensor status:
-  - `air.status = OK | DISCONNECTED | ERROR`
-  - `soil.ports[].status = OK | DISCONNECTED | ERROR`
-- Service events публикуются в существующий `events` topic:
-  - `SENSOR_READ_ERROR`
-  - `DEVICE_REBOOT_SENSOR_FAILURE`
+## Модули
 
-Логика датчиков:
-- Air status общий для физического DHT.
-- Soil status вычисляется по конкретному порту.
-- После boot используется grace period 30 секунд для различения `DISCONNECTED` и дальнейших ошибок чтения.
+- `StateModule` формирует и публикует state.
+- `CommandRouterModule` обрабатывает MQTT-команды и ACK.
+- `ActuatorModule` управляет насосом, светом и состоянием ручного полива.
+- `SensorHubModule` сканирует порты и читает датчики.
+- `ConfigSyncModule` синхронизирует сценарии.
+- `AutomationModule` выполняет автоматизацию полива и света.
+- `OtaModule` подтверждает OTA и rollback.
 
-Тесты (test/test_v2):
-- Набор unit-тестов модулей и сервисов (command_router, config_sync, mqtt_codec, time_service и др.).
+## Контракты
+
+Firmware использует системный MQTT-контракт state, ack и service events из `docs/architecture/architecture.md`.

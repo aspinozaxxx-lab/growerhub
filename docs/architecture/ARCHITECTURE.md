@@ -1,68 +1,77 @@
-﻿# Архитектура системы
+# Архитектура GrowerHub
 
-Компоненты:
-- Frontend (React).
-- Backend (Java).
-- Firmware (C++ src).
-- Devices (железо).
-- DB.
-- MQTT broker.
+GrowerHub состоит из backend, frontend, firmware, ansible-инфраструктуры, базы данных, MQTT broker и устройств. Backend является источником правды для пользователей, конфигурации, истории и устойчивого состояния. Устройство является источником фактического состояния железа. Frontend показывает производное состояние и не хранит бизнес-истину.
 
-Каналы:
-- Frontend <-> Backend: REST.
-- Backend <-> Devices: MQTT.
+## Состав проекта
 
-MQTT topics:
-- `gh/dev/<device_id>/state`: текущее состояние устройства.
-- `gh/dev/<device_id>/state/ack`: подтверждения команд.
-- `gh/dev/<device_id>/events`: служебные события устройства.
+- `backend` - Java backend, REST API, MQTT-адаптеры, домены, миграции БД.
+- `frontend` - React-приложение и клиентские API-модули.
+- `firmware` - прошивка устройства на C++ и тесты PlatformIO.
+- `ansible` - инвентаризация, playbook и роли для серверной инфраструктуры.
+- `docs/architecture` - единственная архитектурная документация.
+- `configs` - конфигурационные файлы окружения.
+- `hardware` - материалы по железу.
+- `scripts` - вспомогательные скрипты проекта.
+- `server`, `static` - серверные и статические артефакты.
+- `.github` - CI/CD workflows.
 
-Принципы:
-- REST и MQTT - тонкие адаптеры.
-- Бизнес-логика - в доменах backend и в модулях firmware.
-- Frontend не является источником правды.
-- Форматы MQTT payload (state/cmd/ack) - контракт системы; изменения требуют обновления docs/architecture и ADR при исключениях.
+## Компоненты и каналы
 
-Контракт статусов датчиков:
-- Пользовательский текущий статус датчика передается в `state`.
-- Допустимые значения: `OK`, `DISCONNECTED`, `ERROR`.
-- Для air используется общий физический статус DHT и он дублируется в logical sensors `AIR_TEMPERATURE` и `AIR_HUMIDITY`.
-- Для soil статус задается отдельно по каждому `port/channel`.
+- Frontend обращается к backend через REST.
+- Backend обращается к устройствам через MQTT.
+- Backend хранит устойчивые данные в БД.
+- Firmware публикует состояние устройства и принимает команды через MQTT.
 
-State payload (sensor status):
-- `air.status`: текущий статус физического air sensor.
-- `soil.ports[].status`: текущий статус датчика на конкретном порту.
-- Существующие поля `temperature`, `humidity`, `percent`, `available`, `detected` сохраняются для обратной совместимости.
+MQTT-топики:
 
-Service events:
-- `SENSOR_READ_ERROR`: одноразовое событие ошибки чтения датчика.
-- `DEVICE_REBOOT_SENSOR_FAILURE`: одноразовое событие перезагрузки устройства из-за сбоя датчика.
-- Service events публикуются в `gh/dev/<device_id>/events` и используются backend/admin для диагностики.
+- `gh/dev/<device_id>/state` - текущее состояние устройства.
+- `gh/dev/<device_id>/state/ack` - подтверждения команд.
+- `gh/dev/<device_id>/events` - служебные события устройства.
 
-Поведение при auto reboot:
-- Если auto reboot включен и firmware видит ошибку чтения, оно сначала отправляет `SENSOR_READ_ERROR`.
-- Затем firmware отправляет `DEVICE_REBOOT_SENSOR_FAILURE`.
-- После успешного восстановления устройство публикует новый `state`, и пользовательский status должен перейти в `OK` без сохранения старой ошибки как текущей.
+## Общие принципы
 
-Источники правды (концептуально):
-- Device: фактическое состояние железа.
-- Backend DB: история, конфигурация, устойчивое состояние.
-- Shadow/кэши: производные данные.
-- Frontend: производное представление.
+- REST и MQTT являются тонкими адаптерами.
+- Бизнес-логика backend находится в доменах.
+- Бизнес-логика устройства находится в модулях firmware.
+- Форматы REST и MQTT-сообщений являются контрактом системы.
 
-ASCII-схема:
+## MQTT-контракт датчиков
 
-+-----------+     REST     +-----------+         +---------+
-| Frontend  | <--------->  | Backend   | <-----> |   DB    |
-+-----------+              +-----------+         +---------+
-                                |
-                                v
-                           +-----------+
-                           | MQTT      |
-                           | broker    |
-                           +-----------+
-                                |
-                                v
-                           +-----------+
-                           | Devices   |
-                           +-----------+
+Пользовательский текущий статус датчика передается в state. Допустимые значения: `OK`, `DISCONNECTED`, `ERROR`.
+
+Для air используется общий физический статус DHT, который отображается в логические датчики `AIR_TEMPERATURE` и `AIR_HUMIDITY`. Для soil статус задается отдельно по каждому `port/channel`.
+
+Служебные события:
+
+- `SENSOR_READ_ERROR` - одноразовое событие ошибки чтения датчика.
+- `DEVICE_REBOOT_SENSOR_FAILURE` - одноразовое событие перезагрузки устройства из-за сбоя датчика.
+
+После успешного восстановления устройство публикует новый state, а текущий пользовательский статус должен перейти в `OK`.
+
+## Архитектурные документы
+
+Разрешенный состав архитектурной документации строгий:
+
+- `AGENTS.md`
+- `docs/architecture/architecture.md`
+- `docs/architecture/backend/architecture.md`
+- `docs/architecture/backend/domain_rules.md`
+- `docs/architecture/backend/domains/advisor.md`
+- `docs/architecture/backend/domains/auth.md`
+- `docs/architecture/backend/domains/device.md`
+- `docs/architecture/backend/domains/firmware.md`
+- `docs/architecture/backend/domains/journal.md`
+- `docs/architecture/backend/domains/plant.md`
+- `docs/architecture/backend/domains/pump.md`
+- `docs/architecture/backend/domains/sensor.md`
+- `docs/architecture/backend/domains/user.md`
+- `docs/architecture/frontend/architecture.md`
+- `docs/architecture/frontend/module_rules.md`
+- `docs/architecture/firmware/architecture.md`
+- `docs/architecture/firmware/module_rules.md`
+- `docs/architecture/ansible/architecture.md`
+- `docs/architecture/adr/ADR-*.md`
+
+Другие markdown-файлы внутри `docs/architecture` запрещены.
+
+ADR создается только для исключения из архитектурных правил, важного компромисса или изменения системного контракта. ADR содержит контекст, решение и последствия.
