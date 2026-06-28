@@ -67,11 +67,15 @@ MQTT-топики:
 - `docs/architecture/backend/domains/user.md`
 - `docs/architecture/frontend/architecture.md`
 - `docs/architecture/frontend/module_rules.md`
+- `docs/architecture/frontend/modules/*.md`
 - `docs/architecture/firmware/architecture.md`
 - `docs/architecture/firmware/module_rules.md`
+- `docs/architecture/firmware/modules/*.md`
 - `docs/architecture/ansible/architecture.md`
 - `docs/architecture/adr/ADR-*.md`
 
 Другие markdown-файлы внутри `docs/architecture` запрещены.
+
+Документы `docs/architecture/frontend/modules/*.md` и `docs/architecture/firmware/modules/*.md` создаются только при необходимости для устойчивого модуля.
 
 ADR создается только для исключения из архитектурных правил, важного компромисса или изменения системного контракта. ADR содержит контекст, решение и последствия.
