@@ -132,3 +132,26 @@ export async function fetchAdminPlants(token) {
   }
   return response.json();
 }
+
+// Translitem: poluchaem poslednie MQTT-soobshcheniya dlya admin-vkladki.
+export async function fetchAdminMqttMessages(filters = {}, token) {
+  const params = new URLSearchParams();
+  if (filters.topic) {
+    params.set('topic', filters.topic);
+  }
+  if (filters.sender) {
+    params.set('sender', filters.sender);
+  }
+  if (filters.limit) {
+    params.set('limit', filters.limit);
+  }
+  const query = params.toString();
+  const response = await apiFetch(`/api/admin/mqtt/messages${query ? `?${query}` : ''}`, token ? {
+    headers: { Authorization: `Bearer ${token}` },
+  } : undefined);
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось загрузить MQTT сообщения');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
+}

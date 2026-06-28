@@ -19,8 +19,13 @@ public class MqttConfig {
     @Bean
     @Conditional(MqttEnabledCondition.class)
     @ConditionalOnMissingBean(MqttPublisher.class)
-    MqttPublisher mqttPublisher(MqttSettings settings, DebugSettings debugSettings, ObjectMapper objectMapper) {
-        return new PahoMqttPublisher(settings, debugSettings, objectMapper);
+    MqttPublisher mqttPublisher(
+            MqttSettings settings,
+            DebugSettings debugSettings,
+            ObjectMapper objectMapper,
+            MqttMessageLog messageLog
+    ) {
+        return new PahoMqttPublisher(settings, debugSettings, objectMapper, messageLog);
     }
 
     @Bean

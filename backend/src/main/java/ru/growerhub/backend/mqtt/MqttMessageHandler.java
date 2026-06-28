@@ -28,6 +28,7 @@ public class MqttMessageHandler {
     private final DebugSettings debugSettings;
     private final Clock clock;
     private final MqttTopicSettings topicSettings;
+    private final MqttMessageLog messageLog;
 
     public MqttMessageHandler(
             ObjectMapper objectMapper,
@@ -36,7 +37,8 @@ public class MqttMessageHandler {
             AckSettings ackSettings,
             DebugSettings debugSettings,
             Clock clock,
-            MqttTopicSettings topicSettings
+            MqttTopicSettings topicSettings,
+            MqttMessageLog messageLog
     ) {
         this.objectMapper = objectMapper;
         this.ackStore = ackStore;
@@ -45,9 +47,11 @@ public class MqttMessageHandler {
         this.debugSettings = debugSettings;
         this.clock = clock;
         this.topicSettings = topicSettings;
+        this.messageLog = messageLog;
     }
 
     public void handleStateMessage(String topic, byte[] payload) {
+        messageLog.recordInbound(topic, payload, "state");
         if (debugSettings.isDebug()) {
             logger.info("MQTT DEBUG state topic={} payload={}", topic, safePayload(payload));
         }
@@ -69,6 +73,7 @@ public class MqttMessageHandler {
     }
 
     public void handleAckMessage(String topic, byte[] payload) {
+        messageLog.recordInbound(topic, payload, "ack");
         if (debugSettings.isDebug()) {
             logger.info("MQTT DEBUG ack topic={} payload={}", topic, safePayload(payload));
         }
@@ -106,6 +111,7 @@ public class MqttMessageHandler {
     }
 
     public void handleEventMessage(String topic, byte[] payload) {
+        messageLog.recordInbound(topic, payload, "event");
         if (debugSettings.isDebug()) {
             logger.info("MQTT DEBUG event topic={} payload={}", topic, safePayload(payload));
         }

@@ -10,6 +10,8 @@ public class MqttSettings {
     private String password;
     private boolean tls = false;
     private String clientIdPrefix = "growerhub-api";
+    private int recentMessagesLimit = 200;
+    private int recentPayloadChars = 4096;
 
     public String getHost() {
         return host;
@@ -57,6 +59,22 @@ public class MqttSettings {
 
     public void setClientIdPrefix(String clientIdPrefix) {
         this.clientIdPrefix = clientIdPrefix;
+    }
+
+    public int getRecentMessagesLimit() {
+        return recentMessagesLimit;
+    }
+
+    public void setRecentMessagesLimit(int recentMessagesLimit) {
+        this.recentMessagesLimit = recentMessagesLimit;
+    }
+
+    public int getRecentPayloadChars() {
+        return recentPayloadChars;
+    }
+
+    public void setRecentPayloadChars(int recentPayloadChars) {
+        this.recentPayloadChars = recentPayloadChars;
     }
 
     private String normalize(String value) {

@@ -20,13 +20,20 @@ public class PahoMqttPublisher implements MqttPublisher, SmartLifecycle {
     private final MqttSettings settings;
     private final DebugSettings debugSettings;
     private final ObjectMapper objectMapper;
+    private final MqttMessageLog messageLog;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private MqttClient client;
 
-    public PahoMqttPublisher(MqttSettings settings, DebugSettings debugSettings, ObjectMapper objectMapper) {
+    public PahoMqttPublisher(
+            MqttSettings settings,
+            DebugSettings debugSettings,
+            ObjectMapper objectMapper,
+            MqttMessageLog messageLog
+    ) {
         this.settings = settings;
         this.debugSettings = debugSettings;
         this.objectMapper = objectMapper;
+        this.messageLog = messageLog;
     }
 
     @Override
@@ -49,6 +56,7 @@ public class PahoMqttPublisher implements MqttPublisher, SmartLifecycle {
         } catch (MqttException ex) {
             throw new IllegalStateException("Failed to publish MQTT command", ex);
         }
+        messageLog.recordOutbound(topic, payload);
         if (debugSettings.isDebug()) {
             logger.info("MQTT DEBUG publish topic={} payload={}", topic, new String(payload, StandardCharsets.UTF_8));
         }

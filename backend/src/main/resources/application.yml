@@ -104,6 +104,10 @@ pump:
       pollIntervalMs: 500
 
 mqtt:
+  # Maksimal'noe kolichestvo poslednih MQTT soobshchenij v pamjati.
+  recentMessagesLimit: 200
+  # Maksimal'naja dlina payload v poslednih MQTT soobshchenijah.
+  recentPayloadChars: 4096
   topics:
     # Topic dlya state.
     state: "gh/dev/+/state"

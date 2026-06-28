@@ -10,6 +10,7 @@ const adminNavItems = [
   { to: '/app/admin/users', label: 'Пользователи' },
   { to: '/app/admin/devices', label: 'Устройства' },
   { to: '/app/admin/plants', label: 'Растения' },
+  { to: '/app/admin/mqtt', label: 'MQTT' },
 ];
 
 // Translitem: obshchiy layout dlya admin-stranic.

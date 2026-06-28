@@ -113,3 +113,44 @@
   color: var(--text-3);
   font-size: 12px;
 }
+
+.admin-table--mqtt {
+  table-layout: fixed;
+}
+
+.admin-table--mqtt th:nth-child(1),
+.admin-table--mqtt td:nth-child(1) {
+  width: 150px;
+}
+
+.admin-table--mqtt th:nth-child(2),
+.admin-table--mqtt td:nth-child(2),
+.admin-table--mqtt th:nth-child(3),
+.admin-table--mqtt td:nth-child(3),
+.admin-table--mqtt th:nth-child(5),
+.admin-table--mqtt td:nth-child(5) {
+  width: 110px;
+}
+
+.admin-mqtt-topic {
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.admin-mqtt-payload {
+  max-height: 160px;
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text-2);
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .admin-table--mqtt {
+    table-layout: auto;
+  }
+}
