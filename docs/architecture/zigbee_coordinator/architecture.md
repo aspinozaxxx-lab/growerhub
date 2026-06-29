@@ -40,8 +40,8 @@ zigbee_coordinator/data/secret.example.yaml
 
 ## Запуск
 
-- `start-coordinator.bat` проверяет Node/Corepack, устанавливает pnpm-зависимости при отсутствии `node_modules`, останавливает уже работающий Zigbee2MQTT на `8080` и запускает новый экземпляр.
-- `start-mosquitto.bat` оставлен только для локального broker-режима; штатный режим использует внешний broker из `configuration.yaml`.
+- `start-coordinator.bat` проверяет Node/Corepack, устанавливает pnpm-зависимости при отсутствии `node_modules`, вызывает `stop-coordinator.bat --no-pause` и запускает новый экземпляр.
+- `stop-coordinator.bat` останавливает процесс Zigbee2MQTT по frontend port `8080` и по команде `zigbee2mqtt/index.js`.
 
 ## Обновление Zigbee2MQTT
 

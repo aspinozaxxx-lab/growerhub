@@ -56,29 +56,7 @@ if not exist "%Z2M_DIR%\node_modules\source-map-support" (
 set "ZIGBEE2MQTT_DATA=%Z2M_DATA%"
 
 echo Stopping existing Zigbee2MQTT coordinator if it is already running...
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$ErrorActionPreference = 'Stop';" ^
-  "$listeners = Get-NetTCPConnection -LocalPort %FRONTEND_PORT% -State Listen -ErrorAction SilentlyContinue;" ^
-  "$stopped = @{};" ^
-  "foreach ($listener in $listeners) {" ^
-  "  $process = Get-CimInstance Win32_Process -Filter ('ProcessId=' + $listener.OwningProcess);" ^
-  "  if ($process -and $process.Name -ieq 'node.exe') {" ^
-  "    Stop-Process -Id $listener.OwningProcess -Force;" ^
-  "    $stopped[$listener.OwningProcess] = $true;" ^
-  "    Write-Host ('Stopped existing Zigbee2MQTT process PID ' + $listener.OwningProcess);" ^
-  "  } elseif ($process) {" ^
-  "    Write-Error ('Frontend port %FRONTEND_PORT% is used by ' + $process.Name + ' PID ' + $listener.OwningProcess + '. Stop it manually or change frontend.port in data\configuration.yaml.');" ^
-  "    exit 2;" ^
-  "  }" ^
-  "}" ^
-  "$z2m = Get-CimInstance Win32_Process -Filter \"Name = 'node.exe'\" | Where-Object { $_.CommandLine -match 'zigbee2mqtt[\\/]index\.js' };" ^
-  "foreach ($process in $z2m) {" ^
-  "  if (-not $stopped.ContainsKey($process.ProcessId)) {" ^
-  "    Stop-Process -Id $process.ProcessId -Force;" ^
-  "    Write-Host ('Stopped existing Zigbee2MQTT process PID ' + $process.ProcessId);" ^
-  "  }" ^
-  "}" ^
-  "Start-Sleep -Milliseconds 800;"
+call "%ROOT%stop-coordinator.bat" --no-pause
 if errorlevel 1 (
     echo Failed to stop existing Zigbee2MQTT coordinator.
     pause
@@ -87,7 +65,7 @@ if errorlevel 1 (
 
 echo Starting Zigbee2MQTT coordinator...
 echo Web UI: http://127.0.0.1:8080
-echo Press Ctrl+C to stop.
+echo Run stop-coordinator.bat to stop.
 
 pushd "%Z2M_DIR%"
 node "%Z2M_DIR%\index.js"

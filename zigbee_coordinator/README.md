@@ -7,8 +7,8 @@
 - `mosquitto/` - конфиг, база и логи локального MQTT broker, если нужен локальный режим.
 - `data/` - рабочие данные Zigbee2MQTT: `configuration.yaml`, локальный `secret.yaml`, база Zigbee-сети, backup coordinator, state, логи.
 - `zigbee2mqtt/` - само приложение Zigbee2MQTT `2.12.0` из `https://github.com/Koenkk/zigbee2mqtt`.
-- `start-mosquitto.bat` - запуск MQTT broker.
 - `start-coordinator.bat` - запуск Zigbee2MQTT coordinator.
+- `stop-coordinator.bat` - остановка Zigbee2MQTT coordinator.
 
 ## Как работает
 
@@ -50,13 +50,11 @@ start-coordinator.bat
 
 При первом запуске bat сам установит зависимости Zigbee2MQTT через Corepack/pnpm.
 
-Локальный Mosquitto сейчас не нужен, потому что используется внешний MQTT broker. Для локального режима можно запустить broker отдельно:
+Остановить coordinator:
 
 ```bat
-start-mosquitto.bat
+stop-coordinator.bat
 ```
-
-Остановить coordinator: `Ctrl+C` в его окне.
 
 Повторный запуск `start-coordinator.bat` сначала остановит уже работающий Zigbee2MQTT, затем поднимет новый экземпляр.
 
