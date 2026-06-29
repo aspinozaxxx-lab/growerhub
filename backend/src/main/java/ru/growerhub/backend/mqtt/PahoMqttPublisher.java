@@ -42,15 +42,27 @@ public class PahoMqttPublisher implements MqttPublisher, SmartLifecycle {
             throw new IllegalStateException("MQTT client is not connected");
         }
         String topic = "gh/dev/" + deviceId + "/cmd";
+        publishSerialized(topic, cmd, 1, false);
+    }
+
+    @Override
+    public void publishJson(String topic, Object payload, int qos, boolean retained) {
+        if (!isRunning()) {
+            throw new IllegalStateException("MQTT client is not connected");
+        }
+        publishSerialized(topic, payload, qos, retained);
+    }
+
+    private void publishSerialized(String topic, Object payloadObject, int qos, boolean retained) {
         byte[] payload;
         try {
-            payload = objectMapper.writeValueAsBytes(cmd);
+            payload = objectMapper.writeValueAsBytes(payloadObject);
         } catch (Exception ex) {
             throw new IllegalStateException("Failed to serialize MQTT command", ex);
         }
         MqttMessage message = new MqttMessage(payload);
-        message.setQos(1);
-        message.setRetained(false);
+        message.setQos(qos);
+        message.setRetained(retained);
         try {
             client.publish(topic, message);
         } catch (MqttException ex) {

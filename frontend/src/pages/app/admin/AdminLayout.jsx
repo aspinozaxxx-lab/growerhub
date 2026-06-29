@@ -11,6 +11,7 @@ const adminNavItems = [
   { to: '/app/admin/devices', label: 'Устройства' },
   { to: '/app/admin/plants', label: 'Растения' },
   { to: '/app/admin/mqtt', label: 'MQTT' },
+  { to: '/app/admin/zigbee', label: 'Zigbee' },
 ];
 
 // Translitem: obshchiy layout dlya admin-stranic.

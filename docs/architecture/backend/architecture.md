@@ -10,7 +10,7 @@ Backend построен вокруг доменов. Адаптеры REST и M
 - `config` - общая конфигурация приложения.
 - `diagnostics` - техническая диагностика.
 - `llm` - внешний шлюз для advisor.
-- доменные пакеты - `advisor`, `auth`, `device`, `firmware`, `journal`, `plant`, `pump`, `sensor`, `user`.
+- доменные пакеты - `advisor`, `auth`, `device`, `firmware`, `journal`, `plant`, `pump`, `sensor`, `user`, `zigbee`.
 
 ## Домены
 
@@ -25,6 +25,7 @@ Backend построен вокруг доменов. Адаптеры REST и M
 - `pump` - насосы, привязки и ручной полив.
 - `sensor` - датчики, привязки, текущие показания и история.
 - `user` - пользователи, профиль и администрирование.
+- `zigbee` - админский snapshot Zigbee2MQTT bridge и командный шлюз для Zigbee-устройств.
 
 Описание каждого домена находится в `docs/architecture/backend/domains/`.
 

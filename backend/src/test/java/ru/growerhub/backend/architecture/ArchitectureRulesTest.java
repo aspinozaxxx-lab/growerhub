@@ -34,7 +34,8 @@ class ArchitectureRulesTest {
             "plant",
             "pump",
             "sensor",
-            "user"
+            "user",
+            "zigbee"
     };
 
     // klassy vneshney arhitektury dlya proverki

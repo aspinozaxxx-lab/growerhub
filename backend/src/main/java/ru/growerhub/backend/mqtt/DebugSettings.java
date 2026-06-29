@@ -2,7 +2,7 @@ package ru.growerhub.backend.mqtt;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "")
+@ConfigurationProperties(prefix = "", ignoreInvalidFields = true)
 public class DebugSettings {
     private boolean debug = true;
 

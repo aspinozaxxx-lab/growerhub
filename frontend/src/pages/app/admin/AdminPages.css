@@ -19,6 +19,11 @@
   font-size: 14px;
 }
 
+.admin-notice {
+  color: #a7e7c0;
+  font-size: 14px;
+}
+
 .admin-form {
   display: grid;
   gap: 12px;
@@ -149,8 +154,76 @@
   font-size: 12px;
 }
 
+.admin-zigbee-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.admin-zigbee-facts,
+.admin-zigbee-device,
+.admin-zigbee-metrics,
+.admin-zigbee-actions {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-zigbee-facts {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-top: 8px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.admin-zigbee-device span,
+.admin-zigbee-metrics span,
+.admin-zigbee-response {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.admin-zigbee-response {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+
+.admin-table--zigbee th:nth-child(1),
+.admin-table--zigbee td:nth-child(1) {
+  width: 210px;
+}
+
+.admin-table--zigbee th:nth-child(2),
+.admin-table--zigbee td:nth-child(2) {
+  width: 140px;
+}
+
+.admin-table--zigbee th:nth-child(3),
+.admin-table--zigbee td:nth-child(3) {
+  width: 180px;
+}
+
+.admin-table--zigbee th:nth-child(4),
+.admin-table--zigbee td:nth-child(4) {
+  width: 260px;
+}
+
+.admin-zigbee-rename {
+  width: 150px;
+}
+
 @media (max-width: 900px) {
   .admin-table--mqtt {
+    table-layout: auto;
+  }
+
+  .admin-zigbee-summary {
+    display: grid;
+  }
+
+  .admin-table--zigbee {
     table-layout: auto;
   }
 }

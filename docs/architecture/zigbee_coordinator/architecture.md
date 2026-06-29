@@ -14,6 +14,8 @@
 
 `zigbee_coordinator` не является backend-доменом и не хранит бизнес-истину GrowerHub. Он не заменяет основной MQTT-контракт `gh/dev/<device_id>/...`; он публикует сырые Zigbee2MQTT topics, а их отображение в домены GrowerHub должно выполняться отдельным backend adapter или явно описанным интеграционным слоем.
 
+Админская вкладка Zigbee в frontend не подключается к MQTT напрямую. Она читает snapshot через backend REST, а backend получает и отправляет сообщения координатору только через MQTT.
+
 ## MQTT
 
 Рабочий broker задается в `zigbee_coordinator/data/configuration.yaml`.

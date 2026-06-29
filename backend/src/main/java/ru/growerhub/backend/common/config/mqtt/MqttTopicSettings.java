@@ -9,6 +9,7 @@ public class MqttTopicSettings {
     private String state = "gh/dev/+/state";
     private String ack = "gh/dev/+/state/ack";
     private String events = "gh/dev/+/events";
+    private String zigbeeBase = "zigbee2growerhub";
     private String stateSuffix = "/state";
     private String ackSuffix = "/state/ack";
     private String eventsSuffix = "/events";
@@ -59,6 +60,14 @@ public class MqttTopicSettings {
 
     public void setEvents(String events) {
         this.events = events;
+    }
+
+    public String getZigbeeBase() {
+        return zigbeeBase;
+    }
+
+    public void setZigbeeBase(String zigbeeBase) {
+        this.zigbeeBase = zigbeeBase;
     }
 
     public String getEventsSuffix() {

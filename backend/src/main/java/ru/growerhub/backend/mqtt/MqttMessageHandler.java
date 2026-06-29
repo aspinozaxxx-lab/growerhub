@@ -16,6 +16,9 @@ import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.mqtt.model.DeviceState;
 import ru.growerhub.backend.mqtt.model.DeviceServiceEventMessage;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
+import ru.growerhub.backend.zigbee.ZigbeeFacade;
+import ru.growerhub.backend.zigbee.contract.ZigbeeMqttMessageType;
+import ru.growerhub.backend.zigbee.contract.ZigbeeMqttSnapshotMessage;
 
 @Component
 public class MqttMessageHandler {
@@ -29,6 +32,7 @@ public class MqttMessageHandler {
     private final Clock clock;
     private final MqttTopicSettings topicSettings;
     private final MqttMessageLog messageLog;
+    private final ZigbeeFacade zigbeeFacade;
 
     public MqttMessageHandler(
             ObjectMapper objectMapper,
@@ -38,7 +42,8 @@ public class MqttMessageHandler {
             DebugSettings debugSettings,
             Clock clock,
             MqttTopicSettings topicSettings,
-            MqttMessageLog messageLog
+            MqttMessageLog messageLog,
+            ZigbeeFacade zigbeeFacade
     ) {
         this.objectMapper = objectMapper;
         this.ackStore = ackStore;
@@ -48,10 +53,14 @@ public class MqttMessageHandler {
         this.clock = clock;
         this.topicSettings = topicSettings;
         this.messageLog = messageLog;
+        this.zigbeeFacade = zigbeeFacade;
     }
 
     public void handleInboundMessage(String topic, byte[] payload) {
         messageLog.recordInbound(topic, payload, resolveKind(topic));
+        if (handleZigbeeMessage(topic, payload)) {
+            return;
+        }
         if (topic != null && topic.endsWith(topicSettings.getAckSuffix())) {
             handleAckMessage(topic, payload);
         } else if (topic != null && topic.endsWith(topicSettings.getEventsSuffix())) {
@@ -174,7 +183,68 @@ public class MqttMessageHandler {
         if (topic.endsWith(topicSettings.getStateSuffix())) {
             return "state";
         }
+        String zigbeeBase = topicSettings.getZigbeeBase();
+        if (zigbeeBase != null && !zigbeeBase.isBlank() && topic.startsWith(zigbeeBase + "/")) {
+            return "zigbee";
+        }
         return "raw";
+    }
+
+    private boolean handleZigbeeMessage(String topic, byte[] payload) {
+        String zigbeeBase = topicSettings.getZigbeeBase();
+        if (topic == null || zigbeeBase == null || zigbeeBase.isBlank() || !topic.startsWith(zigbeeBase + "/")) {
+            return false;
+        }
+
+        String relativeTopic = topic.substring(zigbeeBase.length() + 1);
+        ZigbeeMqttMessageType type = null;
+        String friendlyName = null;
+
+        if ("bridge/state".equals(relativeTopic)) {
+            type = ZigbeeMqttMessageType.BRIDGE_STATE;
+        } else if ("bridge/info".equals(relativeTopic)) {
+            type = ZigbeeMqttMessageType.BRIDGE_INFO;
+        } else if ("bridge/devices".equals(relativeTopic)) {
+            type = ZigbeeMqttMessageType.BRIDGE_DEVICES;
+        } else if (relativeTopic.startsWith("bridge/response/")) {
+            type = ZigbeeMqttMessageType.COMMAND_RESPONSE;
+        } else if (!relativeTopic.startsWith("bridge/")) {
+            if (relativeTopic.endsWith("/availability")) {
+                friendlyName = relativeTopic.substring(0, relativeTopic.length() - "/availability".length());
+                type = ZigbeeMqttMessageType.DEVICE_AVAILABILITY;
+            } else if (!relativeTopic.contains("/")) {
+                friendlyName = relativeTopic;
+                type = ZigbeeMqttMessageType.DEVICE_STATE;
+            }
+        }
+
+        if (type == null) {
+            return true;
+        }
+
+        String rawPayload = safePayload(payload);
+        Object parsedPayload = parseJson(rawPayload);
+        zigbeeFacade.handleMqttSnapshot(new ZigbeeMqttSnapshotMessage(
+                type,
+                topic,
+                relativeTopic,
+                friendlyName,
+                rawPayload,
+                parsedPayload,
+                LocalDateTime.now(clock)
+        ));
+        return true;
+    }
+
+    private Object parseJson(String rawPayload) {
+        if (rawPayload == null || rawPayload.isBlank()) {
+            return rawPayload;
+        }
+        try {
+            return objectMapper.readValue(rawPayload, Object.class);
+        } catch (Exception ex) {
+            return rawPayload;
+        }
     }
 
     private String extractDeviceId(String topic, String suffix, int expectedParts) {

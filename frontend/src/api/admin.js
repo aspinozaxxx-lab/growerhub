@@ -10,7 +10,7 @@ async function readErrorDetail(response, fallback) {
     if (data && data.detail) {
       return data.detail;
     }
-  } catch (err) {
+  } catch {
     // Translitem: ignoriruem oshibku parse JSON.
   }
   return fallback;
@@ -151,6 +151,61 @@ export async function fetchAdminMqttMessages(filters = {}, token) {
   } : undefined);
   if (!response.ok) {
     const message = await readErrorDetail(response, 'Не удалось загрузить MQTT сообщения');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
+}
+
+// Translitem: poluchaem Zigbee2MQTT snapshot dlya admin-vkladki.
+export async function fetchAdminZigbeeOverview(token) {
+  const response = await apiFetch('/api/admin/zigbee', token ? {
+    headers: { Authorization: `Bearer ${token}` },
+  } : undefined);
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось загрузить Zigbee устройства');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
+}
+
+// Translitem: otkryvaem Zigbee pairing cherez backend MQTT publish.
+export async function adminZigbeePermitJoin(seconds, token) {
+  const body = seconds !== null && seconds !== undefined ? { seconds } : {};
+  const response = await apiFetch('/api/admin/zigbee/permit-join', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось открыть сопряжение');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
+}
+
+// Translitem: otpravlyaem ON/OFF v Zigbee2MQTT topic ustroystva.
+export async function adminZigbeeSetState(ieeeAddress, state, token) {
+  const response = await apiFetch(`/api/admin/zigbee/devices/${encodeURIComponent(ieeeAddress)}/set-state`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ state }),
+  });
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось отправить команду устройству');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
+}
+
+// Translitem: pereimenovyvaem friendly_name ustroystva cherez Zigbee2MQTT request API.
+export async function adminZigbeeRenameDevice(ieeeAddress, friendlyName, token) {
+  const response = await apiFetch(`/api/admin/zigbee/devices/${encodeURIComponent(ieeeAddress)}/rename`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ friendly_name: friendlyName }),
+  });
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось переименовать устройство');
     throw new Error(message || DEFAULT_ERROR_MESSAGE);
   }
   return response.json();

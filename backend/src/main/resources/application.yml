@@ -117,6 +117,8 @@ mqtt:
     ack: "gh/dev/+/state/ack"
     # Topic dlya service events.
     events: "gh/dev/+/events"
+    # Bazovyj topic Zigbee2MQTT.
+    zigbeeBase: "zigbee2growerhub"
     # Suffiks dlya state.
     stateSuffix: "/state"
     # Suffiks dlya ack.
@@ -127,3 +129,7 @@ mqtt:
 app:
   debug:
     plantsTiming: false
+
+zigbee:
+  # Vremja otkrytogo soprjazhenija po umolchaniju (sek).
+  permitJoinDefaultSeconds: 254

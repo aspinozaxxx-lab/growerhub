@@ -14,6 +14,7 @@ import AdminUsers from './pages/app/admin/AdminUsers';
 import AdminDevices from './pages/app/admin/AdminDevices';
 import AdminPlants from './pages/app/admin/AdminPlants';
 import AdminMqtt from './pages/app/admin/AdminMqtt';
+import AdminZigbee from './pages/app/admin/AdminZigbee';
 import RequireAdmin from './features/auth/RequireAdmin';
 import AppPlantJournal from './pages/app/AppPlantJournal';
 import LoginPage from './pages/app/LoginPage';
@@ -66,6 +67,7 @@ function App() {
             <Route path="devices" element={<AdminDevices />} />
             <Route path="plants" element={<AdminPlants />} />
             <Route path="mqtt" element={<AdminMqtt />} />
+            <Route path="zigbee" element={<AdminZigbee />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
