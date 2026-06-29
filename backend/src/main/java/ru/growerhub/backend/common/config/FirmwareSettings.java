@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "firmware")
 public class FirmwareSettings {
-    private String binariesDir = "server/firmware_binaries";
+    private String binariesDir = "firmware_binaries";
 
     public Path getFirmwareDir() {
         return Paths.get(binariesDir).toAbsolutePath().normalize();

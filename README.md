@@ -1,185 +1,55 @@
-# 🌱 GrowerHub - Интеллектуальная система ухода за растениями
-![Firmware CI](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-firmware.yml/badge.svg) 
-![Server CI/CD](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-cd.yml/badge.svg)<br>
-![PlatformIO](https://img.shields.io/badge/platformio-ESP32-orange?logo=platformio)
-![PlatformIO](https://img.shields.io/badge/platformio-ESP8266-blue?logo=platformio)<br>
-![C++](https://img.shields.io/badge/language-C++17-blue?logo=c%2B%2B)
-![Python](https://img.shields.io/badge/python-3.11+-blue?logo=python&logoColor=white)
-![Lines of code](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/aspinozaxxx-lab/growerhub/main/.github/metrics/loc-badge.json)<br>
-![Ansible](https://img.shields.io/badge/ansible-automation-black?logo=ansible)
-![FastAPI](https://img.shields.io/badge/fastapi-uvicorn%2Bgunicorn-009688?logo=fastapi)<br>
-![Last Commit](https://img.shields.io/github/last-commit/aspinozaxxx-lab/growerhub)
-![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faspinozaxxx-lab%2Fgrowerhub%2Fmain%2F.github%2Fmetrics%2Fcoverage-badge.json)
+# GrowerHub
 
+![Firmware CI](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-firmware.yml/badge.svg)
+![Backend CI/CD](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-cd-backend.yml/badge.svg)
+![Frontend Deploy](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/deploy-frontend.yml/badge.svg)
 
-## 📚 Оглавление
+GrowerHub - система ухода за растениями: устройство публикует состояние через MQTT, backend хранит данные и управляет командами, frontend показывает состояние и администрирование.
 
-- [Описание проекта](#описание-проекта)
-- [🚀 Функциональные возможности](#-функциональные-возможности)
-- [🛠️ Аппаратно-программный комплекс MVP](#-аппаратно-программный-комплекс-mvp)
-- [💻 Программная часть](#-программная-часть)
-- [🏗️ Архитектура](#-архитектура)
-  - [⚙️ Серверная архитектура (Proxmox VE, PostgreSQL, pgAdmin)](#️-серверная-архитектура-proxmox-ve-postgresql-pgadmin)
-- [📁 Структура проекта](#-структура-проекта)
-- [⚡ Быстрый старт](#-быстрый-старт)
-- [🔧 Системные сервисы](#-системные-сервисы)
-- [🔒 Переменные окружения](#-переменные-окружения)
-- [📝 Последние изменения](#-последние-изменения)
-- [🎯 Планы развития](#-планы-развития)
-- [📞 Контакты](#-контакты)
+## Состав
 
----
+- `backend` - Java Spring Boot backend, REST API, MQTT, домены и миграции БД.
+- `frontend` - React/Vite приложение.
+- `firmware` - прошивка устройства на C++ для PlatformIO.
+- `ansible` - серверная инфраструктура и роли деплоя.
+- `docs/architecture` - архитектурная документация.
+- `.github/workflows` - CI/CD текущих частей проекта.
 
-## 📝 Описание проекта
+## Основные команды
 
-GrowerHub — это современная экосистема для автоматизации полива растений с возможностью мониторинга и управления через удобный веб-интерфейс.
+Backend:
 
-MVP Grovika — аппаратно-программный комплекc, включающий устройство, стильную упаковку, сопутствующие материалы и подробную инструкцию, необходимые для продажи и легкого старта конечного пользователя.
+```bash
+cd backend
+./gradlew test
+./gradlew bootRun
+```
 
----
+Frontend:
 
-## 🚀 Функциональные возможности
-- Автоматический и ручной полив  
-- Управление освещением  
-- Веб-интерфейс мониторинга  
-- OTA-обновления  
-- Авто-деплой (GitHub Actions)  
-- Развёртывание через Ansible  
-- DeviceID на основе MAC-адреса  
-- Личный кабинет (в планах)  
+```bash
+cd frontend
+npm install
+npm run build
+```
 
----
+Firmware:
 
-## 🛠️ Аппаратно-программный комплекс MVP Grovika
+```bash
+cd firmware
+pio test
+pio run
+```
 
-**В комплект входят:**
-- устройство  
-- насос  
-- реле  
-- датчик влажности почвы  
-- кабели, блок питания  
-- инструкция и упаковка  
+Ansible:
 
-**Расширения:**
-- управление светом  
-- дополнительные аксессуары  
+```bash
+cd ansible
+make java-backend
+make nginx
+make mosquitto
+```
 
----
+## Архитектура
 
-## 💻 Программная часть
-
-- **Контроллер:** ESP32 (PlatformIO)  
-- **Сервер:** FastAPI + PostgreSQL  
-- **Веб:** интерфейс мониторинга  
-- **CI/CD:** GitHub Actions  
-
----
-
-## 🏗️ Архитектура
-
-### ESP32
-- DeviceID по MAC  
-- Пины: 34 почва, 4 насос, 5 свет, 15 DHT22  
-- RTC, OTA, EEPROM  
-
----
-
-## ⚙️ Серверная архитектура (Proxmox VE, PostgreSQL, pgAdmin)
-
-Проект развернут на Proxmox VE. Роли постепенно разносятся по отдельным виртуальным машинам.
-
-### Виртуальные машины
-
-| ВМ | IP | Группы | Назначение |
-|----|----|--------|------------|
-| growerhub | 192.168.0.11 | app | FastAPI backend |
-| ansible-host | 192.168.0.80 | ansible_host | Контроллер Ansible |
-| gh-db | 192.168.0.81 | gh_db | PostgreSQL |
-| gh-app | 192.168.0.82 | gh_app | Будущий app-сервер |
-| gh-nginx | 192.168.0.83 | gh_nginx | Nginx / reverse proxy |
-| gh-mqtt | 192.168.0.84 | gh_mqtt | MQTT брокер |
-| gh-tools | 192.168.0.85 | gh_tools | pgAdmin и инструменты |
-
----
-
-### PostgreSQL (gh-db)
-
-- Хост: `192.168.0.81`  
-- Порт: `5432`  
-- База: `gh_db`  
-- Пользователь: `db-admin`  
-- Trusted clients: 192.168.0.11, 192.168.0.85  
-- Плейбук: `playbooks/gh_db_install.yml`  
-
-#### Данные для подключения
-
-Name: gh-db
-Host: 192.168.0.81
-Port: 5432
-Maintenance DB: gh_db
-Username: db-admin
-Password: gh_db_admin_dev_1234
-
----
-
-### pgAdmin (gh-tools)
-
-- URL: **http://192.168.0.85:5050**  
-- Email: `admin@growerhub.dev`  
-- Плейбук: `playbooks/gh_tools_pgadmin.yml`  
-
----
-
-## 📁 Структура проекта
-
-growerhub/<br>
-├── firmware/<br>
-├── server/<br>
-├── ansible/<br>
-├── web/<br>
-├── docs/<br>
-├── scripts/<br>
-├── deploy.sh<br>
-└── deploy_agent.py
-
----
-
-## Команды
-
-🔧 Мониторинг<br>
-sudo -n /usr/bin/docker logs -f --tail=200 growerhub-java-backend<br>
-Просмотр очередей MQTT<br>
-mosquitto_sub -h localhost -p 1883 -u mosquitto-admin -P qazwsxedc -t 'gh/#' -v
-
-⚙️ Запуск плейбуков Ansible<br>
-ansible-playbook -i inventory/hosts.ini playbooks/gh_tools_pgadmin.yml<br>
-ansible-playbook -i inventory/hosts.ini playbooks/fastapi.yml -K --ask-vault-pass
-
-
-
-🔒 Переменные окружения<br>
-sudo systemctl edit watering-deploy-agent.service
-
-[Service]
-Environment=GITHUB_TOKEN="secret token"
-
-📝 Последние изменения<br>
-- Перенесена инфраструктура на Proxmox VE, развернуты все ВМ, настроены Ansible, БД и tools<br>
-- Добавлен надежный источник текущего времени в Grovika<br>
-- Настроен сервер LLM для работы агента GrowerHub<br>
-- Отлажено OTA<br>
-- Проработка взаимодействия с устройствами Tuya
-
-
-🎯 Планы развития<br>
-- Отладка взаимодействия с Tuya<br>
-- Настройка миграции БД при внесенинии изменений (Alembic)
-- Фича: Журнал действий по уходу за растением<br>
-- Фича: Графики на дашборде сайте<br>
-- Фича: Личный кабинет<br>
-- Фича: Группировка растений и устройств<br>
-
-📞 Контакты<br>
-email: wizi1@yandex.ru, aspinoza.xxx@gmail.com<br>
-Веб: https://growerhub.ru<br>
-Репозиторий: https://github.com/aspinozaxxx-lab/growerhub
+Главный архитектурный документ: `docs/architecture/architecture.md`.

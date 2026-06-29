@@ -53,7 +53,7 @@ security:
 
 firmware:
   # Katalog binarnikov firmware.
-  binariesDir: "server/firmware_binaries"
+  binariesDir: "firmware_binaries"
 
 server:
   # Public base URL.

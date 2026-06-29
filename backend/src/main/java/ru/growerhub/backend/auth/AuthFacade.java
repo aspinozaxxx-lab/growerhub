@@ -66,7 +66,7 @@ public class AuthFacade {
         String mode = currentUserId != null ? "link" : "login";
         String resolvedRedirectPath = redirectPath;
         if (resolvedRedirectPath == null || resolvedRedirectPath.isEmpty()) {
-            resolvedRedirectPath = "link".equals(mode) ? "/static/profile.html" : "/app";
+            resolvedRedirectPath = "link".equals(mode) ? "/app/profile" : "/app";
         }
         String redirectUri = ssoService.buildCallbackUri(provider);
         String state;
@@ -145,7 +145,7 @@ public class AuthFacade {
 
         String redirectTarget = stateData.redirectPath();
         if (redirectTarget == null || redirectTarget.isEmpty()) {
-            redirectTarget = "/static/profile.html";
+            redirectTarget = "/app/profile";
         }
 
         UserAuthIdentityEntity identitySameSubject = ssoService.findIdentityBySubject(provider, subject);

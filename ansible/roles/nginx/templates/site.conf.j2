@@ -1,26 +1,19 @@
 upstream api_java_backend {
-    server 127.0.0.1:18080;
-}
-
-# Fallback upstream dlya bystrogo otkata na FastAPI
-upstream api_fastapi_backend {
-    server 127.0.0.1:8000;
+    server {{ nginx_backend_api | regex_replace('^https?://', '') }};
 }
 
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name growerhub.ru www.growerhub.ru;
+    server_name {{ nginx_domain }}{% for domain in nginx_alt_domains %} {{ domain }}{% endfor %};
 
-    ssl_certificate     /etc/letsencrypt/live/growerhub.ru/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/growerhub.ru/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/{{ nginx_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ nginx_domain }}/privkey.pem;
 
-    # Безопасные заголовки
     add_header X-Content-Type-Options nosniff;
     add_header X-Frame-Options SAMEORIGIN;
     add_header Referrer-Policy strict-origin-when-cross-origin;
 
-    # ACME для продления
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/letsencrypt;
         default_type "text/plain";
@@ -29,9 +22,8 @@ server {
         log_not_found off;
     }
 
-    # ===== OTA бинарники через FastAPI (ВЫШЕ SPA-фоллбека) =====
-    location ^~ /firmware/ {
-        proxy_pass http://127.0.0.1:8000/firmware/;  # важно: со слэшем в конце
+    location ^~ /api/ {
+        proxy_pass http://api_java_backend;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -40,63 +32,23 @@ server {
         proxy_set_header Connection "";
         proxy_read_timeout 300;
         client_max_body_size 20m;
-        # чтобы список/версии всегда были свежими
+    }
+
+    location ^~ /firmware/ {
+        proxy_pass http://api_java_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_read_timeout 300;
+        client_max_body_size 20m;
         add_header Cache-Control "no-store";
     }
 
-    # API → FastAPI
-    location ^~ /api/ {
-        proxy_pass http://api_java_backend;
-        # fallback: proxy_pass http://api_fastapi_backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
-        proxy_read_timeout 300;
-        client_max_body_size 20m;
-    }
-
-    # Swagger/Docs
-    location = /docs {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
-        proxy_read_timeout 300;
-    }
-
-    # ReDoc
-    location = /redoc {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
-        proxy_read_timeout 300;
-    }
-
-    # OpenAPI JSON
-    location = /openapi.json {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
-        proxy_read_timeout 300;
-    }
-
-    # Health -> Java backend (Spring Boot)
     location = /health {
-        proxy_pass http://127.0.0.1:18080/health;
+        proxy_pass http://api_java_backend/health;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -106,23 +58,11 @@ server {
         proxy_read_timeout 300;
     }
 
-    ########################################
-    # СТАТИКА
-    ########################################
-
-    # 1) /static/... как файлы, без SPA-фоллбека
-    location ^~ /static/ {
-        alias /home/watering-admin/growerhub/static/;
-        try_files $uri =404;
-        access_log off;
-    }
-
-    # 2) SPA landing (novyj React front iz frontend/dist, fallback na index.html)
-    root /home/watering-admin/growerhub/frontend/dist;
-    index index.html;
+    root {{ nginx_static_root }};
+    index {{ nginx_index }};
 
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri/ /{{ nginx_index }};
     }
 
     access_log /var/log/nginx/growerhub.ru_ssl_access.log timed;
@@ -132,7 +72,7 @@ server {
 server {
     listen 80;
     listen [::]:80;
-    server_name growerhub.ru www.growerhub.ru;
+    server_name {{ nginx_domain }}{% for domain in nginx_alt_domains %} {{ domain }}{% endfor %};
 
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/letsencrypt;
@@ -143,7 +83,7 @@ server {
     }
 
     location = /health {
-        proxy_pass http://127.0.0.1:18080/health;
+        proxy_pass http://api_java_backend/health;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

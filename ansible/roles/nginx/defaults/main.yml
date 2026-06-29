@@ -1,9 +1,8 @@
 nginx_enable_https: false
 nginx_domain: ""
-nginx_alt_domains: []             # например: ["www.growerhub.ru"]
-nginx_backend_api: "http://127.0.0.1:8000"   # FastAPI/uvicorn
-nginx_static_root: "/var/www/html"           # корень статики сайта
-nginx_index: "index.html"                    # главная страница
+nginx_alt_domains: []             # primer: ["www.growerhub.ru"]
+nginx_backend_api: "http://127.0.0.1:18080"  # Java backend
+nginx_static_root: "/home/watering-admin/growerhub/frontend/dist"  # React dist
+nginx_index: "index.html"                    # glavnyj fajl SPA
 nginx_letsencrypt_email: ""
 nginx_letsencrypt_staging: false
-

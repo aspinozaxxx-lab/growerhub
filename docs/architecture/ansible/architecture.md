@@ -16,10 +16,9 @@ Ansible описывает серверную инфраструктуру Growe
 
 - `java_backend` - backend-сервис.
 - `mosquitto` - MQTT broker.
-- `nginx` - reverse proxy и static.
+- `nginx` - reverse proxy и раздача frontend dist.
 - `gh_db_postgresql` - PostgreSQL.
 - `pgadmin` - администрирование БД.
-- `fastapi_app`, `growerhub_deploy_agent` - legacy или вспомогательные роли.
 
 ## Правила
 

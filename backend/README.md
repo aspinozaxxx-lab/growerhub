@@ -105,5 +105,5 @@ Expected response:
 
 ## Device telemetry
 
-Device telemetry endpoint is unauthenticated (like FastAPI):
+Device telemetry endpoint is unauthenticated:
 `POST /api/device/{device_id}/status`
