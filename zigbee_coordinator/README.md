@@ -51,6 +51,8 @@ start-coordinator.bat
 
 При первом запуске bat сам установит зависимости Zigbee2MQTT через Corepack/pnpm.
 
+После запуска `start-coordinator.bat` можно закрыть консольное окно: Zigbee2MQTT продолжит работать отдельным процессом.
+
 Остановить coordinator:
 
 ```bat

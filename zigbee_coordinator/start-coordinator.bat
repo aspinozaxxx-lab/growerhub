@@ -64,14 +64,19 @@ if errorlevel 1 (
 )
 
 echo Starting Zigbee2MQTT coordinator...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$ErrorActionPreference = 'Stop';" ^
+  "$env:ZIGBEE2MQTT_DATA = '%Z2M_DATA%';" ^
+  "$env:PATH = '%ROOT%bin;' + $env:PATH;" ^
+  "$process = Start-Process -FilePath 'node.exe' -ArgumentList @('%Z2M_DIR%\index.js') -WorkingDirectory '%Z2M_DIR%' -WindowStyle Hidden -PassThru;" ^
+  "Write-Host ('Started Zigbee2MQTT process PID ' + $process.Id);"
+if errorlevel 1 (
+    echo Failed to start Zigbee2MQTT coordinator.
+    pause
+    exit /b 1
+)
+
 echo Web UI: http://127.0.0.1:8080
+echo Run status-coordinator.bat to check status.
 echo Run stop-coordinator.bat to stop.
-
-pushd "%Z2M_DIR%"
-node "%Z2M_DIR%\index.js"
-set "EXITCODE=%ERRORLEVEL%"
-popd
-
-echo Zigbee2MQTT stopped with exit code %EXITCODE%.
-pause
-exit /b %EXITCODE%
+exit /b 0

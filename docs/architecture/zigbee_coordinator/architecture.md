@@ -40,7 +40,7 @@ zigbee_coordinator/data/secret.example.yaml
 
 ## Запуск
 
-- `start-coordinator.bat` проверяет Node/Corepack, устанавливает pnpm-зависимости при отсутствии `node_modules`, вызывает `stop-coordinator.bat --no-pause` и запускает новый экземпляр.
+- `start-coordinator.bat` проверяет Node/Corepack, устанавливает pnpm-зависимости при отсутствии `node_modules`, вызывает `stop-coordinator.bat --no-pause` и запускает новый экземпляр отдельным процессом, не привязанным к консольному окну.
 - `status-coordinator.bat` проверяет процесс Zigbee2MQTT и frontend port `8080`, выводит `running` или `stopped`.
 - `stop-coordinator.bat` останавливает процесс Zigbee2MQTT по frontend port `8080` и по команде `zigbee2mqtt/index.js`.
 
