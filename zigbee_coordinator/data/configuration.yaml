@@ -30,3 +30,5 @@ availability:
 devices:
   '0xa4c13895af2c1df3':
     friendly_name: smartplug1
+  '0xa4c138ccd6b42d0c':
+    friendly_name: soil_sensor1
