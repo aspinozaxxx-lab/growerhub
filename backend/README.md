@@ -46,7 +46,7 @@ Jar will be created in `backend/build/libs/`.
 
 ```bash
 cd backend
-java -jar build/libs/growerhub-backend-0.0.1-SNAPSHOT.jar
+java -jar build/libs/app.jar
 ```
 
 Or run in dev mode:
@@ -54,20 +54,6 @@ Or run in dev mode:
 ```bash
 cd backend
 gradle bootRun
-```
-
-## Docker
-
-Build image (from repo root):
-
-```bash
-docker build -t growerhub-backend:local backend
-```
-
-Run container:
-
-```bash
-docker run --rm -p 8080:8080 growerhub-backend:local
 ```
 
 ## Environment
@@ -90,6 +76,8 @@ Optional env:
 On production server the env file is stored at:
 
 `/opt/growerhub/env/growerhub-java-backend.env`
+
+Production runs as systemd service `growerhub-java-backend.service` from `/opt/growerhub/java-backend/app.jar`.
 
 ## Health check
 

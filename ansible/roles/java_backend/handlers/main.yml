@@ -1,0 +1,11 @@
+---
+- name: reload systemd
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: restart java backend
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ java_backend_service_name }}"
+    state: restarted

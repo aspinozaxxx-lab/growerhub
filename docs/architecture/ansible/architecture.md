@@ -14,7 +14,7 @@ Ansible описывает серверную инфраструктуру Growe
 
 ## Роли
 
-- `java_backend` - backend-сервис.
+- `java_backend` - backend-сервис systemd из собранного jar.
 - `mosquitto` - MQTT broker.
 - `nginx` - reverse proxy и раздача frontend dist.
 - `gh_db_postgresql` - PostgreSQL.

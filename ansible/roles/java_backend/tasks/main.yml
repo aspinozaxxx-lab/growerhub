@@ -1,45 +1,10 @@
 ---
-- name: Check docker CLI is available
+- name: Install Java runtime
   become: true
-  ansible.builtin.command: docker --version
-  register: java_backend_docker_cli
-  changed_when: false
-  failed_when: false
-
-- name: Fail if docker CLI is unavailable
-  ansible.builtin.fail:
-    msg: >-
-      Docker is required on the target host for the java_backend role.
-      Install Docker Engine and ensure the `docker` command is available in PATH.
-  when: java_backend_docker_cli.rc != 0
-
-- name: Check docker daemon is available
-  become: true
-  ansible.builtin.command: docker info
-  register: java_backend_docker_info
-  changed_when: false
-  failed_when: false
-
-- name: Fail if docker daemon is unavailable
-  ansible.builtin.fail:
-    msg: >-
-      Docker daemon is not available (docker info failed).
-      Ensure Docker Engine is running (e.g. `systemctl status docker`) and the current user can access the Docker socket.
-  when: java_backend_docker_info.rc != 0
-
-- name: Check python docker SDK is available (python3-docker)
-  become: true
-  ansible.builtin.command: python3 -c "import docker; print(docker.__version__)"
-  register: java_backend_python_docker
-  changed_when: false
-  failed_when: false
-
-- name: Fail if python docker SDK is missing
-  ansible.builtin.fail:
-    msg: >-
-      Python Docker SDK is required for community.docker modules used by this role.
-      Install `python3-docker` on the target host.
-  when: java_backend_python_docker.rc != 0
+  ansible.builtin.apt:
+    name: openjdk-21-jre-headless
+    update_cache: true
+    state: present
 
 - name: Install sudoers rule for java backend deploy
   become: true
@@ -49,7 +14,7 @@
     group: root
     mode: "0440"
     content: |-
-      {{ java_backend_sudo_user }} ALL=(root) NOPASSWD: /usr/bin/docker, /usr/bin/test, /usr/bin/grep, /usr/bin/curl, /usr/bin/cat, /bin/sed
+      {{ java_backend_sudo_user }} ALL=(root) NOPASSWD: /usr/bin/test, /usr/bin/grep, /usr/bin/curl, /usr/bin/cat, /bin/sed, /usr/bin/systemctl, /bin/systemctl, /usr/bin/journalctl
     validate: "/usr/sbin/visudo -cf %s"
 
 - name: Ensure deployment directory exists
@@ -57,9 +22,41 @@
   ansible.builtin.file:
     path: "{{ java_backend_deploy_dir }}"
     state: directory
-    owner: "{{ ansible_user | default(ansible_ssh_user) | default(ansible_facts.user_id) | default('root') }}"
-    group: "{{ ansible_user | default(ansible_ssh_user) | default(ansible_facts.user_id) | default('root') }}"
+    owner: "{{ java_backend_user }}"
+    group: "{{ java_backend_group }}"
     mode: "0755"
+
+- name: Ensure firmware binaries directory exists
+  become: true
+  ansible.builtin.file:
+    path: "{{ java_backend_deploy_dir }}/firmware_binaries"
+    state: directory
+    owner: "{{ java_backend_user }}"
+    group: "{{ java_backend_group }}"
+    mode: "0755"
+
+- name: Check local backend jar exists
+  delegate_to: localhost
+  become: false
+  ansible.builtin.stat:
+    path: "{{ java_backend_jar_src }}"
+  register: java_backend_jar_stat
+
+- name: Fail if local backend jar is missing
+  ansible.builtin.fail:
+    msg: "Backend jar not found: {{ java_backend_jar_src }}. Run backend build before java_backend role."
+  when: not java_backend_jar_stat.stat.exists
+
+- name: Deploy backend jar
+  become: true
+  ansible.builtin.copy:
+    src: "{{ java_backend_jar_src }}"
+    dest: "{{ java_backend_deploy_dir }}/app.jar"
+    owner: "{{ java_backend_user }}"
+    group: "{{ java_backend_group }}"
+    mode: "0644"
+  notify:
+    - restart java backend
 
 - name: Assert required env values are set
   ansible.builtin.assert:
@@ -107,68 +104,51 @@
       {{ item.key }}={{ item.value }}
       {% endfor %}
 
-- name: Check env file exists
-  ansible.builtin.stat:
-    path: "{{ java_backend_env_file_path }}"
-  register: java_backend_env_file_stat
-
-- name: Fail if env file is missing
-  ansible.builtin.fail:
-    msg: "Env file not found: {{ java_backend_env_file_path }}"
-  when: not java_backend_env_file_stat.stat.exists
-
-- name: Sync backend sources to target (rsync)
-  become: false
-  ansible.posix.synchronize:
-    mode: push
-    src: "{{ java_backend_local_src_dir }}/"
-    dest: "{{ java_backend_deploy_dir }}/"
-    delete: true
-    rsync_opts: "{{ java_backend_rsync_opts }}"
-  register: java_backend_sync
-
-- name: Build docker image on target (when sources changed)
+- name: Install systemd unit for java backend
   become: true
-  ansible.builtin.command: "docker build -t {{ java_backend_image }} ."
-  args:
-    chdir: "{{ java_backend_deploy_dir }}"
-  register: java_backend_build
-  changed_when: true
-  when: java_backend_force_build or java_backend_sync.changed
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ java_backend_service_name }}"
+    owner: root
+    group: root
+    mode: "0644"
+    content: |-
+      [Unit]
+      Description=GrowerHub Java Backend
+      After=network-online.target mosquitto.service
+      Wants=network-online.target
 
-- name: Ensure java backend container is running
+      [Service]
+      Type=simple
+      User={{ java_backend_user }}
+      WorkingDirectory={{ java_backend_deploy_dir }}
+      EnvironmentFile={{ java_backend_env_file_path }}
+      Environment=SERVER_PORT={{ java_backend_host_port }}
+      ExecStart={{ java_backend_java_bin }} -jar {{ java_backend_deploy_dir }}/app.jar
+      Restart=always
+      RestartSec=5
+      SuccessExitStatus=143
+
+      [Install]
+      WantedBy=multi-user.target
+  notify:
+    - reload systemd
+    - restart java backend
+
+- name: Remove legacy docker container if present
   become: true
-  community.docker.docker_container:
-    name: "{{ java_backend_container_name }}"
-    image: "{{ java_backend_image }}"
-    restart_policy: always
-    env_file: "{{ java_backend_env_file_path }}"
-    published_ports:
-      - "{{ java_backend_bind_ip }}:{{ java_backend_host_port }}:{{ java_backend_container_port }}"
-    state: started
-    recreate: "{{ java_backend_build.changed | default(false) }}"
+  ansible.builtin.command: docker rm -f growerhub-java-backend
+  register: java_backend_legacy_container
+  changed_when: java_backend_legacy_container.rc == 0
+  failed_when: false
 
-- name: Check java backend container status
+- name: Flush handlers before validation
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable java backend service
   become: true
-  community.docker.docker_container_info:
-    name: "{{ java_backend_container_name }}"
-  register: java_backend_container_info
-
-- name: Assert env is present in container
-  become: true
-  ansible.builtin.shell: |
-    set -euo pipefail
-    docker inspect {{ java_backend_container_name }} \
-      --format '{% raw %}{{range .Config.Env}}{{println .}}{{end}}{% endraw %}' \
-      | grep -q '^SECRET_KEY='
-  args:
-    executable: /bin/bash
-  when: java_backend_container_info.exists and (java_backend_container_info.container.State.Running | default(false))
-
-- name: Fail if java backend container is not running
-  ansible.builtin.fail:
-    msg: "Container {{ java_backend_container_name }} is not running. Check `docker logs {{ java_backend_container_name }}`."
-  when: not (java_backend_container_info.exists and java_backend_container_info.container.State.Running | default(false))
+  ansible.builtin.systemd:
+    name: "{{ java_backend_service_name }}"
+    enabled: true
 
 - name: Wait for java backend health endpoint
   become: true
@@ -189,25 +169,36 @@
     fi
   args:
     executable: /bin/bash
-  when: java_backend_container_info.exists and (java_backend_container_info.container.State.Running | default(false))
 
-- name: Fail if MQTT failed to start (java backend)
+- name: Fail if MQTT failed to start
   become: true
   ansible.builtin.shell: |
     set -euo pipefail
-    if docker logs --since 10m {{ java_backend_container_name }} 2>&1 | grep -Eq "MQTT (publisher|subscriber) failed to start"; then
+    logs_file="$(mktemp)"
+    journalctl -u {{ java_backend_service_name }} --since "10 minutes ago" --no-pager > "$logs_file"
+    if grep -Eq "MQTT (publisher|subscriber) failed to start" "$logs_file"; then
+      rm -f "$logs_file"
       exit 1
     fi
+    rm -f "$logs_file"
   args:
     executable: /bin/bash
-  when: java_backend_container_info.exists and (java_backend_container_info.container.State.Running | default(false))
 
-- name: Assert MQTT publisher/subscriber connected (java backend)
+- name: Assert MQTT publisher and subscriber connected
   become: true
   ansible.builtin.shell: |
     set -euo pipefail
-    docker logs --since 10m {{ java_backend_container_name }} 2>&1 | grep -q "MQTT publisher connected"
-    docker logs --since 10m {{ java_backend_container_name }} 2>&1 | grep -q "MQTT subscriber connected"
+    logs_file="$(mktemp)"
+    journalctl -u {{ java_backend_service_name }} --since "10 minutes ago" --no-pager > "$logs_file"
+    grep -q "MQTT publisher connected" "$logs_file"
+    grep -q "MQTT subscriber connected" "$logs_file"
+    rm -f "$logs_file"
   args:
     executable: /bin/bash
-  when: java_backend_container_info.exists and (java_backend_container_info.container.State.Running | default(false))
+
+- name: Remove legacy docker image if present
+  become: true
+  ansible.builtin.command: docker image rm growerhub-backend:local
+  register: java_backend_legacy_image
+  changed_when: java_backend_legacy_image.rc == 0
+  failed_when: false

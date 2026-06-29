@@ -1,32 +1,20 @@
 ---
-# Default deployment settings for GrowerHub Java backend (Docker).
+# Default deployment settings for GrowerHub Java backend.
 
-# Local path (on Ansible controller) to the repo `backend/` directory.
-java_backend_local_src_dir: "{{ playbook_dir }}/../../backend"
-
-# Target host directory where sources are synced for remote docker build.
 java_backend_deploy_dir: "/opt/growerhub/java-backend"
-java_backend_deploy_owner: "{{ ansible_user | default('root') }}"
-java_backend_deploy_group: "{{ ansible_user | default('root') }}"
-java_backend_deploy_mode: "0755"
+java_backend_jar_src: "{{ playbook_dir }}/../../backend/build/libs/app.jar"
+java_backend_user: "{{ ansible_user | default('watering-admin') }}"
+java_backend_group: "{{ ansible_user | default('watering-admin') }}"
 
-# Docker image/tag to build on the target host.
-java_backend_image_name: "growerhub-backend"
-java_backend_image_tag: "local"
-java_backend_image: "{{ java_backend_image_name }}:{{ java_backend_image_tag }}"
-
-# Container settings.
-java_backend_container_name: "growerhub-java-backend"
+java_backend_service_name: "growerhub-java-backend.service"
+java_backend_java_bin: "/usr/bin/java"
 java_backend_bind_ip: "127.0.0.1"
 java_backend_host_port: 18080
-java_backend_container_port: 8080
 
-# Env file path (sozdaetsya ansible rolyu)
 java_backend_env_dir: "/opt/growerhub/env"
 java_backend_env_file_path: "/opt/growerhub/env/growerhub-java-backend.env"
 java_backend_env_file: "{{ java_backend_env_file_path }}"
 
-# Deploy sudoers
 java_backend_sudo_user: "watering-admin"
 java_backend_sudoers_file: "/etc/sudoers.d/growerhub-java-deploy"
 
@@ -36,9 +24,8 @@ java_backend_db_url: ""
 java_backend_db_username: ""
 java_backend_db_password: ""
 
-# MQTT defaults (docker0 IP for container -> host access).
-# Override in vault/vars if needed (e.g. LAN IP 192.168.0.11).
-java_backend_mqtt_host: "172.17.0.1"
+# MQTT defaults dlya backend na hoste.
+java_backend_mqtt_host: "127.0.0.1"
 java_backend_mqtt_port: 1883
 
 java_backend_env_required:
@@ -60,13 +47,3 @@ java_backend_env_optional:
   AUTH_YANDEX_CLIENT_SECRET: "{{ yandex_client_secret | default('') }}"
 
 java_backend_env: "{{ java_backend_env_required | combine(java_backend_env_optional) }}"
-
-# Force docker build every run (otherwise builds only when sources changed).
-java_backend_force_build: false
-
-# rsync exclusions for synchronize.
-java_backend_rsync_opts:
-  - "--exclude=.gradle/"
-  - "--exclude=build/"
-  - "--exclude=.idea/"
-  - "--exclude=out/"
