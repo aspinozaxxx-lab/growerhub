@@ -8,6 +8,7 @@
 - `data/` - рабочие данные Zigbee2MQTT: `configuration.yaml`, локальный `secret.yaml`, база Zigbee-сети, backup coordinator, state, логи.
 - `zigbee2mqtt/` - само приложение Zigbee2MQTT `2.12.0` из `https://github.com/Koenkk/zigbee2mqtt`.
 - `start-coordinator.bat` - запуск Zigbee2MQTT coordinator.
+- `status-coordinator.bat` - проверка состояния Zigbee2MQTT coordinator.
 - `stop-coordinator.bat` - остановка Zigbee2MQTT coordinator.
 
 ## Как работает
@@ -54,6 +55,12 @@ start-coordinator.bat
 
 ```bat
 stop-coordinator.bat
+```
+
+Проверить статус coordinator:
+
+```bat
+status-coordinator.bat
 ```
 
 Повторный запуск `start-coordinator.bat` сначала остановит уже работающий Zigbee2MQTT, затем поднимет новый экземпляр.
