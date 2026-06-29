@@ -66,6 +66,23 @@ Thumbs.db
 **/*.log
 **/hs_err_pid*.log
 
+# Node
+**/node_modules/
+
+# Zigbee coordinator local runtime
+zigbee_coordinator/data/log/
+zigbee_coordinator/data/*.db
+zigbee_coordinator/data/*.db.backup
+zigbee_coordinator/data/state.json
+zigbee_coordinator/data/coordinator_backup.json
+zigbee_coordinator/data/secrets.yaml
+zigbee_coordinator/data/secrets.yml
+zigbee_coordinator/mosquitto/data/
+zigbee_coordinator/mosquitto/log/
+zigbee_coordinator/zigbee2mqtt/.git/
+zigbee_coordinator/zigbee2mqtt/dist/
+zigbee_coordinator/zigbee2mqtt/tsconfig.tsbuildinfo
+
 # Keep Gradle wrapper and build scripts
 !gradle/wrapper/gradle-wrapper.jar
 !gradlew

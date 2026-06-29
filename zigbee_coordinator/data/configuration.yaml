@@ -1,0 +1,24 @@
+version: 5
+homeassistant:
+  enabled: false
+frontend:
+  enabled: true
+  host: 127.0.0.1
+  port: 8080
+mqtt:
+  base_topic: zigbee2growerhub
+  server: mqtt://growerhub.ru:1883
+  user: '!secret mqtt_user'
+  password: '!secret mqtt_password'
+serial:
+  port: COM7
+  adapter: zstack
+advanced:
+  network_key: '!secret network_key'
+  pan_id: '!secret pan_id'
+  ext_pan_id: '!secret ext_pan_id'
+availability:
+  enabled: true
+devices:
+  '0xa4c13895af2c1df3':
+    friendly_name: smartplug1
