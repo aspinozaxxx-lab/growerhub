@@ -28,6 +28,7 @@ class ArchitectureRulesTest {
     private static final String[] DOMAINS = {
             "advisor",
             "auth",
+            "automation",
             "device",
             "firmware",
             "journal",

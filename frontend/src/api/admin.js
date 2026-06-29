@@ -224,3 +224,107 @@ export async function adminZigbeeRenameDevice(ieeeAddress, friendlyName, token) 
   }
   return response.json();
 }
+
+async function adminAutomationJson(path, method, payload, token, fallback) {
+  const response = await apiFetch(path, {
+    method,
+    headers: {
+      ...(payload !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...(payload !== undefined ? { body: JSON.stringify(payload) } : {}),
+  });
+  if (!response.ok) {
+    const message = await readErrorDetail(response, fallback);
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  if (response.status === 204) {
+    return null;
+  }
+  return response.json();
+}
+
+export async function fetchAdminAutomationOverview(token) {
+  const response = await apiFetch('/api/admin/automation', token ? {
+    headers: { Authorization: `Bearer ${token}` },
+  } : undefined);
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось загрузить автоматизацию');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
+}
+
+export function createAdminAutomationRoom(payload, token) {
+  return adminAutomationJson('/api/admin/automation/rooms', 'POST', payload, token, 'Не удалось создать помещение');
+}
+
+export function updateAdminAutomationRoom(roomId, payload, token) {
+  return adminAutomationJson(`/api/admin/automation/rooms/${roomId}`, 'PUT', payload, token, 'Не удалось сохранить помещение');
+}
+
+export function deleteAdminAutomationRoom(roomId, token) {
+  return adminAutomationJson(`/api/admin/automation/rooms/${roomId}`, 'DELETE', undefined, token, 'Не удалось удалить помещение');
+}
+
+export function createAdminAutomationBox(roomId, payload, token) {
+  return adminAutomationJson(`/api/admin/automation/rooms/${roomId}/boxes`, 'POST', payload, token, 'Не удалось создать бокс');
+}
+
+export function updateAdminAutomationBox(boxId, payload, token) {
+  return adminAutomationJson(`/api/admin/automation/boxes/${boxId}`, 'PUT', payload, token, 'Не удалось сохранить бокс');
+}
+
+export function deleteAdminAutomationBox(boxId, token) {
+  return adminAutomationJson(`/api/admin/automation/boxes/${boxId}`, 'DELETE', undefined, token, 'Не удалось удалить бокс');
+}
+
+export function saveAdminAutomationBoxPlants(boxId, plantIds, token) {
+  return adminAutomationJson(
+    `/api/admin/automation/boxes/${boxId}/plants`,
+    'PUT',
+    { plant_ids: plantIds },
+    token,
+    'Не удалось сохранить растения бокса',
+  );
+}
+
+export function saveAdminAutomationRoomResources(roomId, resources, token) {
+  return adminAutomationJson(
+    `/api/admin/automation/rooms/${roomId}/resources`,
+    'PUT',
+    { resources },
+    token,
+    'Не удалось сохранить ресурсы помещения',
+  );
+}
+
+export function saveAdminAutomationBoxResources(boxId, resources, token) {
+  return adminAutomationJson(
+    `/api/admin/automation/boxes/${boxId}/resources`,
+    'PUT',
+    { resources },
+    token,
+    'Не удалось сохранить ресурсы бокса',
+  );
+}
+
+export function saveAdminAutomationRoomScenarios(roomId, scenarios, token) {
+  return adminAutomationJson(
+    `/api/admin/automation/rooms/${roomId}/scenarios`,
+    'PUT',
+    { scenarios },
+    token,
+    'Не удалось сохранить сценарии помещения',
+  );
+}
+
+export function saveAdminAutomationBoxScenarios(boxId, scenarios, token) {
+  return adminAutomationJson(
+    `/api/admin/automation/boxes/${boxId}/scenarios`,
+    'PUT',
+    { scenarios },
+    token,
+    'Не удалось сохранить сценарии бокса',
+  );
+}

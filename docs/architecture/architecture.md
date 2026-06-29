@@ -24,6 +24,7 @@ GrowerHub состоит из backend, frontend, firmware, zigbee_coordinator, a
 - Zigbee coordinator подключает Zigbee-устройства к MQTT через Zigbee2MQTT и не хранит бизнес-истину GrowerHub.
 - Админка Zigbee получает данные только через backend REST; backend читает и отправляет Zigbee2MQTT сообщения через MQTT.
 - Backend строит Zigbee metadata для админки из `bridge/devices[].definition.exposes`: `STATE=1` отображается как метрика, `SET=2` как управляемое свойство, `GET=4` как доступное для запроса значение.
+- Админка автоматизации работает только через backend REST; backend worker управляет Zigbee и native-устройствами только через существующие MQTT gateways доменов.
 
 MQTT-топики:
 
@@ -63,6 +64,7 @@ MQTT-топики:
 - `docs/architecture/backend/domain_rules.md`
 - `docs/architecture/backend/domains/advisor.md`
 - `docs/architecture/backend/domains/auth.md`
+- `docs/architecture/backend/domains/automation.md`
 - `docs/architecture/backend/domains/device.md`
 - `docs/architecture/backend/domains/firmware.md`
 - `docs/architecture/backend/domains/journal.md`

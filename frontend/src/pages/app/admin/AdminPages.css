@@ -266,6 +266,116 @@
   width: 150px;
 }
 
+.admin-automation-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.admin-automation-block {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-2);
+}
+
+.admin-automation-block h4 {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.admin-automation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.admin-automation-field {
+  display: grid;
+  gap: 5px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.admin-automation-field .admin-input,
+.admin-automation-field .admin-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.admin-automation-actions {
+  display: flex;
+  align-items: flex-end;
+}
+
+.admin-automation-toggle {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.admin-automation-toggle input {
+  width: 16px;
+  height: 16px;
+}
+
+.admin-automation-scenarios {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-automation-scenario {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-automation-boxes {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-automation-box {
+  display: grid;
+  gap: 12px;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--border-2);
+}
+
+.admin-automation-box:first-child {
+  border-top: 0;
+}
+
+.admin-automation-badge {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px 8px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.admin-automation-badge.is-ready {
+  border-color: rgba(76, 175, 80, 0.45);
+  color: #a7e7c0;
+}
+
+.admin-automation-badge.is-unready {
+  border-color: rgba(255, 183, 77, 0.45);
+  color: #ffd29b;
+}
+
+.admin-automation-multiselect {
+  min-width: 260px;
+  min-height: 86px;
+}
+
 @media (max-width: 900px) {
   .admin-table--mqtt {
     table-layout: auto;
@@ -277,5 +387,9 @@
 
   .admin-table--zigbee {
     table-layout: auto;
+  }
+
+  .admin-automation-heading {
+    display: grid;
   }
 }

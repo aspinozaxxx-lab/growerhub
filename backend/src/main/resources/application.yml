@@ -133,3 +133,13 @@ app:
 zigbee:
   # Vremja otkrytogo soprjazhenija po umolchaniju (sek).
   permitJoinDefaultSeconds: 254
+
+automation:
+  # Period worker avtomatizacii (ms).
+  workerPeriodMs: 30000
+  # Maksimal'nyj vozrast dannyh sensora dlya scenariev (min).
+  staleSensorMinutes: 15
+  # Pauza posle ruchnogo vmeshatel'stva (min).
+  manualOverrideMinutes: 15
+  # Chasovoj poyas raspisanij.
+  timezone: "Europe/Istanbul"
