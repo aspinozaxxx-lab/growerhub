@@ -1,4 +1,11 @@
-﻿### fix(backend): plants list light i advisor gating
+﻿### feat(front): dobavleny SEO klastery statey i Yandex Metrika
+
+- feat(front): dobavlena klasternaya navigaciya statey, stranicy klasterov i related links.
+- feat(content): dobavleny 50 SEO-statey po produktovym vektoram GrowerHub i lokalnye SVG-shemy.
+- feat(seo): dobavleny robots.txt, sitemap.xml, meta description i JSON-LD dlya statey.
+- feat(front): dobavlen schetchik Yandex Metrika.
+
+### fix(backend): plants list light i advisor gating
 
 - fix(backend): /api/plants vozvrashchaet light kontrakt bez watering_previous/watering_advice i bez bound_plants v sensors/pumps.
 - fix(backend): advisor.enabled=false delaet ranniy vyhod bez journal/history/llm.

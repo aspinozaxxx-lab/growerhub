@@ -2,6 +2,7 @@
 import Layout from './components/layout/Layout';
 import AppLayout from './components/layout/AppLayout';
 import AboutPage from './pages/AboutPage';
+import ArticleClusterPage from './pages/ArticleClusterPage';
 import ArticlePage from './pages/ArticlePage';
 import ArticlesListPage from './pages/ArticlesListPage';
 import HomePage from './pages/HomePage';
@@ -31,6 +32,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/articles" element={<ArticlesListPage />} />
+        <Route path="/articles/clusters/:clusterSlug" element={<ArticleClusterPage />} />
         <Route path="/articles/:slug" element={<ArticlePage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/app/login" element={<LoginPage />} />

@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">Ошибки автополива: перелив, сухой насос и зависшее реле</title>
+  <desc id="desc">карта рисков автополива</desc>
+  <rect width="960" height="540" rx="28" fill="#2e2635"/>
+  <rect x="40" y="40" width="880" height="460" rx="24" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.16)"/>
+  <text x="72" y="94" fill="#fff7ec" font-family="Arial, sans-serif" font-size="28" font-weight="700">Ошибки автополива: перелив, сухой насос и зависшее реле</text>
+  <text x="72" y="130" fill="#fff7ec" opacity="0.74" font-family="Arial, sans-serif" font-size="18">карта рисков автополива</text>
+  <g font-family="Arial, sans-serif" font-size="19" font-weight="700">
+    <rect x="76" y="210" width="170" height="92" rx="16" fill="rgba(255,255,255,0.09)" stroke="#f2b880"/>
+    <text x="161" y="262" fill="#fff7ec" text-anchor="middle">автополив</text>
+    <path d="M252 256h72" stroke="#f2b880" stroke-width="5" stroke-linecap="round"/>
+    <path d="M324 256l-16-10v20z" fill="#f2b880"/>
+    <rect x="340" y="210" width="170" height="92" rx="16" fill="rgba(255,255,255,0.09)" stroke="#f2b880"/>
+    <text x="425" y="250" fill="#fff7ec" text-anchor="middle">ошибки автополива</text>
+    <text x="425" y="276" fill="#fff7ec" opacity="0.82" text-anchor="middle" font-size="15">данные</text>
+    <path d="M516 256h72" stroke="#f2b880" stroke-width="5" stroke-linecap="round"/>
+    <path d="M588 256l-16-10v20z" fill="#f2b880"/>
+    <rect x="604" y="210" width="170" height="92" rx="16" fill="rgba(255,255,255,0.09)" stroke="#f2b880"/>
+    <text x="689" y="250" fill="#fff7ec" text-anchor="middle">карта рисков автополива</text>
+    <text x="689" y="276" fill="#fff7ec" opacity="0.82" text-anchor="middle" font-size="15">правило</text>
+    <path d="M689 308v58" stroke="#f2b880" stroke-width="5" stroke-linecap="round"/>
+    <path d="M689 366l-10-16h20z" fill="#f2b880"/>
+    <rect x="520" y="382" width="338" height="64" rx="16" fill="#f2b880" opacity="0.92"/>
+    <text x="689" y="422" fill="#092016" text-anchor="middle">проверка и действие</text>
+  </g>
+  <text x="72" y="462" fill="#fff7ec" opacity="0.68" font-family="Arial, sans-serif" font-size="16">GrowerHub: наблюдение, ограничения, журнал и аккуратное действие</text>
+</svg>

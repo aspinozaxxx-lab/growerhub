@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
-import { articles } from '../content/articles';
+﻿import { Link } from 'react-router-dom';
+import { articleClusters } from '../content/articleClusters';
+import { articles, getArticleBySlug } from '../content/articles';
 import { homeContent } from '../content/pages';
 
 const fallbackHome = {
@@ -59,6 +60,32 @@ function HomePage() {
               <p>{item.text}</p>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="section" style={{ marginTop: 24 }}>
+        <h2>Практические разделы</h2>
+        <div className="cluster-home-grid">
+          {articleClusters.map((cluster) => {
+            const featuredArticles = cluster.featuredArticles
+              .map((slug) => getArticleBySlug(slug))
+              .filter(Boolean)
+              .slice(0, 5);
+
+            return (
+              <div className="article-card" key={cluster.slug}>
+                <Link to={`/articles/clusters/${cluster.slug}`}>{cluster.title}</Link>
+                <p>{cluster.description}</p>
+                <ul className="compact-link-list">
+                  {featuredArticles.map((article) => (
+                    <li key={article.slug}>
+                      <Link to={`/articles/${article.slug}`}>{article.title}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
       </div>
 
