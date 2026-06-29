@@ -75,6 +75,8 @@ zigbee_coordinator/data/*.db
 zigbee_coordinator/data/*.db.backup
 zigbee_coordinator/data/state.json
 zigbee_coordinator/data/coordinator_backup.json
+zigbee_coordinator/data/secret.yaml
+zigbee_coordinator/data/secret.yml
 zigbee_coordinator/data/secrets.yaml
 zigbee_coordinator/data/secrets.yml
 zigbee_coordinator/mosquitto/data/

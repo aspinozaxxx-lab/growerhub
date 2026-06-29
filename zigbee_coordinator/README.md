@@ -5,7 +5,7 @@
 ## Структура
 
 - `mosquitto/` - конфиг, база и логи локального MQTT broker, если нужен локальный режим.
-- `data/` - рабочие данные Zigbee2MQTT: `configuration.yaml`, локальный `secrets.yaml`, база Zigbee-сети, backup coordinator, state, логи.
+- `data/` - рабочие данные Zigbee2MQTT: `configuration.yaml`, локальный `secret.yaml`, база Zigbee-сети, backup coordinator, state, логи.
 - `zigbee2mqtt/` - само приложение Zigbee2MQTT `2.12.0` из `https://github.com/Koenkk/zigbee2mqtt`.
 - `start-mosquitto.bat` - запуск MQTT broker.
 - `start-coordinator.bat` - запуск Zigbee2MQTT coordinator.
@@ -37,10 +37,10 @@ http://127.0.0.1:8080
 1. Проверить локальные секреты:
 
 ```text
-data\secrets.yaml
+data\secret.yaml
 ```
 
-Если файла нет, скопировать `data\secrets.example.yaml` в `data\secrets.yaml` и заполнить реальные значения.
+Если файла нет, скопировать `data\secret.example.yaml` в `data\secret.yaml` и заполнить реальные значения.
 
 2. Запустить coordinator:
 

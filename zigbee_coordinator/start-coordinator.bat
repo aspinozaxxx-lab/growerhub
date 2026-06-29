@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal EnableExtensions EnableDelayedExpansion
 
 set "ROOT=%~dp0"
 set "Z2M_DIR=%ROOT%zigbee2mqtt"
@@ -33,9 +33,9 @@ if not exist "%Z2M_DATA%\configuration.yaml" (
     exit /b 1
 )
 
-if not exist "%Z2M_DATA%\secrets.yaml" (
-    echo Zigbee2MQTT secrets file is missing: %Z2M_DATA%\secrets.yaml
-    echo Copy data\secrets.example.yaml to data\secrets.yaml and fill local values.
+if not exist "%Z2M_DATA%\secret.yaml" (
+    echo Zigbee2MQTT secret file is missing: %Z2M_DATA%\secret.yaml
+    echo Copy data\secret.example.yaml to data\secret.yaml and fill local values.
     pause
     exit /b 1
 )
@@ -43,13 +43,13 @@ if not exist "%Z2M_DATA%\secrets.yaml" (
 if not exist "%Z2M_DIR%\node_modules\source-map-support" (
     echo Installing Zigbee2MQTT dependencies...
     pushd "%Z2M_DIR%"
-    corepack pnpm install --frozen-lockfile
-    set "INSTALL_EXITCODE=%ERRORLEVEL%"
+    call corepack pnpm install --frozen-lockfile --no-optional
+    set "INSTALL_EXITCODE=!ERRORLEVEL!"
     popd
-    if not "%INSTALL_EXITCODE%"=="0" (
+    if not "!INSTALL_EXITCODE!"=="0" (
         echo Failed to install Zigbee2MQTT dependencies.
         pause
-        exit /b %INSTALL_EXITCODE%
+        exit /b !INSTALL_EXITCODE!
     )
 )
 

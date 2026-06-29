@@ -28,12 +28,12 @@
 
 ## Конфигурация и секреты
 
-В git хранится `configuration.yaml` без секретных значений. MQTT credentials, Zigbee network key, PAN ID и extended PAN ID хранятся локально в ignored файле `zigbee_coordinator/data/secrets.yaml`.
+В git хранится `configuration.yaml` без MQTT credentials и Zigbee network key. MQTT credentials и network key хранятся локально в ignored файле `zigbee_coordinator/data/secret.yaml`. PAN ID и extended PAN ID не являются учетными данными и зафиксированы в `configuration.yaml`, потому что Zigbee2MQTT валидирует эти поля до подстановки `!secret`.
 
 Шаблон для новой машины:
 
 ```text
-zigbee_coordinator/data/secrets.example.yaml
+zigbee_coordinator/data/secret.example.yaml
 ```
 
 Файлы runtime-состояния, логи, база Zigbee-сети, coordinator backup, `node_modules` и локальные данные Mosquitto не коммитятся.
