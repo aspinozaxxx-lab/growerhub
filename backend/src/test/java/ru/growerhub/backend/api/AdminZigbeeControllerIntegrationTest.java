@@ -3,6 +3,7 @@ package ru.growerhub.backend.api;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.hasItems;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -96,7 +97,14 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
                 .body("coordinator.ieee_address", equalTo("0x00124b002c7a2966"))
                 .body("devices", hasSize(2))
                 .body("devices.find { it.friendly_name == 'smartplug1' }.state.state", equalTo("OFF"))
-                .body("devices.find { it.friendly_name == 'smartplug1' }.availability", equalTo("online"));
+                .body("devices.find { it.friendly_name == 'smartplug1' }.availability", equalTo("online"))
+                .body("devices.find { it.friendly_name == 'smartplug1' }.definition.model", equalTo("TS011F_plug_1_1"))
+                .body("devices.find { it.friendly_name == 'smartplug1' }.image_url",
+                        equalTo("https://www.zigbee2mqtt.io/images/devices/TS011F_plug_1_1.png"))
+                .body("devices.find { it.friendly_name == 'smartplug1' }.metrics.property",
+                        hasItems("state", "power", "current", "voltage", "energy", "linkquality"))
+                .body("devices.find { it.friendly_name == 'smartplug1' }.controls.property",
+                        hasItems("state", "countdown", "power_outage_memory", "child_lock", "identify"));
     }
 
     @Test
@@ -127,6 +135,16 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
         given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
+                .body("{\"property\":\"child_lock\",\"value\":true}")
+                .when()
+                .post("/api/admin/zigbee/devices/0xa4c13895af2c1df3/set")
+                .then()
+                .statusCode(200)
+                .body("topic", equalTo("zigbee2growerhub/smartplug1/set"));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
                 .body("{\"friendly_name\":\"plug-main\"}")
                 .when()
                 .post("/api/admin/zigbee/devices/0xa4c13895af2c1df3/rename")
@@ -135,14 +153,42 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
                 .body("topic", equalTo("zigbee2growerhub/bridge/request/device/rename"));
 
         List<PublishedJson> published = testPublisher.getPublished();
-        Assertions.assertEquals(3, published.size());
+        Assertions.assertEquals(4, published.size());
         Assertions.assertEquals("zigbee2growerhub/bridge/request/permit_join", published.get(0).topic());
         Assertions.assertEquals(120, ((Map<?, ?>) published.get(0).payload()).get("time"));
         Assertions.assertEquals("zigbee2growerhub/smartplug1/set", published.get(1).topic());
         Assertions.assertEquals("ON", ((Map<?, ?>) published.get(1).payload()).get("state"));
-        Assertions.assertEquals("zigbee2growerhub/bridge/request/device/rename", published.get(2).topic());
-        Assertions.assertEquals("smartplug1", ((Map<?, ?>) published.get(2).payload()).get("from"));
-        Assertions.assertEquals("plug-main", ((Map<?, ?>) published.get(2).payload()).get("to"));
+        Assertions.assertEquals("zigbee2growerhub/smartplug1/set", published.get(2).topic());
+        Assertions.assertEquals(true, ((Map<?, ?>) published.get(2).payload()).get("child_lock"));
+        Assertions.assertEquals("zigbee2growerhub/bridge/request/device/rename", published.get(3).topic());
+        Assertions.assertEquals("smartplug1", ((Map<?, ?>) published.get(3).payload()).get("from"));
+        Assertions.assertEquals("plug-main", ((Map<?, ?>) published.get(3).payload()).get("to"));
+    }
+
+    @Test
+    void genericSetRejectsUnknownAndReadOnlyProperties() {
+        UserEntity admin = createUser("zigbee-admin-reject@example.com", "admin");
+        String token = buildToken(admin.getId());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("{\"property\":\"power\",\"value\":10}")
+                .when()
+                .post("/api/admin/zigbee/devices/0xa4c13895af2c1df3/set")
+                .then()
+                .statusCode(400)
+                .body("detail", equalTo("Zigbee property nedostupen dlya zapisi"));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("{\"property\":\"unknown\",\"value\":\"ON\"}")
+                .when()
+                .post("/api/admin/zigbee/devices/0xa4c13895af2c1df3/set")
+                .then()
+                .statusCode(400)
+                .body("detail", equalTo("Zigbee property nedostupen dlya zapisi"));
     }
 
     private void seedZigbee() {
@@ -164,7 +210,7 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
                 "[]",
                 List.of(
                         Map.of("friendly_name", "Coordinator", "ieee_address", "0x00124b002c7a2966", "type", "Coordinator", "supported", true),
-                        Map.of("friendly_name", "smartplug1", "ieee_address", "0xa4c13895af2c1df3", "type", "Router", "supported", true)
+                        smartPlugBridgeDevice()
                 ),
                 now
         ));
@@ -186,6 +232,120 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
                 Map.of("state", "OFF", "power", 0, "current", 0, "voltage", 221, "energy", 1.5, "linkquality", 120),
                 now
         ));
+    }
+
+    private Map<String, Object> smartPlugBridgeDevice() {
+        return Map.of(
+                "friendly_name", "smartplug1",
+                "ieee_address", "0xa4c13895af2c1df3",
+                "type", "Router",
+                "supported", true,
+                "disabled", false,
+                "definition", smartPlugDefinition()
+        );
+    }
+
+    private Map<String, Object> smartPlugDefinition() {
+        return Map.of(
+                "model", "TS011F_plug_1_1",
+                "vendor", "Zbeacon",
+                "description", "Smart plug (with power monitoring)",
+                "exposes", smartPlugExposes()
+        );
+    }
+
+    private List<Object> smartPlugExposes() {
+        return List.of(
+                Map.of("type", "switch", "features", List.of(
+                        Map.of(
+                                "type", "binary",
+                                "name", "state",
+                                "property", "state",
+                                "access", 7,
+                                "value_on", "ON",
+                                "value_off", "OFF",
+                                "description", "On/off state of the switch",
+                                "label", "State"
+                        )
+                )),
+                Map.of(
+                        "type", "numeric",
+                        "name", "countdown",
+                        "property", "countdown",
+                        "access", 3,
+                        "unit", "s",
+                        "value_min", 0,
+                        "value_max", 43200,
+                        "label", "Countdown"
+                ),
+                Map.of(
+                        "type", "enum",
+                        "name", "power_outage_memory",
+                        "property", "power_outage_memory",
+                        "access", 7,
+                        "values", List.of("on", "off", "restore"),
+                        "label", "Power outage memory"
+                ),
+                Map.of(
+                        "type", "numeric",
+                        "name", "power",
+                        "property", "power",
+                        "access", 1,
+                        "unit", "W",
+                        "label", "Power"
+                ),
+                Map.of(
+                        "type", "numeric",
+                        "name", "current",
+                        "property", "current",
+                        "access", 1,
+                        "unit", "A",
+                        "label", "Current"
+                ),
+                Map.of(
+                        "type", "numeric",
+                        "name", "voltage",
+                        "property", "voltage",
+                        "access", 1,
+                        "unit", "V",
+                        "label", "Voltage"
+                ),
+                Map.of(
+                        "type", "numeric",
+                        "name", "energy",
+                        "property", "energy",
+                        "access", 1,
+                        "unit", "kWh",
+                        "label", "Energy"
+                ),
+                Map.of(
+                        "type", "binary",
+                        "name", "child_lock",
+                        "property", "child_lock",
+                        "access", 3,
+                        "value_on", true,
+                        "value_off", false,
+                        "label", "Child lock"
+                ),
+                Map.of(
+                        "type", "enum",
+                        "name", "identify",
+                        "property", "identify",
+                        "access", 2,
+                        "values", List.of("identify"),
+                        "label", "Identify"
+                ),
+                Map.of(
+                        "type", "numeric",
+                        "name", "linkquality",
+                        "property", "linkquality",
+                        "access", 1,
+                        "unit", "lqi",
+                        "value_min", 0,
+                        "value_max", 255,
+                        "label", "Linkquality"
+                )
+        );
     }
 
     private UserEntity createUser(String email, String role) {

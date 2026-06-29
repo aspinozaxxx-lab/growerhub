@@ -16,6 +16,7 @@ import ru.growerhub.backend.zigbee.contract.ZigbeeCommandPublishResult;
 import ru.growerhub.backend.zigbee.contract.ZigbeeCommandResponseData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeCoordinatorData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeDeviceData;
+import ru.growerhub.backend.zigbee.contract.ZigbeeFeatureData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeOverviewData;
 
 @RestController
@@ -53,6 +54,21 @@ public class AdminZigbeeController {
         ZigbeeCommandPublishResult result = zigbeeFacade.setDeviceState(
                 ieeeAddress,
                 request != null ? request.state() : null
+        );
+        return toCommandPublishResponse(result);
+    }
+
+    @PostMapping("/api/admin/zigbee/devices/{ieee_address}/set")
+    public ZigbeeDtos.CommandPublishResponse setDeviceProperty(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("ieee_address") String ieeeAddress,
+            @RequestBody ZigbeeDtos.SetPropertyRequest request
+    ) {
+        requireAdmin(user);
+        ZigbeeCommandPublishResult result = zigbeeFacade.setDeviceProperty(
+                ieeeAddress,
+                request != null ? request.property() : null,
+                request != null ? request.value() : null
         );
         return toCommandPublishResponse(result);
     }
@@ -112,10 +128,36 @@ public class AdminZigbeeController {
                 data.disabled(),
                 data.coordinator(),
                 data.bridgeDevice(),
+                data.definition(),
+                data.imageUrl(),
+                data.features().stream().map(this::toFeatureResponse).toList(),
+                data.metrics().stream().map(this::toFeatureResponse).toList(),
+                data.controls().stream().map(this::toFeatureResponse).toList(),
                 data.state(),
                 data.availability(),
                 data.lastStateAt(),
                 data.updatedAt()
+        );
+    }
+
+    private ZigbeeDtos.FeatureResponse toFeatureResponse(ZigbeeFeatureData data) {
+        return new ZigbeeDtos.FeatureResponse(
+                data.type(),
+                data.property(),
+                data.name(),
+                data.label(),
+                data.description(),
+                data.access(),
+                data.unit(),
+                data.values(),
+                data.valueMin(),
+                data.valueMax(),
+                data.valueStep(),
+                data.valueOn(),
+                data.valueOff(),
+                data.valueToggle(),
+                data.endpoint(),
+                data.value()
         );
     }
 

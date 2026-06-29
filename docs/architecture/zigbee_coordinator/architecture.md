@@ -16,6 +16,8 @@
 
 Админская вкладка Zigbee в frontend не подключается к MQTT напрямую. Она читает snapshot через backend REST, а backend получает и отправляет сообщения координатору только через MQTT.
 
+Backend строит отображение устройств из metadata Zigbee2MQTT `bridge/devices[].definition`. Основной источник UI-возможностей - `definition.exposes`: свойства с access bit `STATE=1` показываются как метрики, свойства с `SET=2` доступны для команд через backend REST, `GET=4` означает возможность запроса значения у устройства. Frontend не содержит ручной таблицы моделей Zigbee-устройств.
+
 ## MQTT
 
 Рабочий broker задается в `zigbee_coordinator/data/configuration.yaml`.

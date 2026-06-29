@@ -197,6 +197,20 @@ export async function adminZigbeeSetState(ieeeAddress, state, token) {
   return response.json();
 }
 
+// Translitem: otpravlyaem generic Zigbee2MQTT /set payload po metadata exposes.
+export async function adminZigbeeSetProperty(ieeeAddress, property, value, token) {
+  const response = await apiFetch(`/api/admin/zigbee/devices/${encodeURIComponent(ieeeAddress)}/set`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: JSON.stringify({ property, value }),
+  });
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось отправить команду устройству');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
+}
+
 // Translitem: pereimenovyvaem friendly_name ustroystva cherez Zigbee2MQTT request API.
 export async function adminZigbeeRenameDevice(ieeeAddress, friendlyName, token) {
   const response = await apiFetch(`/api/admin/zigbee/devices/${encodeURIComponent(ieeeAddress)}/rename`, {

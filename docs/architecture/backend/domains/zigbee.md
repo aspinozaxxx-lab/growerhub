@@ -12,6 +12,7 @@
 - `handleMqttSnapshot(ZigbeeMqttSnapshotMessage message)`
 - `permitJoin(Integer seconds)`
 - `setDeviceState(String ieeeAddress, String state)`
+- `setDeviceProperty(String ieeeAddress, String property, Object value)`
 - `renameDevice(String ieeeAddress, String friendlyName)`
 
 ## Публичные контракты
@@ -22,6 +23,7 @@
 - `ZigbeeCommandResponseData`
 - `ZigbeeCoordinatorData`
 - `ZigbeeDeviceData`
+- `ZigbeeFeatureData`
 - `ZigbeeMqttMessageType`
 - `ZigbeeMqttSnapshotMessage`
 - `ZigbeeOverviewData`
@@ -43,6 +45,10 @@
 
 MQTT adapter классифицирует topics `zigbee2growerhub/#` и передает snapshot-сообщение в Facade. Facade обновляет raw JSON snapshot в БД. REST adapter отдает overview для админки и публикует команды через `ZigbeeCommandGateway`; итог команды приходит позже через `bridge/response/*`.
 
+Для Zigbee-устройств Facade строит производную модель из `bridge/devices[].definition.exposes`: `features` содержит плоский список возможностей, `metrics` содержит свойства с access bit `STATE=1`, `controls` содержит свойства с access bit `SET=2`. Access bit `GET=4` означает, что Zigbee2MQTT может запросить значение у устройства, но v1 админки не вызывает `/get`.
+
+Generic command `setDeviceProperty` публикует `{ "<property>": value }` в `zigbee2growerhub/<friendly_name>/set` только если property найден в writable `exposes`. Frontend не отправляет MQTT напрямую и не определяет тип устройства вручную.
+
 ## Ограничения
 
-Frontend не подключается к MQTT напрямую. Coordinator read-only для переименования. Переименование устройств выполняется только через Zigbee2MQTT `bridge/request/device/rename`; локальное имя меняется после MQTT snapshot от Zigbee2MQTT.
+Frontend не подключается к MQTT напрямую. Coordinator read-only для переименования. Переименование устройств выполняется только через Zigbee2MQTT `bridge/request/device/rename`; локальное имя меняется после MQTT snapshot от Zigbee2MQTT. Сложные типы `composite/list/color/climate` в v1 отображаются как capability, но не редактируются через админку.

@@ -40,10 +40,35 @@ public class ZigbeeDtos {
             @JsonProperty("disabled") Boolean disabled,
             @JsonProperty("coordinator") boolean coordinator,
             @JsonProperty("bridge_device") Object bridgeDevice,
+            @JsonProperty("definition") Object definition,
+            @JsonProperty("image_url") String imageUrl,
+            @JsonProperty("features") List<FeatureResponse> features,
+            @JsonProperty("metrics") List<FeatureResponse> metrics,
+            @JsonProperty("controls") List<FeatureResponse> controls,
             @JsonProperty("state") Object state,
             @JsonProperty("availability") String availability,
             @JsonProperty("last_state_at") LocalDateTime lastStateAt,
             @JsonProperty("updated_at") LocalDateTime updatedAt
+    ) {
+    }
+
+    public record FeatureResponse(
+            @JsonProperty("type") String type,
+            @JsonProperty("property") String property,
+            @JsonProperty("name") String name,
+            @JsonProperty("label") String label,
+            @JsonProperty("description") String description,
+            @JsonProperty("access") Integer access,
+            @JsonProperty("unit") String unit,
+            @JsonProperty("values") Object values,
+            @JsonProperty("value_min") Object valueMin,
+            @JsonProperty("value_max") Object valueMax,
+            @JsonProperty("value_step") Object valueStep,
+            @JsonProperty("value_on") Object valueOn,
+            @JsonProperty("value_off") Object valueOff,
+            @JsonProperty("value_toggle") Object valueToggle,
+            @JsonProperty("endpoint") String endpoint,
+            @JsonProperty("value") Object value
     ) {
     }
 
@@ -66,6 +91,12 @@ public class ZigbeeDtos {
     }
 
     public record SetStateRequest(@JsonProperty("state") String state) {
+    }
+
+    public record SetPropertyRequest(
+            @JsonProperty("property") String property,
+            @JsonProperty("value") Object value
+    ) {
     }
 
     public record RenameRequest(@JsonProperty("friendly_name") String friendlyName) {

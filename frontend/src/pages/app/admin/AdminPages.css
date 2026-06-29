@@ -169,6 +169,31 @@
   gap: 6px;
 }
 
+.admin-zigbee-device-card {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.admin-zigbee-thumb {
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  object-fit: contain;
+  padding: 4px;
+}
+
+.admin-zigbee-thumb--fallback {
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+  font-weight: 700;
+  padding: 0;
+}
+
 .admin-zigbee-facts {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   margin-top: 8px;
@@ -190,9 +215,36 @@
   overflow-wrap: anywhere;
 }
 
+.admin-zigbee-control {
+  display: grid;
+  gap: 5px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-2);
+}
+
+.admin-zigbee-control:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.admin-zigbee-control__label {
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.admin-zigbee-control__readonly,
+.admin-zigbee-control__unit {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.admin-zigbee-control__input {
+  width: 150px;
+}
+
 .admin-table--zigbee th:nth-child(1),
 .admin-table--zigbee td:nth-child(1) {
-  width: 210px;
+  width: 260px;
 }
 
 .admin-table--zigbee th:nth-child(2),
@@ -207,7 +259,7 @@
 
 .admin-table--zigbee th:nth-child(4),
 .admin-table--zigbee td:nth-child(4) {
-  width: 260px;
+  width: 300px;
 }
 
 .admin-zigbee-rename {

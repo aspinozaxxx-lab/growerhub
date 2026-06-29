@@ -1,7 +1,10 @@
 package ru.growerhub.backend.zigbee;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
@@ -15,6 +18,7 @@ import ru.growerhub.backend.zigbee.contract.ZigbeeCommandPublishResult;
 import ru.growerhub.backend.zigbee.contract.ZigbeeCommandResponseData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeCoordinatorData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeDeviceData;
+import ru.growerhub.backend.zigbee.contract.ZigbeeFeatureData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeMqttSnapshotMessage;
 import ru.growerhub.backend.zigbee.contract.ZigbeeOverviewData;
 import ru.growerhub.backend.zigbee.jpa.ZigbeeBridgeSnapshotEntity;
@@ -26,6 +30,10 @@ import ru.growerhub.backend.zigbee.jpa.ZigbeeDeviceSnapshotRepository;
 
 @Service
 public class ZigbeeFacade {
+    private static final int ACCESS_STATE = 0b001;
+    private static final int ACCESS_SET = 0b010;
+    private static final String DEVICE_IMAGE_BASE_URL = "https://www.zigbee2mqtt.io/images/devices/";
+
     private final ZigbeeBridgeSnapshotRepository bridgeRepository;
     private final ZigbeeDeviceSnapshotRepository deviceRepository;
     private final ZigbeeCommandResponseSnapshotRepository commandResponseRepository;
@@ -108,11 +116,24 @@ public class ZigbeeFacade {
 
     @Transactional
     public ZigbeeCommandPublishResult setDeviceState(String ieeeAddress, String state) {
-        ZigbeeDeviceSnapshotEntity device = findControllableDevice(ieeeAddress);
         String normalizedState = normalizeState(state);
-        commandGateway.publishSetState(device.getFriendlyName(), normalizedState);
+        return setDeviceProperty(ieeeAddress, "state", normalizedState);
+    }
+
+    @Transactional
+    public ZigbeeCommandPublishResult setDeviceProperty(String ieeeAddress, String property, Object value) {
+        ZigbeeDeviceSnapshotEntity device = findControllableDevice(ieeeAddress);
+        String normalizedProperty = normalizeProperty(property);
+        if (value == null) {
+            throw new DomainException("bad_request", "value obyazatelen");
+        }
+        ZigbeeFeatureData feature = findWritableFeature(device, normalizedProperty);
+        if (feature == null) {
+            throw new DomainException("bad_request", "Zigbee property nedostupen dlya zapisi");
+        }
+        commandGateway.publishSet(device.getFriendlyName(), Map.of(normalizedProperty, value));
         return new ZigbeeCommandPublishResult(
-                "set state command published",
+                "set command published",
                 topicSettings.getZigbeeBase() + "/" + device.getFriendlyName() + "/set"
         );
     }
@@ -272,6 +293,10 @@ public class ZigbeeFacade {
     }
 
     private ZigbeeDeviceData toDeviceData(ZigbeeDeviceSnapshotEntity device) {
+        Object bridgeDevice = readJson(device.getBridgeDeviceJson());
+        Object state = readJson(device.getStateJson());
+        Object definition = valueFromMap(bridgeDevice, "definition");
+        List<ZigbeeFeatureData> features = buildFeatures(valueFromMap(definition, "exposes"), state);
         return new ZigbeeDeviceData(
                 device.getId(),
                 device.getIeeeAddress(),
@@ -280,12 +305,93 @@ public class ZigbeeFacade {
                 device.getSupported(),
                 device.getDisabled(),
                 device.isCoordinator(),
-                readJson(device.getBridgeDeviceJson()),
-                readJson(device.getStateJson()),
+                bridgeDevice,
+                definition,
+                buildImageUrl(definition),
+                features,
+                features.stream().filter(feature -> hasFeatureAccess(feature, ACCESS_STATE)).toList(),
+                features.stream().filter(feature -> hasFeatureAccess(feature, ACCESS_SET)).toList(),
+                state,
                 device.getAvailability(),
                 device.getLastStateAt(),
                 device.getUpdatedAt()
         );
+    }
+
+    private List<ZigbeeFeatureData> buildFeatures(Object exposes, Object state) {
+        List<ZigbeeFeatureData> features = new ArrayList<>();
+        Map<?, ?> stateMap = state instanceof Map<?, ?> map ? map : Map.of();
+        collectFeatures(exposes, stateMap, features);
+        return features;
+    }
+
+    private void collectFeatures(Object exposes, Map<?, ?> state, List<ZigbeeFeatureData> features) {
+        if (!(exposes instanceof List<?> list)) {
+            return;
+        }
+        for (Object item : list) {
+            if (!(item instanceof Map<?, ?> map)) {
+                continue;
+            }
+            ZigbeeFeatureData feature = toFeatureData(map, state);
+            if (feature.type() != null || feature.name() != null || feature.property() != null) {
+                features.add(feature);
+            }
+            collectFeatures(valueFromMap(map, "features"), state, features);
+        }
+    }
+
+    private ZigbeeFeatureData toFeatureData(Map<?, ?> feature, Map<?, ?> state) {
+        String property = asString(valueFromMap(feature, "property"));
+        Object value = property != null ? state.get(property) : null;
+        return new ZigbeeFeatureData(
+                asString(valueFromMap(feature, "type")),
+                property,
+                asString(valueFromMap(feature, "name")),
+                asString(valueFromMap(feature, "label")),
+                asString(valueFromMap(feature, "description")),
+                asInteger(valueFromMap(feature, "access")),
+                asString(valueFromMap(feature, "unit")),
+                valueFromMap(feature, "values"),
+                valueFromMap(feature, "value_min"),
+                valueFromMap(feature, "value_max"),
+                valueFromMap(feature, "value_step"),
+                valueFromMap(feature, "value_on"),
+                valueFromMap(feature, "value_off"),
+                valueFromMap(feature, "value_toggle"),
+                asString(valueFromMap(feature, "endpoint")),
+                value
+        );
+    }
+
+    private boolean hasFeatureAccess(ZigbeeFeatureData feature, int access) {
+        return feature.property() != null
+                && feature.access() != null
+                && (feature.access() & access) == access;
+    }
+
+    private ZigbeeFeatureData findWritableFeature(ZigbeeDeviceSnapshotEntity device, String property) {
+        Object bridgeDevice = readJson(device.getBridgeDeviceJson());
+        Object definition = valueFromMap(bridgeDevice, "definition");
+        return buildFeatures(valueFromMap(definition, "exposes"), null).stream()
+                .filter(feature -> property.equals(feature.property()))
+                .filter(feature -> hasFeatureAccess(feature, ACCESS_SET))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private String buildImageUrl(Object definition) {
+        String icon = asString(valueFromMap(definition, "icon"));
+        if (icon != null && icon.startsWith("https://")) {
+            return icon;
+        }
+        String model = asString(valueFromMap(definition, "model"));
+        if (model == null) {
+            return null;
+        }
+        String sanitized = model.replaceAll("[:\\s/]+", "-");
+        String encoded = URLEncoder.encode(sanitized, StandardCharsets.UTF_8).replace("+", "%20");
+        return DEVICE_IMAGE_BASE_URL + encoded + ".png";
     }
 
     private ZigbeeCommandResponseData toCommandResponseData(ZigbeeCommandResponseSnapshotEntity response) {
@@ -345,6 +451,20 @@ public class ZigbeeFacade {
         return Boolean.parseBoolean(value.toString());
     }
 
+    private Integer asInteger(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value == null || value.toString().isBlank()) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
     private Long asLong(Object value) {
         if (value instanceof Number number) {
             return number.longValue();
@@ -377,6 +497,17 @@ public class ZigbeeFacade {
         String normalized = friendlyName.trim();
         if (normalized.isBlank()) {
             throw new DomainException("bad_request", "friendly_name obyazatelen");
+        }
+        return normalized;
+    }
+
+    private String normalizeProperty(String property) {
+        if (property == null) {
+            throw new DomainException("bad_request", "property obyazatelen");
+        }
+        String normalized = property.trim();
+        if (normalized.isBlank()) {
+            throw new DomainException("bad_request", "property obyazatelen");
         }
         return normalized;
     }

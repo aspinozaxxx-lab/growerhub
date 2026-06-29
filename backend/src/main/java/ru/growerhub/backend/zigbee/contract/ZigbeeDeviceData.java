@@ -1,6 +1,7 @@
 package ru.growerhub.backend.zigbee.contract;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record ZigbeeDeviceData(
         Integer id,
@@ -11,6 +12,11 @@ public record ZigbeeDeviceData(
         Boolean disabled,
         boolean coordinator,
         Object bridgeDevice,
+        Object definition,
+        String imageUrl,
+        List<ZigbeeFeatureData> features,
+        List<ZigbeeFeatureData> metrics,
+        List<ZigbeeFeatureData> controls,
         Object state,
         String availability,
         LocalDateTime lastStateAt,

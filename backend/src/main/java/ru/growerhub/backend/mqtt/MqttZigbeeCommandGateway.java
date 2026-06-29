@@ -24,7 +24,12 @@ public class MqttZigbeeCommandGateway implements ZigbeeCommandGateway {
 
     @Override
     public void publishSetState(String friendlyName, String state) {
-        publish(topicSettings.getZigbeeBase() + "/" + friendlyName + "/set", Map.of("state", state));
+        publishSet(friendlyName, Map.of("state", state));
+    }
+
+    @Override
+    public void publishSet(String friendlyName, Map<String, Object> payload) {
+        publish(topicSettings.getZigbeeBase() + "/" + friendlyName + "/set", payload);
     }
 
     @Override

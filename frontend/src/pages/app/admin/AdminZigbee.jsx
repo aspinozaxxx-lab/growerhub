@@ -8,20 +8,13 @@ import { isSessionExpiredError } from '../../../api/client';
 import {
   adminZigbeePermitJoin,
   adminZigbeeRenameDevice,
-  adminZigbeeSetState,
+  adminZigbeeSetProperty,
   fetchAdminZigbeeOverview,
 } from '../../../api/admin';
 import './AdminPages.css';
 
 const POLL_INTERVAL_MS = 5000;
-const QUICK_METRICS = [
-  ['state', 'Статус'],
-  ['power', 'Мощность'],
-  ['current', 'Ток'],
-  ['voltage', 'Напряжение'],
-  ['energy', 'Энергия'],
-  ['linkquality', 'LQI'],
-];
+const SIMPLE_CONTROL_TYPES = new Set(['binary', 'enum', 'numeric', 'text']);
 
 function formatDateTime(value) {
   if (!value) {
@@ -47,49 +40,87 @@ function formatValue(value) {
   return String(value);
 }
 
+function formatFeatureValue(feature) {
+  const value = formatValue(feature?.value);
+  if (value === '-' || !feature?.unit) {
+    return value;
+  }
+  return `${value} ${feature.unit}`;
+}
+
+function featureLabel(feature) {
+  return feature?.label || feature?.name || feature?.property || feature?.type || '-';
+}
+
 function getStateObject(device) {
   return device?.state && typeof device.state === 'object' && !Array.isArray(device.state)
     ? device.state
     : {};
 }
 
-function collectExposeItems(items = []) {
-  const result = [];
-  items.forEach((item) => {
-    if (!item || typeof item !== 'object') return;
-    result.push(item);
-    if (Array.isArray(item.features)) {
-      result.push(...collectExposeItems(item.features));
-    }
-  });
-  return result;
-}
-
-function hasWritableState(device) {
-  if (device?.coordinator) {
-    return false;
-  }
-  const exposes = device?.bridge_device?.definition?.exposes;
-  if (!Array.isArray(exposes)) {
-    return false;
-  }
-  return collectExposeItems(exposes).some((item) => (
-    item.property === 'state' && typeof item.access === 'number' && (item.access & 2) === 2
-  ));
+function listOrEmpty(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function deviceKey(device) {
   return device?.ieee_address || device?.friendly_name || String(device?.id || '');
 }
 
+function controlKey(device, feature) {
+  return `${deviceKey(device)}:${feature?.property || feature?.name || feature?.type || ''}`;
+}
+
+function inputValueFromFeature(feature) {
+  if (feature?.value !== null && feature?.value !== undefined) {
+    return feature.value;
+  }
+  if (feature?.type === 'enum' && Array.isArray(feature.values) && feature.values.length > 0) {
+    return feature.values[0];
+  }
+  return '';
+}
+
+function featureActionKey(device, feature) {
+  return `${controlKey(device, feature)}:set`;
+}
+
+function coerceControlValue(feature, value) {
+  if (feature?.type !== 'numeric') {
+    return value;
+  }
+  if (value === '') {
+    throw new Error('Введите числовое значение');
+  }
+  const number = Number(value);
+  if (Number.isNaN(number)) {
+    throw new Error('Введите числовое значение');
+  }
+  return number;
+}
+
+function DeviceThumb({ device }) {
+  const [failed, setFailed] = useState(false);
+  const label = (device?.friendly_name || device?.type || '?').slice(0, 1).toUpperCase();
+  if (!device?.image_url || failed) {
+    return <div className="admin-zigbee-thumb admin-zigbee-thumb--fallback">{label}</div>;
+  }
+  return (
+    <img
+      className="admin-zigbee-thumb"
+      src={device.image_url}
+      alt=""
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 function AdminZigbee() {
-  // Translitem: token dlya admin API.
   const { token } = useAuth();
-  // Translitem: Zigbee2MQTT snapshot iz backend.
   const [overview, setOverview] = useState(null);
-  // Translitem: lokalnye input znacheniya dlya rename.
   const [renameValues, setRenameValues] = useState({});
-  // Translitem: sostoyanie zagruzki i deystvij.
+  const [controlValues, setControlValues] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -117,6 +148,18 @@ function AdminZigbee() {
           if (key && next[key] === undefined) {
             next[key] = device.friendly_name || '';
           }
+        });
+        return next;
+      });
+      setControlValues((prev) => {
+        const next = { ...prev };
+        devices.forEach((device) => {
+          listOrEmpty(device.controls).forEach((feature) => {
+            const key = controlKey(device, feature);
+            if (key && next[key] === undefined) {
+              next[key] = inputValueFromFeature(feature);
+            }
+          });
         });
         return next;
       });
@@ -171,15 +214,16 @@ function AdminZigbee() {
     }
   }, [actionKey, loadOverview, token]);
 
-  const handleSetState = useCallback(async (device, state) => {
-    const key = deviceKey(device);
-    if (actionKey || !device?.ieee_address) return;
-    setActionKey(`${key}:state`);
+  const handleSetProperty = useCallback(async (device, feature, value) => {
+    const key = featureActionKey(device, feature);
+    if (actionKey || !device?.ieee_address || !feature?.property) return;
+    setActionKey(key);
     setError('');
     setNotice('');
     try {
-      await adminZigbeeSetState(device.ieee_address, state, token);
-      setNotice(`Команда ${state} отправлена`);
+      const payloadValue = coerceControlValue(feature, value);
+      await adminZigbeeSetProperty(device.ieee_address, feature.property, payloadValue, token);
+      setNotice(`Команда ${featureLabel(feature)} отправлена`);
       await loadOverview({ silent: true });
     } catch (err) {
       if (isSessionExpiredError(err)) return;
@@ -188,6 +232,13 @@ function AdminZigbee() {
       setActionKey('');
     }
   }, [actionKey, loadOverview, token]);
+
+  const handleControlValueChange = useCallback((key, value) => {
+    setControlValues((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  }, []);
 
   const handleRenameChange = useCallback((key, value) => {
     setRenameValues((prev) => ({
@@ -214,6 +265,129 @@ function AdminZigbee() {
       setActionKey('');
     }
   }, [actionKey, loadOverview, renameValues, token]);
+
+  const renderControl = (device, feature) => {
+    const key = controlKey(device, feature);
+    const currentActionKey = featureActionKey(device, feature);
+    const disabled = actionKey === currentActionKey;
+    const label = featureLabel(feature);
+
+    if (!SIMPLE_CONTROL_TYPES.has(feature.type)) {
+      return (
+        <div className="admin-zigbee-control" key={key}>
+          <span className="admin-zigbee-control__label">{label}</span>
+          <span className="admin-zigbee-control__readonly">{feature.type || 'complex'}: доступно в Z2M</span>
+        </div>
+      );
+    }
+
+    if (feature.type === 'binary') {
+      const onValue = feature.value_on ?? 'ON';
+      const offValue = feature.value_off ?? 'OFF';
+      return (
+        <div className="admin-zigbee-control" key={key}>
+          <span className="admin-zigbee-control__label">{label}</span>
+          <div className="admin-row-actions">
+            <Button
+              type="button"
+              size="sm"
+              variant={feature.value === onValue ? 'secondary' : 'primary'}
+              disabled={disabled}
+              onClick={() => handleSetProperty(device, feature, onValue)}
+            >
+              {formatValue(onValue)}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={feature.value === offValue ? 'secondary' : 'danger'}
+              disabled={disabled}
+              onClick={() => handleSetProperty(device, feature, offValue)}
+            >
+              {formatValue(offValue)}
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    if (feature.type === 'enum') {
+      const values = listOrEmpty(feature.values);
+      if (values.length <= 3) {
+        return (
+          <div className="admin-zigbee-control" key={key}>
+            <span className="admin-zigbee-control__label">{label}</span>
+            <div className="admin-row-actions">
+              {values.map((value) => (
+                <Button
+                  key={String(value)}
+                  type="button"
+                  size="sm"
+                  variant={feature.value === value ? 'secondary' : 'primary'}
+                  disabled={disabled}
+                  onClick={() => handleSetProperty(device, feature, value)}
+                >
+                  {formatValue(value)}
+                </Button>
+              ))}
+            </div>
+          </div>
+        );
+      }
+      return (
+        <div className="admin-zigbee-control" key={key}>
+          <span className="admin-zigbee-control__label">{label}</span>
+          <div className="admin-row-actions">
+            <select
+              className="admin-select admin-zigbee-control__input"
+              value={controlValues[key] ?? inputValueFromFeature(feature)}
+              disabled={disabled}
+              onChange={(event) => handleControlValueChange(key, event.target.value)}
+            >
+              {values.map((value) => (
+                <option key={String(value)} value={value}>{formatValue(value)}</option>
+              ))}
+            </select>
+            <Button
+              type="button"
+              size="sm"
+              disabled={disabled}
+              onClick={() => handleSetProperty(device, feature, controlValues[key] ?? inputValueFromFeature(feature))}
+            >
+              Отправить
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="admin-zigbee-control" key={key}>
+        <span className="admin-zigbee-control__label">{label}</span>
+        <div className="admin-row-actions">
+          <input
+            className="admin-input admin-zigbee-control__input"
+            type={feature.type === 'numeric' ? 'number' : 'text'}
+            min={feature.value_min ?? undefined}
+            max={feature.value_max ?? undefined}
+            step={feature.value_step ?? undefined}
+            value={controlValues[key] ?? inputValueFromFeature(feature)}
+            disabled={disabled}
+            onChange={(event) => handleControlValueChange(key, event.target.value)}
+          />
+          {feature.unit && <span className="admin-zigbee-control__unit">{feature.unit}</span>}
+          <Button
+            type="button"
+            size="sm"
+            disabled={disabled}
+            onClick={() => handleSetProperty(device, feature, controlValues[key] ?? inputValueFromFeature(feature))}
+          >
+            Отправить
+          </Button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="admin-page">
@@ -263,7 +437,7 @@ function AdminZigbee() {
           <thead>
             <tr>
               <th>Устройство</th>
-              <th>Состояние</th>
+              <th>Статус</th>
               <th>Метрики</th>
               <th>Управление</th>
               <th>Данные</th>
@@ -277,59 +451,51 @@ function AdminZigbee() {
             ) : visibleDevices.map((device) => {
               const key = deviceKey(device);
               const state = getStateObject(device);
-              const writableState = hasWritableState(device);
+              const definition = device.definition || {};
+              const metrics = listOrEmpty(device.metrics);
+              const controls = listOrEmpty(device.controls);
+              const stateMetric = metrics.find((feature) => feature.property === 'state');
               const renameValue = renameValues[key] ?? device.friendly_name ?? '';
               const renameDisabled = !device.ieee_address || device.coordinator || !renameValue.trim()
                 || renameValue.trim() === device.friendly_name || actionKey === `${key}:rename`;
               return (
                 <tr key={key}>
                   <td>
-                    <div className="admin-zigbee-device">
-                      <strong>{device.friendly_name || '-'}</strong>
-                      <span>{device.ieee_address || '-'}</span>
-                      <span>{device.type || '-'}</span>
+                    <div className="admin-zigbee-device-card">
+                      <DeviceThumb device={device} />
+                      <div className="admin-zigbee-device">
+                        <strong>{device.friendly_name || '-'}</strong>
+                        <span>{[definition.vendor, definition.model].filter(Boolean).join(' / ') || '-'}</span>
+                        <span>{definition.description || device.type || '-'}</span>
+                        <span>{device.ieee_address || '-'}</span>
+                      </div>
                     </div>
                   </td>
                   <td>
                     <div className="admin-zigbee-device">
-                      <strong>{formatValue(state.state)}</strong>
+                      <strong>{formatValue(stateMetric?.value ?? state.state)}</strong>
                       <span>{device.availability || '-'}</span>
+                      <span>{device.supported === false ? 'unsupported' : 'supported'}</span>
+                      <span>{definition.source || device.type || '-'}</span>
                       <span>{formatDateTime(device.last_state_at || device.updated_at)}</span>
                     </div>
                   </td>
                   <td>
                     <div className="admin-zigbee-metrics">
-                      {QUICK_METRICS.map(([name, label]) => (
-                        <span key={name}>
-                          {label}: {formatValue(state[name])}
+                      {metrics.length === 0 ? (
+                        <span>Нет metadata</span>
+                      ) : metrics.map((feature) => (
+                        <span key={`${key}:${feature.property}:${feature.name}`}>
+                          {featureLabel(feature)}: {formatFeatureValue(feature)}
                         </span>
                       ))}
                     </div>
                   </td>
                   <td>
                     <div className="admin-zigbee-actions">
-                      {writableState && (
-                        <div className="admin-row-actions">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={state.state === 'ON' ? 'secondary' : 'primary'}
-                            disabled={actionKey === `${key}:state`}
-                            onClick={() => handleSetState(device, 'ON')}
-                          >
-                            Вкл
-                          </Button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant={state.state === 'OFF' ? 'secondary' : 'danger'}
-                            disabled={actionKey === `${key}:state`}
-                            onClick={() => handleSetState(device, 'OFF')}
-                          >
-                            Выкл
-                          </Button>
-                        </div>
-                      )}
+                      {controls.length === 0 ? (
+                        <span className="admin-zigbee-control__readonly">Нет writable metadata</span>
+                      ) : controls.map((feature) => renderControl(device, feature))}
                       <div className="admin-row-actions">
                         <input
                           className="admin-input admin-zigbee-rename"
@@ -353,7 +519,8 @@ function AdminZigbee() {
                     <pre className="admin-mqtt-payload">
                       {JSON.stringify({
                         state: device.state || null,
-                        bridge_device: device.bridge_device || null,
+                        definition: device.definition || null,
+                        features: device.features || null,
                       }, null, 2)}
                     </pre>
                   </td>
