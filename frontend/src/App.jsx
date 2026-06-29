@@ -1,4 +1,6 @@
 ﻿import { Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import AppLayout from './components/layout/AppLayout';
 import AboutPage from './pages/AboutPage';
@@ -26,9 +28,36 @@ import SensorStatsSidebar from './features/sensors/SensorStatsSidebar';
 import { WateringSidebarProvider } from './features/watering/WateringSidebarContext';
 import WateringSidebar from './features/watering/WateringSidebar';
 
+const YANDEX_METRIKA_ID = 110256357;
+
+function MetrikaRouteTracker() {
+  const location = useLocation();
+  const previousUrlRef = useRef(document.referrer || '');
+
+  useEffect(() => {
+    const url = window.location.href;
+    const referer = previousUrlRef.current;
+    previousUrlRef.current = url;
+
+    const timerId = window.setTimeout(() => {
+      if (typeof window.ym === 'function') {
+        window.ym(YANDEX_METRIKA_ID, 'hit', url, {
+          referer,
+          title: document.title,
+        });
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timerId);
+  }, [location.pathname, location.search, location.hash]);
+
+  return null;
+}
+
 function App() {
   return (
     <Layout>
+      <MetrikaRouteTracker />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/articles" element={<ArticlesListPage />} />

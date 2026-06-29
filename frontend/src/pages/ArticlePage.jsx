@@ -47,6 +47,9 @@ function ArticlePage() {
   const article = useMemo(() => getArticleBySlug(slug), [slug]);
   const cluster = useMemo(() => getArticleClusterBySlug(article?.cluster), [article]);
   const relatedArticles = useMemo(() => getRelatedArticles(article, 3), [article]);
+  const heroImageRenderedInBody = Boolean(
+    article?.hero_image && article.body.includes(`](${article.hero_image})`),
+  );
 
   useEffect(() => {
     if (!article) {
@@ -89,7 +92,7 @@ function ArticlePage() {
           {cluster.title}
         </Link>
       )}
-      {article.hero_image && (
+      {article.hero_image && !heroImageRenderedInBody && (
         <img className="article-hero-image" src={article.hero_image} alt={article.hero_alt || article.title} />
       )}
       <div
