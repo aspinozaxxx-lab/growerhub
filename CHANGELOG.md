@@ -1,4 +1,12 @@
-﻿### feat(front): dobavleny SEO klastery statey i Yandex Metrika
+﻿### feat(front): static SEO stranicy i ruchnaya pererabotka statey
+
+- feat(content): 53 statyi perepisany vruchnuyu po temam, ubrany shablonnye abzacy i dubliruyushchie SVG-shemy v nachale.
+- feat(content): vse statyi ispolzuyut odnu GrowerHub WebP-illyustraciyu, obnovleny related links i metadata klasterov.
+- feat(seo): dobavlena post-build generaciya staticheskih HTML-stranic statey/klasterov s canonical, meta, OG/Twitter i JSON-LD.
+- fix(seo): Yandex Metrika privedena k sheme s defer-init i SPA hit po marshrutam, React bolshe ne pishet meta/JSON-LD dlya statey.
+- fix(ci): frontend deploy pereveden na Node 20.19.0 dlya sovmestimosti s tekushchim Vite.
+
+### feat(front): dobavleny SEO klastery statey i Yandex Metrika
 
 - feat(front): dobavlena klasternaya navigaciya statey, stranicy klasterov i related links.
 - feat(content): dobavleny 50 SEO-statey po produktovym vektoram GrowerHub i lokalnye SVG-shemy.

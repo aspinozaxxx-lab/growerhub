@@ -3,45 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import { getArticleClusterBySlug } from '../content/articleClusters';
 import { getArticleBySlug, getRelatedArticles } from '../content/articles';
 
-const SITE_URL = 'https://growerhub.ru';
-
-const setMetaDescription = (content) => {
-  let meta = document.querySelector('meta[name="description"]');
-  if (!meta) {
-    meta = document.createElement('meta');
-    meta.setAttribute('name', 'description');
-    document.head.appendChild(meta);
-  }
-  meta.setAttribute('content', content);
-};
-
-const setJsonLd = (article) => {
-  const scriptId = 'article-json-ld';
-  let script = document.getElementById(scriptId);
-  if (!script) {
-    script = document.createElement('script');
-    script.id = scriptId;
-    script.type = 'application/ld+json';
-    document.head.appendChild(script);
-  }
-
-  script.textContent = JSON.stringify({
-    '@context': 'https://schema.org',
-    '@type': 'BlogPosting',
-    headline: article.title,
-    description: article.summary,
-    datePublished: article.created_at,
-    dateModified: article.updated_at || article.created_at,
-    image: article.hero_image ? `${SITE_URL}${article.hero_image}` : undefined,
-    mainEntityOfPage: `${SITE_URL}/articles/${article.slug}`,
-    publisher: {
-      '@type': 'Organization',
-      name: 'GrowerHub',
-      url: SITE_URL,
-    },
-  });
-};
-
 function ArticlePage() {
   const { slug } = useParams();
   const article = useMemo(() => getArticleBySlug(slug), [slug]);
@@ -54,18 +15,10 @@ function ArticlePage() {
   useEffect(() => {
     if (!article) {
       document.title = 'Статья не найдена - GrowerHub';
-      setMetaDescription('Статья GrowerHub не найдена.');
-      document.getElementById('article-json-ld')?.remove();
       return;
     }
 
     document.title = `${article.title} - GrowerHub`;
-    setMetaDescription(article.summary || 'Практическая статья GrowerHub об уходе за растениями.');
-    setJsonLd(article);
-
-    return () => {
-      document.getElementById('article-json-ld')?.remove();
-    };
   }, [article]);
 
   if (!article) {
