@@ -1,4 +1,5 @@
 ﻿User-agent: *
 Allow: /
+Disallow: /app/
 
 Sitemap: https://growerhub.ru/sitemap.xml

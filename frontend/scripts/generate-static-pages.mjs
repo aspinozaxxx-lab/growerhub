@@ -9,8 +9,24 @@ const SITE_URL = 'https://growerhub.ru';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST_DIR = path.join(ROOT, 'dist');
 const ARTICLES_DIR = path.join(ROOT, 'content', 'articles');
+const PAGES_DIR = path.join(ROOT, 'content', 'pages');
 const TEMPLATE_PATH = path.join(DIST_DIR, 'index.html');
 const UTF8_BOM = '\ufeff';
+const STATIC_LASTMOD = '2026-07-01';
+const APP_NO_INDEX_ROUTES = [
+  { path: '/app', title: 'GrowerHub - приложение', description: 'Личный кабинет GrowerHub для контроля растений, устройств, датчиков и полива.' },
+  { path: '/app/login', title: 'Вход в GrowerHub', description: 'Страница входа в личный кабинет GrowerHub для пользователей системы ухода за растениями.' },
+  { path: '/app/plants', title: 'Растения - GrowerHub', description: 'Приватный раздел GrowerHub со списком растений, журналом ухода и связанными устройствами.' },
+  { path: '/app/devices', title: 'Устройства - GrowerHub', description: 'Приватный раздел GrowerHub для просмотра контроллеров, датчиков и состояния оборудования.' },
+  { path: '/app/profile', title: 'Профиль - GrowerHub', description: 'Приватный раздел GrowerHub с настройками пользователя и данными учетной записи.' },
+  { path: '/app/admin', title: 'Администрирование - GrowerHub', description: 'Закрытый административный раздел GrowerHub для управления пользователями, устройствами и сервисами.' },
+  { path: '/app/admin/users', title: 'Пользователи - GrowerHub', description: 'Закрытый административный раздел GrowerHub для управления пользователями.' },
+  { path: '/app/admin/devices', title: 'Устройства администрирования - GrowerHub', description: 'Закрытый административный раздел GrowerHub для управления устройствами.' },
+  { path: '/app/admin/plants', title: 'Растения администрирования - GrowerHub', description: 'Закрытый административный раздел GrowerHub для управления растениями.' },
+  { path: '/app/admin/mqtt', title: 'MQTT - GrowerHub', description: 'Закрытый административный раздел GrowerHub для просмотра сообщений MQTT.' },
+  { path: '/app/admin/zigbee', title: 'Zigbee - GrowerHub', description: 'Закрытый административный раздел GrowerHub для управления Zigbee-устройствами.' },
+  { path: '/app/admin/automation', title: 'Автоматизация - GrowerHub', description: 'Закрытый административный раздел GrowerHub для управления автоматизацией полива.' },
+];
 
 const htmlEscape = (value = '') =>
   String(value)
@@ -74,6 +90,9 @@ const readArticles = () =>
     })
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
+const readJson = (name) =>
+  JSON.parse(stripBom(fs.readFileSync(path.join(PAGES_DIR, name), 'utf8')));
+
 const extractHeadAssets = (template) => {
   const head = template.match(/<head>([\s\S]*?)<\/head>/)?.[1] || '';
   return head
@@ -103,6 +122,7 @@ const makeMetaHead = ({
   canonical,
   type = 'website',
   image = '',
+  robots = 'index,follow',
   jsonLd = [],
   assets = '',
 }) => {
@@ -118,7 +138,7 @@ const makeMetaHead = ({
     '    <meta name="viewport" content="width=device-width, initial-scale=1.0" />',
     `    <title>${htmlEscape(title)}</title>`,
     `    <meta name="description" content="${htmlEscape(description)}" />`,
-    '    <meta name="robots" content="index,follow" />',
+    `    <meta name="robots" content="${htmlEscape(robots)}" />`,
     `    <link rel="canonical" href="${htmlEscape(canonical)}" />`,
     `    <meta property="og:title" content="${htmlEscape(title)}" />`,
     `    <meta property="og:description" content="${htmlEscape(description)}" />`,
@@ -137,6 +157,11 @@ const makeMetaHead = ({
 const pageShell = (template, meta, mainHtml, assets) => replaceRoot(
   replaceHead(template, makeMetaHead({ ...meta, assets })),
   `\n    <main class="section static-page">\n${mainHtml}\n    </main>\n  `,
+);
+
+const appShell = (template, meta, assets) => replaceHead(
+  template,
+  makeMetaHead({ ...meta, robots: 'noindex,nofollow', assets }),
 );
 
 const formatDate = (date) => (date ? new Date(date).toLocaleDateString('ru-RU') : '');
@@ -329,6 +354,68 @@ ${articles.slice(0, 6).map(renderArticleCard).join('\n')}
         </div>
       </section>`, assets);
 
+const renderAboutPage = (template, assets, aboutContent) => {
+  const canonical = `${SITE_URL}/about`;
+  const description = aboutContent.intro;
+  const contacts = aboutContent.contacts || {};
+  const mainHtml = `
+      <h1>${htmlEscape(aboutContent.title)}</h1>
+      <p>${htmlEscape(aboutContent.intro)}</p>
+      <section class="cluster-block">
+        <h2>Миссия</h2>
+        <p>${htmlEscape(aboutContent.mission)}</p>
+      </section>
+      <section class="cluster-block">
+        <h2>Что объединяет GrowerHub</h2>
+        <p>${htmlEscape(aboutContent.value)}</p>
+      </section>
+      <section class="cluster-block">
+        <h2>Контакты</h2>
+        <ul>
+          <li><strong>Email:</strong> <a href="mailto:${htmlEscape(contacts.email)}">${htmlEscape(contacts.email)}</a></li>
+          <li><strong>Сайт:</strong> <a href="${htmlEscape(contacts.site)}">${htmlEscape(contacts.site)}</a></li>
+          <li><strong>Телеграм:</strong> <a href="${htmlEscape(contacts.telegram)}">${htmlEscape(contacts.telegram)}</a></li>
+        </ul>
+      </section>`;
+
+  return pageShell(template, {
+    title: 'О проекте GrowerHub - контроль полива и микроклимата',
+    description,
+    canonical,
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'AboutPage',
+        name: aboutContent.title,
+        description,
+        url: canonical,
+        isPartOf: {
+          '@type': 'WebSite',
+          name: 'GrowerHub',
+          url: SITE_URL,
+        },
+        mainEntity: {
+          '@type': 'Organization',
+          name: 'GrowerHub',
+          url: SITE_URL,
+          email: contacts.email,
+          sameAs: [contacts.telegram].filter(Boolean),
+        },
+      },
+      breadcrumbLd([
+        { name: 'GrowerHub', url: SITE_URL },
+        { name: 'О проекте', url: canonical },
+      ]),
+    ],
+  }, mainHtml, assets);
+};
+
+const renderAppNoIndexPage = (template, assets, route) => appShell(template, {
+  title: route.title,
+  description: route.description,
+  canonical: `${SITE_URL}${route.path}`,
+}, assets);
+
 const render404 = (template, assets) => pageShell(template, {
   title: 'Страница не найдена - GrowerHub',
   description: 'Страница GrowerHub не найдена. Вернитесь к статьям или на главную страницу.',
@@ -347,6 +434,7 @@ const maxDate = (dates) => dates.filter(Boolean).sort().at(-1) || '2026-06-30';
 const writeSitemap = (articles, articlesByCluster) => {
   const entries = [
     { loc: SITE_URL, lastmod: '2026-06-30' },
+    { loc: `${SITE_URL}/about`, lastmod: STATIC_LASTMOD },
     { loc: `${SITE_URL}/articles`, lastmod: '2026-06-30' },
     ...articleClusters.map((cluster) => ({
       loc: `${SITE_URL}/articles/clusters/${cluster.slug}`,
@@ -363,13 +451,14 @@ const writeSitemap = (articles, articlesByCluster) => {
 };
 
 const writeRobots = () => {
-  writeText(path.join(DIST_DIR, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
+  writeText(path.join(DIST_DIR, 'robots.txt'), `User-agent: *\nAllow: /\nDisallow: /app/\n\nSitemap: ${SITE_URL}/sitemap.xml\n`);
 };
 
 const main = () => {
   const template = readTemplate();
   const assets = extractHeadAssets(template);
   const articles = readArticles();
+  const aboutContent = readJson('about.json');
   const articlesBySlug = new Map(articles.map((article) => [article.slug, article]));
   const clustersBySlug = new Map(articleClusters.map((cluster) => [cluster.slug, cluster]));
   const articlesByCluster = new Map(articleClusters.map((cluster) => [
@@ -378,8 +467,16 @@ const main = () => {
   ]));
 
   writeText(path.join(DIST_DIR, 'index.html'), renderHomePage(template, assets, articles));
+  writeText(path.join(DIST_DIR, 'about', 'index.html'), renderAboutPage(template, assets, aboutContent));
   writeText(path.join(DIST_DIR, 'articles', 'index.html'), renderArticlesIndex(template, assets, articlesByCluster));
   writeText(path.join(DIST_DIR, '404.html'), render404(template, assets));
+
+  for (const route of APP_NO_INDEX_ROUTES) {
+    writeText(
+      path.join(DIST_DIR, ...route.path.split('/').filter(Boolean), 'index.html'),
+      renderAppNoIndexPage(template, assets, route),
+    );
+  }
 
   for (const article of articles) {
     writeText(
