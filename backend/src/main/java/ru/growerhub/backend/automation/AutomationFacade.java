@@ -297,6 +297,7 @@ public class AutomationFacade {
             next.add(entity);
         }
         resourceRepository.deleteAllByScopeTypeAndScopeId(scopeType, scopeId);
+        resourceRepository.flush();
         resourceRepository.saveAll(next);
     }
 

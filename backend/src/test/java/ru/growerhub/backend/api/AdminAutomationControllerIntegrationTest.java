@@ -160,6 +160,37 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 .body("rooms[0].boxes[0].resources[0].command_property", equalTo("state"))
                 .body("rooms[0].boxes[0].resources[0].ready", equalTo(true))
                 .body("rooms[0].boxes[0].readiness.LIGHT_SCHEDULE.ready", equalTo(true));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"resources":[
+                          {
+                            "role":"AIR_TEMPERATURE_SENSOR",
+                            "source_type":"ZIGBEE_DEVICE",
+                            "zigbee_ieee_address":"0xa4c138ccd6b42d0c",
+                            "zigbee_property":"temperature"
+                          },
+                          {
+                            "role":"LIGHT_SWITCH",
+                            "source_type":"ZIGBEE_DEVICE",
+                            "zigbee_ieee_address":"0xa4c13895af2c1df3",
+                            "zigbee_property":"state",
+                            "command_property":"state",
+                            "on_value":"ON",
+                            "off_value":"OFF"
+                          }
+                        ]}
+                        """)
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/resources")
+                .then()
+                .statusCode(200)
+                .body("rooms[0].boxes[0].resources", hasSize(2))
+                .body("rooms[0].boxes[0].resources.find { it.role == 'AIR_TEMPERATURE_SENSOR' }.zigbee_ieee_address", equalTo("0xa4c138ccd6b42d0c"))
+                .body("rooms[0].boxes[0].resources.find { it.role == 'AIR_TEMPERATURE_SENSOR' }.zigbee_property", equalTo("temperature"))
+                .body("rooms[0].boxes[0].resources.find { it.role == 'LIGHT_SWITCH' }.zigbee_property", equalTo("state"));
     }
 
     private Integer createRoom(String token, String name) {
@@ -196,7 +227,7 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 "bridge/devices",
                 null,
                 "[]",
-                List.of(smartPlugBridgeDevice()),
+                List.of(smartPlugBridgeDevice(), temperatureSensorBridgeDevice()),
                 now
         ));
         zigbeeFacade.handleMqttSnapshot(new ZigbeeMqttSnapshotMessage(
@@ -206,6 +237,15 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 "smartplug1",
                 "{\"state\":\"OFF\",\"power\":0}",
                 Map.of("state", "OFF", "power", 0),
+                now
+        ));
+        zigbeeFacade.handleMqttSnapshot(new ZigbeeMqttSnapshotMessage(
+                ZigbeeMqttMessageType.DEVICE_STATE,
+                "zigbee2growerhub/temp_sensor1",
+                "temp_sensor1",
+                "temp_sensor1",
+                "{\"temperature\":24.5}",
+                Map.of("temperature", 24.5),
                 now
         ));
     }
@@ -238,6 +278,29 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                                         "access", 1,
                                         "unit", "W",
                                         "label", "Power"
+                                )
+                        )
+                )
+        );
+    }
+
+    private Map<String, Object> temperatureSensorBridgeDevice() {
+        return Map.of(
+                "friendly_name", "temp_sensor1",
+                "ieee_address", "0xa4c138ccd6b42d0c",
+                "type", "EndDevice",
+                "supported", true,
+                "definition", Map.of(
+                        "model", "TS0601_temperature_humidity_sensor",
+                        "vendor", "Tuya",
+                        "exposes", List.of(
+                                Map.of(
+                                        "type", "numeric",
+                                        "name", "temperature",
+                                        "property", "temperature",
+                                        "access", 1,
+                                        "unit", "C",
+                                        "label", "Temperature"
                                 )
                         )
                 )
