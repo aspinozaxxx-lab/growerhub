@@ -154,6 +154,10 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(200)
                 .body("rooms[0].boxes[0].resources[0].role", equalTo("LIGHT_SWITCH"))
+                .body("rooms[0].boxes[0].resources[0].source_type", equalTo("ZIGBEE_DEVICE"))
+                .body("rooms[0].boxes[0].resources[0].zigbee_ieee_address", equalTo("0xa4c13895af2c1df3"))
+                .body("rooms[0].boxes[0].resources[0].zigbee_property", equalTo("state"))
+                .body("rooms[0].boxes[0].resources[0].command_property", equalTo("state"))
                 .body("rooms[0].boxes[0].resources[0].ready", equalTo(true))
                 .body("rooms[0].boxes[0].readiness.LIGHT_SCHEDULE.ready", equalTo(true));
     }
