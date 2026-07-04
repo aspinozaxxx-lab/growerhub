@@ -65,7 +65,7 @@ const SCENARIO_FIELDS = {
   ],
   BOX_CLIMATE: [
     ['min_c', 'Мин., °C', 'number'],
-    ['max_c', 'Макс., °C', 'number'],
+    ['max_c', 'Вкл. вытяжку выше, °C', 'number'],
     ['exhaust_off_below_c', 'Вытяжку выкл. ниже, °C', 'number'],
     ['ac_request_above_c', 'Кондиционер выше, °C', 'number'],
     ['ac_clear_below_c', 'Снять запрос ниже, °C', 'number'],

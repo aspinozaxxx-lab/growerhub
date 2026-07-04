@@ -16,10 +16,31 @@ function listOrEmpty(value) {
 }
 
 function normalizeOptionPayload(payload = {}) {
-  return OPTION_KEYS.reduce((result, key) => {
+  const normalized = OPTION_KEYS.reduce((result, key) => {
     result[key] = payload[key] ?? null;
     return result;
   }, {});
+  if (normalized.source_type === 'NATIVE_SENSOR') {
+    normalized.native_pump_id = null;
+    normalized.zigbee_ieee_address = null;
+    normalized.zigbee_property = null;
+    normalized.command_property = null;
+    normalized.on_value = null;
+    normalized.off_value = null;
+  }
+  if (normalized.source_type === 'NATIVE_PUMP') {
+    normalized.native_sensor_id = null;
+    normalized.zigbee_ieee_address = null;
+    normalized.zigbee_property = null;
+    normalized.command_property = null;
+    normalized.on_value = null;
+    normalized.off_value = null;
+  }
+  if (normalized.source_type === 'ZIGBEE_DEVICE') {
+    normalized.native_sensor_id = null;
+    normalized.native_pump_id = null;
+  }
+  return normalized;
 }
 
 export function optionValue(payload) {
@@ -166,10 +187,10 @@ function fallbackBindingLabel(binding) {
   if (!binding) return '';
   const label = binding.label
     || binding.zigbee_ieee_address
-    || (binding.native_sensor_id ? `Sensor #${binding.native_sensor_id}` : null)
-    || (binding.native_pump_id ? `Pump #${binding.native_pump_id}` : null)
+    || (binding.native_sensor_id ? 'Native sensor' : null)
+    || (binding.native_pump_id ? 'Native pump' : null)
     || binding.role;
-  const detail = binding.zigbee_property || binding.source_type;
+  const detail = binding.source_type === 'ZIGBEE_DEVICE' ? binding.zigbee_property : null;
   return [label, detail].filter(Boolean).join(' - ');
 }
 

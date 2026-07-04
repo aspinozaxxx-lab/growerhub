@@ -32,6 +32,24 @@ const savedLightBinding = {
   label: smartplug2.friendly_name,
 };
 
+const nativeCatalog = {
+  native_devices: [
+    {
+      id: 10,
+      device_id: 'GROVIKA_2C294C',
+      name: 'Watering Device GROVIKA_2C294C',
+      sensors: [
+        {
+          id: 1,
+          device_id: 10,
+          type: 'AIR_TEMPERATURE',
+          label: null,
+        },
+      ],
+    },
+  ],
+};
+
 describe('admin automation resources', () => {
   it('uses the same option value for saved Zigbee switch bindings and catalog options', () => {
     const catalog = { zigbee_devices: [smartplug2] };
@@ -59,5 +77,34 @@ describe('admin automation resources', () => {
     expect(options).toHaveLength(1);
     expect(options[0].value).toBe(bindingOptionValue(savedLightBinding));
     expect(options[0].label).toContain('smartplug2');
+  });
+
+  it('matches saved native sensor bindings to catalog options without showing technical ids', () => {
+    const savedNativeBinding = {
+      role: 'AIR_TEMPERATURE_SENSOR',
+      source_type: 'NATIVE_SENSOR',
+      native_sensor_id: 1,
+      zigbee_property: 'temperature',
+      label: null,
+    };
+
+    const options = optionsForRole('AIR_TEMPERATURE_SENSOR', nativeCatalog);
+    const withCurrent = optionsWithCurrentBinding(options, savedNativeBinding);
+
+    expect(options[0].value).toBe(bindingOptionValue(savedNativeBinding));
+    expect(withCurrent).toHaveLength(1);
+    expect(withCurrent[0].label).toContain('Watering Device GROVIKA_2C294C');
+    expect(withCurrent[0].label).not.toContain('Sensor #1');
+    expect(resourcePayload('AIR_TEMPERATURE_SENSOR', withCurrent[0].value)).toEqual({
+      role: 'AIR_TEMPERATURE_SENSOR',
+      source_type: 'NATIVE_SENSOR',
+      native_sensor_id: 1,
+      native_pump_id: null,
+      zigbee_ieee_address: null,
+      zigbee_property: null,
+      command_property: null,
+      on_value: null,
+      off_value: null,
+    });
   });
 });
