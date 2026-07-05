@@ -96,10 +96,10 @@
       'система управления теплицей',
     ],
     featuredArticles: [
+      'mini-ferma-iz-dvuh-grouboksov-dashboard',
       'avtomatizatsiya-teplitsy-chto-kontrolirovat',
       'monitoring-neskolkih-boksov',
       'uvedomleniya-v-mini-ferme',
-      'uchet-vody-i-polivov-v-teplitse',
       'masshtabirovanie-ot-boksa-do-mini-fermy',
     ],
   },
