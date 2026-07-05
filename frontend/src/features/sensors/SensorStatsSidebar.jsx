@@ -39,6 +39,23 @@ function formatAxisLabel(timestamp, range) {
   return formatDateDDMM(timestamp);
 }
 
+function formatDurationMs(durationMs) {
+  const totalMinutes = Math.floor(Math.max(0, durationMs) / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours > 0 && minutes > 0) {
+    return `${hours} ч ${minutes} мин`;
+  }
+  if (hours > 0) {
+    return `${hours} ч`;
+  }
+  if (totalMinutes > 0) {
+    return `${minutes} мин`;
+  }
+  return '0 мин';
+}
+
 function WateringTooltip({ active, payload, label }) {
   if (!active || !payload || payload.length === 0) {
     return null;
@@ -75,6 +92,31 @@ function BinaryTooltip({ active, payload, label, onLabel, offLabel, valueLabel }
   );
 }
 
+function DailyOnSummary({ items, isLoading }) {
+  return (
+    <section className="sensor-sidebar__daily" aria-label="Включено по дням">
+      <div className="sensor-sidebar__daily-header">
+        <h3>Включено по дням</h3>
+        <span>Последние 7 дней</span>
+      </div>
+      {isLoading ? (
+        <div className="sensor-sidebar__daily-state">Загрузка списка...</div>
+      ) : items.length === 0 ? (
+        <div className="sensor-sidebar__daily-state">Нет данных за последние 7 дней</div>
+      ) : (
+        <ul className="sensor-sidebar__daily-list">
+          {items.map((item) => (
+            <li key={item.dateKey} className="sensor-sidebar__daily-item">
+              <span>{item.dateLabel}</span>
+              <strong>{formatDurationMs(item.durationMs)}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function SensorChart({
   metric,
   range,
@@ -85,7 +127,12 @@ function SensorChart({
   binaryOffLabel = 'Выключено',
 }) {
   const preparedData = Array.isArray(data)
-    ? data.filter((item) => item?.timestamp && item.value !== null && item.value !== undefined)
+    ? data.filter((item) => (
+      item?.timestamp
+      && Number.isFinite(item.timeMs)
+      && item.value !== null
+      && item.value !== undefined
+    ))
     : [];
   const empty = preparedData.length === 0;
 
@@ -131,7 +178,10 @@ function SensorChart({
         <LineChart data={preparedData} margin={{ top: 8, right: 8, left: -12, bottom: 8 }}>
           <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.08)" />
           <XAxis
-            dataKey="timestamp"
+            dataKey="timeMs"
+            type="number"
+            scale="time"
+            domain={['dataMin', 'dataMax']}
             tickFormatter={(value) => formatAxisLabel(value, range)}
             tick={{ fill: '#c7d7ef', fontSize: 12 }}
           />
@@ -169,7 +219,10 @@ function SensorChart({
       <LineChart data={preparedData} margin={{ top: 8, right: 8, left: -12, bottom: 8 }}>
         <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.08)" />
         <XAxis
-          dataKey="timestamp"
+          dataKey="timeMs"
+          type="number"
+          scale="time"
+          domain={['dataMin', 'dataMax']}
           tickFormatter={(value) => formatAxisLabel(value, range)}
           tick={{ fill: '#c7d7ef', fontSize: 12 }}
         />
@@ -217,7 +270,16 @@ function SensorStatsSidebar() {
     || (mode === 'zigbee' && zigbeeIeeeAddress && zigbeeProperty)
     || (mode === 'pump' && pumpId)
   );
-  const { activeRange, setRange, chartData, isLoading, error } = useSensorStats({
+  const resolvedChartKind = chartKind || (mode === 'pump' ? 'binary' : 'numeric');
+  const {
+    activeRange,
+    setRange,
+    chartData,
+    dailyOnDurations,
+    isLoading,
+    isDailyLoading,
+    error,
+  } = useSensorStats({
     mode: shouldLoad ? mode : null,
     sensorId: shouldLoad ? sensorId : null,
     plantId: shouldLoad ? plantId : null,
@@ -225,7 +287,9 @@ function SensorStatsSidebar() {
     zigbeeIeeeAddress: shouldLoad ? zigbeeIeeeAddress : null,
     zigbeeProperty: shouldLoad ? zigbeeProperty : null,
     metric: shouldLoad ? metric : null,
+    chartKind: shouldLoad ? resolvedChartKind : null,
   });
+  const showDailyOnSummary = resolvedChartKind === 'binary' || mode === 'pump';
 
   const fallbackTitle = useMemo(() => {
     const metricLabel = metric ? METRIC_LABELS[metric] || metric : 'История';
@@ -266,13 +330,17 @@ function SensorStatsSidebar() {
             metric={metric}
             range={activeRange}
             data={chartData}
-            chartKind={chartKind || (mode === 'pump' ? 'binary' : 'numeric')}
+            chartKind={resolvedChartKind}
             valueLabel={valueLabel}
             binaryOnLabel={binaryOnLabel || 'Включено'}
             binaryOffLabel={binaryOffLabel || 'Выключено'}
           />
         )}
       </div>
+
+      {showDailyOnSummary && (
+        <DailyOnSummary items={dailyOnDurations} isLoading={isDailyLoading} />
+      )}
     </SidePanel>
   );
 }
