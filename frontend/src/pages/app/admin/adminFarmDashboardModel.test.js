@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   RESOURCE_ROLES,
+  RESOURCE_SOURCE_TYPES,
   SCENARIO_TYPES,
   buildAcRequestBoxes,
+  buildResourceStatsPayload,
   findResource,
   formatResourceValue,
   isSwitchResourceOn,
@@ -66,5 +68,49 @@ describe('admin farm dashboard model', () => {
       ready: true,
     }, RESOURCE_ROLES.WATER_PUMP)).toBe('Идет полив');
     expect(formatResourceValue(null, RESOURCE_ROLES.LIGHT_SWITCH)).toBe('Не привязано');
+  });
+  it('stroitr payload statistiki dlya native sensora', () => {
+    expect(buildResourceStatsPayload({
+      source_type: RESOURCE_SOURCE_TYPES.NATIVE_SENSOR,
+      native_sensor_id: 12,
+      label: 'Датчик 1',
+    }, RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR, 'Бокс 1')).toMatchObject({
+      mode: 'sensor',
+      sensorId: 12,
+      metric: 'air_temperature',
+      chartKind: 'numeric',
+      title: 'Температура воздуха',
+      subtitle: 'Бокс 1',
+    });
+  });
+
+  it('stroitr payload statistiki dlya Zigbee svojstva', () => {
+    expect(buildResourceStatsPayload({
+      source_type: RESOURCE_SOURCE_TYPES.ZIGBEE_DEVICE,
+      zigbee_ieee_address: '0xabc',
+      zigbee_property: 'state',
+    }, RESOURCE_ROLES.LIGHT_SWITCH, 'Бокс 2')).toMatchObject({
+      mode: 'zigbee',
+      zigbeeIeeeAddress: '0xabc',
+      zigbeeProperty: 'state',
+      metric: 'device_state',
+      chartKind: 'binary',
+      title: 'Свет',
+      subtitle: 'Бокс 2',
+    });
+  });
+
+  it('stroitr payload statistiki dlya native nasosa', () => {
+    expect(buildResourceStatsPayload({
+      source_type: RESOURCE_SOURCE_TYPES.NATIVE_PUMP,
+      native_pump_id: 3,
+    }, RESOURCE_ROLES.WATER_PUMP, 'Бокс 3')).toMatchObject({
+      mode: 'pump',
+      pumpId: 3,
+      metric: 'pump',
+      chartKind: 'binary',
+      title: 'Полив',
+      subtitle: 'Бокс 3',
+    });
   });
 });

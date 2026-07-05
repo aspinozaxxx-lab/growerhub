@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.pump.contract.PumpAck;
+import ru.growerhub.backend.pump.contract.PumpHistoryPoint;
 import ru.growerhub.backend.pump.contract.PumpRebootResult;
 import ru.growerhub.backend.pump.contract.PumpStartResult;
 import ru.growerhub.backend.pump.contract.PumpStatusResult;
@@ -14,6 +15,7 @@ import ru.growerhub.backend.pump.contract.PumpStopResult;
 import ru.growerhub.backend.pump.engine.PumpBindingService;
 import ru.growerhub.backend.pump.engine.PumpQueryService;
 import ru.growerhub.backend.pump.engine.PumpService;
+import ru.growerhub.backend.pump.engine.PumpStateHistoryService;
 import ru.growerhub.backend.pump.engine.PumpWateringService;
 import ru.growerhub.backend.pump.contract.PumpView;
 
@@ -23,17 +25,20 @@ public class PumpFacade {
     private final PumpWateringService wateringService;
     private final PumpQueryService queryService;
     private final PumpService pumpService;
+    private final PumpStateHistoryService stateHistoryService;
 
     public PumpFacade(
             PumpBindingService bindingService,
             PumpWateringService wateringService,
             PumpQueryService queryService,
-            PumpService pumpService
+            PumpService pumpService,
+            PumpStateHistoryService stateHistoryService
     ) {
         this.bindingService = bindingService;
         this.wateringService = wateringService;
         this.queryService = queryService;
         this.pumpService = pumpService;
+        this.stateHistoryService = stateHistoryService;
     }
 
     @Transactional
@@ -86,6 +91,16 @@ public class PumpFacade {
     @Transactional
     public void finalizeWateringByDeviceId(String deviceId, LocalDateTime now) {
         wateringService.finalizeWateringByDeviceId(deviceId, now);
+    }
+
+    @Transactional
+    public void recordStateByDeviceId(Integer devicePk, DeviceShadowState state, LocalDateTime now) {
+        stateHistoryService.record(devicePk, state, now);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PumpHistoryPoint> getHistory(Integer pumpId, Integer hours, AuthenticatedUser user) {
+        return stateHistoryService.getHistory(pumpId, hours, user);
     }
 
     @Transactional(readOnly = true)

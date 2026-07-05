@@ -2,7 +2,7 @@
 
 ## Назначение
 
-Управляет насосами, привязками к растениям, ручным поливом, статусом полива и командами stop/reboot.
+Управляет насосами, привязками к растениям, ручным поливом, статусом полива, историей фактического состояния насоса и командами stop/reboot.
 
 ## Публичный Facade
 
@@ -13,6 +13,8 @@
 - `stop(Integer pumpId, AuthenticatedUser user)`
 - `reboot(Integer pumpId, AuthenticatedUser user)`
 - `status(Integer pumpId, AuthenticatedUser user)`
+- `getHistory(Integer pumpId, Integer hours, AuthenticatedUser user)`
+- `recordStateByDeviceId(Integer devicePk, DeviceShadowState state, LocalDateTime now)`
 - `getAck(String correlationId)`
 - `finalizeWateringByDeviceId(String deviceId, LocalDateTime now)`
 - `listByDeviceId(Integer deviceId, DeviceShadowState state)`
@@ -26,6 +28,7 @@
 - `PumpAck`
 - `PumpBoundPlantView`
 - `PumpCommandGateway`
+- `PumpHistoryPoint`
 - `PumpRebootResult`
 - `PumpRunningStatusProvider`
 - `PumpStartResult`
@@ -35,7 +38,7 @@
 
 ## Владение данными
 
-Домен владеет насосами и привязками насосов к растениям. Состояние устройства, растения и журнал полива принадлежат другим доменам и используются через публичные Facade или contracts.
+Домен владеет насосами, привязками насосов к растениям и историей фактического состояния насоса. Состояние устройства, растения и журнал полива принадлежат другим доменам и используются через публичные Facade или contracts.
 
 ## Используемые домены
 
@@ -51,8 +54,8 @@
 
 ## Алгоритм работы
 
-Facade обновляет привязки, отдает списки насосов, создает насос по умолчанию, запускает и останавливает ручной полив через шлюз команд, читает ACK и завершает полив по state устройства. При успешном поливе создаются записи журнала и метрики растения.
+Facade обновляет привязки, отдает списки насосов, создает насос по умолчанию, запускает и останавливает ручной полив через шлюз команд, читает ACK и завершает полив по state устройства. При поступлении native state от `device` домен записывает фактическое состояние насоса в history. При успешном поливе создаются записи журнала и метрики растения.
 
 ## Ограничения
 
-Pump не публикует MQTT напрямую, а использует `PumpCommandGateway`. Проверка доступа к устройству и растению выполняется через соответствующие домены. Параметры полива и ACK wait должны приходить из конфигурации.
+Pump не публикует MQTT напрямую, а использует `PumpCommandGateway`. Проверка доступа к устройству и растению выполняется через соответствующие домены. Параметры полива, ACK wait и history должны приходить из конфигурации. History отражает фактический state насоса, а не журнал команд автоматики.

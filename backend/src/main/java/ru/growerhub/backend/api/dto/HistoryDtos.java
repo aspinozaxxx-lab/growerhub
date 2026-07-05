@@ -19,4 +19,12 @@ public final class HistoryDtos {
             @JsonProperty("value") Double value
     ) {
     }
+
+    public record PumpHistoryPointResponse(
+            @JsonProperty("ts") LocalDateTime ts,
+            @JsonProperty("value") Double value,
+            @JsonProperty("is_running") Boolean isRunning,
+            @JsonProperty("raw_status") String rawStatus
+    ) {
+    }
 }

@@ -139,6 +139,26 @@
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.025);
   overflow: hidden;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+button.farm-dashboard-resource,
+button.farm-dashboard-sensor {
+  cursor: pointer;
+}
+
+button.farm-dashboard-resource:hover,
+button.farm-dashboard-sensor:hover {
+  border-color: rgba(95, 212, 145, 0.5);
+  background: rgba(95, 212, 145, 0.055);
+}
+
+button.farm-dashboard-resource:focus-visible,
+button.farm-dashboard-sensor:focus-visible {
+  outline: 2px solid rgba(95, 212, 145, 0.7);
+  outline-offset: 2px;
 }
 
 .farm-dashboard-resource--success {
@@ -350,6 +370,9 @@
   border: 1px solid var(--border-1);
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.025);
+  color: inherit;
+  font: inherit;
+  text-align: left;
 }
 
 .farm-dashboard-sensor--success {

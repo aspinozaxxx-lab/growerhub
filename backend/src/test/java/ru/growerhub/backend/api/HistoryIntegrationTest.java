@@ -25,6 +25,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
+import ru.growerhub.backend.device.DeviceFacade;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
@@ -32,6 +34,8 @@ import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
 import ru.growerhub.backend.plant.contract.PlantMetricType;
 import ru.growerhub.backend.plant.jpa.PlantRepository;
+import ru.growerhub.backend.pump.engine.PumpService;
+import ru.growerhub.backend.pump.jpa.PumpEntity;
 import ru.growerhub.backend.sensor.jpa.SensorEntity;
 import ru.growerhub.backend.sensor.jpa.SensorReadingEntity;
 import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
@@ -58,6 +62,12 @@ class HistoryIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private DeviceRepository deviceRepository;
+
+    @Autowired
+    private DeviceFacade deviceFacade;
+
+    @Autowired
+    private PumpService pumpService;
 
     @Autowired
     private PlantRepository plantRepository;
@@ -229,6 +239,69 @@ class HistoryIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void pumpHistoryRecordsFactualRunningStateFromDeviceState() {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        UserEntity admin = createUser("pump-history-admin@example.com", "admin");
+        DeviceEntity device = createDevice("pump-history-device", admin);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
+
+        DeviceShadowState running = new DeviceShadowState(
+                new DeviceShadowState.ManualWateringState(
+                        "running",
+                        30,
+                        now,
+                        20,
+                        "corr-history",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                ),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        deviceFacade.handleState(device.getDeviceId(), running, now);
+
+        String token = buildToken(admin.getId());
+        given()
+                .header("Authorization", "Bearer " + token)
+                .queryParam("hours", 24)
+                .when()
+                .get("/api/admin/pumps/" + pump.getId() + "/history")
+                .then()
+                .statusCode(200)
+                .body("size()", equalTo(1))
+                .body("[0].value", equalTo(1.0f))
+                .body("[0].is_running", equalTo(true))
+                .body("[0].raw_status", equalTo("running"));
+    }
+
+    @Test
+    void pumpHistoryRequiresAdmin() {
+        UserEntity owner = createUser("pump-history-user@example.com", "user");
+        DeviceEntity device = createDevice("pump-history-user-device", owner);
+        PumpEntity pump = pumpService.ensureDefaultPump(device.getId());
+        String token = buildToken(owner.getId());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .queryParam("hours", 24)
+                .when()
+                .get("/api/admin/pumps/" + pump.getId() + "/history")
+                .then()
+                .statusCode(403)
+                .body("detail", equalTo("Nedostatochno prav"));
+    }
+
+    @Test
     void plantHistoryRejectsUnknownMetric() {
         UserEntity user = createUser("plant-bad@example.com", "user");
         PlantEntity plant = createPlant(user, "BadMetric");
@@ -308,8 +381,6 @@ class HistoryIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
-
-
 
 
 

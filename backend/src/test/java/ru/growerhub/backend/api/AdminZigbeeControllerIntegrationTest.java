@@ -83,6 +83,21 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void historyRequiresAdmin() {
+        UserEntity user = createUser("zigbee-history-user@example.com", "user");
+        String token = buildToken(user.getId());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .queryParam("property", "state")
+                .when()
+                .get("/api/admin/zigbee/devices/0xa4c13895af2c1df3/history")
+                .then()
+                .statusCode(403)
+                .body("detail", equalTo("Nedostatochno prav"));
+    }
+
+    @Test
     void overviewReturnsStoredCoordinatorAndDevices() {
         UserEntity admin = createUser("zigbee-admin@example.com", "admin");
         String token = buildToken(admin.getId());
@@ -105,6 +120,47 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
                         hasItems("state", "power", "current", "voltage", "energy", "linkquality"))
                 .body("devices.find { it.friendly_name == 'smartplug1' }.controls.property",
                         hasItems("state", "countdown", "power_outage_memory", "child_lock", "identify"));
+    }
+
+    @Test
+    void historyReturnsBinaryAndNumericPropertyReadings() {
+        UserEntity admin = createUser("zigbee-history-admin@example.com", "admin");
+        String token = buildToken(admin.getId());
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        zigbeeFacade.handleMqttSnapshot(new ZigbeeMqttSnapshotMessage(
+                ZigbeeMqttMessageType.DEVICE_STATE,
+                "zigbee2growerhub/smartplug1",
+                "smartplug1",
+                "smartplug1",
+                "{\"state\":\"ON\",\"power\":15.5,\"nested\":{\"ignored\":true}}",
+                Map.of("state", "ON", "power", 15.5, "nested", Map.of("ignored", true)),
+                now
+        ));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .queryParam("property", "state")
+                .queryParam("hours", 24)
+                .when()
+                .get("/api/admin/zigbee/devices/0xa4c13895af2c1df3/history")
+                .then()
+                .statusCode(200)
+                .body("size()", equalTo(2))
+                .body("[0].value", equalTo(0.0f))
+                .body("[0].raw_value", equalTo("OFF"))
+                .body("[1].value", equalTo(1.0f))
+                .body("[1].raw_value", equalTo("ON"));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .queryParam("property", "power")
+                .queryParam("hours", 24)
+                .when()
+                .get("/api/admin/zigbee/devices/0xa4c13895af2c1df3/history")
+                .then()
+                .statusCode(200)
+                .body("size()", equalTo(2))
+                .body("[1].value", equalTo(15.5f));
     }
 
     @Test
@@ -364,6 +420,8 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
     }
 
     private void clearDatabase() {
+        jdbcTemplate.update("DELETE FROM zigbee_device_property_readings");
+        jdbcTemplate.update("DELETE FROM zigbee_device_state_events");
         jdbcTemplate.update("DELETE FROM zigbee_command_response_snapshots");
         jdbcTemplate.update("DELETE FROM zigbee_device_snapshots");
         jdbcTemplate.update("DELETE FROM zigbee_bridge_snapshots");

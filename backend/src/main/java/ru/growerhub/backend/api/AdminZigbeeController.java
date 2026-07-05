@@ -6,6 +6,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.ZigbeeDtos;
@@ -17,6 +18,7 @@ import ru.growerhub.backend.zigbee.contract.ZigbeeCommandResponseData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeCoordinatorData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeDeviceData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeFeatureData;
+import ru.growerhub.backend.zigbee.contract.ZigbeeHistoryPoint;
 import ru.growerhub.backend.zigbee.contract.ZigbeeOverviewData;
 
 @RestController
@@ -32,6 +34,19 @@ public class AdminZigbeeController {
     public ZigbeeDtos.OverviewResponse getOverview(@AuthenticationPrincipal AuthenticatedUser user) {
         requireAdmin(user);
         return toOverviewResponse(zigbeeFacade.getOverview());
+    }
+
+    @GetMapping("/api/admin/zigbee/devices/{ieee_address}/history")
+    public java.util.List<ZigbeeDtos.HistoryPointResponse> getHistory(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("ieee_address") String ieeeAddress,
+            @RequestParam("property") String property,
+            @RequestParam(value = "hours", required = false) Integer hours
+    ) {
+        requireAdmin(user);
+        return zigbeeFacade.getHistory(ieeeAddress, property, hours).stream()
+                .map(this::toHistoryPointResponse)
+                .toList();
     }
 
     @PostMapping("/api/admin/zigbee/permit-join")
@@ -176,6 +191,17 @@ public class AdminZigbeeController {
 
     private ZigbeeDtos.CommandPublishResponse toCommandPublishResponse(ZigbeeCommandPublishResult result) {
         return new ZigbeeDtos.CommandPublishResponse(result.message(), result.topic());
+    }
+
+    private ZigbeeDtos.HistoryPointResponse toHistoryPointResponse(ZigbeeHistoryPoint point) {
+        return new ZigbeeDtos.HistoryPointResponse(
+                point.ts(),
+                point.property(),
+                point.value(),
+                point.rawValue(),
+                point.valueText(),
+                point.valueBoolean()
+        );
     }
 
     private void requireAdmin(AuthenticatedUser user) {

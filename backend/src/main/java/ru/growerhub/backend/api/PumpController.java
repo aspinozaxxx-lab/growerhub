@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.ApiException;
 import ru.growerhub.backend.api.dto.CommonDtos;
+import ru.growerhub.backend.api.dto.HistoryDtos;
 import ru.growerhub.backend.api.dto.PumpDtos;
 import ru.growerhub.backend.common.config.pump.PumpAckWaitSettings;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
@@ -123,6 +124,23 @@ public class PumpController {
         );
     }
 
+    @GetMapping("/api/admin/pumps/{pump_id}/history")
+    public java.util.List<HistoryDtos.PumpHistoryPointResponse> history(
+            @PathVariable("pump_id") Integer pumpId,
+            @RequestParam(value = "hours", required = false) Integer hours,
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
+        requireAdmin(user);
+        return pumpFacade.getHistory(pumpId, hours, user).stream()
+                .map(point -> new HistoryDtos.PumpHistoryPointResponse(
+                        point.ts(),
+                        point.value(),
+                        point.isRunning(),
+                        point.rawStatus()
+                ))
+                .toList();
+    }
+
     @GetMapping("/api/pumps/watering/ack")
     public PumpDtos.PumpWateringAckResponse ack(
             @RequestParam("correlation_id") String correlationId,
@@ -217,5 +235,10 @@ public class PumpController {
         }
         return null;
     }
-}
 
+    private void requireAdmin(AuthenticatedUser user) {
+        if (user == null || !user.isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Nedostatochno prav");
+        }
+    }
+}

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.config.ZigbeeSettings;
 import ru.growerhub.backend.common.config.mqtt.MqttTopicSettings;
+import ru.growerhub.backend.common.config.zigbee.ZigbeeHistorySettings;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.zigbee.contract.ZigbeeBridgeData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeCommandGateway;
@@ -19,14 +20,19 @@ import ru.growerhub.backend.zigbee.contract.ZigbeeCommandResponseData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeCoordinatorData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeDeviceData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeFeatureData;
+import ru.growerhub.backend.zigbee.contract.ZigbeeHistoryPoint;
 import ru.growerhub.backend.zigbee.contract.ZigbeeMqttSnapshotMessage;
 import ru.growerhub.backend.zigbee.contract.ZigbeeOverviewData;
 import ru.growerhub.backend.zigbee.jpa.ZigbeeBridgeSnapshotEntity;
 import ru.growerhub.backend.zigbee.jpa.ZigbeeBridgeSnapshotRepository;
 import ru.growerhub.backend.zigbee.jpa.ZigbeeCommandResponseSnapshotEntity;
 import ru.growerhub.backend.zigbee.jpa.ZigbeeCommandResponseSnapshotRepository;
+import ru.growerhub.backend.zigbee.jpa.ZigbeeDevicePropertyReadingEntity;
+import ru.growerhub.backend.zigbee.jpa.ZigbeeDevicePropertyReadingRepository;
 import ru.growerhub.backend.zigbee.jpa.ZigbeeDeviceSnapshotEntity;
 import ru.growerhub.backend.zigbee.jpa.ZigbeeDeviceSnapshotRepository;
+import ru.growerhub.backend.zigbee.jpa.ZigbeeDeviceStateEventEntity;
+import ru.growerhub.backend.zigbee.jpa.ZigbeeDeviceStateEventRepository;
 
 @Service
 public class ZigbeeFacade {
@@ -37,8 +43,11 @@ public class ZigbeeFacade {
     private final ZigbeeBridgeSnapshotRepository bridgeRepository;
     private final ZigbeeDeviceSnapshotRepository deviceRepository;
     private final ZigbeeCommandResponseSnapshotRepository commandResponseRepository;
+    private final ZigbeeDeviceStateEventRepository stateEventRepository;
+    private final ZigbeeDevicePropertyReadingRepository propertyReadingRepository;
     private final ZigbeeCommandGateway commandGateway;
     private final ZigbeeSettings zigbeeSettings;
+    private final ZigbeeHistorySettings historySettings;
     private final MqttTopicSettings topicSettings;
     private final ObjectMapper objectMapper;
 
@@ -46,16 +55,22 @@ public class ZigbeeFacade {
             ZigbeeBridgeSnapshotRepository bridgeRepository,
             ZigbeeDeviceSnapshotRepository deviceRepository,
             ZigbeeCommandResponseSnapshotRepository commandResponseRepository,
+            ZigbeeDeviceStateEventRepository stateEventRepository,
+            ZigbeeDevicePropertyReadingRepository propertyReadingRepository,
             ZigbeeCommandGateway commandGateway,
             ZigbeeSettings zigbeeSettings,
+            ZigbeeHistorySettings historySettings,
             MqttTopicSettings topicSettings,
             ObjectMapper objectMapper
     ) {
         this.bridgeRepository = bridgeRepository;
         this.deviceRepository = deviceRepository;
         this.commandResponseRepository = commandResponseRepository;
+        this.stateEventRepository = stateEventRepository;
+        this.propertyReadingRepository = propertyReadingRepository;
         this.commandGateway = commandGateway;
         this.zigbeeSettings = zigbeeSettings;
+        this.historySettings = historySettings;
         this.topicSettings = topicSettings;
         this.objectMapper = objectMapper;
     }
@@ -85,6 +100,47 @@ public class ZigbeeFacade {
                 .map(this::toCommandResponseData)
                 .orElse(null);
         return new ZigbeeOverviewData(bridgeData, coordinator, devices, response);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ZigbeeHistoryPoint> getHistory(String ieeeAddress, String property, Integer hours) {
+        if (ieeeAddress == null || ieeeAddress.isBlank()) {
+            throw new DomainException("bad_request", "ieee_address obyazatelen");
+        }
+        String normalizedProperty = normalizeProperty(property);
+        ZigbeeDeviceSnapshotEntity device = deviceRepository.findByIeeeAddress(ieeeAddress).orElse(null);
+        if (device == null) {
+            throw new DomainException("not_found", "Zigbee ustrojstvo ne naideno");
+        }
+        int resolvedHours = hours != null ? hours : historySettings.getDefaultHours();
+        LocalDateTime since = LocalDateTime.now(java.time.ZoneOffset.UTC).minusHours(resolvedHours);
+        List<ZigbeeDevicePropertyReadingEntity> rows = propertyReadingRepository
+                .findAllByIeeeAddressAndPropertyAndTsGreaterThanEqualOrderByTs(
+                        device.getIeeeAddress(),
+                        normalizedProperty,
+                        since
+                );
+        if (rows.isEmpty()) {
+            rows = propertyReadingRepository
+                    .findAllByFriendlyNameAndPropertyAndTsGreaterThanEqualOrderByTs(
+                            device.getFriendlyName(),
+                            normalizedProperty,
+                            since
+                    );
+        }
+        List<ZigbeeDevicePropertyReadingEntity> sampled = downsample(rows, historySettings.getMaxPoints());
+        List<ZigbeeHistoryPoint> payload = new ArrayList<>();
+        for (ZigbeeDevicePropertyReadingEntity row : sampled) {
+            payload.add(new ZigbeeHistoryPoint(
+                    row.getTs(),
+                    row.getProperty(),
+                    normalizedHistoryValue(row),
+                    rawHistoryValue(row),
+                    row.getValueText(),
+                    row.getValueBoolean()
+            ));
+        }
+        return payload;
     }
 
     @Transactional
@@ -210,6 +266,7 @@ public class ZigbeeFacade {
         device.setLastStateAt(message.receivedAt());
         device.setUpdatedAt(message.receivedAt());
         deviceRepository.save(device);
+        recordDeviceStateHistory(device, message);
     }
 
     private void handleDeviceAvailability(ZigbeeMqttSnapshotMessage message) {
@@ -402,6 +459,106 @@ public class ZigbeeFacade {
                 readJson(response.getResponseJson()),
                 response.getUpdatedAt()
         );
+    }
+
+    private void recordDeviceStateHistory(ZigbeeDeviceSnapshotEntity device, ZigbeeMqttSnapshotMessage message) {
+        if (!(message.payload() instanceof Map<?, ?> map)) {
+            return;
+        }
+        ZigbeeDeviceStateEventEntity event = ZigbeeDeviceStateEventEntity.create();
+        event.setDeviceSnapshot(device);
+        event.setIeeeAddress(device.getIeeeAddress());
+        event.setFriendlyName(device.getFriendlyName());
+        event.setTs(message.receivedAt());
+        event.setRawStateJson(message.rawPayload());
+        event.setCreatedAt(message.receivedAt());
+        stateEventRepository.save(event);
+
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            String property = entry.getKey() != null ? entry.getKey().toString() : null;
+            Object value = entry.getValue();
+            if (property == null || property.isBlank() || !isPrimitiveHistoryValue(value)) {
+                continue;
+            }
+            ZigbeeDevicePropertyReadingEntity reading = ZigbeeDevicePropertyReadingEntity.create();
+            reading.setStateEvent(event);
+            reading.setDeviceSnapshot(device);
+            reading.setIeeeAddress(device.getIeeeAddress());
+            reading.setFriendlyName(device.getFriendlyName());
+            reading.setProperty(property);
+            reading.setTs(message.receivedAt());
+            reading.setCreatedAt(message.receivedAt());
+            applyHistoryValue(reading, value);
+            propertyReadingRepository.save(reading);
+        }
+    }
+
+    private boolean isPrimitiveHistoryValue(Object value) {
+        return value instanceof Number || value instanceof Boolean || value instanceof CharSequence;
+    }
+
+    private void applyHistoryValue(ZigbeeDevicePropertyReadingEntity reading, Object value) {
+        if (value instanceof Number number) {
+            reading.setValueNumeric(number.doubleValue());
+            reading.setValueText(value.toString());
+            return;
+        }
+        if (value instanceof Boolean bool) {
+            reading.setValueBoolean(bool);
+            reading.setValueText(value.toString());
+            return;
+        }
+        reading.setValueText(value != null ? value.toString() : null);
+    }
+
+    private Double normalizedHistoryValue(ZigbeeDevicePropertyReadingEntity row) {
+        if (row.getValueNumeric() != null) {
+            return row.getValueNumeric();
+        }
+        if (row.getValueBoolean() != null) {
+            return row.getValueBoolean() ? 1.0 : 0.0;
+        }
+        String text = row.getValueText();
+        if (text == null) {
+            return null;
+        }
+        String normalized = text.trim().toLowerCase();
+        if ("on".equals(normalized) || "true".equals(normalized) || "running".equals(normalized)) {
+            return 1.0;
+        }
+        if ("off".equals(normalized)
+                || "false".equals(normalized)
+                || "idle".equals(normalized)
+                || "stopped".equals(normalized)
+                || "completed".equals(normalized)) {
+            return 0.0;
+        }
+        return null;
+    }
+
+    private String rawHistoryValue(ZigbeeDevicePropertyReadingEntity row) {
+        if (row.getValueText() != null) {
+            return row.getValueText();
+        }
+        if (row.getValueBoolean() != null) {
+            return row.getValueBoolean().toString();
+        }
+        return row.getValueNumeric() != null ? row.getValueNumeric().toString() : null;
+    }
+
+    private List<ZigbeeDevicePropertyReadingEntity> downsample(
+            List<ZigbeeDevicePropertyReadingEntity> points,
+            int maxPoints
+    ) {
+        if (points.size() <= maxPoints) {
+            return points;
+        }
+        int step = (int) Math.ceil(points.size() / (double) maxPoints);
+        List<ZigbeeDevicePropertyReadingEntity> sampled = new ArrayList<>();
+        for (int i = 0; i < points.size(); i += step) {
+            sampled.add(points.get(i));
+        }
+        return sampled;
     }
 
     private Object readJson(String json) {

@@ -1,4 +1,5 @@
-﻿import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+﻿/* eslint-disable react-refresh/only-export-components -- Translitem: context eksportiruet provider i hook po sushchestvuyushchemu patternu. */
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 const SensorStatsContext = createContext(undefined);
 
@@ -8,7 +9,14 @@ function SensorStatsProvider({ children }) {
     mode: null,
     sensorId: null,
     plantId: null,
+    pumpId: null,
+    zigbeeIeeeAddress: null,
+    zigbeeProperty: null,
     metric: null,
+    chartKind: null,
+    valueLabel: null,
+    binaryOnLabel: null,
+    binaryOffLabel: null,
     title: null,
     subtitle: null,
   });
@@ -21,7 +29,14 @@ function SensorStatsProvider({ children }) {
       mode,
       sensorId,
       plantId,
+      pumpId,
+      zigbeeIeeeAddress,
+      zigbeeProperty,
       metric,
+      chartKind,
+      valueLabel,
+      binaryOnLabel,
+      binaryOffLabel,
       title,
       subtitle,
     } = payload;
@@ -35,7 +50,14 @@ function SensorStatsProvider({ children }) {
         mode,
         sensorId,
         plantId: null,
+        pumpId: null,
+        zigbeeIeeeAddress: null,
+        zigbeeProperty: null,
         metric: metric || null,
+        chartKind: chartKind || null,
+        valueLabel: valueLabel || null,
+        binaryOnLabel: binaryOnLabel || null,
+        binaryOffLabel: binaryOffLabel || null,
         title: title || null,
         subtitle: subtitle || null,
       });
@@ -51,7 +73,60 @@ function SensorStatsProvider({ children }) {
         mode,
         sensorId: null,
         plantId,
+        pumpId: null,
+        zigbeeIeeeAddress: null,
+        zigbeeProperty: null,
         metric,
+        chartKind: chartKind || null,
+        valueLabel: valueLabel || null,
+        binaryOnLabel: binaryOnLabel || null,
+        binaryOffLabel: binaryOffLabel || null,
+        title: title || null,
+        subtitle: subtitle || null,
+      });
+      return;
+    }
+
+    if (mode === 'zigbee') {
+      if (!zigbeeIeeeAddress || !zigbeeProperty) {
+        return;
+      }
+      setState({
+        isOpen: true,
+        mode,
+        sensorId: null,
+        plantId: null,
+        pumpId: null,
+        zigbeeIeeeAddress,
+        zigbeeProperty,
+        metric: metric || null,
+        chartKind: chartKind || null,
+        valueLabel: valueLabel || null,
+        binaryOnLabel: binaryOnLabel || null,
+        binaryOffLabel: binaryOffLabel || null,
+        title: title || null,
+        subtitle: subtitle || null,
+      });
+      return;
+    }
+
+    if (mode === 'pump') {
+      if (!pumpId) {
+        return;
+      }
+      setState({
+        isOpen: true,
+        mode,
+        sensorId: null,
+        plantId: null,
+        pumpId,
+        zigbeeIeeeAddress: null,
+        zigbeeProperty: null,
+        metric: metric || 'pump',
+        chartKind: chartKind || 'binary',
+        valueLabel: valueLabel || null,
+        binaryOnLabel: binaryOnLabel || null,
+        binaryOffLabel: binaryOffLabel || null,
         title: title || null,
         subtitle: subtitle || null,
       });

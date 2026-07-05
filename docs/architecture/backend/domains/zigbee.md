@@ -2,13 +2,14 @@
 
 ## Назначение
 
-Хранит админский snapshot Zigbee2MQTT bridge, координатора, Zigbee-устройств, последнего state и последнего ответа на команду.
+Хранит админский snapshot Zigbee2MQTT bridge, координатора, Zigbee-устройства, последний state, history primitive-свойств и последний ответ на команду.
 
 ## Публичный Facade
 
 `ZigbeeFacade`
 
 - `getOverview()`
+- `getHistory(String ieeeAddress, String property, Integer hours)`
 - `handleMqttSnapshot(ZigbeeMqttSnapshotMessage message)`
 - `permitJoin(Integer seconds)`
 - `setDeviceState(String ieeeAddress, String state)`
@@ -24,13 +25,14 @@
 - `ZigbeeCoordinatorData`
 - `ZigbeeDeviceData`
 - `ZigbeeFeatureData`
+- `ZigbeeHistoryPoint`
 - `ZigbeeMqttMessageType`
 - `ZigbeeMqttSnapshotMessage`
 - `ZigbeeOverviewData`
 
 ## Владение данными
 
-Домен владеет только техническим snapshot Zigbee2MQTT: bridge info/state, список устройств, последний raw state устройства, availability и последний command response. Он не создает бизнес-устройства GrowerHub и не владеет историями, датчиками, насосами или растениями.
+Домен владеет техническим snapshot Zigbee2MQTT: bridge info/state, список устройств, raw state, availability, command response, raw state events и индексированной историей примитивных свойств. Он не создает бизнес-устройства GrowerHub и не владеет датчиками, насосами или растениями.
 
 ## Используемые домены
 
@@ -43,12 +45,8 @@
 
 ## Алгоритм работы
 
-MQTT adapter классифицирует topics `zigbee2growerhub/#` и передает snapshot-сообщение в Facade. Facade обновляет raw JSON snapshot в БД. REST adapter отдает overview для админки и публикует команды через `ZigbeeCommandGateway`; итог команды приходит позже через `bridge/response/*`.
-
-Для Zigbee-устройств Facade строит производную модель из `bridge/devices[].definition.exposes`: `features` содержит плоский список возможностей, `metrics` содержит свойства с access bit `STATE=1`, `controls` содержит свойства с access bit `SET=2`. Access bit `GET=4` означает, что Zigbee2MQTT может запросить значение у устройства, но v1 админки не вызывает `/get`.
-
-Generic command `setDeviceProperty` публикует `{ "<property>": value }` в `zigbee2growerhub/<friendly_name>/set` только если property найден в writable `exposes`. Frontend не отправляет MQTT напрямую и не определяет тип устройства вручную.
+MQTT adapter классифицирует topics `zigbee2growerhub/#` и передает snapshot-сообщение в Facade. Facade обновляет raw JSON snapshot; для device state пишет raw event и примитивные свойства верхнего уровня в history. REST adapter отдает overview/history для админки и публикует команды через `ZigbeeCommandGateway`; итог команды приходит позже через `bridge/response/*`. Features строятся из `bridge/devices[].definition.exposes`.
 
 ## Ограничения
 
-Frontend не подключается к MQTT напрямую. Coordinator read-only для переименования. Переименование устройств выполняется только через Zigbee2MQTT `bridge/request/device/rename`; локальное имя меняется после MQTT snapshot от Zigbee2MQTT. Сложные типы `composite/list/color/climate` в v1 отображаются как capability, но не редактируются через админку.
+Frontend не подключается к MQTT напрямую. Coordinator read-only для переименования. Переименование устройств выполняется только через Zigbee2MQTT `bridge/request/device/rename`. В history для графиков индексируются только примитивные свойства верхнего уровня state payload; сложные `composite/list/color/climate` остаются в raw JSON.

@@ -28,6 +28,8 @@ const METRIC_LABELS = {
   air_humidity: 'Влажность воздуха',
   soil_moisture: 'Влажность почвы',
   watering: 'Поливы',
+  device_state: 'Состояние устройства',
+  pump: 'Состояние полива',
 };
 
 function formatAxisLabel(timestamp, range) {
@@ -55,15 +57,44 @@ function WateringTooltip({ active, payload, label }) {
   );
 }
 
-function SensorChart({ metric, range, data }) {
-  const empty = !data || data.length === 0;
+function BinaryTooltip({ active, payload, label, onLabel, offLabel, valueLabel }) {
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
+  const data = payload[0]?.payload || {};
+  const value = Number(data.value);
+  const labelText = value >= 0.5 ? onLabel : offLabel;
+
+  return (
+    <div className="recharts-default-tooltip">
+      <p className="recharts-tooltip-label">{formatTimestampLabel(label)}</p>
+      <p className="recharts-tooltip-item">{`${valueLabel}: ${labelText}`}</p>
+      {data.rawValue && <p className="recharts-tooltip-item">{`Исходное значение: ${data.rawValue}`}</p>}
+    </div>
+  );
+}
+
+function SensorChart({
+  metric,
+  range,
+  data,
+  chartKind = 'numeric',
+  valueLabel,
+  binaryOnLabel = 'Включено',
+  binaryOffLabel = 'Выключено',
+}) {
+  const preparedData = Array.isArray(data)
+    ? data.filter((item) => item?.timestamp && item.value !== null && item.value !== undefined)
+    : [];
+  const empty = preparedData.length === 0;
 
   if (empty) {
     return <div className="sensor-chart__empty">Нет данных для выбранного периода</div>;
   }
 
   if (metric === 'watering') {
-    const prepared = data.map((item, idx) => ({
+    const prepared = preparedData.map((item, idx) => ({
       ...item,
       id: idx,
     }));
@@ -93,9 +124,49 @@ function SensorChart({ metric, range, data }) {
     );
   }
 
+  if (chartKind === 'binary') {
+    const label = valueLabel || METRIC_LABELS[metric] || 'Состояние';
+    return (
+      <ResponsiveContainer width="100%" height={260}>
+        <LineChart data={preparedData} margin={{ top: 8, right: 8, left: -12, bottom: 8 }}>
+          <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.08)" />
+          <XAxis
+            dataKey="timestamp"
+            tickFormatter={(value) => formatAxisLabel(value, range)}
+            tick={{ fill: '#c7d7ef', fontSize: 12 }}
+          />
+          <YAxis
+            domain={[0, 1]}
+            ticks={[0, 1]}
+            tickFormatter={(value) => (Number(value) >= 0.5 ? binaryOnLabel : binaryOffLabel)}
+            tick={{ fill: '#c7d7ef', fontSize: 12 }}
+            width={86}
+          />
+          <Tooltip
+            content={(
+              <BinaryTooltip
+                onLabel={binaryOnLabel}
+                offLabel={binaryOffLabel}
+                valueLabel={label}
+              />
+            )}
+          />
+          <Line
+            type="stepAfter"
+            dataKey="value"
+            stroke="#6bdba8"
+            strokeWidth={2}
+            dot={false}
+            isAnimationActive={false}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  }
+
   return (
     <ResponsiveContainer width="100%" height={260}>
-      <LineChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 8 }}>
+      <LineChart data={preparedData} margin={{ top: 8, right: 8, left: -12, bottom: 8 }}>
         <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.08)" />
         <XAxis
           dataKey="timestamp"
@@ -104,7 +175,7 @@ function SensorChart({ metric, range, data }) {
         />
         <YAxis tick={{ fill: '#c7d7ef', fontSize: 12 }} />
         <Tooltip
-          formatter={(value) => [formatSensorValue(value), METRIC_LABELS[metric] || metric]}
+          formatter={(value) => [formatSensorValue(value), valueLabel || METRIC_LABELS[metric] || metric]}
           labelFormatter={(value) => formatTimestampLabel(value)}
           contentStyle={{ fontSize: '0.9rem' }}
           labelStyle={{ color: '#0f172a', fontWeight: 600 }}
@@ -127,17 +198,32 @@ function SensorStatsSidebar() {
     mode,
     sensorId,
     plantId,
+    pumpId,
+    zigbeeIeeeAddress,
+    zigbeeProperty,
     metric,
+    chartKind,
+    valueLabel,
+    binaryOnLabel,
+    binaryOffLabel,
     title,
     subtitle,
     closeSensorStats,
   } = useSensorStatsContext();
 
-  const shouldLoad = isOpen && ((mode === 'sensor' && sensorId) || (mode === 'plant' && plantId && metric));
+  const shouldLoad = isOpen && (
+    (mode === 'sensor' && sensorId)
+    || (mode === 'plant' && plantId && metric)
+    || (mode === 'zigbee' && zigbeeIeeeAddress && zigbeeProperty)
+    || (mode === 'pump' && pumpId)
+  );
   const { activeRange, setRange, chartData, isLoading, error } = useSensorStats({
     mode: shouldLoad ? mode : null,
     sensorId: shouldLoad ? sensorId : null,
     plantId: shouldLoad ? plantId : null,
+    pumpId: shouldLoad ? pumpId : null,
+    zigbeeIeeeAddress: shouldLoad ? zigbeeIeeeAddress : null,
+    zigbeeProperty: shouldLoad ? zigbeeProperty : null,
     metric: shouldLoad ? metric : null,
   });
 
@@ -176,7 +262,15 @@ function SensorStatsSidebar() {
         ) : error ? (
           <div className="sensor-sidebar__state sensor-sidebar__state--error">{error}</div>
         ) : (
-          <SensorChart metric={metric} range={activeRange} data={chartData} />
+          <SensorChart
+            metric={metric}
+            range={activeRange}
+            data={chartData}
+            chartKind={chartKind || (mode === 'pump' ? 'binary' : 'numeric')}
+            valueLabel={valueLabel}
+            binaryOnLabel={binaryOnLabel || 'Включено'}
+            binaryOffLabel={binaryOffLabel || 'Выключено'}
+          />
         )}
       </div>
     </SidePanel>

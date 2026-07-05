@@ -91,6 +91,11 @@ sensor:
     defaultHours: 24
 
 pump:
+  history:
+    # Maksimal'noe kolichestvo tochek sostoyaniya nasosa.
+    maxPoints: 200
+    # Chasy istorii nasosa po umolchaniju.
+    defaultHours: 24
   watering:
     # Defoltnyi rashod (ml/ch).
     defaultRateMlPerHour: 2000
@@ -133,6 +138,11 @@ app:
 zigbee:
   # Vremja otkrytogo soprjazhenija po umolchaniju (sek).
   permitJoinDefaultSeconds: 254
+  history:
+    # Maksimal'noe kolichestvo tochek Zigbee-svojstva.
+    maxPoints: 200
+    # Chasy istorii Zigbee po umolchaniju.
+    defaultHours: 24
 
 automation:
   # Period worker avtomatizacii (ms).

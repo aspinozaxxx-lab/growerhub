@@ -121,6 +121,7 @@ public class DeviceFacade {
         Integer devicePk = findDeviceId(deviceId);
         if (devicePk != null) {
             pumpFacade.ensureDefaultPump(devicePk);
+            pumpFacade.recordStateByDeviceId(devicePk, state, now);
         }
         pumpFacade.finalizeWateringByDeviceId(deviceId, now);
         List<SensorReadingSummary> summaries = sensorFacade.recordMeasurements(deviceId, measurements, now);
@@ -380,5 +381,4 @@ public class DeviceFacade {
     }
 
 }
-
 

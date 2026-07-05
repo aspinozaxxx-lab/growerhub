@@ -330,6 +330,8 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM automation_box_plants");
         jdbcTemplate.update("DELETE FROM automation_boxes");
         jdbcTemplate.update("DELETE FROM automation_rooms");
+        jdbcTemplate.update("DELETE FROM zigbee_device_property_readings");
+        jdbcTemplate.update("DELETE FROM zigbee_device_state_events");
         jdbcTemplate.update("DELETE FROM zigbee_command_response_snapshots");
         jdbcTemplate.update("DELETE FROM zigbee_device_snapshots");
         jdbcTemplate.update("DELETE FROM zigbee_bridge_snapshots");

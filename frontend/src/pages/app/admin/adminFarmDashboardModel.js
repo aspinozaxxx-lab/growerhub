@@ -14,6 +14,12 @@ export const SCENARIO_TYPES = {
   WATERING: 'WATERING',
 };
 
+export const RESOURCE_SOURCE_TYPES = {
+  NATIVE_SENSOR: 'NATIVE_SENSOR',
+  NATIVE_PUMP: 'NATIVE_PUMP',
+  ZIGBEE_DEVICE: 'ZIGBEE_DEVICE',
+};
+
 const RESOURCE_ROLE_LABELS = {
   [RESOURCE_ROLES.AC_SWITCH]: 'Кондиционер',
   [RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR]: 'Температура воздуха',
@@ -44,6 +50,11 @@ const SCENARIO_STATUS_LABELS = {
 const SENSOR_UNITS = {
   [RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR]: '°C',
   [RESOURCE_ROLES.SOIL_MOISTURE_SENSOR]: '%',
+};
+
+const SENSOR_METRICS = {
+  [RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR]: 'air_temperature',
+  [RESOURCE_ROLES.SOIL_MOISTURE_SENSOR]: 'soil_moisture',
 };
 
 const NUMBER_FORMATTER = new Intl.NumberFormat('ru-RU', {
@@ -189,4 +200,74 @@ export function buildAcRequestBoxes(room) {
 
 export function countPlantsInRoom(room) {
   return listOrEmpty(room?.boxes).reduce((total, box) => total + listOrEmpty(box?.plants).length, 0);
+}
+
+export function resourceStatsProperty(resource, role) {
+  if (!resource) {
+    return null;
+  }
+  if (resource.zigbee_property) {
+    return resource.zigbee_property;
+  }
+  if (resource.command_property) {
+    return resource.command_property;
+  }
+  if (role === RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR) {
+    return 'temperature';
+  }
+  if (role === RESOURCE_ROLES.SOIL_MOISTURE_SENSOR) {
+    return 'soil_moisture';
+  }
+  return 'state';
+}
+
+export function buildResourceStatsPayload(resource, role, subtitle) {
+  if (!resource) {
+    return null;
+  }
+  const title = resourceRoleLabel(role);
+  const resolvedSubtitle = subtitle || resource.label || '';
+  if (resource.source_type === RESOURCE_SOURCE_TYPES.NATIVE_SENSOR && resource.native_sensor_id) {
+    return {
+      mode: 'sensor',
+      sensorId: resource.native_sensor_id,
+      metric: SENSOR_METRICS[role] || 'soil_moisture',
+      chartKind: 'numeric',
+      title,
+      subtitle: resolvedSubtitle,
+    };
+  }
+  if (resource.source_type === RESOURCE_SOURCE_TYPES.NATIVE_PUMP && resource.native_pump_id) {
+    return {
+      mode: 'pump',
+      pumpId: resource.native_pump_id,
+      metric: 'pump',
+      chartKind: 'binary',
+      title,
+      subtitle: resolvedSubtitle,
+      valueLabel: 'Состояние полива',
+      binaryOnLabel: 'Идет полив',
+      binaryOffLabel: 'Ожидание',
+    };
+  }
+  if (resource.source_type === RESOURCE_SOURCE_TYPES.ZIGBEE_DEVICE && resource.zigbee_ieee_address) {
+    const property = resourceStatsProperty(resource, role);
+    if (!property) {
+      return null;
+    }
+    const isSensor = role === RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR || role === RESOURCE_ROLES.SOIL_MOISTURE_SENSOR;
+    return {
+      mode: 'zigbee',
+      zigbeeIeeeAddress: resource.zigbee_ieee_address,
+      zigbeeProperty: property,
+      metric: SENSOR_METRICS[role] || 'device_state',
+      chartKind: isSensor ? 'numeric' : 'binary',
+      title,
+      subtitle: resolvedSubtitle,
+      valueLabel: title,
+      binaryOnLabel: 'Включено',
+      binaryOffLabel: 'Выключено',
+    };
+  }
+  return null;
 }

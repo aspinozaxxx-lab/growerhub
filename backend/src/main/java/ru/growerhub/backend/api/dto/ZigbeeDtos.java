@@ -87,6 +87,16 @@ public class ZigbeeDtos {
     ) {
     }
 
+    public record HistoryPointResponse(
+            @JsonProperty("ts") LocalDateTime ts,
+            @JsonProperty("property") String property,
+            @JsonProperty("value") Double value,
+            @JsonProperty("raw_value") String rawValue,
+            @JsonProperty("value_text") String valueText,
+            @JsonProperty("value_boolean") Boolean valueBoolean
+    ) {
+    }
+
     public record PermitJoinRequest(@JsonProperty("seconds") Integer seconds) {
     }
 

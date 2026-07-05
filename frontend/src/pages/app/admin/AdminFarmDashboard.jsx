@@ -18,12 +18,14 @@ import AppPageHeader from '../../../components/layout/AppPageHeader';
 import AppPageState from '../../../components/layout/AppPageState';
 import Surface from '../../../components/ui/Surface';
 import { useAuth } from '../../../features/auth/AuthContext';
+import { useSensorStatsContext } from '../../../features/sensors/SensorStatsContext';
 import { isSessionExpiredError } from '../../../api/client';
 import { fetchAdminAutomationOverview } from '../../../api/admin';
 import {
   RESOURCE_ROLES,
   SCENARIO_TYPES,
   buildAcRequestBoxes,
+  buildResourceStatsPayload,
   countPlantsInRoom,
   findResource,
   findScenario,
@@ -63,23 +65,24 @@ function StatusBadge({ children, tone = 'muted', icon: Icon = CircleDot }) {
   );
 }
 
-function ResourceTile({ role, resource, icon: Icon, motion = 'pulse' }) {
+function ResourceTile({ role, resource, icon: Icon, motion = 'pulse', statsSubtitle, onOpenStats }) {
   const active = isEquipmentActive(resource, role);
   const tone = resourceTone(resource, active);
   const value = formatResourceValue(resource, role);
   const lastSeen = resource?.last_seen_at ? formatDateTime(resource.last_seen_at) : 'Время неизвестно';
   const source = resource?.label || (resource ? 'Источник без имени' : 'Ресурс не выбран');
   const hasValue = hasCurrentValue(resource);
+  const statsPayload = buildResourceStatsPayload(resource, role, statsSubtitle);
 
   const classes = [
     'farm-dashboard-resource',
     `farm-dashboard-resource--${tone}`,
     active ? 'is-active' : '',
     !hasValue && resource ? 'is-empty-value' : '',
+    statsPayload ? 'is-clickable' : '',
   ].filter(Boolean).join(' ');
-
-  return (
-    <div className={classes}>
+  const content = (
+    <>
       <div className={`farm-dashboard-resource__icon ${active ? `is-${motion}` : ''}`} aria-hidden="true">
         {React.createElement(Icon, { size: 26 })}
       </div>
@@ -92,19 +95,44 @@ function ResourceTile({ role, resource, icon: Icon, motion = 'pulse' }) {
         <span>{resourceReadyLabel(resource)}</span>
         <span>{lastSeen}</span>
       </div>
+    </>
+  );
+
+  if (statsPayload) {
+    return (
+      <button
+        type="button"
+        className={classes}
+        onClick={() => onOpenStats?.(statsPayload)}
+        aria-label={`Открыть статистику: ${resourceRoleLabel(role)}`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={classes}>
+      {content}
     </div>
   );
 }
 
-function SensorTile({ resource }) {
+function SensorTile({ resource, statsSubtitle, onOpenStats }) {
   const role = resource?.role;
   const Icon = role === RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR ? Thermometer : Gauge;
   const tone = resourceTone(resource, false);
   const value = formatResourceValue(resource, role);
   const lastSeen = resource?.last_seen_at ? formatDateTime(resource.last_seen_at) : 'Время неизвестно';
 
-  return (
-    <div className={`farm-dashboard-sensor farm-dashboard-sensor--${tone}`}>
+  const statsPayload = buildResourceStatsPayload(resource, role, statsSubtitle);
+  const classes = [
+    'farm-dashboard-sensor',
+    `farm-dashboard-sensor--${tone}`,
+    statsPayload ? 'is-clickable' : '',
+  ].filter(Boolean).join(' ');
+  const content = (
+    <>
       <Icon size={20} aria-hidden="true" />
       <div>
         <div className="farm-dashboard-sensor__label">{resourceRoleLabel(role)}</div>
@@ -112,6 +140,25 @@ function SensorTile({ resource }) {
       </div>
       <span>{lastSeen}</span>
       <strong>{resourceReadyLabel(resource)}</strong>
+    </>
+  );
+
+  if (statsPayload) {
+    return (
+      <button
+        type="button"
+        className={classes}
+        onClick={() => onOpenStats?.(statsPayload)}
+        aria-label={`Открыть статистику: ${resourceRoleLabel(role)}`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={classes}>
+      {content}
     </div>
   );
 }
@@ -164,10 +211,11 @@ function PlantList({ plants }) {
   );
 }
 
-function FarmBox({ box }) {
+function FarmBox({ box, onOpenStats }) {
   const resources = listOrEmpty(box.resources);
   const sensors = resources.filter((resource) => String(resource?.role || '').endsWith('_SENSOR'));
   const plants = listOrEmpty(box.plants);
+  const statsSubtitle = box.name || 'Бокс без названия';
 
   return (
     <section className={`farm-dashboard-box ${box.enabled ? '' : 'is-disabled'}`}>
@@ -194,6 +242,8 @@ function FarmBox({ box }) {
               resource={findResource(resources, role)}
               icon={role === RESOURCE_ROLES.EXHAUST_SWITCH ? Fan : role === RESOURCE_ROLES.LIGHT_SWITCH ? Lightbulb : Droplets}
               motion={role === RESOURCE_ROLES.EXHAUST_SWITCH ? 'spin' : role === RESOURCE_ROLES.LIGHT_SWITCH ? 'glow' : 'water'}
+              statsSubtitle={statsSubtitle}
+              onOpenStats={onOpenStats}
             />
           ))}
         </div>
@@ -203,7 +253,12 @@ function FarmBox({ box }) {
         {sensors.length === 0 ? (
           <div className="farm-dashboard-empty-line">Датчики не привязаны</div>
         ) : sensors.map((sensor) => (
-          <SensorTile key={sensor.id || sensor.role} resource={sensor} />
+          <SensorTile
+            key={sensor.id || sensor.role}
+            resource={sensor}
+            statsSubtitle={statsSubtitle}
+            onOpenStats={onOpenStats}
+          />
         ))}
       </div>
 
@@ -221,7 +276,7 @@ function FarmBox({ box }) {
   );
 }
 
-function FarmRoom({ room }) {
+function FarmRoom({ room, onOpenStats }) {
   const boxes = listOrEmpty(room.boxes);
   const acResource = findResource(room.resources, RESOURCE_ROLES.AC_SWITCH);
   const acRequests = buildAcRequestBoxes(room);
@@ -272,6 +327,8 @@ function FarmRoom({ room }) {
           resource={acResource}
           icon={Snowflake}
           motion="cool"
+          statsSubtitle={room.name || 'Ферма без названия'}
+          onOpenStats={onOpenStats}
         />
         <div className="farm-dashboard-ac-requests">
           <div>
@@ -286,7 +343,7 @@ function FarmRoom({ room }) {
         {boxes.length === 0 ? (
           <div className="farm-dashboard-empty-line">Боксы не настроены</div>
         ) : boxes.map((box) => (
-          <FarmBox key={box.id} box={box} />
+          <FarmBox key={box.id} box={box} onOpenStats={onOpenStats} />
         ))}
       </div>
     </Surface>
@@ -295,6 +352,7 @@ function FarmRoom({ room }) {
 
 function AdminFarmDashboard() {
   const { token } = useAuth();
+  const { openSensorStats } = useSensorStatsContext();
   const [overview, setOverview] = useState(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -374,7 +432,7 @@ function AdminFarmDashboard() {
       {rooms.length > 0 && (
         <div className="farm-dashboard-rooms">
           {rooms.map((room) => (
-            <FarmRoom key={room.id} room={room} />
+            <FarmRoom key={room.id} room={room} onOpenStats={openSensorStats} />
           ))}
         </div>
       )}

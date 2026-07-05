@@ -168,6 +168,42 @@ export async function fetchAdminZigbeeOverview(token) {
   return response.json();
 }
 
+// Translitem: zagruzka istorii Zigbee-svojstva dlya admin-statistiki.
+export async function fetchAdminZigbeeHistory(ieeeAddress, property, hours, token) {
+  const params = new URLSearchParams();
+  params.set('property', property);
+  if (hours !== null && hours !== undefined) {
+    params.set('hours', hours);
+  }
+  const response = await apiFetch(
+    `/api/admin/zigbee/devices/${encodeURIComponent(ieeeAddress)}/history?${params.toString()}`,
+    token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
+  );
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось загрузить историю устройства');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
+}
+
+// Translitem: zagruzka istorii sostoyaniya nasosa dlya admin-statistiki.
+export async function fetchAdminPumpHistory(pumpId, hours, token) {
+  const params = new URLSearchParams();
+  if (hours !== null && hours !== undefined) {
+    params.set('hours', hours);
+  }
+  const query = params.toString();
+  const response = await apiFetch(
+    `/api/admin/pumps/${encodeURIComponent(pumpId)}/history${query ? `?${query}` : ''}`,
+    token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
+  );
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось загрузить историю полива');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
+}
+
 // Translitem: otkryvaem Zigbee pairing cherez backend MQTT publish.
 export async function adminZigbeePermitJoin(seconds, token) {
   const body = seconds !== null && seconds !== undefined ? { seconds } : {};
