@@ -7,6 +7,7 @@ import './AdminPages.css';
 
 // Translitem: punkty navigacii admin-razdela.
 const adminNavItems = [
+  { to: '/app/admin/dashboard', label: 'Дашборд' },
   { to: '/app/admin/users', label: 'Пользователи' },
   { to: '/app/admin/devices', label: 'Устройства' },
   { to: '/app/admin/plants', label: 'Растения' },
