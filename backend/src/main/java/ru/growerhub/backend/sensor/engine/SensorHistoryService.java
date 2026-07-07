@@ -1,6 +1,7 @@
 ﻿package ru.growerhub.backend.sensor.engine;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.context.annotation.Lazy;
@@ -39,7 +40,7 @@ public class SensorHistoryService {
             return List.of();
         }
         List<SensorReadingSummary> summaries = new ArrayList<>();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         for (SensorMeasurement measurement : measurements) {
             if (measurement == null) {
                 continue;
@@ -89,4 +90,3 @@ public class SensorHistoryService {
         return summaries;
     }
 }
-

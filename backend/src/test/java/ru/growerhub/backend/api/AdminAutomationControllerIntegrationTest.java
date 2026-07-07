@@ -230,6 +230,121 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void nativeSensorConnectionUsesDeviceLastSeenInsteadOfLastReading() {
+        UserEntity admin = createUser("automation-native-fresh-admin@example.com", "admin");
+        String token = buildToken(admin.getId());
+        Integer roomId = createRoom(token, "Room Native Fresh");
+        Integer boxId = createBox(token, roomId, "Box Native Fresh");
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        Integer sensorId = seedNativeSensor(
+                admin.getId(),
+                "native-fresh-device",
+                now,
+                now.minusMinutes(20),
+                "OK"
+        );
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"resources":[
+                          {"role":"AIR_TEMPERATURE_SENSOR","source_type":"NATIVE_SENSOR","native_sensor_id":%d}
+                        ]}
+                        """.formatted(sensorId))
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/resources")
+                .then()
+                .statusCode(200)
+                .body("rooms[0].boxes[0].resources[0].connection_status", equalTo("ok"));
+    }
+
+    @Test
+    void nativeSensorConnectionWarnsWhenDeviceLastSeenIsStale() {
+        UserEntity admin = createUser("automation-native-stale-admin@example.com", "admin");
+        String token = buildToken(admin.getId());
+        Integer roomId = createRoom(token, "Room Native Stale");
+        Integer boxId = createBox(token, roomId, "Box Native Stale");
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        Integer sensorId = seedNativeSensor(
+                admin.getId(),
+                "native-stale-device",
+                now.minusMinutes(10),
+                now,
+                "OK"
+        );
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"resources":[
+                          {"role":"AIR_TEMPERATURE_SENSOR","source_type":"NATIVE_SENSOR","native_sensor_id":%d}
+                        ]}
+                        """.formatted(sensorId))
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/resources")
+                .then()
+                .statusCode(200)
+                .body("rooms[0].boxes[0].resources[0].connection_status", equalTo("warning"))
+                .body("rooms[0].boxes[0].resources[0].connection_message", equalTo("нет связи"));
+    }
+
+    @Test
+    void nativeSensorConnectionWarnsWhenSensorStatusIsNotOk() {
+        UserEntity admin = createUser("automation-native-status-admin@example.com", "admin");
+        String token = buildToken(admin.getId());
+        Integer roomId = createRoom(token, "Room Native Status");
+        Integer boxId = createBox(token, roomId, "Box Native Status");
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        Integer disconnectedSensorId = seedNativeSensor(
+                admin.getId(),
+                "native-disconnected-device",
+                now,
+                now,
+                "DISCONNECTED"
+        );
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"resources":[
+                          {"role":"AIR_TEMPERATURE_SENSOR","source_type":"NATIVE_SENSOR","native_sensor_id":%d}
+                        ]}
+                        """.formatted(disconnectedSensorId))
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/resources")
+                .then()
+                .statusCode(200)
+                .body("rooms[0].boxes[0].resources[0].connection_status", equalTo("warning"))
+                .body("rooms[0].boxes[0].resources[0].connection_message", equalTo("нет связи"));
+
+        Integer errorSensorId = seedNativeSensor(
+                admin.getId(),
+                "native-error-device",
+                now,
+                now,
+                "ERROR"
+        );
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"resources":[
+                          {"role":"AIR_TEMPERATURE_SENSOR","source_type":"NATIVE_SENSOR","native_sensor_id":%d}
+                        ]}
+                        """.formatted(errorSensorId))
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/resources")
+                .then()
+                .statusCode(200)
+                .body("rooms[0].boxes[0].resources[0].connection_status", equalTo("warning"))
+                .body("rooms[0].boxes[0].resources[0].connection_message", equalTo("нет связи"));
+    }
+
+    @Test
     void untilDrainScenarioRequiresLeakSensor() {
         UserEntity admin = createUser("automation-until-admin@example.com", "admin");
         String token = buildToken(admin.getId());
@@ -554,6 +669,52 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 2000
         );
         return new NativeWateringResources(soilSensorId, pumpId);
+    }
+
+    private Integer seedNativeSensor(
+            Integer ownerId,
+            String deviceKey,
+            LocalDateTime deviceLastSeen,
+            LocalDateTime readingTs,
+            String status
+    ) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        jdbcTemplate.update(
+                "INSERT INTO devices (device_id, name, user_id, last_seen) VALUES (?, ?, ?, ?)",
+                deviceKey,
+                "Native sensor " + deviceKey,
+                ownerId,
+                deviceLastSeen
+        );
+        Integer deviceId = jdbcTemplate.queryForObject(
+                "SELECT id FROM devices WHERE device_id=?",
+                Integer.class,
+                deviceKey
+        );
+        jdbcTemplate.update(
+                "INSERT INTO sensors (device_id, type, channel, label, detected, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                deviceId,
+                "AIR_TEMPERATURE",
+                0,
+                "Air",
+                true,
+                status,
+                now,
+                now
+        );
+        Integer sensorId = jdbcTemplate.queryForObject(
+                "SELECT id FROM sensors WHERE device_id=? AND type='AIR_TEMPERATURE' AND channel=0",
+                Integer.class,
+                deviceId
+        );
+        jdbcTemplate.update(
+                "INSERT INTO sensor_readings (sensor_id, ts, value_numeric, created_at) VALUES (?, ?, ?, ?)",
+                sensorId,
+                readingTs,
+                24.0,
+                now
+        );
+        return sensorId;
     }
 
     private UserEntity createUser(String email, String role) {

@@ -1256,14 +1256,21 @@ public class AutomationFacade {
             if (sensor == null) {
                 return ResourceStatus.notReady("native sensor ne naiden");
             }
-            return new ResourceStatus(true, null, sensor.lastValue(), sensor.lastTs(), sensor.label());
+            return new ResourceStatus(
+                    true,
+                    null,
+                    sensor.lastValue(),
+                    sensor.lastSeenAt(),
+                    sensor.label(),
+                    nativeSensorConnectionWarning(sensor)
+            );
         }
         if (AutomationData.SOURCE_NATIVE_PUMP.equals(binding.getSourceType())) {
             AutomationData.NativePump pump = catalog.pumpsById.get(binding.getNativePumpId());
             if (pump == null) {
                 return ResourceStatus.notReady("native pump ne naiden");
             }
-            return new ResourceStatus(true, null, pump.isRunning(), pump.lastSeenAt(), pump.label());
+            return new ResourceStatus(true, null, pump.isRunning(), pump.lastSeenAt(), pump.label(), false);
         }
         if (AutomationData.SOURCE_ZIGBEE_DEVICE.equals(binding.getSourceType())) {
             AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(binding.getZigbeeIeeeAddress());
@@ -1272,9 +1279,16 @@ public class AutomationFacade {
             }
             Object value = readZigbeeFeatureValue(device, binding.getZigbeeProperty());
             LocalDateTime ts = device.lastStateAt();
-            return new ResourceStatus(true, null, value, ts, device.friendlyName());
+            return new ResourceStatus(true, null, value, ts, device.friendlyName(), false);
         }
         return ResourceStatus.notReady("neizvestnyj source_type");
+    }
+
+    private boolean nativeSensorConnectionWarning(AutomationData.NativeSensor sensor) {
+        if (sensor == null || sensor.status() == null) {
+            return false;
+        }
+        return "DISCONNECTED".equals(sensor.status()) || "ERROR".equals(sensor.status());
     }
 
     private SensorValue readSensorValue(AutomationResourceBindingEntity binding, Catalog catalog) {
@@ -1401,7 +1415,7 @@ public class AutomationFacade {
         for (DeviceSummary summary : deviceFacade.listAdminDevices()) {
             DeviceShadowState shadow = deviceFacade.getShadowState(summary.deviceId());
             List<AutomationData.NativeSensor> sensors = sensorFacade.listByDeviceId(summary.id()).stream()
-                    .map(this::toNativeSensorData)
+                    .map(sensor -> toNativeSensorData(sensor, summary))
                     .toList();
             sensors.forEach(sensor -> sensorsById.put(sensor.id(), sensor));
             List<AutomationData.NativePump> pumps = pumpFacade.listByDeviceId(summary.id(), shadow).stream()
@@ -1440,7 +1454,7 @@ public class AutomationFacade {
         );
     }
 
-    private AutomationData.NativeSensor toNativeSensorData(SensorView sensor) {
+    private AutomationData.NativeSensor toNativeSensorData(SensorView sensor, DeviceSummary summary) {
         return new AutomationData.NativeSensor(
                 sensor.id(),
                 sensor.deviceId(),
@@ -1449,7 +1463,8 @@ public class AutomationFacade {
                 sensor.label(),
                 sensor.status() != null ? sensor.status().name() : null,
                 sensor.lastValue(),
-                sensor.lastTs()
+                sensor.lastTs(),
+                summary != null ? summary.lastSeen() : null
         );
     }
 
@@ -1850,6 +1865,9 @@ public class AutomationFacade {
         if (status == null || !status.ready()) {
             return new ConnectionStatus(null, null);
         }
+        if (status.connectionWarning()) {
+            return new ConnectionStatus("warning", "нет связи");
+        }
         LocalDateTime lastSeenAt = status.ts();
         if (lastSeenAt == null || lastSeenAt.isBefore(now.minusMinutes(settings.getResourceOfflineMinutes()))) {
             return new ConnectionStatus("warning", "нет связи");
@@ -1988,9 +2006,16 @@ public class AutomationFacade {
     private record SensorValue(Double value, LocalDateTime ts) {
     }
 
-    private record ResourceStatus(boolean ready, String reason, Object value, LocalDateTime ts, String label) {
+    private record ResourceStatus(
+            boolean ready,
+            String reason,
+            Object value,
+            LocalDateTime ts,
+            String label,
+            boolean connectionWarning
+    ) {
         static ResourceStatus notReady(String reason) {
-            return new ResourceStatus(false, reason, null, null, null);
+            return new ResourceStatus(false, reason, null, null, null, false);
         }
     }
 

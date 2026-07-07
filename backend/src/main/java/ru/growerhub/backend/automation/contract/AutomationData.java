@@ -184,7 +184,8 @@ public final class AutomationData {
             @JsonProperty("label") String label,
             @JsonProperty("status") String status,
             @JsonProperty("last_value") Double lastValue,
-            @JsonProperty("last_ts") LocalDateTime lastTs
+            @JsonProperty("last_ts") LocalDateTime lastTs,
+            @JsonProperty("last_seen_at") LocalDateTime lastSeenAt
     ) {
     }
 

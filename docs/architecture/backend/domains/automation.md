@@ -54,7 +54,7 @@ Admin REST сохраняет помещения, боксы, растения, 
 
 Исполнительные команды уходят через существующие фасады: Zigbee switch commands публикуются в `zigbee2growerhub/<friendly_name>/set`, native watering идет через `PumpFacade`.
 
-Для ресурсов в API отдается производный статус связи. Если `last_seen_at` отсутствует или старше `automation.resourceOfflineMinutes`, response содержит `connection_status=warning` и `connection_message="нет связи"`. Это только представление для UI, отдельного хранения статуса связи в automation нет.
+Для ресурсов в API отдается производный статус связи. Если `last_seen_at` отсутствует или старше `automation.resourceOfflineMinutes`, response содержит `connection_status=warning` и `connection_message="нет связи"`. Для native sensor `last_seen_at` берется от родительского устройства, а `last_ts` остается временем последнего значения; статус `DISCONNECTED`/`ERROR` также дает warning. Это только представление для UI, отдельного хранения статуса связи в automation нет.
 
 ## Ограничения
 
