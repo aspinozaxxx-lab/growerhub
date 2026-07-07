@@ -144,10 +144,14 @@ export function resourceReadyLabel(resource) {
   if (!resource) {
     return 'Не привязано';
   }
+  if (resource.connection_status === 'warning') {
+    return resource.connection_message || 'нет связи';
+  }
   return resource.ready ? 'Готово' : 'Не готово';
 }
 
 export function resourceTone(resource, isActive = false) {
+  if (resource?.connection_status === 'warning') return 'warning';
   if (!resource || !resource.ready) return 'warning';
   return isActive ? 'success' : 'muted';
 }

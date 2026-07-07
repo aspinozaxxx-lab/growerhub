@@ -5,8 +5,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "automation")
 public class AutomationSettings {
     private long workerPeriodMs = 30000;
+    private long wateringWorkerPeriodMs = 1000;
     private int staleSensorMinutes = 15;
     private int manualOverrideMinutes = 15;
+    private int resourceOfflineMinutes = 5;
     private String timezone = "Europe/Istanbul";
 
     public long getWorkerPeriodMs() {
@@ -15,6 +17,14 @@ public class AutomationSettings {
 
     public void setWorkerPeriodMs(long workerPeriodMs) {
         this.workerPeriodMs = workerPeriodMs;
+    }
+
+    public long getWateringWorkerPeriodMs() {
+        return wateringWorkerPeriodMs;
+    }
+
+    public void setWateringWorkerPeriodMs(long wateringWorkerPeriodMs) {
+        this.wateringWorkerPeriodMs = wateringWorkerPeriodMs;
     }
 
     public int getStaleSensorMinutes() {
@@ -31,6 +41,14 @@ public class AutomationSettings {
 
     public void setManualOverrideMinutes(int manualOverrideMinutes) {
         this.manualOverrideMinutes = manualOverrideMinutes;
+    }
+
+    public int getResourceOfflineMinutes() {
+        return resourceOfflineMinutes;
+    }
+
+    public void setResourceOfflineMinutes(int resourceOfflineMinutes) {
+        this.resourceOfflineMinutes = resourceOfflineMinutes;
     }
 
     public String getTimezone() {

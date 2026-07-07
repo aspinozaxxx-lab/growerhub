@@ -36,4 +36,26 @@ public interface AutomationActionLogRepository extends JpaRepository<AutomationA
             @Param("result") String result,
             @Param("since") LocalDateTime since
     );
+
+    @Query("""
+            select coalesce(sum(l.durationS), 0)
+            from AutomationActionLogEntity l
+            where l.scopeType = :scopeType
+              and l.scopeId = :scopeId
+              and l.scenarioType = :scenarioType
+              and l.result = :result
+              and l.createdAt >= :since
+              and l.durationS is not null
+              and (
+                    l.action = 'PUMP_START'
+                    or l.action = 'PUMP_STOP'
+              )
+            """)
+    Long sumWateringDurationSince(
+            @Param("scopeType") String scopeType,
+            @Param("scopeId") Integer scopeId,
+            @Param("scenarioType") String scenarioType,
+            @Param("result") String result,
+            @Param("since") LocalDateTime since
+    );
 }

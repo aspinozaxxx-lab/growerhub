@@ -20,6 +20,7 @@ public final class AutomationData {
     public static final String ROLE_AIR_TEMPERATURE_SENSOR = "AIR_TEMPERATURE_SENSOR";
     public static final String ROLE_EXHAUST_SWITCH = "EXHAUST_SWITCH";
     public static final String ROLE_LIGHT_SWITCH = "LIGHT_SWITCH";
+    public static final String ROLE_LEAK_SENSOR = "LEAK_SENSOR";
     public static final String ROLE_SOIL_MOISTURE_SENSOR = "SOIL_MOISTURE_SENSOR";
     public static final String ROLE_WATER_PUMP = "WATER_PUMP";
 
@@ -39,7 +40,8 @@ public final class AutomationData {
     public record Settings(
             @JsonProperty("timezone") String timezone,
             @JsonProperty("stale_sensor_minutes") int staleSensorMinutes,
-            @JsonProperty("manual_override_minutes") int manualOverrideMinutes
+            @JsonProperty("manual_override_minutes") int manualOverrideMinutes,
+            @JsonProperty("resource_offline_minutes") int resourceOfflineMinutes
     ) {
     }
 
@@ -98,6 +100,8 @@ public final class AutomationData {
             @JsonProperty("off_value") String offValue,
             @JsonProperty("current_value") Object currentValue,
             @JsonProperty("last_seen_at") LocalDateTime lastSeenAt,
+            @JsonProperty("connection_status") String connectionStatus,
+            @JsonProperty("connection_message") String connectionMessage,
             @JsonProperty("label") String label,
             @JsonProperty("ready") boolean ready,
             @JsonProperty("reason") String reason
@@ -166,6 +170,7 @@ public final class AutomationData {
             @JsonProperty("device_id") String deviceId,
             @JsonProperty("name") String name,
             @JsonProperty("is_online") Boolean isOnline,
+            @JsonProperty("last_seen_at") LocalDateTime lastSeenAt,
             @JsonProperty("sensors") List<NativeSensor> sensors,
             @JsonProperty("pumps") List<NativePump> pumps
     ) {
@@ -188,7 +193,9 @@ public final class AutomationData {
             @JsonProperty("device_id") Integer deviceId,
             @JsonProperty("channel") Integer channel,
             @JsonProperty("label") String label,
-            @JsonProperty("is_running") Boolean isRunning
+            @JsonProperty("is_running") Boolean isRunning,
+            @JsonProperty("is_online") Boolean isOnline,
+            @JsonProperty("last_seen_at") LocalDateTime lastSeenAt
     ) {
     }
 

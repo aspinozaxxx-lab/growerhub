@@ -132,9 +132,9 @@
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   grid-template-rows: 1fr auto;
-  gap: 8px 10px;
-  min-height: 124px;
-  padding: 12px;
+  gap: 6px 10px;
+  min-height: 92px;
+  padding: 10px;
   border: 1px solid var(--border-1);
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.025);
@@ -168,6 +168,7 @@ button.farm-dashboard-sensor:focus-visible {
 
 .farm-dashboard-resource--warning {
   border-color: rgba(245, 193, 106, 0.45);
+  background: rgba(245, 193, 106, 0.09);
 }
 
 .farm-dashboard-resource--muted {
@@ -209,18 +210,9 @@ button.farm-dashboard-sensor:focus-visible {
   overflow-wrap: anywhere;
 }
 
-.farm-dashboard-resource__meta {
-  color: var(--text-3);
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-
 .farm-dashboard-resource__footer {
   grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  display: block;
   color: var(--text-3);
   font-size: 12px;
 }
@@ -342,7 +334,7 @@ button.farm-dashboard-sensor:focus-visible {
 
 .farm-dashboard-box__equipment .farm-dashboard-resource {
   grid-template-columns: 40px minmax(0, 1fr);
-  min-height: 112px;
+  min-height: 84px;
   padding: 10px;
 }
 
@@ -362,7 +354,7 @@ button.farm-dashboard-sensor:focus-visible {
 
 .farm-dashboard-sensor {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
   min-height: 48px;
@@ -381,6 +373,7 @@ button.farm-dashboard-sensor:focus-visible {
 
 .farm-dashboard-sensor--warning {
   border-color: rgba(245, 193, 106, 0.42);
+  background: rgba(245, 193, 106, 0.09);
 }
 
 .farm-dashboard-sensor svg {
@@ -516,7 +509,4 @@ button.farm-dashboard-sensor:focus-visible {
     font-size: 17px;
   }
 
-  .farm-dashboard-resource__footer {
-    display: grid;
-  }
 }

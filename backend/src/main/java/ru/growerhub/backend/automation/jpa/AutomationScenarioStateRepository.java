@@ -17,5 +17,7 @@ public interface AutomationScenarioStateRepository extends JpaRepository<Automat
 
     List<AutomationScenarioStateEntity> findAllByScenarioTypeAndAcRequestActiveTrue(String scenarioType);
 
+    List<AutomationScenarioStateEntity> findAllByScenarioType(String scenarioType);
+
     void deleteAllByScopeTypeAndScopeId(String scopeType, Integer scopeId);
 }

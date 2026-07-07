@@ -9,6 +9,8 @@ import {
   formatResourceValue,
   isSwitchResourceOn,
   resourceRoleLabel,
+  resourceReadyLabel,
+  resourceTone,
   scenarioDisplayStatus,
   scenarioStatusLabel,
   scenarioTypeLabel,
@@ -69,6 +71,18 @@ describe('admin farm dashboard model', () => {
     }, RESOURCE_ROLES.WATER_PUMP)).toBe('Идет полив');
     expect(formatResourceValue(null, RESOURCE_ROLES.LIGHT_SWITCH)).toBe('Не привязано');
   });
+
+  it('pokazyvaet net svyazi kak warning status resursa', () => {
+    const resource = {
+      ready: true,
+      connection_status: 'warning',
+      connection_message: 'нет связи',
+    };
+
+    expect(resourceReadyLabel(resource)).toBe('нет связи');
+    expect(resourceTone(resource, false)).toBe('warning');
+  });
+
   it('stroitr payload statistiki dlya native sensora', () => {
     expect(buildResourceStatsPayload({
       source_type: RESOURCE_SOURCE_TYPES.NATIVE_SENSOR,

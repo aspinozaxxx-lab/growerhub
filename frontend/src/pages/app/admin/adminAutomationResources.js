@@ -87,6 +87,11 @@ function hasMetric(device, property) {
   return listOrEmpty(device?.metrics).some((feature) => feature.property === property);
 }
 
+function hasReadableProperty(device, property) {
+  return listOrEmpty(device?.metrics).some((feature) => feature.property === property)
+    || listOrEmpty(device?.controls).some((feature) => feature.property === property);
+}
+
 function nativeDeviceLabel(devices, deviceId) {
   const device = listOrEmpty(devices).find((item) => item.id === deviceId);
   return device?.name || device?.device_id || `Device ${deviceId}`;
@@ -123,6 +128,21 @@ export function optionsForRole(role, catalog) {
             zigbee_property: zigbeeProperty,
           }),
           label: `${device.friendly_name} · ${featureLabel({ property: zigbeeProperty })}`,
+        });
+      });
+  }
+
+  if (role === 'LEAK_SENSOR') {
+    zigbeeDevices
+      .filter((device) => hasReadableProperty(device, 'water_leak'))
+      .forEach((device) => {
+        options.push({
+          value: optionValue({
+            source_type: 'ZIGBEE_DEVICE',
+            zigbee_ieee_address: device.ieee_address,
+            zigbee_property: 'water_leak',
+          }),
+          label: `${device.friendly_name} · ${featureLabel({ property: 'water_leak' })}`,
         });
       });
   }

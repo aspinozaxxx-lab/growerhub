@@ -107,4 +107,28 @@ describe('admin automation resources', () => {
       off_value: null,
     });
   });
+
+  it('stroitr option dlya Zigbee datchika protechki', () => {
+    const leakDevice = {
+      friendly_name: 'leak1',
+      ieee_address: '0xa4c1380000000003',
+      metrics: [{ property: 'water_leak', value: false }],
+      controls: [],
+    };
+
+    const options = optionsForRole('LEAK_SENSOR', { zigbee_devices: [leakDevice] });
+
+    expect(options).toHaveLength(1);
+    expect(resourcePayload('LEAK_SENSOR', options[0].value)).toEqual({
+      role: 'LEAK_SENSOR',
+      source_type: 'ZIGBEE_DEVICE',
+      native_sensor_id: null,
+      native_pump_id: null,
+      zigbee_ieee_address: leakDevice.ieee_address,
+      zigbee_property: 'water_leak',
+      command_property: null,
+      on_value: null,
+      off_value: null,
+    });
+  });
 });

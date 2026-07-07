@@ -36,6 +36,7 @@ const BOX_RESOURCE_ROLES = [
   'AIR_TEMPERATURE_SENSOR',
   'EXHAUST_SWITCH',
   'LIGHT_SWITCH',
+  'LEAK_SENSOR',
   'SOIL_MOISTURE_SENSOR',
   'WATER_PUMP',
 ];
@@ -47,6 +48,7 @@ const ROLE_LABELS = {
   AIR_TEMPERATURE_SENSOR: 'Температура воздуха',
   EXHAUST_SWITCH: 'Вытяжка',
   LIGHT_SWITCH: 'Свет',
+  LEAK_SENSOR: 'Датчик протечки',
   SOIL_MOISTURE_SENSOR: 'Влажность почвы',
   WATER_PUMP: 'Насос полива',
 };
@@ -77,7 +79,6 @@ const SCENARIO_FIELDS = {
   WATERING: [
     ['soil_threshold_percent', 'Порог почвы, %', 'number'],
     ['max_interval_hours', 'Макс. пауза, ч', 'number'],
-    ['run_seconds', 'Длительность, сек', 'number'],
     ['min_interval_hours', 'Мин. пауза, ч', 'number'],
     ['daily_max_seconds', 'Лимит в день, сек', 'number'],
   ],
@@ -295,6 +296,28 @@ function AdminAutomation() {
         [role]: value,
       },
     }));
+    if (role === 'LEAK_SENSOR' && !value) {
+      setScenarioDrafts((prev) => {
+        const scopeDraft = prev[key] || {};
+        const wateringDraft = scopeDraft.WATERING;
+        if (wateringDraft?.config?.stop_mode !== 'until_drain') {
+          return prev;
+        }
+        return {
+          ...prev,
+          [key]: {
+            ...scopeDraft,
+            WATERING: {
+              ...wateringDraft,
+              config: {
+                ...(wateringDraft.config || {}),
+                stop_mode: 'fixed_duration',
+              },
+            },
+          },
+        };
+      });
+    }
   }, []);
 
   const updateScenarioDraft = useCallback((scopeType, scopeId, scenarioType, patch) => {
@@ -318,6 +341,104 @@ function AdminAutomation() {
       };
     });
   }, []);
+
+  const updateScenarioConfig = useCallback((scopeType, scopeId, scenarioType, field, value) => {
+    updateScenarioDraft(scopeType, scopeId, scenarioType, { config: { [field]: value } });
+  }, [updateScenarioDraft]);
+
+  const renderScenarioNumberField = (scopeType, scopeId, scenarioType, draft, field, label) => (
+    <label className="admin-automation-field" key={field}>
+      <span>{label}</span>
+      <input
+        className="admin-input"
+        type="number"
+        step="0.1"
+        value={draft.config?.[field] ?? ''}
+        onChange={(event) => updateScenarioConfig(
+          scopeType,
+          scopeId,
+          scenarioType,
+          field,
+          event.target.value === '' ? '' : Number(event.target.value),
+        )}
+      />
+    </label>
+  );
+
+  const renderWateringFields = (scopeType, scopeId, draft) => {
+    const key = scopeKey(scopeType, scopeId);
+    const hasLeakSensor = Boolean(resourceDrafts[key]?.LEAK_SENSOR);
+    const stopMode = draft.config?.stop_mode || 'fixed_duration';
+    const visibleStopMode = !hasLeakSensor && stopMode === 'until_drain' ? 'fixed_duration' : stopMode;
+    const pulseEnabled = Boolean(draft.config?.pulse_enabled);
+    return (
+      <div className="admin-automation-grid">
+        {renderScenarioNumberField(scopeType, scopeId, 'WATERING', draft, 'soil_threshold_percent', 'Порог почвы, %')}
+        {renderScenarioNumberField(scopeType, scopeId, 'WATERING', draft, 'max_interval_hours', 'Макс. пауза, ч')}
+        <label className="admin-automation-field">
+          <span>Режим полива</span>
+          <select
+            className="admin-select"
+            value={visibleStopMode}
+            onChange={(event) => updateScenarioConfig(scopeType, scopeId, 'WATERING', 'stop_mode', event.target.value)}
+          >
+            <option value="fixed_duration">По длительности</option>
+            <option value="until_drain" disabled={!hasLeakSensor}>До дренажа</option>
+          </select>
+          {!hasLeakSensor && (
+            <span className="admin-automation-hint">Доступно после выбора датчика протечки</span>
+          )}
+        </label>
+        {visibleStopMode === 'until_drain'
+          ? renderScenarioNumberField(scopeType, scopeId, 'WATERING', draft, 'max_run_minutes', 'Макс. длительность, мин')
+          : renderScenarioNumberField(scopeType, scopeId, 'WATERING', draft, 'run_seconds', 'Длительность, сек')}
+        {renderScenarioNumberField(scopeType, scopeId, 'WATERING', draft, 'min_interval_hours', 'Мин. пауза, ч')}
+        {renderScenarioNumberField(scopeType, scopeId, 'WATERING', draft, 'daily_max_seconds', 'Лимит в день, сек')}
+        {visibleStopMode === 'until_drain' && (
+          <>
+            <label className="admin-automation-toggle admin-automation-toggle--field">
+              <input
+                type="checkbox"
+                checked={pulseEnabled}
+                onChange={(event) => updateScenarioConfig(scopeType, scopeId, 'WATERING', 'pulse_enabled', event.target.checked)}
+              />
+              <span>Импульсный режим</span>
+            </label>
+            {pulseEnabled && renderScenarioNumberField(scopeType, scopeId, 'WATERING', draft, 'pulse_run_minutes', 'Полив, мин')}
+            {pulseEnabled && renderScenarioNumberField(scopeType, scopeId, 'WATERING', draft, 'pulse_pause_minutes', 'Пауза, мин')}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderScenarioFields = (scopeType, scopeId, scenarioType, draft) => {
+    if (scenarioType === 'WATERING') {
+      return renderWateringFields(scopeType, scopeId, draft);
+    }
+    const fields = SCENARIO_FIELDS[scenarioType] || [];
+    return (
+      <div className="admin-automation-grid">
+        {fields.map(([field, label, type]) => (
+          <label className="admin-automation-field" key={field}>
+            <span>{label}</span>
+            <input
+              className="admin-input"
+              type={type}
+              step={type === 'number' ? '0.1' : undefined}
+              value={draft.config?.[field] ?? ''}
+              onChange={(event) => {
+                const value = type === 'number'
+                  ? (event.target.value === '' ? '' : Number(event.target.value))
+                  : event.target.value;
+                updateScenarioConfig(scopeType, scopeId, scenarioType, field, value);
+              }}
+            />
+          </label>
+        ))}
+      </div>
+    );
+  };
 
   const renderResources = (scopeType, scopeId, roles, resources) => {
     const key = scopeKey(scopeType, scopeId);
@@ -363,7 +484,6 @@ function AdminAutomation() {
       <div className="admin-automation-scenarios">
         {scenarioTypes.map((scenarioType) => {
           const draft = scopeDraft[scenarioType] || { enabled: false, config: {} };
-          const fields = SCENARIO_FIELDS[scenarioType] || [];
           return (
             <div className="admin-automation-scenario" key={scenarioType}>
               <label className="admin-automation-toggle">
@@ -374,23 +494,7 @@ function AdminAutomation() {
                 />
                 <span>{SCENARIO_LABELS[scenarioType] || scenarioType}</span>
               </label>
-              <div className="admin-automation-grid">
-                {fields.map(([field, label, type]) => (
-                  <label className="admin-automation-field" key={field}>
-                    <span>{label}</span>
-                    <input
-                      className="admin-input"
-                      type={type}
-                      step={type === 'number' ? '0.1' : undefined}
-                      value={draft.config?.[field] ?? ''}
-                      onChange={(event) => {
-                        const value = type === 'number' ? Number(event.target.value) : event.target.value;
-                        updateScenarioDraft(scopeType, scopeId, scenarioType, { config: { [field]: value } });
-                      }}
-                    />
-                  </label>
-                ))}
-              </div>
+              {renderScenarioFields(scopeType, scopeId, scenarioType, draft)}
             </div>
           );
         })}

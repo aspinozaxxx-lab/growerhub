@@ -24,4 +24,13 @@ public class AutomationWorker {
             log.warn("Automation worker tick failed: {}", ex.getMessage(), ex);
         }
     }
+
+    @Scheduled(fixedDelayString = "${automation.wateringWorkerPeriodMs:1000}")
+    public void wateringTick() {
+        try {
+            automationFacade.evaluateActiveWateringSessions();
+        } catch (RuntimeException ex) {
+            log.warn("Automation watering tick failed: {}", ex.getMessage(), ex);
+        }
+    }
 }

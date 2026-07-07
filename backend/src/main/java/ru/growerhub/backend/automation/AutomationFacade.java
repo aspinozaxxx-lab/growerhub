@@ -65,6 +65,16 @@ public class AutomationFacade {
             AutomationData.SCENARIO_LIGHT_SCHEDULE,
             AutomationData.SCENARIO_WATERING
     );
+    private static final String STOP_MODE_FIXED_DURATION = "fixed_duration";
+    private static final String STOP_MODE_UNTIL_DRAIN = "until_drain";
+    private static final String WATERING_PHASE_WATERING = "watering";
+    private static final String WATERING_PHASE_PAUSE = "pause";
+    private static final String RUNTIME_WATERING_ACTIVE = "watering_session_active";
+    private static final String RUNTIME_WATERING_PHASE = "watering_phase";
+    private static final String RUNTIME_SESSION_STARTED_AT = "session_started_at";
+    private static final String RUNTIME_PHASE_STARTED_AT = "phase_started_at";
+    private static final String RUNTIME_RUN_ACCUMULATED_S = "run_accumulated_s";
+    private static final String RUNTIME_CURRENT_RUN_DURATION_S = "current_run_duration_s";
 
     private final AutomationRoomRepository roomRepository;
     private final AutomationBoxRepository boxRepository;
@@ -139,7 +149,8 @@ public class AutomationFacade {
                 new AutomationData.Settings(
                         settings.getTimezone(),
                         settings.getStaleSensorMinutes(),
-                        settings.getManualOverrideMinutes()
+                        settings.getManualOverrideMinutes(),
+                        settings.getResourceOfflineMinutes()
                 )
         );
     }
@@ -271,6 +282,34 @@ public class AutomationFacade {
         }
     }
 
+    public void evaluateActiveWateringSessions() {
+        LocalDateTime now = nowUtc();
+        List<AutomationScenarioStateEntity> states = stateRepository.findAllByScenarioType(AutomationData.SCENARIO_WATERING);
+        List<AutomationScenarioStateEntity> activeStates = states.stream()
+                .filter(this::hasActiveWateringSession)
+                .toList();
+        if (activeStates.isEmpty()) {
+            return;
+        }
+        Catalog catalog = buildCatalog();
+        for (AutomationScenarioStateEntity state : activeStates) {
+            if (!AutomationData.SCOPE_BOX.equals(state.getScopeType())) {
+                continue;
+            }
+            AutomationBoxEntity box = boxRepository.findById(state.getScopeId()).orElse(null);
+            AutomationScenarioConfigEntity config = configFor(
+                    AutomationData.SCOPE_BOX,
+                    state.getScopeId(),
+                    AutomationData.SCENARIO_WATERING
+            );
+            if (box == null || config == null || !config.isEnabled() || !box.isEnabled()) {
+                stopWateringSession(state, catalog, now, "scenario disabled", "disabled");
+                continue;
+            }
+            continueWateringSession(box, config, state, catalog, now);
+        }
+    }
+
     private void replaceResources(String scopeType, Integer scopeId, AutomationData.SaveResourcesRequest request) {
         LocalDateTime now = nowUtc();
         Catalog catalog = buildCatalog();
@@ -296,6 +335,7 @@ public class AutomationFacade {
             entity.setOffValue(defaultOffValue(item.offValue()));
             next.add(entity);
         }
+        validateResourcesAgainstScenarios(scopeType, scopeId, next, catalog);
         resourceRepository.deleteAllByScopeTypeAndScopeId(scopeType, scopeId);
         resourceRepository.flush();
         resourceRepository.saveAll(next);
@@ -322,10 +362,79 @@ public class AutomationFacade {
             AutomationScenarioConfigEntity entity = configRepository
                     .findByScopeTypeAndScopeIdAndScenarioType(scopeType, scopeId, scenarioType)
                     .orElseGet(() -> AutomationScenarioConfigEntity.create(scopeType, scopeId, scenarioType, now));
+            Map<String, Object> mergedConfig = mergeDefaults(scenarioType, item.config());
+            validateScenarioConfig(scopeType, scopeId, scenarioType, Boolean.TRUE.equals(item.enabled()), mergedConfig);
             entity.setEnabled(Boolean.TRUE.equals(item.enabled()));
-            entity.setConfigJson(writeJson(mergeDefaults(scenarioType, item.config())));
+            entity.setConfigJson(writeJson(mergedConfig));
             entity.setUpdatedAt(now);
             configRepository.save(entity);
+        }
+    }
+
+    private void validateScenarioConfig(
+            String scopeType,
+            Integer scopeId,
+            String scenarioType,
+            boolean enabled,
+            Map<String, Object> cfg
+    ) {
+        if (!AutomationData.SCENARIO_WATERING.equals(scenarioType)) {
+            return;
+        }
+        validateWateringConfig(scopeType, scopeId, enabled, cfg);
+    }
+
+    private void validateWateringConfig(
+            String scopeType,
+            Integer scopeId,
+            boolean enabled,
+            Map<String, Object> cfg
+    ) {
+        if (!AutomationData.SCOPE_BOX.equals(scopeType)) {
+            return;
+        }
+        String stopMode = String.valueOf(cfg.getOrDefault("stop_mode", STOP_MODE_FIXED_DURATION));
+        if (!STOP_MODE_FIXED_DURATION.equals(stopMode) && !STOP_MODE_UNTIL_DRAIN.equals(stopMode)) {
+            throw new DomainException("bad_request", "nekorrektnyj stop_mode");
+        }
+        if (!STOP_MODE_UNTIL_DRAIN.equals(stopMode)) {
+            return;
+        }
+        if (number(cfg.get("max_run_minutes"), 0.0) <= 0.0) {
+            throw new DomainException("bad_request", "max_run_minutes obyazatelen dlya until_drain");
+        }
+        if (number(cfg.get("pulse_run_minutes"), 3.0) <= 0.0 || number(cfg.get("pulse_pause_minutes"), 5.0) <= 0.0) {
+            throw new DomainException("bad_request", "intervaly impulsnogo poliva dolzhny byt' bol'she nulya");
+        }
+        Catalog catalog = buildCatalog();
+        if (!hasReadyLeakSensor(scopeId, catalog)) {
+            throw new DomainException("bad_request", "dlya until_drain nuzhen LEAK_SENSOR");
+        }
+    }
+
+    private void validateResourcesAgainstScenarios(
+            String scopeType,
+            Integer scopeId,
+            List<AutomationResourceBindingEntity> nextResources,
+            Catalog catalog
+    ) {
+        if (!AutomationData.SCOPE_BOX.equals(scopeType)) {
+            return;
+        }
+        AutomationScenarioConfigEntity config = configFor(scopeType, scopeId, AutomationData.SCENARIO_WATERING);
+        if (config == null || !config.isEnabled()) {
+            return;
+        }
+        Map<String, Object> cfg = configMap(config, AutomationData.SCENARIO_WATERING);
+        if (!isUntilDrain(cfg)) {
+            return;
+        }
+        boolean hasLeakSensor = nextResources.stream()
+                .filter(resource -> AutomationData.ROLE_LEAK_SENSOR.equals(resource.getRole()))
+                .map(resource -> resolveResourceStatus(resource, catalog))
+                .anyMatch(ResourceStatus::ready);
+        if (!hasLeakSensor) {
+            throw new DomainException("bad_request", "LEAK_SENSOR nel'zya ubrat' pri until_drain");
         }
     }
 
@@ -485,6 +594,10 @@ public class AutomationFacade {
         AutomationScenarioConfigEntity config = configFor(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING);
         AutomationScenarioStateEntity state = stateFor(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, now);
         AutomationData.Readiness readiness = wateringReadiness(box.getId(), catalog);
+        if (hasActiveWateringSession(state)) {
+            continueWateringSession(box, config, state, catalog, now);
+            return;
+        }
         if (!box.isEnabled()) {
             markState(state, "disabled", "box vyklyuchen", false, now);
             return;
@@ -497,6 +610,12 @@ public class AutomationFacade {
             markState(state, "unready", readiness.reason(), false, now);
             return;
         }
+        Map<String, Object> cfg = configMap(config, AutomationData.SCENARIO_WATERING);
+        boolean untilDrain = isUntilDrain(cfg);
+        if (untilDrain && !hasReadyLeakSensor(box.getId(), catalog)) {
+            markState(state, "unready", "nuzhen LEAK_SENSOR", false, now);
+            return;
+        }
         AutomationResourceBindingEntity soilBinding = resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_SOIL_MOISTURE_SENSOR);
         SensorValue moisture = readSensorValue(soilBinding, catalog);
         if (moisture == null || moisture.value() == null || isStale(moisture.ts(), now)) {
@@ -504,12 +623,12 @@ public class AutomationFacade {
             return;
         }
 
-        Map<String, Object> cfg = configMap(config, AutomationData.SCENARIO_WATERING);
         double threshold = number(cfg.get("soil_threshold_percent"), 40.0);
         int maxIntervalHours = integer(cfg.get("max_interval_hours"), 48);
-        int runSeconds = integer(cfg.get("run_seconds"), 30);
+        int runSeconds = Math.max(1, integer(cfg.get("run_seconds"), 30));
         int minIntervalHours = integer(cfg.get("min_interval_hours"), 6);
-        int dailyMaxSeconds = integer(cfg.get("daily_max_seconds"), 1200);
+        int dailyMaxSeconds = Math.max(1, integer(cfg.get("daily_max_seconds"), 1200));
+        int requestedRunSeconds = untilDrain ? untilDrainMaxRunSeconds(cfg) : runSeconds;
         AutomationActionLogEntity lastStart = actionLogRepository.findTopByScopeTypeAndScopeIdAndScenarioTypeAndActionOrderByCreatedAtDesc(
                 AutomationData.SCOPE_BOX,
                 box.getId(),
@@ -528,16 +647,15 @@ public class AutomationFacade {
             markState(state, "limited", "min interval mezhdu polivami", false, now);
             return;
         }
-        Long usedTodayRaw = actionLogRepository.sumDurationSince(
+        Long usedTodayRaw = actionLogRepository.sumWateringDurationSince(
                 AutomationData.SCOPE_BOX,
                 box.getId(),
                 AutomationData.SCENARIO_WATERING,
-                "PUMP_START",
                 "published",
                 LocalDate.now(ZoneOffset.UTC).atStartOfDay()
         );
         int usedToday = usedTodayRaw != null ? usedTodayRaw.intValue() : 0;
-        if (usedToday + runSeconds > dailyMaxSeconds) {
+        if (usedToday + requestedRunSeconds > dailyMaxSeconds) {
             logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, null,
                     "SKIP", "dnevnoj limit poliva", "skipped", null, now);
             markState(state, "limited", "dnevnoj limit poliva", false, now);
@@ -545,6 +663,22 @@ public class AutomationFacade {
         }
 
         AutomationResourceBindingEntity pumpBinding = resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_WATER_PUMP);
+        String reason = "vlazhnost' " + moisture.value() + "%";
+        if (untilDrain) {
+            startWateringSession(box, state, cfg, pumpBinding, reason, requestedRunSeconds, now);
+        } else {
+            startFixedWatering(box, state, pumpBinding, reason, runSeconds, now);
+        }
+    }
+
+    private void startFixedWatering(
+            AutomationBoxEntity box,
+            AutomationScenarioStateEntity state,
+            AutomationResourceBindingEntity pumpBinding,
+            String reason,
+            int runSeconds,
+            LocalDateTime now
+    ) {
         try {
             pumpFacade.start(
                     pumpBinding.getNativePumpId(),
@@ -552,13 +686,220 @@ public class AutomationFacade {
                     SYSTEM_ADMIN
             );
             logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, pumpBinding,
-                    "PUMP_START", "vlazhnost' " + moisture.value() + "%", "published", runSeconds, now);
+                    "PUMP_START", reason, "published", runSeconds, now);
+            state.setLastActionAt(now);
             markState(state, "active", null, false, now);
         } catch (RuntimeException ex) {
             logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, pumpBinding,
                     "PUMP_START", ex.getMessage(), "error", runSeconds, now);
             markState(state, "error", ex.getMessage(), false, now);
         }
+    }
+
+    private void startWateringSession(
+            AutomationBoxEntity box,
+            AutomationScenarioStateEntity state,
+            Map<String, Object> cfg,
+            AutomationResourceBindingEntity pumpBinding,
+            String reason,
+            int maxRunSeconds,
+            LocalDateTime now
+    ) {
+        int firstRunSeconds = nextPulseRunSeconds(cfg, maxRunSeconds);
+        try {
+            pumpFacade.start(
+                    pumpBinding.getNativePumpId(),
+                    new PumpFacade.PumpWateringRequest(firstRunSeconds, null, null, null),
+                    SYSTEM_ADMIN
+            );
+            Map<String, Object> runtime = runtimeMap(state);
+            runtime.put(RUNTIME_WATERING_ACTIVE, true);
+            runtime.put(RUNTIME_WATERING_PHASE, WATERING_PHASE_WATERING);
+            runtime.put(RUNTIME_SESSION_STARTED_AT, now.toString());
+            runtime.put(RUNTIME_PHASE_STARTED_AT, now.toString());
+            runtime.put(RUNTIME_RUN_ACCUMULATED_S, 0);
+            runtime.put(RUNTIME_CURRENT_RUN_DURATION_S, firstRunSeconds);
+            state.setRuntimeJson(writeJson(runtime));
+            state.setLastActionAt(now);
+            logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, pumpBinding,
+                    "PUMP_START", reason, "published", null, now);
+            markState(state, "active", null, false, now);
+        } catch (RuntimeException ex) {
+            logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, pumpBinding,
+                    "PUMP_START", ex.getMessage(), "error", null, now);
+            markState(state, "error", ex.getMessage(), false, now);
+        }
+    }
+
+    private void continueWateringSession(
+            AutomationBoxEntity box,
+            AutomationScenarioConfigEntity config,
+            AutomationScenarioStateEntity state,
+            Catalog catalog,
+            LocalDateTime now
+    ) {
+        if (config == null || !config.isEnabled() || !box.isEnabled()) {
+            stopWateringSession(state, catalog, now, "scenario disabled", "disabled");
+            return;
+        }
+        Map<String, Object> cfg = configMap(config, AutomationData.SCENARIO_WATERING);
+        if (!isUntilDrain(cfg)) {
+            stopWateringSession(state, catalog, now, "scenario changed", "active");
+            return;
+        }
+        if (!hasReadyLeakSensor(box.getId(), catalog)) {
+            stopWateringSession(state, catalog, now, "net LEAK_SENSOR", "unready");
+            return;
+        }
+        if (isLeakTriggered(box.getId(), catalog)) {
+            stopWateringSession(state, catalog, now, "drenazh", "active");
+            return;
+        }
+
+        Map<String, Object> runtime = runtimeMap(state);
+        int maxRunSeconds = untilDrainMaxRunSeconds(cfg);
+        int runSeconds = Math.min(wateringRunSeconds(runtime, now), maxRunSeconds);
+        if (runSeconds >= maxRunSeconds) {
+            stopWateringSessionWithDuration(state, catalog, now, "limit", "limited", maxRunSeconds);
+            return;
+        }
+
+        String phase = String.valueOf(runtime.getOrDefault(RUNTIME_WATERING_PHASE, WATERING_PHASE_WATERING));
+        if (WATERING_PHASE_PAUSE.equals(phase)) {
+            continueWateringPause(state, cfg, runtime, catalog, now, maxRunSeconds);
+            return;
+        }
+        continueWateringRun(state, cfg, runtime, catalog, now, maxRunSeconds);
+    }
+
+    private void continueWateringRun(
+            AutomationScenarioStateEntity state,
+            Map<String, Object> cfg,
+            Map<String, Object> runtime,
+            Catalog catalog,
+            LocalDateTime now,
+            int maxRunSeconds
+    ) {
+        LocalDateTime phaseStartedAt = parseDateTime(runtime.get(RUNTIME_PHASE_STARTED_AT));
+        int currentRunSeconds = Math.max(1, integer(runtime.get(RUNTIME_CURRENT_RUN_DURATION_S), nextPulseRunSeconds(cfg, maxRunSeconds)));
+        int elapsed = durationSeconds(phaseStartedAt, now);
+        if (elapsed < currentRunSeconds) {
+            markState(state, "active", null, false, now);
+            return;
+        }
+
+        int accumulated = Math.min(maxRunSeconds, integer(runtime.get(RUNTIME_RUN_ACCUMULATED_S), 0) + currentRunSeconds);
+        if (!pulseEnabled(cfg) || accumulated >= maxRunSeconds) {
+            stopWateringSessionWithDuration(state, catalog, now, "limit", "limited", accumulated);
+            return;
+        }
+
+        AutomationResourceBindingEntity pumpBinding = resource(
+                AutomationData.SCOPE_BOX,
+                state.getScopeId(),
+                AutomationData.ROLE_WATER_PUMP
+        );
+        try {
+            pumpFacade.stop(pumpBinding.getNativePumpId(), SYSTEM_ADMIN);
+            runtime.put(RUNTIME_WATERING_PHASE, WATERING_PHASE_PAUSE);
+            runtime.put(RUNTIME_PHASE_STARTED_AT, now.toString());
+            runtime.put(RUNTIME_RUN_ACCUMULATED_S, accumulated);
+            runtime.remove(RUNTIME_CURRENT_RUN_DURATION_S);
+            state.setRuntimeJson(writeJson(runtime));
+            markState(state, "active", null, false, now);
+        } catch (RuntimeException ex) {
+            logAction(AutomationData.SCOPE_BOX, state.getScopeId(), AutomationData.SCENARIO_WATERING, pumpBinding,
+                    "PUMP_STOP", ex.getMessage(), "error", null, now);
+            markState(state, "error", ex.getMessage(), false, now);
+        }
+    }
+
+    private void continueWateringPause(
+            AutomationScenarioStateEntity state,
+            Map<String, Object> cfg,
+            Map<String, Object> runtime,
+            Catalog catalog,
+            LocalDateTime now,
+            int maxRunSeconds
+    ) {
+        LocalDateTime phaseStartedAt = parseDateTime(runtime.get(RUNTIME_PHASE_STARTED_AT));
+        int pauseSeconds = pulsePauseSeconds(cfg);
+        if (durationSeconds(phaseStartedAt, now) < pauseSeconds) {
+            markState(state, "active", null, false, now);
+            return;
+        }
+
+        int accumulated = integer(runtime.get(RUNTIME_RUN_ACCUMULATED_S), 0);
+        int remaining = maxRunSeconds - accumulated;
+        if (remaining <= 0) {
+            stopWateringSessionWithDuration(state, catalog, now, "limit", "limited", accumulated);
+            return;
+        }
+
+        AutomationResourceBindingEntity pumpBinding = resource(
+                AutomationData.SCOPE_BOX,
+                state.getScopeId(),
+                AutomationData.ROLE_WATER_PUMP
+        );
+        int currentRunSeconds = nextPulseRunSeconds(cfg, remaining);
+        try {
+            pumpFacade.start(
+                    pumpBinding.getNativePumpId(),
+                    new PumpFacade.PumpWateringRequest(currentRunSeconds, null, null, null),
+                    SYSTEM_ADMIN
+            );
+            runtime.put(RUNTIME_WATERING_PHASE, WATERING_PHASE_WATERING);
+            runtime.put(RUNTIME_PHASE_STARTED_AT, now.toString());
+            runtime.put(RUNTIME_CURRENT_RUN_DURATION_S, currentRunSeconds);
+            state.setRuntimeJson(writeJson(runtime));
+            state.setLastActionAt(now);
+            markState(state, "active", null, false, now);
+        } catch (RuntimeException ex) {
+            logAction(AutomationData.SCOPE_BOX, state.getScopeId(), AutomationData.SCENARIO_WATERING, pumpBinding,
+                    "PUMP_START", ex.getMessage(), "error", currentRunSeconds, now);
+            markState(state, "error", ex.getMessage(), false, now);
+        }
+    }
+
+    private void stopWateringSession(
+            AutomationScenarioStateEntity state,
+            Catalog catalog,
+            LocalDateTime now,
+            String reason,
+            String status
+    ) {
+        int durationS = wateringRunSeconds(runtimeMap(state), now);
+        stopWateringSessionWithDuration(state, catalog, now, reason, status, durationS);
+    }
+
+    private void stopWateringSessionWithDuration(
+            AutomationScenarioStateEntity state,
+            Catalog catalog,
+            LocalDateTime now,
+            String reason,
+            String status,
+            int durationS
+    ) {
+        AutomationResourceBindingEntity pumpBinding = resource(
+                AutomationData.SCOPE_BOX,
+                state.getScopeId(),
+                AutomationData.ROLE_WATER_PUMP
+        );
+        try {
+            if (pumpBinding != null) {
+                pumpFacade.stop(pumpBinding.getNativePumpId(), SYSTEM_ADMIN);
+            }
+            logAction(AutomationData.SCOPE_BOX, state.getScopeId(), AutomationData.SCENARIO_WATERING, pumpBinding,
+                    "PUMP_STOP", reason, "published", Math.max(0, durationS), now);
+        } catch (RuntimeException ex) {
+            logAction(AutomationData.SCOPE_BOX, state.getScopeId(), AutomationData.SCENARIO_WATERING, pumpBinding,
+                    "PUMP_STOP", ex.getMessage(), "error", Math.max(0, durationS), now);
+        }
+        Map<String, Object> runtime = runtimeMap(state);
+        clearWateringRuntime(runtime);
+        state.setRuntimeJson(writeJson(runtime));
+        state.setLastActionAt(now);
+        markState(state, status, stateReasonAfterStop(status, reason), false, now);
     }
 
     private void sendSwitchIfNeeded(
@@ -752,6 +1093,7 @@ public class AutomationFacade {
 
     private AutomationData.ResourceBinding toBindingData(AutomationResourceBindingEntity binding, Catalog catalog) {
         ResourceStatus status = resolveResourceStatus(binding, catalog);
+        ConnectionStatus connectionStatus = connectionStatus(status, nowUtc());
         return new AutomationData.ResourceBinding(
                 binding.getId(),
                 binding.getScopeType(),
@@ -767,6 +1109,8 @@ public class AutomationFacade {
                 binding.getOffValue(),
                 status.value(),
                 status.ts(),
+                connectionStatus.status(),
+                connectionStatus.message(),
                 status.label(),
                 status.ready(),
                 status.reason()
@@ -919,7 +1263,7 @@ public class AutomationFacade {
             if (pump == null) {
                 return ResourceStatus.notReady("native pump ne naiden");
             }
-            return new ResourceStatus(true, null, pump.isRunning(), null, pump.label());
+            return new ResourceStatus(true, null, pump.isRunning(), pump.lastSeenAt(), pump.label());
         }
         if (AutomationData.SOURCE_ZIGBEE_DEVICE.equals(binding.getSourceType())) {
             AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(binding.getZigbeeIeeeAddress());
@@ -958,17 +1302,22 @@ public class AutomationFacade {
     }
 
     private Object readZigbeeFeatureValue(AutomationData.ZigbeeDevice device, String property) {
+        AutomationData.ZigbeeFeature feature = readZigbeeFeature(device, property);
+        return feature != null ? feature.value() : null;
+    }
+
+    private AutomationData.ZigbeeFeature readZigbeeFeature(AutomationData.ZigbeeDevice device, String property) {
         if (device == null || property == null) {
             return null;
         }
         for (AutomationData.ZigbeeFeature feature : device.metrics()) {
             if (property.equals(feature.property())) {
-                return feature.value();
+                return feature;
             }
         }
         for (AutomationData.ZigbeeFeature feature : device.controls()) {
             if (property.equals(feature.property())) {
-                return feature.value();
+                return feature;
             }
         }
         return null;
@@ -989,6 +1338,16 @@ public class AutomationFacade {
             String property = defaultCommandProperty(role, item.commandProperty());
             if (!zigbeeHasWritableProperty(catalog, item.zigbeeIeeeAddress(), property)) {
                 throw new DomainException("bad_request", role + " dolzhen imet' writable " + property);
+            }
+            return;
+        }
+        if (AutomationData.ROLE_LEAK_SENSOR.equals(role)) {
+            if (!AutomationData.SOURCE_ZIGBEE_DEVICE.equals(sourceType)) {
+                throw new DomainException("bad_request", "LEAK_SENSOR dolzhen byt' Zigbee sensor");
+            }
+            String property = defaultProperty(role, item.zigbeeProperty());
+            if (!zigbeeHasReadableProperty(catalog, item.zigbeeIeeeAddress(), property)) {
+                throw new DomainException("bad_request", "LEAK_SENSOR dolzhen imet' readable " + property);
             }
             return;
         }
@@ -1046,7 +1405,7 @@ public class AutomationFacade {
                     .toList();
             sensors.forEach(sensor -> sensorsById.put(sensor.id(), sensor));
             List<AutomationData.NativePump> pumps = pumpFacade.listByDeviceId(summary.id(), shadow).stream()
-                    .map(this::toNativePumpData)
+                    .map(pump -> toNativePumpData(pump, summary))
                     .toList();
             pumps.forEach(pump -> pumpsById.put(pump.id(), pump));
             nativeDevices.add(new AutomationData.NativeDevice(
@@ -1054,6 +1413,7 @@ public class AutomationFacade {
                     summary.deviceId(),
                     summary.name(),
                     summary.isOnline(),
+                    summary.lastSeen(),
                     sensors,
                     pumps
             ));
@@ -1093,13 +1453,15 @@ public class AutomationFacade {
         );
     }
 
-    private AutomationData.NativePump toNativePumpData(PumpView pump) {
+    private AutomationData.NativePump toNativePumpData(PumpView pump, DeviceSummary summary) {
         return new AutomationData.NativePump(
                 pump.id(),
                 pump.deviceId(),
                 pump.channel(),
                 pump.label(),
-                pump.isRunning()
+                pump.isRunning(),
+                summary.isOnline(),
+                summary.lastSeen()
         );
     }
 
@@ -1142,6 +1504,7 @@ public class AutomationFacade {
                     AutomationData.ROLE_AIR_TEMPERATURE_SENSOR,
                     AutomationData.ROLE_EXHAUST_SWITCH,
                     AutomationData.ROLE_LIGHT_SWITCH,
+                    AutomationData.ROLE_LEAK_SENSOR,
                     AutomationData.ROLE_SOIL_MOISTURE_SENSOR,
                     AutomationData.ROLE_WATER_PUMP
             ).contains(role)) {
@@ -1287,7 +1650,12 @@ public class AutomationFacade {
             case AutomationData.SCENARIO_WATERING -> {
                 config.put("soil_threshold_percent", 40.0);
                 config.put("max_interval_hours", 48);
+                config.put("stop_mode", STOP_MODE_FIXED_DURATION);
                 config.put("run_seconds", 30);
+                config.put("max_run_minutes", 10);
+                config.put("pulse_enabled", false);
+                config.put("pulse_run_minutes", 3);
+                config.put("pulse_pause_minutes", 5);
                 config.put("min_interval_hours", 6);
                 config.put("daily_max_seconds", 1200);
             }
@@ -1311,6 +1679,110 @@ public class AutomationFacade {
 
     private Map<String, Object> runtimeMap(AutomationScenarioStateEntity state) {
         return readJsonMap(state != null ? state.getRuntimeJson() : null);
+    }
+
+    private boolean hasActiveWateringSession(AutomationScenarioStateEntity state) {
+        Map<String, Object> runtime = runtimeMap(state);
+        return asBoolean(runtime.get(RUNTIME_WATERING_ACTIVE), false);
+    }
+
+    private void clearWateringRuntime(Map<String, Object> runtime) {
+        runtime.remove(RUNTIME_WATERING_ACTIVE);
+        runtime.remove(RUNTIME_WATERING_PHASE);
+        runtime.remove(RUNTIME_SESSION_STARTED_AT);
+        runtime.remove(RUNTIME_PHASE_STARTED_AT);
+        runtime.remove(RUNTIME_RUN_ACCUMULATED_S);
+        runtime.remove(RUNTIME_CURRENT_RUN_DURATION_S);
+    }
+
+    private boolean isUntilDrain(Map<String, Object> cfg) {
+        Object value = cfg.get("stop_mode");
+        return STOP_MODE_UNTIL_DRAIN.equals(String.valueOf(value));
+    }
+
+    private int untilDrainMaxRunSeconds(Map<String, Object> cfg) {
+        return minutesToSeconds(cfg.get("max_run_minutes"), 10);
+    }
+
+    private boolean pulseEnabled(Map<String, Object> cfg) {
+        return asBoolean(cfg.get("pulse_enabled"), false);
+    }
+
+    private int pulseRunSeconds(Map<String, Object> cfg) {
+        return minutesToSeconds(cfg.get("pulse_run_minutes"), 3);
+    }
+
+    private int pulsePauseSeconds(Map<String, Object> cfg) {
+        return minutesToSeconds(cfg.get("pulse_pause_minutes"), 5);
+    }
+
+    private int nextPulseRunSeconds(Map<String, Object> cfg, int remainingSeconds) {
+        int requestedSeconds = pulseEnabled(cfg) ? pulseRunSeconds(cfg) : remainingSeconds;
+        return Math.max(1, Math.min(requestedSeconds, remainingSeconds));
+    }
+
+    private int minutesToSeconds(Object value, int fallbackMinutes) {
+        double minutes = number(value, fallbackMinutes);
+        if (minutes <= 0.0) {
+            minutes = fallbackMinutes;
+        }
+        return Math.max(1, (int) Math.round(minutes * 60.0));
+    }
+
+    private int wateringRunSeconds(Map<String, Object> runtime, LocalDateTime now) {
+        int accumulated = Math.max(0, integer(runtime.get(RUNTIME_RUN_ACCUMULATED_S), 0));
+        String phase = String.valueOf(runtime.getOrDefault(RUNTIME_WATERING_PHASE, WATERING_PHASE_WATERING));
+        if (!WATERING_PHASE_WATERING.equals(phase)) {
+            return accumulated;
+        }
+        LocalDateTime phaseStartedAt = parseDateTime(runtime.get(RUNTIME_PHASE_STARTED_AT));
+        int currentRunSeconds = Math.max(1, integer(runtime.get(RUNTIME_CURRENT_RUN_DURATION_S), 1));
+        return accumulated + Math.min(currentRunSeconds, durationSeconds(phaseStartedAt, now));
+    }
+
+    private int durationSeconds(LocalDateTime from, LocalDateTime to) {
+        if (from == null || to == null) {
+            return 0;
+        }
+        long seconds = Duration.between(from, to).getSeconds();
+        if (seconds <= 0) {
+            return 0;
+        }
+        return seconds > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) seconds;
+    }
+
+    private boolean hasReadyLeakSensor(Integer boxId, Catalog catalog) {
+        ResourceStatus status = resolveResourceStatus(
+                resource(AutomationData.SCOPE_BOX, boxId, AutomationData.ROLE_LEAK_SENSOR),
+                catalog
+        );
+        return status.ready();
+    }
+
+    private boolean isLeakTriggered(Integer boxId, Catalog catalog) {
+        AutomationResourceBindingEntity binding = resource(AutomationData.SCOPE_BOX, boxId, AutomationData.ROLE_LEAK_SENSOR);
+        if (binding == null || !AutomationData.SOURCE_ZIGBEE_DEVICE.equals(binding.getSourceType())) {
+            return false;
+        }
+        AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(binding.getZigbeeIeeeAddress());
+        AutomationData.ZigbeeFeature feature = readZigbeeFeature(device, binding.getZigbeeProperty());
+        if (feature == null) {
+            return false;
+        }
+        Object value = feature.value();
+        Object onValue = feature.valueOn();
+        if (Boolean.TRUE.equals(value)) {
+            return true;
+        }
+        String normalized = value != null ? String.valueOf(value).trim() : "";
+        if ("true".equalsIgnoreCase(normalized) || "ON".equalsIgnoreCase(normalized)) {
+            return true;
+        }
+        return onValue != null && normalized.equalsIgnoreCase(String.valueOf(onValue).trim());
+    }
+
+    private String stateReasonAfterStop(String status, String reason) {
+        return "active".equals(status) ? null : reason;
     }
 
     private Map<String, Object> readJsonMap(String json) {
@@ -1374,6 +1846,17 @@ public class AutomationFacade {
         return ts == null || ts.isBefore(now.minusMinutes(settings.getStaleSensorMinutes()));
     }
 
+    private ConnectionStatus connectionStatus(ResourceStatus status, LocalDateTime now) {
+        if (status == null || !status.ready()) {
+            return new ConnectionStatus(null, null);
+        }
+        LocalDateTime lastSeenAt = status.ts();
+        if (lastSeenAt == null || lastSeenAt.isBefore(now.minusMinutes(settings.getResourceOfflineMinutes()))) {
+            return new ConnectionStatus("warning", "нет связи");
+        }
+        return new ConnectionStatus("ok", null);
+    }
+
     private String defaultProperty(String role, String property) {
         String normalized = blankToNull(property);
         if (normalized != null) {
@@ -1384,6 +1867,9 @@ public class AutomationFacade {
         }
         if (AutomationData.ROLE_SOIL_MOISTURE_SENSOR.equals(role)) {
             return "soil_moisture";
+        }
+        if (AutomationData.ROLE_LEAK_SENSOR.equals(role)) {
+            return "water_leak";
         }
         return "state";
     }
@@ -1463,6 +1949,23 @@ public class AutomationFacade {
         }
     }
 
+    private boolean asBoolean(Object value, boolean fallback) {
+        if (value instanceof Boolean booleanValue) {
+            return booleanValue;
+        }
+        if (value == null || value.toString().isBlank()) {
+            return fallback;
+        }
+        String normalized = value.toString().trim();
+        if ("true".equalsIgnoreCase(normalized) || "ON".equalsIgnoreCase(normalized)) {
+            return true;
+        }
+        if ("false".equalsIgnoreCase(normalized) || "OFF".equalsIgnoreCase(normalized)) {
+            return false;
+        }
+        return fallback;
+    }
+
     private LocalDateTime parseDateTime(Object value) {
         if (value == null || value.toString().isBlank()) {
             return null;
@@ -1489,6 +1992,9 @@ public class AutomationFacade {
         static ResourceStatus notReady(String reason) {
             return new ResourceStatus(false, reason, null, null, null);
         }
+    }
+
+    private record ConnectionStatus(String status, String message) {
     }
 
     private record Catalog(

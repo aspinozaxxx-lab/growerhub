@@ -147,9 +147,13 @@ zigbee:
 automation:
   # Period worker avtomatizacii (ms).
   workerPeriodMs: 30000
+  # Period aktivnyh sessij poliva (ms).
+  wateringWorkerPeriodMs: 1000
   # Maksimal'nyj vozrast dannyh sensora dlya scenariev (min).
   staleSensorMinutes: 15
   # Pauza posle ruchnogo vmeshatel'stva (min).
   manualOverrideMinutes: 15
+  # Porog statusa net svjazi dlya resursov (min).
+  resourceOfflineMinutes: 5
   # Chasovoj poyas raspisanij.
   timezone: "Europe/Istanbul"

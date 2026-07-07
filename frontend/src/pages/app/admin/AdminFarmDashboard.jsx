@@ -69,8 +69,6 @@ function ResourceTile({ role, resource, icon: Icon, motion = 'pulse', statsSubti
   const active = isEquipmentActive(resource, role);
   const tone = resourceTone(resource, active);
   const value = formatResourceValue(resource, role);
-  const lastSeen = resource?.last_seen_at ? formatDateTime(resource.last_seen_at) : 'Время неизвестно';
-  const source = resource?.label || (resource ? 'Источник без имени' : 'Ресурс не выбран');
   const hasValue = hasCurrentValue(resource);
   const statsPayload = buildResourceStatsPayload(resource, role, statsSubtitle);
 
@@ -89,11 +87,9 @@ function ResourceTile({ role, resource, icon: Icon, motion = 'pulse', statsSubti
       <div className="farm-dashboard-resource__body">
         <div className="farm-dashboard-resource__label">{resourceRoleLabel(role)}</div>
         <div className="farm-dashboard-resource__value">{value}</div>
-        <div className="farm-dashboard-resource__meta">{source}</div>
       </div>
       <div className="farm-dashboard-resource__footer">
         <span>{resourceReadyLabel(resource)}</span>
-        <span>{lastSeen}</span>
       </div>
     </>
   );
@@ -123,7 +119,6 @@ function SensorTile({ resource, statsSubtitle, onOpenStats }) {
   const Icon = role === RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR ? Thermometer : Gauge;
   const tone = resourceTone(resource, false);
   const value = formatResourceValue(resource, role);
-  const lastSeen = resource?.last_seen_at ? formatDateTime(resource.last_seen_at) : 'Время неизвестно';
 
   const statsPayload = buildResourceStatsPayload(resource, role, statsSubtitle);
   const classes = [
@@ -138,7 +133,6 @@ function SensorTile({ resource, statsSubtitle, onOpenStats }) {
         <div className="farm-dashboard-sensor__label">{resourceRoleLabel(role)}</div>
         <div className="farm-dashboard-sensor__value">{value}</div>
       </div>
-      <span>{lastSeen}</span>
       <strong>{resourceReadyLabel(resource)}</strong>
     </>
   );
@@ -213,7 +207,10 @@ function PlantList({ plants }) {
 
 function FarmBox({ box, onOpenStats }) {
   const resources = listOrEmpty(box.resources);
-  const sensors = resources.filter((resource) => String(resource?.role || '').endsWith('_SENSOR'));
+  const sensors = resources.filter((resource) => [
+    RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR,
+    RESOURCE_ROLES.SOIL_MOISTURE_SENSOR,
+  ].includes(resource?.role));
   const plants = listOrEmpty(box.plants);
   const statsSubtitle = box.name || 'Бокс без названия';
 
