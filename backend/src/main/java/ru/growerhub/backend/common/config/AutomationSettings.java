@@ -9,6 +9,7 @@ public class AutomationSettings {
     private int staleSensorMinutes = 15;
     private int manualOverrideMinutes = 15;
     private int resourceOfflineMinutes = 5;
+    private int sensorOfflineMinutes = 20;
     private String timezone = "Europe/Istanbul";
 
     public long getWorkerPeriodMs() {
@@ -49,6 +50,14 @@ public class AutomationSettings {
 
     public void setResourceOfflineMinutes(int resourceOfflineMinutes) {
         this.resourceOfflineMinutes = resourceOfflineMinutes;
+    }
+
+    public int getSensorOfflineMinutes() {
+        return sensorOfflineMinutes;
+    }
+
+    public void setSensorOfflineMinutes(int sensorOfflineMinutes) {
+        this.sensorOfflineMinutes = sensorOfflineMinutes;
     }
 
     public String getTimezone() {

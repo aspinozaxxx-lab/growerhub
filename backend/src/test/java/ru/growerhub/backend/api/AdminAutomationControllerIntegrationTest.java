@@ -279,7 +279,7 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
         Integer sensorId = seedNativeSensor(
                 admin.getId(),
                 "native-fresh-device",
-                now,
+                now.minusMinutes(19),
                 now.minusMinutes(20),
                 "OK"
         );
@@ -309,7 +309,7 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
         Integer sensorId = seedNativeSensor(
                 admin.getId(),
                 "native-stale-device",
-                now.minusMinutes(10),
+                now.minusMinutes(21),
                 now,
                 "OK"
         );
@@ -328,6 +328,68 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 .statusCode(200)
                 .body("rooms[0].boxes[0].resources[0].connection_status", equalTo("warning"))
                 .body("rooms[0].boxes[0].resources[0].connection_message", equalTo("нет связи"));
+    }
+
+    @Test
+    void equipmentKeepsResourceOfflineThreshold() {
+        UserEntity admin = createUser("automation-equipment-stale-admin@example.com", "admin");
+        String token = buildToken(admin.getId());
+        Integer roomId = createRoom(token, "Room Equipment Stale");
+        Integer boxId = createBox(token, roomId, "Box Equipment Stale");
+        jdbcTemplate.update(
+                "UPDATE zigbee_device_snapshots SET last_state_at=? WHERE friendly_name='smartplug1'",
+                LocalDateTime.now(ZoneOffset.UTC).minusMinutes(10)
+        );
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"resources":[
+                          {
+                            "role":"LIGHT_SWITCH",
+                            "source_type":"ZIGBEE_DEVICE",
+                            "zigbee_ieee_address":"0xa4c13895af2c1df3",
+                            "zigbee_property":"state",
+                            "command_property":"state",
+                            "on_value":"ON",
+                            "off_value":"OFF"
+                          }
+                        ]}
+                        """)
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/resources")
+                .then()
+                .statusCode(200)
+                .body("rooms[0].boxes[0].resources[0].connection_status", equalTo("warning"));
+    }
+
+    @Test
+    void zigbeeOfflineWarnsImmediatelyWithFreshState() {
+        UserEntity admin = createUser("automation-zigbee-offline-admin@example.com", "admin");
+        String token = buildToken(admin.getId());
+        Integer roomId = createRoom(token, "Room Zigbee Offline");
+        Integer boxId = createBox(token, roomId, "Box Zigbee Offline");
+        seedZigbeeAvailability("temp_sensor1", "offline", LocalDateTime.now(ZoneOffset.UTC));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"resources":[
+                          {
+                            "role":"AIR_TEMPERATURE_SENSOR",
+                            "source_type":"ZIGBEE_DEVICE",
+                            "zigbee_ieee_address":"0xa4c138ccd6b42d0c",
+                            "zigbee_property":"temperature"
+                          }
+                        ]}
+                        """)
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/resources")
+                .then()
+                .statusCode(200)
+                .body("rooms[0].boxes[0].resources[0].connection_status", equalTo("warning"));
     }
 
     @Test
@@ -450,6 +512,8 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 .put("/api/admin/automation/boxes/" + boxId + "/resources")
                 .then()
                 .statusCode(200);
+
+        seedLeakState(LocalDateTime.now(ZoneOffset.UTC).minusDays(2), false);
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -609,6 +673,26 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 .body("pumps.find { it.id == %d }.boxes[0].plants[0].id".formatted(nativeResources.pumpId()), equalTo(nativeResources.plantId()))
                 .body("pumps.find { it.id == %d }.boxes[0].plants[0].rate_ml_per_hour".formatted(nativeResources.pumpId()), equalTo(2000))
                 .body("pumps.find { it.id == %d }.boxes[0].leak_sensors[0].available".formatted(nativeResources.pumpId()), equalTo(true));
+
+        seedZigbeeAvailability("leak1", "offline", LocalDateTime.now(ZoneOffset.UTC));
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/admin/manual-watering")
+                .then()
+                .statusCode(200)
+                .body("pumps.find { it.id == %d }.capabilities.until_leak".formatted(nativeResources.pumpId()), equalTo(false))
+                .body("pumps.find { it.id == %d }.boxes[0].leak_sensors[0].available".formatted(nativeResources.pumpId()), equalTo(false));
+
+        jdbcTemplate.update("UPDATE zigbee_device_snapshots SET availability=NULL WHERE friendly_name='leak1'");
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/admin/manual-watering")
+                .then()
+                .statusCode(200)
+                .body("pumps.find { it.id == %d }.capabilities.until_leak".formatted(nativeResources.pumpId()), equalTo(false));
+        seedZigbeeAvailability("leak1", "online", LocalDateTime.now(ZoneOffset.UTC));
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -963,6 +1047,7 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 now
         ));
         seedLeakState(now, false);
+        seedZigbeeAvailability("leak1", "online", now);
     }
 
     private void seedLeakState(LocalDateTime receivedAt, boolean leak) {
@@ -973,6 +1058,18 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 "leak1",
                 "{\"water_leak\":" + leak + "}",
                 Map.of("water_leak", leak),
+                receivedAt
+        ));
+    }
+
+    private void seedZigbeeAvailability(String friendlyName, String availability, LocalDateTime receivedAt) {
+        zigbeeFacade.handleMqttSnapshot(new ZigbeeMqttSnapshotMessage(
+                ZigbeeMqttMessageType.DEVICE_AVAILABILITY,
+                "zigbee2growerhub/" + friendlyName + "/availability",
+                friendlyName + "/availability",
+                friendlyName,
+                "{\"state\":\"" + availability + "\"}",
+                Map.of("state", availability),
                 receivedAt
         ));
     }

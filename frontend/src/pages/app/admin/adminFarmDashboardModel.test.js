@@ -8,6 +8,7 @@ import {
   findResource,
   formatResourceValue,
   isSwitchResourceOn,
+  resourceLastSeenLabel,
   resourceRoleLabel,
   resourceReadyLabel,
   resourceTone,
@@ -80,6 +81,20 @@ describe('admin farm dashboard model', () => {
     };
 
     expect(resourceReadyLabel(resource)).toBe('нет связи');
+    expect(resourceTone(resource, false)).toBe('warning');
+  });
+
+  it('pokazyvaet na plitke datchika tolko vremya poslednej svyazi', () => {
+    const resource = {
+      ready: true,
+      connection_status: 'warning',
+      connection_message: 'нет связи',
+      last_seen_at: '2026-07-11T12:34:00',
+    };
+
+    expect(resourceLastSeenLabel(resource)).toBe('11.07, 12:34');
+    expect(resourceLastSeenLabel({ last_seen_at: null })).toBe('—');
+    expect(resourceLastSeenLabel(null)).toBe('—');
     expect(resourceTone(resource, false)).toBe('warning');
   });
 

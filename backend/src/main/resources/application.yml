@@ -169,5 +169,7 @@ automation:
   manualOverrideMinutes: 15
   # Porog statusa net svjazi dlya resursov (min).
   resourceOfflineMinutes: 5
+  # Porog statusa net svjazi dlya plitok datchikov (min).
+  sensorOfflineMinutes: 20
   # Chasovoj poyas raspisanij.
   timezone: "Europe/Istanbul"

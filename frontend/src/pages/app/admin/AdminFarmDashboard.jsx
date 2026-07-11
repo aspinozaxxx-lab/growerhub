@@ -36,6 +36,7 @@ import {
   hasCurrentValue,
   isEquipmentActive,
   listOrEmpty,
+  resourceLastSeenLabel,
   resourceReadyLabel,
   resourceRoleLabel,
   resourceTone,
@@ -134,7 +135,7 @@ function SensorTile({ resource, statsSubtitle, onOpenStats }) {
         <div className="farm-dashboard-sensor__label">{resourceRoleLabel(role)}</div>
         <div className="farm-dashboard-sensor__value">{value}</div>
       </div>
-      <strong>{resourceReadyLabel(resource)}</strong>
+      <strong>{resourceLastSeenLabel(resource)}</strong>
     </>
   );
 

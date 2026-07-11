@@ -500,7 +500,7 @@ public class AutomationFacade {
                 AutomationData.NativeDevice device = devicesByKey.get(probe.deviceKey());
                 AutomationData.NativePump pump = catalog.pumpsById.get(probe.pumpId());
                 List<PumpSessionData.LeakState> leakStates = probe.leakSensors().stream()
-                        .map(sensor -> currentLeakState(sensor, catalog, now))
+                        .map(sensor -> currentLeakState(sensor, catalog))
                         .toList();
                 pumpFacade.advanceSession(
                         sessionId,
@@ -1118,7 +1118,7 @@ public class AutomationFacade {
 
     private AutomationData.ResourceBinding toBindingData(AutomationResourceBindingEntity binding, Catalog catalog) {
         ResourceStatus status = resolveResourceStatus(binding, catalog);
-        ConnectionStatus connectionStatus = connectionStatus(status, nowUtc());
+        ConnectionStatus connectionStatus = connectionStatus(binding.getRole(), status, nowUtc());
         return new AutomationData.ResourceBinding(
                 binding.getId(),
                 binding.getScopeType(),
@@ -1304,7 +1304,14 @@ public class AutomationFacade {
             }
             Object value = readZigbeeFeatureValue(device, binding.getZigbeeProperty());
             LocalDateTime ts = device.lastStateAt();
-            return new ResourceStatus(true, null, value, ts, device.friendlyName(), false);
+            return new ResourceStatus(
+                    true,
+                    null,
+                    value,
+                    ts,
+                    device.friendlyName(),
+                    "offline".equalsIgnoreCase(device.availability())
+            );
         }
         return ResourceStatus.notReady("neizvestnyj source_type");
     }
@@ -1608,7 +1615,7 @@ public class AutomationFacade {
                     .toList();
             List<PumpSessionData.LeakTarget> leakSensors = boxResources.stream()
                     .filter(binding -> AutomationData.ROLE_LEAK_SENSOR.equals(binding.getRole()))
-                    .map(binding -> toLeakTarget(binding, catalog, now))
+                    .map(binding -> toLeakTarget(binding, catalog))
                     .toList();
             AutomationData.ManualWateringBox manualBox = new AutomationData.ManualWateringBox(
                     box.getId(),
@@ -1690,8 +1697,7 @@ public class AutomationFacade {
 
     private PumpSessionData.LeakTarget toLeakTarget(
             AutomationResourceBindingEntity binding,
-            Catalog catalog,
-            LocalDateTime now
+            Catalog catalog
     ) {
         AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(binding.getZigbeeIeeeAddress());
         String property = defaultProperty(AutomationData.ROLE_LEAK_SENSOR, binding.getZigbeeProperty());
@@ -1702,33 +1708,28 @@ public class AutomationFacade {
                 binding.getZigbeeIeeeAddress(),
                 property,
                 device != null ? device.friendlyName() : null,
-                isLeakAvailable(device, property, now),
+                isLeakAvailable(device, property),
                 isLeakTriggered(device, property)
         );
     }
 
     private PumpSessionData.LeakState currentLeakState(
             PumpSessionData.LeakTarget target,
-            Catalog catalog,
-            LocalDateTime now
+            Catalog catalog
     ) {
         AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(target.externalId());
         return new PumpSessionData.LeakState(
                 target.reference(),
-                isLeakAvailable(device, target.property(), now),
+                isLeakAvailable(device, target.property()),
                 isLeakTriggered(device, target.property())
         );
     }
 
-    private boolean isLeakAvailable(AutomationData.ZigbeeDevice device, String property, LocalDateTime now) {
+    private boolean isLeakAvailable(AutomationData.ZigbeeDevice device, String property) {
         if (device == null || readZigbeeFeature(device, property) == null) {
             return false;
         }
-        if ("offline".equalsIgnoreCase(device.availability())) {
-            return false;
-        }
-        return device.lastStateAt() != null
-                && !device.lastStateAt().isBefore(now.minusMinutes(settings.getResourceOfflineMinutes()));
+        return "online".equalsIgnoreCase(device.availability());
     }
 
     private boolean isLeakTriggered(AutomationData.ZigbeeDevice device, String property) {
@@ -2023,7 +2024,7 @@ public class AutomationFacade {
         return ts == null || ts.isBefore(now.minusMinutes(settings.getStaleSensorMinutes()));
     }
 
-    private ConnectionStatus connectionStatus(ResourceStatus status, LocalDateTime now) {
+    private ConnectionStatus connectionStatus(String role, ResourceStatus status, LocalDateTime now) {
         if (status == null || !status.ready()) {
             return new ConnectionStatus(null, null);
         }
@@ -2031,10 +2032,18 @@ public class AutomationFacade {
             return new ConnectionStatus("warning", "нет связи");
         }
         LocalDateTime lastSeenAt = status.ts();
-        if (lastSeenAt == null || lastSeenAt.isBefore(now.minusMinutes(settings.getResourceOfflineMinutes()))) {
+        int offlineMinutes = isDashboardSensorRole(role)
+                ? settings.getSensorOfflineMinutes()
+                : settings.getResourceOfflineMinutes();
+        if (lastSeenAt == null || lastSeenAt.isBefore(now.minusMinutes(offlineMinutes))) {
             return new ConnectionStatus("warning", "нет связи");
         }
         return new ConnectionStatus("ok", null);
+    }
+
+    private boolean isDashboardSensorRole(String role) {
+        return AutomationData.ROLE_AIR_TEMPERATURE_SENSOR.equals(role)
+                || AutomationData.ROLE_SOIL_MOISTURE_SENSOR.equals(role);
     }
 
     private String defaultProperty(String role, String property) {

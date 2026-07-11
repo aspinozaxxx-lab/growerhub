@@ -179,13 +179,13 @@ export function formatResourceValue(resource, role) {
   return switchStateLabel(isSwitchResourceOn(resource), hasCurrentValue(resource));
 }
 
-export function formatDateTime(value) {
+export function formatDateTime(value, fallback = 'Время неизвестно') {
   if (!value) {
-    return 'Время неизвестно';
+    return fallback;
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return 'Время неизвестно';
+    return fallback;
   }
   return date.toLocaleString('ru-RU', {
     day: '2-digit',
@@ -193,6 +193,10 @@ export function formatDateTime(value) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+export function resourceLastSeenLabel(resource) {
+  return formatDateTime(resource?.last_seen_at, '—');
 }
 
 export function buildAcRequestBoxes(room) {
