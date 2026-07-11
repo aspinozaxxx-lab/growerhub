@@ -2,8 +2,6 @@ package ru.growerhub.backend.automation;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -20,6 +18,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.automation.contract.AutomationData;
@@ -46,6 +46,8 @@ import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.plant.contract.AdminPlantInfo;
 import ru.growerhub.backend.pump.PumpFacade;
+import ru.growerhub.backend.pump.contract.PumpSessionData;
+import ru.growerhub.backend.pump.contract.PumpStartResult;
 import ru.growerhub.backend.pump.contract.PumpView;
 import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.contract.SensorView;
@@ -56,6 +58,7 @@ import ru.growerhub.backend.zigbee.contract.ZigbeeFeatureData;
 @Service
 @Transactional
 public class AutomationFacade {
+    private static final Logger log = LoggerFactory.getLogger(AutomationFacade.class);
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {
     };
     private static final AuthenticatedUser SYSTEM_ADMIN = new AuthenticatedUser(0, "admin");
@@ -67,14 +70,15 @@ public class AutomationFacade {
     );
     private static final String STOP_MODE_FIXED_DURATION = "fixed_duration";
     private static final String STOP_MODE_UNTIL_DRAIN = "until_drain";
-    private static final String WATERING_PHASE_WATERING = "watering";
-    private static final String WATERING_PHASE_PAUSE = "pause";
     private static final String RUNTIME_WATERING_ACTIVE = "watering_session_active";
-    private static final String RUNTIME_WATERING_PHASE = "watering_phase";
-    private static final String RUNTIME_SESSION_STARTED_AT = "session_started_at";
-    private static final String RUNTIME_PHASE_STARTED_AT = "phase_started_at";
-    private static final String RUNTIME_RUN_ACCUMULATED_S = "run_accumulated_s";
-    private static final String RUNTIME_CURRENT_RUN_DURATION_S = "current_run_duration_s";
+    private static final List<String> LEGACY_WATERING_RUNTIME_KEYS = List.of(
+            RUNTIME_WATERING_ACTIVE,
+            "watering_phase",
+            "session_started_at",
+            "phase_started_at",
+            "run_accumulated_s",
+            "current_run_duration_s"
+    );
 
     private final AutomationRoomRepository roomRepository;
     private final AutomationBoxRepository boxRepository;
@@ -181,11 +185,18 @@ public class AutomationFacade {
     public void deleteRoom(Integer roomId) {
         AutomationRoomEntity room = requireRoom(roomId);
         List<AutomationBoxEntity> boxes = boxRepository.findAllByRoom_IdOrderByNameAscIdAsc(room.getId());
+        Set<Integer> pumpIds = boxes.stream()
+                .map(AutomationBoxEntity::getId)
+                .map(this::automationPumpId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
         for (AutomationBoxEntity box : boxes) {
             deleteBoxResources(box.getId());
         }
         deleteRoomResources(room.getId());
         roomRepository.delete(room);
+        roomRepository.flush();
+        pumpIds.forEach(this::syncAutomationPump);
     }
 
     public AutomationData.Overview createBox(Integer roomId, AutomationData.SaveBoxRequest request) {
@@ -214,29 +225,65 @@ public class AutomationFacade {
 
     public void deleteBox(Integer boxId) {
         AutomationBoxEntity box = requireBox(boxId);
+        Integer pumpId = automationPumpId(box.getId());
         deleteBoxResources(box.getId());
         boxRepository.delete(box);
+        boxRepository.flush();
+        if (pumpId != null) {
+            syncAutomationPump(pumpId);
+        }
     }
 
     public AutomationData.Overview replaceBoxPlants(Integer boxId, AutomationData.SavePlantsRequest request) {
         AutomationBoxEntity box = requireBox(boxId);
         LocalDateTime now = nowUtc();
-        List<Integer> plantIds = request != null && request.plantIds() != null ? request.plantIds() : List.of();
+        List<AutomationData.BoxPlantRequest> items = boxPlantRequests(request);
+        List<Integer> plantIds = items.stream().map(AutomationData.BoxPlantRequest::plantId).toList();
         Set<Integer> uniquePlantIds = new HashSet<>(plantIds);
         if (uniquePlantIds.size() != plantIds.size()) {
             throw new DomainException("bad_request", "plant_ids dolzhny byt' unikalnymi");
         }
-        for (Integer plantId : uniquePlantIds) {
+        for (AutomationData.BoxPlantRequest item : items) {
+            Integer plantId = item.plantId();
+            if (plantId == null) {
+                throw new DomainException("bad_request", "plant_id obyazatelen");
+            }
+            if (item.rateMlPerHour() != null && item.rateMlPerHour() <= 0) {
+                throw new DomainException("bad_request", "rate_ml_per_hour dolzhen byt' bol'she nulya");
+            }
             if (plantFacade.getPlantInfoById(plantId) == null) {
                 throw new DomainException("not_found", "rastenie ne naideno");
             }
         }
         boxPlantRepository.deleteAllByBox_Id(box.getId());
-        List<AutomationBoxPlantEntity> rows = uniquePlantIds.stream()
-                .map(plantId -> AutomationBoxPlantEntity.create(box, plantId, now))
+        List<AutomationBoxPlantEntity> rows = items.stream()
+                .map(item -> AutomationBoxPlantEntity.create(box, item.plantId(), item.rateMlPerHour(), now))
                 .toList();
         boxPlantRepository.saveAll(rows);
+        boxPlantRepository.flush();
+        Integer pumpId = automationPumpId(box.getId());
+        if (pumpId != null) {
+            syncAutomationPump(pumpId);
+        }
         return getOverview();
+    }
+
+    private List<AutomationData.BoxPlantRequest> boxPlantRequests(AutomationData.SavePlantsRequest request) {
+        if (request == null) {
+            return List.of();
+        }
+        if (request.items() != null) {
+            if (request.items().stream().anyMatch(Objects::isNull)) {
+                throw new DomainException("bad_request", "items ne dolzhny soderzhat' null");
+            }
+            return request.items();
+        }
+        if (request.plantIds() == null) {
+            return List.of();
+        }
+        return request.plantIds().stream()
+                .map(plantId -> new AutomationData.BoxPlantRequest(plantId, null))
+                .toList();
     }
 
     public AutomationData.Overview replaceRoomResources(Integer roomId, AutomationData.SaveResourcesRequest request) {
@@ -247,8 +294,163 @@ public class AutomationFacade {
 
     public AutomationData.Overview replaceBoxResources(Integer boxId, AutomationData.SaveResourcesRequest request) {
         requireBox(boxId);
+        Integer previousPumpId = automationPumpId(boxId);
         replaceResources(AutomationData.SCOPE_BOX, boxId, request);
+        Integer nextPumpId = automationPumpId(boxId);
+        Set<Integer> affectedPumpIds = new HashSet<>();
+        if (previousPumpId != null) {
+            affectedPumpIds.add(previousPumpId);
+        }
+        if (nextPumpId != null) {
+            affectedPumpIds.add(nextPumpId);
+        }
+        affectedPumpIds.forEach(this::syncAutomationPump);
         return getOverview();
+    }
+
+    @Transactional(readOnly = true)
+    public AutomationData.ManualWateringOverview getManualWateringOverview() {
+        Catalog catalog = buildCatalog();
+        WateringTopology topology = buildWateringTopology(catalog);
+        Map<Integer, PumpSessionData.View> sessionsByPump = new HashMap<>();
+        for (Integer pumpId : catalog.pumpsById.keySet()) {
+            PumpSessionData.View session = pumpFacade.currentSession(pumpId);
+            if (session != null) {
+                sessionsByPump.put(pumpId, session);
+            }
+        }
+        List<PumpSessionData.Probe> activeProbes = pumpFacade.listActiveSessionProbes();
+
+        List<AutomationData.ManualWateringPump> pumps = new ArrayList<>();
+        for (AutomationData.NativeDevice device : catalog.nativeDevices) {
+            for (AutomationData.NativePump pump : device.pumps()) {
+                PumpSessionData.View currentSession = sessionsByPump.get(pump.id());
+                List<AutomationData.ManualWateringBox> boxes = topology.boxesByPump.getOrDefault(pump.id(), List.of());
+                List<String> blockReasons = manualWateringBlockReasons(
+                        pump,
+                        device,
+                        boxes,
+                        currentSession,
+                        activeProbes
+                );
+                boolean untilLeak = boxes.stream()
+                        .flatMap(box -> box.leakSensors().stream())
+                        .anyMatch(sensor -> Boolean.TRUE.equals(sensor.available()));
+                pumps.add(new AutomationData.ManualWateringPump(
+                        pump.id(),
+                        pump.deviceId(),
+                        device.deviceId(),
+                        pump.channel(),
+                        pump.label(),
+                        pump.isOnline(),
+                        pump.isRunning(),
+                        new AutomationData.ManualWateringCapabilities(
+                                blockReasons.isEmpty(),
+                                blockReasons,
+                                true,
+                                untilLeak,
+                                currentSession != null
+                        ),
+                        boxes,
+                        currentSession
+                ));
+            }
+        }
+        return new AutomationData.ManualWateringOverview(pumpFacade.sessionDefaults(), pumps);
+    }
+
+    @Transactional(noRollbackFor = RuntimeException.class)
+    public PumpSessionData.View startManualWatering(
+            Integer pumpId,
+            AutomationData.ManualWateringStartRequest request,
+            AuthenticatedUser user
+    ) {
+        Catalog catalog = buildCatalog();
+        WateringTopology topology = buildWateringTopology(catalog);
+        AutomationData.ManualWateringStartRequest safeRequest = request != null
+                ? request
+                : new AutomationData.ManualWateringStartRequest(null, null, null, null, null, null);
+        return pumpFacade.startSession(new PumpSessionData.Start(
+                pumpId,
+                PumpSessionData.SOURCE_ADMIN_MANUAL,
+                safeRequest.mode(),
+                safeRequest.durationS(),
+                safeRequest.maxActiveDurationS(),
+                safeRequest.pulseEnabled(),
+                safeRequest.pulseRunS(),
+                safeRequest.pulsePauseS(),
+                topology.targetsByPump.getOrDefault(pumpId, List.of()),
+                null,
+                null
+        ), user);
+    }
+
+    @Transactional(noRollbackFor = RuntimeException.class)
+    public PumpStartResult startUserManualWatering(
+            Integer pumpId,
+            AutomationData.UserManualWateringStartRequest request,
+            AuthenticatedUser user
+    ) {
+        AutomationData.UserManualWateringStartRequest safeRequest = request != null
+                ? request
+                : new AutomationData.UserManualWateringStartRequest(null, null, null, null);
+        if (safeRequest.durationS() == null && safeRequest.waterVolumeL() == null) {
+            throw new DomainException(
+                    "bad_request",
+                    "ukazhite water_volume_l ili duration_s dlya starta poliva"
+            );
+        }
+        Catalog catalog = buildCatalog();
+        List<PumpSessionData.BoxTarget> targets = buildWateringTopology(catalog)
+                .targetsByPump
+                .getOrDefault(pumpId, List.of());
+        if (targets.isEmpty()) {
+            return pumpFacade.start(
+                    pumpId,
+                    new PumpFacade.PumpWateringRequest(
+                            safeRequest.durationS(),
+                            safeRequest.waterVolumeL(),
+                            safeRequest.ph(),
+                            safeRequest.fertilizersPerLiter()
+                    ),
+                    user
+            );
+        }
+        PumpSessionData.View session = pumpFacade.startSession(new PumpSessionData.Start(
+                pumpId,
+                PumpSessionData.SOURCE_USER_MANUAL,
+                PumpSessionData.MODE_TIMED,
+                safeRequest.durationS(),
+                null,
+                false,
+                null,
+                null,
+                targets,
+                safeRequest.waterVolumeL(),
+                safeRequest.ph(),
+                safeRequest.fertilizersPerLiter()
+        ), user);
+        return new PumpStartResult(session.correlationId());
+    }
+
+    public PumpSessionData.View stopManualWatering(Integer pumpId, AuthenticatedUser user) {
+        return pumpFacade.stopSession(pumpId, user);
+    }
+
+    @Transactional(readOnly = true)
+    public PumpSessionData.Page getManualWateringSessions(Integer pumpId, int limit, Long beforeId) {
+        return pumpFacade.listSessions(pumpId, limit, beforeId);
+    }
+
+    @Transactional(readOnly = true)
+    public PumpSessionData.BoxStatistics getManualWateringBoxStatistics(
+            Integer boxId,
+            String range,
+            int limit,
+            Long beforeId
+    ) {
+        requireBox(boxId);
+        return pumpFacade.boxStatistics(boxId, range, limit, beforeId);
     }
 
     public AutomationData.Overview replaceRoomScenarios(Integer roomId, AutomationData.SaveScenariosRequest request) {
@@ -282,31 +484,44 @@ public class AutomationFacade {
         }
     }
 
+    @Transactional(readOnly = true)
     public void evaluateActiveWateringSessions() {
         LocalDateTime now = nowUtc();
-        List<AutomationScenarioStateEntity> states = stateRepository.findAllByScenarioType(AutomationData.SCENARIO_WATERING);
-        List<AutomationScenarioStateEntity> activeStates = states.stream()
-                .filter(this::hasActiveWateringSession)
-                .toList();
-        if (activeStates.isEmpty()) {
+        List<PumpSessionData.Probe> probes = pumpFacade.listActiveSessionProbes();
+        if (probes.isEmpty()) {
             return;
         }
         Catalog catalog = buildCatalog();
-        for (AutomationScenarioStateEntity state : activeStates) {
-            if (!AutomationData.SCOPE_BOX.equals(state.getScopeType())) {
-                continue;
+        Map<String, AutomationData.NativeDevice> devicesByKey = catalog.nativeDevices.stream()
+                .collect(Collectors.toMap(AutomationData.NativeDevice::deviceId, Function.identity()));
+        for (PumpSessionData.Probe probe : probes) {
+            Long sessionId = probe != null ? probe.sessionId() : null;
+            try {
+                AutomationData.NativeDevice device = devicesByKey.get(probe.deviceKey());
+                AutomationData.NativePump pump = catalog.pumpsById.get(probe.pumpId());
+                List<PumpSessionData.LeakState> leakStates = probe.leakSensors().stream()
+                        .map(sensor -> currentLeakState(sensor, catalog, now))
+                        .toList();
+                pumpFacade.advanceSession(
+                        sessionId,
+                        new PumpSessionData.LeakProbe(
+                                device != null ? device.isOnline() : Boolean.FALSE,
+                                pump != null ? pump.isRunning() : null,
+                                pump != null
+                                        ? pump.lastSeenAt()
+                                        : device != null ? device.lastSeenAt() : null,
+                                leakStates
+                        ),
+                        now
+                );
+            } catch (RuntimeException ex) {
+                log.warn(
+                        "Obrabotka sessii poliva {} zavershilas oshibkoj: {}",
+                        sessionId,
+                        ex.getMessage(),
+                        ex
+                );
             }
-            AutomationBoxEntity box = boxRepository.findById(state.getScopeId()).orElse(null);
-            AutomationScenarioConfigEntity config = configFor(
-                    AutomationData.SCOPE_BOX,
-                    state.getScopeId(),
-                    AutomationData.SCENARIO_WATERING
-            );
-            if (box == null || config == null || !config.isEnabled() || !box.isEnabled()) {
-                stopWateringSession(state, catalog, now, "scenario disabled", "disabled");
-                continue;
-            }
-            continueWateringSession(box, config, state, catalog, now);
         }
     }
 
@@ -407,7 +622,8 @@ public class AutomationFacade {
             throw new DomainException("bad_request", "intervaly impulsnogo poliva dolzhny byt' bol'she nulya");
         }
         Catalog catalog = buildCatalog();
-        if (!hasReadyLeakSensor(scopeId, catalog)) {
+        Integer pumpId = automationPumpId(scopeId);
+        if (pumpId == null || !hasConfiguredLeakSensorForPump(pumpId, null, catalog)) {
             throw new DomainException("bad_request", "dlya until_drain nuzhen LEAK_SENSOR");
         }
     }
@@ -429,11 +645,17 @@ public class AutomationFacade {
         if (!isUntilDrain(cfg)) {
             return;
         }
+        Integer pumpId = nextResources.stream()
+                .filter(resource -> AutomationData.ROLE_WATER_PUMP.equals(resource.getRole()))
+                .map(AutomationResourceBindingEntity::getNativePumpId)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
         boolean hasLeakSensor = nextResources.stream()
                 .filter(resource -> AutomationData.ROLE_LEAK_SENSOR.equals(resource.getRole()))
                 .map(resource -> resolveResourceStatus(resource, catalog))
                 .anyMatch(ResourceStatus::ready);
-        if (!hasLeakSensor) {
+        if (!hasLeakSensor && (pumpId == null || !hasConfiguredLeakSensorForPump(pumpId, scopeId, catalog))) {
             throw new DomainException("bad_request", "LEAK_SENSOR nel'zya ubrat' pri until_drain");
         }
     }
@@ -595,8 +817,9 @@ public class AutomationFacade {
         AutomationScenarioStateEntity state = stateFor(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, now);
         AutomationData.Readiness readiness = wateringReadiness(box.getId(), catalog);
         if (hasActiveWateringSession(state)) {
-            continueWateringSession(box, config, state, catalog, now);
-            return;
+            Map<String, Object> legacyRuntime = runtimeMap(state);
+            clearWateringRuntime(legacyRuntime);
+            state.setRuntimeJson(writeJson(legacyRuntime));
         }
         if (!box.isEnabled()) {
             markState(state, "disabled", "box vyklyuchen", false, now);
@@ -612,8 +835,22 @@ public class AutomationFacade {
         }
         Map<String, Object> cfg = configMap(config, AutomationData.SCENARIO_WATERING);
         boolean untilDrain = isUntilDrain(cfg);
-        if (untilDrain && !hasReadyLeakSensor(box.getId(), catalog)) {
-            markState(state, "unready", "nuzhen LEAK_SENSOR", false, now);
+        AutomationResourceBindingEntity pumpBinding = resource(
+                AutomationData.SCOPE_BOX,
+                box.getId(),
+                AutomationData.ROLE_WATER_PUMP
+        );
+        WateringTopology topology = buildWateringTopology(catalog);
+        boolean hasAvailableLeakSensor = pumpBinding != null
+                && topology.targetsByPump.getOrDefault(pumpBinding.getNativePumpId(), List.of()).stream()
+                .flatMap(target -> target.leakSensors().stream())
+                .anyMatch(sensor -> Boolean.TRUE.equals(sensor.available()));
+        if (untilDrain && !hasAvailableLeakSensor) {
+            markState(state, "unready", "nuzhen dostupnyj LEAK_SENSOR", false, now);
+            return;
+        }
+        if (pumpBinding != null && pumpFacade.currentSession(pumpBinding.getNativePumpId()) != null) {
+            markState(state, "active", null, false, now);
             return;
         }
         AutomationResourceBindingEntity soilBinding = resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_SOIL_MOISTURE_SENSOR);
@@ -629,32 +866,21 @@ public class AutomationFacade {
         int minIntervalHours = integer(cfg.get("min_interval_hours"), 6);
         int dailyMaxSeconds = Math.max(1, integer(cfg.get("daily_max_seconds"), 1200));
         int requestedRunSeconds = untilDrain ? untilDrainMaxRunSeconds(cfg) : runSeconds;
-        AutomationActionLogEntity lastStart = actionLogRepository.findTopByScopeTypeAndScopeIdAndScenarioTypeAndActionOrderByCreatedAtDesc(
-                AutomationData.SCOPE_BOX,
-                box.getId(),
-                AutomationData.SCENARIO_WATERING,
-                "PUMP_START"
-        );
+        PumpSessionData.View lastSession = pumpFacade.lastCompletedSessionForBox(box.getId());
+        LocalDateTime lastFinishedAt = lastSession != null ? lastSession.finishedAt() : null;
         boolean tooDry = moisture.value() <= threshold;
-        boolean intervalElapsed = lastStart == null || lastStart.getCreatedAt().isBefore(now.minusHours(maxIntervalHours));
+        boolean intervalElapsed = lastFinishedAt == null || lastFinishedAt.isBefore(now.minusHours(maxIntervalHours));
         if (!tooDry && !intervalElapsed) {
             markState(state, "active", null, false, now);
             return;
         }
-        if (lastStart != null && lastStart.getCreatedAt().isAfter(now.minusHours(minIntervalHours))) {
+        if (lastFinishedAt != null && lastFinishedAt.isAfter(now.minusHours(minIntervalHours))) {
             logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, null,
                     "SKIP", "min interval mezhdu polivami", "skipped", null, now);
             markState(state, "limited", "min interval mezhdu polivami", false, now);
             return;
         }
-        Long usedTodayRaw = actionLogRepository.sumWateringDurationSince(
-                AutomationData.SCOPE_BOX,
-                box.getId(),
-                AutomationData.SCENARIO_WATERING,
-                "published",
-                LocalDate.now(ZoneOffset.UTC).atStartOfDay()
-        );
-        int usedToday = usedTodayRaw != null ? usedTodayRaw.intValue() : 0;
+        long usedToday = pumpFacade.boxStatistics(box.getId(), "day", 1, null).activeDurationS();
         if (usedToday + requestedRunSeconds > dailyMaxSeconds) {
             logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, null,
                     "SKIP", "dnevnoj limit poliva", "skipped", null, now);
@@ -662,244 +888,44 @@ public class AutomationFacade {
             return;
         }
 
-        AutomationResourceBindingEntity pumpBinding = resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_WATER_PUMP);
         String reason = "vlazhnost' " + moisture.value() + "%";
-        if (untilDrain) {
-            startWateringSession(box, state, cfg, pumpBinding, reason, requestedRunSeconds, now);
-        } else {
-            startFixedWatering(box, state, pumpBinding, reason, runSeconds, now);
-        }
+        startAutomationWatering(box, state, cfg, pumpBinding, reason, untilDrain, requestedRunSeconds, now, topology);
     }
 
-    private void startFixedWatering(
-            AutomationBoxEntity box,
-            AutomationScenarioStateEntity state,
-            AutomationResourceBindingEntity pumpBinding,
-            String reason,
-            int runSeconds,
-            LocalDateTime now
-    ) {
-        try {
-            pumpFacade.start(
-                    pumpBinding.getNativePumpId(),
-                    new PumpFacade.PumpWateringRequest(runSeconds, null, null, null),
-                    SYSTEM_ADMIN
-            );
-            logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, pumpBinding,
-                    "PUMP_START", reason, "published", runSeconds, now);
-            state.setLastActionAt(now);
-            markState(state, "active", null, false, now);
-        } catch (RuntimeException ex) {
-            logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, pumpBinding,
-                    "PUMP_START", ex.getMessage(), "error", runSeconds, now);
-            markState(state, "error", ex.getMessage(), false, now);
-        }
-    }
-
-    private void startWateringSession(
+    private void startAutomationWatering(
             AutomationBoxEntity box,
             AutomationScenarioStateEntity state,
             Map<String, Object> cfg,
             AutomationResourceBindingEntity pumpBinding,
             String reason,
-            int maxRunSeconds,
-            LocalDateTime now
-    ) {
-        int firstRunSeconds = nextPulseRunSeconds(cfg, maxRunSeconds);
-        try {
-            pumpFacade.start(
-                    pumpBinding.getNativePumpId(),
-                    new PumpFacade.PumpWateringRequest(firstRunSeconds, null, null, null),
-                    SYSTEM_ADMIN
-            );
-            Map<String, Object> runtime = runtimeMap(state);
-            runtime.put(RUNTIME_WATERING_ACTIVE, true);
-            runtime.put(RUNTIME_WATERING_PHASE, WATERING_PHASE_WATERING);
-            runtime.put(RUNTIME_SESSION_STARTED_AT, now.toString());
-            runtime.put(RUNTIME_PHASE_STARTED_AT, now.toString());
-            runtime.put(RUNTIME_RUN_ACCUMULATED_S, 0);
-            runtime.put(RUNTIME_CURRENT_RUN_DURATION_S, firstRunSeconds);
-            state.setRuntimeJson(writeJson(runtime));
-            state.setLastActionAt(now);
-            logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, pumpBinding,
-                    "PUMP_START", reason, "published", null, now);
-            markState(state, "active", null, false, now);
-        } catch (RuntimeException ex) {
-            logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, pumpBinding,
-                    "PUMP_START", ex.getMessage(), "error", null, now);
-            markState(state, "error", ex.getMessage(), false, now);
-        }
-    }
-
-    private void continueWateringSession(
-            AutomationBoxEntity box,
-            AutomationScenarioConfigEntity config,
-            AutomationScenarioStateEntity state,
-            Catalog catalog,
-            LocalDateTime now
-    ) {
-        if (config == null || !config.isEnabled() || !box.isEnabled()) {
-            stopWateringSession(state, catalog, now, "scenario disabled", "disabled");
-            return;
-        }
-        Map<String, Object> cfg = configMap(config, AutomationData.SCENARIO_WATERING);
-        if (!isUntilDrain(cfg)) {
-            stopWateringSession(state, catalog, now, "scenario changed", "active");
-            return;
-        }
-        if (!hasReadyLeakSensor(box.getId(), catalog)) {
-            stopWateringSession(state, catalog, now, "net LEAK_SENSOR", "unready");
-            return;
-        }
-        if (isLeakTriggered(box.getId(), catalog)) {
-            stopWateringSession(state, catalog, now, "drenazh", "active");
-            return;
-        }
-
-        Map<String, Object> runtime = runtimeMap(state);
-        int maxRunSeconds = untilDrainMaxRunSeconds(cfg);
-        int runSeconds = Math.min(wateringRunSeconds(runtime, now), maxRunSeconds);
-        if (runSeconds >= maxRunSeconds) {
-            stopWateringSessionWithDuration(state, catalog, now, "limit", "limited", maxRunSeconds);
-            return;
-        }
-
-        String phase = String.valueOf(runtime.getOrDefault(RUNTIME_WATERING_PHASE, WATERING_PHASE_WATERING));
-        if (WATERING_PHASE_PAUSE.equals(phase)) {
-            continueWateringPause(state, cfg, runtime, catalog, now, maxRunSeconds);
-            return;
-        }
-        continueWateringRun(state, cfg, runtime, catalog, now, maxRunSeconds);
-    }
-
-    private void continueWateringRun(
-            AutomationScenarioStateEntity state,
-            Map<String, Object> cfg,
-            Map<String, Object> runtime,
-            Catalog catalog,
+            boolean untilDrain,
+            int requestedRunSeconds,
             LocalDateTime now,
-            int maxRunSeconds
+            WateringTopology topology
     ) {
-        LocalDateTime phaseStartedAt = parseDateTime(runtime.get(RUNTIME_PHASE_STARTED_AT));
-        int currentRunSeconds = Math.max(1, integer(runtime.get(RUNTIME_CURRENT_RUN_DURATION_S), nextPulseRunSeconds(cfg, maxRunSeconds)));
-        int elapsed = durationSeconds(phaseStartedAt, now);
-        if (elapsed < currentRunSeconds) {
-            markState(state, "active", null, false, now);
-            return;
-        }
-
-        int accumulated = Math.min(maxRunSeconds, integer(runtime.get(RUNTIME_RUN_ACCUMULATED_S), 0) + currentRunSeconds);
-        if (!pulseEnabled(cfg) || accumulated >= maxRunSeconds) {
-            stopWateringSessionWithDuration(state, catalog, now, "limit", "limited", accumulated);
-            return;
-        }
-
-        AutomationResourceBindingEntity pumpBinding = resource(
-                AutomationData.SCOPE_BOX,
-                state.getScopeId(),
-                AutomationData.ROLE_WATER_PUMP
-        );
         try {
-            pumpFacade.stop(pumpBinding.getNativePumpId(), SYSTEM_ADMIN);
-            runtime.put(RUNTIME_WATERING_PHASE, WATERING_PHASE_PAUSE);
-            runtime.put(RUNTIME_PHASE_STARTED_AT, now.toString());
-            runtime.put(RUNTIME_RUN_ACCUMULATED_S, accumulated);
-            runtime.remove(RUNTIME_CURRENT_RUN_DURATION_S);
-            state.setRuntimeJson(writeJson(runtime));
-            markState(state, "active", null, false, now);
-        } catch (RuntimeException ex) {
-            logAction(AutomationData.SCOPE_BOX, state.getScopeId(), AutomationData.SCENARIO_WATERING, pumpBinding,
-                    "PUMP_STOP", ex.getMessage(), "error", null, now);
-            markState(state, "error", ex.getMessage(), false, now);
-        }
-    }
-
-    private void continueWateringPause(
-            AutomationScenarioStateEntity state,
-            Map<String, Object> cfg,
-            Map<String, Object> runtime,
-            Catalog catalog,
-            LocalDateTime now,
-            int maxRunSeconds
-    ) {
-        LocalDateTime phaseStartedAt = parseDateTime(runtime.get(RUNTIME_PHASE_STARTED_AT));
-        int pauseSeconds = pulsePauseSeconds(cfg);
-        if (durationSeconds(phaseStartedAt, now) < pauseSeconds) {
-            markState(state, "active", null, false, now);
-            return;
-        }
-
-        int accumulated = integer(runtime.get(RUNTIME_RUN_ACCUMULATED_S), 0);
-        int remaining = maxRunSeconds - accumulated;
-        if (remaining <= 0) {
-            stopWateringSessionWithDuration(state, catalog, now, "limit", "limited", accumulated);
-            return;
-        }
-
-        AutomationResourceBindingEntity pumpBinding = resource(
-                AutomationData.SCOPE_BOX,
-                state.getScopeId(),
-                AutomationData.ROLE_WATER_PUMP
-        );
-        int currentRunSeconds = nextPulseRunSeconds(cfg, remaining);
-        try {
-            pumpFacade.start(
+            pumpFacade.startSession(new PumpSessionData.Start(
                     pumpBinding.getNativePumpId(),
-                    new PumpFacade.PumpWateringRequest(currentRunSeconds, null, null, null),
-                    SYSTEM_ADMIN
-            );
-            runtime.put(RUNTIME_WATERING_PHASE, WATERING_PHASE_WATERING);
-            runtime.put(RUNTIME_PHASE_STARTED_AT, now.toString());
-            runtime.put(RUNTIME_CURRENT_RUN_DURATION_S, currentRunSeconds);
-            state.setRuntimeJson(writeJson(runtime));
+                    PumpSessionData.SOURCE_AUTOMATION,
+                    untilDrain ? PumpSessionData.MODE_UNTIL_LEAK : PumpSessionData.MODE_TIMED,
+                    untilDrain ? null : requestedRunSeconds,
+                    untilDrain ? requestedRunSeconds : null,
+                    pulseEnabled(cfg),
+                    pulseRunSeconds(cfg),
+                    pulsePauseSeconds(cfg),
+                    topology.targetsByPump.getOrDefault(pumpBinding.getNativePumpId(), List.of()),
+                    null,
+                    null
+            ), SYSTEM_ADMIN);
+            logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, pumpBinding,
+                    "PUMP_START", reason, "published", requestedRunSeconds, now);
             state.setLastActionAt(now);
             markState(state, "active", null, false, now);
         } catch (RuntimeException ex) {
-            logAction(AutomationData.SCOPE_BOX, state.getScopeId(), AutomationData.SCENARIO_WATERING, pumpBinding,
-                    "PUMP_START", ex.getMessage(), "error", currentRunSeconds, now);
+            logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, pumpBinding,
+                    "PUMP_START", ex.getMessage(), "error", requestedRunSeconds, now);
             markState(state, "error", ex.getMessage(), false, now);
         }
-    }
-
-    private void stopWateringSession(
-            AutomationScenarioStateEntity state,
-            Catalog catalog,
-            LocalDateTime now,
-            String reason,
-            String status
-    ) {
-        int durationS = wateringRunSeconds(runtimeMap(state), now);
-        stopWateringSessionWithDuration(state, catalog, now, reason, status, durationS);
-    }
-
-    private void stopWateringSessionWithDuration(
-            AutomationScenarioStateEntity state,
-            Catalog catalog,
-            LocalDateTime now,
-            String reason,
-            String status,
-            int durationS
-    ) {
-        AutomationResourceBindingEntity pumpBinding = resource(
-                AutomationData.SCOPE_BOX,
-                state.getScopeId(),
-                AutomationData.ROLE_WATER_PUMP
-        );
-        try {
-            if (pumpBinding != null) {
-                pumpFacade.stop(pumpBinding.getNativePumpId(), SYSTEM_ADMIN);
-            }
-            logAction(AutomationData.SCOPE_BOX, state.getScopeId(), AutomationData.SCENARIO_WATERING, pumpBinding,
-                    "PUMP_STOP", reason, "published", Math.max(0, durationS), now);
-        } catch (RuntimeException ex) {
-            logAction(AutomationData.SCOPE_BOX, state.getScopeId(), AutomationData.SCENARIO_WATERING, pumpBinding,
-                    "PUMP_STOP", ex.getMessage(), "error", Math.max(0, durationS), now);
-        }
-        Map<String, Object> runtime = runtimeMap(state);
-        clearWateringRuntime(runtime);
-        state.setRuntimeJson(writeJson(runtime));
-        state.setLastActionAt(now);
-        markState(state, status, stateReasonAfterStop(status, reason), false, now);
     }
 
     private void sendSwitchIfNeeded(
@@ -1037,8 +1063,7 @@ public class AutomationFacade {
                 box.getName(),
                 box.isEnabled(),
                 plantsByBox.getOrDefault(box.getId(), List.of()).stream()
-                        .map(AutomationBoxPlantEntity::getPlantId)
-                        .map(catalog.plantsById::get)
+                        .map(binding -> toBoxPlantData(binding, catalog.plantsById.get(binding.getPlantId())))
                         .filter(Objects::nonNull)
                         .toList(),
                 resources.getOrDefault(key(AutomationData.SCOPE_BOX, box.getId()), List.of()).stream()
@@ -1454,6 +1479,24 @@ public class AutomationFacade {
         );
     }
 
+    private AutomationData.BoxPlant toBoxPlantData(
+            AutomationBoxPlantEntity binding,
+            AutomationData.Plant plant
+    ) {
+        if (plant == null) {
+            return null;
+        }
+        return new AutomationData.BoxPlant(
+                plant.id(),
+                plant.name(),
+                plant.ownerEmail(),
+                plant.ownerUsername(),
+                plant.ownerId(),
+                plant.groupName(),
+                binding.getRateMlPerHour()
+        );
+    }
+
     private AutomationData.NativeSensor toNativeSensorData(SensorView sensor, DeviceSummary summary) {
         return new AutomationData.NativeSensor(
                 sensor.id(),
@@ -1533,6 +1576,191 @@ public class AutomationFacade {
         return AutomationData.ROLE_AC_SWITCH.equals(role)
                 || AutomationData.ROLE_EXHAUST_SWITCH.equals(role)
                 || AutomationData.ROLE_LIGHT_SWITCH.equals(role);
+    }
+
+    private WateringTopology buildWateringTopology(Catalog catalog) {
+        List<AutomationRoomEntity> rooms = roomRepository.findAllByOrderByNameAscIdAsc();
+        List<AutomationBoxEntity> boxes = boxRepository.findAllByOrderByNameAscIdAsc();
+        Map<Integer, AutomationRoomEntity> roomsById = rooms.stream()
+                .collect(Collectors.toMap(AutomationRoomEntity::getId, Function.identity()));
+        Map<Integer, List<AutomationBoxPlantEntity>> plantsByBox = groupPlants(boxes);
+        Map<String, List<AutomationResourceBindingEntity>> resources = groupResources(rooms, boxes);
+        Map<Integer, List<AutomationData.ManualWateringBox>> boxesByPump = new LinkedHashMap<>();
+        Map<Integer, List<PumpSessionData.BoxTarget>> targetsByPump = new LinkedHashMap<>();
+        LocalDateTime now = nowUtc();
+
+        for (AutomationBoxEntity box : boxes) {
+            List<AutomationResourceBindingEntity> boxResources = resources.getOrDefault(
+                    key(AutomationData.SCOPE_BOX, box.getId()),
+                    List.of()
+            );
+            AutomationResourceBindingEntity pumpBinding = boxResources.stream()
+                    .filter(binding -> AutomationData.ROLE_WATER_PUMP.equals(binding.getRole()))
+                    .findFirst()
+                    .orElse(null);
+            if (pumpBinding == null || pumpBinding.getNativePumpId() == null) {
+                continue;
+            }
+            AutomationRoomEntity room = roomsById.get(box.getRoomId());
+            List<AutomationData.BoxPlant> plants = plantsByBox.getOrDefault(box.getId(), List.of()).stream()
+                    .map(binding -> toBoxPlantData(binding, catalog.plantsById.get(binding.getPlantId())))
+                    .filter(Objects::nonNull)
+                    .toList();
+            List<PumpSessionData.LeakTarget> leakSensors = boxResources.stream()
+                    .filter(binding -> AutomationData.ROLE_LEAK_SENSOR.equals(binding.getRole()))
+                    .map(binding -> toLeakTarget(binding, catalog, now))
+                    .toList();
+            AutomationData.ManualWateringBox manualBox = new AutomationData.ManualWateringBox(
+                    box.getId(),
+                    box.getName(),
+                    box.getRoomId(),
+                    room != null ? room.getName() : null,
+                    box.isEnabled(),
+                    plants,
+                    leakSensors
+            );
+            PumpSessionData.BoxTarget target = new PumpSessionData.BoxTarget(
+                    box.getId(),
+                    box.getName(),
+                    box.getRoomId(),
+                    room != null ? room.getName() : null,
+                    plants.stream()
+                            .map(plant -> new PumpSessionData.PlantTarget(
+                                    plant.id(),
+                                    plant.name(),
+                                    plant.rateMlPerHour(),
+                                    plant.ownerId()
+                            ))
+                            .toList(),
+                    leakSensors
+            );
+            boxesByPump.computeIfAbsent(pumpBinding.getNativePumpId(), ignored -> new ArrayList<>()).add(manualBox);
+            targetsByPump.computeIfAbsent(pumpBinding.getNativePumpId(), ignored -> new ArrayList<>()).add(target);
+        }
+        return new WateringTopology(boxesByPump, targetsByPump);
+    }
+
+    private boolean hasConfiguredLeakSensorForPump(
+            Integer pumpId,
+            Integer excludedBoxId,
+            Catalog catalog
+    ) {
+        return buildWateringTopology(catalog).targetsByPump.getOrDefault(pumpId, List.of()).stream()
+                .filter(target -> !Objects.equals(target.boxId(), excludedBoxId))
+                .flatMap(target -> target.leakSensors().stream())
+                .findAny()
+                .isPresent();
+    }
+
+    private List<String> manualWateringBlockReasons(
+            AutomationData.NativePump pump,
+            AutomationData.NativeDevice device,
+            List<AutomationData.ManualWateringBox> boxes,
+            PumpSessionData.View currentSession,
+            List<PumpSessionData.Probe> activeProbes
+    ) {
+        List<String> reasons = new ArrayList<>();
+        if (!Boolean.TRUE.equals(device.isOnline()) || !Boolean.TRUE.equals(pump.isOnline())) {
+            reasons.add("pump_offline");
+        }
+        if (currentSession != null) {
+            reasons.add("pump_session_active");
+        } else if (Boolean.TRUE.equals(pump.isRunning())) {
+            reasons.add("pump_running");
+        }
+        boolean deviceBusy = activeProbes.stream()
+                .anyMatch(probe -> Objects.equals(probe.deviceKey(), device.deviceId())
+                        && !Objects.equals(probe.pumpId(), pump.id()));
+        if (deviceBusy) {
+            reasons.add("device_busy");
+        }
+        if (boxes.isEmpty()) {
+            reasons.add("no_boxes");
+        }
+        if (boxes.stream().flatMap(box -> box.plants().stream()).findAny().isEmpty()) {
+            reasons.add("no_plants");
+        }
+        if (boxes.stream()
+                .flatMap(box -> box.leakSensors().stream())
+                .anyMatch(sensor -> Boolean.TRUE.equals(sensor.triggered()))) {
+            reasons.add("leak_triggered");
+        }
+        return List.copyOf(reasons);
+    }
+
+    private PumpSessionData.LeakTarget toLeakTarget(
+            AutomationResourceBindingEntity binding,
+            Catalog catalog,
+            LocalDateTime now
+    ) {
+        AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(binding.getZigbeeIeeeAddress());
+        String property = defaultProperty(AutomationData.ROLE_LEAK_SENSOR, binding.getZigbeeProperty());
+        return new PumpSessionData.LeakTarget(
+                "automation-resource:" + binding.getId(),
+                binding.getId(),
+                binding.getSourceType(),
+                binding.getZigbeeIeeeAddress(),
+                property,
+                device != null ? device.friendlyName() : null,
+                isLeakAvailable(device, property, now),
+                isLeakTriggered(device, property)
+        );
+    }
+
+    private PumpSessionData.LeakState currentLeakState(
+            PumpSessionData.LeakTarget target,
+            Catalog catalog,
+            LocalDateTime now
+    ) {
+        AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(target.externalId());
+        return new PumpSessionData.LeakState(
+                target.reference(),
+                isLeakAvailable(device, target.property(), now),
+                isLeakTriggered(device, target.property())
+        );
+    }
+
+    private boolean isLeakAvailable(AutomationData.ZigbeeDevice device, String property, LocalDateTime now) {
+        if (device == null || readZigbeeFeature(device, property) == null) {
+            return false;
+        }
+        if ("offline".equalsIgnoreCase(device.availability())) {
+            return false;
+        }
+        return device.lastStateAt() != null
+                && !device.lastStateAt().isBefore(now.minusMinutes(settings.getResourceOfflineMinutes()));
+    }
+
+    private boolean isLeakTriggered(AutomationData.ZigbeeDevice device, String property) {
+        AutomationData.ZigbeeFeature feature = readZigbeeFeature(device, property);
+        if (feature == null) {
+            return false;
+        }
+        Object value = feature.value();
+        if (Boolean.TRUE.equals(value)) {
+            return true;
+        }
+        String normalized = value != null ? String.valueOf(value).trim() : "";
+        if ("true".equalsIgnoreCase(normalized) || "ON".equalsIgnoreCase(normalized)) {
+            return true;
+        }
+        return feature.valueOn() != null
+                && normalized.equalsIgnoreCase(String.valueOf(feature.valueOn()).trim());
+    }
+
+    private Integer automationPumpId(Integer boxId) {
+        AutomationResourceBindingEntity binding = resource(
+                AutomationData.SCOPE_BOX,
+                boxId,
+                AutomationData.ROLE_WATER_PUMP
+        );
+        return binding != null ? binding.getNativePumpId() : null;
+    }
+
+    private void syncAutomationPump(Integer pumpId) {
+        Catalog catalog = buildCatalog();
+        WateringTopology topology = buildWateringTopology(catalog);
+        pumpFacade.syncAutomationBindings(pumpId, topology.targetsByPump.getOrDefault(pumpId, List.of()));
     }
 
     private AutomationResourceBindingEntity resource(String scopeType, Integer scopeId, String role) {
@@ -1702,12 +1930,7 @@ public class AutomationFacade {
     }
 
     private void clearWateringRuntime(Map<String, Object> runtime) {
-        runtime.remove(RUNTIME_WATERING_ACTIVE);
-        runtime.remove(RUNTIME_WATERING_PHASE);
-        runtime.remove(RUNTIME_SESSION_STARTED_AT);
-        runtime.remove(RUNTIME_PHASE_STARTED_AT);
-        runtime.remove(RUNTIME_RUN_ACCUMULATED_S);
-        runtime.remove(RUNTIME_CURRENT_RUN_DURATION_S);
+        LEGACY_WATERING_RUNTIME_KEYS.forEach(runtime::remove);
     }
 
     private boolean isUntilDrain(Map<String, Object> cfg) {
@@ -1731,73 +1954,12 @@ public class AutomationFacade {
         return minutesToSeconds(cfg.get("pulse_pause_minutes"), 5);
     }
 
-    private int nextPulseRunSeconds(Map<String, Object> cfg, int remainingSeconds) {
-        int requestedSeconds = pulseEnabled(cfg) ? pulseRunSeconds(cfg) : remainingSeconds;
-        return Math.max(1, Math.min(requestedSeconds, remainingSeconds));
-    }
-
     private int minutesToSeconds(Object value, int fallbackMinutes) {
         double minutes = number(value, fallbackMinutes);
         if (minutes <= 0.0) {
             minutes = fallbackMinutes;
         }
         return Math.max(1, (int) Math.round(minutes * 60.0));
-    }
-
-    private int wateringRunSeconds(Map<String, Object> runtime, LocalDateTime now) {
-        int accumulated = Math.max(0, integer(runtime.get(RUNTIME_RUN_ACCUMULATED_S), 0));
-        String phase = String.valueOf(runtime.getOrDefault(RUNTIME_WATERING_PHASE, WATERING_PHASE_WATERING));
-        if (!WATERING_PHASE_WATERING.equals(phase)) {
-            return accumulated;
-        }
-        LocalDateTime phaseStartedAt = parseDateTime(runtime.get(RUNTIME_PHASE_STARTED_AT));
-        int currentRunSeconds = Math.max(1, integer(runtime.get(RUNTIME_CURRENT_RUN_DURATION_S), 1));
-        return accumulated + Math.min(currentRunSeconds, durationSeconds(phaseStartedAt, now));
-    }
-
-    private int durationSeconds(LocalDateTime from, LocalDateTime to) {
-        if (from == null || to == null) {
-            return 0;
-        }
-        long seconds = Duration.between(from, to).getSeconds();
-        if (seconds <= 0) {
-            return 0;
-        }
-        return seconds > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) seconds;
-    }
-
-    private boolean hasReadyLeakSensor(Integer boxId, Catalog catalog) {
-        ResourceStatus status = resolveResourceStatus(
-                resource(AutomationData.SCOPE_BOX, boxId, AutomationData.ROLE_LEAK_SENSOR),
-                catalog
-        );
-        return status.ready();
-    }
-
-    private boolean isLeakTriggered(Integer boxId, Catalog catalog) {
-        AutomationResourceBindingEntity binding = resource(AutomationData.SCOPE_BOX, boxId, AutomationData.ROLE_LEAK_SENSOR);
-        if (binding == null || !AutomationData.SOURCE_ZIGBEE_DEVICE.equals(binding.getSourceType())) {
-            return false;
-        }
-        AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(binding.getZigbeeIeeeAddress());
-        AutomationData.ZigbeeFeature feature = readZigbeeFeature(device, binding.getZigbeeProperty());
-        if (feature == null) {
-            return false;
-        }
-        Object value = feature.value();
-        Object onValue = feature.valueOn();
-        if (Boolean.TRUE.equals(value)) {
-            return true;
-        }
-        String normalized = value != null ? String.valueOf(value).trim() : "";
-        if ("true".equalsIgnoreCase(normalized) || "ON".equalsIgnoreCase(normalized)) {
-            return true;
-        }
-        return onValue != null && normalized.equalsIgnoreCase(String.valueOf(onValue).trim());
-    }
-
-    private String stateReasonAfterStop(String status, String reason) {
-        return "active".equals(status) ? null : reason;
     }
 
     private Map<String, Object> readJsonMap(String json) {
@@ -2020,6 +2182,12 @@ public class AutomationFacade {
     }
 
     private record ConnectionStatus(String status, String message) {
+    }
+
+    private record WateringTopology(
+            Map<Integer, List<AutomationData.ManualWateringBox>> boxesByPump,
+            Map<Integer, List<PumpSessionData.BoxTarget>> targetsByPump
+    ) {
     }
 
     private record Catalog(

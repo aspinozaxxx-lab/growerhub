@@ -16,6 +16,7 @@ import ru.growerhub.backend.pump.jpa.PumpEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingRepository;
 import ru.growerhub.backend.pump.jpa.PumpRepository;
+import ru.growerhub.backend.pump.contract.PumpSessionData;
 
 @Service
 public class PumpBindingService {
@@ -92,6 +93,40 @@ public class PumpBindingService {
             binding.setPump(pump);
             binding.setPlantId(plantId);
             binding.setRateMlPerHour(rate);
+            bindingRepository.save(binding);
+        }
+    }
+
+    public void syncAutomationBindings(Integer pumpId, List<PumpSessionData.BoxTarget> targets) {
+        PumpEntity pump = pumpRepository.findById(pumpId).orElse(null);
+        if (pump == null) {
+            throw new DomainException("not_found", "nasos ne naiden");
+        }
+        Map<Integer, Integer> ratesByPlant = new HashMap<>();
+        if (targets != null) {
+            for (PumpSessionData.BoxTarget box : targets) {
+                if (box == null || box.plants() == null) {
+                    continue;
+                }
+                for (PumpSessionData.PlantTarget plant : box.plants()) {
+                    if (plant == null || plant.plantId() == null) {
+                        continue;
+                    }
+                    Integer rate = plant.rateMlPerHour();
+                    if (rate != null && rate <= 0) {
+                        throw new DomainException("unprocessable", "rate_ml_per_hour dolzhen byt' > 0");
+                    }
+                    ratesByPlant.put(plant.plantId(), rate);
+                }
+            }
+        }
+        bindingRepository.deleteAllByPump_Id(pumpId);
+        bindingRepository.flush();
+        for (Map.Entry<Integer, Integer> item : ratesByPlant.entrySet()) {
+            PumpPlantBindingEntity binding = PumpPlantBindingEntity.create();
+            binding.setPump(pump);
+            binding.setPlantId(item.getKey());
+            binding.setRateMlPerHour(item.getValue());
             bindingRepository.save(binding);
         }
     }

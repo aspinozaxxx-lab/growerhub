@@ -1,0 +1,379 @@
+.manual-watering-page {
+  gap: 14px;
+}
+
+.manual-watering-page__polling {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.manual-watering-pumps,
+.manual-watering-pump,
+.manual-watering-pump__boxes,
+.manual-watering-history {
+  display: grid;
+  gap: 12px;
+}
+
+.manual-watering-pump__header,
+.manual-watering-box__header,
+.manual-watering-pump__footer,
+.manual-watering-session__heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.manual-watering-pump__header h3,
+.manual-watering-box__header h4 {
+  margin: 0;
+  color: var(--text-1);
+}
+
+.manual-watering-pump__header > div:first-child,
+.manual-watering-box__header > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.manual-watering-pump__header > div:first-child > span,
+.manual-watering-box__header > div:first-child > span {
+  color: var(--text-3);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.manual-watering-pump__statuses {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.manual-watering-pump__statuses span,
+.manual-watering-box__disabled,
+.manual-watering-leak {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-3);
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 11px;
+}
+
+.manual-watering-pump__statuses .is-online,
+.manual-watering-leak.is-success {
+  border-color: rgba(95, 212, 145, 0.4);
+  color: #a7e7c0;
+}
+
+.manual-watering-pump__statuses .is-offline,
+.manual-watering-leak.is-danger {
+  border-color: rgba(246, 120, 120, 0.45);
+  color: #ffb3b3;
+}
+
+.manual-watering-pump__statuses .is-running {
+  border-color: rgba(95, 212, 145, 0.5);
+  color: var(--accent);
+  background: rgba(95, 212, 145, 0.08);
+}
+
+.manual-watering-active {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(95, 212, 145, 0.45);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(135deg, rgba(95, 212, 145, 0.13), rgba(255, 255, 255, 0.02));
+}
+
+.manual-watering-active__icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  color: #0b1524;
+  background: var(--accent);
+  box-shadow: 0 0 22px rgba(95, 212, 145, 0.28);
+}
+
+.manual-watering-active__body {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.manual-watering-active__body > span,
+.manual-watering-active__facts {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.manual-watering-active__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+}
+
+.manual-watering-box {
+  display: grid;
+  gap: 10px;
+  padding: 11px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+}
+
+.manual-watering-box.is-disabled {
+  border-style: dashed;
+}
+
+.manual-watering-box__disabled {
+  border-color: rgba(245, 193, 106, 0.45);
+  color: #f5c16a;
+}
+
+.manual-watering-box__plants {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 7px;
+}
+
+.manual-watering-plant {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid rgba(95, 212, 145, 0.24);
+  border-radius: var(--radius-sm);
+  background: rgba(95, 212, 145, 0.05);
+}
+
+.manual-watering-plant span {
+  color: var(--text-1);
+  overflow-wrap: anywhere;
+}
+
+.manual-watering-plant small,
+.manual-watering-empty {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.manual-watering-box__leaks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.manual-watering-pump__footer {
+  align-items: center;
+  padding-top: 11px;
+  border-top: 1px solid var(--border-2);
+}
+
+.manual-watering-pump__start {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.manual-watering-block-reason {
+  display: inline-flex;
+  max-width: 620px;
+  align-items: flex-start;
+  gap: 5px;
+  color: #f5c16a;
+  font-size: 12px;
+}
+
+.manual-watering-block-reason svg {
+  flex: 0 0 auto;
+}
+
+.manual-watering-state {
+  padding: 9px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.manual-watering-state.is-error,
+.manual-watering-session__error,
+.manual-watering-form__error {
+  color: #ffb3b3;
+}
+
+.manual-watering-session {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.manual-watering-session__heading strong {
+  color: var(--text-1);
+  font-size: 13px;
+}
+
+.manual-watering-session__heading span,
+.manual-watering-session__scope,
+.manual-watering-session__error {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.manual-watering-session__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.manual-watering-session__facts span {
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  background: var(--surface-2);
+  font-size: 11px;
+}
+
+.manual-watering-session__reason {
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.manual-watering-session__reason.is-leak,
+.manual-watering-session__reason.is-limit,
+.manual-watering-session__reason.is-error {
+  color: #f5c16a;
+}
+
+.manual-watering-form {
+  display: grid;
+  gap: 14px;
+}
+
+.manual-watering-form__warning {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 9px;
+  border: 1px solid rgba(245, 193, 106, 0.42);
+  border-radius: var(--radius-sm);
+  color: #f5c16a;
+  background: rgba(245, 193, 106, 0.07);
+  font-size: 12px;
+}
+
+.manual-watering-form__warning svg {
+  flex: 0 0 auto;
+}
+
+.manual-watering-form__modes {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+}
+
+.manual-watering-form__modes legend {
+  padding: 0 5px;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.manual-watering-form__modes label,
+.manual-watering-form__pulse-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-1);
+  font-size: 13px;
+}
+
+.manual-watering-form__modes small {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.manual-watering-form__field {
+  display: grid;
+  gap: 5px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.manual-watering-form__field input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-1);
+  background: var(--surface-2);
+}
+
+.manual-watering-form__field input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.manual-watering-form__pulse-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.manual-watering-form__error {
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .manual-watering-pump__header,
+  .manual-watering-pump__footer,
+  .manual-watering-active {
+    grid-template-columns: 1fr;
+  }
+
+  .manual-watering-pump__header,
+  .manual-watering-pump__footer {
+    display: grid;
+  }
+
+  .manual-watering-pump__statuses {
+    justify-content: flex-start;
+  }
+
+  .manual-watering-active > .gh-btn,
+  .manual-watering-pump__start > .gh-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .manual-watering-box__header,
+  .manual-watering-session__heading {
+    display: grid;
+  }
+
+  .manual-watering-form__pulse-fields {
+    grid-template-columns: 1fr;
+  }
+}

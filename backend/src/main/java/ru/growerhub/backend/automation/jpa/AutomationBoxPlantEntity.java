@@ -26,16 +26,25 @@ public class AutomationBoxPlantEntity {
     @Column(name = "plant_id", nullable = false)
     private Integer plantId;
 
+    @Column(name = "rate_ml_per_hour")
+    private Integer rateMlPerHour;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     protected AutomationBoxPlantEntity() {
     }
 
-    public static AutomationBoxPlantEntity create(AutomationBoxEntity box, Integer plantId, LocalDateTime now) {
+    public static AutomationBoxPlantEntity create(
+            AutomationBoxEntity box,
+            Integer plantId,
+            Integer rateMlPerHour,
+            LocalDateTime now
+    ) {
         AutomationBoxPlantEntity entity = new AutomationBoxPlantEntity();
         entity.box = box;
         entity.plantId = plantId;
+        entity.rateMlPerHour = rateMlPerHour;
         entity.createdAt = now;
         return entity;
     }
@@ -54,6 +63,10 @@ public class AutomationBoxPlantEntity {
 
     public Integer getPlantId() {
         return plantId;
+    }
+
+    public Integer getRateMlPerHour() {
+        return rateMlPerHour;
     }
 
     public LocalDateTime getCreatedAt() {

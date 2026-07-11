@@ -55,6 +55,8 @@ import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingRepository;
 import ru.growerhub.backend.pump.jpa.PumpRepository;
 import ru.growerhub.backend.pump.engine.PumpService;
+import ru.growerhub.backend.pump.PumpFacade;
+import ru.growerhub.backend.pump.contract.PumpSessionData;
 import ru.growerhub.backend.user.jpa.UserEntity;
 import ru.growerhub.backend.user.jpa.UserRepository;
 
@@ -86,6 +88,9 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private PumpService pumpService;
+
+    @Autowired
+    private PumpFacade pumpFacade;
 
     @Autowired
     private PlantRepository plantRepository;
@@ -233,7 +238,15 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .extract()
                 .path("correlation_id");
 
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        PumpSessionData.View activeSession = pumpFacade.currentSession(pump.getId());
+        LocalDateTime now = activeSession.startedAt().plusSeconds(5);
+        PumpSessionData.View stoppingSession = pumpFacade.advanceSession(
+                activeSession.id(),
+                new PumpSessionData.LeakProbe(true, true, now, List.of()),
+                now
+        );
+        Assertions.assertEquals(PumpSessionData.PHASE_STOPPING, stoppingSession.phase());
+        now = now.plusSeconds(1);
         DeviceShadowState state = new DeviceShadowState(
                 new DeviceShadowState.ManualWateringState(
                         "idle",
@@ -297,7 +310,15 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .extract()
                 .path("correlation_id");
 
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        PumpSessionData.View activeSession = pumpFacade.currentSession(secondPump.getId());
+        LocalDateTime now = activeSession.startedAt().plusSeconds(5);
+        PumpSessionData.View stoppingSession = pumpFacade.advanceSession(
+                activeSession.id(),
+                new PumpSessionData.LeakProbe(true, true, now, List.of()),
+                now
+        );
+        Assertions.assertEquals(PumpSessionData.PHASE_STOPPING, stoppingSession.phase());
+        now = now.plusSeconds(1);
         DeviceShadowState state = new DeviceShadowState(
                 new DeviceShadowState.ManualWateringState(
                         "idle",
@@ -510,6 +531,35 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals("pump.stop", cmd.type());
         Assertions.assertEquals(stopCorrelation, cmd.correlationId());
 
+        LocalDateTime stoppedAt = LocalDateTime.now(ZoneOffset.UTC).plusSeconds(1);
+        deviceFacade.handleState(
+                device.getDeviceId(),
+                new DeviceShadowState(
+                        new DeviceShadowState.ManualWateringState(
+                                "idle",
+                                null,
+                                null,
+                                0,
+                                stopCorrelation,
+                                pump.getId(),
+                                null,
+                                null,
+                                null,
+                                null
+                        ),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                ),
+                stoppedAt
+        );
+
         Assertions.assertEquals(1, plantJournalEntryRepository.count());
         Assertions.assertEquals(1, plantJournalWateringDetailsRepository.count());
         PlantJournalWateringDetailsEntity details = plantJournalWateringDetailsRepository.findAll().get(0);
@@ -517,8 +567,8 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         Assertions.assertTrue(details.getDurationS() >= 0);
         Assertions.assertTrue(details.getWaterVolumeL() > 0.0);
         Assertions.assertTrue(details.getWaterVolumeL() < 1.0);
-        double expectedVolume = 1.0 * details.getDurationS() / 10.0;
-        Assertions.assertTrue(Math.abs(details.getWaterVolumeL() - expectedVolume) < 0.05);
+        double expectedVolume = Math.round((2000.0 * details.getDurationS() / 3_600_000.0) * 1000.0) / 1000.0;
+        Assertions.assertEquals(expectedVolume, details.getWaterVolumeL());
         Assertions.assertEquals(1, plantMetricSampleRepository.count());
 
         Map<String, Object> view = shadowStore.getManualWateringView(device.getDeviceId());
@@ -698,6 +748,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
         device.setDeviceId(deviceId);
         device.setName("Device " + deviceId);
         device.setUserId(owner != null ? owner.getId() : null);
+        device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         return deviceRepository.save(device);
     }
 
@@ -729,6 +780,10 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
 
     private void clearDatabase() {
         jdbcTemplate.update("DELETE FROM plant_metric_samples");
+        jdbcTemplate.update("DELETE FROM pump_watering_session_leaks");
+        jdbcTemplate.update("DELETE FROM pump_watering_session_plants");
+        jdbcTemplate.update("DELETE FROM pump_watering_session_boxes");
+        jdbcTemplate.update("DELETE FROM pump_watering_sessions");
         jdbcTemplate.update("DELETE FROM pump_plant_bindings");
         jdbcTemplate.update("DELETE FROM pumps");
         jdbcTemplate.update("DELETE FROM plant_journal_watering_details");
@@ -781,7 +836,3 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     private record PublishedCommand(String deviceId, Object cmd) {
     }
 }
-
-
-
-

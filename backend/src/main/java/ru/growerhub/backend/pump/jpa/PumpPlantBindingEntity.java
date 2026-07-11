@@ -34,8 +34,8 @@ public class PumpPlantBindingEntity {
     @Column(name = "plant_id", nullable = false)
     private Integer plantId;
 
-    @Column(name = "rate_ml_per_hour", nullable = false)
-    private Integer rateMlPerHour = 2000;
+    @Column(name = "rate_ml_per_hour")
+    private Integer rateMlPerHour;
 
     protected PumpPlantBindingEntity() {
     }

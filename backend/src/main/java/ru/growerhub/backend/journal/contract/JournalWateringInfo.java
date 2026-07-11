@@ -7,6 +7,9 @@ public record JournalWateringInfo(
         Integer durationS,
         Double ph,
         String fertilizersPerLiter,
+        Long pumpSessionId,
+        String mode,
+        String completionReason,
         LocalDateTime eventAt
 ) {
 }

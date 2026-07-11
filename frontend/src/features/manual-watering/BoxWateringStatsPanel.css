@@ -1,0 +1,163 @@
+.box-watering-stats,
+.box-watering-stats__sessions,
+.box-watering-stats__counts > div {
+  display: grid;
+  gap: 10px;
+}
+
+.box-watering-stats__ranges {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.box-watering-stats__ranges button {
+  padding: 7px 8px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.box-watering-stats__ranges button.is-active {
+  border-color: rgba(95, 212, 145, 0.5);
+  color: #0b1524;
+  background: var(--accent);
+}
+
+.box-watering-stats__ranges button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.box-watering-stats__state {
+  padding: 12px 4px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.box-watering-stats__state.is-error {
+  color: #ffb3b3;
+}
+
+.box-watering-stats__active {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid rgba(95, 212, 145, 0.45);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  background: rgba(95, 212, 145, 0.08);
+}
+
+.box-watering-stats__active > div {
+  display: grid;
+  gap: 3px;
+  color: var(--text-1);
+}
+
+.box-watering-stats__active span,
+.box-watering-stats__active small {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.box-watering-stats__active small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #f5c16a;
+}
+
+.box-watering-stats__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.box-watering-stats__summary > div {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  min-height: 72px;
+  padding: 9px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.box-watering-stats__summary span,
+.box-watering-stats__summary small {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.box-watering-stats__summary strong {
+  color: var(--text-1);
+  font-size: 17px;
+}
+
+.box-watering-stats__counts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.box-watering-stats__counts > div,
+.box-watering-stats__sessions {
+  padding: 10px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+}
+
+.box-watering-stats__counts h3,
+.box-watering-stats__sessions h3 {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.box-watering-stats__counts span {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.box-watering-session {
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.box-watering-session__header,
+.box-watering-session__facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 5px 8px;
+}
+
+.box-watering-session__header strong {
+  color: var(--text-1);
+  font-size: 12px;
+}
+
+.box-watering-session__header span,
+.box-watering-session__facts span,
+.box-watering-session__reason {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+@media (max-width: 600px) {
+  .box-watering-stats__active,
+  .box-watering-stats__summary,
+  .box-watering-stats__counts {
+    grid-template-columns: 1fr;
+  }
+}

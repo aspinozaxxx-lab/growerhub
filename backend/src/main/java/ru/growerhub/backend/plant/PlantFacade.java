@@ -326,7 +326,10 @@ public class PlantFacade {
     }
 
     @Transactional
-    public void recordWateringEvent(Integer plantId, double volumeL, LocalDateTime eventAt) {
+    public void recordWateringEvent(Integer plantId, Double volumeL, LocalDateTime eventAt) {
+        if (volumeL == null) {
+            return;
+        }
         PlantEntity plant = plantRepository.findById(plantId).orElse(null);
         if (plant == null) {
             return;

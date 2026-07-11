@@ -20,6 +20,7 @@ import AdminMqtt from './pages/app/admin/AdminMqtt';
 import AdminZigbee from './pages/app/admin/AdminZigbee';
 import AdminAutomation from './pages/app/admin/AdminAutomation';
 import AdminFarmDashboard from './pages/app/admin/AdminFarmDashboard';
+import AdminManualWatering from './pages/app/admin/AdminManualWatering';
 import RequireAdmin from './features/auth/RequireAdmin';
 import AppPlantJournal from './pages/app/AppPlantJournal';
 import LoginPage from './pages/app/LoginPage';
@@ -103,6 +104,7 @@ function App() {
             <Route path="mqtt" element={<AdminMqtt />} />
             <Route path="zigbee" element={<AdminZigbee />} />
             <Route path="automation" element={<AdminAutomation />} />
+            <Route path="manual-watering" element={<AdminManualWatering />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

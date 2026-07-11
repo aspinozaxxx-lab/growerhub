@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import ru.growerhub.backend.pump.contract.PumpSessionData;
 
 public final class AutomationData {
     private AutomationData() {
@@ -64,7 +65,7 @@ public final class AutomationData {
             @JsonProperty("room_id") Integer roomId,
             @JsonProperty("name") String name,
             @JsonProperty("enabled") boolean enabled,
-            @JsonProperty("plants") List<Plant> plants,
+            @JsonProperty("plants") List<BoxPlant> plants,
             @JsonProperty("resources") List<ResourceBinding> resources,
             @JsonProperty("scenarios") List<ScenarioConfig> scenarios,
             @JsonProperty("states") List<ScenarioState> states,
@@ -72,6 +73,17 @@ public final class AutomationData {
             @JsonProperty("readiness") Map<String, Readiness> readiness,
             @JsonProperty("created_at") LocalDateTime createdAt,
             @JsonProperty("updated_at") LocalDateTime updatedAt
+    ) {
+    }
+
+    public record BoxPlant(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("name") String name,
+            @JsonProperty("owner_email") String ownerEmail,
+            @JsonProperty("owner_username") String ownerUsername,
+            @JsonProperty("owner_id") Integer ownerId,
+            @JsonProperty("group_name") String groupName,
+            @JsonProperty("rate_ml_per_hour") Integer rateMlPerHour
     ) {
     }
 
@@ -237,7 +249,74 @@ public final class AutomationData {
     ) {
     }
 
-    public record SavePlantsRequest(@JsonProperty("plant_ids") List<Integer> plantIds) {
+    public record SavePlantsRequest(
+            @JsonProperty("items") List<BoxPlantRequest> items,
+            @JsonProperty("plant_ids") List<Integer> plantIds
+    ) {
+    }
+
+    public record BoxPlantRequest(
+            @JsonProperty("plant_id") Integer plantId,
+            @JsonProperty("rate_ml_per_hour") Integer rateMlPerHour
+    ) {
+    }
+
+    public record ManualWateringOverview(
+            @JsonProperty("defaults") PumpSessionData.Defaults defaults,
+            @JsonProperty("pumps") List<ManualWateringPump> pumps
+    ) {
+    }
+
+    public record ManualWateringPump(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("device_id") Integer deviceId,
+            @JsonProperty("device_key") String deviceKey,
+            @JsonProperty("channel") Integer channel,
+            @JsonProperty("label") String label,
+            @JsonProperty("is_online") Boolean isOnline,
+            @JsonProperty("is_running") Boolean isRunning,
+            @JsonProperty("capabilities") ManualWateringCapabilities capabilities,
+            @JsonProperty("boxes") List<ManualWateringBox> boxes,
+            @JsonProperty("current_session") PumpSessionData.View currentSession
+    ) {
+    }
+
+    public record ManualWateringCapabilities(
+            @JsonProperty("can_start") boolean canStart,
+            @JsonProperty("start_block_reasons") List<String> startBlockReasons,
+            @JsonProperty("timed") boolean timed,
+            @JsonProperty("until_leak") boolean untilLeak,
+            @JsonProperty("can_stop") boolean canStop
+    ) {
+    }
+
+    public record ManualWateringBox(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("name") String name,
+            @JsonProperty("room_id") Integer roomId,
+            @JsonProperty("room_name") String roomName,
+            @JsonProperty("enabled") boolean enabled,
+            @JsonProperty("plants") List<BoxPlant> plants,
+            @JsonProperty("leak_sensors") List<PumpSessionData.LeakTarget> leakSensors
+    ) {
+    }
+
+    public record ManualWateringStartRequest(
+            @JsonProperty("mode") String mode,
+            @JsonProperty("duration_s") Integer durationS,
+            @JsonProperty("max_active_duration_s") Integer maxActiveDurationS,
+            @JsonProperty("pulse_enabled") Boolean pulseEnabled,
+            @JsonProperty("pulse_run_s") Integer pulseRunS,
+            @JsonProperty("pulse_pause_s") Integer pulsePauseS
+    ) {
+    }
+
+    public record UserManualWateringStartRequest(
+            @JsonProperty("duration_s") Integer durationS,
+            @JsonProperty("water_volume_l") Double waterVolumeL,
+            @JsonProperty("ph") Double ph,
+            @JsonProperty("fertilizers_per_liter") String fertilizersPerLiter
+    ) {
     }
 
     public record SaveResourcesRequest(@JsonProperty("resources") List<ResourceBindingRequest> resources) {

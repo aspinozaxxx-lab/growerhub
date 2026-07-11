@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.context.annotation.Lazy;
@@ -25,6 +26,7 @@ import ru.growerhub.backend.pump.contract.PumpStartResult;
 import ru.growerhub.backend.pump.contract.PumpStatusResult;
 import ru.growerhub.backend.pump.contract.PumpStopResult;
 import ru.growerhub.backend.pump.contract.PumpCommandGateway;
+import ru.growerhub.backend.pump.contract.PumpSessionData;
 import ru.growerhub.backend.pump.jpa.PumpEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingRepository;
@@ -40,6 +42,7 @@ public class PumpWateringService {
     private final DeviceFacade deviceFacade;
     private final PumpCommandGateway commandGateway;
     private final PumpWateringSettings wateringSettings;
+    private final PumpSessionService sessionService;
 
     public PumpWateringService(
             PumpRepository pumpRepository,
@@ -48,7 +51,8 @@ public class PumpWateringService {
             PlantFacade plantFacade,
             @Lazy DeviceFacade deviceFacade,
             PumpCommandGateway commandGateway,
-            PumpWateringSettings wateringSettings
+            PumpWateringSettings wateringSettings,
+            PumpSessionService sessionService
     ) {
         this.pumpRepository = pumpRepository;
         this.bindingRepository = bindingRepository;
@@ -57,6 +61,7 @@ public class PumpWateringService {
         this.deviceFacade = deviceFacade;
         this.commandGateway = commandGateway;
         this.wateringSettings = wateringSettings;
+        this.sessionService = sessionService;
     }
 
     public PumpStartResult start(Integer pumpId, PumpWateringRequest request, AuthenticatedUser user) {
@@ -79,42 +84,31 @@ public class PumpWateringService {
             plannedWaterVolumeL = calculateTotalVolumeFromDuration(bindings, durationS);
         }
 
-        String correlationId = UUID.randomUUID().toString().replace("-", "");
-        LocalDateTime startedAt = LocalDateTime.now(ZoneOffset.UTC);
-        String deviceId = resolveDeviceId(pump);
-        if (deviceId == null) {
-            throw new DomainException("not_found", "device not found for pump");
-        }
-        commandGateway.publishStart(deviceId, correlationId, startedAt, durationS);
-
-        DeviceShadowState.ManualWateringState manualState = new DeviceShadowState.ManualWateringState(
-                "running",
-                durationS,
-                startedAt,
-                durationS,
-                correlationId,
+        PumpSessionData.View session = sessionService.startLegacy(
                 pump.getId(),
+                durationS,
                 plannedWaterVolumeL,
                 request.ph(),
                 request.fertilizersPerLiter(),
-                null
+                user
         );
-        deviceFacade.updateManualWateringState(deviceId, manualState, startedAt);
-
-        return new PumpStartResult(correlationId);
+        return new PumpStartResult(session.correlationId());
     }
 
     public PumpStopResult stop(Integer pumpId, AuthenticatedUser user) {
         PumpEntity pump = requirePumpAccess(pumpId, user);
-        String correlationId = UUID.randomUUID().toString().replace("-", "");
-        String deviceId = resolveDeviceId(pump);
-        if (deviceId == null) {
-            throw new DomainException("not_found", "device not found for pump");
-        }
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        commandGateway.publishStop(deviceId, correlationId, now);
-        finalizeWateringIfNeeded(pump, deviceId, user, true, now);
-        return new PumpStopResult(correlationId);
+        PumpSessionData.View session = sessionService.stop(pumpId, user);
+        if (session == null) {
+            String deviceId = resolveDeviceId(pump);
+            if (deviceId == null) {
+                throw new DomainException("not_found", "device not found for pump");
+            }
+            String correlationId = UUID.randomUUID().toString().replace("-", "");
+            commandGateway.publishStop(deviceId, correlationId, now);
+            return new PumpStopResult(correlationId);
+        }
+        return new PumpStopResult(session.correlationId());
     }
 
     public PumpRebootResult reboot(Integer pumpId, AuthenticatedUser user) {
@@ -135,10 +129,35 @@ public class PumpWateringService {
         if (deviceId == null) {
             throw new DomainException("not_found", "device not found for pump");
         }
+        PumpSessionData.View activeSession = sessionService.current(pumpId);
+        if (activeSession != null) {
+            return new PumpStatusResult(sessionStatusView(activeSession, pump));
+        }
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         finalizeWateringIfNeeded(pump, deviceId, user, false, now);
         Map<String, Object> view = deviceFacade.getManualWateringView(deviceId);
         return new PumpStatusResult(view);
+    }
+
+    private Map<String, Object> sessionStatusView(PumpSessionData.View session, PumpEntity pump) {
+        int targetDurationS = PumpSessionData.MODE_UNTIL_LEAK.equals(session.mode())
+                ? session.maxActiveDurationS()
+                : session.plannedDurationS();
+        DeviceSummary device = resolveDeviceSummary(pump);
+        Map<String, Object> view = new LinkedHashMap<>();
+        view.put("status", "running");
+        view.put("duration_s", targetDurationS);
+        view.put("duration", targetDurationS);
+        view.put("started_at", session.startedAt() != null ? session.startedAt().toString() : null);
+        view.put("start_time", session.startedAt() != null ? session.startedAt().toString() : null);
+        view.put("remaining_s", session.remainingActiveS());
+        view.put("correlation_id", session.correlationId());
+        view.put("updated_at", session.updatedAt() != null ? session.updatedAt().toString() : null);
+        view.put("last_seen_at", device != null && device.lastSeen() != null ? device.lastSeen().toString() : null);
+        view.put("is_online", device != null ? device.isOnline() : null);
+        view.put("offline_reason", device != null && Boolean.FALSE.equals(device.isOnline()) ? "device_offline" : null);
+        view.put("source", session.source());
+        return view;
     }
 
     public PumpAck getAck(String correlationId) {
@@ -147,6 +166,9 @@ public class PumpWateringService {
 
     public void finalizeWateringByDeviceId(String deviceId, LocalDateTime now) {
         if (deviceId == null || deviceId.isBlank()) {
+            return;
+        }
+        if (sessionService.finalizeReportedStopped(deviceId, now)) {
             return;
         }
         DeviceShadowState shadow = deviceFacade.getShadowState(deviceId);
@@ -447,5 +469,3 @@ public class PumpWateringService {
         return new AuthenticatedUser(summary.userId(), "user");
     }
 }
-
-

@@ -177,7 +177,7 @@ public class DeviceFacade {
         return snapshot != null ? snapshot.state() : null;
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = RuntimeException.class)
     public void updateManualWateringState(
             String deviceId,
             DeviceShadowState.ManualWateringState manualState,
@@ -381,4 +381,3 @@ public class DeviceFacade {
     }
 
 }
-

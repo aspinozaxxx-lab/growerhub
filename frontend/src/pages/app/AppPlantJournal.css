@@ -203,10 +203,25 @@
 
 .journal-entry__watering {
   grid-column: 1 / span 2;
-  display: flex;
+  display: grid;
+  grid-template-columns: 70px auto minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   color: #e5e7eb;
+}
+
+.journal-entry__watering-summary {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.journal-entry__watering-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  color: #94a3b8;
+  font-size: 12px;
 }
 
 .journal-entry__icon--big {
@@ -215,6 +230,7 @@
 
 .journal-entry__volume {
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .journal-entry__fertilizers {
@@ -320,4 +336,38 @@
 .journal-form__submit:hover,
 .journal-form__cancel:hover {
   border-color: #60a5fa;
+}
+
+@media (max-width: 680px) {
+  .plant-journal-page {
+    padding-inline: 0;
+  }
+
+  .plant-journal__header,
+  .journal-entries-block__header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .plant-journal__actions {
+    flex-wrap: wrap;
+  }
+
+  .journal-entry {
+    grid-template-columns: minmax(0, 1fr) 32px;
+  }
+
+  .journal-entry__watering {
+    grid-column: 1;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .journal-entry__watering .journal-entry__time {
+    grid-column: 1 / -1;
+  }
+
+  .journal-entry__meta,
+  .journal-entry__body {
+    grid-column: 1;
+  }
 }

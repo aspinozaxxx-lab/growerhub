@@ -129,6 +129,7 @@ class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
         device.setDeviceId(deviceId);
         device.setName("Device " + deviceId);
         device.setUserId(owner != null ? owner.getId() : null);
+        device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         return deviceRepository.save(device);
     }
 
@@ -160,6 +161,10 @@ class ManualWateringNoPublisherIntegrationTest extends IntegrationTestBase {
 
     private void clearDatabase() {
         jdbcTemplate.update("DELETE FROM plant_metric_samples");
+        jdbcTemplate.update("DELETE FROM pump_watering_session_leaks");
+        jdbcTemplate.update("DELETE FROM pump_watering_session_plants");
+        jdbcTemplate.update("DELETE FROM pump_watering_session_boxes");
+        jdbcTemplate.update("DELETE FROM pump_watering_sessions");
         jdbcTemplate.update("DELETE FROM pump_plant_bindings");
         jdbcTemplate.update("DELETE FROM pumps");
         jdbcTemplate.update("DELETE FROM plant_journal_watering_details");

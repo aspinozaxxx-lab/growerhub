@@ -16,7 +16,11 @@ import org.hibernate.annotations.OnDeleteAction;
 @Table(
     name = "plant_journal_watering_details",
     uniqueConstraints = {
-        @UniqueConstraint(columnNames = "journal_entry_id")
+        @UniqueConstraint(columnNames = "journal_entry_id"),
+        @UniqueConstraint(
+                name = "ux_plant_journal_watering_session_plant",
+                columnNames = {"pump_session_id", "plant_id"}
+        )
     }
 )
 public class PlantJournalWateringDetailsEntity {
@@ -31,7 +35,7 @@ public class PlantJournalWateringDetailsEntity {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private PlantJournalEntryEntity journalEntry;
 
-    @Column(name = "water_volume_l", nullable = false)
+    @Column(name = "water_volume_l")
     private Double waterVolumeL;
 
     @Column(name = "duration_s", nullable = false)
@@ -42,6 +46,18 @@ public class PlantJournalWateringDetailsEntity {
 
     @Column(name = "fertilizers_per_liter", nullable = true, columnDefinition = "TEXT")
     private String fertilizersPerLiter;
+
+    @Column(name = "pump_session_id")
+    private Long pumpSessionId;
+
+    @Column(name = "plant_id")
+    private Integer plantId;
+
+    @Column(name = "mode")
+    private String mode;
+
+    @Column(name = "completion_reason")
+    private String completionReason;
 
     protected PlantJournalWateringDetailsEntity() {
     }
@@ -92,5 +108,37 @@ public class PlantJournalWateringDetailsEntity {
 
     public void setFertilizersPerLiter(String fertilizersPerLiter) {
         this.fertilizersPerLiter = fertilizersPerLiter;
+    }
+
+    public Long getPumpSessionId() {
+        return pumpSessionId;
+    }
+
+    public void setPumpSessionId(Long pumpSessionId) {
+        this.pumpSessionId = pumpSessionId;
+    }
+
+    public Integer getPlantId() {
+        return plantId;
+    }
+
+    public void setPlantId(Integer plantId) {
+        this.plantId = plantId;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
+    }
+
+    public String getCompletionReason() {
+        return completionReason;
+    }
+
+    public void setCompletionReason(String completionReason) {
+        this.completionReason = completionReason;
     }
 }

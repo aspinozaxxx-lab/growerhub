@@ -10,6 +10,11 @@ import {
 } from '../../api/plantJournal';
 import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
+import {
+  completionReasonLabel,
+  formatDurationSeconds,
+  modeLabel,
+} from '../../features/manual-watering/manualWateringModel';
 import { formatDateKeyYYYYMMDD, formatTimeHHMM, parseBackendTimestamp } from '../../utils/formatters';
 import './AppPlantJournal.css';
 
@@ -41,14 +46,6 @@ function dateKeyFromString(value) {
   return toLocalDateKeyFromIso(value);
 }
 
-function normalizeDateToLocalMidnight(value) {
-  const dateObj = typeof value === 'string' ? new Date(value) : value;
-  if (!(dateObj instanceof Date) || Number.isNaN(dateObj.getTime())) {
-    return null;
-  }
-  return new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
-}
-
 function buildDateRange(startDate, endDate) {
   const days = [];
   const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
@@ -62,7 +59,7 @@ function buildDateRange(startDate, endDate) {
 
 function formatVolumeL(value) {
   if (value === null || value === undefined) return '';
-  const str = Number(value).toFixed(2).replace(/\.?0+$/, '').replace('.', ',');
+  const str = Number(value).toFixed(3).replace(/\.?0+$/, '').replace('.', ',');
   return `${str} л`;
 }
 
@@ -74,7 +71,6 @@ function PhotoPreview({ photo, token, cache, setCache }) {
     if (!photo || !photo.has_data || cache[photo.id]) {
       return undefined;
     }
-    setStatus('loading');
     downloadJournalPhotoBlob(photo.id, token)
       .then((blob) => {
         if (!isMounted) return;
@@ -106,12 +102,19 @@ function PhotoPreview({ photo, token, cache, setCache }) {
   return <img src={objectUrl} alt={photo.caption || 'Фото'} className="journal-entry__photo" />;
 }
 
-function JournalEntryCard({ entry, onEdit, photoCache, setPhotoCache, token }) {
+export function JournalEntryCard({ entry, onEdit, photoCache, setPhotoCache, token }) {
   const config = JOURNAL_TYPE_CONFIG[entry.type] || JOURNAL_TYPE_CONFIG.other;
   const time = formatTimeHHMM(entry.event_at);
   const details = entry.watering_details || null;
   const volume = details ? formatVolumeL(details.water_volume_l) : '';
   const fertilizers = details?.fertilizers_per_liter;
+  const duration = details?.duration_s !== null && details?.duration_s !== undefined
+    ? formatDurationSeconds(details.duration_s)
+    : '';
+  const wateringMode = details?.mode ? modeLabel(details.mode) : '';
+  const completionReason = details?.completion_reason
+    ? completionReasonLabel(details.completion_reason)
+    : '';
   const hasPhoto = Array.isArray(entry.photos) && entry.photos.length > 0;
   const mainPhoto = hasPhoto ? entry.photos[0] : null;
 
@@ -132,12 +135,17 @@ function JournalEntryCard({ entry, onEdit, photoCache, setPhotoCache, token }) {
         <div className="journal-entry__watering">
           <span className="journal-entry__time">{time}</span>
           <span className="journal-entry__icon journal-entry__icon--big">{config.icon}</span>
-          {volume && <span className="journal-entry__volume">{volume}</span>}
-          {fertilizers && (
-            <span className="journal-entry__fertilizers plant-journal-entry-watering-details">
-              {`удобрения: ${fertilizers}`}
+          <div className="journal-entry__watering-summary">
+            <span className="journal-entry__volume">
+              {details ? (volume || 'Объём не рассчитан') : (entry.text || 'Детали полива не указаны')}
             </span>
-          )}
+            <div className="journal-entry__watering-facts">
+              {duration ? <span>Длительность: {duration}</span> : null}
+              {wateringMode ? <span>Режим: {wateringMode}</span> : null}
+              {completionReason ? <span>{completionReason}</span> : null}
+              {fertilizers ? <span>{`Удобрения: ${fertilizers}`}</span> : null}
+            </div>
+          </div>
         </div>
       ) : (
         <>
@@ -577,6 +585,3 @@ function AppPlantJournal() {
 }
 
 export default AppPlantJournal;
-
-
-

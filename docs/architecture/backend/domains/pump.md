@@ -2,7 +2,7 @@
 
 ## Назначение
 
-Управляет насосами, привязками к растениям, ручным поливом, статусом полива, историей фактического состояния насоса и командами stop/reboot.
+Управляет насосами и командами, compatibility-привязками, фактической историей состояния и персистентными логическими сессиями полива для ручного и автоматического запуска.
 
 ## Публичный Facade
 
@@ -14,6 +14,16 @@
 - `reboot(Integer pumpId, AuthenticatedUser user)`
 - `status(Integer pumpId, AuthenticatedUser user)`
 - `getHistory(Integer pumpId, Integer hours, AuthenticatedUser user)`
+- `sessionDefaults()`
+- `startSession(PumpSessionData.Start request, AuthenticatedUser user)`
+- `stopSession(Integer pumpId, AuthenticatedUser user)`
+- `currentSession(Integer pumpId)`
+- `listSessions(Integer pumpId, int limit, Long beforeId)`
+- `lastCompletedSessionForBox(Integer boxId)`
+- `boxStatistics(Integer boxId, String range, int limit, Long beforeId)`
+- `listActiveSessionProbes()`
+- `advanceSession(Long sessionId, PumpSessionData.LeakProbe probe, LocalDateTime now)`
+- `syncAutomationBindings(Integer pumpId, List<PumpSessionData.BoxTarget> targets)`
 - `recordStateByDeviceId(Integer devicePk, DeviceShadowState state, LocalDateTime now)`
 - `getAck(String correlationId)`
 - `finalizeWateringByDeviceId(String deviceId, LocalDateTime now)`
@@ -25,6 +35,7 @@
 
 ## Публичные контракты
 
+- `PumpSessionData`
 - `PumpAck`
 - `PumpBoundPlantView`
 - `PumpCommandGateway`
@@ -38,24 +49,24 @@
 
 ## Владение данными
 
-Домен владеет насосами, привязками насосов к растениям и историей фактического состояния насоса. Состояние устройства, растения и журнал полива принадлежат другим доменам и используются через публичные Facade или contracts.
+Домен владеет насосами, legacy compatibility-привязками, историей фактического состояния, сессиями полива и snapshot-строками боксов, растений и leak-сенсоров. Snapshot неизменяем после старта. Иерархия automation, журнал растений, растения и device shadow остаются во внешних доменах.
 
 ## Используемые домены
 
-- `device`
-- `journal`
-- `plant`
+- `device`.
+- `journal`.
+- `plant`.
 
 ## Внешние пользователи домена
 
-- REST adapter `api`
-- MQTT adapter `mqtt`
-- домен `device`
+- REST adapter `api`.
+- MQTT adapter `mqtt`.
+- домены `automation`, `device`.
 
 ## Алгоритм работы
 
-Facade обновляет привязки, отдает списки насосов, создает насос по умолчанию, запускает и останавливает ручной полив через шлюз команд, читает ACK и завершает полив по state устройства. При поступлении native state от `device` домен записывает фактическое состояние насоса в history. При успешном поливе создаются записи журнала и метрики растения.
+Start валидирует насос, targets и единственный active slot физического устройства, сохраняет snapshot и отправляет ограниченную по времени MQTT-команду. Worker по probe ведёт `running/pause/stopping`, считает только активное время, останавливает по duration, leak, limit, manual, ошибке устройства или потере всех leak-сенсоров. Завершение идемпотентно создаёт журнал каждому snapshot-растению; объём равен `rate × active time` и округляется до 0,001 л. Sessions и box statistics включают `admin_manual`, `automation`, `user_manual`. Legacy start использует automation targets при наличии, иначе compatibility fallback.
 
 ## Ограничения
 
-Pump не публикует MQTT напрямую, а использует `PumpCommandGateway`. Проверка доступа к устройству и растению выполняется через соответствующие домены. Параметры полива, ACK wait и history должны приходить из конфигурации. History отражает фактический state насоса, а не журнал команд автоматики.
+Pump не читает automation JPA и не публикует MQTT напрямую. Одновременно на физическом устройстве активна одна сессия. Новый start не прерывает текущую сессию. Паузы pulse не входят в длительность. При неизвестной скорости объём остаётся `null`; метрика объёма не создаётся. Defaults и лимиты задаются конфигурацией.

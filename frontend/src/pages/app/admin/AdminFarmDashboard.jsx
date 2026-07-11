@@ -21,6 +21,7 @@ import { useAuth } from '../../../features/auth/AuthContext';
 import { useSensorStatsContext } from '../../../features/sensors/SensorStatsContext';
 import { isSessionExpiredError } from '../../../api/client';
 import { fetchAdminAutomationOverview } from '../../../api/admin';
+import BoxWateringStatsPanel from '../../../features/manual-watering/BoxWateringStatsPanel';
 import {
   RESOURCE_ROLES,
   SCENARIO_TYPES,
@@ -65,12 +66,12 @@ function StatusBadge({ children, tone = 'muted', icon: Icon = CircleDot }) {
   );
 }
 
-function ResourceTile({ role, resource, icon: Icon, motion = 'pulse', statsSubtitle, onOpenStats }) {
+function ResourceTile({ role, resource, icon: Icon, motion = 'pulse', statsSubtitle, statsScope, onOpenStats }) {
   const active = isEquipmentActive(resource, role);
   const tone = resourceTone(resource, active);
   const value = formatResourceValue(resource, role);
   const hasValue = hasCurrentValue(resource);
-  const statsPayload = buildResourceStatsPayload(resource, role, statsSubtitle);
+  const statsPayload = buildResourceStatsPayload(resource, role, statsSubtitle, statsScope);
 
   const classes = [
     'farm-dashboard-resource',
@@ -240,6 +241,7 @@ function FarmBox({ box, onOpenStats }) {
               icon={role === RESOURCE_ROLES.EXHAUST_SWITCH ? Fan : role === RESOURCE_ROLES.LIGHT_SWITCH ? Lightbulb : Droplets}
               motion={role === RESOURCE_ROLES.EXHAUST_SWITCH ? 'spin' : role === RESOURCE_ROLES.LIGHT_SWITCH ? 'glow' : 'water'}
               statsSubtitle={statsSubtitle}
+              statsScope={{ boxId: box.id }}
               onOpenStats={onOpenStats}
             />
           ))}
@@ -354,6 +356,7 @@ function AdminFarmDashboard() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [wateringStatsTarget, setWateringStatsTarget] = useState(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -401,6 +404,13 @@ function AdminFarmDashboard() {
 
   const rooms = useMemo(() => listOrEmpty(overview?.rooms), [overview]);
   const updatedLabel = lastUpdatedAt ? formatDateTime(lastUpdatedAt.toISOString()) : 'Ожидает обновления';
+  const handleOpenStats = (payload) => {
+    if (payload?.mode === 'box-watering') {
+      setWateringStatsTarget({ ...payload, title: payload.subtitle || payload.title });
+      return;
+    }
+    openSensorStats(payload);
+  };
 
   return (
     <div className="admin-page farm-dashboard">
@@ -429,10 +439,16 @@ function AdminFarmDashboard() {
       {rooms.length > 0 && (
         <div className="farm-dashboard-rooms">
           {rooms.map((room) => (
-            <FarmRoom key={room.id} room={room} onOpenStats={openSensorStats} />
+            <FarmRoom key={room.id} room={room} onOpenStats={handleOpenStats} />
           ))}
         </div>
       )}
+
+      <BoxWateringStatsPanel
+        key={wateringStatsTarget?.boxId || 'closed'}
+        target={wateringStatsTarget}
+        onClose={() => setWateringStatsTarget(null)}
+      />
     </div>
   );
 }

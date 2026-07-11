@@ -225,7 +225,7 @@ export function resourceStatsProperty(resource, role) {
   return 'state';
 }
 
-export function buildResourceStatsPayload(resource, role, subtitle) {
+export function buildResourceStatsPayload(resource, role, subtitle, scope = {}) {
   if (!resource) {
     return null;
   }
@@ -243,15 +243,11 @@ export function buildResourceStatsPayload(resource, role, subtitle) {
   }
   if (resource.source_type === RESOURCE_SOURCE_TYPES.NATIVE_PUMP && resource.native_pump_id) {
     return {
-      mode: 'pump',
+      mode: 'box-watering',
+      boxId: scope.boxId || null,
       pumpId: resource.native_pump_id,
-      metric: 'pump',
-      chartKind: 'binary',
       title,
       subtitle: resolvedSubtitle,
-      valueLabel: 'Состояние полива',
-      binaryOnLabel: 'Идет полив',
-      binaryOffLabel: 'Ожидание',
     };
   }
   if (resource.source_type === RESOURCE_SOURCE_TYPES.ZIGBEE_DEVICE && resource.zigbee_ieee_address) {

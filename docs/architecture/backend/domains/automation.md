@@ -2,7 +2,7 @@
 
 ## Назначение
 
-Хранит модель автоматизации помещений и боксов: помещения, боксы, растения в боксах, привязки ресурсов, настройки сценариев, runtime state и журнал действий worker.
+Хранит иерархию помещений и боксов, растения и их скорость полива в боксе, привязки ресурсов, настройки сценариев, runtime state и диагностический журнал worker. Формирует цели полива и текущее состояние датчиков для домена `pump`.
 
 ## Публичный Facade
 
@@ -20,6 +20,12 @@
 - `replaceBoxResources(Integer boxId, SaveResourcesRequest request)`
 - `replaceRoomScenarios(Integer roomId, SaveScenariosRequest request)`
 - `replaceBoxScenarios(Integer boxId, SaveScenariosRequest request)`
+- `getManualWateringOverview()`
+- `startManualWatering(Integer pumpId, ManualWateringStartRequest request, AuthenticatedUser user)`
+- `startUserManualWatering(Integer pumpId, UserManualWateringStartRequest request, AuthenticatedUser user)`
+- `stopManualWatering(Integer pumpId, AuthenticatedUser user)`
+- `getManualWateringSessions(Integer pumpId, int limit, Long beforeId)`
+- `getManualWateringBoxStatistics(Integer boxId, String range, int limit, Long beforeId)`
 - `evaluateAll()`
 - `evaluateActiveWateringSessions()`
 
@@ -29,15 +35,15 @@
 
 ## Владение данными
 
-Домен владеет только конфигурацией и состоянием автоматизации: rooms, boxes, box plants, resource bindings, scenario configs, scenario states и action log. Он не владеет устройствами, Zigbee snapshots, датчиками, насосами, растениями и MQTT-сообщениями.
+Домен владеет rooms, boxes, box plants со скоростью `rate_ml_per_hour`, resource bindings, scenario configs, scenario states и action log. Иерархия automation является источником целей для настроенного насоса. Устройства, датчики, насосы, растения, сессии полива и MQTT принадлежат другим доменам.
 
 ## Используемые домены
 
-- `device` - каталог native devices и shadow.
-- `sensor` - native sensors и последние значения.
-- `pump` - native pump command path.
-- `plant` - каталог растений.
-- `zigbee` - Zigbee metadata, state и команды через Zigbee2MQTT.
+- `device` — каталог native devices и shadow.
+- `sensor` — native sensors и последние значения.
+- `pump` — запуск, остановка, worker сессий, история и статистика.
+- `plant` — каталог растений.
+- `zigbee` — Zigbee metadata, state и команды.
 
 ## Внешние пользователи домена
 
@@ -46,16 +52,8 @@
 
 ## Алгоритм работы
 
-Admin REST сохраняет помещения, боксы, растения, resource bindings и scenario configs. Frontend работает только через REST. Worker каждые 30 секунд пропускает disabled/unready/stale сценарии, оценивает climate/light/watering и пишет action log. Отдельный частый worker оценивает только активные watering-сессии из `automation_scenario_states.runtime_json`.
-
-Ресурсы automation хранятся в `automation_resource_bindings`. Для бокса доступны `AIR_TEMPERATURE_SENSOR`, `SOIL_MOISTURE_SENSOR`, `LEAK_SENSOR`, `LIGHT_SWITCH`, `EXHAUST_SWITCH`, `WATER_PUMP`; для помещения доступен `AC_SWITCH`. `LEAK_SENSOR` принимает Zigbee device с readable property, по умолчанию `water_leak`. Сработка протечки определяется значением `true`, строкой `"true"`, `value_on` или `ON`.
-
-`WATERING.config` поддерживает `stop_mode=fixed_duration` и `stop_mode=until_drain`. В `fixed_duration` используется `run_seconds`. В `until_drain` старт происходит по тем же условиям влажности и интервалов, но остановка выполняется по сработке `LEAK_SENSOR` или по обязательному лимиту `max_run_minutes`. Сценарий `until_drain` нельзя сохранить без валидного `LEAK_SENSOR`. Импульсный режим задается в минутах через `pulse_enabled`, `pulse_run_minutes`, `pulse_pause_minutes`; лимит `max_run_minutes` считает только фактическое время работы насоса, паузы не учитываются. При сработке протечки в любой фазе сессия сразу отправляет `PumpFacade.stop`, очищает runtime и пишет action log с причиной `drenazh`; при достижении лимита причина `limit`.
-
-Исполнительные команды уходят через существующие фасады: Zigbee switch commands публикуются в `zigbee2growerhub/<friendly_name>/set`, native watering идет через `PumpFacade`.
-
-Для ресурсов в API отдается производный статус связи. Если `last_seen_at` отсутствует или старше `automation.resourceOfflineMinutes`, response содержит `connection_status=warning` и `connection_message="нет связи"`. Для native sensor `last_seen_at` берется от родительского устройства, а `last_ts` остается временем последнего значения; статус `DISCONNECTED`/`ERROR` также дает warning. Это только представление для UI, отдельного хранения статуса связи в automation нет.
+Admin REST сохраняет иерархию и синхронизирует compatibility-проекцию насоса. `SavePlantsRequest.items` задаёт растение и nullable скорость; legacy `plant_ids` принимается без скорости. Роли бокса: air/soil/leak sensors, light/exhaust switches и pump; помещения — AC switch. Статус связи выводится из source state и `last_seen_at`, без отдельного хранения. Обзор ручного полива группирует `насос → все боксы → растения и датчики`, вычисляет eligibility и берёт defaults и сессии из `PumpFacade`. Start передаёт immutable snapshot всей иерархии, включая выключенные боксы. Worker раз в секунду передаёт session engine статусы насоса и leak-сенсоров. Автополив использует тот же engine; интервалы и дневной лимит читает из всех завершённых сессий бокса. Action log остаётся диагностикой.
 
 ## Ограничения
 
-Все сценарии по умолчанию выключены и начинают отправлять команды только после явного включения. `LIGHT_SWITCH` в v1 принимает только Zigbee-устройство с writable `state`; native light relay не используется. `WATER_PUMP` в v1 принимает только native pump, чтобы сохранить существующий MQTT/journal/safety путь. `LEAK_SENSOR` в v1 принимает только Zigbee-устройство, потому что текущий native sensor contract не содержит отдельный тип протечки. Сложная manual override-интеграция с внешними ручными командами не является источником истины v1.
+Привязки редактируются только в automation. `WATER_PUMP` принимает native pump, switch-роли — Zigbee writable state, `LEAK_SENSOR` — Zigbee readable property. Leak срабатывает на `true`, `ON` или `value_on`. `WATERING.stop_mode` поддерживает `fixed_duration` и `until_drain`, pulse задаётся run/pause в минутах; паузы не входят в лимит. Для `until_leak` достаточно одного доступного leak-сенсора всех боксов насоса. Frontend не вычисляет eligibility. Automation не исполняет фазы и не пишет журнал растений.

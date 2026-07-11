@@ -146,7 +146,10 @@ public final class PlantDtos {
             @JsonProperty("water_volume_l") Double waterVolumeL,
             @JsonProperty("duration_s") Integer durationS,
             @JsonProperty("ph") Double ph,
-            @JsonProperty("fertilizers_per_liter") String fertilizersPerLiter
+            @JsonProperty("fertilizers_per_liter") String fertilizersPerLiter,
+            @JsonProperty("pump_session_id") Long pumpSessionId,
+            @JsonProperty("mode") String mode,
+            @JsonProperty("completion_reason") String completionReason
     ) {
     }
 

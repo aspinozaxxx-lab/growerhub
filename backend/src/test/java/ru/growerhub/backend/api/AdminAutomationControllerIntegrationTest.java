@@ -2,9 +2,16 @@ package ru.growerhub.backend.api;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -23,14 +30,21 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.automation.AutomationFacade;
+import ru.growerhub.backend.device.DeviceFacade;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.mqtt.MqttPublisher;
+import ru.growerhub.backend.pump.PumpFacade;
+import ru.growerhub.backend.pump.contract.PumpSessionData;
 import ru.growerhub.backend.user.jpa.UserEntity;
 import ru.growerhub.backend.user.jpa.UserRepository;
 import ru.growerhub.backend.zigbee.ZigbeeFacade;
@@ -39,7 +53,11 @@ import ru.growerhub.backend.zigbee.contract.ZigbeeMqttSnapshotMessage;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "MQTT_HOST="
+        properties = {
+                "MQTT_HOST=",
+                "automation.workerPeriodMs=3600000",
+                "automation.wateringWorkerPeriodMs=3600000"
+        }
 )
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Import(AdminAutomationControllerIntegrationTest.TestPublisherConfig.class)
@@ -59,6 +77,15 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
     @Autowired
     private AutomationFacade automationFacade;
 
+    @Autowired
+    private DeviceFacade deviceFacade;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
+    @SpyBean
+    private PumpFacade pumpFacade;
+
     @BeforeEach
     void setUp() {
         RestAssured.baseURI = "http://localhost";
@@ -76,6 +103,19 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 .header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/admin/automation")
+                .then()
+                .statusCode(403)
+                .body("detail", equalTo("Nedostatochno prav"));
+    }
+
+    @Test
+    void manualWateringOverviewRequiresAdmin() {
+        UserEntity user = createUser("manual-watering-user@example.com", "user");
+
+        given()
+                .header("Authorization", "Bearer " + buildToken(user.getId()))
+                .when()
+                .get("/api/admin/manual-watering")
                 .then()
                 .statusCode(403)
                 .body("detail", equalTo("Nedostatochno prav"));
@@ -371,12 +411,25 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void untilDrainWateringStopsOnLeakAndClearsRuntime() {
+    void untilDrainWateringUsesPersistentSessionAndStopsOnLeak() {
         UserEntity admin = createUser("automation-runtime-admin@example.com", "admin");
         String token = buildToken(admin.getId());
         Integer roomId = createRoom(token, "Room Runtime");
         Integer boxId = createBox(token, roomId, "Box Runtime");
         NativeWateringResources nativeResources = seedNativeWateringResources(admin.getId());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"items":[
+                          {"plant_id":%d,"rate_ml_per_hour":2000}
+                        ]}
+                        """.formatted(nativeResources.plantId()))
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/plants")
+                .then()
+                .statusCode(200);
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -424,28 +477,434 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
 
         automationFacade.evaluateAll();
 
-        String runtime = jdbcTemplate.queryForObject(
-                "SELECT runtime_json FROM automation_scenario_states WHERE scope_type='BOX' AND scope_id=? AND scenario_type='WATERING'",
+        String phase = jdbcTemplate.queryForObject(
+                "SELECT phase FROM pump_watering_sessions WHERE pump_id=? ORDER BY id DESC LIMIT 1",
                 String.class,
-                boxId
+                nativeResources.pumpId()
         );
-        assertThat(runtime).contains("\"watering_session_active\":true");
+        assertThat(phase).isEqualTo("running");
+        String source = jdbcTemplate.queryForObject(
+                "SELECT source FROM pump_watering_sessions WHERE pump_id=? ORDER BY id DESC LIMIT 1",
+                String.class,
+                nativeResources.pumpId()
+        );
+        assertThat(source).isEqualTo("automation");
 
         seedLeakState(LocalDateTime.now(ZoneOffset.UTC), true);
         automationFacade.evaluateActiveWateringSessions();
 
-        String runtimeAfterStop = jdbcTemplate.queryForObject(
-                "SELECT runtime_json FROM automation_scenario_states WHERE scope_type='BOX' AND scope_id=? AND scenario_type='WATERING'",
+        String phaseAfterLeak = jdbcTemplate.queryForObject(
+                "SELECT phase FROM pump_watering_sessions WHERE pump_id=? ORDER BY id DESC LIMIT 1",
                 String.class,
-                boxId
+                nativeResources.pumpId()
         );
-        assertThat(runtimeAfterStop).doesNotContain("watering_session_active");
+        assertThat(phaseAfterLeak).isEqualTo("stopping");
         String stopReason = jdbcTemplate.queryForObject(
-                "SELECT reason FROM automation_action_log WHERE scope_type='BOX' AND scope_id=? AND action='PUMP_STOP' ORDER BY id DESC LIMIT 1",
+                "SELECT completion_reason FROM pump_watering_sessions WHERE pump_id=? ORDER BY id DESC LIMIT 1",
                 String.class,
-                boxId
+                nativeResources.pumpId()
         );
-        assertThat(stopReason).isEqualTo("drenazh");
+        assertThat(stopReason).isEqualTo("leak");
+    }
+
+    @Test
+    void boxPlantsAcceptItemsWithRateAndLegacyPlantIds() {
+        UserEntity admin = createUser("automation-plants-admin@example.com", "admin");
+        String token = buildToken(admin.getId());
+        Integer roomId = createRoom(token, "Room Plants");
+        Integer boxId = createBox(token, roomId, "Box Plants");
+        Integer firstPlantId = seedPlant(admin.getId(), "Plant With Rate");
+        Integer secondPlantId = seedPlant(admin.getId(), "Plant Legacy");
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"items":[
+                          {"plant_id":%d,"rate_ml_per_hour":2400},
+                          {"plant_id":%d,"rate_ml_per_hour":null}
+                        ]}
+                        """.formatted(firstPlantId, secondPlantId))
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/plants")
+                .then()
+                .statusCode(200)
+                .body("rooms[0].boxes[0].plants.find { it.id == %d }.rate_ml_per_hour".formatted(firstPlantId), equalTo(2400))
+                .body("rooms[0].boxes[0].plants.find { it.id == %d }.name".formatted(secondPlantId), equalTo("Plant Legacy"));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("{\"plant_ids\":[" + secondPlantId + "]}")
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/plants")
+                .then()
+                .statusCode(200)
+                .body("rooms[0].boxes[0].plants", hasSize(1))
+                .body("rooms[0].boxes[0].plants[0].id", equalTo(secondPlantId));
+
+        Integer legacyRate = jdbcTemplate.queryForObject(
+                "SELECT rate_ml_per_hour FROM automation_box_plants WHERE box_id=? AND plant_id=?",
+                Integer.class,
+                boxId,
+                secondPlantId
+        );
+        assertThat(legacyRate).isNull();
+    }
+
+    @Test
+    void manualWateringOverviewStartPulseLeakAndStatisticsUseAutomationTopology() {
+        UserEntity admin = createUser("manual-watering-admin@example.com", "admin");
+        String token = buildToken(admin.getId());
+        Integer roomId = createRoom(token, "Room Manual");
+        Integer boxId = createBox(token, roomId, "Box Manual");
+        NativeWateringResources nativeResources = seedNativeWateringResources(admin.getId());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"items":[
+                          {"plant_id":%d,"rate_ml_per_hour":2000}
+                        ]}
+                        """.formatted(nativeResources.plantId()))
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/plants")
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"resources":[
+                          {"role":"WATER_PUMP","source_type":"NATIVE_PUMP","native_pump_id":%d},
+                          {
+                            "role":"LEAK_SENSOR",
+                            "source_type":"ZIGBEE_DEVICE",
+                            "zigbee_ieee_address":"0xa4c13895af2c1df4",
+                            "zigbee_property":"water_leak"
+                          }
+                        ]}
+                        """.formatted(nativeResources.pumpId()))
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/resources")
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/admin/manual-watering")
+                .then()
+                .statusCode(200)
+                .body("defaults.timed_duration_s", equalTo(300))
+                .body("defaults.until_leak_max_active_duration_s", equalTo(1800))
+                .body("defaults.pulse_run_s", equalTo(180))
+                .body("defaults.pulse_pause_s", equalTo(300))
+                .body("pumps.find { it.id == %d }.capabilities.can_start".formatted(nativeResources.pumpId()), equalTo(true))
+                .body("pumps.find { it.id == %d }.capabilities.until_leak".formatted(nativeResources.pumpId()), equalTo(true))
+                .body("pumps.find { it.id == %d }.boxes[0].id".formatted(nativeResources.pumpId()), equalTo(boxId))
+                .body("pumps.find { it.id == %d }.boxes[0].enabled".formatted(nativeResources.pumpId()), equalTo(true))
+                .body("pumps.find { it.id == %d }.boxes[0].plants[0].id".formatted(nativeResources.pumpId()), equalTo(nativeResources.plantId()))
+                .body("pumps.find { it.id == %d }.boxes[0].plants[0].rate_ml_per_hour".formatted(nativeResources.pumpId()), equalTo(2000))
+                .body("pumps.find { it.id == %d }.boxes[0].leak_sensors[0].available".formatted(nativeResources.pumpId()), equalTo(true));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {
+                          "mode":"timed",
+                          "duration_s":20,
+                          "pulse_enabled":true,
+                          "pulse_run_s":1,
+                          "pulse_pause_s":30
+                        }
+                        """)
+                .when()
+                .post("/api/admin/manual-watering/pumps/" + nativeResources.pumpId() + "/start")
+                .then()
+                .statusCode(200)
+                .body("source", equalTo("admin_manual"))
+                .body("mode", equalTo("timed"))
+                .body("pulse_enabled", equalTo(true))
+                .body("boxes[0].box_id", equalTo(boxId))
+                .body("boxes[0].plants[0].plant_id", equalTo(nativeResources.plantId()))
+                .body("boxes[0].plants[0].rate_ml_per_hour", equalTo(2000));
+
+        jdbcTemplate.update(
+                "UPDATE pump_watering_sessions SET phase_started_at=? WHERE pump_id=? AND active_device_key IS NOT NULL",
+                LocalDateTime.now(ZoneOffset.UTC).minusSeconds(2),
+                nativeResources.pumpId()
+        );
+        automationFacade.evaluateActiveWateringSessions();
+        String pulseStopPhase = jdbcTemplate.queryForObject(
+                "SELECT phase FROM pump_watering_sessions WHERE pump_id=? ORDER BY id DESC LIMIT 1",
+                String.class,
+                nativeResources.pumpId()
+        );
+        assertThat(pulseStopPhase).isEqualTo("stopping");
+
+        reportPumpIdle("native-water-1");
+        automationFacade.evaluateActiveWateringSessions();
+        String pausePhase = jdbcTemplate.queryForObject(
+                "SELECT phase FROM pump_watering_sessions WHERE pump_id=? ORDER BY id DESC LIMIT 1",
+                String.class,
+                nativeResources.pumpId()
+        );
+        assertThat(pausePhase).isEqualTo("pause");
+
+        seedLeakState(LocalDateTime.now(ZoneOffset.UTC), true);
+        automationFacade.evaluateActiveWateringSessions();
+        String leakStopPhase = jdbcTemplate.queryForObject(
+                "SELECT phase FROM pump_watering_sessions WHERE pump_id=? ORDER BY id DESC LIMIT 1",
+                String.class,
+                nativeResources.pumpId()
+        );
+        assertThat(leakStopPhase).isEqualTo("completed");
+        reportPumpIdle("native-water-1");
+        automationFacade.evaluateActiveWateringSessions();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .queryParam("range", "day")
+                .when()
+                .get("/api/admin/manual-watering/boxes/" + boxId + "/statistics")
+                .then()
+                .statusCode(200)
+                .body("session_count", equalTo(1))
+                .body("active_duration_s", equalTo(1))
+                .body("reason_counts.leak", equalTo(1))
+                .body("sessions[0].completion_reason", equalTo("leak"))
+                .body("sessions[0].boxes[0].plants[0].duration_s", equalTo(1));
+    }
+
+    @Test
+    void existingUserStartEndpointUsesAutomationBoxSnapshots() {
+        UserEntity owner = createUser("watering-owner@example.com", "user");
+        UserEntity admin = createUser("watering-config-admin@example.com", "admin");
+        String adminToken = buildToken(admin.getId());
+        Integer roomId = createRoom(adminToken, "Room User Start");
+        Integer boxId = createBox(adminToken, roomId, "Box User Start");
+        NativeWateringResources nativeResources = seedNativeWateringResources(owner.getId());
+
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType("application/json")
+                .body("""
+                        {"items":[
+                          {"plant_id":%d,"rate_ml_per_hour":1800}
+                        ]}
+                        """.formatted(nativeResources.plantId()))
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/plants")
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", "Bearer " + buildToken(owner.getId()))
+                .contentType("application/json")
+                .body("{}")
+                .when()
+                .post("/api/pumps/" + nativeResources.pumpId() + "/watering/start")
+                .then()
+                .statusCode(400)
+                .body("detail", equalTo("ukazhite water_volume_l ili duration_s dlya starta poliva"));
+
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType("application/json")
+                .body("""
+                        {"resources":[
+                          {"role":"WATER_PUMP","source_type":"NATIVE_PUMP","native_pump_id":%d}
+                        ]}
+                        """.formatted(nativeResources.pumpId()))
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/resources")
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", "Bearer " + buildToken(owner.getId()))
+                .contentType("application/json")
+                .body("{\"duration_s\":60,\"water_volume_l\":0.3}")
+                .when()
+                .post("/api/pumps/" + nativeResources.pumpId() + "/watering/start")
+                .then()
+                .statusCode(200);
+
+        Map<String, Object> snapshot = jdbcTemplate.queryForMap(
+                """
+                        SELECT sessions.source, boxes.box_id, plants.plant_id, plants.rate_ml_per_hour
+                        FROM pump_watering_sessions sessions
+                        JOIN pump_watering_session_boxes boxes ON boxes.session_id=sessions.id
+                        JOIN pump_watering_session_plants plants ON plants.session_box_id=boxes.id
+                        WHERE sessions.pump_id=?
+                        """,
+                nativeResources.pumpId()
+        );
+        assertThat(snapshot.get("source")).isEqualTo("user_manual");
+        assertThat(((Number) snapshot.get("box_id")).intValue()).isEqualTo(boxId);
+        assertThat(((Number) snapshot.get("plant_id")).intValue()).isEqualTo(nativeResources.plantId());
+        assertThat(((Number) snapshot.get("rate_ml_per_hour")).intValue()).isEqualTo(1800);
+    }
+
+    @Test
+    void wateringWorkerContinuesAfterOneSessionFails() {
+        PumpSessionData.Probe malformed = new PumpSessionData.Probe(
+                1001L,
+                1001,
+                "missing-water-device-1",
+                PumpSessionData.MODE_TIMED,
+                PumpSessionData.PHASE_RUNNING,
+                null
+        );
+        PumpSessionData.Probe failed = new PumpSessionData.Probe(
+                1002L,
+                1002,
+                "missing-water-device-2",
+                PumpSessionData.MODE_TIMED,
+                PumpSessionData.PHASE_RUNNING,
+                List.of()
+        );
+        PumpSessionData.Probe next = new PumpSessionData.Probe(
+                1003L,
+                1003,
+                "missing-water-device-3",
+                PumpSessionData.MODE_TIMED,
+                PumpSessionData.PHASE_RUNNING,
+                List.of()
+        );
+        doReturn(List.of(malformed, failed, next)).when(pumpFacade).listActiveSessionProbes();
+        doThrow(new IllegalStateException("test session failure"))
+                .when(pumpFacade)
+                .advanceSession(eq(failed.sessionId()), any(), any());
+        doReturn(null)
+                .when(pumpFacade)
+                .advanceSession(eq(next.sessionId()), any(), any());
+
+        automationFacade.evaluateActiveWateringSessions();
+
+        verify(pumpFacade, never()).advanceSession(eq(malformed.sessionId()), any(), any());
+        verify(pumpFacade).advanceSession(eq(failed.sessionId()), any(), any());
+        verify(pumpFacade).advanceSession(eq(next.sessionId()), any(), any());
+    }
+
+    @Test
+    void automaticSessionSurvivesRollbackOfLaterBoxEvaluation() {
+        UserEntity admin = createUser("automation-session-isolation@example.com", "admin");
+        String token = buildToken(admin.getId());
+        Integer roomId = createRoom(token, "Room Session Isolation");
+        Integer boxId = createBox(token, roomId, "Box Session Isolation");
+        NativeWateringResources nativeResources = seedNativeWateringResources(admin.getId());
+        configureTimedWateringBox(
+                token,
+                boxId,
+                nativeResources.plantId(),
+                nativeResources.soilSensorId(),
+                nativeResources.pumpId()
+        );
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+
+        assertThatThrownBy(() -> transaction.executeWithoutResult(status -> {
+            automationFacade.evaluateAll();
+            throw new IllegalStateException("test later evaluation failure");
+        }))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("test later evaluation failure");
+
+        Map<String, Object> persisted = jdbcTemplate.queryForMap(
+                "SELECT source, phase, active_device_key FROM pump_watering_sessions WHERE pump_id=?",
+                nativeResources.pumpId()
+        );
+        assertThat(persisted.get("source")).isEqualTo("automation");
+        assertThat(persisted.get("phase")).isEqualTo("running");
+        assertThat(persisted.get("active_device_key")).isEqualTo("native-water-1");
+    }
+
+    private void configureTimedWateringBox(
+            String token,
+            Integer boxId,
+            Integer plantId,
+            Integer soilSensorId,
+            Integer pumpId
+    ) {
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("{\"items\":[{\"plant_id\":" + plantId + ",\"rate_ml_per_hour\":2000}]}")
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/plants")
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"resources":[
+                          {"role":"SOIL_MOISTURE_SENSOR","source_type":"NATIVE_SENSOR","native_sensor_id":%d},
+                          {"role":"WATER_PUMP","source_type":"NATIVE_PUMP","native_pump_id":%d}
+                        ]}
+                        """.formatted(soilSensorId, pumpId))
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/resources")
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"scenarios":[{
+                          "scenario_type":"WATERING",
+                          "enabled":true,
+                          "config":{
+                            "soil_threshold_percent":40,
+                            "max_interval_hours":48,
+                            "stop_mode":"fixed_duration",
+                            "run_seconds":30,
+                            "min_interval_hours":0,
+                            "daily_max_seconds":1200
+                          }
+                        }]}
+                        """)
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/scenarios")
+                .then()
+                .statusCode(200);
+    }
+
+    private void reportPumpIdle(String deviceKey) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        deviceFacade.handleState(
+                deviceKey,
+                new DeviceShadowState(
+                        new DeviceShadowState.ManualWateringState(
+                                "idle",
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null
+                        ),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        new DeviceShadowState.RelayState("off"),
+                        null
+                ),
+                now
+        );
     }
 
     private Integer createRoom(String token, String name) {
@@ -668,7 +1127,20 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 plantId,
                 2000
         );
-        return new NativeWateringResources(soilSensorId, pumpId);
+        return new NativeWateringResources(soilSensorId, pumpId, plantId);
+    }
+
+    private Integer seedPlant(Integer ownerId, String name) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        jdbcTemplate.update(
+                "INSERT INTO plants (user_id, name, planted_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+                ownerId,
+                name,
+                now,
+                now,
+                now
+        );
+        return jdbcTemplate.queryForObject("SELECT id FROM plants WHERE name=?", Integer.class, name);
     }
 
     private Integer seedNativeSensor(
@@ -743,6 +1215,10 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM zigbee_device_property_readings");
         jdbcTemplate.update("DELETE FROM zigbee_device_state_events");
         jdbcTemplate.update("DELETE FROM plant_journal_watering_details");
+        jdbcTemplate.update("DELETE FROM pump_watering_session_leaks");
+        jdbcTemplate.update("DELETE FROM pump_watering_session_plants");
+        jdbcTemplate.update("DELETE FROM pump_watering_session_boxes");
+        jdbcTemplate.update("DELETE FROM pump_watering_sessions");
         jdbcTemplate.update("DELETE FROM plant_journal_photos");
         jdbcTemplate.update("DELETE FROM plant_journal_entries");
         jdbcTemplate.update("DELETE FROM plant_metric_samples");
@@ -764,7 +1240,7 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 
-    private record NativeWateringResources(Integer soilSensorId, Integer pumpId) {
+    private record NativeWateringResources(Integer soilSensorId, Integer pumpId, Integer plantId) {
     }
 
     @TestConfiguration

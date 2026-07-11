@@ -79,8 +79,8 @@ public class PlantHistoryService {
         }
     }
 
-    public void recordWateringEvent(PlantEntity plant, double volumeL, LocalDateTime eventAt) {
-        if (plant == null) {
+    public void recordWateringEvent(PlantEntity plant, Double volumeL, LocalDateTime eventAt) {
+        if (plant == null || volumeL == null) {
             return;
         }
         PlantMetricSampleEntity sample = PlantMetricSampleEntity.create();

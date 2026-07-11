@@ -315,14 +315,90 @@ export function deleteAdminAutomationBox(boxId, token) {
   return adminAutomationJson(`/api/admin/automation/boxes/${boxId}`, 'DELETE', undefined, token, 'Не удалось удалить бокс');
 }
 
-export function saveAdminAutomationBoxPlants(boxId, plantIds, token) {
+export function saveAdminAutomationBoxPlants(boxId, items, token) {
   return adminAutomationJson(
     `/api/admin/automation/boxes/${boxId}/plants`,
     'PUT',
-    { plant_ids: plantIds },
+    { items: Array.isArray(items) ? items : [] },
     token,
     'Не удалось сохранить растения бокса',
   );
+}
+
+// Translitem: zagruzhaem gotovuyu ierarhiyu ruchnogo poliva i servernye vozmozhnosti zapuska.
+export async function fetchAdminManualWateringOverview(token) {
+  const response = await apiFetch('/api/admin/manual-watering', token ? {
+    headers: { Authorization: `Bearer ${token}` },
+  } : undefined);
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось загрузить ручной полив');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
+}
+
+// Translitem: zapuskaem logicheskuyu sessiyu poliva dlya vseh boksov nasosa.
+export function startAdminManualWatering(pumpId, payload, token) {
+  return adminAutomationJson(
+    `/api/admin/manual-watering/pumps/${encodeURIComponent(pumpId)}/start`,
+    'POST',
+    payload,
+    token,
+    'Не удалось запустить полив',
+  );
+}
+
+// Translitem: zaprashivaem bezopasnuyu ostanovku tekushchey sessii nasosa.
+export function stopAdminManualWatering(pumpId, token) {
+  return adminAutomationJson(
+    `/api/admin/manual-watering/pumps/${encodeURIComponent(pumpId)}/stop`,
+    'POST',
+    undefined,
+    token,
+    'Не удалось остановить полив',
+  );
+}
+
+// Translitem: zagruzhaem postranichnyy zhurnal sessiy konkretnogo nasosa.
+export async function fetchAdminManualWateringSessions(pumpId, options = {}, token) {
+  const params = new URLSearchParams();
+  if (options.limit !== null && options.limit !== undefined) {
+    params.set('limit', options.limit);
+  }
+  if (options.beforeId !== null && options.beforeId !== undefined) {
+    params.set('before_id', options.beforeId);
+  }
+  const query = params.toString();
+  const response = await apiFetch(
+    `/api/admin/manual-watering/pumps/${encodeURIComponent(pumpId)}/sessions${query ? `?${query}` : ''}`,
+    token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
+  );
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось загрузить журнал насоса');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
+}
+
+// Translitem: zagruzhaem statistiku poliva v granicah odnogo boksa.
+export async function fetchAdminBoxWateringStatistics(boxId, options = {}, token) {
+  const params = new URLSearchParams();
+  params.set('range', options.range || 'day');
+  if (options.limit !== null && options.limit !== undefined) {
+    params.set('limit', options.limit);
+  }
+  if (options.beforeId !== null && options.beforeId !== undefined) {
+    params.set('before_id', options.beforeId);
+  }
+  const response = await apiFetch(
+    `/api/admin/manual-watering/boxes/${encodeURIComponent(boxId)}/statistics?${params.toString()}`,
+    token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
+  );
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось загрузить статистику полива');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
 }
 
 export function saveAdminAutomationRoomResources(roomId, resources, token) {

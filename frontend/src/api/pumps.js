@@ -1,32 +1,5 @@
-﻿// API helper dlya pumpov (bindings + manual watering).
+// API helper dlya polzovatelskogo ruchnogo poliva.
 import { apiFetch } from './client';
-
-async function parseOptionalJson(response) {
-  if (!response || response.status === 204 || response.status === 205) {
-    return null;
-  }
-  const text = await response.text();
-  if (!text) {
-    return null;
-  }
-  return JSON.parse(text);
-}
-
-export async function updatePumpBindings(pumpId, items, token) {
-  void token;
-  const headers = {
-    'Content-Type': 'application/json',
-  };
-  const response = await apiFetch(`/api/pumps/${encodeURIComponent(pumpId)}/bindings`, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify({ items: Array.isArray(items) ? items : [] }),
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to update pump bindings (${response.status})`);
-  }
-  return parseOptionalJson(response);
-}
 
 export async function startPumpWatering({ pumpId, durationS, waterVolumeL, ph, fertilizersPerLiter, token }) {
   void token;

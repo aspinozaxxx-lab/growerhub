@@ -99,6 +99,20 @@ pump:
   watering:
     # Defoltnyi rashod (ml/ch).
     defaultRateMlPerHour: 2000
+    # Defoltnaja dlitel'nost' poliva po vremeni (sek).
+    defaultTimedDurationS: 300
+    # Defoltnyj limit aktivnogo poliva do protechki (sek).
+    defaultUntilLeakMaxActiveDurationS: 1800
+    # Defoltnaja dlitel'nost' impul'sa poliva (sek).
+    defaultPulseRunS: 180
+    # Defoltnaja pauza mezhdu impul'sami (sek).
+    defaultPulsePauseS: 300
+    # Maksimal'naja dlitel'nost' aktivnogo poliva (sek).
+    maxActiveDurationS: 86400
+    # Maksimal'nyj razmer stranicy zhurnala sessij.
+    sessionPageMax: 100
+    # Timeout podtverzhdenija ostanovki nasosa (sek).
+    stoppingTimeoutS: 15
   ack:
     wait:
       # Timeout ozhidanija ACK po umolchaniju (sek).

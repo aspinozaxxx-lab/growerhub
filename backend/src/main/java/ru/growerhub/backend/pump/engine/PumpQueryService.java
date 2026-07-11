@@ -206,7 +206,10 @@ public class PumpQueryService {
             return null;
         }
         if (state.manualWatering() != null && state.manualWatering().status() != null) {
-            return "running".equals(state.manualWatering().status());
+            String status = state.manualWatering().status();
+            if ("running".equalsIgnoreCase(status) || "stopping".equalsIgnoreCase(status)) {
+                return true;
+            }
         }
         DeviceShadowState.RelayState relay = state.pump();
         if (relay != null && relay.status() != null) {
@@ -223,5 +226,3 @@ public class PumpQueryService {
         return summary != null ? summary.deviceId() : null;
     }
 }
-
-

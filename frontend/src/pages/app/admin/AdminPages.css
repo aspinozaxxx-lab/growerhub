@@ -381,9 +381,64 @@
   min-height: 32px;
 }
 
-.admin-automation-multiselect {
-  min-width: 260px;
-  min-height: 86px;
+.admin-automation-plants {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px;
+}
+
+.admin-automation-plant {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.55fr);
+  gap: 10px;
+  align-items: center;
+  padding: 9px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+}
+
+.admin-automation-plant.is-selected {
+  border-color: rgba(95, 212, 145, 0.42);
+  background: rgba(95, 212, 145, 0.06);
+}
+
+.admin-automation-plant__choice {
+  display: flex;
+  min-width: 0;
+  gap: 8px;
+  align-items: center;
+  color: var(--text-1);
+  font-size: 13px;
+}
+
+.admin-automation-plant__choice input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+}
+
+.admin-automation-plant__choice span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+
+.admin-automation-plant__choice small,
+.admin-automation-plant__rate span {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.admin-automation-plant__rate {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-automation-plant__rate .admin-input {
+  width: 100%;
+  min-width: 0;
 }
 
 .admin-dashboard-section,
@@ -463,5 +518,11 @@
 
   .admin-automation-heading {
     display: grid;
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-automation-plant {
+    grid-template-columns: 1fr;
   }
 }

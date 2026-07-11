@@ -15,6 +15,8 @@ import ru.growerhub.backend.api.ApiException;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.HistoryDtos;
 import ru.growerhub.backend.api.dto.PumpDtos;
+import ru.growerhub.backend.automation.AutomationFacade;
+import ru.growerhub.backend.automation.contract.AutomationData;
 import ru.growerhub.backend.common.config.pump.PumpAckWaitSettings;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.pump.PumpFacade;
@@ -23,10 +25,16 @@ import ru.growerhub.backend.pump.contract.PumpAck;
 @RestController
 public class PumpController {
     private final PumpFacade pumpFacade;
+    private final AutomationFacade automationFacade;
     private final PumpAckWaitSettings ackWaitSettings;
 
-    public PumpController(PumpFacade pumpFacade, PumpAckWaitSettings ackWaitSettings) {
+    public PumpController(
+            PumpFacade pumpFacade,
+            AutomationFacade automationFacade,
+            PumpAckWaitSettings ackWaitSettings
+    ) {
         this.pumpFacade = pumpFacade;
+        this.automationFacade = automationFacade;
         this.ackWaitSettings = ackWaitSettings;
     }
 
@@ -54,9 +62,9 @@ public class PumpController {
             @Valid @RequestBody PumpDtos.PumpWateringStartRequest request,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        var result = pumpFacade.start(
+        var result = automationFacade.startUserManualWatering(
                 pumpId,
-                new PumpFacade.PumpWateringRequest(
+                new AutomationData.UserManualWateringStartRequest(
                         request.durationS(),
                         request.waterVolumeL(),
                         request.ph(),

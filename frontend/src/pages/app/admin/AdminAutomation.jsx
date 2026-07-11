@@ -26,6 +26,13 @@ import {
   resourceBindingForRole,
   resourcePayload,
 } from './adminAutomationResources';
+import {
+  buildPlantItemsPayload,
+  createPlantDrafts,
+  findPlantDraft,
+  togglePlantDraft,
+  updatePlantDraftRate,
+} from './automationPlantDrafts';
 import './AdminPages.css';
 
 const ROOM_SCOPE = 'ROOM';
@@ -169,7 +176,7 @@ function AdminAutomation() {
       nextScenarios[scopeKey(ROOM_SCOPE, room.id)] = initialScenarioDraft(room.scenarios);
       listOrEmpty(room.boxes).forEach((box) => {
         nextBoxes[box.id] = { name: box.name || '', enabled: box.enabled !== false };
-        nextPlants[box.id] = listOrEmpty(box.plants).map((plant) => plant.id);
+        nextPlants[box.id] = createPlantDrafts(box.plants);
         nextResources[scopeKey(BOX_SCOPE, box.id)] = initialResourceDraft(box.resources);
         nextScenarios[scopeKey(BOX_SCOPE, box.id)] = initialScenarioDraft(box.scenarios);
       });
@@ -258,8 +265,11 @@ function AdminAutomation() {
   }, [runAction, token]);
 
   const handleSavePlants = useCallback((boxId) => {
-    const plantIds = plantDrafts[boxId] || [];
-    runAction(`box:${boxId}:plants`, () => saveAdminAutomationBoxPlants(boxId, plantIds, token), 'Растения бокса сохранены');
+    runAction(
+      `box:${boxId}:plants`,
+      () => saveAdminAutomationBoxPlants(boxId, buildPlantItemsPayload(plantDrafts[boxId]), token),
+      'Растения бокса сохранены',
+    );
   }, [plantDrafts, runAction, token]);
 
   const saveResources = useCallback((scopeType, scopeId, roles) => {
@@ -652,25 +662,56 @@ function AdminAutomation() {
 
                       <div className="admin-automation-block">
                         <h4>Растения</h4>
+                        <div className="admin-automation-plants">
+                          {plants.length === 0 && (
+                            <span className="admin-event-list__empty">Нет доступных растений</span>
+                          )}
+                          {plants.map((plant) => {
+                            const draft = findPlantDraft(plantDrafts[box.id], plant.id);
+                            const selected = Boolean(draft);
+                            return (
+                              <div className={`admin-automation-plant ${selected ? 'is-selected' : ''}`} key={plant.id}>
+                                <label className="admin-automation-plant__choice">
+                                  <input
+                                    type="checkbox"
+                                    checked={selected}
+                                    onChange={() => setPlantDrafts((prev) => ({
+                                      ...prev,
+                                      [box.id]: togglePlantDraft(prev[box.id], plant.id),
+                                    }))}
+                                  />
+                                  <span>
+                                    {plant.name || 'Растение без названия'}
+                                    {plant.owner_email ? <small>{plant.owner_email}</small> : null}
+                                  </span>
+                                </label>
+                                <label className="admin-automation-plant__rate">
+                                  <span>Скорость, мл/ч</span>
+                                  <input
+                                    className="admin-input"
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    inputMode="numeric"
+                                    value={draft?.rate_ml_per_hour ?? ''}
+                                    disabled={!selected}
+                                    placeholder="Не указана"
+                                    aria-label={`Скорость полива: ${plant.name || plant.id}`}
+                                    onChange={(event) => setPlantDrafts((prev) => ({
+                                      ...prev,
+                                      [box.id]: updatePlantDraftRate(prev[box.id], plant.id, event.target.value),
+                                    }))}
+                                  />
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
                         <div className="admin-row-actions">
-                          <select
-                            className="admin-select admin-automation-multiselect"
-                            multiple
-                            value={listOrEmpty(plantDrafts[box.id]).map(String)}
-                            onChange={(event) => {
-                              const values = Array.from(event.target.selectedOptions).map((option) => Number(option.value));
-                              setPlantDrafts((prev) => ({ ...prev, [box.id]: values }));
-                            }}
-                          >
-                            {plants.map((plant) => (
-                              <option key={plant.id} value={plant.id}>
-                                {plant.name}{plant.owner_email ? ` · ${plant.owner_email}` : ''}
-                              </option>
-                            ))}
-                          </select>
                           <Button type="button" size="sm" onClick={() => handleSavePlants(box.id)} disabled={Boolean(actionKey)}>
                             Сохранить растения
                           </Button>
+                          <span className="admin-automation-hint">Пустая скорость не мешает поливу, но объём не рассчитывается.</span>
                         </div>
                       </div>
 

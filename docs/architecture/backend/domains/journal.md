@@ -2,7 +2,7 @@
 
 ## Назначение
 
-Ведет журнал растения: записи, фото, экспорт и детали полива.
+Ведёт журнал растения: записи, фото, экспорт и детали полива, включая связь с логической сессией, длительность, режим, рассчитанный объём и причину завершения.
 
 ## Публичный Facade
 
@@ -16,6 +16,7 @@
 - `deleteEntry(Integer plantId, Integer entryId, AuthenticatedUser user)`
 - `getPhoto(Integer photoId, AuthenticatedUser user)`
 - `createWateringEntries(List<WateringTarget> targets, AuthenticatedUser user, LocalDateTime eventAt, Double ph, String fertilizersPerLiter)`
+- `createSessionWateringEntries(List<SessionWateringTarget> targets, LocalDateTime eventAt, Double ph, String fertilizersPerLiter)`
 
 ## Публичные контракты
 
@@ -27,21 +28,21 @@
 
 ## Владение данными
 
-Домен владеет journal entries, photos и watering details. Растения не принадлежат journal; доступ к ним и проверка владельца выполняются через публичный Facade домена `plant`.
+Домен владеет journal entries, photos и watering details. Детали полива хранят nullable объём, длительность, режим, причину завершения и ссылку на pump session; уникальность session и plant обеспечивает exactly-once. Растения и сессии принадлежат другим доменам.
 
 ## Используемые домены
 
-- `plant`
+- `plant`.
 
 ## Внешние пользователи домена
 
-- REST adapter `api`
-- домены `advisor`, `plant`, `pump`
+- REST adapter `api`.
+- домены `advisor`, `plant`, `pump`.
 
 ## Алгоритм работы
 
-Facade проверяет доступ к растению, читает или изменяет записи журнала, формирует DTO и экспорт. Для ручного полива создает watering entries по списку целей, пропуская недоступные растения.
+Facade проверяет доступ к растению, читает или изменяет записи, формирует DTO и экспорт. Для полива пакетно создаёт по одной записи каждому доступному target. Повторный запрос той же pump session и растения не создаёт дубль. Неизвестный расход сохраняется как `water_volume_l=null`, а длительность, режим и причина остаются доступными.
 
 ## Ограничения
 
-Journal не должен напрямую менять растение. Типы записей являются контрактом домена. Экспорт остается представлением журнала, а не отдельным источником данных.
+Journal не меняет растение и не исполняет полив. Типы записей являются контрактом домена. Экспорт остаётся представлением журнала. Идемпотентность сессионных записей обеспечивается БД и Facade.

@@ -118,11 +118,10 @@ describe('admin farm dashboard model', () => {
     expect(buildResourceStatsPayload({
       source_type: RESOURCE_SOURCE_TYPES.NATIVE_PUMP,
       native_pump_id: 3,
-    }, RESOURCE_ROLES.WATER_PUMP, 'Бокс 3')).toMatchObject({
-      mode: 'pump',
+    }, RESOURCE_ROLES.WATER_PUMP, 'Бокс 3', { boxId: 33 })).toMatchObject({
+      mode: 'box-watering',
+      boxId: 33,
       pumpId: 3,
-      metric: 'pump',
-      chartKind: 'binary',
       title: 'Полив',
       subtitle: 'Бокс 3',
     });

@@ -98,6 +98,14 @@ export function formatTimestampLabel(timestamp) {
   return `${day}.${month} ${hour}:${minute}`;
 }
 
+export function formatDateTimeDDMMYYYY(timestamp) {
+  const date = parseBackendTimestamp(timestamp);
+  if (!date) return '';
+  const { day, month, year, hour, minute } = _getDateTimeParts(date);
+  if (!day || !month || !year || !hour || !minute) return '';
+  return `${day}.${month}.${year}, ${hour}:${minute}`;
+}
+
 export function formatTimeHHMM(dateOrString) {
   const date = parseBackendTimestamp(dateOrString);
   if (!date) return '';

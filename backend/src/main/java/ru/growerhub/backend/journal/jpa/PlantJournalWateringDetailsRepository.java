@@ -7,4 +7,6 @@ import ru.growerhub.backend.journal.jpa.PlantJournalWateringDetailsEntity;
 public interface PlantJournalWateringDetailsRepository
         extends JpaRepository<PlantJournalWateringDetailsEntity, Integer> {
     Optional<PlantJournalWateringDetailsEntity> findByJournalEntry_Id(Integer journalEntryId);
+
+    boolean existsByPumpSessionIdAndPlantId(Long pumpSessionId, Integer plantId);
 }

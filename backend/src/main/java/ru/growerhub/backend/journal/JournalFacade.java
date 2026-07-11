@@ -94,6 +94,9 @@ public class JournalFacade {
                 details.getDurationS(),
                 details.getPh(),
                 details.getFertilizersPerLiter(),
+                details.getPumpSessionId(),
+                details.getMode(),
+                details.getCompletionReason(),
                 entry.getEventAt()
         );
     }
@@ -214,6 +217,34 @@ public class JournalFacade {
         journalService.createWateringEntries(mapped, user.id(), eventAt, ph, fertilizersPerLiter);
     }
 
+    @Transactional
+    public void createSessionWateringEntries(
+            List<SessionWateringTarget> targets,
+            LocalDateTime eventAt,
+            Double ph,
+            String fertilizersPerLiter
+    ) {
+        if (targets == null || targets.isEmpty()) {
+            return;
+        }
+        List<JournalService.SessionWateringTarget> mapped = new ArrayList<>();
+        for (SessionWateringTarget target : targets) {
+            if (target == null || target.plantId() == null || target.sessionId() == null) {
+                continue;
+            }
+            mapped.add(new JournalService.SessionWateringTarget(
+                    target.sessionId(),
+                    target.plantId(),
+                    target.userId(),
+                    target.durationS(),
+                    target.waterVolumeL(),
+                    target.mode(),
+                    target.completionReason()
+            ));
+        }
+        journalService.createSessionWateringEntries(mapped, eventAt, ph, fertilizersPerLiter);
+    }
+
     private JournalEntry toJournalEntry(PlantJournalEntryEntity entry) {
         List<PlantJournalPhotoEntity> photos =
                 photoRepository.findAllByJournalEntry_Id(entry.getId());
@@ -238,7 +269,10 @@ public class JournalFacade {
                         details.getWaterVolumeL(),
                         details.getDurationS(),
                         details.getPh(),
-                        details.getFertilizersPerLiter()
+                        details.getFertilizersPerLiter(),
+                        details.getPumpSessionId(),
+                        details.getMode(),
+                        details.getCompletionReason()
                 );
             }
         }
@@ -358,5 +392,16 @@ public class JournalFacade {
     }
 
     public record WateringTarget(Integer plantId, int durationS, double waterVolumeL) {
+    }
+
+    public record SessionWateringTarget(
+            Long sessionId,
+            Integer plantId,
+            Integer userId,
+            int durationS,
+            Double waterVolumeL,
+            String mode,
+            String completionReason
+    ) {
     }
 }
