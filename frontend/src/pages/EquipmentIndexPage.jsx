@@ -25,7 +25,7 @@ function EquipmentIndexPage() {
     },
   }];
 
-  useSeoMeta({ title: 'Оборудование для GrowerHub — мягкие рекомендации', description, path: '/oborudovanie/', jsonLd });
+  useSeoMeta({ title: 'Оборудование для GrowerHub — доступные Zigbee-варианты', description, path: '/oborudovanie/', jsonLd });
 
   return (
     <div className="section equipment-page">
@@ -40,6 +40,11 @@ function EquipmentIndexPage() {
           <article className="card"><h3>Для управления</h3><p>{platformContent.minimum.control}</p></article>
           <article className="card"><h3>Если всё уже работает</h3><p>{platformContent.minimum.existing}</p></article>
         </div>
+      </section>
+
+      <section className="content-section info-block">
+        <h2>Главное — выбрать Zigbee</h2>
+        <p>{equipmentContent.zigbee_note}</p>
       </section>
 
       <section className="content-section">

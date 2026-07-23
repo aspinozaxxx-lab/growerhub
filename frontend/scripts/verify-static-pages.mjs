@@ -10,7 +10,7 @@ const DIST_DIR = path.join(ROOT, 'dist');
 const read = (target) => fs.readFileSync(target, 'utf8').replace(/^\ufeff/, '');
 const failures = [];
 const deprecatedPositioning = [
-  { pattern: /\bбета/iu, label: 'бета' },
+  { pattern: /\bбет(?:а|ы|е|у|ой|ою|ам|ами|ах)\b/iu, label: 'бета' },
   { pattern: /\bbeta\b/iu, label: 'beta' },
   { pattern: /\bSLA\b/u, label: 'SLA' },
   { pattern: /24\/7/u, label: '24/7' },

@@ -42,7 +42,8 @@ function EquipmentCategoryPage({ categoryKey }) {
             <ul className="check-list">{item.notes.map((note) => <li key={note}>{note}</li>)}</ul>
             <div className="cta-row">
               <a className="secondary-link" href={item.official_url} target="_blank" rel="noreferrer">Совместимость Zigbee2MQTT</a>
-              <a className="secondary-link" href={item.shop_search_url} target="_blank" rel="nofollow noreferrer">Поиск модели на Ozon</a>
+              {item.example_url ? <a className="secondary-link" href={item.example_url} target="_blank" rel="nofollow noreferrer">Пример на Ozon</a> : null}
+              <a className="secondary-link" href={item.shop_search_url} target="_blank" rel="nofollow noreferrer">Найти на Ozon</a>
             </div>
           </article>
         ))}

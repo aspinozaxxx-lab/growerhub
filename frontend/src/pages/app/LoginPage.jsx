@@ -69,7 +69,7 @@ function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <h1>Начать работу с GrowerHub</h1>
-        <p className="login-intro">В открытой бете бесплатно и без карты. После входа сразу перейдём к подключению Zigbee2MQTT.</p>
+        <p className="login-intro">GrowerHub доступен бесплатно и без карты. После входа сразу перейдём к подключению Zigbee2MQTT.</p>
         <div className="login-sso">
           <button type="button" className="login-sso__btn login-sso__btn--primary" onClick={() => handleSSO('yandex')}>
             Продолжить с Яндексом

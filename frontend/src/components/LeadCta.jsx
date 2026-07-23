@@ -4,7 +4,7 @@ import TelegramContactLink from './TelegramContactLink';
 function LeadCta({
   placement,
   title = 'Начните с первого устройства',
-  text = 'Войдите, подключите Zigbee2MQTT и соберите первую зону самостоятельно. Бесплатно в открытой бете, без карты.',
+  text = 'Войдите, подключите Zigbee2MQTT и соберите первую зону самостоятельно. GrowerHub доступен бесплатно и без карты.',
   compact = false,
 }) {
   return (

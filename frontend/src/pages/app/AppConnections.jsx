@@ -120,7 +120,7 @@ function AppConnections() {
 
       <section className="self-service-section">
         <h2>Добавить координатор</h2>
-        <p>В одном пространстве можно использовать несколько координаторов. Жёсткой продуктовой квоты в открытой бете нет.</p>
+        <p>В одном пространстве можно использовать несколько координаторов и подключать оборудование в удобном темпе.</p>
         <form className="compact-form" onSubmit={handleCreate}><label>Название<input value={name} onChange={(event) => setName(event.target.value)} required maxLength="120" /></label><Button type="submit" variant="primary" isLoading={busy === 'create'}>Создать</Button></form>
       </section>
     </div>

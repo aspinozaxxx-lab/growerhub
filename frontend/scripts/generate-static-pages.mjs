@@ -193,7 +193,7 @@ const platformLink = (placement, label = null, className = 'hero-cta') => {
   return `<a class="${className}" href="${href}" data-platform-placement="${htmlEscape(placement)}">${htmlEscape(resolvedLabel)}</a>`;
 };
 
-const leadCta = (placement, title = 'Начните с первого устройства', text = 'Войдите, подключите Zigbee2MQTT и соберите первую зону самостоятельно. Бесплатно в открытой бете, без карты.') => `
+const leadCta = (placement, title = 'Начните с первого устройства', text = 'Войдите, подключите Zigbee2MQTT и соберите первую зону самостоятельно. GrowerHub доступен бесплатно и без карты.') => `
       <section class="lead-cta">
         <div>
           <h2>${htmlEscape(title)}</h2>
@@ -663,6 +663,7 @@ const renderEquipmentIndexPage = (template, assets, equipment, platformContent) 
           <h1>Оборудование для GrowerHub</h1>
           <p class="article-lead">${htmlEscape(description)}</p>
           <section class="content-section start-kit"><h2>Минимальный старт</h2><div class="card-grid"><article class="card"><h3>Для мониторинга</h3><p>${htmlEscape(platformContent.minimum.monitoring)}</p></article><article class="card"><h3>Для управления</h3><p>${htmlEscape(platformContent.minimum.control)}</p></article><article class="card"><h3>Если всё уже работает</h3><p>${htmlEscape(platformContent.minimum.existing)}</p></article></div></section>
+          <section class="content-section info-block"><h2>Главное — выбрать Zigbee</h2><p>${htmlEscape(equipment.zigbee_note)}</p></section>
           <section class="content-section"><h2>Выберите раздел</h2><div class="card-grid">
 ${categories.map((category) => `            <article class="card"><h3>${htmlEscape(category.title)}</h3><p>${htmlEscape(category.intro)}</p><a class="secondary-link" href="/oborudovanie/${htmlEscape(category.slug)}/">Посмотреть варианты</a></article>`).join('\n')}
             <article class="card"><h3>${htmlEscape(equipment.pump.title)}</h3><p>${htmlEscape(equipment.pump.summary)}</p><a class="secondary-link" href="/oborudovanie/nasos-dlya-poliva/">О насосе GrowerHub</a></article>
@@ -671,7 +672,7 @@ ${categories.map((category) => `            <article class="card"><h3>${htmlEsca
           ${leadCta('equipment_index_bottom')}`;
 
   return pageShell(template, {
-    title: 'Оборудование для GrowerHub — мягкие рекомендации',
+    title: 'Оборудование для GrowerHub — доступные Zigbee-варианты',
     description,
     canonical,
     jsonLd: [
@@ -707,7 +708,7 @@ const renderEquipmentCategoryPage = (template, assets, equipment, categoryKey) =
           <p class="article-lead">${htmlEscape(category.intro)}</p>
           <p class="equipment-disclaimer">${htmlEscape(equipment.purchase_note)}</p>
           <div class="equipment-list content-section">
-${category.items.map((item) => `            <article class="equipment-card"><div><span class="status-chip">${htmlEscape(item.status)}</span><h2>${htmlEscape(item.model)}</h2><h3>${htmlEscape(item.name)}</h3><p>${htmlEscape(item.summary)}</p></div><ul class="check-list">${item.notes.map((note) => `<li>${htmlEscape(note)}</li>`).join('')}</ul><div class="cta-row"><a class="secondary-link" href="${htmlEscape(item.official_url)}" target="_blank" rel="noreferrer">Совместимость Zigbee2MQTT</a><a class="secondary-link" href="${htmlEscape(item.shop_search_url)}" target="_blank" rel="nofollow noreferrer">Поиск модели на Ozon</a></div></article>`).join('\n')}
+${category.items.map((item) => `            <article class="equipment-card"><div><span class="status-chip">${htmlEscape(item.status)}</span><h2>${htmlEscape(item.model)}</h2><h3>${htmlEscape(item.name)}</h3><p>${htmlEscape(item.summary)}</p></div><ul class="check-list">${item.notes.map((note) => `<li>${htmlEscape(note)}</li>`).join('')}</ul><div class="cta-row"><a class="secondary-link" href="${htmlEscape(item.official_url)}" target="_blank" rel="noreferrer">Совместимость Zigbee2MQTT</a>${item.example_url ? `<a class="secondary-link" href="${htmlEscape(item.example_url)}" target="_blank" rel="nofollow noreferrer">Пример на Ozon</a>` : ''}<a class="secondary-link" href="${htmlEscape(item.shop_search_url)}" target="_blank" rel="nofollow noreferrer">Найти на Ozon</a></div></article>`).join('\n')}
           </div>
           ${categoryKey === 'sensors' ? `<section class="content-section info-block"><h2>Wi‑Fi-датчики</h2><p>${htmlEscape(equipment.wifi_note)}</p></section>` : ''}
           ${leadCta(`equipment_${category.slug}_bottom`)}`;

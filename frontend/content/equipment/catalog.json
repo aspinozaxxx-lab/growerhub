@@ -1,89 +1,130 @@
 {
   "updated_at": "2026-07-23",
   "checked_at": "2026-07-23",
-  "purchase_note": "Это примеры, а не обязательный список. Перед покупкой сверьте точный model ID и ревизию с каталогом Zigbee2MQTT. Ссылки магазина открывают поиск по модели, поэтому продавца и карточку выбираете вы.",
+  "purchase_note": "Для старта не нужен дорогой фирменный комплект. Выбирайте удобный вариант по бюджету и убедитесь, что в карточке указан именно Zigbee, а не Wi‑Fi или Bluetooth. Примеры на Ozon не являются партнёрскими, похожие устройства продают разные продавцы, а цены со временем меняются.",
+  "zigbee_note": "Для большинства распространённых датчиков и розеток достаточно маркировки Zigbee или Zigbee 3.0: Zigbee2MQTT автоматически определяет устройство, после чего оно появляется в GrowerHub. Точный model ID полезно сверить в каталоге Zigbee2MQTT, чтобы заранее увидеть доступные показатели и команды, но покупать только дорогие бренды необязательно.",
   "wifi_note": "Большинство розничных Wi‑Fi-датчиков Tuya и похожих экосистем привязаны к облаку производителя и не позволяют указать MQTT GrowerHub. Подходят только устройства с открытой локальной MQTT-конфигурацией или собственное оборудование GrowerHub.",
   "categories": {
     "coordinators": {
       "slug": "zigbee-koordinator",
       "title": "Zigbee-координатор для GrowerHub",
-      "description": "Мягкие рекомендации по USB-координаторам для Zigbee2MQTT: от проверенных SONOFF до бюджетных CC2652P с coordinator firmware.",
-      "intro": "Любой официально поддерживаемый Zigbee2MQTT-адаптер можно настроить вручную. Готовые пакеты GrowerHub в первой версии проверяются на ZBDongle-P и ZBDongle-E.",
+      "description": "Проверенные USB-координаторы для Zigbee2MQTT: доступные стики CC2652P и фирменные варианты SONOFF.",
+      "intro": "Бренд не обязателен: для GrowerHub хорошо подходят доступные USB-стики CC2652P и другие адаптеры из списка Zigbee2MQTT. SONOFF оставляем как распространённый фирменный вариант.",
       "items": [
+        {
+          "model": "CC2652P USB Dongle",
+          "name": "Бюджетный координатор с внешней антенной",
+          "status": "Проверено GrowerHub",
+          "summary": "Рабочий и доступный вариант на CC2652P для Zigbee2MQTT. Подобные стики часто можно найти дешевле 1000 ₽.",
+          "official_url": "https://www.zigbee2mqtt.io/guide/adapters/zstack.html",
+          "example_url": "https://www.ozon.ru/product/zigbee-stik-cc2652p-usb-dongle-vneshnyaya-antenna-20-dbm-2767494114/",
+          "shop_search_url": "https://www.ozon.ru/search/?text=Zigbee%20%D1%81%D1%82%D0%B8%D0%BA%20CC2652P%20USB%20Dongle%20%D0%B2%D0%BD%D0%B5%D1%88%D0%BD%D1%8F%D1%8F%20%D0%B0%D0%BD%D1%82%D0%B5%D0%BD%D0%BD%D0%B0",
+          "notes": ["В Zigbee2MQTT выбирается адаптер zstack", "Берите вариант с прошивкой координатора", "Внешняя антенна удобна для теплицы и нескольких помещений"]
+        },
         {
           "model": "SONOFF ZBDongle-P",
           "name": "USB-координатор на Z-Stack",
-          "status": "Проверяем готовым пакетом",
-          "summary": "Распространённый вариант на CC2652P. Для пакета GrowerHub выбирается адаптер zstack.",
+          "status": "Фирменный вариант",
+          "summary": "Распространённый координатор на CC2652P. Подходит тем, кто предпочитает устройство известного бренда.",
           "official_url": "https://www.zigbee2mqtt.io/guide/adapters/zstack.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=SONOFF%20ZBDongle-P",
-          "notes": ["Проверьте, что это именно версия P", "Удлинитель USB иногда помогает убрать радиопомехи"]
+          "notes": ["В Zigbee2MQTT выбирается адаптер zstack", "USB-удлинитель помогает вынести координатор от радиопомех"]
         },
         {
           "model": "SONOFF ZBDongle-E",
           "name": "USB-координатор на Ember",
-          "status": "Проверяем готовым пакетом",
-          "summary": "Актуальный вариант на Silicon Labs. Для пакета GrowerHub выбирается адаптер ember.",
+          "status": "Фирменный вариант",
+          "summary": "Актуальный координатор на Silicon Labs для тех, кто выбирает линейку SONOFF.",
           "official_url": "https://www.zigbee2mqtt.io/guide/adapters/emberznet.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=SONOFF%20ZBDongle-E",
-          "notes": ["Перед запуском сверьте рекомендации по firmware", "Не выбирайте тип адаптера по внешнему виду корпуса"]
-        },
-        {
-          "model": "CC2652P coordinator",
-          "name": "Бюджетные USB-адаптеры CC2652P",
-          "status": "Для ручной настройки",
-          "summary": "Недорогой вариант возможен, если точная плата есть в официальном списке и прошита coordinator firmware.",
-          "official_url": "https://www.zigbee2mqtt.io/guide/adapters/",
-          "shop_search_url": "https://www.ozon.ru/search/?text=CC2652P%20Zigbee%20%D0%BA%D0%BE%D0%BE%D1%80%D0%B4%D0%B8%D0%BD%D0%B0%D1%82%D0%BE%D1%80",
-          "notes": ["Одинаковый чип не гарантирует одинаковую плату и firmware", "Точный адаптер сверяйте до покупки"]
+          "notes": ["В Zigbee2MQTT выбирается адаптер ember", "Версия E внешне похожа на ZBDongle-P — смотрите маркировку"]
         }
       ]
     },
     "sensors": {
       "slug": "datchiki",
       "title": "Zigbee-датчики для начала",
-      "description": "Примеры датчиков температуры и влажности для первого подключения GrowerHub через Zigbee2MQTT.",
-      "intro": "Для первого мониторинга достаточно одного датчика температуры и влажности. Датчики почвы, протечки и освещённости можно добавить позже.",
+      "description": "Доступные Zigbee-датчики температуры, влажности воздуха и почвы для первого подключения GrowerHub.",
+      "intro": "Для первого мониторинга достаточно одного Zigbee-датчика температуры и влажности. Экран удобен для проверки показаний на месте, а датчики почвы и протечки можно добавить в любое время.",
       "items": [
+        {
+          "model": "Zigbee 3.0 LCD TH",
+          "name": "Температура и влажность с ЖК-экраном",
+          "status": "Проверено GrowerHub",
+          "summary": "Доступный датчик показывает значения на месте и передаёт их в Zigbee2MQTT. В комплектах из двух цена часто получается около 300 ₽ за датчик.",
+          "official_url": "https://www.zigbee2mqtt.io/supported-devices/",
+          "example_url": "https://www.ozon.ru/product/zigbee-3-0-umnyy-datchik-temperatury-i-vlazhnosti-s-alisoy-2-sht-2070768445/",
+          "shop_search_url": "https://www.ozon.ru/search/?text=Zigbee%203.0%20%D0%B4%D0%B0%D1%82%D1%87%D0%B8%D0%BA%20%D1%82%D0%B5%D0%BC%D0%BF%D0%B5%D1%80%D0%B0%D1%82%D1%83%D1%80%D1%8B%20%D0%B2%D0%BB%D0%B0%D0%B6%D0%BD%D0%BE%D1%81%D1%82%D0%B8%20%D1%81%20%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%BE%D0%BC",
+          "notes": ["Экран позволяет быстро сравнить показания с кабинетом", "В карточке товара выбирайте вариант Zigbee 3.0", "Фактический model ID GrowerHub покажет после подключения"]
+        },
+        {
+          "model": "Zigbee 3-в-1 для почвы",
+          "name": "Влажность почвы, температура и влажность",
+          "status": "Практичное расширение",
+          "summary": "Один Zigbee-датчик даёт сразу несколько показателей для горшка, грядки или тепличной зоны и не требует отдельного облачного приложения.",
+          "official_url": "https://www.zigbee2mqtt.io/supported-devices/",
+          "example_url": "https://www.ozon.ru/product/intellektualnyy-izmeritel-vlazhnosti-pochvy-zigbee-datchik-temperatury-i-vlazhnosti-sada-v-gorshkah-2159847928/",
+          "shop_search_url": "https://www.ozon.ru/search/?text=Zigbee%20%D0%B4%D0%B0%D1%82%D1%87%D0%B8%D0%BA%20%D0%B2%D0%BB%D0%B0%D0%B6%D0%BD%D0%BE%D1%81%D1%82%D0%B8%20%D0%BF%D0%BE%D1%87%D0%B2%D1%8B%20%D1%82%D0%B5%D0%BC%D0%BF%D0%B5%D1%80%D0%B0%D1%82%D1%83%D1%80%D1%8B%20%D0%B2%D0%BB%D0%B0%D0%B6%D0%BD%D0%BE%D1%81%D1%82%D0%B8",
+          "notes": ["Удобен как следующий шаг после датчика воздуха", "Набор показателей зависит от конкретной ревизии", "Для автоматического полива сначала сравните показания с ручной проверкой грунта"]
+        },
         {
           "model": "SONOFF SNZB-02P",
           "name": "Температура и влажность",
-          "status": "Мягкая рекомендация",
+          "status": "Фирменный вариант",
           "summary": "Компактный батарейный датчик для базового мониторинга микроклимата.",
           "official_url": "https://www.zigbee2mqtt.io/devices/SNZB-02P.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=SONOFF%20SNZB-02P",
-          "notes": ["Сверьте model ID SNZB-02P", "Качество связи зависит от расположения и Zigbee-сети"]
+          "notes": ["Поддержка модели описана в Zigbee2MQTT", "Компактный корпус удобно размещать внутри зоны"]
         },
         {
           "model": "SONOFF SNZB-02D",
           "name": "Температура и влажность с экраном",
-          "status": "Мягкая рекомендация",
+          "status": "Фирменный вариант",
           "summary": "Показывает значения локально и передаёт их в Zigbee2MQTT.",
           "official_url": "https://www.zigbee2mqtt.io/devices/SNZB-02D.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=SONOFF%20SNZB-02D",
-          "notes": ["Экран удобен для проверки на месте", "Сверьте точную модель до покупки"]
+          "notes": ["Экран удобен для проверки на месте", "Поддержка модели описана в Zigbee2MQTT"]
         },
         {
           "model": "Aqara WSDCGQ11LM",
           "name": "Температура, влажность и давление",
-          "status": "Дополнительный вариант",
-          "summary": "Поддерживается Zigbee2MQTT, но устройства Xiaomi/Aqara иногда отключаются при слабом сигнале или несовместимом роутере.",
+          "status": "Фирменный вариант",
+          "summary": "Компактный датчик Aqara передаёт температуру, влажность и атмосферное давление.",
           "official_url": "https://www.zigbee2mqtt.io/devices/WSDCGQ11LM.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=Aqara%20WSDCGQ11LM",
-          "notes": ["При проблемах сначала проверьте батарею и linkquality", "Для стабильности важен совместимый Zigbee-роутер"]
+          "notes": ["Поддержка модели описана в Zigbee2MQTT", "Хороший вариант для компактного размещения"]
+        },
+        {
+          "model": "Aqara SJCGQ11LM",
+          "name": "Датчик протечки воды",
+          "status": "Полезное расширение",
+          "summary": "Помогает заметить воду на полу рядом с баком, насосом или соединениями системы полива.",
+          "official_url": "https://www.zigbee2mqtt.io/devices/SJCGQ11LM.html",
+          "shop_search_url": "https://www.ozon.ru/search/?text=Aqara%20SJCGQ11LM",
+          "notes": ["Передаёт состояние протечки и заряд батареи", "Размещайте в самой низкой точке возможной протечки"]
         }
       ]
     },
     "sockets": {
       "slug": "zigbee-rozetki",
       "title": "Zigbee-розетки для управления",
-      "description": "Примеры Zigbee-розеток для света и безопасно подобранной нагрузки в GrowerHub.",
-      "intro": "Розетка добавляет ручное управление и расписание света. Нагрузку, влагозащиту и электробезопасность всегда проверяют отдельно.",
+      "description": "Доступные Zigbee-розетки для света, вентиляции и другого оборудования в GrowerHub.",
+      "intro": "Для управления достаточно обычной Zigbee-розетки с подходящей нагрузкой. Недорогие white-label модели часто работают не хуже фирменных, а GrowerHub покажет доступные команды после подключения.",
       "items": [
+        {
+          "model": "AOAT Zigbee 16A",
+          "name": "Доступная розетка с таймером",
+          "status": "Проверено GrowerHub",
+          "summary": "Недорогая Zigbee-розетка стабильно работает через Zigbee2MQTT и подходит для ручного управления и расписаний. Похожие варианты часто стоят около 400 ₽.",
+          "official_url": "https://www.zigbee2mqtt.io/supported-devices/",
+          "example_url": "https://www.ozon.ru/product/umnaya-rozetka-aoat-s-alisoy-16a-tuya-zigbee-s-taymerom-i-golosovym-upravleniem-belaya-2096599570/",
+          "shop_search_url": "https://www.ozon.ru/search/?text=AOAT%2016A%20Tuya%20Zigbee%20%D1%80%D0%BE%D0%B7%D0%B5%D1%82%D0%BA%D0%B0",
+          "notes": ["Проверена на реальной установке GrowerHub", "В карточке товара выбирайте именно Zigbee-версию", "Для света и другой нагрузки соблюдайте паспортную мощность"]
+        },
         {
           "model": "SONOFF S26R2ZB",
           "name": "Zigbee-розетка",
-          "status": "Мягкая рекомендация",
+          "status": "Фирменный вариант",
           "summary": "Простое включение и выключение через доступное для записи состояние.",
           "official_url": "https://www.zigbee2mqtt.io/devices/S26R2ZB.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=SONOFF%20S26R2ZB",
@@ -92,20 +133,20 @@
         {
           "model": "SONOFF S60ZBTPF",
           "name": "Zigbee-розетка с мониторингом",
-          "status": "Мягкая рекомендация",
+          "status": "Фирменный вариант",
           "summary": "Управление питанием и доступные в Zigbee2MQTT метрики потребления.",
           "official_url": "https://www.zigbee2mqtt.io/devices/S60ZBTPF.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=SONOFF%20S60ZBTPF",
           "notes": ["Проверьте европейскую версию TPF", "Метрики не заменяют электрическую защиту"]
         },
         {
-          "model": "Tuya TS011F",
-          "name": "Распространённые white-label розетки",
-          "status": "Бюджетный вариант с оговорками",
-          "summary": "Под одним model ID продаются разные прошивки и ревизии. У части вариантов известны случайные отключения или отличия в отчётах мощности.",
-          "official_url": "https://www.zigbee2mqtt.io/devices/TS011F_plug_1.html",
-          "shop_search_url": "https://www.ozon.ru/search/?text=TS011F%20Zigbee%20%D1%80%D0%BE%D0%B7%D0%B5%D1%82%D0%BA%D0%B0",
-          "notes": ["До покупки невозможно гарантировать конкретную white-label firmware", "Не используйте непроверенную розетку для критичной нагрузки"]
+          "model": "Aqara SP-EUC01",
+          "name": "Zigbee-розетка с измерением потребления",
+          "status": "Фирменный вариант",
+          "summary": "Розетка Aqara передаёт состояние, мощность, напряжение, ток и накопленное потребление.",
+          "official_url": "https://www.zigbee2mqtt.io/devices/SP-EUC01.html",
+          "shop_search_url": "https://www.ozon.ru/search/?text=Aqara%20SP-EUC01",
+          "notes": ["Поддержка команд и метрик описана в Zigbee2MQTT", "Подбирайте нагрузку по паспорту розетки"]
         }
       ]
     }
