@@ -20,7 +20,7 @@ const sitemapResponse = await request(`${origin}/sitemap.xml`);
 assert(sitemapResponse.status === 200, `Sitemap status: ${sitemapResponse.status}`);
 const sitemap = await sitemapResponse.text();
 const urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
-assert(urls.length === 63, `Live sitemap: expected 63 URLs, got ${urls.length}`);
+assert(urls.length === 69, `Live sitemap: expected 69 URLs, got ${urls.length}`);
 
 const internalUrls = new Set();
 
@@ -74,6 +74,8 @@ const redirectCases = [
   ['https://www.growerhub.ru/', `${origin}/`],
   ['http://www.growerhub.ru/articles/home-assistant-dlya-rasteniy', `${origin}/articles/home-assistant-dlya-rasteniy/`],
   [`${origin}/articles/home-assistant-dlya-rasteniy`, `${origin}/articles/home-assistant-dlya-rasteniy/`],
+  [`${origin}/kak-nachat`, `${origin}/kak-nachat/`],
+  [`${origin}/oborudovanie/zigbee-koordinator`, `${origin}/oborudovanie/zigbee-koordinator/`],
   [`${origin}/app`, `${origin}/app/`],
 ];
 
