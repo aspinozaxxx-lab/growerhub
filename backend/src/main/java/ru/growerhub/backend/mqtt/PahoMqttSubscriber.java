@@ -1,6 +1,8 @@
 package ru.growerhub.backend.mqtt;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.net.ssl.SSLSocketFactory;
@@ -94,27 +96,27 @@ public class PahoMqttSubscriber implements MqttSubscriber, SmartLifecycle {
     }
 
     private void subscribeAll() throws MqttException {
+        List<String> topics = new ArrayList<>();
         String listenTopic = topicSettings.getListen();
         if (listenTopic != null && !listenTopic.isBlank()) {
-            client.subscribe(listenTopic, 1);
-            logger.info("mqtt: subscribed to {} qos=1", listenTopic);
-            return;
+            topics.add(listenTopic);
+        } else if (!topicSettings.getListenTopics().isEmpty()) {
+            topicSettings.getListenTopics().stream()
+                    .filter(topic -> topic != null && !topic.isBlank())
+                    .forEach(topics::add);
+        } else {
+            topics.add(topicSettings.getState());
+            topics.add(topicSettings.getAck());
+            topics.add(topicSettings.getEvents());
         }
-        if (!topicSettings.getListenTopics().isEmpty()) {
-            for (String topic : topicSettings.getListenTopics()) {
-                if (topic != null && !topic.isBlank()) {
-                    client.subscribe(topic, 1);
-                    logger.info("mqtt: subscribed to {} qos=1", topic);
-                }
-            }
-            return;
+        if (topics.isEmpty()) {
+            throw new MqttException(new IllegalStateException("MQTT subscription topics are empty"));
         }
-        client.subscribe(topicSettings.getState(), 1);
-        client.subscribe(topicSettings.getAck(), 1);
-        client.subscribe(topicSettings.getEvents(), 1);
-        logger.info("mqtt: subscribed to {} qos=1", topicSettings.getState());
-        logger.info("mqtt: subscribed to {} qos=1", topicSettings.getAck());
-        logger.info("mqtt: subscribed to {} qos=1", topicSettings.getEvents());
+
+        String[] topicArray = topics.toArray(String[]::new);
+        int[] qos = topics.stream().mapToInt(ignored -> 1).toArray();
+        client.subscribe(topicArray, qos);
+        topics.forEach(topic -> logger.info("mqtt: subscribed to {} qos=1", topic));
     }
 
     private MqttConnectOptions buildConnectOptions() {
@@ -141,10 +143,12 @@ public class PahoMqttSubscriber implements MqttSubscriber, SmartLifecycle {
     private class SubscriberCallback implements MqttCallbackExtended {
         @Override
         public void connectComplete(boolean reconnect, String serverURI) {
-            try {
-                subscribeAll();
-            } catch (MqttException ex) {
-                logger.warn("mqtt: resubscribe failed: {}", ex.getMessage());
+            if (reconnect) {
+                try {
+                    subscribeAll();
+                } catch (MqttException ex) {
+                    logger.warn("mqtt: resubscribe failed: {}", ex.getMessage());
+                }
             }
             if (debugSettings.isDebug()) {
                 logger.info("MQTT DEBUG subscriber connectComplete reconnect={}", reconnect);
