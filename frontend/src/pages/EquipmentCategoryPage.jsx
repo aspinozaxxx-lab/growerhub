@@ -53,6 +53,13 @@ function EquipmentCategoryPage({ categoryKey }) {
       <h1>{category.title}</h1>
       <p className="article-lead">{category.intro}</p>
       <p className="equipment-disclaimer">{equipmentContent.purchase_note}</p>
+      <section className="content-section info-block">
+        <h2>{translatePublic('Как читать наши рекомендации')}</h2>
+        <p>{translatePublic('В карточках отдельно указано, что работало в установке GrowerHub, а что рекомендовано по официальной совместимости Zigbee2MQTT. Проверка не является гарантией для всех white-label ревизий одной модели.')}</p>
+        <Link className="secondary-link" to={getPublicPath('about', locale)}>
+          {translatePublic('Эксплуатационный срез и методика')}
+        </Link>
+      </section>
 
       <div className="equipment-list content-section">
         {category.items.map((item) => (

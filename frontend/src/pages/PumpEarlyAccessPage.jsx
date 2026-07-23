@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
 import TelegramContactLink from '../components/TelegramContactLink';
 import { equipmentContent } from '../content/pages';
@@ -24,6 +25,14 @@ function PumpEarlyAccessPage() {
       <section className="content-section split-section">
         <div className="info-block"><h2>{translatePublic('Два варианта связи')}</h2><p>{translatePublic('Проектируем два режима: Zigbee для общей сети устройств и Wi‑Fi с прямым MQTT GrowerHub. Оба варианта работают с единым кабинетом платформы.')}</p></div>
         <div className="info-block"><h2>{translatePublic('Текущий этап')}</h2><p>{translatePublic('Прототип проходит испытания. Если хотите присоединиться к первым пользователям, напишите нам — обсудим оборудование и подходящий сценарий.')}</p></div>
+      </section>
+
+      <section className="content-section info-block">
+        <h2>{translatePublic('Откуда взялась разработка')}</h2>
+        <p>{translatePublic('Контур полива GrowerHub развивается с октября 2025 года: в Git видны первые MQTT-команды, а в production-журнале сохранились записи с 26 ноября. Нынешний Zigbee/Wi‑Fi-прототип — отдельное следующее поколение устройства, поэтому мы не выдаём весь этот период за испытание одной модели.')}</p>
+        <Link className="secondary-link" to={getPublicPath('about', locale)}>
+          {translatePublic('Хронология и эксплуатационные данные')}
+        </Link>
       </section>
 
       <section className="content-section">

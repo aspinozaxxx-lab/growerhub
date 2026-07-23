@@ -2,12 +2,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import enHomeContent from '../content/en/pages/home.json' with { type: 'json' };
+import enAboutContent from '../content/en/pages/about.json' with { type: 'json' };
 import enMiniFarmContent from '../content/en/pages/mini-farm.json' with { type: 'json' };
 import enEquipment from '../content/en/equipment/catalog.json' with { type: 'json' };
 import ruEquipment from '../content/equipment/catalog.json' with { type: 'json' };
 import ruHomeContent from '../content/pages/home.json' with { type: 'json' };
+import ruAboutContent from '../content/pages/about.json' with { type: 'json' };
 import ruMiniFarmContent from '../content/pages/mini-farm.json' with { type: 'json' };
-import { SITE_URL, TELEGRAM_DIRECT_URL } from '../src/domain/siteConfig.js';
+import {
+  GITHUB_REPOSITORY_URL,
+  ORGANIZATION_ID,
+  SITE_URL,
+  TELEGRAM_DIRECT_URL,
+} from '../src/domain/siteConfig.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST_DIR = path.join(ROOT, 'dist');
@@ -204,10 +211,27 @@ for (const filePath of publicHtmlFiles) {
 
 const ruHomeHtml = read(path.join(DIST_DIR, 'index.html'));
 const enHomeHtml = read(path.join(DIST_DIR, 'en', 'index.html'));
+const ruAboutHtml = read(path.join(DIST_DIR, 'about', 'index.html'));
+const enAboutHtml = read(path.join(DIST_DIR, 'en', 'about', 'index.html'));
 const ruLandingHtml = read(path.join(DIST_DIR, 'avtomatizatsiya-mini-fermy', 'index.html'));
 const enLandingHtml = read(path.join(DIST_DIR, 'en', 'farm-automation', 'index.html'));
 assert(ruHomeHtml.includes(ruHomeContent.hero.title), 'RU static home differs from shared content');
 assert(enHomeHtml.includes(enHomeContent.hero.title), 'EN static home differs from shared content');
+assert(ruAboutHtml.includes(ruAboutContent.title), 'RU static about differs from shared content');
+assert(enAboutHtml.includes(enAboutContent.title), 'EN static about differs from shared content');
+assert(
+  ruHomeHtml.includes(ruAboutContent.evidence.facts[0].value),
+  'RU home has no operational evidence',
+);
+assert(
+  enHomeHtml.includes(enAboutContent.evidence.facts[0].value),
+  'EN home has no operational evidence',
+);
+for (const [locale, html] of [['RU', ruAboutHtml], ['EN', enAboutHtml]]) {
+  assert(html.includes(ORGANIZATION_ID), `${locale} about has no stable Organization ID`);
+  assert(html.includes(GITHUB_REPOSITORY_URL), `${locale} about has no GitHub entity link`);
+  assert(html.includes('"@type":"AboutPage"'), `${locale} about has no AboutPage schema`);
+}
 assert(ruLandingHtml.includes(ruMiniFarmContent.title), 'RU landing differs from shared content');
 assert(enLandingHtml.includes(enMiniFarmContent.title), 'EN landing differs from shared content');
 assert(ruLandingHtml.includes(TELEGRAM_DIRECT_URL), 'RU landing has no direct Telegram URL');
@@ -285,6 +309,8 @@ for (const url of articleUrls) {
     html.includes('"author":{"@type":"Organization"'),
     `BlogPosting has no Organization author: ${url}`,
   );
+  assert(html.includes(ORGANIZATION_ID), `BlogPosting has no stable Organization ID: ${url}`);
+  assert(html.includes(GITHUB_REPOSITORY_URL), `Article has no GitHub evidence link: ${url}`);
   assert(html.includes('id="growerhub-page-data"'), `Article has no static body payload: ${url}`);
 }
 

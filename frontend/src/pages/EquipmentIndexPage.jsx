@@ -62,6 +62,14 @@ function EquipmentIndexPage() {
         <p>{equipmentContent.zigbee_note}</p>
       </section>
 
+      <section className="content-section info-block">
+        <h2>{translatePublic('Как читать наши рекомендации')}</h2>
+        <p>{translatePublic('В карточках отдельно указано, что работало в установке GrowerHub, а что рекомендовано по официальной совместимости Zigbee2MQTT. Проверка не является гарантией для всех white-label ревизий одной модели.')}</p>
+        <Link className="secondary-link" to={getPublicPath('about', locale)}>
+          {translatePublic('Эксплуатационный срез и методика')}
+        </Link>
+      </section>
+
       <section className="content-section">
         <h2>{translatePublic('Выберите раздел')}</h2>
         <div className="card-grid">

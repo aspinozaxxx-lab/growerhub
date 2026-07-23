@@ -1,10 +1,142 @@
 {
   "updated_at": "2026-07-23",
-  "title": "About GrowerHub",
-  "intro": "GrowerHub is a platform in which we collect extensive practical experience in greenhouse automation: monitoring zones, sensors and equipment of mini-farms, greenhouses and grow boxes.",
-  "mission": "Make this experience accessible through a short path from a connected Zigbee2MQTT instance to a clear dashboard, history and safe equipment control.",
-  "value": "Connect a coordinator, discover devices and assemble zones yourself. If you need help with a connection or feature, message us in Telegram in Russian or English.",
+  "audited_at": "2026-07-23",
+  "title": "GrowerHub: from one irrigation controller to a farm management platform",
+  "intro": "GrowerHub evolved on a working installation. Its public repository history starts on October 6, 2025: since then the project has moved from one ESP32 irrigation controller to a platform with sensor history, zones, Zigbee2MQTT, and automations.",
+  "mission": "Turn the accumulated experience into a clear platform where people can connect equipment themselves, see its state, and gradually automate a farm.",
+  "value": "We do not hide the project's radical changes: Git shows which ideas were introduced, tested, and replaced. The operational snapshot confirms that the code is connected to a long history of real measurements and actions, not only synthetic demo screens.",
+  "evidence": {
+    "title": "Verifiable facts",
+    "intro": "This snapshot was recorded on July 23, 2026. The repository and production aggregates were checked separately; no device addresses, IEEE values, logins, or credentials are published.",
+    "facts": [
+      {
+        "value": "777",
+        "label": "commits on main",
+        "detail": "The public history covered 98 separate development days from October 6, 2025 through the audit date."
+      },
+      {
+        "value": "2,140,650",
+        "label": "stored native sensor readings",
+        "detail": "The retained series starts on January 8, 2026 and reaches the audit date; the installation contained five sensor records."
+      },
+      {
+        "value": "130,127",
+        "label": "Zigbee device state events",
+        "detail": "From July 5 through July 23, 1,366,273 individual property values were also stored across nine end devices and 25 property types."
+      },
+      {
+        "value": "165",
+        "label": "watering journal entries",
+        "detail": "The first retained entry is dated November 26, 2025; the latest one in this snapshot is dated July 17, 2026."
+      },
+      {
+        "value": "5",
+        "label": "enabled automation scenarios",
+        "detail": "Two working sections log lighting schedules and climate actions; the automation history starts on June 29, 2026."
+      }
+    ],
+    "methodology_title": "How the snapshot was produced",
+    "methodology": "Development history was counted on the main Git branch. Operational facts came from read-only PostgreSQL aggregate queries and were matched to the dates when features entered the codebase. These counts show retained history and date ranges; they do not claim uninterrupted uptime, successful harvests, or a number of customer installations."
+  },
+  "timeline": {
+    "title": "How the project changed",
+    "items": [
+      {
+        "date": "October 6, 2025",
+        "title": "One controller and one task",
+        "text": "Smart Watering System was imported into Git: an ESP32 read soil moisture, air temperature and humidity, controlled a pump and a light, while FastAPI and PostgreSQL received the data.",
+        "links": [
+          {
+            "label": "GrowerHub repository",
+            "url": "https://github.com/aspinozaxxx-lab/growerhub"
+          }
+        ]
+      },
+      {
+        "date": "October 24–27, 2025",
+        "title": "MQTT, command acknowledgements, and Grovika",
+        "text": "MQTT manual irrigation commands, state, and ACK handling appeared. The controller was named Grovika — our own device used to work through pump, light, sensor, and remote-control behavior.",
+        "links": [
+          {
+            "label": "MQTT irrigation",
+            "url": "https://github.com/aspinozaxxx-lab/growerhub/commit/ba3977e6477f26e7b5d18271527a962a77a1b292"
+          },
+          {
+            "label": "Grovika naming",
+            "url": "https://github.com/aspinozaxxx-lab/growerhub/commit/0324f0ce087c5b3de8fa7588321bb839d168abf1"
+          }
+        ]
+      },
+      {
+        "date": "November 2025",
+        "title": "From a device to a product",
+        "text": "The first retained watering journal entry is dated November 26. Two days later a React interface with separate public pages and guides replaced the single technical screen.",
+        "links": [
+          {
+            "label": "First React interface",
+            "url": "https://github.com/aspinozaxxx-lab/growerhub/commit/a8b0b4546dc7e1524baca6a44b59de8e15f73807"
+          }
+        ]
+      },
+      {
+        "date": "December 2025 — January 2026",
+        "title": "A new architecture and long-running data history",
+        "text": "The backend moved from FastAPI to Java and Spring. Grovika firmware gained a second architecture with an MQTT codec, ACK handling, heartbeat, and pump and light control. Sensors, pumps, plants, and history became separate domains. The retained sensor series starts on January 8.",
+        "links": [
+          {
+            "label": "Spring Boot backend begins",
+            "url": "https://github.com/aspinozaxxx-lab/growerhub/commit/7f410cf54e5fe2b21de4df642e3d2b52f3f40d30"
+          },
+          {
+            "label": "Grovika firmware v2",
+            "url": "https://github.com/aspinozaxxx-lab/growerhub/commit/96aafe5a269c29832b97ad2dcfd9584ea216d2d3"
+          }
+        ]
+      },
+      {
+        "date": "June 29 — July 5, 2026",
+        "title": "Zones, Zigbee2MQTT, and automations",
+        "text": "A Zigbee2MQTT coordinator, universal exposes, and zones were added alongside native devices. Lighting schedules and climate thresholds entered production; the retained Zigbee history starts on July 5.",
+        "links": [
+          {
+            "label": "Zigbee coordinator",
+            "url": "https://github.com/aspinozaxxx-lab/growerhub/commit/6748ac3fab86680321755d35c20587860bbae23b"
+          },
+          {
+            "label": "Automation scenarios",
+            "url": "https://github.com/aspinozaxxx-lab/growerhub/commit/01900b26eaa08526513c1e9aff5e72fc25e1f992"
+          }
+        ]
+      },
+      {
+        "date": "July 23, 2026",
+        "title": "Self-service connection",
+        "text": "GrowerHub moved from one internal installation to a multi-user platform with isolated coordinators, MQTTS, onboarding, user-owned zones, and automations. A complete English version arrived the same day.",
+        "links": [
+          {
+            "label": "Self-service platform",
+            "url": "https://github.com/aspinozaxxx-lab/growerhub/commit/da33221f5bcbd92af0e9db501023954dc0859f61"
+          },
+          {
+            "label": "English version",
+            "url": "https://github.com/aspinozaxxx-lab/growerhub/commit/0dcd5057dfe7b7914cccd6dac9a430a5e0e81367"
+          }
+        ]
+      }
+    ]
+  },
+  "experience": {
+    "title": "What this history actually demonstrates",
+    "points": [
+      "Grovika and the native device path evolved alongside a real watering journal and telemetry; they were not added only as a description of a future product.",
+      "The architecture changed several times after operational use: from one controller and FastAPI to domains, history, Zigbee2MQTT, and user isolation.",
+      "Lighting and climate automations continue running in production; content verification sends no test commands to pumps, plugs, or lights.",
+      "Synthetic public screenshots protect internal addresses and names. The aggregate figures above come from the working installation."
+    ]
+  },
   "contacts": {
-    "site": "https://growerhub.ru/en/"
+    "site": "https://growerhub.ru/en/",
+    "github": "https://github.com/aspinozaxxx-lab/growerhub",
+    "github_label": "source code, history, and a star for the project"
   }
 }

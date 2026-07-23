@@ -3,13 +3,21 @@ import LeadCta from '../components/LeadCta';
 import PlatformStartLink from '../components/PlatformStartLink';
 import { articleClusters } from '../content/articleClusters';
 import { articles, getArticleById } from '../content/articles';
-import { homeContent } from '../content/pages';
+import { aboutContent, homeContent } from '../content/pages';
 import {
   getArticlePath,
   getClusterPath,
   getPublicPath,
 } from '../domain/localizedRoutes';
-import { SELF_SERVICE_PUBLIC_ENABLED, toCanonicalUrl } from '../domain/siteConfig';
+import {
+  GITHUB_REPOSITORY_URL,
+  ORGANIZATION_ID,
+  SELF_SERVICE_PUBLIC_ENABLED,
+  SITE_NAME,
+  SITE_URL,
+  TELEGRAM_CHANNEL_URL,
+  toCanonicalUrl,
+} from '../domain/siteConfig';
 import { getCurrentLocale, getIntlLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 
@@ -17,6 +25,15 @@ function HomePage() {
   const locale = getCurrentLocale();
   const path = getPublicPath('home', locale);
   const pageDescription = translatePublic('home.description');
+  const organizationLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': ORGANIZATION_ID,
+    name: SITE_NAME,
+    url: SITE_URL,
+    foundingDate: '2025-10-06',
+    sameAs: [GITHUB_REPOSITORY_URL, TELEGRAM_CHANNEL_URL],
+  };
   const softwareApplicationLd = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -27,6 +44,7 @@ function HomePage() {
     description: pageDescription,
     inLanguage: locale,
     areaServed: locale === 'en' ? 'Russia and CIS countries' : 'Россия и страны СНГ',
+    provider: { '@id': ORGANIZATION_ID },
     ...(SELF_SERVICE_PUBLIC_ENABLED ? {
       isAccessibleForFree: true,
       offers: { '@type': 'Offer', price: '0', priceCurrency: locale === 'en' ? 'USD' : 'RUB' },
@@ -37,7 +55,7 @@ function HomePage() {
     title: translatePublic('home.title'),
     description: pageDescription,
     path,
-    jsonLd: [softwareApplicationLd],
+    jsonLd: [organizationLd, softwareApplicationLd],
     locale,
   });
 
@@ -97,6 +115,32 @@ function HomePage() {
             {translatePublic('Возможности платформы')}
           </Link>
         </div>
+      </section>
+
+      <section className="content-section">
+        <div className="cluster-block__header">
+          <div>
+            <h2>{aboutContent.evidence.title}</h2>
+            <p>{aboutContent.evidence.intro}</p>
+          </div>
+          <Link className="secondary-link" to={getPublicPath('about', locale)}>
+            {translatePublic('История и методика')}
+          </Link>
+        </div>
+        <div className="card-grid">
+          {aboutContent.evidence.facts.slice(0, 3).map((fact) => (
+            <article className="card" key={fact.label}>
+              <h3>{fact.value}</h3>
+              <strong>{fact.label}</strong>
+              <p>{fact.detail}</p>
+            </article>
+          ))}
+        </div>
+        <p className="source-links">
+          <a href={GITHUB_REPOSITORY_URL} target="_blank" rel="noreferrer">
+            {translatePublic('Открыть код на GitHub и поддержать проект звездой')}
+          </a>
+        </p>
       </section>
 
       <section className="content-section">

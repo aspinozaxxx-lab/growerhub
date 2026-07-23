@@ -5,7 +5,10 @@ export const GOOGLE_ANALYTICS_ID = 'G-CVRE5NEJ9M';
 export const TELEGRAM_CHANNEL_URL = 'https://t.me/growerhub_info';
 export const TELEGRAM_DIRECT_URL = `${TELEGRAM_CHANNEL_URL}?direct`;
 export const DEFAULT_OG_IMAGE = '/og-growerhub.svg';
-export const GITHUB_RELEASES_URL = 'https://github.com/aspinozaxxx-lab/growerhub/releases';
+export const GITHUB_REPOSITORY_URL = 'https://github.com/aspinozaxxx-lab/growerhub';
+export const GITHUB_COMMITS_URL = `${GITHUB_REPOSITORY_URL}/commits/main/`;
+export const GITHUB_RELEASES_URL = `${GITHUB_REPOSITORY_URL}/releases`;
+export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 export const PLATFORM_START_PATH = '/app/login/?lang=ru&redirect=%2Fapp%2Fonboarding%2F';
 
 const viteSelfServiceEnabled = typeof import.meta.env !== 'undefined'

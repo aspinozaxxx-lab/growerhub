@@ -16,6 +16,8 @@ import {
 } from '../src/domain/localizedRoutes.js';
 import {
   DEFAULT_OG_IMAGE,
+  GITHUB_REPOSITORY_URL,
+  ORGANIZATION_ID,
   PLATFORM_START_PATH,
   SELF_SERVICE_PUBLIC_ENABLED,
   SITE_NAME,
@@ -292,7 +294,7 @@ ${mainHtml}
       </main>
       <footer class="app-footer">
         <p>© ${new Date().getFullYear()} GrowerHub. ${en ? 'All rights reserved.' : 'Все права защищены.'}</p>
-        <div class="footer-links"><a href="${getPublicPath('about', locale)}">${en ? 'About' : 'О проекте'}</a><a href="${getPublicPath('privacy', locale)}">${en ? 'Privacy' : 'Конфиденциальность'}</a><a href="${getPublicPath('terms', locale)}">${en ? 'Terms' : 'Условия'}</a><a href="${TELEGRAM_CHANNEL_URL}" target="_blank" rel="noreferrer">${en ? 'Telegram channel' : 'Telegram-канал'}</a></div>
+        <div class="footer-links"><a href="${getPublicPath('about', locale)}">${en ? 'About' : 'О проекте'}</a><a href="${getPublicPath('privacy', locale)}">${en ? 'Privacy' : 'Конфиденциальность'}</a><a href="${getPublicPath('terms', locale)}">${en ? 'Terms' : 'Условия'}</a><a href="${GITHUB_REPOSITORY_URL}" target="_blank" rel="noreferrer">GitHub</a><a href="${TELEGRAM_CHANNEL_URL}" target="_blank" rel="noreferrer">${en ? 'Telegram channel' : 'Telegram-канал'}</a></div>
       </footer>
     </div>
   `;
@@ -351,8 +353,11 @@ const breadcrumbLd = (items) => ({
 
 const organizationLd = {
   '@type': 'Organization',
+  '@id': ORGANIZATION_ID,
   name: SITE_NAME,
   url: HOME_URL,
+  foundingDate: '2025-10-06',
+  sameAs: [GITHUB_REPOSITORY_URL, TELEGRAM_CHANNEL_URL],
 };
 
 const articleLd = (article, cluster) => ({
@@ -369,6 +374,18 @@ const articleLd = (article, cluster) => ({
   author: organizationLd,
   publisher: organizationLd,
 });
+
+const articleEvidence = (locale = 'ru') => {
+  const en = locale === 'en';
+  return `
+          <aside class="info-block content-section">
+            <strong>${en ? 'GrowerHub editorial team' : 'Редакция GrowerHub'}</strong>
+            <p>${en
+    ? 'This guide is accompanied by a public development history and a clear account of operational data. It does not mean that we have tested every device mentioned.'
+    : 'Материал сопровождается публичной историей разработки и честным описанием эксплуатационных данных. Это не означает, что каждое упомянутое устройство проверено нами.'}</p>
+            <div class="cta-row"><a class="secondary-link" href="${getPublicPath('about', locale)}">${en ? 'How we substantiate our experience' : 'Как мы подтверждаем опыт'}</a><a class="secondary-link" href="${GITHUB_REPOSITORY_URL}" target="_blank" rel="noreferrer">${en ? 'Source code on GitHub' : 'Исходный код на GitHub'}</a></div>
+          </aside>`;
+};
 
 const collectionLd = (title, description, url, articles = []) => ({
   '@context': 'https://schema.org',
@@ -394,6 +411,7 @@ const renderArticlePage = (template, assets, article, articlesBySlug, clustersBy
           <p class="article-lead">${htmlEscape(article.summary)}</p>
           ${cluster ? `<p><a class="secondary-link" href="/articles/clusters/${htmlEscape(cluster.slug)}/">${htmlEscape(cluster.title)}</a></p>` : ''}
           ${article.hero_image && !heroInBody ? `<img class="article-hero-image" src="${htmlEscape(article.hero_image)}" alt="${htmlEscape(article.hero_alt)}" />` : ''}
+          ${articleEvidence()}
           <div class="article-body">
 ${article.bodyHtml}
           </div>
@@ -507,7 +525,14 @@ ${otherClusters.map((item) => `              <a href="/articles/clusters/${htmlE
   }, mainHtml, assets);
 };
 
-const renderHomePage = (template, assets, homeContent, articles, articlesBySlug) => {
+const renderHomePage = (
+  template,
+  assets,
+  homeContent,
+  aboutContent,
+  articles,
+  articlesBySlug,
+) => {
   const { hero, secondary, features } = homeContent;
   const description = 'GrowerHub — платформа, в которой собран большой практический опыт автоматизации теплиц: Zigbee-устройства, зоны, история датчиков и сценарии управления.';
   const mainHtml = `
@@ -541,6 +566,13 @@ ${features.items.map((item) => `              <div class="card"><h3>${htmlEscape
             <div class="cta-row"><a class="secondary-link" href="/oborudovanie/">Какое оборудование подойдёт</a><a class="secondary-link" href="/avtomatizatsiya-mini-fermy/">Возможности платформы</a></div>
           </section>
           <section class="content-section">
+            <div class="cluster-block__header"><div><h2>${htmlEscape(aboutContent.evidence.title)}</h2><p>${htmlEscape(aboutContent.evidence.intro)}</p></div><a class="secondary-link" href="/about/">История и методика</a></div>
+            <div class="card-grid">
+${aboutContent.evidence.facts.slice(0, 3).map((fact) => `              <article class="card"><h3>${htmlEscape(fact.value)}</h3><strong>${htmlEscape(fact.label)}</strong><p>${htmlEscape(fact.detail)}</p></article>`).join('\n')}
+            </div>
+            <p class="source-links"><a href="${GITHUB_REPOSITORY_URL}" target="_blank" rel="noreferrer">Открыть код на GitHub и поддержать проект звездой</a></p>
+          </section>
+          <section class="content-section">
             <h2>Практические разделы</h2>
             <div class="cluster-home-grid">
 ${articleClusters.map((cluster) => {
@@ -571,7 +603,9 @@ ${articles.slice(0, 4).map(renderArticleCard).join('\n')}
         '@type': 'WebSite',
         name: SITE_NAME,
         url: HOME_URL,
+        publisher: { '@id': ORGANIZATION_ID },
       },
+      { '@context': 'https://schema.org', ...organizationLd },
       {
         '@context': 'https://schema.org',
         '@type': 'SoftwareApplication',
@@ -581,6 +615,7 @@ ${articles.slice(0, 4).map(renderArticleCard).join('\n')}
         url: HOME_URL,
         description,
         areaServed: 'Россия и страны СНГ',
+        provider: { '@id': ORGANIZATION_ID },
         ...(SELF_SERVICE_PUBLIC_ENABLED ? {
           isAccessibleForFree: true,
           offers: { '@type': 'Offer', price: '0', priceCurrency: 'RUB' },
@@ -590,44 +625,73 @@ ${articles.slice(0, 4).map(renderArticleCard).join('\n')}
   }, mainHtml, assets);
 };
 
-const renderAboutPage = (template, assets, aboutContent) => {
-  const canonical = toCanonicalUrl('/about/');
-  const mainHtml = `
-          <h1>${htmlEscape(aboutContent.title)}</h1>
-          <p>${htmlEscape(aboutContent.intro)}</p>
+const renderAboutContent = (data, locale = 'ru') => {
+  const en = locale === 'en';
+  return `
+          <h1>${htmlEscape(data.title)}</h1>
+          <p>${htmlEscape(data.intro)}</p>
           <div class="info-grid content-section">
-            <div class="info-block"><h2>Задача проекта</h2><p>${htmlEscape(aboutContent.mission)}</p></div>
-            <div class="info-block"><h2>Чем помогаем</h2><p>${htmlEscape(aboutContent.value)}</p></div>
+            <div class="info-block"><h2>${en ? 'Our goal' : 'Задача проекта'}</h2><p>${htmlEscape(data.mission)}</p></div>
+            <div class="info-block"><h2>${en ? 'What the project demonstrates' : 'Что показывает проект'}</h2><p>${htmlEscape(data.value)}</p></div>
           </div>
           <section class="content-section">
-            <h2>Контакты</h2>
+            <h2>${htmlEscape(data.evidence.title)}</h2>
+            <p>${htmlEscape(data.evidence.intro)}</p>
+            <div class="card-grid">
+${data.evidence.facts.map((fact) => `              <article class="card"><h3>${htmlEscape(fact.value)}</h3><strong>${htmlEscape(fact.label)}</strong><p>${htmlEscape(fact.detail)}</p></article>`).join('\n')}
+            </div>
+            <div class="info-block content-section"><h3>${htmlEscape(data.evidence.methodology_title)}</h3><p>${htmlEscape(data.evidence.methodology)}</p></div>
+          </section>
+          <section class="content-section">
+            <h2>${htmlEscape(data.timeline.title)}</h2>
+            <ol class="steps-list">
+${data.timeline.items.map((item) => `              <li><time>${htmlEscape(item.date)}</time><strong>${htmlEscape(item.title)}</strong><span>${htmlEscape(item.text)}</span><div class="source-links">${item.links.map((link) => `<a href="${htmlEscape(link.url)}" target="_blank" rel="noreferrer">${htmlEscape(link.label)}</a>`).join(' · ')}</div></li>`).join('\n')}
+            </ol>
+          </section>
+          <section class="content-section info-block"><h2>${htmlEscape(data.experience.title)}</h2><ul class="check-list">${data.experience.points.map((point) => `<li>${htmlEscape(point)}</li>`).join('')}</ul></section>
+          <section class="content-section">
+            <h2>${en ? 'Contact and source code' : 'Контакты и исходный код'}</h2>
             <ul class="contact-list">
-              <li><strong>Сайт:</strong> <a href="${htmlEscape(aboutContent.contacts.site)}">${htmlEscape(aboutContent.contacts.site)}</a></li>
-              <li><strong>Telegram:</strong> <a href="${TELEGRAM_CHANNEL_URL}" target="_blank" rel="noreferrer">канал GrowerHub</a></li>
+              <li><strong>${en ? 'Website:' : 'Сайт:'}</strong> <a href="${htmlEscape(data.contacts.site)}">${htmlEscape(data.contacts.site)}</a></li>
+              <li><strong>GitHub:</strong> <a href="${htmlEscape(data.contacts.github)}" target="_blank" rel="noreferrer">${htmlEscape(data.contacts.github_label)}</a></li>
+              <li><strong>Telegram:</strong> <a href="${TELEGRAM_CHANNEL_URL}" target="_blank" rel="noreferrer">${en ? 'GrowerHub channel' : 'канал GrowerHub'}</a></li>
             </ul>
           </section>
-          ${leadCta('about_bottom')}`;
+          ${leadCta(
+    'about_bottom',
+    en ? 'Start with your first device' : 'Подключите первое устройство',
+    en
+      ? 'Use GrowerHub independently, inspect the source code, or ask us for help in Telegram.'
+      : 'Начните самостоятельно, посмотрите исходный код или обратитесь к нам за помощью в Telegram.',
+    locale,
+  )}`;
+};
 
+const aboutPageLd = (data, canonical) => ({
+  '@context': 'https://schema.org',
+  '@type': 'AboutPage',
+  name: data.title,
+  description: data.intro,
+  url: canonical,
+  dateModified: data.updated_at,
+  isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: HOME_URL },
+  mainEntity: organizationLd,
+});
+
+const renderAboutPage = (template, assets, aboutContent) => {
+  const canonical = toCanonicalUrl('/about/');
   return pageShell(template, {
-    title: 'О проекте GrowerHub — контроль полива и микроклимата',
+    title: `${aboutContent.title} — GrowerHub`,
     description: aboutContent.intro,
     canonical,
     jsonLd: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'AboutPage',
-        name: aboutContent.title,
-        description: aboutContent.intro,
-        url: canonical,
-        isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: HOME_URL },
-        mainEntity: { ...organizationLd, sameAs: [TELEGRAM_CHANNEL_URL] },
-      },
+      aboutPageLd(aboutContent, canonical),
       breadcrumbLd([
         { name: 'GrowerHub', url: HOME_URL },
         { name: 'О проекте', url: canonical },
       ]),
     ],
-  }, mainHtml, assets);
+  }, renderAboutContent(aboutContent), assets);
 };
 
 const renderMiniFarmDemos = (screens) => `
@@ -741,6 +805,18 @@ const renderGettingStartedPage = (template, assets, platformContent) => {
   }, mainHtml, assets);
 };
 
+const equipmentEvidence = (locale = 'ru') => {
+  const en = locale === 'en';
+  return `
+          <section class="content-section info-block">
+            <h2>${en ? 'How to read our recommendations' : 'Как читать наши рекомендации'}</h2>
+            <p>${en
+    ? 'Each card distinguishes equipment used in the GrowerHub installation from models recommended through official Zigbee2MQTT compatibility. A successful check is not a blanket guarantee for every white-label revision of a model.'
+    : 'В карточках отдельно указано, что работало в установке GrowerHub, а что рекомендовано по официальной совместимости Zigbee2MQTT. Проверка не является гарантией для всех white-label ревизий одной модели.'}</p>
+            <a class="secondary-link" href="${getPublicPath('about', locale)}">${en ? 'Operational snapshot and methodology' : 'Эксплуатационный срез и методика'}</a>
+          </section>`;
+};
+
 const renderEquipmentIndexPage = (template, assets, equipment, platformContent) => {
   const canonical = toCanonicalUrl('/oborudovanie/');
   const description = 'Что нужно для GrowerHub: Zigbee-координатор, один датчик температуры и влажности, а для управления — Zigbee-розетка.';
@@ -751,6 +827,7 @@ const renderEquipmentIndexPage = (template, assets, equipment, platformContent) 
           <p class="article-lead">${htmlEscape(description)}</p>
           <section class="content-section start-kit"><h2>Минимальный старт</h2><div class="card-grid"><article class="card"><h3>Для мониторинга</h3><p>${htmlEscape(platformContent.minimum.monitoring)}</p></article><article class="card"><h3>Для управления</h3><p>${htmlEscape(platformContent.minimum.control)}</p></article><article class="card"><h3>Если всё уже работает</h3><p>${htmlEscape(platformContent.minimum.existing)}</p></article></div></section>
           <section class="content-section info-block"><h2>Главное — выбрать Zigbee</h2><p>${htmlEscape(equipment.zigbee_note)}</p></section>
+          ${equipmentEvidence()}
           <section class="content-section"><h2>Выберите раздел</h2><div class="card-grid">
 ${categories.map((category) => `            <article class="card"><h3>${htmlEscape(category.title)}</h3><p>${htmlEscape(category.intro)}</p><a class="secondary-link" href="/oborudovanie/${htmlEscape(category.slug)}/">Посмотреть варианты</a></article>`).join('\n')}
             <article class="card"><h3>${htmlEscape(equipment.pump.title)}</h3><p>${htmlEscape(equipment.pump.summary)}</p><a class="secondary-link" href="/oborudovanie/nasos-dlya-poliva/">О насосе GrowerHub</a></article>
@@ -794,6 +871,7 @@ const renderEquipmentCategoryPage = (template, assets, equipment, categoryKey) =
           <h1>${htmlEscape(category.title)}</h1>
           <p class="article-lead">${htmlEscape(category.intro)}</p>
           <p class="equipment-disclaimer">${htmlEscape(equipment.purchase_note)}</p>
+          ${equipmentEvidence()}
           <div class="equipment-list content-section">
 ${category.items.map((item) => renderEquipmentCard(item, 'ru')).join('\n')}
           </div>
@@ -837,6 +915,7 @@ const renderPumpEarlyAccessPage = (template, assets, equipment) => {
   const mainHtml = `
           <div class="badge">${htmlEscape(pump.status)}</div><h1>${htmlEscape(pump.title)}</h1><p class="article-lead">${htmlEscape(pump.summary)}</p>
           <section class="content-section split-section"><div class="info-block"><h2>Два варианта связи</h2><p>Проектируем два режима: Zigbee для общей сети устройств и Wi‑Fi с прямым MQTT GrowerHub. Оба варианта работают с единым кабинетом платформы.</p></div><div class="info-block"><h2>Текущий этап</h2><p>Прототип проходит испытания. Если хотите присоединиться к первым пользователям, напишите нам — обсудим оборудование и подходящий сценарий.</p></div></section>
+          <section class="content-section info-block"><h2>Откуда взялась разработка</h2><p>Контур полива GrowerHub развивается с октября 2025 года: в Git видны первые MQTT-команды, а в production-журнале сохранились записи с 26 ноября. Нынешний Zigbee/Wi‑Fi-прототип — отдельное следующее поколение устройства, поэтому мы не выдаём весь этот период за испытание одной модели.</p><a class="secondary-link" href="/about/">Хронология и эксплуатационные данные</a></section>
           <section class="content-section"><h2>Что мы проверяем</h2><ul class="check-list limitations-list">${pump.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></section>
           <section class="lead-cta"><div><h2>Стать одним из первых пользователей</h2><p>Расскажите, где планируете использовать насос. Мы ответим на вопросы и подскажем, как подготовиться к первым испытаниям.</p></div>${telegramLink('pump_early_access', 'Написать в Telegram', 'hero-cta')}</section>
           ${leadCta('pump_platform_bottom', 'Начать с готового оборудования', 'Для мониторинга GrowerHub насос не нужен: достаточно координатора и одного Zigbee-датчика.')}`;
@@ -942,6 +1021,7 @@ const renderEnglishArticlePage = (
           <p class="article-lead">${htmlEscape(article.summary)}</p>
           ${cluster ? `<p><a class="secondary-link" href="${htmlEscape(getClusterPath(cluster, 'en'))}">${htmlEscape(cluster.title)}</a></p>` : ''}
           ${article.hero_image && !heroInBody ? `<img class="article-hero-image" src="${htmlEscape(article.hero_image)}" alt="${htmlEscape(article.hero_alt)}" />` : ''}
+          ${articleEvidence('en')}
           <div class="article-body">
 ${article.bodyHtml}
           </div>
@@ -1082,6 +1162,7 @@ const renderEnglishHomePage = (
   template,
   assets,
   homeContent,
+  aboutContent,
   articles,
   articlesById,
   clusters,
@@ -1119,6 +1200,13 @@ ${features.items.map((item) => `              <div class="card"><h3>${htmlEscape
             <h2>Extensive automation experience in one platform</h2>
             <p>${htmlEscape(homeContent.early_access)}</p>
             <div class="cta-row"><a class="secondary-link" href="${getPublicPath('equipment', 'en')}">Choose equipment</a><a class="secondary-link" href="${getPublicPath('farmAutomation', 'en')}">Explore platform features</a></div>
+          </section>
+          <section class="content-section">
+            <div class="cluster-block__header"><div><h2>${htmlEscape(aboutContent.evidence.title)}</h2><p>${htmlEscape(aboutContent.evidence.intro)}</p></div><a class="secondary-link" href="${getPublicPath('about', 'en')}">History and methodology</a></div>
+            <div class="card-grid">
+${aboutContent.evidence.facts.slice(0, 3).map((fact) => `              <article class="card"><h3>${htmlEscape(fact.value)}</h3><strong>${htmlEscape(fact.label)}</strong><p>${htmlEscape(fact.detail)}</p></article>`).join('\n')}
+            </div>
+            <p class="source-links"><a href="${GITHUB_REPOSITORY_URL}" target="_blank" rel="noreferrer">Open the code on GitHub and support the project with a star</a></p>
           </section>
           <section class="content-section">
             <h2>Practical sections</h2>
@@ -1160,7 +1248,9 @@ ${articles.slice(0, 4).map(renderEnglishArticleCard).join('\n')}
         '@type': 'WebSite',
         name: SITE_NAME,
         url: canonical,
+        publisher: { '@id': ORGANIZATION_ID },
       },
+      { '@context': 'https://schema.org', ...organizationLd },
       {
         '@context': 'https://schema.org',
         '@type': 'SoftwareApplication',
@@ -1170,6 +1260,7 @@ ${articles.slice(0, 4).map(renderEnglishArticleCard).join('\n')}
         url: canonical,
         description,
         areaServed: 'Russia and CIS countries',
+        provider: { '@id': ORGANIZATION_ID },
         ...(SELF_SERVICE_PUBLIC_ENABLED ? {
           isAccessibleForFree: true,
           offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
@@ -1183,28 +1274,18 @@ const renderEnglishAboutPage = (template, assets, data) => {
   const routePath = getPublicPath('about', 'en');
   const canonical = toCanonicalUrl(routePath);
   return pageShell(template, {
-    title: 'About GrowerHub — greenhouse automation platform',
+    title: `${data.title} — GrowerHub`,
     description: data.intro,
     canonical,
     locale: 'en',
-    jsonLd: [breadcrumbLd([
-      { name: SITE_NAME, url: toCanonicalUrl('/en/') },
-      { name: 'About', url: canonical },
-    ])],
-  }, `
-          <h1>${htmlEscape(data.title)}</h1>
-          <p>${htmlEscape(data.intro)}</p>
-          <div class="info-grid content-section">
-            <div class="info-block"><h2>Our goal</h2><p>${htmlEscape(data.mission)}</p></div>
-            <div class="info-block"><h2>How we help</h2><p>${htmlEscape(data.value)}</p></div>
-          </div>
-          <section class="content-section"><h2>Contact</h2><ul class="contact-list"><li><strong>Website:</strong> <a href="${htmlEscape(data.contacts.site)}">${htmlEscape(data.contacts.site)}</a></li><li><strong>Telegram:</strong> <a href="${TELEGRAM_CHANNEL_URL}" target="_blank" rel="noreferrer">GrowerHub channel</a></li></ul></section>
-          ${leadCta(
-    'about_bottom',
-    'Start with your first device',
-    'Connect your equipment independently, or ask us for help in Telegram in Russian or English.',
-    'en',
-  )}`, assets);
+    jsonLd: [
+      aboutPageLd(data, canonical),
+      breadcrumbLd([
+        { name: SITE_NAME, url: toCanonicalUrl('/en/') },
+        { name: 'About', url: canonical },
+      ]),
+    ],
+  }, renderAboutContent(data, 'en'), assets);
 };
 
 const renderEnglishMiniFarmPage = (template, assets, data) => {
@@ -1346,6 +1427,7 @@ const renderEnglishEquipmentIndexPage = (template, assets, equipment, platformCo
           <p class="article-lead">${description}</p>
           <section class="content-section start-kit"><h2>Minimum setup</h2><div class="card-grid"><article class="card"><h3>Monitoring</h3><p>${htmlEscape(platformContent.minimum.monitoring)}</p></article><article class="card"><h3>Control</h3><p>${htmlEscape(platformContent.minimum.control)}</p></article><article class="card"><h3>Keep an existing setup</h3><p>${htmlEscape(platformContent.minimum.existing)}</p></article></div></section>
           <section class="content-section info-block"><h2>Choose Zigbee first</h2><p>${htmlEscape(equipment.zigbee_note)}</p></section>
+          ${equipmentEvidence('en')}
           <section class="content-section"><h2>Choose a category</h2><div class="card-grid">${Object.entries(equipment.categories).map(([key, category]) => `<article class="card"><h3>${htmlEscape(category.title)}</h3><p>${htmlEscape(category.intro)}</p><a class="secondary-link" href="${getPublicPath(categoryRouteIds[key], 'en')}">View recommendations</a></article>`).join('')}<article class="card"><h3>${htmlEscape(equipment.pump.title)}</h3><p>${htmlEscape(equipment.pump.summary)}</p><a class="secondary-link" href="${getPublicPath('equipmentPump', 'en')}">About the GrowerHub pump</a></article></div></section>
           <section class="content-section info-block"><h2>Why not every Wi-Fi sensor works</h2><p>${htmlEscape(equipment.wifi_note)}</p></section>
           ${leadCta(
@@ -1405,6 +1487,7 @@ const renderEnglishEquipmentCategoryPage = (
           <h1>${htmlEscape(category.title)}</h1>
           <p class="article-lead">${htmlEscape(category.intro)}</p>
           <p class="equipment-disclaimer">${htmlEscape(equipment.purchase_note)}</p>
+          ${equipmentEvidence('en')}
           <div class="equipment-list content-section">
 ${category.items.map((item) => renderEquipmentCard(item, 'en')).join('\n')}
           </div>
@@ -1444,6 +1527,7 @@ const renderEnglishPumpEarlyAccessPage = (template, assets, equipment) => {
   }, `
           <div class="badge">${htmlEscape(pump.status)}</div><h1>${htmlEscape(pump.title)}</h1><p class="article-lead">${htmlEscape(pump.summary)}</p>
           <section class="content-section split-section"><div class="info-block"><h2>Two connection options</h2><p>We are designing Zigbee connectivity for the shared device mesh and Wi-Fi with direct GrowerHub MQTT. Both options use the same platform dashboard.</p></div><div class="info-block"><h2>Current stage</h2><p>The prototype is being tested. If you would like to join the first users, message us and we will discuss your equipment and a suitable scenario.</p></div></section>
+          <section class="content-section info-block"><h2>Where this development came from</h2><p>GrowerHub's irrigation path has been evolving since October 2025: Git contains the first MQTT commands, while the production journal retains entries from November 26. The current Zigbee/Wi-Fi prototype is a separate next generation, so we do not present that entire period as a test of one model.</p><a class="secondary-link" href="${getPublicPath('about', 'en')}">Timeline and operational data</a></section>
           <section class="content-section"><h2>What we are testing</h2><ul class="check-list limitations-list">${pump.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></section>
           <section class="lead-cta"><div><h2>Become an early user</h2><p>Tell us where you plan to use the pump. We will answer your questions and help you prepare for testing.</p></div>${telegramLink('pump_early_access', 'Message us on Telegram', 'hero-cta')}</section>
           ${leadCta(
@@ -1722,7 +1806,10 @@ const main = () => {
     );
   }
 
-  writePublicPage('/', renderHomePage(template, assets, homeContent, articles, articlesBySlug));
+  writePublicPage(
+    '/',
+    renderHomePage(template, assets, homeContent, aboutContent, articles, articlesBySlug),
+  );
   writePublicPage('/about/', renderAboutPage(template, assets, aboutContent));
   writePublicPage('/articles/', renderArticlesIndex(template, assets, articlesByCluster));
   writePublicPage(
@@ -1760,6 +1847,7 @@ const main = () => {
       template,
       assets,
       enHomeContent,
+      enAboutContent,
       enArticles,
       enArticlesById,
       enClusters,

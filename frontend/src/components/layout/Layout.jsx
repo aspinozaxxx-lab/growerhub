@@ -2,7 +2,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import PlatformStartLink from '../PlatformStartLink';
 import TelegramContactLink from '../TelegramContactLink';
-import { TELEGRAM_CHANNEL_URL } from '../../domain/siteConfig';
+import { GITHUB_REPOSITORY_URL, TELEGRAM_CHANNEL_URL } from '../../domain/siteConfig';
 import { getPublicLocale, getPublicPath, isAppPath } from '../../domain/localizedRoutes';
 import { getLocalizedPathPair } from '../../content/localizedNavigation';
 import { getCurrentLocale, translatePublic } from '../../locales/i18n';
@@ -91,6 +91,7 @@ function Layout({ children }) {
           <Link to={getPublicPath('about', publicLocale)}>{translatePublic('О проекте')}</Link>
           <Link to={getPublicPath('privacy', publicLocale)}>{translatePublic('Конфиденциальность')}</Link>
           <Link to={getPublicPath('terms', publicLocale)}>{translatePublic('Условия')}</Link>
+          <a href={GITHUB_REPOSITORY_URL} target="_blank" rel="noreferrer">GitHub</a>
           <a href={TELEGRAM_CHANNEL_URL} target="_blank" rel="noreferrer">{translatePublic('Telegram-канал')}</a>
         </div>
       </footer>

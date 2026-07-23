@@ -13,7 +13,11 @@ import {
   getClusterPath,
   getPublicPath,
 } from '../domain/localizedRoutes';
-import { SITE_URL } from '../domain/siteConfig';
+import {
+  GITHUB_REPOSITORY_URL,
+  ORGANIZATION_ID,
+  SITE_URL,
+} from '../domain/siteConfig';
 import { getCurrentLocale, getIntlLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 import NotFoundPage from './NotFoundPage';
@@ -86,11 +90,14 @@ function ArticlePage() {
       inLanguage: locale,
       author: {
         '@type': 'Organization',
+        '@id': ORGANIZATION_ID,
         name: 'GrowerHub',
         url: SITE_URL,
+        sameAs: [GITHUB_REPOSITORY_URL],
       },
       publisher: {
         '@type': 'Organization',
+        '@id': ORGANIZATION_ID,
         name: 'GrowerHub',
         url: SITE_URL,
       },
@@ -116,6 +123,20 @@ function ArticlePage() {
       {article.hero_image && !article.hero_in_body && (
         <img className="article-hero-image" src={article.hero_image} alt={article.hero_alt || article.title} />
       )}
+      <aside className="info-block content-section">
+        <strong>{translatePublic('Редакция GrowerHub')}</strong>
+        <p>
+          {translatePublic('Материал сопровождается публичной историей разработки и честным описанием эксплуатационных данных. Это не означает, что каждое упомянутое устройство проверено нами.')}
+        </p>
+        <div className="cta-row">
+          <Link className="secondary-link" to={getPublicPath('about', locale)}>
+            {translatePublic('Как мы подтверждаем опыт')}
+          </Link>
+          <a className="secondary-link" href={GITHUB_REPOSITORY_URL} target="_blank" rel="noreferrer">
+            {translatePublic('Исходный код на GitHub')}
+          </a>
+        </div>
+      </aside>
       {bodyError ? (
         <div className="article-body">{translatePublic('Не удалось загрузить материал. Обновите страницу.')}</div>
       ) : (
