@@ -4,11 +4,11 @@ import { BrowserRouter } from 'react-router-dom';
 import { I18nextProvider } from 'react-i18next';
 import App from './App';
 import i18n from './locales/i18n';
-import { initMetrika } from './utils/metrika';
+import { initAnalytics } from './utils/analytics';
 import './theme.css';
 import './index.css';
 
-initMetrika();
+initAnalytics();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

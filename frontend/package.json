@@ -8,6 +8,8 @@
     "prepare:content": "node scripts/generate-article-metadata.mjs",
     "build": "npm run prepare:content && vite build && node scripts/generate-static-pages.mjs",
     "capture:screenshots": "node scripts/capture-product-screenshots.mjs",
+    "auth:google": "node scripts/authorize-google.mjs",
+    "audit:seo:google": "node scripts/audit-seo-google.mjs",
     "audit:seo:yandex": "node scripts/audit-seo-yandex.mjs",
     "verify:seo": "node scripts/verify-static-pages.mjs",
     "verify:live": "node scripts/verify-live-pages.mjs",

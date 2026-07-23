@@ -16,7 +16,7 @@ import {
   replaceSectionResources,
   rotateCoordinatorCredentials,
 } from '../../api/selfService';
-import { trackProductGoal, trackProductGoalOnce } from '../../utils/metrika';
+import { trackProductGoal, trackProductGoalOnce } from '../../utils/analytics';
 import {
   buildBridgeConfig,
   buildSectionResources,

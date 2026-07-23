@@ -8,7 +8,7 @@ import {
   fetchCoordinators,
   rotateCoordinatorCredentials,
 } from '../../api/selfService';
-import { trackProductGoal } from '../../utils/metrika';
+import { trackProductGoal } from '../../utils/analytics';
 import './SelfServicePages.css';
 import { getIntlLocale, translateApp } from '../../locales/i18n';
 

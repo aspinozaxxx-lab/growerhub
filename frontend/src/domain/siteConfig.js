@@ -1,6 +1,7 @@
 export const SITE_NAME = 'GrowerHub';
 export const SITE_URL = 'https://growerhub.ru';
 export const METRIKA_ID = 110256357;
+export const GOOGLE_ANALYTICS_ID = 'G-CVRE5NEJ9M';
 export const TELEGRAM_CHANNEL_URL = 'https://t.me/growerhub_info';
 export const TELEGRAM_DIRECT_URL = `${TELEGRAM_CHANNEL_URL}?direct`;
 export const DEFAULT_OG_IMAGE = '/og-growerhub.svg';

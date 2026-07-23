@@ -3,7 +3,7 @@ import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import Button from '../../components/ui/Button';
 import { createZone, createZoneSection, deleteZone, fetchAutomationOverview, updateZone } from '../../api/selfService';
-import { trackProductGoal } from '../../utils/metrika';
+import { trackProductGoal } from '../../utils/analytics';
 import './SelfServicePages.css';
 import { translateApp } from '../../locales/i18n';
 

@@ -1,5 +1,5 @@
 import { TELEGRAM_DIRECT_URL } from '../domain/siteConfig';
-import { trackTelegramContact } from '../utils/metrika';
+import { trackTelegramContact } from '../utils/analytics';
 
 function TelegramContactLink({ placement, className = '', children, onClick }) {
   const handleClick = (event) => {

@@ -1,9 +1,13 @@
-import { METRIKA_ID } from '../domain/siteConfig';
+import {
+  GOOGLE_ANALYTICS_ID,
+  METRIKA_ID,
+} from '../domain/siteConfig';
 import { getCurrentLocale } from '../locales/i18n';
 
 const METRIKA_SCRIPT_ID = 'yandex-metrika-script';
+const GOOGLE_ANALYTICS_SCRIPT_ID = 'google-analytics-script';
 
-export const initMetrika = () => {
+const initMetrika = () => {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return;
   }
@@ -35,6 +39,40 @@ export const initMetrika = () => {
   }
 };
 
+const initGoogleAnalytics = () => {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return;
+  }
+
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = window.gtag || function gtag() {
+    window.dataLayer.push(arguments);
+  };
+
+  if (!document.getElementById(GOOGLE_ANALYTICS_SCRIPT_ID)) {
+    const script = document.createElement('script');
+    script.id = GOOGLE_ANALYTICS_SCRIPT_ID;
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`;
+    document.head.appendChild(script);
+  }
+
+  if (!window.__growerHubGoogleAnalyticsInitialized) {
+    window.gtag('js', new Date());
+    window.gtag('config', GOOGLE_ANALYTICS_ID, {
+      allow_google_signals: false,
+      allow_ad_personalization_signals: false,
+      send_page_view: false,
+    });
+    window.__growerHubGoogleAnalyticsInitialized = true;
+  }
+};
+
+export const initAnalytics = () => {
+  initMetrika();
+  initGoogleAnalytics();
+};
+
 export const trackTelegramContact = (placement) => {
   trackProductGoal('telegram_contact', { placement });
 };
@@ -60,11 +98,7 @@ const ALLOWED_GOAL_PARAMS = new Set([
 ]);
 
 export const trackProductGoal = (goal, params = {}) => {
-  if (
-    !PRODUCT_GOALS.has(goal)
-    || typeof window === 'undefined'
-    || typeof window.ym !== 'function'
-  ) {
+  if (!PRODUCT_GOALS.has(goal) || typeof window === 'undefined') {
     return false;
   }
 
@@ -77,14 +111,48 @@ export const trackProductGoal = (goal, params = {}) => {
       safeParams[key] = String(value);
     }
   });
-  window.ym(METRIKA_ID, 'reachGoal', goal, safeParams);
-  return true;
+
+  let sent = false;
+  if (typeof window.ym === 'function') {
+    window.ym(METRIKA_ID, 'reachGoal', goal, safeParams);
+    sent = true;
+  }
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', goal, safeParams);
+    sent = true;
+  }
+  return sent;
+};
+
+export const trackPageView = ({ url, referer, title }) => {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  let sent = false;
+  if (typeof window.ym === 'function') {
+    window.ym(METRIKA_ID, 'hit', url, {
+      referer,
+      title,
+    });
+    sent = true;
+  }
+  if (typeof window.gtag === 'function') {
+    const googleParams = {
+      page_location: url,
+      page_title: title,
+    };
+    if (referer) googleParams.page_referrer = referer;
+    window.gtag('event', 'page_view', googleParams);
+    sent = true;
+  }
+  return sent;
 };
 
 export const trackProductGoalOnce = (goal, params = {}, eventKey = goal) => {
   if (typeof window === 'undefined') return false;
 
-  const storageKey = `gh_metrika_${eventKey}`;
+  const storageKey = `gh_analytics_${eventKey}`;
   try {
     if (window.sessionStorage.getItem(storageKey) === '1') return false;
   } catch {

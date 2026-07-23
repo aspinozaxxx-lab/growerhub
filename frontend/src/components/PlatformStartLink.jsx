@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { getPlatformStartPath, getPublicPath } from '../domain/localizedRoutes';
 import { SELF_SERVICE_PUBLIC_ENABLED } from '../domain/siteConfig';
 import { getCurrentLocale, translatePublic } from '../locales/i18n';
-import { trackProductGoal } from '../utils/metrika';
+import { trackProductGoal } from '../utils/analytics';
 
 function PlatformStartLink({ placement, className = 'hero-cta', children, onClick }) {
   const locale = getCurrentLocale();

@@ -1,7 +1,8 @@
 # Frontend GrowerHub: SEO-runbook
 
 Этот файл — точка входа для работы с публичным сайтом, русской и английской
-выдачей, Яндекс Вебмастером и Яндекс Метрикой. Секреты в репозитории не хранятся.
+выдачей, Яндекс Вебмастером, Яндекс Метрикой, Google Search Console и Google
+Analytics 4. Секреты в репозитории не хранятся.
 
 ## Архитектура языков
 
@@ -148,7 +149,15 @@ ID, IEEE и MQTT credentials передавать нельзя.
 - языковые версии:
   https://yandex.ru/support/webmaster/ru/yandex-indexing/locale-pages.
 
-## Google Search Console
+## Google Analytics 4 и Search Console
+
+Идентификаторы GrowerHub:
+
+- GA4 Measurement ID: `G-CVRE5NEJ9M`;
+- GA4 stream ID: `15312072484`;
+- GA4 property ID: `546877711`;
+- Search Console: доменный ресурс `sc-domain:growerhub.ru`;
+- sitemap: `https://growerhub.ru/sitemap.xml`.
 
 Нужен доменный ресурс `growerhub.ru`. Он подтверждается DNS TXT и охватывает все
 протоколы и поддомены. Если у исполнителя нет доступа к DNS, владелец:
@@ -158,12 +167,77 @@ ID, IEEE и MQTT credentials передавать нельзя.
 3. подтверждает ресурс;
 4. отправляет `https://growerhub.ru/sitemap.xml`.
 
-Значение TXT уникально и не должно быть придумано заранее. Для последующего API
-достаточен OAuth scope `webmasters.readonly`.
+Значение TXT уникально и не должно быть придумано заранее. После подтверждения
+ресурса в GA4 создаётся связь «Администратор → Связи с другими продуктами →
+Search Console Links» с web-потоком GrowerHub.
+
+Google tag загружается из `src/utils/analytics.js`. Метрика и GA4 получают один
+allowlist продуктовых событий. Для GA4 отключены Google Signals и сигналы
+рекламной персонализации. Автоматический `page_view` Google отключён через
+`send_page_view:false`: `AnalyticsRouteTracker` отправляет ровно один просмотр
+для первой загрузки и каждого React-маршрута с корректным referrer. В настройках
+web-потока «Enhanced measurement → Page views → Page changes based on browser
+history events» должно оставаться выключенным, иначе просмотры SPA будут
+дублироваться.
+
+Для отчётов по параметру `locale` в GA4 создаётся event-scoped custom dimension:
+
+- название: `Locale`;
+- event parameter: `locale`.
+
+После появления первых событий `signup_complete` и `first_device_seen` их можно
+отметить как key events. Остальные продуктовые события остаются этапами
+воронки.
+
+### Read-only OAuth для аудита
+
+OAuth-клиент создаётся как `Desktop app` в Google Auth Platform. Существующий
+web-клиент SSO GrowerHub не меняется. Нужны только scopes:
+
+- `https://www.googleapis.com/auth/webmasters.readonly`;
+- `https://www.googleapis.com/auth/analytics.readonly`.
+
+Файл клиента хранится вне репозитория:
+
+```text
+%USERPROFILE%\.secrets\growerhub\google-oauth-client.json
+```
+
+Однократная авторизация:
+
+```powershell
+npm run auth:google
+```
+
+Команда выводит ссылку Google, принимает callback только на loopback-адресе и
+сохраняет refresh token сюда:
+
+```text
+%USERPROFILE%\.secrets\growerhub\google-oauth-token.json
+```
+
+Пути можно заменить через `GOOGLE_OAUTH_CLIENT_FILE` и
+`GOOGLE_OAUTH_TOKEN_FILE`. Содержимое обоих файлов нельзя печатать, отправлять в
+чат или коммитить.
+
+Read-only аудит:
+
+```powershell
+npm run audit:seo:google -- --period=28 --locale=all
+npm run audit:seo:google -- --period=28 --locale=ru
+npm run audit:seo:google -- --period=56 --locale=en
+```
+
+Команда читает доступ к доменному ресурсу, sitemap, запросы, страницы и страны
+Search Console, а также landing page, каналы, страны и продуктовые события GA4.
+Числовой период не включает текущий неполный день; можно передать диапазон
+`YYYY-MM-DD:YYYY-MM-DD`.
 
 Официальная документация:
 
 - https://support.google.com/webmasters/answer/34592;
+- https://developers.google.com/webmaster-tools/v1/how-tos/authorizing;
+- https://developers.google.com/analytics/devguides/reporting/data/v1;
 - https://developers.google.com/search/docs/specialty/international/managing-multi-regional-sites.
 
 ## Базы сравнения и цикл решений

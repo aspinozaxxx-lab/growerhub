@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useRef } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import Layout from './components/layout/Layout';
-import { METRIKA_ID } from './domain/siteConfig';
 import AboutPage from './pages/AboutPage';
 import ArticleClusterPage from './pages/ArticleClusterPage';
 import ArticlePage from './pages/ArticlePage';
@@ -15,13 +14,14 @@ import MiniFarmPage from './pages/MiniFarmPage';
 import NotFoundPage from './pages/NotFoundPage';
 import PumpEarlyAccessPage from './pages/PumpEarlyAccessPage';
 import { loadAppTranslations, translateCommon } from './locales/i18n';
+import { trackPageView } from './utils/analytics';
 
 const AppSection = lazy(async () => {
   await loadAppTranslations();
   return import('./pages/app/AppSection');
 });
 
-function MetrikaRouteTracker() {
+function AnalyticsRouteTracker() {
   const location = useLocation();
   const previousUrlRef = useRef(document.referrer || '');
 
@@ -31,12 +31,7 @@ function MetrikaRouteTracker() {
     previousUrlRef.current = url;
 
     const timerId = window.setTimeout(() => {
-      if (typeof window.ym === 'function') {
-        window.ym(METRIKA_ID, 'hit', url, {
-          referer,
-          title: document.title,
-        });
-      }
+      trackPageView({ url, referer, title: document.title });
     }, 0);
 
     return () => window.clearTimeout(timerId);
@@ -48,7 +43,7 @@ function MetrikaRouteTracker() {
 function App() {
   return (
     <Layout>
-      <MetrikaRouteTracker />
+      <AnalyticsRouteTracker />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/en/" element={<HomePage />} />
