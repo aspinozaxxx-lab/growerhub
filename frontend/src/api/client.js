@@ -1,10 +1,12 @@
-﻿// Translitem: edinyj wrapper dlya fetch s avtomaticheskim refresh i retry pri 401.
+﻿import i18n, { getCurrentLocale, translateApp } from '../locales/i18n';
+
+// Translitem: edinyj wrapper dlya fetch s avtomaticheskim refresh i retry pri 401.
 
 const ACCESS_TOKEN_STORAGE_KEY = 'gh_access_token';
 const SESSION_EXPIRED_CODE = 'SESSION_EXPIRED';
 const CYRILLIC_PATTERN = /[А-Яа-яЁё]/;
 
-const STATUS_ERROR_MESSAGES = {
+const STATUS_ERROR_KEYS = {
   400: 'Проверьте введённые данные',
   401: 'Необходимо войти в аккаунт',
   403: 'Недостаточно прав для этого действия',
@@ -15,12 +17,42 @@ const STATUS_ERROR_MESSAGES = {
   503: 'Сервис временно недоступен',
 };
 
+const getStatusErrorMessage = (status) => {
+  const key = STATUS_ERROR_KEYS[status];
+  return key ? translateApp(key) : null;
+};
+
+const getSafeFallback = (fallback) => {
+  if (typeof fallback !== 'string' || !fallback.trim()) return null;
+  const normalized = fallback.trim();
+  if (getCurrentLocale() === 'ru') {
+    return CYRILLIC_PATTERN.test(normalized) ? normalized : null;
+  }
+  if (!CYRILLIC_PATTERN.test(normalized)) return normalized;
+  return i18n.exists(normalized, { ns: 'app', lng: 'en' })
+    ? translateApp(normalized)
+    : null;
+};
+
 export function normalizeApiErrorMessage(message, { status, fallback } = {}) {
   const normalized = typeof message === 'string' ? message.trim() : '';
-  if (normalized && CYRILLIC_PATTERN.test(normalized)) {
-    return normalized;
+  const safeFallback = getSafeFallback(fallback);
+  const statusMessage = getStatusErrorMessage(status);
+  if (!normalized) {
+    return safeFallback || statusMessage || translateApp('Не удалось выполнить запрос');
   }
-  return fallback || STATUS_ERROR_MESSAGES[status] || 'Не удалось выполнить запрос';
+  if (getCurrentLocale() === 'ru') {
+    return CYRILLIC_PATTERN.test(normalized)
+      ? normalized
+      : safeFallback || statusMessage || translateApp('Не удалось выполнить запрос');
+  }
+  if (
+    CYRILLIC_PATTERN.test(normalized)
+    && i18n.exists(normalized, { ns: 'app', lng: 'en' })
+  ) {
+    return translateApp(normalized);
+  }
+  return safeFallback || statusMessage || translateApp('Не удалось выполнить запрос');
 }
 
 export async function readApiErrorMessage(response, fallback) {

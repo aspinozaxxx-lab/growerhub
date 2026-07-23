@@ -1,13 +1,14 @@
 ﻿import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { translateApp } from '../../locales/i18n';
 
 // Translitem: guard dlya admin-marshrutov.
 function RequireAdmin({ children }) {
   const { status, user } = useAuth();
 
   if (status === 'loading' || status === 'idle') {
-    return <div className="app-loading">Загрузка...</div>;
+    return <div className="app-loading">{translateApp("Загрузка...")}</div>;
   }
 
   if (status !== 'authorized') {

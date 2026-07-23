@@ -1,6 +1,13 @@
-import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import './AppLayout.css';
+import {
+  getCurrentLocale,
+  getStoredLocale,
+  rememberLocale,
+  translateApp,
+} from '../../locales/i18n';
+import { translateCommon } from '../../locales/i18n';
 
 const navItems = [
   { to: '/app/', label: 'Обзор', icon: '⌂', end: true },
@@ -22,17 +29,47 @@ const renderNavItems = () =>
       className={({ isActive }) => (isActive ? 'app-nav__item is-active' : 'app-nav__item')}
     >
       <span className="app-nav__icon" aria-hidden="true">{item.icon}</span>
-      <span className="app-nav__label">{item.label}</span>
+      <span className="app-nav__label">{translateApp(item.label)}</span>
     </NavLink>
   ));
 
 // Layout dlya kabineta: mobilnaya nizhnyaya panel, na desktop - levaya kolonka
 function AppLayout() {
+  const location = useLocation();
+  const adminRoute = location.pathname.startsWith('/app/admin/');
+  const currentLocale = getCurrentLocale();
+
+  useEffect(() => {
+    const desiredLocale = adminRoute ? 'ru' : getStoredLocale();
+    if (currentLocale === desiredLocale) return;
+    const target = new URL(window.location.href);
+    target.searchParams.set('lang', desiredLocale);
+    window.location.replace(`${target.pathname}${target.search}${target.hash}`);
+  }, [adminRoute, currentLocale]);
+
+  const switchLocale = () => {
+    const nextLocale = currentLocale === 'ru' ? 'en' : 'ru';
+    rememberLocale(nextLocale);
+    const target = new URL(window.location.href);
+    target.searchParams.set('lang', nextLocale);
+    window.location.assign(`${target.pathname}${target.search}${target.hash}`);
+  };
+
   return (
     <div className="app-layout">
       <aside className="app-sidebar">
         <div className="app-sidebar__inner">
           <div className="app-sidebar__brand">GrowerHub</div>
+          {!adminRoute ? (
+            <button
+              type="button"
+              className="app-locale-switch"
+              onClick={switchLocale}
+              aria-label={translateCommon('language.switch')}
+            >
+              {currentLocale === 'ru' ? 'EN' : 'RU'}
+            </button>
+          ) : null}
           <nav className="app-nav app-nav--sidebar">
             {renderNavItems()}
           </nav>
@@ -46,7 +83,7 @@ function AppLayout() {
       </main>
 
       <div className="app-nav-shell app-nav-shell--bottom">
-        <nav className="app-nav app-nav--bottom" aria-label="Навигация кабинета">
+        <nav className="app-nav app-nav--bottom" aria-label={translateApp("Навигация кабинета")}>
           {renderNavItems()}
         </nav>
       </div>

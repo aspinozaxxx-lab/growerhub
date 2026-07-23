@@ -1,0 +1,10 @@
+{
+  "updated_at": "2026-07-23",
+  "title": "About GrowerHub",
+  "intro": "GrowerHub is a platform in which we collect extensive practical experience in greenhouse automation: monitoring zones, sensors and equipment of mini-farms, greenhouses and grow boxes.",
+  "mission": "Make this experience accessible through a short path from a connected Zigbee2MQTT instance to a clear dashboard, history and safe equipment control.",
+  "value": "Connect a coordinator, discover devices and assemble zones yourself. If you need help with a connection or feature, message us in Telegram in Russian or English.",
+  "contacts": {
+    "site": "https://growerhub.ru/en/"
+  }
+}

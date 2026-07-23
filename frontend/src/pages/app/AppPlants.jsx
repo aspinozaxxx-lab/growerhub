@@ -20,21 +20,22 @@ import Button from '../../components/ui/Button';
 import { DEFAULT_PLANT_TYPE_ID, getAutoStageFromAge, normalizePlantTypeId } from '../../domain/plants';
 import { formatDateKeyYYYYMMDD, parseBackendTimestamp } from '../../utils/formatters';
 import './AppPlants.css';
+import { getIntlLocale, translateApp } from '../../locales/i18n';
 
 // Translitem: Stranica spiska rastenij s kartochkami i rabochim dialogom redaktirovaniya.
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
 
 const METRIC_LABELS = {
-  air_temperature: 'Температура воздуха',
-  air_humidity: 'Влажность воздуха',
-  soil_moisture: 'Влажность почвы',
-  watering: 'Поливы',
+  air_temperature: translateApp("Температура воздуха"),
+  air_humidity: translateApp("Влажность воздуха"),
+  soil_moisture: translateApp("Влажность почвы"),
+  watering: translateApp("Поливы"),
 };
 
 function formatPlantDate(value) {
   const date = parseBackendTimestamp(value);
   if (!date) return '-';
-  return date.toLocaleDateString('ru-RU');
+  return date.toLocaleDateString(getIntlLocale());
 }
 
 function calcAgeAtHarvest(plantedAt, harvestedAt) {
@@ -57,7 +58,7 @@ function ArchivePlantCard({ plant, onOpenJournal, onOpenMetric }) {
         <div className="archive-plant-card__title">
           <Title level={3} className="archive-plant-card__name">{plant.name}</Title>
           <Text tone="muted" className="archive-plant-card__group">
-            {plant?.plant_group?.name || 'Без группы'}
+            {plant?.plant_group?.name || translateApp("Без группы")}
           </Text>
         </div>
         <div className="archive-plant-card__avatar" aria-hidden="true">
@@ -67,17 +68,17 @@ function ArchivePlantCard({ plant, onOpenJournal, onOpenMetric }) {
 
       <div className="archive-plant-card__dates">
         <div className="archive-plant-card__row">
-          <span className="archive-plant-card__label">Дата посадки</span>
+          <span className="archive-plant-card__label">{translateApp("Дата посадки")}</span>
           <span className="archive-plant-card__value">{formatPlantDate(plant?.planted_at)}</span>
         </div>
         <div className="archive-plant-card__row">
-          <span className="archive-plant-card__label">Дата сбора</span>
+          <span className="archive-plant-card__label">{translateApp("Дата сбора")}</span>
           <span className="archive-plant-card__value">{formatPlantDate(plant?.harvested_at)}</span>
         </div>
         <div className="archive-plant-card__row">
-          <span className="archive-plant-card__label">Возраст при сборе</span>
+          <span className="archive-plant-card__label">{translateApp("Возраст при сборе")}</span>
           <span className="archive-plant-card__value">
-            {ageAtHarvest !== null ? `${ageAtHarvest} дн.` : '-'}
+            {ageAtHarvest !== null ? translateApp("{{value1}} дн.", { value1: ageAtHarvest }) : '-'}
           </span>
         </div>
       </div>
@@ -97,9 +98,7 @@ function ArchivePlantCard({ plant, onOpenJournal, onOpenMetric }) {
             onClick={() => onOpenMetric?.(plant, 'watering')}
           />
         </div>
-        <button type="button" className="archive-plant-card__journal" onClick={() => onOpenJournal?.(plant)}>
-          Журнал
-        </button>
+        <button type="button" className="archive-plant-card__journal" onClick={() => onOpenJournal?.(plant)}>{translateApp("Журнал")}</button>
       </div>
     </Surface>
   );
@@ -138,7 +137,7 @@ function AppPlants() {
       setPlantGroups(Array.isArray(groupsPayload) ? groupsPayload : []);
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось загрузить растения');
+      setError(err?.message || translateApp("Не удалось загрузить растения"));
     } finally {
       setIsLoading(false);
     }
@@ -195,7 +194,7 @@ function AppPlants() {
     event.preventDefault();
     if (!harvestTarget?.id) return;
     if (!harvestForm.date) {
-      setHarvestError('Укажите дату сбора');
+      setHarvestError(translateApp("Укажите дату сбора"));
       return;
     }
     setHarvestSaving(true);
@@ -215,7 +214,7 @@ function AppPlants() {
       setHarvestTarget(null);
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setHarvestError(err?.message || 'Не удалось собрать урожай');
+      setHarvestError(err?.message || translateApp("Не удалось собрать урожай"));
     } finally {
       setHarvestSaving(false);
     }
@@ -239,19 +238,17 @@ function AppPlants() {
   return (
     <div className="app-plants">
       <AppPageHeader
-        title="Растения"
+        title={translateApp("Растения")}
         right={(
-          <Button type="button" variant="primary" onClick={handleOpenCreate}>
-            Добавить растение
-          </Button>
+          <Button type="button" variant="primary" onClick={handleOpenCreate}>{translateApp("Добавить растение")}</Button>
         )}
       />
 
-      {isLoading && <AppPageState kind="loading" title="Загрузка..." />}
+      {isLoading && <AppPageState kind="loading" title={translateApp("Загрузка...")} />}
       {error && <AppPageState kind="error" title={error} />}
 
       {!isLoading && !error && activePlants.length === 0 && archivedPlants.length === 0 && (
-        <AppPageState kind="empty" title="Растения не найдены" />
+        <AppPageState kind="empty" title={translateApp("Растения не найдены")} />
       )}
 
       {!isLoading && !error && activePlants.length > 0 && (
@@ -270,7 +267,7 @@ function AppPlants() {
 
       {!isLoading && !error && archivedPlants.length > 0 && (
         <div className="app-plants__archive">
-          <div className="app-plants__archive-title">Архив растений</div>
+          <div className="app-plants__archive-title">{translateApp("Архив растений")}</div>
           <AppGrid min={260}>
             {archivedPlants.map((plant) => (
               <ArchivePlantCard
@@ -295,32 +292,30 @@ function AppPlants() {
 
       <Modal
         isOpen={harvestOpen}
-        title={harvestTarget?.name ? `Сбор урожая: ${harvestTarget.name}` : 'Сбор урожая'}
+        title={harvestTarget?.name ? translateApp("Сбор урожая: {{value1}}", { value1: harvestTarget.name }) : translateApp("Сбор урожая")}
         onClose={handleCloseHarvest}
-        closeLabel="Закрыть"
+        closeLabel={translateApp("Закрыть")}
         footer={(
           <div className="harvest-dialog__footer">
-            <Button variant="secondary" onClick={handleCloseHarvest} disabled={harvestSaving}>
-              Отмена
-            </Button>
+            <Button variant="secondary" onClick={handleCloseHarvest} disabled={harvestSaving}>{translateApp("Отмена")}</Button>
             <Button type="submit" form="plant-harvest-form" variant="primary" disabled={harvestSaving}>
-              {harvestSaving ? 'Сохранение...' : 'Собрать урожай'}
+              {harvestSaving ? translateApp("Сохранение...") : translateApp("Собрать урожай")}
             </Button>
           </div>
         )}
       >
         <form id="plant-harvest-form" className="harvest-dialog__form" onSubmit={handleSubmitHarvest}>
           {harvestError && <div className="harvest-dialog__error">{harvestError}</div>}
-          <FormField label="Описание урожая" htmlFor="harvest-text">
+          <FormField label={translateApp("Описание урожая")} htmlFor="harvest-text">
             <textarea
               id="harvest-text"
               rows={3}
               value={harvestForm.text}
               onChange={(e) => setHarvestForm((prev) => ({ ...prev, text: e.target.value }))}
-              placeholder="Комментарий или заметки"
+              placeholder={translateApp("Комментарий или заметки")}
             />
           </FormField>
-          <FormField label="Дата сбора" htmlFor="harvest-date">
+          <FormField label={translateApp("Дата сбора")} htmlFor="harvest-date">
             <input
               id="harvest-date"
               type="date"

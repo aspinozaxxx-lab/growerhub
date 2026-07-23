@@ -1,122 +1,152 @@
-﻿import { marked } from 'marked';
-import { articleClusters } from './articleClusters';
+﻿import metadata from './articleMetadata.generated.json';
+import { getArticleClusters } from './articleClusters';
+import {
+  DEFAULT_LOCALE,
+  PUBLIC_ROUTES,
+  getArticlePath,
+  normalizeLocale,
+} from '../domain/localizedRoutes';
 import { canonicalizePublicLinksInHtml } from '../domain/siteConfig';
+import { getCurrentLocale } from '../locales/i18n';
 
-// Prostyj parser front matter bez Buffer/gray-matter (tol'ko dlya nashih md-fajlov)
-const markdownModules = import.meta.glob('../../content/articles/*.md', {
-  eager: true,
-  query: '?raw',
-  import: 'default',
+const markdownModules = {
+  ru: import.meta.glob('../../content/articles/*.md', {
+    query: '?raw',
+    import: 'default',
+  }),
+  en: import.meta.glob('../../content/en/articles/*.md', {
+    query: '?raw',
+    import: 'default',
+  }),
+};
+
+const expandMetadata = (rows, locale) => rows.map((row) => ({
+  ...Object.fromEntries(metadata.fields.map((field, index) => [field, row[index]])),
+  locale,
+}));
+
+const metadataByLocale = Object.freeze({
+  ru: expandMetadata(metadata.ru, 'ru'),
+  en: expandMetadata(metadata.en, 'en'),
 });
-const clusterSlugs = new Set(articleClusters.map((cluster) => cluster.slug));
 
-const parseFrontMatter = (raw) => {
-  const result = { meta: {}, body: '' };
-  const trimmed = raw.trimStart();
-  if (!trimmed.startsWith('---')) {
-    result.body = raw;
-    return result;
-  }
-  const end = trimmed.indexOf('\n---', 3);
-  if (end === -1) {
-    result.body = raw;
-    return result;
-  }
-  const fmBlock = trimmed.slice(3, end).trim();
-  const bodyStart = end + '\n---'.length;
-  result.body = trimmed.slice(bodyStart).trim();
-
-  const lines = fmBlock.split(/\r?\n/);
-  let currentKey = null;
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-    if (!trimmedLine) continue;
-    if (trimmedLine.startsWith('- ')) {
-      // Element massiva pri tekuschem kljuche.
-      if (currentKey) {
-        result.meta[currentKey] = result.meta[currentKey] || [];
-        result.meta[currentKey].push(trimmedLine.slice(2).trim().replace(/^"|"$/g, '').replace(/^'|'$/g, ''));
-      }
-      continue;
-    }
-    const [key, ...rest] = trimmedLine.split(':');
-    const valueRaw = rest.join(':').trim();
-    const value = valueRaw.replace(/^"|"$/g, '').replace(/^'|'$/g, '');
-    currentKey = key.trim();
-    if (value.startsWith('[') && value.endsWith(']')) {
-      result.meta[currentKey] = value
-        .slice(1, -1)
-        .split(',')
-        .map((v) => v.trim())
-        .filter(Boolean);
-      continue;
-    }
-    result.meta[currentKey] = value;
-  }
-
-  return result;
+const articlesById = {
+  ru: new Map(metadataByLocale.ru.map((article) => [article.id, article])),
+  en: new Map(metadataByLocale.en.map((article) => [article.id, article])),
 };
 
-const normalizeArray = (value) => {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item).trim()).filter(Boolean);
-  }
-  if (!value) {
-    return [];
-  }
-  return String(value)
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
+const articlesBySlug = {
+  ru: new Map(metadataByLocale.ru.map((article) => [article.slug, article])),
+  en: new Map(metadataByLocale.en.map((article) => [article.slug, article])),
 };
 
-const parsedArticles = Object.values(markdownModules)
-  .map((raw) => {
-    const { meta, body } = parseFrontMatter(raw);
-    const bodyHtml = canonicalizePublicLinksInHtml(marked.parse(body || ''));
-    const cluster = clusterSlugs.has(meta.cluster) ? meta.cluster : '';
+const stripFrontMatter = (raw = '') => {
+  const normalized = String(raw).replace(/^\ufeff/, '').trimStart();
+  if (!normalized.startsWith('---')) return normalized;
+  const end = normalized.indexOf('\n---', 3);
+  return end < 0 ? normalized : normalized.slice(end + 4).trim();
+};
 
-    return {
-      slug: meta.slug,
-      title: meta.title,
-      summary: meta.summary,
-      created_at: meta.created_at,
-      updated_at: meta.updated_at || meta.created_at,
-      cluster,
-      tags: normalizeArray(meta.tags),
-      keywords: normalizeArray(meta.keywords),
-      related: normalizeArray(meta.related),
-      hero_image: meta.hero_image || '',
-      hero_alt: meta.hero_alt || meta.title || '',
-      body,
-      bodyHtml,
-    };
-  })
-  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+const resolveMarkdownImporter = (article) => {
+  const modules = markdownModules[article.locale] || markdownModules.ru;
+  const suffix = `/${article.source_file}`.replaceAll('\\', '/');
+  const entry = Object.entries(modules).find(([modulePath]) => (
+    modulePath.replaceAll('\\', '/').endsWith(suffix)
+  ));
+  return entry?.[1] || null;
+};
 
-export const articles = parsedArticles;
-
-export const getArticleBySlug = (slug) =>
-  articles.find((article) => article.slug === slug);
-
-export const getArticlesByCluster = (clusterSlug) =>
-  articles.filter((article) => article.cluster === clusterSlug);
-
-export const getRelatedArticles = (article, limit = 3) => {
-  if (!article) {
-    return [];
+const localizeInternalLinks = (html, locale) => {
+  const normalizedLocale = normalizeLocale(locale);
+  if (normalizedLocale === DEFAULT_LOCALE) {
+    return canonicalizePublicLinksInHtml(html);
   }
+
+  const ruArticles = articlesBySlug.ru;
+  let localized = String(html).replace(
+    /href="\/articles\/([^"?#/]+)\/?([?#][^"]*)?"/g,
+    (match, slug, suffix = '') => {
+      const source = ruArticles.get(slug);
+      const translated = source ? articlesById.en.get(source.id) : null;
+      return translated
+        ? `href="${getArticlePath(translated, 'en')}${suffix}"`
+        : match;
+    },
+  );
+
+  Object.values(PUBLIC_ROUTES)
+    .sort((left, right) => right.ru.length - left.ru.length)
+    .forEach((paths) => {
+    if (paths.ru === '/') {
+      localized = localized.replace(/href="\/([?#])/g, `href="${paths.en}$1`);
+      return;
+    }
+    localized = localized.replaceAll(`href="${paths.ru}`, `href="${paths.en}`);
+    });
+
+  return canonicalizePublicLinksInHtml(localized);
+};
+
+export const getArticles = (locale = getCurrentLocale()) => (
+  metadataByLocale[normalizeLocale(locale)] || metadataByLocale.ru
+);
+
+export const articles = getArticles();
+
+export const getArticleBySlug = (slug, locale = getCurrentLocale()) => (
+  articlesBySlug[normalizeLocale(locale)].get(slug)
+);
+
+export const getArticleById = (id, locale = getCurrentLocale()) => (
+  articlesById[normalizeLocale(locale)].get(id)
+);
+
+export const getArticleTranslation = (article, locale) => (
+  article ? getArticleById(article.id, locale) : null
+);
+
+export const getArticlesByCluster = (clusterIdOrSlug, locale = getCurrentLocale()) => {
+  const normalizedLocale = normalizeLocale(locale);
+  const cluster = getArticleClusters(normalizedLocale).find((item) => (
+    item.id === clusterIdOrSlug || item.slug === clusterIdOrSlug
+  ));
+  if (!cluster) return [];
+  return getArticles(normalizedLocale).filter((article) => article.cluster === cluster.id);
+};
+
+export const getRelatedArticles = (article, limit = 3, locale = getCurrentLocale()) => {
+  if (!article) return [];
+  const normalizedLocale = normalizeLocale(locale);
 
   const byFrontMatter = article.related
-    .map((slug) => getArticleBySlug(slug))
+    .map((idOrSlug) => (
+      getArticleById(idOrSlug, normalizedLocale)
+      || getArticleBySlug(idOrSlug, normalizedLocale)
+      || getArticleTranslation(articlesBySlug.ru.get(idOrSlug), normalizedLocale)
+    ))
     .filter(Boolean)
-    .filter((relatedArticle) => relatedArticle.slug !== article.slug);
+    .filter((relatedArticle) => relatedArticle.id !== article.id);
 
   if (byFrontMatter.length > 0) {
     return byFrontMatter.slice(0, limit);
   }
 
-  return articles
-    .filter((candidate) => candidate.slug !== article.slug && candidate.cluster === article.cluster)
+  return getArticles(normalizedLocale)
+    .filter((candidate) => candidate.id !== article.id && candidate.cluster === article.cluster)
     .slice(0, limit);
+};
+
+export const loadArticleBody = async (article) => {
+  if (!article) return '';
+  const importer = resolveMarkdownImporter(article);
+  if (!importer) {
+    throw new Error(`Markdown module is missing: ${article.locale}/${article.source_file}`);
+  }
+
+  const [raw, markedModule] = await Promise.all([
+    importer(),
+    import('marked'),
+  ]);
+  const body = stripFrontMatter(raw);
+  return localizeInternalLinks(markedModule.marked.parse(body), article.locale);
 };

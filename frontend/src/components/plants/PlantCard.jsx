@@ -14,6 +14,15 @@ import { Title, Text } from '../ui/Typography';
 import WateringInProgressBanner from '../watering/WateringInProgressBanner';
 import usePumpWateringStatus from '../../features/watering/usePumpWateringStatus';
 import './PlantCard.css';
+import { getCurrentLocale, getIntlLocale, translateApp } from '../../locales/i18n';
+
+const CURRENT_TIME_MS = Date.now();
+const MS_IN_DAY = 1000 * 60 * 60 * 24;
+
+function calculateAgeDays(date) {
+  if (!date || Number.isNaN(date.getTime())) return null;
+  return Math.max(0, Math.floor((CURRENT_TIME_MS - date.getTime()) / MS_IN_DAY));
+}
 
 const SENSOR_KIND_MAP = {
   SOIL_MOISTURE: 'soil_moisture',
@@ -22,10 +31,10 @@ const SENSOR_KIND_MAP = {
 };
 
 const METRIC_LABELS = {
-  air_temperature: 'Температура воздуха',
-  air_humidity: 'Влажность воздуха',
-  soil_moisture: 'Влажность почвы',
-  watering: 'Поливы',
+  air_temperature: translateApp("Температура воздуха"),
+  air_humidity: translateApp("Влажность воздуха"),
+  soil_moisture: translateApp("Влажность почвы"),
+  watering: translateApp("Поливы"),
 };
 
 function PlantPumpRow({ pump, rate, showRate }) {
@@ -37,13 +46,13 @@ function PlantPumpRow({ pump, rate, showRate }) {
 
   return (
     <div className="plant-card__pump">
-      <div className="plant-card__pump-title">Насос · канал {pump.channel ?? '-'}</div>
+      <div className="plant-card__pump-title">{translateApp("Насос · канал")} {pump.channel ?? '-'}</div>
       <WateringInProgressBanner
         isWatering={isWatering}
         remainingSeconds={remainingSeconds}
         onStop={stop}
       />
-      {showRate && <div className="plant-card__pump-rate">rate: {rate ?? '-'} мл/ч</div>}
+      {showRate && <div className="plant-card__pump-rate">{translateApp("Скорость:")} {rate ?? '-'} {translateApp("мл/ч")}</div>}
     </div>
   );
 }
@@ -51,23 +60,23 @@ function PlantPumpRow({ pump, rate, showRate }) {
 // Translitem: PlantCard - kartochka rasteniya na stranice spiska rastenij; pokazivaet metadannye i privyazannye sensory/pumpy.
 function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
   const { openSensorStats } = useSensorStatsContext();
-  const plantedDate = plant?.planted_at ? new Date(plant.planted_at) : null;
-
-  const ageDays = useMemo(() => {
-    if (!plantedDate || Number.isNaN(plantedDate.getTime())) return null;
-    const diff = Date.now() - plantedDate.getTime();
-    return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
-  }, [plantedDate]);
+  const locale = getCurrentLocale();
+  const plantedAt = plant?.planted_at;
+  const plantedDate = useMemo(
+    () => (plantedAt ? new Date(plantedAt) : null),
+    [plantedAt],
+  );
+  const ageDays = calculateAgeDays(plantedDate);
 
   const plantTypeId = normalizePlantTypeId(plant?.plant_type || DEFAULT_PLANT_TYPE_ID);
   const manualStageId = plant?.growth_stage ? String(plant.growth_stage).trim() : '';
   const stageId = manualStageId || (ageDays !== null ? getAutoStageFromAge(plantTypeId, ageDays) : undefined);
-  const stageLabel = stageId ? getStageLabel(stageId, 'ru') : '';
+  const stageLabel = stageId ? getStageLabel(stageId, locale) : '';
 
-  const groupName = plant?.plant_group?.name || 'Без группы';
+  const groupName = plant?.plant_group?.name || translateApp("Без группы");
   const plantedLabel = plantedDate && !Number.isNaN(plantedDate.getTime())
-    ? plantedDate.toLocaleDateString('ru-RU')
-    : 'Дата не указана';
+    ? plantedDate.toLocaleDateString(getIntlLocale())
+    : translateApp("Дата не указана");
 
   const sensors = Array.isArray(plant?.sensors) ? plant.sensors : [];
   const pumps = Array.isArray(plant?.pumps) ? plant.pumps : [];
@@ -93,13 +102,13 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
         <div className="plant-card__title">
           <Title level={3} className="plant-card__name">{plant.name}</Title>
           <div className="plant-card__meta">
-            {plant.plant_type && <span className="plant-card__tag">{getPlantTypeLabel(plant.plant_type, 'ru')}</span>}
+            {plant.plant_type && <span className="plant-card__tag">{getPlantTypeLabel(plant.plant_type, locale)}</span>}
             {plant.strain && <span className="plant-card__tag">{plant.strain}</span>}
           </div>
           <Text tone="muted" className="plant-card__group">{groupName}</Text>
         </div>
         <div className="plant-card__actions">
-          <button type="button" className="plant-card__edit" onClick={handleEdit} aria-label="Редактировать">
+          <button type="button" className="plant-card__edit" onClick={handleEdit} aria-label={translateApp("Редактировать")}>
             <svg className="plant-card__edit-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 d="M4 20h4l10-10-4-4-10 10v4zM14 6l4 4"
@@ -120,13 +129,13 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
         </div>
         <div className="plant-card__info">
           <div className="plant-card__row">
-            <Text as="span" tone="muted" className="plant-card__label">Дата посадки</Text>
+            <Text as="span" tone="muted" className="plant-card__label">{translateApp("Дата посадки")}</Text>
             <span className="plant-card__value">{plantedLabel}</span>
           </div>
           <div className="plant-card__row">
-            <Text as="span" tone="muted" className="plant-card__label">Возраст / Стадия</Text>
+            <Text as="span" tone="muted" className="plant-card__label">{translateApp("Возраст / Стадия")}</Text>
             <span className="plant-card__value">
-              {ageDays !== null ? `${ageDays} дн.` : '-'}
+              {ageDays !== null ? translateApp("{{value1}} дн.", { value1: ageDays }) : '-'}
               {stageLabel ? ` · ${stageLabel}` : ''}
             </span>
           </div>
@@ -134,8 +143,8 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
       </div>
 
       <div className="plant-card__section">
-        <div className="plant-card__section-title">Датчики</div>
-        {sensors.length === 0 && <div className="plant-card__empty">Нет датчиков</div>}
+        <div className="plant-card__section-title">{translateApp("Датчики")}</div>
+        {sensors.length === 0 && <div className="plant-card__empty">{translateApp("Нет датчиков")}</div>}
         {sensors.length > 0 && (
           <div className="plant-card__metrics">
             {sensors.map((sensor) => {
@@ -156,8 +165,8 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
       </div>
 
       <div className="plant-card__section">
-        <div className="plant-card__section-title">Насосы</div>
-        {pumps.length === 0 && <div className="plant-card__empty">Нет насосов</div>}
+        <div className="plant-card__section-title">{translateApp("Насосы")}</div>
+        {pumps.length === 0 && <div className="plant-card__empty">{translateApp("Нет насосов")}</div>}
         {pumps.length > 0 && (
           <div className="plant-card__pumps">
             {pumps.map((pump) => {
@@ -172,12 +181,8 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
       </div>
 
       <div className="plant-card__footer">
-        <button type="button" className="plant-card__harvest" onClick={handleHarvest}>
-          Сбор
-        </button>
-        <button type="button" className="plant-card__journal" onClick={handleOpenJournal}>
-          Журнал
-        </button>
+        <button type="button" className="plant-card__harvest" onClick={handleHarvest}>{translateApp("Сбор")}</button>
+        <button type="button" className="plant-card__journal" onClick={handleOpenJournal}>{translateApp("Журнал")}</button>
       </div>
     </Surface>
   );

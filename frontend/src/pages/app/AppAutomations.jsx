@@ -5,11 +5,12 @@ import Button from '../../components/ui/Button';
 import { fetchAutomationOverview, replaceSectionScenarios } from '../../api/selfService';
 import { trackProductGoal } from '../../utils/metrika';
 import './SelfServicePages.css';
+import { translateApp } from '../../locales/i18n';
 
 const LABELS = {
-  BOX_CLIMATE: 'Климатический порог',
-  LIGHT_SCHEDULE: 'Расписание освещения',
-  WATERING: 'Полив',
+  BOX_CLIMATE: translateApp("Климатический порог"),
+  LIGHT_SCHEDULE: translateApp("Расписание освещения"),
+  WATERING: translateApp("Полив"),
 };
 
 const toRequest = (scenarios, changedType, patch) => scenarios.map((scenario) => ({
@@ -37,7 +38,7 @@ function AppAutomations() {
   useEffect(() => { load(); }, []);
 
   const saveScenario = async (section, scenario, patch) => {
-    if (scenario.scenario_type === 'WATERING' && patch.enabled && !window.confirm('Перед включением полива проверьте подачу воды, питание, аварийное отключение и безопасный лимит времени. Включить сценарий?')) return;
+    if (scenario.scenario_type === 'WATERING' && patch.enabled && !window.confirm(translateApp("Перед включением полива проверьте подачу воды, питание, аварийное отключение и безопасный лимит времени. Включить сценарий?"))) return;
     const key = `${section.id}:${scenario.scenario_type}`;
     setBusy(key);
     try {
@@ -51,29 +52,29 @@ function AppAutomations() {
     }
   };
 
-  if (busy === 'loading') return <AppPageState kind="loading" title="Загружаем автоматизации…" />;
+  if (busy === 'loading') return <AppPageState kind="loading" title={translateApp("Загружаем автоматизации…")} />;
   const sections = (overview?.rooms || []).flatMap((zone) => zone.boxes.map((section) => ({ ...section, zoneName: zone.name })));
 
   return (
     <div className="self-service-page">
-      <AppPageHeader title="Автоматизации" />
+      <AppPageHeader title={translateApp("Автоматизации")} />
       {error ? <AppPageState kind="error" title={error} /> : null}
-      <p className="page-intro">Автоматизации необязательны. Начните с мониторинга и ручного управления, затем включайте готовые сценарии по одному.</p>
-      {sections.length === 0 ? <AppPageState kind="empty" title="Сначала создайте зону" /> : null}
+      <p className="page-intro">{translateApp("Автоматизации необязательны. Начните с мониторинга и ручного управления, затем включайте готовые сценарии по одному.")}</p>
+      {sections.length === 0 ? <AppPageState kind="empty" title={translateApp("Сначала создайте зону")} /> : null}
       <div className="automation-list">
         {sections.map((section) => (
           <section className="self-service-section" key={section.id}>
-            <div className="section-heading"><div><h2>{section.zoneName} · {section.name}</h2><p>Сценарии этой зоны</p></div></div>
+            <div className="section-heading"><div><h2>{section.zoneName} · {section.name}</h2><p>{translateApp("Сценарии этой зоны")}</p></div></div>
             {(section.scenarios || []).filter((scenario) => LABELS[scenario.scenario_type]).map((scenario) => {
               const readiness = scenario.readiness || section.readiness?.[scenario.scenario_type];
               const key = `${section.id}:${scenario.scenario_type}`;
               return (
                 <article className="automation-card" key={scenario.scenario_type}>
-                  <div><h3>{LABELS[scenario.scenario_type]}</h3><p>{readiness?.ready ? 'Оборудование готово' : readiness?.reason || 'Проверьте назначенные устройства'}</p></div>
-                  {scenario.scenario_type === 'LIGHT_SCHEDULE' ? <div className="scenario-fields"><label>Включить<input type="time" defaultValue={scenario.config?.start_time || '06:00'} onBlur={(event) => saveScenario(section, scenario, { enabled: scenario.enabled, config: { start_time: event.target.value } })} /></label><label>Выключить<input type="time" defaultValue={scenario.config?.end_time || '22:00'} onBlur={(event) => saveScenario(section, scenario, { enabled: scenario.enabled, config: { end_time: event.target.value } })} /></label></div> : null}
-                  {scenario.scenario_type === 'BOX_CLIMATE' ? <div className="scenario-fields"><label>Ниже, °C<input type="number" step="0.5" defaultValue={scenario.config?.min_c ?? 24} onBlur={(event) => saveScenario(section, scenario, { enabled: scenario.enabled, config: { min_c: Number(event.target.value) } })} /></label><label>Выше, °C<input type="number" step="0.5" defaultValue={scenario.config?.max_c ?? 28} onBlur={(event) => saveScenario(section, scenario, { enabled: scenario.enabled, config: { max_c: Number(event.target.value) } })} /></label></div> : null}
-                  {scenario.scenario_type === 'WATERING' ? <p className="automation-note">Для запуска назначьте датчик влажности и насос. GrowerHub использует интервалы и лимиты длительности; дополнительно предусмотрите физическое аварийное отключение.</p> : null}
-                  <Button variant={scenario.enabled ? 'danger' : 'primary'} disabled={!scenario.enabled && !readiness?.ready} isLoading={busy === key} onClick={() => saveScenario(section, scenario, { enabled: !scenario.enabled, config: {} })}>{scenario.enabled ? 'Выключить' : 'Включить'}</Button>
+                  <div><h3>{LABELS[scenario.scenario_type]}</h3><p>{readiness?.ready ? translateApp("Оборудование готово") : readiness?.reason || translateApp("Проверьте назначенные устройства")}</p></div>
+                  {scenario.scenario_type === 'LIGHT_SCHEDULE' ? <div className="scenario-fields"><label>{translateApp("Включить")}<input type="time" defaultValue={scenario.config?.start_time || '06:00'} onBlur={(event) => saveScenario(section, scenario, { enabled: scenario.enabled, config: { start_time: event.target.value } })} /></label><label>{translateApp("Выключить")}<input type="time" defaultValue={scenario.config?.end_time || '22:00'} onBlur={(event) => saveScenario(section, scenario, { enabled: scenario.enabled, config: { end_time: event.target.value } })} /></label></div> : null}
+                  {scenario.scenario_type === 'BOX_CLIMATE' ? <div className="scenario-fields"><label>{translateApp("Ниже, °C")}<input type="number" step="0.5" defaultValue={scenario.config?.min_c ?? 24} onBlur={(event) => saveScenario(section, scenario, { enabled: scenario.enabled, config: { min_c: Number(event.target.value) } })} /></label><label>{translateApp("Выше, °C")}<input type="number" step="0.5" defaultValue={scenario.config?.max_c ?? 28} onBlur={(event) => saveScenario(section, scenario, { enabled: scenario.enabled, config: { max_c: Number(event.target.value) } })} /></label></div> : null}
+                  {scenario.scenario_type === 'WATERING' ? <p className="automation-note">{translateApp("Для запуска назначьте датчик влажности и насос. GrowerHub использует интервалы и лимиты длительности; дополнительно предусмотрите физическое аварийное отключение.")}</p> : null}
+                  <Button variant={scenario.enabled ? 'danger' : 'primary'} disabled={!scenario.enabled && !readiness?.ready} isLoading={busy === key} onClick={() => saveScenario(section, scenario, { enabled: !scenario.enabled, config: {} })}>{scenario.enabled ? translateApp("Выключить") : translateApp("Включить")}</Button>
                 </article>
               );
             })}

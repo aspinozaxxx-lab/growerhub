@@ -27,6 +27,7 @@ import {
   SETUP_PLATFORMS,
 } from './onboardingModel';
 import './AppOnboarding.css';
+import { getCurrentLocale, translateApp } from '../../locales/i18n';
 
 const POLL_INTERVAL_MS = 5000;
 const CONNECTION_HELP_DELAY_MS = 120000;
@@ -45,23 +46,22 @@ const downloadTextFile = (name, content) => {
 
 function HelpLink({ step }) {
   return (
-    <p className="onboarding-help">
-      Мы на связи и поможем на любом этапе подключения и настройки.{' '}
-      <TelegramContactLink placement={`onboarding_${step}`}>Помощь в Telegram</TelegramContactLink>
+    <p className="onboarding-help">{translateApp("Мы на связи и поможем на любом этапе подключения и настройки.")}{' '}
+      <TelegramContactLink placement={`onboarding_${step}`}>{translateApp("Помощь в Telegram")}</TelegramContactLink>
     </p>
   );
 }
 
 function Progress({ status }) {
   const stages = [
-    ['coordinator_count', 'Подключение', status?.coordinator_count > 0],
-    ['coordinator_connected', 'Координатор в сети', status?.coordinator_connected],
-    ['first_device_seen', 'Первое устройство', status?.first_device_seen],
-    ['zone_created', 'Первая зона', status?.zone_created],
+    ['coordinator_count', translateApp("Подключение"), status?.coordinator_count > 0],
+    ['coordinator_connected', translateApp("Координатор в сети"), status?.coordinator_connected],
+    ['first_device_seen', translateApp("Первое устройство"), status?.first_device_seen],
+    ['zone_created', translateApp("Первая зона"), status?.zone_created],
   ];
 
   return (
-    <ol className="onboarding-progress" aria-label="Прогресс настройки">
+    <ol className="onboarding-progress" aria-label={translateApp("Прогресс настройки")}>
       {stages.map(([key, label, done], index) => (
         <li key={key} className={done ? 'is-done' : ''}>
           <span>{done ? '✓' : index + 1}</span>{label}
@@ -72,9 +72,10 @@ function Progress({ status }) {
 }
 
 function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, setLocalMqtt }) {
+  const locale = getCurrentLocale();
   const bridgeConfig = useMemo(
-    () => buildBridgeConfig({ setup, local: localMqtt }),
-    [setup, localMqtt],
+    () => buildBridgeConfig({ setup, local: localMqtt, locale }),
+    [setup, localMqtt, locale],
   );
 
   if (!setup) return null;
@@ -82,23 +83,23 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
   return (
     <section className="onboarding-card onboarding-secret">
       <div>
-        <div className="onboarding-kicker">Показываем один раз</div>
-        <h2>Сохраните конфигурацию подключения</h2>
-        <p>Пароль не хранится в GrowerHub и не появится снова после перезагрузки страницы. При утрате выпустите новые данные подключения.</p>
+        <div className="onboarding-kicker">{translateApp("Показываем один раз")}</div>
+        <h2>{translateApp("Сохраните конфигурацию подключения")}</h2>
+        <p>{translateApp("Пароль не хранится в GrowerHub и не появится снова после перезагрузки страницы. При утрате выпустите новые данные подключения.")}</p>
       </div>
 
       <dl className="onboarding-credentials">
-        <div><dt>MQTT-сервер</dt><dd>{setup.server}</dd></div>
-        <div><dt>Имя пользователя</dt><dd>{setup.username}</dd></div>
-        <div><dt>Пароль</dt><dd>{setup.password}</dd></div>
-        <div><dt>Базовый топик</dt><dd>{setup.base_topic}</dd></div>
+        <div><dt>{translateApp("MQTT-сервер")}</dt><dd>{setup.server}</dd></div>
+        <div><dt>{translateApp("Имя пользователя")}</dt><dd>{setup.username}</dd></div>
+        <div><dt>{translateApp("Пароль")}</dt><dd>{setup.password}</dd></div>
+        <div><dt>{translateApp("Базовый топик")}</dt><dd>{setup.base_topic}</dd></div>
       </dl>
 
-      <div className="onboarding-choice-grid" role="group" aria-label="Платформа установки">
+      <div className="onboarding-choice-grid" role="group" aria-label={translateApp("Платформа установки")}>
         {[
-          [SETUP_PLATFORMS.WINDOWS, 'Windows', 'Мастер с выбором COM-порта и Z-Stack/Ember.'],
-          [SETUP_PLATFORMS.LINUX, 'Raspberry Pi / Linux', 'Docker Compose, подключение USB и постоянное хранилище.'],
-          [SETUP_PLATFORMS.MANUAL, 'Вручную', 'Для уже установленного Zigbee2MQTT.'],
+          [SETUP_PLATFORMS.WINDOWS, 'Windows', translateApp("Мастер с выбором COM-порта и Z-Stack/Ember.")],
+          [SETUP_PLATFORMS.LINUX, 'Raspberry Pi / Linux', translateApp("Docker Compose, подключение USB и постоянное хранилище.")],
+          [SETUP_PLATFORMS.MANUAL, translateApp("Вручную"), translateApp("Для уже установленного Zigbee2MQTT.")],
         ].map(([value, title, text]) => (
           <button
             type="button"
@@ -113,13 +114,13 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
 
       {connectionMode === CONNECTION_MODES.BRIDGE ? (
         <div className="onboarding-local-mqtt">
-          <h3>Локальный MQTT</h3>
-          <p>Эти значения используются только для создания файла в браузере и не отправляются GrowerHub.</p>
+          <h3>{translateApp("Локальный MQTT")}</h3>
+          <p>{translateApp("Эти значения используются только для создания файла в браузере и не отправляются GrowerHub.")}</p>
           <div className="onboarding-fields">
-            <label>Адрес<input value={localMqtt.host} onChange={(event) => setLocalMqtt((value) => ({ ...value, host: event.target.value }))} placeholder="192.168.1.10" /></label>
-            <label>Порт<input value={localMqtt.port} onChange={(event) => setLocalMqtt((value) => ({ ...value, port: event.target.value }))} inputMode="numeric" /></label>
-            <label>Имя пользователя<input value={localMqtt.username} onChange={(event) => setLocalMqtt((value) => ({ ...value, username: event.target.value }))} autoComplete="off" /></label>
-            <label>Пароль<input type="password" value={localMqtt.password} onChange={(event) => setLocalMqtt((value) => ({ ...value, password: event.target.value }))} autoComplete="new-password" /></label>
+            <label>{translateApp("Адрес")}<input value={localMqtt.host} onChange={(event) => setLocalMqtt((value) => ({ ...value, host: event.target.value }))} placeholder="192.168.1.10" /></label>
+            <label>{translateApp("Порт")}<input value={localMqtt.port} onChange={(event) => setLocalMqtt((value) => ({ ...value, port: event.target.value }))} inputMode="numeric" /></label>
+            <label>{translateApp("Имя пользователя")}<input value={localMqtt.username} onChange={(event) => setLocalMqtt((value) => ({ ...value, username: event.target.value }))} autoComplete="off" /></label>
+            <label>{translateApp("Пароль")}<input type="password" value={localMqtt.password} onChange={(event) => setLocalMqtt((value) => ({ ...value, password: event.target.value }))} autoComplete="new-password" /></label>
           </div>
         </div>
       ) : null}
@@ -127,17 +128,17 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
       <div className="onboarding-actions">
         {connectionMode === CONNECTION_MODES.DIRECT ? (
           <>
-            <Button variant="primary" onClick={() => downloadTextFile('configuration.yaml', setup.configuration_yaml)}>Скачать configuration.yaml</Button>
-            <Button onClick={() => downloadTextFile('secret.yaml', setup.secret_yaml)}>Скачать secret.yaml</Button>
+            <Button variant="primary" onClick={() => downloadTextFile('configuration.yaml', setup.configuration_yaml)}>{translateApp("Скачать configuration.yaml")}</Button>
+            <Button onClick={() => downloadTextFile('secret.yaml', setup.secret_yaml)}>{translateApp("Скачать secret.yaml")}</Button>
           </>
         ) : (
-          <Button variant="primary" onClick={() => downloadTextFile('bridge.conf', bridgeConfig)}>Скачать личный bridge.conf</Button>
+          <Button variant="primary" onClick={() => downloadTextFile('bridge.conf', bridgeConfig)}>{translateApp("Скачать личный bridge.conf")}</Button>
         )}
         {platform !== SETUP_PLATFORMS.MANUAL ? (
-          <a className="gh-btn gh-btn--secondary gh-btn--md" href={GITHUB_RELEASES_URL} target="_blank" rel="noreferrer">Открыть пакеты установки</a>
+          <a className="gh-btn gh-btn--secondary gh-btn--md" href={GITHUB_RELEASES_URL} target="_blank" rel="noreferrer">{translateApp("Открыть пакеты установки")}</a>
         ) : null}
       </div>
-      <p className="onboarding-note">Не публикуйте эти файлы и не отправляйте их в Telegram. GrowerHub никогда не просит прислать пароль MQTT.</p>
+      <p className="onboarding-note">{translateApp("Не публикуйте эти файлы и не отправляйте их в Telegram. GrowerHub никогда не просит прислать пароль MQTT.")}</p>
     </section>
   );
 }
@@ -150,11 +151,11 @@ function AppOnboarding() {
   const [selectedCoordinatorId, setSelectedCoordinatorId] = useState('');
   const [overview, setOverview] = useState(null);
   const [setup, setSetup] = useState(null);
-  const [coordinatorName, setCoordinatorName] = useState('Моя ферма');
+  const [coordinatorName, setCoordinatorName] = useState(translateApp("Моя ферма"));
   const [connectionMode, setConnectionMode] = useState(CONNECTION_MODES.DIRECT);
   const [platform, setPlatform] = useState(SETUP_PLATFORMS.WINDOWS);
   const [localMqtt, setLocalMqtt] = useState({ host: '', port: '1883', username: '', password: '' });
-  const [zoneName, setZoneName] = useState('Первая зона');
+  const [zoneName, setZoneName] = useState(translateApp("Первая зона"));
   const [temperatureChoice, setTemperatureChoice] = useState('');
   const [lightChoice, setLightChoice] = useState('');
   const [busy, setBusy] = useState('');
@@ -202,7 +203,7 @@ function AppOnboarding() {
     } catch (requestError) {
       if (!quiet) {
         setError(requestError.status === 503
-          ? 'Самостоятельное подключение пока выключено до завершения проверки безопасности. Интерфейс готов, но подключение ещё не открыто.'
+          ? translateApp("Подключение временно недоступно. Попробуйте ещё раз чуть позже или напишите нам в Telegram — поможем разобраться.")
           : requestError.message);
       }
     } finally {
@@ -253,7 +254,7 @@ function AppOnboarding() {
   };
 
   const handleRotate = async () => {
-    if (!selectedCoordinator || !window.confirm('Старый MQTT-пароль перестанет работать. Выпустить новый?')) return;
+    if (!selectedCoordinator || !window.confirm(translateApp("Старый MQTT-пароль перестанет работать. Выпустить новый?"))) return;
     setBusy('rotate');
     setError('');
     try {
@@ -288,7 +289,7 @@ function AppOnboarding() {
       const afterZone = await createZone(zoneName.trim());
       const zone = [...(afterZone.rooms || [])].reverse().find((item) => item.name === zoneName.trim())
         || afterZone.rooms?.at(-1);
-      if (!zone) throw new Error('GrowerHub не вернул созданную зону');
+      if (!zone) throw new Error(translateApp("GrowerHub не вернул созданную зону"));
 
       const afterSection = await createZoneSection(zone.id);
       const updatedZone = afterSection.rooms?.find((item) => item.id === zone.id);
@@ -313,38 +314,38 @@ function AppOnboarding() {
   };
 
   if (busy === 'loading' && !status && !error) {
-    return <AppPageState kind="loading" title="Проверяем подключение…" />;
+    return <AppPageState kind="loading" title={translateApp("Проверяем подключение…")} />;
   }
 
   return (
     <div className="app-onboarding">
-      <AppPageHeader title="Первое подключение" />
+      <AppPageHeader title={translateApp("Первое подключение")} />
       <Progress status={status} />
       {error ? <AppPageState kind="error" title={error}><HelpLink step="error" /></AppPageState> : null}
 
       {!selectedCoordinator ? (
         <section className="onboarding-card">
-          <div className="onboarding-kicker">Шаг 1</div>
-          <h2>Создайте подключение</h2>
-          <p>Название нужно только вам. Культуры, число растений и подробную схему фермы указывать не требуется.</p>
+          <div className="onboarding-kicker">{translateApp("Шаг 1")}</div>
+          <h2>{translateApp("Создайте подключение")}</h2>
+          <p>{translateApp("Название нужно только вам. Культуры, число растений и подробную схему фермы указывать не требуется.")}</p>
           <form className="onboarding-form" onSubmit={handleCreateCoordinator}>
-            <label htmlFor="coordinator-name">Название координатора</label>
+            <label htmlFor="coordinator-name">{translateApp("Название координатора")}</label>
             <input id="coordinator-name" value={coordinatorName} onChange={(event) => setCoordinatorName(event.target.value)} maxLength="120" required />
-            <Button type="submit" variant="primary" isLoading={busy === 'create-coordinator'}>Создать координатор</Button>
+            <Button type="submit" variant="primary" isLoading={busy === 'create-coordinator'}>{translateApp("Создать координатор")}</Button>
           </form>
           <HelpLink step="create_coordinator" />
         </section>
       ) : (
         <>
           <section className="onboarding-card">
-            <div className="onboarding-kicker">Шаг 2</div>
-            <h2>Как вы подключаетесь?</h2>
+            <div className="onboarding-kicker">{translateApp("Шаг 2")}</div>
+            <h2>{translateApp("Как вы подключаетесь?")}</h2>
             <div className="onboarding-choice-grid">
               <button type="button" className={connectionMode === CONNECTION_MODES.DIRECT ? 'choice-card is-selected' : 'choice-card'} onClick={() => setConnectionMode(CONNECTION_MODES.DIRECT)}>
-                <strong>Новая установка</strong><span>Zigbee2MQTT подключится к GrowerHub напрямую.</span>
+                <strong>{translateApp("Новая установка")}</strong><span>{translateApp("Zigbee2MQTT подключится к GrowerHub напрямую.")}</span>
               </button>
               <button type="button" className={connectionMode === CONNECTION_MODES.BRIDGE ? 'choice-card is-selected' : 'choice-card'} onClick={() => setConnectionMode(CONNECTION_MODES.BRIDGE)}>
-                <strong>Уже есть Zigbee2MQTT / Home Assistant</strong><span>Модуль связи сохранит локальный MQTT и передаст только нужные топики.</span>
+                <strong>{translateApp("Уже есть Zigbee2MQTT / Home Assistant")}</strong><span>{translateApp("Модуль связи сохранит локальный MQTT и передаст только нужные топики.")}</span>
               </button>
             </div>
           </section>
@@ -360,20 +361,20 @@ function AppOnboarding() {
             />
           ) : (
             <section className="onboarding-card">
-              <h2>Нужна новая копия конфигурации?</h2>
-              <p>Секрет уже был показан и не хранится на сервере. Ротация сразу отзовёт прежний MQTT-пароль.</p>
-              <Button onClick={handleRotate} isLoading={busy === 'rotate'}>Выпустить новые данные</Button>
+              <h2>{translateApp("Нужна новая копия конфигурации?")}</h2>
+              <p>{translateApp("Секрет уже был показан и не хранится на сервере. Ротация сразу отзовёт прежний MQTT-пароль.")}</p>
+              <Button onClick={handleRotate} isLoading={busy === 'rotate'}>{translateApp("Выпустить новые данные")}</Button>
             </section>
           )}
 
           {!status?.coordinator_connected ? (
             <section className="onboarding-card onboarding-wait">
               <span className="status-pulse" aria-hidden="true" />
-              <div><h2>Ждём координатор</h2><p>Запустите пакет или Zigbee2MQTT. Статус обновится автоматически.</p></div>
+              <div><h2>{translateApp("Ждём координатор")}</h2><p>{translateApp("Запустите пакет или Zigbee2MQTT. Статус обновится автоматически.")}</p></div>
               {showConnectionHelp ? (
                 <div className="onboarding-diagnostics">
-                  <strong>Что проверить</strong>
-                  <ul><li>порт USB и тип адаптера;</li><li>доступ к `growerhub.ru:8883`;</li><li>файлы `configuration.yaml` и `secret.yaml` рядом с данными Zigbee2MQTT.</li></ul>
+                  <strong>{translateApp("Что проверить")}</strong>
+                  <ul><li>{translateApp("порт USB и тип адаптера;")}</li><li>{translateApp("доступ к `growerhub.ru:8883`;")}</li><li>{translateApp("файлы `configuration.yaml` и `secret.yaml` рядом с данными Zigbee2MQTT.")}</li></ul>
                 </div>
               ) : null}
               <HelpLink step="wait_online" />
@@ -382,46 +383,44 @@ function AppOnboarding() {
 
           {status?.coordinator_connected && !status?.first_device_seen ? (
             <section className="onboarding-card">
-              <div className="onboarding-kicker">Шаг 3</div>
-              <h2>{connectionMode === CONNECTION_MODES.BRIDGE ? 'Импортируем существующие устройства' : 'Добавьте первое устройство'}</h2>
+              <div className="onboarding-kicker">{translateApp("Шаг 3")}</div>
+              <h2>{connectionMode === CONNECTION_MODES.BRIDGE ? translateApp("Импортируем существующие устройства") : translateApp("Добавьте первое устройство")}</h2>
               {connectionMode === CONNECTION_MODES.BRIDGE ? (
-                <p>GrowerHub ждёт список устройств от вашего Zigbee2MQTT. Обычно они появляются автоматически после подключения модуля связи.</p>
+                <p>{translateApp("GrowerHub ждёт список устройств от вашего Zigbee2MQTT. Обычно они появляются автоматически после подключения модуля связи.")}</p>
               ) : (
-                <><p>Разрешите подключение на три минуты, затем переведите датчик или розетку в режим сопряжения.</p><Button variant="primary" onClick={handlePermitJoin} isLoading={busy === 'permit-join'}>Разрешить подключение на 3 минуты</Button></>
+                <><p>{translateApp("Разрешите подключение на три минуты, затем переведите датчик или розетку в режим сопряжения.")}</p><Button variant="primary" onClick={handlePermitJoin} isLoading={busy === 'permit-join'}>{translateApp("Разрешить подключение на 3 минуты")}</Button></>
               )}
-              {permitJoinUntil && permitJoinUntil > Date.now() ? <p className="status-ok">Подключение разрешено</p> : null}
+              {permitJoinUntil && permitJoinUntil > Date.now() ? <p className="status-ok">{translateApp("Подключение разрешено")}</p> : null}
               <HelpLink step="first_device" />
             </section>
           ) : null}
 
           {status?.first_device_seen && !status?.zone_created ? (
             <section className="onboarding-card">
-              <div className="onboarding-kicker">Шаг 4</div>
-              <h2>Создайте первую зону</h2>
-              <p>Достаточно названия. Найденные устройства можно сразу назначить зоне или сделать это позже.</p>
+              <div className="onboarding-kicker">{translateApp("Шаг 4")}</div>
+              <h2>{translateApp("Создайте первую зону")}</h2>
+              <p>{translateApp("Достаточно названия. Найденные устройства можно сразу назначить зоне или сделать это позже.")}</p>
               <form className="onboarding-form" onSubmit={handleCreateZone}>
-                <label htmlFor="zone-name">Название зоны</label>
+                <label htmlFor="zone-name">{translateApp("Название зоны")}</label>
                 <input id="zone-name" value={zoneName} onChange={(event) => setZoneName(event.target.value)} maxLength="120" required />
 
                 {temperatureFeatures.length > 0 ? (
-                  <label>Датчик температуры
-                    <select value={temperatureChoice} onChange={(event) => setTemperatureChoice(event.target.value)}>
-                      <option value="">Назначить позже</option>
+                  <label>{translateApp("Датчик температуры")}<select value={temperatureChoice} onChange={(event) => setTemperatureChoice(event.target.value)}>
+                      <option value="">{translateApp("Назначить позже")}</option>
                       {temperatureFeatures.map(({ device, feature }) => <option key={`${device.ieee_address}-${feature.property}`} value={encodeFeatureChoice(device, feature)}>{device.friendly_name} · {feature.label || feature.property}</option>)}
                     </select>
                   </label>
                 ) : null}
 
                 {writableSwitches.length > 0 ? (
-                  <label>Розетка или реле для света
-                    <select value={lightChoice} onChange={(event) => setLightChoice(event.target.value)}>
-                      <option value="">Назначить позже</option>
+                  <label>{translateApp("Розетка или реле для света")}<select value={lightChoice} onChange={(event) => setLightChoice(event.target.value)}>
+                      <option value="">{translateApp("Назначить позже")}</option>
                       {writableSwitches.map(({ device, feature }) => <option key={`${device.ieee_address}-${feature.property}`} value={encodeFeatureChoice(device, feature)}>{device.friendly_name} · {feature.label || feature.property}</option>)}
                     </select>
                   </label>
                 ) : null}
 
-                <Button type="submit" variant="primary" isLoading={busy === 'create-zone'}>Создать зону и открыть обзор</Button>
+                <Button type="submit" variant="primary" isLoading={busy === 'create-zone'}>{translateApp("Создать зону и открыть обзор")}</Button>
               </form>
               <HelpLink step="create_zone" />
             </section>
@@ -429,10 +428,10 @@ function AppOnboarding() {
 
           {status?.zone_created ? (
             <section className="onboarding-card onboarding-complete">
-              <div className="onboarding-kicker">Готово</div>
-              <h2>Базовая настройка завершена</h2>
-              <p>Данные устройств уже доступны в кабинете. Автоматизации можно включить позже.</p>
-              <div className="onboarding-actions"><Link className="hero-cta" to="/app/">Открыть обзор</Link><Link className="secondary-link" to="/app/automations/">Настроить автоматизацию</Link></div>
+              <div className="onboarding-kicker">{translateApp("Готово")}</div>
+              <h2>{translateApp("Базовая настройка завершена")}</h2>
+              <p>{translateApp("Данные устройств уже доступны в кабинете. Автоматизации можно включить позже.")}</p>
+              <div className="onboarding-actions"><Link className="hero-cta" to="/app/">{translateApp("Открыть обзор")}</Link><Link className="secondary-link" to="/app/automations/">{translateApp("Настроить автоматизацию")}</Link></div>
               <HelpLink step="complete" />
             </section>
           ) : null}

@@ -21,6 +21,7 @@ import FormField from '../ui/FormField';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import './PlantEditDialog.css';
+import { getCurrentLocale, translateApp } from '../../locales/i18n';
 
 // Translitem: PlantEditDialog - dialog CRUD rastenija (polya i gruppy); privyazki vypolnyayutsya v ustrojstvah.
 function PlantEditDialog({
@@ -44,9 +45,13 @@ function PlantEditDialog({
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const plantTypeOptions = useMemo(() => getPlantTypeOptions('ru'), []);
+  const locale = getCurrentLocale();
+  const plantTypeOptions = useMemo(() => getPlantTypeOptions(locale), [locale]);
   const selectedTypeId = useMemo(() => normalizePlantTypeId(localPlant.plant_type), [localPlant.plant_type]);
-  const stageOptions = useMemo(() => getStageOptionsForType('ru', selectedTypeId), [selectedTypeId]);
+  const stageOptions = useMemo(
+    () => getStageOptionsForType(locale, selectedTypeId),
+    [locale, selectedTypeId],
+  );
 
   const toLocalDateTimeInput = (isoValue) => {
     if (!isoValue) return '';
@@ -117,7 +122,7 @@ function PlantEditDialog({
 
   // Translitem: operacii nad gruppami vnutri dialoga (roditel potom refetch cherez onSaved()).
   const handleCreateGroup = async () => {
-    const name = window.prompt('Введите название новой группы');
+    const name = window.prompt(translateApp("Введите название новой группы"));
     if (!name || !name.trim()) return;
     try {
       const created = await createPlantGroup(token, { name: name.trim() });
@@ -125,32 +130,32 @@ function PlantEditDialog({
       setLocalPlant((prev) => ({ ...prev, plant_group_id: created.id }));
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось создать группу');
+      setError(err?.message || translateApp("Не удалось создать группу"));
     }
   };
 
   const handleRenameGroup = async () => {
     const groupId = localPlant.plant_group_id;
     if (!groupId) {
-      window.alert('Выберите группу для переименования');
+      window.alert(translateApp("Выберите группу для переименования"));
       return;
     }
     const current = localGroups.find((g) => g.id === groupId);
-    const newName = window.prompt('Новое название группы', current?.name || '');
+    const newName = window.prompt(translateApp("Новое название группы"), current?.name || '');
     if (!newName || !newName.trim()) return;
     try {
       const updated = await updatePlantGroup(token, groupId, { name: newName.trim() });
       setLocalGroups((prev) => prev.map((g) => (g.id === groupId ? updated : g)));
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось переименовать группу');
+      setError(err?.message || translateApp("Не удалось переименовать группу"));
     }
   };
 
   const handleDeleteGroup = async () => {
     const groupId = localPlant.plant_group_id;
     if (!groupId) return;
-    const confirmed = window.confirm('Удалить группу?');
+    const confirmed = window.confirm(translateApp("Удалить группу?"));
     if (!confirmed) return;
     try {
       await deletePlantGroup(token, groupId);
@@ -158,13 +163,13 @@ function PlantEditDialog({
       setLocalPlant((prev) => ({ ...prev, plant_group_id: null }));
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось удалить группу');
+      setError(err?.message || translateApp("Не удалось удалить группу"));
     }
   };
 
   const handleSave = async () => {
     if (!localPlant.name.trim()) {
-      setError('Укажите название растения');
+      setError(translateApp("Укажите название растения"));
       return;
     }
     setIsSaving(true);
@@ -190,7 +195,7 @@ function PlantEditDialog({
       onClose?.();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось сохранить растение');
+      setError(err?.message || translateApp("Не удалось сохранить растение"));
     } finally {
       setIsSaving(false);
     }
@@ -198,7 +203,7 @@ function PlantEditDialog({
 
   const handleDeletePlant = async () => {
     if (!plant?.id) return;
-    const confirmed = window.confirm('Точно удалить растение?');
+    const confirmed = window.confirm(translateApp("Точно удалить растение?"));
     if (!confirmed) return;
     setIsSaving(true);
     setError(null);
@@ -208,27 +213,23 @@ function PlantEditDialog({
       onClose?.();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось удалить растение');
+      setError(err?.message || translateApp("Не удалось удалить растение"));
     } finally {
       setIsSaving(false);
     }
   };
 
-  const title = mode === 'create' ? 'Новое растение' : 'Редактировать растение';
+  const title = mode === 'create' ? translateApp("Новое растение") : translateApp("Редактировать растение");
 
   const footer = (
     <div className="plant-dialog__footer">
       {mode === 'edit' && plant?.id && (
-        <Button variant="danger" onClick={handleDeletePlant} disabled={isSaving}>
-          Удалить
-        </Button>
+        <Button variant="danger" onClick={handleDeletePlant} disabled={isSaving}>{translateApp("Удалить")}</Button>
       )}
       <div className="plant-dialog__footer-actions">
-        <Button variant="secondary" onClick={onClose} disabled={isSaving}>
-          Отмена
-        </Button>
+        <Button variant="secondary" onClick={onClose} disabled={isSaving}>{translateApp("Отмена")}</Button>
         <Button variant="primary" onClick={handleSave} disabled={isSaving}>
-          {isSaving ? 'Сохранение...' : 'Сохранить'}
+          {isSaving ? translateApp("Сохранение...") : translateApp("Сохранить")}
         </Button>
       </div>
     </div>
@@ -239,7 +240,7 @@ function PlantEditDialog({
       {error && <div className="plant-dialog__error">{error}</div>}
 
       <div className="plant-dialog__body">
-        <FormField label="Название" htmlFor="plant-name" className="plant-dialog__field">
+        <FormField label={translateApp("Название")} htmlFor="plant-name" className="plant-dialog__field">
           <input
             id="plant-name"
             value={localPlant.name}
@@ -248,7 +249,7 @@ function PlantEditDialog({
           />
         </FormField>
 
-        <FormField label="Тип растения" htmlFor="plant-type" className="plant-dialog__field">
+        <FormField label={translateApp("Тип растения")} htmlFor="plant-type" className="plant-dialog__field">
           <select
             id="plant-type"
             value={selectedTypeId}
@@ -260,7 +261,7 @@ function PlantEditDialog({
           </select>
         </FormField>
 
-        <FormField label="Сорт" htmlFor="plant-strain" className="plant-dialog__field">
+        <FormField label={translateApp("Сорт")} htmlFor="plant-strain" className="plant-dialog__field">
           <input
             id="plant-strain"
             value={localPlant.strain || ''}
@@ -268,7 +269,7 @@ function PlantEditDialog({
           />
         </FormField>
 
-        <FormField label="Стадия роста" htmlFor="growth-stage" className="plant-dialog__field">
+        <FormField label={translateApp("Стадия роста")} htmlFor="growth-stage" className="plant-dialog__field">
           <select
             id="growth-stage"
             value={localPlant.growth_stage || ''}
@@ -280,7 +281,7 @@ function PlantEditDialog({
           </select>
         </FormField>
 
-        <FormField label="Дата посадки" htmlFor="planted-at" className="plant-dialog__field">
+        <FormField label={translateApp("Дата посадки")} htmlFor="planted-at" className="plant-dialog__field">
           <input
             id="planted-at"
             type="datetime-local"
@@ -290,22 +291,22 @@ function PlantEditDialog({
         </FormField>
 
         <div className="plant-dialog__group-row">
-          <FormField label="Группа" htmlFor="plant-group" className="plant-dialog__field">
+          <FormField label={translateApp("Группа")} htmlFor="plant-group" className="plant-dialog__field">
             <select
               id="plant-group"
               value={localPlant.plant_group_id ?? ''}
               onChange={(e) => handleGroupChange(e.target.value)}
             >
-              <option value="">Без группы</option>
+              <option value="">{translateApp("Без группы")}</option>
               {localGroups.map((group) => (
                 <option key={group.id} value={group.id}>{group.name}</option>
               ))}
             </select>
           </FormField>
           <div className="plant-dialog__group-actions">
-            <button type="button" onClick={handleCreateGroup}>Создать</button>
-            <button type="button" onClick={handleRenameGroup}>Переименовать</button>
-            <button type="button" onClick={handleDeleteGroup}>Удалить</button>
+            <button type="button" onClick={handleCreateGroup}>{translateApp("Создать")}</button>
+            <button type="button" onClick={handleRenameGroup}>{translateApp("Переименовать")}</button>
+            <button type="button" onClick={handleDeleteGroup}>{translateApp("Удалить")}</button>
           </div>
         </div>
       </div>
@@ -314,4 +315,3 @@ function PlantEditDialog({
 }
 
 export default PlantEditDialog;
-

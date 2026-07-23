@@ -1,0 +1,49 @@
+{
+  "updated_at": "2026-07-23",
+  "hero": {
+    "badge": "GrowerHub · early access is open",
+    "title": "Connect equipment and manage your farm in one dashboard",
+    "subtitle": "Log in via Yandex or Google, connect Zigbee2MQTT and immediately see the devices. Collect zones from them, monitor the readings and enable automation when you are ready.",
+    "cta": "Start for free"
+  },
+  "secondary": {
+    "title": "Get started in a few steps",
+    "text": "Create a connection, run Zigbee2MQTT and add the first device. Zones, plants and automations can be set up later at your own pace.",
+    "points": [
+      {
+        "title": "Connection",
+        "text": "The new installation works directly, and the local bridge retains the existing Home Assistant and MQTT."
+      },
+      {
+        "title": "Auto discovery",
+        "text": "Devices and available metrics appear from Zigbee2MQTT automatically."
+      },
+      {
+        "title": "Zones and control",
+        "text": "Name zones, assign devices, and control only proven functions."
+      }
+    ]
+  },
+  "features": {
+    "title": "What's available at GrowerHub",
+    "items": [
+      {
+        "title": "Unified overview",
+        "text": "Zones, device states and latest readings in one dashboard."
+      },
+      {
+        "title": "Sensor history",
+        "text": "Track temperature, humidity and other metrics exposed by Zigbee2MQTT over time."
+      },
+      {
+        "title": "Manual control",
+        "text": "Commands are only available for control capabilities that the device has advertised and enabled by GrowerHub."
+      },
+      {
+        "title": "Automation",
+        "text": "Light schedule, climate thresholds with hysteresis and watering with customizable protective limits."
+      }
+    ]
+  },
+  "early_access": "GrowerHub grew out of extensive practical experience in greenhouse automation. We have brought monitoring, control and clear automation scenarios together in one platform that is already free to use without a card. If you need help or support for a new device model, message us in Telegram — we can help in Russian or English."
+}

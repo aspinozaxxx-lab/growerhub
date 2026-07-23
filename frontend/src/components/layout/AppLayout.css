@@ -124,6 +124,17 @@
   letter-spacing: 0.2px;
 }
 
+.app-locale-switch {
+  align-self: flex-start;
+  margin: 10px 0 16px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
 .app-nav.app-nav--sidebar {
   flex-direction: column;
   gap: 8px;

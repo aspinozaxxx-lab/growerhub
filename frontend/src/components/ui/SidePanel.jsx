@@ -1,6 +1,7 @@
 ﻿import React from 'react';
 import './SidePanel.css';
 import Button from './Button';
+import { translateApp } from '../../locales/i18n';
 
 function SidePanel({
   isOpen,
@@ -11,7 +12,7 @@ function SidePanel({
   onClose,
   side = 'right',
   width = 'md',
-  closeLabel = 'Закрыть',
+  closeLabel = translateApp("Закрыть"),
   disableOverlayClose = false,
 }) {
   if (!isOpen) {

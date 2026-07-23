@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { translateApp } from '../../locales/i18n';
 
 function RequireAuth({ children }) {
   const { status, setRedirectAfterLogin } = useAuth();
@@ -13,7 +14,7 @@ function RequireAuth({ children }) {
   }, [status, location.pathname, setRedirectAfterLogin]);
 
   if (status === 'loading' || status === 'idle') {
-    return <div className="app-loading">Загрузка...</div>;
+    return <div className="app-loading">{translateApp("Загрузка...")}</div>;
   }
 
   if (status === 'unauthorized') {

@@ -1,6 +1,8 @@
 ﻿import React, { useMemo, useState } from 'react';
+/* eslint-disable react-refresh/only-export-components */
 import Button from '../ui/Button';
 import './WateringInProgressBanner.css';
+import { translateApp } from '../../locales/i18n';
 
 function formatRemaining(seconds) {
   if (seconds === null || seconds === undefined) {
@@ -38,16 +40,14 @@ function WateringInProgressBanner({ isWatering, remainingSeconds, onStop, disabl
 
   return (
     <div className="watering-progress" role="status" aria-live="polite">
-      <span className="watering-progress__text">Полив еще {label}</span>
+      <span className="watering-progress__text">{translateApp("Полив еще")} {label}</span>
       <Button
         variant="ghost"
         size="sm"
         onClick={handleStop}
         disabled={disabled}
         isLoading={isStopping}
-      >
-        Остановить
-      </Button>
+      >{translateApp("Остановить")}</Button>
     </div>
   );
 }

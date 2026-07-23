@@ -6,8 +6,20 @@ import { chromium } from 'playwright-core';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outputDir = path.join(rootDir, 'public', 'screenshots');
-const pageUrl = process.env.GROWERHUB_SCREENSHOT_URL
-  || 'http://127.0.0.1:4173/avtomatizatsiya-mini-fermy/?capture=screenshots';
+const baseUrl = process.env.GROWERHUB_SCREENSHOT_BASE_URL || 'http://127.0.0.1:4173';
+const pages = [
+  {
+    locale: 'ru',
+    url: process.env.GROWERHUB_SCREENSHOT_URL
+      || `${baseUrl}/avtomatizatsiya-mini-fermy/?capture=screenshots`,
+    output: outputDir,
+  },
+  {
+    locale: 'en',
+    url: `${baseUrl}/en/farm-automation/?capture=screenshots`,
+    output: path.join(outputDir, 'en'),
+  },
+];
 
 const executableCandidates = [
   process.env.CHROME_PATH,
@@ -22,32 +34,36 @@ if (!executablePath) {
   throw new Error('Chrome/Chromium ne najden. Ukazhite CHROME_PATH.');
 }
 
-fs.mkdirSync(outputDir, { recursive: true });
-
 const browser = await chromium.launch({ executablePath, headless: true });
 try {
-  const page = await browser.newPage({
-    viewport: { width: 1440, height: 1000 },
-    deviceScaleFactor: 2,
-  });
-  await page.goto(pageUrl, { waitUntil: 'networkidle' });
-  await page.evaluate(() => document.fonts.ready);
-
   const names = ['zones', 'history', 'connection', 'automation'];
-  const demos = page.locator('.product-demo');
-  const count = await demos.count();
-  if (count !== names.length) {
-    throw new Error(`Ozhidalos' ${names.length} demo-ekrana, polucheno ${count}.`);
-  }
-
-  for (let index = 0; index < names.length; index += 1) {
-    await demos.nth(index).screenshot({
-      path: path.join(outputDir, `${names[index]}.png`),
-      animations: 'disabled',
+  for (const target of pages) {
+    fs.mkdirSync(target.output, { recursive: true });
+    const page = await browser.newPage({
+      viewport: { width: 1440, height: 1000 },
+      deviceScaleFactor: 2,
     });
+    await page.goto(target.url, { waitUntil: 'networkidle' });
+    await page.evaluate(() => document.fonts.ready);
+
+    const demos = page.locator('.product-demo');
+    const count = await demos.count();
+    if (count !== names.length) {
+      throw new Error(
+        `Ozhidalos' ${names.length} demo-ekrana dlja ${target.locale}, polucheno ${count}.`,
+      );
+    }
+
+    for (let index = 0; index < names.length; index += 1) {
+      await demos.nth(index).screenshot({
+        path: path.join(target.output, `${names[index]}.png`),
+        animations: 'disabled',
+      });
+    }
+    await page.close();
   }
 } finally {
   await browser.close();
 }
 
-console.log(`Product screenshots written to ${outputDir}`);
+console.log(`RU and EN product screenshots written to ${outputDir}`);

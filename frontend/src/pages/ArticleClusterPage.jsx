@@ -1,41 +1,59 @@
 import { Link, useParams } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
-import { articleClusters, getArticleClusterBySlug } from '../content/articleClusters';
+import {
+  articleClusters,
+  getArticleClusterById,
+  getArticleClusterBySlug,
+} from '../content/articleClusters';
 import { getArticlesByCluster } from '../content/articles';
+import {
+  getArticlePath,
+  getClusterPath,
+} from '../domain/localizedRoutes';
+import { getCurrentLocale, getIntlLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 import NotFoundPage from './NotFoundPage';
 
 function ArticleClusterPage() {
   const { clusterSlug } = useParams();
-  const cluster = getArticleClusterBySlug(clusterSlug);
+  const locale = getCurrentLocale();
+  const cluster = getArticleClusterBySlug(clusterSlug, locale);
+  const ruCluster = cluster ? getArticleClusterById(cluster.id, 'ru') : null;
+  const enCluster = cluster ? getArticleClusterById(cluster.id, 'en') : null;
+  const path = cluster ? getClusterPath(cluster, locale) : null;
 
   useSeoMeta({
-    title: cluster ? `${cluster.title} - статьи GrowerHub` : 'Раздел не найден - GrowerHub',
-    description: cluster?.description || 'Запрошенный раздел GrowerHub не найден.',
-    path: cluster ? `/articles/clusters/${cluster.slug}/` : null,
+    title: cluster ? `${cluster.title} — GrowerHub` : translatePublic('Раздел не найден — GrowerHub'),
+    description: cluster?.description || translatePublic('Запрошенный раздел GrowerHub не найден.'),
+    path,
     robots: cluster ? 'index,follow' : 'noindex,nofollow',
+    locale,
+    alternatePaths: ruCluster && enCluster ? {
+      ru: getClusterPath(ruCluster, 'ru'),
+      en: getClusterPath(enCluster, 'en'),
+    } : undefined,
   });
 
   if (!cluster) {
     return <NotFoundPage />;
   }
 
-  const clusterArticles = getArticlesByCluster(cluster.slug);
+  const clusterArticles = getArticlesByCluster(cluster.id, locale);
   const otherClusters = articleClusters.filter((item) => item.slug !== cluster.slug);
 
   return (
     <div className="section">
-      <div className="article-meta">Практический раздел</div>
+      <div className="article-meta">{translatePublic('Практический раздел')}</div>
       <h1>{cluster.title}</h1>
       <p>{cluster.description}</p>
 
       <div className="cluster-meta-grid">
         <div>
-          <strong>Подходит, если</strong>
+          <strong>{translatePublic('Подходит, если')}</strong>
           <p>{cluster.fit}</p>
         </div>
         <div>
-          <strong>Задачи, которые разбираем</strong>
+          <strong>{translatePublic('Задачи, которые разбираем')}</strong>
           <p>{cluster.tasks}</p>
         </div>
       </div>
@@ -47,14 +65,14 @@ function ArticleClusterPage() {
       </div>
 
       <section className="cluster-block">
-        <h2>Статьи раздела</h2>
+        <h2>{translatePublic('Статьи раздела')}</h2>
         <div className="articles-list">
           {clusterArticles.map((article) => (
             <article className="article-card" key={article.slug}>
               <div className="article-meta">
-                Обновлено {new Date(article.updated_at).toLocaleDateString('ru-RU')}
+                {translatePublic('Обновлено')} {new Date(article.updated_at).toLocaleDateString(getIntlLocale(locale))}
               </div>
-              <Link to={`/articles/${article.slug}/`}>{article.title}</Link>
+              <Link to={getArticlePath(article, locale)}>{article.title}</Link>
               <p>{article.summary}</p>
             </article>
           ))}
@@ -64,10 +82,10 @@ function ArticleClusterPage() {
       <LeadCta placement="cluster_bottom" />
 
       <section className="cluster-block">
-        <h2>Другие разделы</h2>
+        <h2>{translatePublic('Другие разделы')}</h2>
         <div className="cluster-nav-grid">
           {otherClusters.map((item) => (
-            <Link to={`/articles/clusters/${item.slug}/`} key={item.slug}>
+            <Link to={getClusterPath(item, locale)} key={item.slug}>
               {item.title}
             </Link>
           ))}

@@ -5,20 +5,24 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/generate-static-pages.mjs",
+    "prepare:content": "node scripts/generate-article-metadata.mjs",
+    "build": "npm run prepare:content && vite build && node scripts/generate-static-pages.mjs",
     "capture:screenshots": "node scripts/capture-product-screenshots.mjs",
+    "audit:seo:yandex": "node scripts/audit-seo-yandex.mjs",
     "verify:seo": "node scripts/verify-static-pages.mjs",
     "verify:live": "node scripts/verify-live-pages.mjs",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "npm run prepare:content && vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
     "gray-matter": "^4.0.3",
+    "i18next": "^25.10.10",
     "lucide-react": "^1.23.0",
     "marked": "^17.0.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-i18next": "^16.6.6",
     "react-router-dom": "^7.9.6",
     "recharts": "^3.5.1"
   },

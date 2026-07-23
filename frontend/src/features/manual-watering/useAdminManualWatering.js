@@ -13,6 +13,7 @@ import {
   overviewHasActiveSession,
   mergeSessionsById,
 } from './manualWateringModel';
+import { translateApp } from '../../locales/i18n';
 
 const ACTIVE_POLL_INTERVAL_MS = 3000;
 const IDLE_POLL_INTERVAL_MS = 15000;
@@ -55,7 +56,7 @@ export default function useAdminManualWatering() {
     } catch (err) {
       if (requestId !== overviewRequestIdRef.current) return null;
       if (isSessionExpiredError(err)) return null;
-      setError(err?.message || 'Не удалось загрузить ручной полив');
+      setError(err?.message || translateApp("Не удалось загрузить ручной полив"));
       return null;
     } finally {
       if (requestId === overviewRequestIdRef.current) setIsLoading(false);
@@ -131,7 +132,7 @@ export default function useAdminManualWatering() {
         [pumpId]: {
           ...(prev[pumpId] || emptyHistoryState()),
           isLoading: false,
-          error: err?.message || 'Не удалось загрузить журнал насоса',
+          error: err?.message || translateApp("Не удалось загрузить журнал насоса"),
         },
       }));
     }
@@ -176,11 +177,11 @@ export default function useAdminManualWatering() {
       await startAdminManualWatering(pumpId, payload, token);
       await loadOverview({ silent: true });
       await refreshLoadedHistory(pumpId);
-      setNotice('Полив запущен');
+      setNotice(translateApp("Полив запущен"));
       return true;
     } catch (err) {
       if (isSessionExpiredError(err)) return false;
-      setActionError(err?.message || 'Не удалось запустить полив');
+      setActionError(err?.message || translateApp("Не удалось запустить полив"));
       return false;
     } finally {
       setActionKey('');
@@ -197,11 +198,11 @@ export default function useAdminManualWatering() {
       await stopAdminManualWatering(pumpId, token);
       await loadOverview({ silent: true });
       await refreshLoadedHistory(pumpId);
-      setNotice('Остановка полива запрошена');
+      setNotice(translateApp("Остановка полива запрошена"));
       return true;
     } catch (err) {
       if (isSessionExpiredError(err)) return false;
-      setActionError(err?.message || 'Не удалось остановить полив');
+      setActionError(err?.message || translateApp("Не удалось остановить полив"));
       return false;
     } finally {
       setActionKey('');

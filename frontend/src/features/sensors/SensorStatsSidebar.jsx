@@ -15,21 +15,22 @@ import { useSensorStatsContext } from './SensorStatsContext';
 import { formatDateDDMM, formatSensorValue, formatTimeHHMM, formatTimestampLabel } from '../../utils/formatters';
 import SidePanel from '../../components/ui/SidePanel';
 import './SensorStatsSidebar.css';
+import { translateApp } from '../../locales/i18n';
 
 const RANGE_OPTIONS = [
-  { key: 'hour', label: 'За час' },
-  { key: 'day', label: 'За сутки' },
-  { key: 'week', label: 'За неделю' },
-  { key: 'month', label: 'За месяц' },
+  { key: 'hour', label: translateApp("За час") },
+  { key: 'day', label: translateApp("За сутки") },
+  { key: 'week', label: translateApp("За неделю") },
+  { key: 'month', label: translateApp("За месяц") },
 ];
 
 const METRIC_LABELS = {
-  air_temperature: 'Температура воздуха',
-  air_humidity: 'Влажность воздуха',
-  soil_moisture: 'Влажность почвы',
-  watering: 'Поливы',
-  device_state: 'Состояние устройства',
-  pump: 'Состояние полива',
+  air_temperature: translateApp("Температура воздуха"),
+  air_humidity: translateApp("Влажность воздуха"),
+  soil_moisture: translateApp("Влажность почвы"),
+  watering: translateApp("Поливы"),
+  device_state: translateApp("Состояние устройства"),
+  pump: translateApp("Состояние полива"),
 };
 
 function formatAxisLabel(timestamp, range) {
@@ -45,15 +46,15 @@ function formatDurationMs(durationMs) {
   const minutes = totalMinutes % 60;
 
   if (hours > 0 && minutes > 0) {
-    return `${hours} ч ${minutes} мин`;
+    return translateApp("{{value1}} ч {{value2}} мин", { value1: hours, value2: minutes });
   }
   if (hours > 0) {
-    return `${hours} ч`;
+    return translateApp("{{value1}} ч", { value1: hours });
   }
   if (totalMinutes > 0) {
-    return `${minutes} мин`;
+    return translateApp("{{value1}} мин", { value1: minutes });
   }
-  return '0 мин';
+  return translateApp("0 мин");
 }
 
 function WateringTooltip({ active, payload, label }) {
@@ -68,7 +69,7 @@ function WateringTooltip({ active, payload, label }) {
     <div className="recharts-default-tooltip">
       <p className="recharts-tooltip-label">{formatTimestampLabel(label)}</p>
       {volume !== undefined && volume !== null && (
-        <p className="recharts-tooltip-item">{`Объём: ${formatSensorValue(volume)} л`}</p>
+        <p className="recharts-tooltip-item">{translateApp("Объём: {{value1}} л", { value1: formatSensorValue(volume) })}</p>
       )}
     </div>
   );
@@ -87,22 +88,22 @@ function BinaryTooltip({ active, payload, label, onLabel, offLabel, valueLabel }
     <div className="recharts-default-tooltip">
       <p className="recharts-tooltip-label">{formatTimestampLabel(label)}</p>
       <p className="recharts-tooltip-item">{`${valueLabel}: ${labelText}`}</p>
-      {data.rawValue && <p className="recharts-tooltip-item">{`Исходное значение: ${data.rawValue}`}</p>}
+      {data.rawValue && <p className="recharts-tooltip-item">{translateApp("Исходное значение: {{value1}}", { value1: data.rawValue })}</p>}
     </div>
   );
 }
 
 function DailyOnSummary({ items, isLoading }) {
   return (
-    <section className="sensor-sidebar__daily" aria-label="Включено по дням">
+    <section className="sensor-sidebar__daily" aria-label={translateApp("Включено по дням")}>
       <div className="sensor-sidebar__daily-header">
-        <h3>Включено по дням</h3>
-        <span>Последние 7 дней</span>
+        <h3>{translateApp("Включено по дням")}</h3>
+        <span>{translateApp("Последние 7 дней")}</span>
       </div>
       {isLoading ? (
-        <div className="sensor-sidebar__daily-state">Загрузка списка...</div>
+        <div className="sensor-sidebar__daily-state">{translateApp("Загрузка списка...")}</div>
       ) : items.length === 0 ? (
-        <div className="sensor-sidebar__daily-state">Нет данных за последние 7 дней</div>
+        <div className="sensor-sidebar__daily-state">{translateApp("Нет данных за последние 7 дней")}</div>
       ) : (
         <ul className="sensor-sidebar__daily-list">
           {items.map((item) => (
@@ -123,8 +124,8 @@ function SensorChart({
   data,
   chartKind = 'numeric',
   valueLabel,
-  binaryOnLabel = 'Включено',
-  binaryOffLabel = 'Выключено',
+  binaryOnLabel = translateApp("Включено"),
+  binaryOffLabel = translateApp("Выключено"),
 }) {
   const preparedData = Array.isArray(data)
     ? data.filter((item) => (
@@ -137,7 +138,7 @@ function SensorChart({
   const empty = preparedData.length === 0;
 
   if (empty) {
-    return <div className="sensor-chart__empty">Нет данных для выбранного периода</div>;
+    return <div className="sensor-chart__empty">{translateApp("Нет данных для выбранного периода")}</div>;
   }
 
   if (metric === 'watering') {
@@ -157,7 +158,7 @@ function SensorChart({
           <YAxis
             tick={{ fill: '#c7d7ef', fontSize: 12 }}
             label={{
-              value: 'Объём полива (л)',
+              value: translateApp("Объём полива (л)"),
               angle: -90,
               position: 'insideLeft',
               fill: '#c7d7ef',
@@ -172,7 +173,7 @@ function SensorChart({
   }
 
   if (chartKind === 'binary') {
-    const label = valueLabel || METRIC_LABELS[metric] || 'Состояние';
+    const label = valueLabel || METRIC_LABELS[metric] || translateApp("Состояние");
     return (
       <ResponsiveContainer width="100%" height={260}>
         <LineChart data={preparedData} margin={{ top: 8, right: 8, left: -12, bottom: 8 }}>
@@ -292,7 +293,7 @@ function SensorStatsSidebar() {
   const showDailyOnSummary = resolvedChartKind === 'binary' || mode === 'pump';
 
   const fallbackTitle = useMemo(() => {
-    const metricLabel = metric ? METRIC_LABELS[metric] || metric : 'История';
+    const metricLabel = metric ? METRIC_LABELS[metric] || metric : translateApp("История");
     return metricLabel;
   }, [metric]);
 
@@ -307,7 +308,7 @@ function SensorStatsSidebar() {
       title={title || fallbackTitle}
       subtitle={subtitle || ''}
     >
-      <div className="sensor-sidebar__ranges" role="group" aria-label="Диапазон">
+      <div className="sensor-sidebar__ranges" role="group" aria-label={translateApp("Диапазон")}>
         {RANGE_OPTIONS.map((option) => (
           <button
             key={option.key}
@@ -322,7 +323,7 @@ function SensorStatsSidebar() {
 
       <div className="sensor-sidebar__chart">
         {isLoading ? (
-          <div className="sensor-sidebar__state">Загрузка...</div>
+          <div className="sensor-sidebar__state">{translateApp("Загрузка...")}</div>
         ) : error ? (
           <div className="sensor-sidebar__state sensor-sidebar__state--error">{error}</div>
         ) : (
@@ -332,8 +333,8 @@ function SensorStatsSidebar() {
             data={chartData}
             chartKind={resolvedChartKind}
             valueLabel={valueLabel}
-            binaryOnLabel={binaryOnLabel || 'Включено'}
-            binaryOffLabel={binaryOffLabel || 'Выключено'}
+            binaryOnLabel={binaryOnLabel || translateApp("Включено")}
+            binaryOffLabel={binaryOffLabel || translateApp("Выключено")}
           />
         )}
       </div>

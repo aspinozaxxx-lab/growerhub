@@ -1,0 +1,45 @@
+{
+  "updated_at": "2026-07-23",
+  "early_access_text": "The main functions of GrowerHub are already available for free and without a card. Connect equipment, assemble zones and customize controls at your own pace. If you need help, the GrowerHub team is nearby on Telegram.",
+  "start": {
+    "title": "How to get started with GrowerHub",
+    "description": "A short self-service path from a Zigbee coordinator to your first device, zone and GrowerHub dashboard.",
+    "intro": "Log in via Yandex or Google, connect Zigbee2MQTT and assemble your zones from automatically found devices. Plants and additional settings can be added later.",
+    "steps": [
+      {
+        "title": "Login",
+        "text": "Use Yandex or Google. No card needed."
+      },
+      {
+        "title": "Create a connection",
+        "text": "Give the coordinator any clear name."
+      },
+      {
+        "title": "Select mode",
+        "text": "The new installation is connected directly; existing Home Assistant retains local MQTT via local bridge."
+      },
+      {
+        "title": "Run package",
+        "text": "Select Windows, Raspberry Pi/Linux, or download the configuration for manual installation."
+      },
+      {
+        "title": "See devices",
+        "text": "GrowerHub automatically shows devices and the metrics exposed by Zigbee2MQTT."
+      },
+      {
+        "title": "Create a zone",
+        "text": "Specify only the name and distribute the devices. Plants are added as desired."
+      },
+      {
+        "title": "Open dashboard",
+        "text": "View data and manage permitted functions. Turn on automation later."
+      }
+    ]
+  },
+  "minimum": {
+    "title": "Minimum to start",
+    "monitoring": "Always-on computer or Raspberry Pi, supported Zigbee coordinator and one temperature/humidity sensor.",
+    "control": "For control, add a Zigbee smart plug. Soil sensors, leak sensors and other equipment can be connected later.",
+    "existing": "If Zigbee2MQTT and Home Assistant are already running, the local bridge will leave MQTT in place and transfer only the necessary topics to GrowerHub."
+  }
+}

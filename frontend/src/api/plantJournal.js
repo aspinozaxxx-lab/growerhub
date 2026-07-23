@@ -1,10 +1,11 @@
 ﻿import { apiFetch } from './client';
+import { translateApp } from '../locales/i18n';
 
 export async function fetchPlantJournal(plantId, token) {
   void token;
   const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}/journal`);
   if (!response.ok) {
-    throw new Error(`Не удалось загрузить журнал растения (${response.status})`);
+    throw new Error(translateApp("Не удалось загрузить журнал растения ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -18,7 +19,7 @@ export async function createPlantJournalEntry(plantId, payload, token) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`Не удалось создать запись журнала (${response.status})`);
+    throw new Error(translateApp("Не удалось создать запись журнала ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -35,7 +36,7 @@ export async function updatePlantJournalEntry(plantId, entryId, payload, token) 
     },
   );
   if (!response.ok) {
-    throw new Error(`Не удалось сохранить запись журнала (${response.status})`);
+    throw new Error(translateApp("Не удалось сохранить запись журнала ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -47,7 +48,7 @@ export async function deletePlantJournalEntry(plantId, entryId, token) {
     { method: 'DELETE' },
   );
   if (!response.ok) {
-    throw new Error(`Не удалось удалить запись журнала (${response.status})`);
+    throw new Error(translateApp("Не удалось удалить запись журнала ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -58,7 +59,7 @@ export async function downloadJournalPhotoBlob(photoId, token) {
     method: 'GET',
   });
   if (!response.ok) {
-    throw new Error(`Не удалось загрузить фотографию (${response.status})`);
+    throw new Error(translateApp("Не удалось загрузить фотографию ({{value1}})", { value1: response.status }));
   }
   return response.blob();
 }
@@ -69,7 +70,7 @@ export async function downloadPlantJournalMarkdown(plantId, token) {
     method: 'GET',
   });
   if (!response.ok) {
-    throw new Error(`Не удалось скачать журнал (${response.status})`);
+    throw new Error(translateApp("Не удалось скачать журнал ({{value1}})", { value1: response.status }));
   }
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);

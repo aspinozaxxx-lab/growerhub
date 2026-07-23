@@ -1,4 +1,6 @@
-﻿export function formatSensorValue(value, fractionDigits = 1) {
+import { getIntlLocale } from '../locales/i18n';
+
+export function formatSensorValue(value, fractionDigits = 1) {
   if (value === null || value === undefined) {
     return '-';
   }
@@ -12,8 +14,6 @@
 // Translitem: vremennaya zona dlya otobrazheniya dat/ vremeni v UI.
 // TODO(translit): kogda poyavitsya nastroika polzovatelya, podmenit na ee znachenie.
 const UI_TIME_ZONE = 'Europe/Moscow';
-const UI_LOCALE = 'ru-RU';
-
 // Translitem: backend chasto otdaet datetime bez timezone (naive) no po smyslu eto UTC.
 function _normalizeBackendIso(value) {
   if (typeof value !== 'string') return value;
@@ -55,7 +55,7 @@ export function parseBackendTimestamp(value) {
 
 // Translitem: raskladyvaem Date na y/m/d/h/m v nuzhnoj timezone (Moskva).
 function _getDateTimeParts(date) {
-  const formatter = new Intl.DateTimeFormat(UI_LOCALE, {
+  const formatter = new Intl.DateTimeFormat(getIntlLocale(), {
     timeZone: UI_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
@@ -93,6 +93,16 @@ export function formatDateDDMM(timestamp) {
 export function formatTimestampLabel(timestamp) {
   const date = parseBackendTimestamp(timestamp);
   if (!date) return '';
+  if (getIntlLocale() === 'en-GB') {
+    return new Intl.DateTimeFormat('en-GB', {
+      timeZone: UI_TIME_ZONE,
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(date);
+  }
   const { day, month, hour, minute } = _getDateTimeParts(date);
   if (!day || !month || !hour || !minute) return '';
   return `${day}.${month} ${hour}:${minute}`;
@@ -101,6 +111,17 @@ export function formatTimestampLabel(timestamp) {
 export function formatDateTimeDDMMYYYY(timestamp) {
   const date = parseBackendTimestamp(timestamp);
   if (!date) return '';
+  if (getIntlLocale() === 'en-GB') {
+    return new Intl.DateTimeFormat('en-GB', {
+      timeZone: UI_TIME_ZONE,
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(date);
+  }
   const { day, month, year, hour, minute } = _getDateTimeParts(date);
   if (!day || !month || !year || !hour || !minute) return '';
   return `${day}.${month}.${year}, ${hour}:${minute}`;

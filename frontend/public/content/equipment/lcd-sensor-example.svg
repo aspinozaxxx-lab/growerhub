@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">Zigbee temperature and humidity sensor</title>
+  <desc id="desc">Neutral illustration of a sensor with an LCD display</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f1f9f2"/>
+      <stop offset="1" stop-color="#dcefe2"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" rx="28" fill="url(#bg)"/>
+  <ellipse cx="320" cy="350" rx="142" ry="26" fill="#bdd6c5" opacity=".7"/>
+  <rect x="205" y="62" width="230" height="276" rx="37" fill="#fff" stroke="#ccd8d0" stroke-width="5"/>
+  <rect x="230" y="91" width="180" height="170" rx="16" fill="#e8f0e9" stroke="#a7b8ac" stroke-width="4"/>
+  <text x="254" y="162" fill="#314238" font-family="Arial, sans-serif" font-size="56" font-weight="700">23.4°</text>
+  <text x="264" y="222" fill="#52705e" font-family="Arial, sans-serif" font-size="39">61%</text>
+  <path d="M360 191c16 20 23 31 23 44a23 23 0 1 1-46 0c0-13 7-24 23-44z" fill="#64a87d"/>
+  <circle cx="320" cy="296" r="10" fill="#75c58f"/>
+  <path d="M500 104c22-22 58-22 80 0M513 118c15-15 39-15 54 0M529 135c6-6 15-6 21 0" fill="none" stroke="#2e7d4f" stroke-width="8" stroke-linecap="round"/>
+</svg>

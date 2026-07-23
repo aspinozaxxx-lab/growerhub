@@ -1,6 +1,7 @@
 ﻿import { DEFAULT_PLANT_TYPE_ID, normalizePlantTypeId } from './types';
 import { getStageLabel } from './stages';
 import { PLANT_TYPE_CONFIG } from './config';
+import { translateApp } from '../../locales/i18n';
 
 // Translitem: vite glob import vsekh png avatarov dlya plants domain.
 const AVATAR_PNG_BY_PATH = import.meta.glob('./avatars/**/*.png', { eager: true, import: 'default' });
@@ -37,7 +38,7 @@ function getAutoStageFromAge(typeId, ageDays) {
 
 function getStageOptionsForType(lang = 'ru', typeId) {
   const stages = getStagesForType(typeId);
-  const autoLabel = lang === 'ru' ? 'Авто по возрасту' : 'Auto by age';
+  const autoLabel = lang === 'ru' ? translateApp("Авто по возрасту") : 'Auto by age';
   return [
     { value: '', label: autoLabel },
     ...stages.map((value) => ({ value, label: getStageLabel(value, lang) })),

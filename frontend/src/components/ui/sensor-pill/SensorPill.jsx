@@ -7,6 +7,7 @@ import iconSoilMoisture from './assets/soil-moisture.svg?raw';
 import iconWatering from './assets/watering.svg?raw';
 import iconPump from './assets/pump.svg?raw';
 import iconUnknown from './assets/unknown.svg?raw';
+import { translateApp } from '../../../locales/i18n';
 
 const WARNING_ICON = `
 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -44,13 +45,13 @@ function buildStatusTooltip(kind, status) {
     return '';
   }
   if (status === 'DISCONNECTED') {
-    return 'Датчик отключен';
+    return translateApp("Датчик отключен");
   }
   if (status === 'ERROR') {
     if (kind === 'soil_moisture') {
-      return 'Проверьте датчик влажности почвы';
+      return translateApp("Проверьте датчик влажности почвы");
     }
-    return 'Проверьте датчик температуры';
+    return translateApp("Проверьте датчик температуры");
   }
   return '';
 }
@@ -74,7 +75,7 @@ function SensorPill({
   const isWatering = kind === 'watering';
   const isPump = kind === 'pump';
   const statusTooltip = buildStatusTooltip(kind, status);
-  const indicatorTooltip = isOffline ? 'Устройство не в сети' : statusTooltip;
+  const indicatorTooltip = isOffline ? translateApp("Устройство не в сети") : statusTooltip;
   const indicatorIcon = isOffline ? OFFLINE_ICON : WARNING_ICON;
   const indicatorClassName = isOffline ? 'sensor-pill__indicator is-offline' : 'sensor-pill__indicator is-warning';
   const showIndicator = isOffline || (!isWatering && !isPump && Boolean(statusTooltip));
@@ -84,16 +85,16 @@ function SensorPill({
   let computedHighlight = highlight;
 
   if (isWatering) {
-    const wateringActive = typeof value === 'boolean' ? value : value === 'Выполняется';
-    displayValue = wateringActive ? 'Выполняется' : 'Нет';
+    const wateringActive = typeof value === 'boolean' ? value : value === translateApp("Выполняется");
+    displayValue = wateringActive ? translateApp("Выполняется") : translateApp("Нет");
     computedHighlight = highlight || wateringActive;
     displayUnit = '';
   } else if (isPump) {
     if (value === null || value === undefined || value === '') {
-      displayValue = 'не задано';
+      displayValue = translateApp("не задано");
     } else {
       const formatted = formatSensorValue(value, 1);
-      displayValue = `${formatted} л/ч`;
+      displayValue = translateApp("{{value1}} л/ч", { value1: formatted });
     }
     displayUnit = '';
   } else {
@@ -120,7 +121,7 @@ function SensorPill({
       className={classNames}
       onClick={onClick}
       disabled={disabled && isClickable}
-      aria-label={action === 'edit' ? 'Редактировать' : undefined}
+      aria-label={action === 'edit' ? translateApp("Редактировать") : undefined}
     >
       <span
         className="sensor-pill__icon"

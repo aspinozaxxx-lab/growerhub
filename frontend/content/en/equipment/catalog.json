@@ -1,0 +1,271 @@
+{
+  "updated_at": "2026-07-23",
+  "checked_at": "2026-07-23",
+  "purchase_note": "You do not need an expensive branded kit to get started. Choose an option that suits your budget and make sure the listing says Zigbee rather than Wi-Fi or Bluetooth. Search links are neutral, have no affiliate tags, and availability varies by country and seller.",
+  "zigbee_note": "For most common sensors and smart plugs, a Zigbee or Zigbee 3.0 label is enough: Zigbee2MQTT discovers the device and it then appears in GrowerHub. Check the exact model ID in the Zigbee2MQTT catalogue when possible to see available metrics and commands, but there is no need to buy only expensive brands.",
+  "wifi_note": "Most retail Wi-Fi sensors from Tuya and similar ecosystems depend on the manufacturer's cloud and do not let you configure GrowerHub MQTT. Suitable exceptions are devices with open local MQTT configuration and GrowerHub hardware.",
+  "categories": {
+    "coordinators": {
+      "slug": "zigbee-coordinators",
+      "title": "Zigbee coordinators for GrowerHub",
+      "description": "Proven USB coordinators for Zigbee2MQTT: affordable CC2652P sticks and SONOFF options.",
+      "intro": "A particular brand is not required: affordable CC2652P USB sticks and other adapters from the Zigbee2MQTT list work well with GrowerHub. SONOFF remains a common branded option.",
+      "items": [
+        {
+          "model": "CC2652P USB Dongle",
+          "name": "Budget coordinator with external antenna",
+          "status": "Verified GrowerHub",
+          "summary": "A practical and affordable CC2652P option for Zigbee2MQTT. Similar sticks are available from many sellers.",
+          "image": "/content/equipment/coordinator-example.svg",
+          "image_alt": "Example appearance of a Zigbee USB coordinator with an external antenna",
+          "image_caption": "Example appearance: the enclosure and antenna vary by seller.",
+          "image_source_url": "https://growerhub.ru/en/equipment/zigbee-coordinators/",
+          "image_license": "GrowerHub illustration",
+          "official_url": "https://www.zigbee2mqtt.io/guide/adapters/zstack.html",
+          "shop_search_url": "https://www.google.com/search?q=buy%20CC2652P%20USB%20Dongle%20Zigbee",
+          "notes": [
+            "In Zigbee2MQTT the zstack adapter is selected",
+            "Take the option with coordinator firmware",
+            "An external antenna is convenient for a greenhouse and several rooms"
+          ]
+        },
+        {
+          "model": "SONOFF ZBDongle-P",
+          "name": "USB coordinator on Z-Stack",
+          "status": "Branded option",
+          "summary": "Common coordinator on CC2652P. Suitable for those who prefer a device from a well-known brand.",
+          "image": "/content/equipment/ZBDongle-P.png",
+          "image_alt": "SONOFF ZBDongle-P",
+          "image_caption": "Model image from the open Zigbee2MQTT documentation.",
+          "image_source_url": "https://www.zigbee2mqtt.io/guide/adapters/zstack.html",
+          "image_license": "Zigbee2MQTT documentation, GPL-3.0",
+          "official_url": "https://www.zigbee2mqtt.io/guide/adapters/zstack.html",
+          "shop_search_url": "https://www.google.com/search?q=buy%20SONOFF%20ZBDongle-P%20Zigbee",
+          "notes": [
+            "In Zigbee2MQTT the zstack adapter is selected",
+            "A USB extension cable helps remove the coordinator from radio interference"
+          ]
+        },
+        {
+          "model": "SONOFF ZBDongle-E",
+          "name": "USB coordinator on Ember",
+          "status": "Branded option",
+          "summary": "Current coordinator at Silicon Labs for those who choose the SONOFF line.",
+          "image": "/content/equipment/ZBDongle-E.png",
+          "image_alt": "SONOFF ZBDongle-E",
+          "image_caption": "Model image from the open Zigbee2MQTT documentation.",
+          "image_source_url": "https://www.zigbee2mqtt.io/devices/ZBDongle-E.html",
+          "image_license": "Zigbee2MQTT documentation, GPL-3.0",
+          "official_url": "https://www.zigbee2mqtt.io/guide/adapters/emberznet.html",
+          "shop_search_url": "https://www.google.com/search?q=buy%20SONOFF%20ZBDongle-E%20Zigbee",
+          "notes": [
+            "In Zigbee2MQTT the ember adapter is selected",
+            "Version E is similar in appearance to ZBDongle-P - see markings"
+          ]
+        }
+      ]
+    },
+    "sensors": {
+      "slug": "sensors",
+      "title": "Zigbee sensors for getting started",
+      "description": "Accessible Zigbee temperature, air humidity and soil sensors for your first GrowerHub connection.",
+      "intro": "For the first monitoring, one Zigbee temperature and humidity sensor is sufficient. The screen is convenient for checking readings on site, and soil and leakage sensors can be added at any time.",
+      "items": [
+        {
+          "model": "Zigbee 3.0 LCD TH",
+          "name": "Temperature and Humidity with LCD Screen",
+          "status": "Verified GrowerHub",
+          "summary": "An accessible sensor that shows values locally and sends them to Zigbee2MQTT.",
+          "image": "/content/equipment/lcd-sensor-example.svg",
+          "image_alt": "Example appearance of a Zigbee temperature and humidity sensor with a display",
+          "image_caption": "Example appearance: generic models use different enclosures and model IDs.",
+          "image_source_url": "https://growerhub.ru/en/equipment/sensors/",
+          "image_license": "GrowerHub illustration",
+          "official_url": "https://www.zigbee2mqtt.io/supported-devices/",
+          "shop_search_url": "https://www.google.com/search?q=buy%20Zigbee%203.0%20LCD%20TH%20Zigbee",
+          "notes": [
+            "The screen makes it easy to compare local readings with the dashboard",
+            "In the product card, select the option Zigbee 3.0",
+            "The actual model ID GrowerHub will show after connection"
+          ]
+        },
+        {
+          "model": "Zigbee 3-in-1 soil sensor",
+          "name": "Soil moisture, temperature and humidity",
+          "status": "Practical extension",
+          "summary": "One Zigbee sensor provides several indicators for a pot, bed or greenhouse zone at once and does not require a separate cloud application.",
+          "image": "/content/equipment/soil-sensor-example.svg",
+          "image_alt": "Example appearance of a combined Zigbee soil sensor",
+          "image_caption": "Example appearance: available metrics depend on the exact revision.",
+          "image_source_url": "https://growerhub.ru/en/equipment/sensors/",
+          "image_license": "GrowerHub illustration",
+          "official_url": "https://www.zigbee2mqtt.io/supported-devices/",
+          "shop_search_url": "https://www.google.com/search?q=buy%20Zigbee%203-in-1%20soil%20sensor",
+          "notes": [
+            "Convenient as the next step after the air sensor",
+            "The set of indicators depends on the specific revision",
+            "For automatic watering, first compare the readings with a manual soil test"
+          ]
+        },
+        {
+          "model": "SONOFF SNZB-02P",
+          "name": "Temperature and humidity",
+          "status": "Branded option",
+          "summary": "Compact battery sensor for basic climate monitoring.",
+          "image": "/content/equipment/SNZB-02P.png",
+          "image_alt": "SONOFF SNZB-02P",
+          "image_caption": "Model image from the open Zigbee2MQTT documentation.",
+          "image_source_url": "https://www.zigbee2mqtt.io/devices/SNZB-02P.html",
+          "image_license": "Zigbee2MQTT documentation, GPL-3.0",
+          "official_url": "https://www.zigbee2mqtt.io/devices/SNZB-02P.html",
+          "shop_search_url": "https://www.google.com/search?q=buy%20SONOFF%20SNZB-02P%20Zigbee",
+          "notes": [
+            "Model support is described in Zigbee2MQTT",
+            "The compact housing is convenient to place inside the area"
+          ]
+        },
+        {
+          "model": "SONOFF SNZB-02D",
+          "name": "Temperature and humidity with screen",
+          "status": "Branded option",
+          "summary": "Shows values locally and passes them to Zigbee2MQTT.",
+          "image": "/content/equipment/SNZB-02D.png",
+          "image_alt": "SONOFF SNZB-02D",
+          "image_caption": "Model image from the open Zigbee2MQTT documentation.",
+          "image_source_url": "https://www.zigbee2mqtt.io/devices/SNZB-02D.html",
+          "image_license": "Zigbee2MQTT documentation, GPL-3.0",
+          "official_url": "https://www.zigbee2mqtt.io/devices/SNZB-02D.html",
+          "shop_search_url": "https://www.google.com/search?q=buy%20SONOFF%20SNZB-02D%20Zigbee",
+          "notes": [
+            "The screen is convenient for on-site inspection",
+            "Model support is described in Zigbee2MQTT"
+          ]
+        },
+        {
+          "model": "Aqara WSDCGQ11LM",
+          "name": "Temperature, humidity and pressure",
+          "status": "Branded option",
+          "summary": "The compact Aqara sensor transmits temperature, humidity and atmospheric pressure.",
+          "image": "/content/equipment/WSDCGQ11LM.png",
+          "image_alt": "Aqara WSDCGQ11LM",
+          "image_caption": "Model image from the open Zigbee2MQTT documentation.",
+          "image_source_url": "https://www.zigbee2mqtt.io/devices/WSDCGQ11LM.html",
+          "image_license": "Zigbee2MQTT documentation, GPL-3.0",
+          "official_url": "https://www.zigbee2mqtt.io/devices/WSDCGQ11LM.html",
+          "shop_search_url": "https://www.google.com/search?q=buy%20Aqara%20WSDCGQ11LM%20Zigbee",
+          "notes": [
+            "Model support is described in Zigbee2MQTT",
+            "Good option for compact placement"
+          ]
+        },
+        {
+          "model": "Aqara SJCGQ11LM",
+          "name": "Water leakage sensor",
+          "status": "Useful extension",
+          "summary": "Helps you notice water on the floor near the tank, pump, or sprinkler connections.",
+          "image": "/content/equipment/SJCGQ11LM.png",
+          "image_alt": "Aqara SJCGQ11LM",
+          "image_caption": "Model image from the open Zigbee2MQTT documentation.",
+          "image_source_url": "https://www.zigbee2mqtt.io/devices/SJCGQ11LM.html",
+          "image_license": "Zigbee2MQTT documentation, GPL-3.0",
+          "official_url": "https://www.zigbee2mqtt.io/devices/SJCGQ11LM.html",
+          "shop_search_url": "https://www.google.com/search?q=buy%20Aqara%20SJCGQ11LM%20Zigbee",
+          "notes": [
+            "Reports leak status and battery charge",
+            "Place at the lowest point of possible leakage"
+          ]
+        }
+      ]
+    },
+    "sockets": {
+      "slug": "zigbee-smart-plugs",
+      "title": "Zigbee smart plugs for control",
+      "description": "Accessible Zigbee smart plugs for lighting, ventilation and other equipment in GrowerHub.",
+      "intro": "For basic control, a regular Zigbee smart plug rated for the connected load is enough. Affordable white-label models can work just as well as branded options, and GrowerHub shows the available commands after connection.",
+      "items": [
+        {
+          "model": "AOAT Zigbee 16A",
+          "name": "Affordable smart plug with timer",
+          "status": "Verified GrowerHub",
+          "summary": "This affordable Zigbee smart plug works reliably through Zigbee2MQTT and is suitable for manual control and schedules.",
+          "image": "/content/equipment/smart-plug-example.svg",
+          "image_alt": "Example appearance of a 16 A Zigbee smart plug",
+          "image_caption": "Example appearance: white-label models use different enclosures.",
+          "image_source_url": "https://growerhub.ru/en/equipment/zigbee-smart-plugs/",
+          "image_license": "GrowerHub illustration",
+          "official_url": "https://www.zigbee2mqtt.io/supported-devices/",
+          "shop_search_url": "https://www.google.com/search?q=buy%20AOAT%20Zigbee%2016A%20Zigbee",
+          "notes": [
+            "Tested in a working GrowerHub installation",
+            "In the product card, select the Zigbee version",
+            "For light and other loads, observe the rated power"
+          ]
+        },
+        {
+          "model": "SONOFF S26R2ZB",
+          "name": "Zigbee smart plug",
+          "status": "Branded option",
+          "summary": "Easy on/off via writable state.",
+          "image": "/content/equipment/S26R2ZB.png",
+          "image_alt": "SONOFF S26R2ZB",
+          "image_caption": "Model image from the open Zigbee2MQTT documentation.",
+          "image_source_url": "https://www.zigbee2mqtt.io/devices/S26R2ZB.html",
+          "image_license": "Zigbee2MQTT documentation, GPL-3.0",
+          "official_url": "https://www.zigbee2mqtt.io/devices/S26R2ZB.html",
+          "shop_search_url": "https://www.google.com/search?q=buy%20SONOFF%20S26R2ZB%20Zigbee",
+          "notes": [
+            "Check the plug and socket standard for your country",
+            "Do not exceed the rated load"
+          ]
+        },
+        {
+          "model": "SONOFF S60ZBTPF",
+          "name": "Zigbee smart plug with monitoring",
+          "status": "Branded option",
+          "summary": "Power management and consumption metrics available in Zigbee2MQTT.",
+          "image": "/content/equipment/S60ZBTPF.png",
+          "image_alt": "SONOFF S60ZBTPF",
+          "image_caption": "Model image from the open Zigbee2MQTT documentation.",
+          "image_source_url": "https://www.zigbee2mqtt.io/devices/S60ZBTPF.html",
+          "image_license": "Zigbee2MQTT documentation, GPL-3.0",
+          "official_url": "https://www.zigbee2mqtt.io/devices/S60ZBTPF.html",
+          "shop_search_url": "https://www.google.com/search?q=buy%20SONOFF%20S60ZBTPF%20Zigbee",
+          "notes": [
+            "Choose the TPF version for European sockets",
+            "Metrics do not replace electrical protection"
+          ]
+        },
+        {
+          "model": "Aqara SP-EUC01",
+          "name": "Zigbee smart plug with energy monitoring",
+          "status": "Branded option",
+          "summary": "The Aqara smart plug reports state, power, voltage, current and accumulated energy use.",
+          "image": "/content/equipment/SP-EUC01.png",
+          "image_alt": "Aqara SP-EUC01",
+          "image_caption": "Model image from the open Zigbee2MQTT documentation.",
+          "image_source_url": "https://www.zigbee2mqtt.io/devices/SP-EUC01.html",
+          "image_license": "Zigbee2MQTT documentation, GPL-3.0",
+          "official_url": "https://www.zigbee2mqtt.io/devices/SP-EUC01.html",
+          "shop_search_url": "https://www.google.com/search?q=buy%20Aqara%20SP-EUC01%20Zigbee",
+          "notes": [
+            "Support for commands and metrics is described in Zigbee2MQTT",
+            "Select the load according to the socket data sheet"
+          ]
+        }
+      ]
+    }
+  },
+  "pump": {
+    "slug": "irrigation-pump",
+    "title": "GrowerHub irrigation pump — early access",
+    "description": "Our Zigbee and Wi-Fi MQTT pump is being tested with early GrowerHub users.",
+    "status": "In development at GrowerHub",
+    "summary": "We developed the pump because we could not find a ready-made option with the local control we needed. We are testing Zigbee and direct Wi-Fi MQTT operation before inviting the first users.",
+    "limitations": [
+      "We check physical isolation, protection from water and safe power connection.",
+      "We add a local emergency shutdown regardless of the command from the platform.",
+      "We check the safe state when the Internet or MQTT is lost.",
+      "We test TLS, failure scenarios and watering limits before connecting the first users."
+    ]
+  }
+}

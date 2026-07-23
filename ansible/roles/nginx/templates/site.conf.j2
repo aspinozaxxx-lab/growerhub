@@ -15,7 +15,11 @@ server {
     ssl_certificate     /etc/letsencrypt/live/{{ nginx_domain }}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/{{ nginx_domain }}/privkey.pem;
 
-    location ~ "^/(?:about|articles|avtomatizatsiya-mini-fermy|kak-nachat|oborudovanie|privacy|terms|app)$|^/(?:articles|oborudovanie|app)(?:/[^/.]+)+$" {
+    location = /en {
+        return 301 https://{{ nginx_domain }}/en/$is_args$args;
+    }
+
+    location ~ "^/(?:about|articles|avtomatizatsiya-mini-fermy|kak-nachat|oborudovanie|privacy|terms|app)$|^/(?:articles|oborudovanie|app)(?:/[^/.]+)+$|^/en/(?:about|articles|farm-automation|getting-started|equipment|privacy|terms)(?:/[^/.]+)*$" {
         return 301 https://{{ nginx_domain }}$uri/$is_args$args;
     }
 
@@ -36,6 +40,12 @@ server {
     add_header X-Content-Type-Options nosniff always;
     add_header X-Frame-Options SAMEORIGIN always;
     add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_comp_level 5;
+    gzip_types text/plain text/css application/javascript application/json application/xml image/svg+xml;
 
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/letsencrypt;
@@ -114,12 +124,31 @@ server {
     root {{ nginx_static_root }};
     index {{ nginx_index }};
 
-    location ~ "^/(?:about|articles|avtomatizatsiya-mini-fermy|kak-nachat|oborudovanie|privacy|terms|app)$|^/(?:articles|oborudovanie|app)(?:/[^/.]+)+$" {
+    location = /en {
+        return 301 https://{{ nginx_domain }}/en/$is_args$args;
+    }
+
+    location ~ "^/(?:about|articles|avtomatizatsiya-mini-fermy|kak-nachat|oborudovanie|privacy|terms|app)$|^/(?:articles|oborudovanie|app)(?:/[^/.]+)+$|^/en/(?:about|articles|farm-automation|getting-started|equipment|privacy|terms)(?:/[^/.]+)*$" {
         return 301 https://{{ nginx_domain }}$uri/$is_args$args;
+    }
+
+    location ^~ /assets/ {
+        try_files $uri =404;
+        expires 1y;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options SAMEORIGIN always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
+        access_log off;
     }
 
     location /app/ {
         try_files $uri $uri/ /{{ nginx_index }};
+    }
+
+    location /en/ {
+        error_page 404 =404 /en/404.html;
+        try_files $uri $uri/index.html =404;
     }
 
     location / {
@@ -129,6 +158,11 @@ server {
     error_page 404 /404.html;
 
     location = /404.html {
+        internal;
+    }
+
+    location = /en/404.html {
+        error_page 404 =404 /en/404.html;
         internal;
     }
 
@@ -160,7 +194,11 @@ server {
         proxy_read_timeout 300;
     }
 
-    location ~ "^/(?:about|articles|avtomatizatsiya-mini-fermy|kak-nachat|oborudovanie|privacy|terms|app)$|^/(?:articles|oborudovanie|app)(?:/[^/.]+)+$" {
+    location = /en {
+        return 301 https://{{ nginx_domain }}/en/$is_args$args;
+    }
+
+    location ~ "^/(?:about|articles|avtomatizatsiya-mini-fermy|kak-nachat|oborudovanie|privacy|terms|app)$|^/(?:articles|oborudovanie|app)(?:/[^/.]+)+$|^/en/(?:about|articles|farm-automation|getting-started|equipment|privacy|terms)(?:/[^/.]+)*$" {
         return 301 https://{{ nginx_domain }}$uri/$is_args$args;
     }
 

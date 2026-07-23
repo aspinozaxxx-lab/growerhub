@@ -2,24 +2,33 @@ import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
 import { articleClusters } from '../content/articleClusters';
 import { getArticlesByCluster } from '../content/articles';
+import {
+  getArticlePath,
+  getClusterPath,
+  getPublicPath,
+} from '../domain/localizedRoutes';
+import { getCurrentLocale, getIntlLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 
-const description = 'Практические материалы GrowerHub об автополиве, датчиках, Zigbee2MQTT, Home Assistant и автоматизации мини-фермы.';
-
 function ArticlesListPage() {
+  const locale = getCurrentLocale();
+  const description = translatePublic('articles.description');
+  const path = getPublicPath('articles', locale);
+
   useSeoMeta({
-    title: 'Статьи GrowerHub — датчики, полив и автоматизация',
+    title: translatePublic('articles.title'),
     description,
-    path: '/articles/',
+    path,
+    locale,
   });
 
   return (
     <div className="section">
-      <h1>Статьи GrowerHub</h1>
+      <h1>{translatePublic('Статьи GrowerHub')}</h1>
       <p>{description}</p>
       <div className="cluster-list">
         {articleClusters.map((cluster) => {
-          const clusterArticles = getArticlesByCluster(cluster.slug);
+          const clusterArticles = getArticlesByCluster(cluster.id, locale);
 
           return (
             <section className="cluster-block" key={cluster.slug}>
@@ -28,17 +37,17 @@ function ArticlesListPage() {
                   <h2>{cluster.title}</h2>
                   <p>{cluster.description}</p>
                 </div>
-                <Link to={`/articles/clusters/${cluster.slug}/`} className="secondary-link">
-                  Раздел
+                <Link to={getClusterPath(cluster, locale)} className="secondary-link">
+                  {translatePublic('Раздел')}
                 </Link>
               </div>
               <div className="cluster-meta-grid">
                 <div>
-                  <strong>Подходит, если</strong>
+                  <strong>{translatePublic('Подходит, если')}</strong>
                   <p>{cluster.fit}</p>
                 </div>
                 <div>
-                  <strong>Задачи, которые разбираем</strong>
+                  <strong>{translatePublic('Задачи, которые разбираем')}</strong>
                   <p>{cluster.tasks}</p>
                 </div>
               </div>
@@ -46,9 +55,9 @@ function ArticlesListPage() {
                 {clusterArticles.map((article) => (
                   <article className="article-card" key={article.slug}>
                     <div className="article-meta">
-                      Обновлено {new Date(article.updated_at).toLocaleDateString('ru-RU')}
+                      {translatePublic('Обновлено')} {new Date(article.updated_at).toLocaleDateString(getIntlLocale(locale))}
                     </div>
-                    <Link to={`/articles/${article.slug}/`}>{article.title}</Link>
+                    <Link to={getArticlePath(article, locale)}>{article.title}</Link>
                     <p>{article.summary}</p>
                   </article>
                 ))}

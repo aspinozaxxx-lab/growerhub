@@ -1,6 +1,7 @@
 ﻿import React from 'react';
 import './Modal.css';
 import Button from './Button';
+import { translateApp } from '../../locales/i18n';
 
 function Modal({
   isOpen,
@@ -9,7 +10,7 @@ function Modal({
   footer,
   onClose,
   size = 'md',
-  closeLabel = 'Закрыть',
+  closeLabel = translateApp("Закрыть"),
   disableOverlayClose = false,
 }) {
   if (!isOpen) {

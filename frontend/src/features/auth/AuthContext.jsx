@@ -1,5 +1,7 @@
 ﻿import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+/* eslint-disable react-refresh/only-export-components */
 import { apiFetch, registerAuthHandlers } from '../../api/client';
+import { translateApp } from '../../locales/i18n';
 
 const STORAGE_KEY = 'gh_access_token';
 
@@ -61,7 +63,7 @@ function AuthProvider({ children }) {
       setError(null);
 
       return { success: true, user: data };
-    } catch (_error) {
+    } catch {
       localStorage.removeItem(STORAGE_KEY);
       setUser(null);
       setToken(null);
@@ -96,8 +98,8 @@ function AuthProvider({ children }) {
 
         const result = await loadCurrentUser(accessToken);
         return { success: result.success !== false };
-      } catch (_error) {
-        setError('Неверный email или пароль');
+      } catch {
+        setError(translateApp("Неверный email или пароль"));
         setStatus('unauthorized');
         return { success: false };
       }

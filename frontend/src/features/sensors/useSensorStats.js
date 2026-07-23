@@ -5,6 +5,7 @@ import { fetchAdminPumpHistory, fetchAdminZigbeeHistory } from '../../api/admin'
 import { isSessionExpiredError } from '../../api/client';
 import { formatDateDDMM, formatDateKeyYYYYMMDD, parseBackendTimestamp } from '../../utils/formatters';
 import { useAuth } from '../auth/AuthContext';
+import { translateApp } from '../../locales/i18n';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const UI_DAY_OFFSET_MS = 3 * 60 * 60 * 1000;
@@ -215,7 +216,7 @@ export function useSensorStats({
       } catch (err) {
         if (isSessionExpiredError(err)) return;
         if (showLoading) {
-          setError(err?.message || 'Не удалось загрузить историю');
+          setError(err?.message || translateApp("Не удалось загрузить историю"));
         }
       } finally {
         inFlightKeysRef.current.delete(targetKey);

@@ -9,8 +9,11 @@ import { Title, Text } from '../ui/Typography';
 import WateringInProgressBanner from '../watering/WateringInProgressBanner';
 import usePumpWateringStatus from '../../features/watering/usePumpWateringStatus';
 import './DashboardPlantCard.css';
+import { translateApp } from '../../locales/i18n';
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
+const CURRENT_TIME_MS = Date.now();
+const EMPTY_ITEMS = Object.freeze([]);
 
 const SENSOR_KIND_MAP = {
   SOIL_MOISTURE: 'soil_moisture',
@@ -19,10 +22,10 @@ const SENSOR_KIND_MAP = {
 };
 
 const METRIC_LABELS = {
-  air_temperature: 'Температура воздуха',
-  air_humidity: 'Влажность воздуха',
-  soil_moisture: 'Влажность почвы',
-  watering: 'Поливы',
+  air_temperature: translateApp("Температура воздуха"),
+  air_humidity: translateApp("Влажность воздуха"),
+  soil_moisture: translateApp("Влажность почвы"),
+  watering: translateApp("Поливы"),
 };
 
 function formatNumber(value, digits) {
@@ -38,11 +41,11 @@ function buildWateringTooltip(advice) {
   }
   const volume = formatNumber(advice.recommended_water_volume_l, 2);
   const ph = formatNumber(advice.recommended_ph, 2);
-  const fertilizers = advice.recommended_fertilizers_per_liter || 'нет';
+  const fertilizers = advice.recommended_fertilizers_per_liter || translateApp("нет");
   if (!volume) {
     return '';
   }
-  const parts = [`Полить: ${volume} L`, `Удобрения: ${fertilizers}`];
+  const parts = [translateApp("Полить: {{value1}} L", { value1: volume }), translateApp("Удобрения: {{value1}}", { value1: fertilizers })];
   if (ph) {
     parts.push(`pH: ${ph}`);
   }
@@ -51,14 +54,21 @@ function buildWateringTooltip(advice) {
 
 function formatAge(plantedAt) {
   if (!plantedAt) {
-    return 'Дата неизвестна';
+    return translateApp("Дата неизвестна");
   }
   const date = new Date(plantedAt);
   if (Number.isNaN(date.getTime())) {
-    return 'Дата неизвестна';
+    return translateApp("Дата неизвестна");
   }
-  const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / MS_IN_DAY));
-  return `${days} дн.`;
+  const days = Math.max(0, Math.floor((CURRENT_TIME_MS - date.getTime()) / MS_IN_DAY));
+  return translateApp("{{value1}} дн.", { value1: days });
+}
+
+function calculateAgeDays(plantedAt) {
+  if (!plantedAt) return null;
+  const plantedDate = new Date(plantedAt);
+  if (Number.isNaN(plantedDate.getTime())) return null;
+  return Math.max(0, Math.floor((CURRENT_TIME_MS - plantedDate.getTime()) / MS_IN_DAY));
 }
 
 function DashboardPlantCard({
@@ -67,21 +77,14 @@ function DashboardPlantCard({
   onOpenWatering,
   onOpenJournal,
 }) {
-  const sensors = Array.isArray(plant?.sensors) ? plant.sensors : [];
-  const pumps = Array.isArray(plant?.pumps) ? plant.pumps : [];
+  const sensors = Array.isArray(plant?.sensors) ? plant.sensors : EMPTY_ITEMS;
+  const pumps = Array.isArray(plant?.pumps) ? plant.pumps : EMPTY_ITEMS;
+  const plantId = plant?.id;
   const primaryPump = pumps[0];
   const runningPump = pumps.find((pump) => pump && pump.is_running) || null;
   const activePump = runningPump || primaryPump;
 
-  const ageDays = React.useMemo(() => {
-    if (!plant?.planted_at) return null;
-    const plantedDate = new Date(plant.planted_at);
-    if (Number.isNaN(plantedDate.getTime())) {
-      return null;
-    }
-    const diff = Date.now() - plantedDate.getTime();
-    return Math.max(0, Math.floor(diff / MS_IN_DAY));
-  }, [plant?.planted_at]);
+  const ageDays = calculateAgeDays(plant?.planted_at);
 
   const plantTypeId = normalizePlantTypeId(plant?.plant_type || DEFAULT_PLANT_TYPE_ID);
   const stageId = plant?.growth_stage && String(plant.growth_stage).trim()
@@ -97,7 +100,7 @@ function DashboardPlantCard({
   const wateringTooltip = React.useMemo(() => buildWateringTooltip(wateringAdvice), [wateringAdvice]);
 
   const boundSensors = React.useMemo(() => {
-    if (!plant?.id) {
+    if (!plantId) {
       return sensors;
     }
     const hasBoundInfo = sensors.some((sensor) => Array.isArray(sensor.bound_plants));
@@ -106,9 +109,9 @@ function DashboardPlantCard({
     }
     return sensors.filter((sensor) => {
       const boundPlants = Array.isArray(sensor.bound_plants) ? sensor.bound_plants : [];
-      return boundPlants.some((bound) => bound.id === plant.id);
+      return boundPlants.some((bound) => bound.id === plantId);
     });
-  }, [plant?.id, sensors]);
+  }, [plantId, sensors]);
 
   const sensorsByKind = React.useMemo(() => {
     const map = {};
@@ -157,7 +160,7 @@ function DashboardPlantCard({
 
   const handleOpenWatering = () => {
     if (primaryPump?.id && onOpenWatering) {
-      const label = primaryPump.label || `Насос ${primaryPump.channel ?? ''}`;
+      const label = primaryPump.label || translateApp("Насос {{value1}}", { value1: primaryPump.channel ?? '' });
       onOpenWatering({
         pumpId: primaryPump.id,
         pumpLabel: label,
@@ -174,7 +177,7 @@ function DashboardPlantCard({
         <div>
           <Title level={3} className="dashboard-plant-card__name">{plant.name}</Title>
           <Text tone="muted" className="dashboard-plant-card__group">
-            {plant.plant_group ? plant.plant_group.name : 'Без группы'}
+            {plant.plant_group ? plant.plant_group.name : translateApp("Без группы")}
           </Text>
         </div>
         <Text tone="muted" className="dashboard-plant-card__age">
@@ -221,7 +224,7 @@ function DashboardPlantCard({
                 {wateringAdvice?.is_due && (
                   <div className="dashboard-plant-card__watering-advice" title={wateringTooltip}>
                     <span className="dashboard-plant-card__watering-advice-icon" aria-hidden="true">💧</span>
-                    <span className="dashboard-plant-card__watering-advice-text">Пора полить</span>
+                    <span className="dashboard-plant-card__watering-advice-text">{translateApp("Пора полить")}</span>
                   </div>
                 )}
                 <WateringInProgressBanner
@@ -242,18 +245,13 @@ function DashboardPlantCard({
             variant="secondary"
             onClick={handleOpenWatering}
             disabled={!primaryPump}
-          >
-            Полив
-          </Button>
+          >{translateApp("Полив")}</Button>
           <Button
             type="button"
             variant="secondary"
             onClick={() => onOpenJournal?.(plant.id)}
-          >
-            Журнал
-          </Button>
-          <Link className="dashboard-plant-card__link" to="/app/plants/">
-            Перейти {'>'}
+          >{translateApp("Журнал")}</Button>
+          <Link className="dashboard-plant-card__link" to="/app/plants/">{translateApp("Перейти")}{'>'}
           </Link>
         </div>
       </div>

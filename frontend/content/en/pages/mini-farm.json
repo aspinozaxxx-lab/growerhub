@@ -1,0 +1,91 @@
+{
+  "updated_at": "2026-07-23",
+  "title": "GrowerHub small farm management platform",
+  "description": "Connect Zigbee2MQTT to GrowerHub, automatically find devices, create zones and manage your small farm from one dashboard.",
+  "hero": {
+    "eyebrow": "Self-service setup · available internationally",
+    "text": "GrowerHub brings extensive practical experience in greenhouse automation into one dashboard: sensors, smart plugs, zones, history and control scenarios. Get started independently and for free. If you need help, message us in Telegram in Russian or English.",
+    "cta": "Start for free"
+  },
+  "tasks": [
+    {
+      "title": "See all equipment",
+      "text": "Zigbee2MQTT transmits a list of devices and their available metrics without manually setting each model."
+    },
+    {
+      "title": "Collect your zones",
+      "text": "Create rooms, greenhouses and grow boxes using only a name, then assign discovered devices."
+    },
+    {
+      "title": "Follow changes",
+      "text": "See current values, connection status and reading history in one interface."
+    },
+    {
+      "title": "Manage gradually",
+      "text": "Start with manual commands, then add light schedules and climate thresholds."
+    }
+  ],
+  "capabilities": [
+    "several isolated Zigbee coordinators in one user space",
+    "direct connection of a new installation Zigbee2MQTT via MQTT with TLS encryption",
+    "local bridge for existing Zigbee2MQTT and Home Assistant without replacing local MQTT",
+    "automatic discovery of devices, metrics and allowed commands",
+    "zones, dashboard, reading history and manual control",
+    "lighting schedule and climate thresholds; plants remain an additional function"
+  ],
+  "compatibility": {
+    "title": "MQTT and Zigbee2MQTT",
+    "text": "GrowerHub works with Zigbee2MQTT data. Every discovered device is shown with its available metrics, while unknown or unverified commands remain read-only. Most cloud-based Tuya Wi-Fi sensors cannot be reconfigured to use third-party MQTT."
+  },
+  "stages": [
+    {
+      "title": "1. Login",
+      "text": "Use Yandex or Google without a payment card or a questionnaire about plants."
+    },
+    {
+      "title": "2. Coordinator",
+      "text": "Create a connection and select a new installation or local bridge."
+    },
+    {
+      "title": "3. Package",
+      "text": "Choose Windows, Raspberry Pi/Linux or a manual Zigbee2MQTT configuration."
+    },
+    {
+      "title": "4. Devices",
+      "text": "Wait for connection and existing devices to appear automatically, or allow new devices to connect for three minutes."
+    },
+    {
+      "title": "5. Zone",
+      "text": "Enter a name, distribute devices and open the dashboard."
+    },
+    {
+      "title": "6. Automation",
+      "text": "Optional: enable tested scenarios one at a time."
+    }
+  ],
+  "screens": [
+    {
+      "title": "Zones",
+      "text": "The state of the microclimate and equipment for each zone."
+    },
+    {
+      "title": "Sensor history",
+      "text": "Synthetic graph of temperature and humidity per day."
+    },
+    {
+      "title": "Connection",
+      "text": "Coordinator connection status and automatically found devices."
+    },
+    {
+      "title": "Automation",
+      "text": "Light schedule and climate threshold with clear readiness status."
+    }
+  ],
+  "limitations": [
+    "GrowerHub supports Zigbee2MQTT devices and is constantly expanding the catalog of proven models and scenarios.",
+    "Commands are only available for verified control capabilities; the unknown device remains visible but is read-only.",
+    "For equipment with water and mains power, use water protection, check the load and provide a physical emergency shutdown.",
+    "Watering is turned on after assigning a humidity sensor, pump and protective restrictions."
+  ],
+  "early_access": "The main functions of GrowerHub are already available for free and without a card. Connect equipment, create zones and start managing your farm in one dashboard."
+}

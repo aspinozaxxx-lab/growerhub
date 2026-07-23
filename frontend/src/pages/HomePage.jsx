@@ -2,33 +2,43 @@ import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
 import PlatformStartLink from '../components/PlatformStartLink';
 import { articleClusters } from '../content/articleClusters';
-import { articles, getArticleBySlug } from '../content/articles';
+import { articles, getArticleById } from '../content/articles';
 import { homeContent } from '../content/pages';
-import { SELF_SERVICE_PUBLIC_ENABLED, SITE_URL } from '../domain/siteConfig';
+import {
+  getArticlePath,
+  getClusterPath,
+  getPublicPath,
+} from '../domain/localizedRoutes';
+import { SELF_SERVICE_PUBLIC_ENABLED, toCanonicalUrl } from '../domain/siteConfig';
+import { getCurrentLocale, getIntlLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 
-const pageDescription = 'GrowerHub — платформа, в которой собран большой практический опыт автоматизации теплиц: Zigbee-устройства, зоны, история датчиков и сценарии управления.';
-
-const softwareApplicationLd = {
-  '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
-  name: 'GrowerHub',
-  applicationCategory: 'BusinessApplication',
-  operatingSystem: 'Web',
-  url: SITE_URL,
-  description: pageDescription,
-  ...(SELF_SERVICE_PUBLIC_ENABLED ? {
-    isAccessibleForFree: true,
-    offers: { '@type': 'Offer', price: '0', priceCurrency: 'RUB' },
-  } : {}),
-};
-
 function HomePage() {
-  useSeoMeta({
-    title: 'GrowerHub — платформа управления мини-фермой',
+  const locale = getCurrentLocale();
+  const path = getPublicPath('home', locale);
+  const pageDescription = translatePublic('home.description');
+  const softwareApplicationLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'GrowerHub',
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    url: toCanonicalUrl(path),
     description: pageDescription,
-    path: '/',
+    inLanguage: locale,
+    areaServed: locale === 'en' ? 'Russia and CIS countries' : 'Россия и страны СНГ',
+    ...(SELF_SERVICE_PUBLIC_ENABLED ? {
+      isAccessibleForFree: true,
+      offers: { '@type': 'Offer', price: '0', priceCurrency: locale === 'en' ? 'USD' : 'RUB' },
+    } : {}),
+  };
+
+  useSeoMeta({
+    title: translatePublic('home.title'),
+    description: pageDescription,
+    path,
     jsonLd: [softwareApplicationLd],
+    locale,
   });
 
   const { hero, secondary, features } = homeContent;
@@ -45,7 +55,9 @@ function HomePage() {
             <PlatformStartLink placement="home_hero">
               {SELF_SERVICE_PUBLIC_ENABLED ? hero.cta : 'Как начать'}
             </PlatformStartLink>
-            <Link className="secondary-link" to="/kak-nachat/">Путь подключения</Link>
+            <Link className="secondary-link" to={getPublicPath('gettingStarted', locale)}>
+              {translatePublic('Путь подключения')}
+            </Link>
           </div>
         </div>
         <div className="card">
@@ -75,31 +87,35 @@ function HomePage() {
       </section>
 
       <section className="content-section early-access-note">
-        <h2>Большой опыт автоматизации — в одной платформе</h2>
+        <h2>{translatePublic('Большой опыт автоматизации — в одной платформе')}</h2>
         <p>{homeContent.early_access}</p>
         <div className="cta-row">
-          <Link className="secondary-link" to="/oborudovanie/">Какое оборудование подойдёт</Link>
-          <Link className="secondary-link" to="/avtomatizatsiya-mini-fermy/">Возможности платформы</Link>
+          <Link className="secondary-link" to={getPublicPath('equipment', locale)}>
+            {translatePublic('Какое оборудование подойдёт')}
+          </Link>
+          <Link className="secondary-link" to={getPublicPath('farmAutomation', locale)}>
+            {translatePublic('Возможности платформы')}
+          </Link>
         </div>
       </section>
 
       <section className="content-section">
-        <h2>Практические разделы</h2>
+        <h2>{translatePublic('Практические разделы')}</h2>
         <div className="cluster-home-grid">
           {articleClusters.map((cluster) => {
             const featuredArticles = cluster.featuredArticles
-              .map((slug) => getArticleBySlug(slug))
+              .map((id) => getArticleById(id, locale))
               .filter(Boolean)
               .slice(0, 4);
 
             return (
               <article className="article-card" key={cluster.slug}>
-                <Link to={`/articles/clusters/${cluster.slug}/`}>{cluster.title}</Link>
+                <Link to={getClusterPath(cluster, locale)}>{cluster.title}</Link>
                 <p>{cluster.description}</p>
                 <ul className="compact-link-list">
                   {featuredArticles.map((article) => (
                     <li key={article.slug}>
-                      <Link to={`/articles/${article.slug}/`}>{article.title}</Link>
+                      <Link to={getArticlePath(article, locale)}>{article.title}</Link>
                     </li>
                   ))}
                 </ul>
@@ -112,18 +128,20 @@ function HomePage() {
       <section className="content-section">
         <div className="cluster-block__header">
           <div>
-            <h2>Свежие статьи</h2>
-            <p>Пошаговые материалы по Zigbee, Home Assistant, датчикам и безопасному поливу.</p>
+            <h2>{translatePublic('Свежие статьи')}</h2>
+            <p>{translatePublic('Пошаговые материалы по Zigbee, Home Assistant, датчикам и безопасному поливу.')}</p>
           </div>
-          <Link to="/articles/" className="secondary-link">Все статьи</Link>
+          <Link to={getPublicPath('articles', locale)} className="secondary-link">
+            {translatePublic('Все статьи')}
+          </Link>
         </div>
         <div className="articles-list">
           {recentArticles.map((article) => (
             <article className="article-card" key={article.slug}>
               <div className="article-meta">
-                {new Date(article.updated_at).toLocaleDateString('ru-RU')}
+                {new Date(article.updated_at).toLocaleDateString(getIntlLocale(locale))}
               </div>
-              <Link to={`/articles/${article.slug}/`}>{article.title}</Link>
+              <Link to={getArticlePath(article, locale)}>{article.title}</Link>
               <p>{article.summary}</p>
             </article>
           ))}

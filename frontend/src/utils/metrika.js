@@ -1,4 +1,5 @@
 import { METRIKA_ID } from '../domain/siteConfig';
+import { getCurrentLocale } from '../locales/i18n';
 
 const METRIKA_SCRIPT_ID = 'yandex-metrika-script';
 
@@ -55,6 +56,7 @@ const ALLOWED_GOAL_PARAMS = new Set([
   'step',
   'connection_mode',
   'scenario_type',
+  'locale',
 ]);
 
 export const trackProductGoal = (goal, params = {}) => {
@@ -66,7 +68,10 @@ export const trackProductGoal = (goal, params = {}) => {
     return false;
   }
 
-  const safeParams = { page_path: window.location.pathname };
+  const safeParams = {
+    page_path: window.location.pathname,
+    locale: getCurrentLocale(),
+  };
   Object.entries(params).forEach(([key, value]) => {
     if (ALLOWED_GOAL_PARAMS.has(key) && value !== undefined && value !== null && value !== '') {
       safeParams[key] = String(value);

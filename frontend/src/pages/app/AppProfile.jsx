@@ -10,6 +10,7 @@ import Button from '../../components/ui/Button';
 import Surface from '../../components/ui/Surface';
 import { Title, Text } from '../../components/ui/Typography';
 import './AppProfile.css';
+import { translateApp } from '../../locales/i18n';
 
 function AppProfile() {
   const { user, token, status, logout } = useAuth();
@@ -56,7 +57,7 @@ function AppProfile() {
       setAuthMethods(data);
     } catch (error) {
       if (isSessionExpiredError(error)) return;
-      setMethodsError(error?.message || 'Не удалось загрузить способы входа');
+      setMethodsError(error?.message || translateApp("Не удалось загрузить способы входа"));
     } finally {
       setLoadingMethods(false);
     }
@@ -71,7 +72,7 @@ function AppProfile() {
       event?.preventDefault?.();
       setPasswordSuccess('');
       if (localPassword !== localPasswordConfirm) {
-        setMethodsError('Пароли не совпадают');
+        setMethodsError(translateApp("Пароли не совпадают"));
         return;
       }
       setMethodsError('');
@@ -84,7 +85,7 @@ function AppProfile() {
         setLocalPasswordConfirm('');
       } catch (error) {
         if (isSessionExpiredError(error)) return;
-        setMethodsError(error?.message || 'Не удалось сохранить локальный вход');
+        setMethodsError(error?.message || translateApp("Не удалось сохранить локальный вход"));
       } finally {
         setUpdatingLocal(false);
       }
@@ -98,20 +99,20 @@ function AppProfile() {
       setMethodsError('');
       setPasswordSuccess('');
       if (newPassword !== newPasswordConfirm) {
-        setMethodsError('Новый пароль и подтверждение не совпадают');
+        setMethodsError(translateApp("Новый пароль и подтверждение не совпадают"));
         return;
       }
       setChangingPassword(true);
       try {
         await changePassword(currentPassword, newPassword, token);
-        setPasswordSuccess('Пароль успешно обновлён');
+        setPasswordSuccess(translateApp("Пароль успешно обновлён"));
         setCurrentPassword('');
         setNewPassword('');
         setNewPasswordConfirm('');
         setShowChangePasswordForm(false);
       } catch (error) {
         if (isSessionExpiredError(error)) return;
-        setMethodsError(error?.message || 'Не удалось сменить пароль');
+        setMethodsError(error?.message || translateApp("Не удалось сменить пароль"));
       } finally {
         setChangingPassword(false);
       }
@@ -121,7 +122,7 @@ function AppProfile() {
 
   const handleUnlink = useCallback(
     async (provider) => {
-      const confirmed = window.confirm('Удалить этот способ входа?');
+      const confirmed = window.confirm(translateApp("Удалить этот способ входа?"));
       if (!confirmed) {
         return;
       }
@@ -133,7 +134,7 @@ function AppProfile() {
         setAuthMethods(data);
       } catch (error) {
         if (isSessionExpiredError(error)) return;
-        setMethodsError(error?.message || 'Не удалось удалить способ входа');
+        setMethodsError(error?.message || translateApp("Не удалось удалить способ входа"));
       } finally {
         setUnlinkingProvider(null);
       }
@@ -152,7 +153,7 @@ function AppProfile() {
         window.location.href = url;
       } catch (error) {
         if (isSessionExpiredError(error)) return;
-        setMethodsError(error?.message || 'Не удалось начать привязку');
+        setMethodsError(error?.message || translateApp("Не удалось начать привязку"));
       } finally {
         setLinkingProvider(null);
       }
@@ -166,31 +167,29 @@ function AppProfile() {
 
   const formatProviderStatus = useCallback((providerData) => {
     if (!providerData?.linked) {
-      return 'Не привязан';
+      return translateApp("Не привязан");
     }
     const subject = providerData.provider_subject || '';
     const shortSubject = subject ? ` (${subject.slice(0, 10)}${subject.length > 10 ? '…' : ''})` : '';
-    return `Привязан${shortSubject}`;
+    return translateApp("Привязан{{value1}}", { value1: shortSubject });
   }, []);
 
   const isLoadingLink = useMemo(() => Boolean(linkingProvider), [linkingProvider]);
 
   if (!user) {
-    return <div className="profile-card">Нет данных профиля</div>;
+    return <div className="profile-card">{translateApp("Нет данных профиля")}</div>;
   }
 
   return (
     <div className="app-profile">
       <AppPageHeader
-        title="Профиль"
+        title={translateApp("Профиль")}
         right={user && user.role === 'admin' ? (
           <Button
             type="button"
             variant="secondary"
             onClick={() => navigate('/app/admin/devices/')}
-          >
-            Администрирование
-          </Button>
+          >{translateApp("Администрирование")}</Button>
         ) : null}
       />
       <AppGrid min={320}>
@@ -200,46 +199,44 @@ function AppProfile() {
             <span>{user.id}</span>
           </div>
           <div className="profile-row">
-            <span className="profile-label">Электронная почта</span>
+            <span className="profile-label">{translateApp("Электронная почта")}</span>
             <span>{user.email || '-'}</span>
           </div>
           <div className="profile-row">
-            <span className="profile-label">Имя пользователя</span>
+            <span className="profile-label">{translateApp("Имя пользователя")}</span>
             <span>{user.username || '-'}</span>
           </div>
           <div className="profile-row">
-            <span className="profile-label">Роль</span>
+            <span className="profile-label">{translateApp("Роль")}</span>
             <span>{user.role || '-'}</span>
           </div>
           <div className="profile-row">
-            <span className="profile-label">Статус</span>
-            <span>{user.is_active ? 'Активен' : 'Заблокирован'}</span>
+            <span className="profile-label">{translateApp("Статус")}</span>
+            <span>{user.is_active ? translateApp("Активен") : translateApp("Заблокирован")}</span>
           </div>
           <div className="profile-actions">
-            <Button type="button" variant="secondary" onClick={handleLogout}>
-              Выйти
-            </Button>
+            <Button type="button" variant="secondary" onClick={handleLogout}>{translateApp("Выйти")}</Button>
           </div>
         </Surface>
 
         <Surface variant="card" padding="md" className="profile-card profile-auth-card">
           <div className="profile-auth-header">
-            <Title level={3}>Способы входа</Title>
+            <Title level={3}>{translateApp("Способы входа")}</Title>
             {methodsError ? <Text tone="danger" className="profile-auth-error">{methodsError}</Text> : null}
             {passwordSuccess ? <Text className="profile-auth-success">{passwordSuccess}</Text> : null}
           </div>
 
           {loadingMethods ? (
-            <div className="profile-auth-status">Загрузка способов входа...</div>
+            <div className="profile-auth-status">{translateApp("Загрузка способов входа...")}</div>
           ) : authMethods ? (
             <>
               <div className="profile-auth-row">
                 <div>
-                  <div className="profile-auth-title">Локальный логин</div>
+                  <div className="profile-auth-title">{translateApp("Локальный логин")}</div>
                   <Text tone="muted" className="profile-auth-status">
                     {localMethods?.active
-                      ? `Локальный вход активен (${localMethods.email || '-'})`
-                      : 'Локальный вход не настроен'}
+                      ? translateApp("Локальный вход активен ({{value1}})", { value1: localMethods.email || '-' })
+                      : translateApp("Локальный вход не настроен")}
                   </Text>
                 </div>
                 <div className="profile-auth-actions">
@@ -249,9 +246,7 @@ function AppProfile() {
                       variant="secondary"
                       onClick={() => setShowSetLocalForm((prev) => !prev)}
                       disabled={updatingLocal || isLoadingLink || Boolean(unlinkingProvider)}
-                    >
-                      Установить пароль
-                    </Button>
+                    >{translateApp("Установить пароль")}</Button>
                   ) : (
                     <>
                       <Button
@@ -259,9 +254,7 @@ function AppProfile() {
                         variant="secondary"
                         onClick={() => setShowChangePasswordForm((prev) => !prev)}
                         disabled={changingPassword || isLoadingLink || Boolean(unlinkingProvider)}
-                      >
-                        Сменить пароль
-                      </Button>
+                      >{translateApp("Сменить пароль")}</Button>
                       {localMethods?.can_delete ? (
                         <Button
                           type="button"
@@ -269,7 +262,7 @@ function AppProfile() {
                           onClick={() => handleUnlink('local')}
                           disabled={unlinkingProvider === 'local'}
                         >
-                          {unlinkingProvider === 'local' ? 'Удаляем...' : 'Удалить локальный вход'}
+                          {unlinkingProvider === 'local' ? translateApp("Удаляем...") : translateApp("Удалить локальный вход")}
                         </Button>
                       ) : null}
                     </>
@@ -279,7 +272,7 @@ function AppProfile() {
 
               {!localMethods?.active && showSetLocalForm ? (
                 <form className="profile-auth-form" onSubmit={handleSetLocalLogin}>
-                  <FormField label="Электронная почта для входа" htmlFor="local-email">
+                  <FormField label={translateApp("Электронная почта для входа")} htmlFor="local-email">
                     <input
                       id="local-email"
                       type="email"
@@ -289,7 +282,7 @@ function AppProfile() {
                       disabled={updatingLocal}
                     />
                   </FormField>
-                  <FormField label="Новый пароль" htmlFor="local-password">
+                  <FormField label={translateApp("Новый пароль")} htmlFor="local-password">
                     <input
                       id="local-password"
                       type="password"
@@ -299,7 +292,7 @@ function AppProfile() {
                       disabled={updatingLocal}
                     />
                   </FormField>
-                  <FormField label="Повторите новый пароль" htmlFor="local-password-confirm">
+                  <FormField label={translateApp("Повторите новый пароль")} htmlFor="local-password-confirm">
                     <input
                       id="local-password-confirm"
                       type="password"
@@ -311,23 +304,21 @@ function AppProfile() {
                   </FormField>
                   <div className="profile-auth-actions">
                     <Button type="submit" variant="primary" disabled={updatingLocal}>
-                      {updatingLocal ? 'Сохраняем...' : 'Сохранить'}
+                      {updatingLocal ? translateApp("Сохраняем...") : translateApp("Сохранить")}
                     </Button>
                     <Button
                       type="button"
                       variant="secondary"
                       onClick={() => setShowSetLocalForm(false)}
                       disabled={updatingLocal}
-                    >
-                      Отмена
-                    </Button>
+                    >{translateApp("Отмена")}</Button>
                   </div>
                 </form>
               ) : null}
 
               {localMethods?.active && showChangePasswordForm ? (
                 <form className="profile-auth-form" onSubmit={handleChangePassword}>
-                  <FormField label="Текущий пароль" htmlFor="current-password">
+                  <FormField label={translateApp("Текущий пароль")} htmlFor="current-password">
                     <input
                       id="current-password"
                       type="password"
@@ -337,7 +328,7 @@ function AppProfile() {
                       disabled={changingPassword}
                     />
                   </FormField>
-                  <FormField label="Новый пароль" htmlFor="new-password">
+                  <FormField label={translateApp("Новый пароль")} htmlFor="new-password">
                     <input
                       id="new-password"
                       type="password"
@@ -347,7 +338,7 @@ function AppProfile() {
                       disabled={changingPassword}
                     />
                   </FormField>
-                  <FormField label="Повторите новый пароль" htmlFor="new-password-confirm">
+                  <FormField label={translateApp("Повторите новый пароль")} htmlFor="new-password-confirm">
                     <input
                       id="new-password-confirm"
                       type="password"
@@ -359,16 +350,14 @@ function AppProfile() {
                   </FormField>
                   <div className="profile-auth-actions">
                     <Button type="submit" variant="primary" disabled={changingPassword}>
-                      {changingPassword ? 'Обновляем...' : 'Сменить пароль'}
+                      {changingPassword ? translateApp("Обновляем...") : translateApp("Сменить пароль")}
                     </Button>
                     <Button
                       type="button"
                       variant="secondary"
                       onClick={() => setShowChangePasswordForm(false)}
                       disabled={changingPassword}
-                    >
-                      Отмена
-                    </Button>
+                    >{translateApp("Отмена")}</Button>
                   </div>
                 </form>
               ) : null}
@@ -387,7 +376,7 @@ function AppProfile() {
                         onClick={() => handleUnlink('google')}
                         disabled={unlinkingProvider === 'google'}
                         >
-                          {unlinkingProvider === 'google' ? 'Отвязываем...' : 'Отвязать'}
+                          {unlinkingProvider === 'google' ? translateApp("Отвязываем...") : translateApp("Отвязать")}
                         </Button>
                       ) : null
                     ) : (
@@ -397,7 +386,7 @@ function AppProfile() {
                         onClick={() => handleLink('google')}
                         disabled={isLoadingLink || loadingMethods}
                       >
-                        {linkingProvider === 'google' ? 'Открываем...' : 'Привязать Google'}
+                        {linkingProvider === 'google' ? translateApp("Открываем...") : translateApp("Привязать Google")}
                       </Button>
                     )}
                 </div>
@@ -405,7 +394,7 @@ function AppProfile() {
 
               <div className="profile-auth-row">
                 <div>
-                  <div className="profile-auth-title">Яндекс</div>
+                  <div className="profile-auth-title">{translateApp("Яндекс")}</div>
                   <Text tone="muted" className="profile-auth-status">{formatProviderStatus(yandexMethods)}</Text>
                 </div>
                 <div className="profile-auth-actions">
@@ -417,7 +406,7 @@ function AppProfile() {
                         onClick={() => handleUnlink('yandex')}
                         disabled={unlinkingProvider === 'yandex'}
                         >
-                          {unlinkingProvider === 'yandex' ? 'Отвязываем...' : 'Отвязать'}
+                          {unlinkingProvider === 'yandex' ? translateApp("Отвязываем...") : translateApp("Отвязать")}
                         </Button>
                       ) : null
                     ) : (
@@ -427,14 +416,14 @@ function AppProfile() {
                         onClick={() => handleLink('yandex')}
                         disabled={isLoadingLink || loadingMethods}
                       >
-                        {linkingProvider === 'yandex' ? 'Открываем...' : 'Привязать Яндекс'}
+                        {linkingProvider === 'yandex' ? translateApp("Открываем...") : translateApp("Привязать Яндекс")}
                       </Button>
                     )}
                 </div>
               </div>
             </>
           ) : (
-            <Text tone="muted" className="profile-auth-status">Нет данных о способах входа</Text>
+            <Text tone="muted" className="profile-auth-status">{translateApp("Нет данных о способах входа")}</Text>
           )}
         </Surface>
       </AppGrid>

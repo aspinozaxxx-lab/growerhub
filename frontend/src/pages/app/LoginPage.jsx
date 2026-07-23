@@ -4,6 +4,9 @@ import { useAuth } from '../../features/auth/AuthContext';
 import FormField from '../../components/ui/FormField';
 import Button from '../../components/ui/Button';
 import './LoginPage.css';
+import { getCurrentLocale, translateApp } from '../../locales/i18n';
+import { getPublicPath } from '../../domain/localizedRoutes';
+import { buildSsoLoginUrl } from '../../features/auth/sso';
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -60,7 +63,12 @@ function LoginPage() {
 
   const handleSSO = (provider) => {
     const target = consumeRedirectAfterLogin();
-    window.location.href = `/api/auth/sso/${provider}/login?redirect_path=${encodeURIComponent(target)}`;
+    window.location.href = buildSsoLoginUrl(
+      provider,
+      target,
+      getCurrentLocale(),
+      window.location.origin,
+    );
   };
 
   const isLoading = status === 'loading';
@@ -68,21 +76,17 @@ function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1>Начать работу с GrowerHub</h1>
-        <p className="login-intro">GrowerHub доступен бесплатно и без карты. После входа сразу перейдём к подключению Zigbee2MQTT.</p>
+        <h1>{translateApp("Начать работу с GrowerHub")}</h1>
+        <p className="login-intro">{translateApp("GrowerHub доступен бесплатно и без карты. После входа сразу перейдём к подключению Zigbee2MQTT.")}</p>
         <div className="login-sso">
-          <button type="button" className="login-sso__btn login-sso__btn--primary" onClick={() => handleSSO('yandex')}>
-            Продолжить с Яндексом
-          </button>
-          <button type="button" className="login-sso__btn" onClick={() => handleSSO('google')}>
-            Продолжить с Google
-          </button>
+          <button type="button" className="login-sso__btn login-sso__btn--primary" onClick={() => handleSSO('yandex')}>{translateApp("Продолжить с Яндексом")}</button>
+          <button type="button" className="login-sso__btn" onClick={() => handleSSO('google')}>{translateApp("Продолжить с Google")}</button>
         </div>
 
         <details className="login-local">
-          <summary>Вход по паролю для существующих аккаунтов</summary>
+          <summary>{translateApp("Вход по паролю для существующих аккаунтов")}</summary>
           <form className="login-form" onSubmit={handleSubmit}>
-            <FormField label="Электронная почта" htmlFor="login-email">
+            <FormField label={translateApp("Электронная почта")} htmlFor="login-email">
               <input
                 id="login-email"
                 type="email"
@@ -94,7 +98,7 @@ function LoginPage() {
               />
             </FormField>
 
-            <FormField label="Пароль" htmlFor="login-password">
+            <FormField label={translateApp("Пароль")} htmlFor="login-password">
               <input
                 id="login-password"
                 type="password"
@@ -109,12 +113,17 @@ function LoginPage() {
             {error ? <div className="login-error">{error}</div> : null}
 
             <Button type="submit" variant="primary" disabled={isLoading}>
-              {isLoading ? 'Входим...' : 'Войти'}
+              {isLoading ? translateApp("Входим...") : translateApp("Войти")}
             </Button>
           </form>
         </details>
 
-        <p className="login-legal">Продолжая, вы принимаете <a href="/terms/">условия использования</a> и знакомитесь с <a href="/privacy/">политикой конфиденциальности</a>.</p>
+        <p className="login-legal">
+          {translateApp("Продолжая, вы принимаете")}{' '}
+          <a href={getPublicPath('terms', getCurrentLocale())}>{translateApp("условия использования")}</a>
+          {' '}{translateApp("и знакомитесь с")}{' '}
+          <a href={getPublicPath('privacy', getCurrentLocale())}>{translateApp("политикой конфиденциальности")}</a>.
+        </p>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import { SensorStatsProvider } from '../../features/sensors/SensorStatsContext';
 import { WateringSidebarProvider } from '../../features/watering/WateringSidebarContext';
 import NotFoundPage from '../NotFoundPage';
 import LoginPage from './LoginPage';
+import { translateApp } from '../../locales/i18n';
 
 const AppOverview = lazy(() => import('./AppOverview'));
 const SensorStatsSidebar = lazy(() => import('../../features/sensors/SensorStatsSidebar'));
@@ -48,7 +49,7 @@ function ProtectedAppLayout() {
 function AppSection() {
   return (
     <AuthProvider>
-      <Suspense fallback={<div className="app-loading">Загружаем раздел…</div>}>
+      <Suspense fallback={<div className="app-loading">{translateApp("Загружаем раздел…")}</div>}>
         <Routes>
           <Route path="login/" element={<LoginPage />} />
           <Route element={<ProtectedAppLayout />}>

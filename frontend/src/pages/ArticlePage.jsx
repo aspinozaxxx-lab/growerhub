@@ -1,27 +1,100 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
-import { getArticleClusterBySlug } from '../content/articleClusters';
-import { getArticleBySlug, getRelatedArticles } from '../content/articles';
+import { getArticleClusterById } from '../content/articleClusters';
+import {
+  getArticleBySlug,
+  getArticleTranslation,
+  getRelatedArticles,
+  loadArticleBody,
+} from '../content/articles';
+import {
+  getArticlePath,
+  getClusterPath,
+  getPublicPath,
+} from '../domain/localizedRoutes';
+import { SITE_URL } from '../domain/siteConfig';
+import { getCurrentLocale, getIntlLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 import NotFoundPage from './NotFoundPage';
 
+const readStaticBody = (article) => {
+  if (!article || typeof document === 'undefined') return '';
+  const element = document.getElementById('growerhub-page-data');
+  if (!element?.textContent) return '';
+  try {
+    const payload = JSON.parse(element.textContent);
+    return payload.articleId === article.id && payload.locale === article.locale
+      ? payload.bodyHtml || ''
+      : '';
+  } catch {
+    return '';
+  }
+};
+
 function ArticlePage() {
   const { slug } = useParams();
-  const article = useMemo(() => getArticleBySlug(slug), [slug]);
-  const cluster = useMemo(() => getArticleClusterBySlug(article?.cluster), [article]);
-  const relatedArticles = useMemo(() => getRelatedArticles(article, 4), [article]);
-  const heroImageRenderedInBody = Boolean(
-    article?.hero_image && article.body.includes(`](${article.hero_image})`),
-  );
+  const locale = getCurrentLocale();
+  const article = useMemo(() => getArticleBySlug(slug, locale), [locale, slug]);
+  const cluster = useMemo(() => getArticleClusterById(article?.cluster, locale), [article, locale]);
+  const relatedArticles = useMemo(() => getRelatedArticles(article, 4, locale), [article, locale]);
+  const articleKey = article ? `${article.locale}:${article.id}` : '';
+  const staticBodyHtml = useMemo(() => readStaticBody(article), [article]);
+  const [loadedBody, setLoadedBody] = useState({ key: '', html: '', error: false });
+  const bodyHtml = staticBodyHtml || (loadedBody.key === articleKey ? loadedBody.html : '');
+  const bodyError = loadedBody.key === articleKey && loadedBody.error;
+  const ruArticle = getArticleTranslation(article, 'ru');
+  const enArticle = getArticleTranslation(article, 'en');
+  const path = article ? getArticlePath(article, locale) : null;
+
+  useEffect(() => {
+    if (!article || staticBodyHtml) return undefined;
+    let active = true;
+    loadArticleBody(article)
+      .then((html) => {
+        if (active) setLoadedBody({ key: articleKey, html, error: false });
+      })
+      .catch(() => {
+        if (active) setLoadedBody({ key: articleKey, html: '', error: true });
+      });
+    return () => {
+      active = false;
+    };
+  }, [article, articleKey, staticBodyHtml]);
 
   useSeoMeta({
-    title: article ? `${article.title} - GrowerHub` : 'Статья не найдена - GrowerHub',
-    description: article?.summary || 'Запрошенная статья GrowerHub не найдена.',
-    path: article ? `/articles/${article.slug}/` : null,
+    title: article ? `${article.title} — GrowerHub` : translatePublic('Статья не найдена — GrowerHub'),
+    description: article?.summary || translatePublic('Запрошенная статья GrowerHub не найдена.'),
+    path,
     type: article ? 'article' : 'website',
     image: article?.hero_image || undefined,
     robots: article ? 'index,follow' : 'noindex,nofollow',
+    locale,
+    alternatePaths: ruArticle && enArticle ? {
+      ru: getArticlePath(ruArticle, 'ru'),
+      en: getArticlePath(enArticle, 'en'),
+    } : undefined,
+    jsonLd: article ? [{
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: article.title,
+      description: article.summary,
+      datePublished: article.created_at,
+      dateModified: article.updated_at,
+      url: `${SITE_URL}${path}`,
+      image: article.hero_image ? `${SITE_URL}${article.hero_image}` : undefined,
+      inLanguage: locale,
+      author: {
+        '@type': 'Organization',
+        name: 'GrowerHub',
+        url: SITE_URL,
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'GrowerHub',
+        url: SITE_URL,
+      },
+    }] : [],
   });
 
   if (!article) {
@@ -31,35 +104,39 @@ function ArticlePage() {
   return (
     <article className="section">
       <div className="article-meta">
-        Обновлено {new Date(article.updated_at).toLocaleDateString('ru-RU')}
+        {translatePublic('Обновлено')} {new Date(article.updated_at).toLocaleDateString(getIntlLocale(locale))}
       </div>
       <h1>{article.title}</h1>
       <p className="article-lead">{article.summary}</p>
       {cluster && (
-        <Link to={`/articles/clusters/${cluster.slug}/`} className="secondary-link">
+        <Link to={getClusterPath(cluster, locale)} className="secondary-link">
           {cluster.title}
         </Link>
       )}
-      {article.hero_image && !heroImageRenderedInBody && (
+      {article.hero_image && !article.hero_in_body && (
         <img className="article-hero-image" src={article.hero_image} alt={article.hero_alt || article.title} />
       )}
-      <div
-        className="article-body"
-        // Markdown prevrashaem v HTML dlya vyvoda.
-        dangerouslySetInnerHTML={{ __html: article.bodyHtml }}
-      />
+      {bodyError ? (
+        <div className="article-body">{translatePublic('Не удалось загрузить материал. Обновите страницу.')}</div>
+      ) : (
+        <div
+          className="article-body"
+          // Translitem: Markdown zagruzhaetsya otdel'no ot metadannyh stranicy.
+          dangerouslySetInnerHTML={{ __html: bodyHtml }}
+        />
+      )}
       <LeadCta
         placement="article_bottom"
-        title="Подключите устройство к GrowerHub"
-        text="Войдите, настройте Zigbee2MQTT и увидьте метрики в кабинете. Если потребуется помощь, Telegram доступен на каждом шаге."
+        title={translatePublic('Подключите устройство к GrowerHub')}
+        text={translatePublic('Войдите, настройте Zigbee2MQTT и увидьте метрики в кабинете. Если потребуется помощь, напишите нам в Telegram на русском или английском.')}
       />
       {relatedArticles.length > 0 && (
         <section className="related-articles">
-          <h2>Читайте также</h2>
+          <h2>{translatePublic('Читайте также')}</h2>
           <div className="articles-list">
             {relatedArticles.map((relatedArticle) => (
               <article className="article-card" key={relatedArticle.slug}>
-                <Link to={`/articles/${relatedArticle.slug}/`}>{relatedArticle.title}</Link>
+                <Link to={getArticlePath(relatedArticle, locale)}>{relatedArticle.title}</Link>
                 <p>{relatedArticle.summary}</p>
               </article>
             ))}
@@ -67,7 +144,9 @@ function ArticlePage() {
         </section>
       )}
       <div className="content-section">
-        <Link to="/articles/" className="secondary-link">Назад к статьям</Link>
+        <Link to={getPublicPath('articles', locale)} className="secondary-link">
+          {translatePublic('Назад к статьям')}
+        </Link>
       </div>
     </article>
   );

@@ -4,6 +4,7 @@ import { fetchMyDevices } from '../../api/devices';
 import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { useWateringSidebar } from '../watering/WateringSidebarContext';
+import { translateApp } from '../../locales/i18n';
 
 export function useDashboardData() {
   const { token } = useAuth();
@@ -33,7 +34,7 @@ export function useDashboardData() {
       } catch (err) {
         if (!isCancelled) {
           if (isSessionExpiredError(err)) return;
-          setError(err?.message || 'Не удалось загрузить данные');
+          setError(err?.message || translateApp("Не удалось загрузить данные"));
         }
       } finally {
         if (!isCancelled) {

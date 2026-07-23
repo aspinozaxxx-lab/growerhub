@@ -4,11 +4,12 @@ import { isSessionExpiredError } from '../../api/client';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import './EditDeviceModal.css';
+import { translateApp } from '../../locales/i18n';
 
 const SENSOR_TYPE_LABELS = {
-  SOIL_MOISTURE: 'Влажность почвы',
-  AIR_TEMPERATURE: 'Температура воздуха',
-  AIR_HUMIDITY: 'Влажность воздуха',
+  SOIL_MOISTURE: translateApp("Влажность почвы"),
+  AIR_TEMPERATURE: translateApp("Температура воздуха"),
+  AIR_HUMIDITY: translateApp("Влажность воздуха"),
 };
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
@@ -17,30 +18,30 @@ function buildSensorTitle(sensor) {
   const label = sensor?.label;
   const type = sensor?.type;
   const channel = sensor?.channel;
-  const base = label || SENSOR_TYPE_LABELS[type] || type || 'Датчик';
-  return channel !== undefined && channel !== null ? `${base} · канал ${channel}` : base;
+  const base = label || SENSOR_TYPE_LABELS[type] || type || translateApp("Датчик");
+  return channel !== undefined && channel !== null ? translateApp("{{value1}} · канал {{value2}}", { value1: base, value2: channel }) : base;
 }
 
 function formatPlantAge(plantedAt) {
   if (!plantedAt) {
-    return 'нет даты';
+    return translateApp("нет даты");
   }
   const date = new Date(plantedAt);
   if (Number.isNaN(date.getTime())) {
-    return 'нет даты';
+    return translateApp("нет даты");
   }
   const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / MS_IN_DAY));
   if (days < 14) {
-    return `${days} дн.`;
+    return translateApp("{{value1}} дн.", { value1: days });
   }
   const weeks = Math.max(1, Math.floor(days / 7));
-  return `${weeks} нед.`;
+  return translateApp("{{value1}} нед.", { value1: weeks });
 }
 
 function buildPlantLabel(plant) {
   const idPart = plant?.id !== null && plant?.id !== undefined ? plant.id : '-';
-  const namePart = plant?.name || 'Без названия';
-  const groupPart = plant?.plant_group?.name || 'Без группы';
+  const namePart = plant?.name || translateApp("Без названия");
+  const groupPart = plant?.plant_group?.name || translateApp("Без группы");
   const agePart = formatPlantAge(plant?.planted_at);
   return `${idPart} · ${namePart} · ${groupPart} · ${agePart}`;
 }
@@ -103,7 +104,7 @@ function EditDeviceModal({
       onSaved?.();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось сохранить привязки');
+      setError(err?.message || translateApp("Не удалось сохранить привязки"));
     } finally {
       setIsSaving(false);
     }
@@ -111,16 +112,14 @@ function EditDeviceModal({
 
   const footer = (
     <div className="modal__actions">
-      <Button variant="secondary" onClick={onClose} disabled={isSaving}>
-        Отмена
-      </Button>
+      <Button variant="secondary" onClick={onClose} disabled={isSaving}>{translateApp("Отмена")}</Button>
       <Button
         type="button"
         variant="primary"
         onClick={handleSave}
         disabled={isSaving}
       >
-        {isSaving ? 'Сохраняем...' : 'Сохранить'}
+        {isSaving ? translateApp("Сохраняем...") : translateApp("Сохранить")}
       </Button>
     </div>
   );
@@ -129,8 +128,8 @@ function EditDeviceModal({
     <Modal
       isOpen={Boolean(device)}
       onClose={onClose}
-      title="Привязки датчиков"
-      closeLabel="Закрыть"
+      title={translateApp("Привязки датчиков")}
+      closeLabel={translateApp("Закрыть")}
       disableOverlayClose
       footer={footer}
       size="lg"
@@ -139,13 +138,13 @@ function EditDeviceModal({
       {error && <div className="edit-device__error">{error}</div>}
 
       <div className="edit-device__section">
-        <div className="edit-device__section-title">Датчики</div>
-        {sensors.length === 0 && <div className="edit-device__empty">Нет датчиков</div>}
+        <div className="edit-device__section-title">{translateApp("Датчики")}</div>
+        {sensors.length === 0 && <div className="edit-device__empty">{translateApp("Нет датчиков")}</div>}
         {sensors.map((sensor) => (
           <div key={sensor.id} className="edit-device__item">
             <div className="edit-device__item-title">{buildSensorTitle(sensor)}</div>
             <div className="edit-device__bindings">
-              {sortedPlants.length === 0 && <div className="edit-device__empty">Нет растений</div>}
+              {sortedPlants.length === 0 && <div className="edit-device__empty">{translateApp("Нет растений")}</div>}
               {sortedPlants.map((plant) => {
                 const selected = (sensorBindings[sensor.id] || []).includes(plant.id);
                 return (

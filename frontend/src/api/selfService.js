@@ -1,4 +1,5 @@
 import { apiFetch, normalizeApiErrorMessage } from './client';
+import { translateApp } from '../locales/i18n';
 
 async function requestJson(url, init = {}) {
   const headers = new Headers(init.headers || {});
@@ -75,7 +76,7 @@ export const createZone = (name) => requestJson('/api/automation/zones', {
   body: JSON.stringify({ name, enabled: true }),
 });
 
-export const createZoneSection = (zoneId, name = 'Основная зона') => requestJson(
+export const createZoneSection = (zoneId, name = translateApp("Основная зона")) => requestJson(
   `/api/automation/zones/${encodeURIComponent(zoneId)}/sections`,
   {
     method: 'POST',

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="title desc">
+  <title id="title">Zigbee USB coordinator</title>
+  <desc id="desc">Neutral illustration of a USB Zigbee coordinator with an external antenna</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#eef8f1"/>
+      <stop offset="1" stop-color="#d9eee1"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#34443b"/>
+      <stop offset="1" stop-color="#17221c"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" rx="28" fill="url(#bg)"/>
+  <circle cx="530" cy="92" r="48" fill="#c6e5d1"/>
+  <path d="M480 102c27-27 71-27 98 0M493 115c20-20 52-20 72 0M510 132c10-10 27-10 38 0" fill="none" stroke="#2e7d4f" stroke-width="9" stroke-linecap="round"/>
+  <g transform="translate(105 124) rotate(-7 220 90)">
+    <rect x="90" y="28" width="330" height="144" rx="28" fill="url(#body)"/>
+    <rect x="33" y="67" width="92" height="66" rx="8" fill="#b9c7c0"/>
+    <rect x="7" y="81" width="45" height="38" rx="5" fill="#dce4e0"/>
+    <path d="M21 91v18M36 91v18" stroke="#78867f" stroke-width="5"/>
+    <circle cx="378" cy="100" r="12" fill="#75d495"/>
+    <path d="M410 78h44" stroke="#17221c" stroke-width="20" stroke-linecap="round"/>
+    <path d="M449 77l76-102" stroke="#34443b" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="528" cy="-29" r="11" fill="#34443b"/>
+    <text x="154" y="94" fill="#f6fff8" font-family="Arial, sans-serif" font-size="27" font-weight="700">Zigbee</text>
+    <text x="154" y="126" fill="#b9cfc1" font-family="Arial, sans-serif" font-size="18">USB coordinator</text>
+  </g>
+</svg>

@@ -1,11 +1,12 @@
 ﻿// API helper for plants list.
 import { apiFetch } from './client';
+import { translateApp } from '../locales/i18n';
 
 export async function fetchPlants(token) {
   void token;
   const response = await apiFetch('/api/plants');
   if (!response.ok) {
-    throw new Error(`Не удалось загрузить растения (${response.status})`);
+    throw new Error(translateApp("Не удалось загрузить растения ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -15,7 +16,7 @@ export async function fetchPlant(token, plantId) {
   void token;
   const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}`);
   if (!response.ok) {
-    throw new Error(`Не удалось загрузить растение (${response.status})`);
+    throw new Error(translateApp("Не удалось загрузить растение ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -30,7 +31,7 @@ export async function createPlant(token, payload) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`Не удалось создать растение (${response.status})`);
+    throw new Error(translateApp("Не удалось создать растение ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -45,7 +46,7 @@ export async function updatePlant(token, plantId, payload) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`Не удалось сохранить растение (${response.status})`);
+    throw new Error(translateApp("Не удалось сохранить растение ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -57,7 +58,7 @@ export async function deletePlant(token, plantId) {
     method: 'DELETE',
   });
   if (!response.ok) {
-    throw new Error(`Не удалось удалить растение (${response.status})`);
+    throw new Error(translateApp("Не удалось удалить растение ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -72,7 +73,7 @@ export async function harvestPlant(plantId, payload, token) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`Не удалось завершить выращивание (${response.status})`);
+    throw new Error(translateApp("Не удалось завершить выращивание ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -82,7 +83,7 @@ export async function fetchPlantGroups(token) {
   void token;
   const response = await apiFetch('/api/plant-groups');
   if (!response.ok) {
-    throw new Error(`Не удалось загрузить группы растений (${response.status})`);
+    throw new Error(translateApp("Не удалось загрузить группы растений ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -97,7 +98,7 @@ export async function createPlantGroup(token, payload) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`Не удалось создать группу растений (${response.status})`);
+    throw new Error(translateApp("Не удалось создать группу растений ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -112,7 +113,7 @@ export async function updatePlantGroup(token, groupId, payload) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`Не удалось сохранить группу растений (${response.status})`);
+    throw new Error(translateApp("Не удалось сохранить группу растений ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -124,7 +125,7 @@ export async function deletePlantGroup(token, groupId) {
     method: 'DELETE',
   });
   if (!response.ok) {
-    throw new Error(`Не удалось удалить группу растений (${response.status})`);
+    throw new Error(translateApp("Не удалось удалить группу растений ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -135,7 +136,7 @@ export async function fetchPlantHistory(plantId, hours, metrics, token) {
   const metricsParam = metrics ? `&metrics=${encodeURIComponent(metrics)}` : '';
   const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}/history?hours=${hours}${metricsParam}`);
   if (!response.ok) {
-    throw new Error(`Не удалось загрузить историю растения (${response.status})`);
+    throw new Error(translateApp("Не удалось загрузить историю растения ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }

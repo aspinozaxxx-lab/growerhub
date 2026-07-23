@@ -17,14 +17,15 @@ import {
 } from '../../features/manual-watering/manualWateringModel';
 import { formatDateKeyYYYYMMDD, formatTimeHHMM, parseBackendTimestamp } from '../../utils/formatters';
 import './AppPlantJournal.css';
+import { getIntlLocale, translateApp } from '../../locales/i18n';
 
 const JOURNAL_TYPE_CONFIG = {
-  watering: { label: 'Полив', icon: '💧', kind: 'watering' },
-  feeding: { label: 'Уход', icon: '🧹', kind: 'care' },
-  harvest: { label: 'Сбор', icon: '🧺', kind: 'harvest' },
-  photo: { label: 'Фото', icon: '📷', kind: 'photo' },
-  note: { label: 'Наблюдение', icon: '👁', kind: 'observation' },
-  other: { label: 'Наблюдение', icon: '👁', kind: 'observation' },
+  watering: { label: translateApp("Полив"), icon: '💧', kind: 'watering' },
+  feeding: { label: translateApp("Уход"), icon: '🧹', kind: 'care' },
+  harvest: { label: translateApp("Сбор"), icon: '🧺', kind: 'harvest' },
+  photo: { label: translateApp("Фото"), icon: '📷', kind: 'photo' },
+  note: { label: translateApp("Наблюдение"), icon: '👁', kind: 'observation' },
+  other: { label: translateApp("Наблюдение"), icon: '👁', kind: 'observation' },
 };
 
 const BACKEND_TYPES = ['watering', 'feeding', 'harvest', 'photo', 'note', 'other'];
@@ -60,7 +61,7 @@ function buildDateRange(startDate, endDate) {
 function formatVolumeL(value) {
   if (value === null || value === undefined) return '';
   const str = Number(value).toFixed(3).replace(/\.?0+$/, '').replace('.', ',');
-  return `${str} л`;
+  return translateApp("{{value1}} л", { value1: str });
 }
 
 function PhotoPreview({ photo, token, cache, setCache }) {
@@ -87,19 +88,19 @@ function PhotoPreview({ photo, token, cache, setCache }) {
   }, [cache, photo, setCache, token]);
 
   if (!photo || !photo.has_data) {
-    return <div className="journal-entry__photo-placeholder">Фото недоступно</div>;
+    return <div className="journal-entry__photo-placeholder">{translateApp("Фото недоступно")}</div>;
   }
   if (status === 'loading') {
-    return <div className="journal-entry__photo-placeholder">Загрузка фото...</div>;
+    return <div className="journal-entry__photo-placeholder">{translateApp("Загрузка фото...")}</div>;
   }
   if (status === 'error') {
-    return <div className="journal-entry__photo-placeholder">Ошибка загрузки фото</div>;
+    return <div className="journal-entry__photo-placeholder">{translateApp("Ошибка загрузки фото")}</div>;
   }
   const objectUrl = cache[photo.id];
   if (!objectUrl) {
-    return <div className="journal-entry__photo-placeholder">Загрузка фото...</div>;
+    return <div className="journal-entry__photo-placeholder">{translateApp("Загрузка фото...")}</div>;
   }
-  return <img src={objectUrl} alt={photo.caption || 'Фото'} className="journal-entry__photo" />;
+  return <img src={objectUrl} alt={photo.caption || translateApp("Фото")} className="journal-entry__photo" />;
 }
 
 export function JournalEntryCard({ entry, onEdit, photoCache, setPhotoCache, token }) {
@@ -122,11 +123,11 @@ export function JournalEntryCard({ entry, onEdit, photoCache, setPhotoCache, tok
   if (entry.type === 'watering' && (volume || fertilizers)) {
     const parts = [];
     if (volume) parts.push(volume);
-    if (fertilizers) parts.push(`удобрения: ${fertilizers}`);
+    if (fertilizers) parts.push(translateApp("удобрения: {{value1}}", { value1: fertilizers }));
     content = parts.join('   ');
   }
   if (entry.type === 'photo' && !content) {
-    content = 'Фото';
+    content = translateApp("Фото");
   }
 
   return (
@@ -137,13 +138,13 @@ export function JournalEntryCard({ entry, onEdit, photoCache, setPhotoCache, tok
           <span className="journal-entry__icon journal-entry__icon--big">{config.icon}</span>
           <div className="journal-entry__watering-summary">
             <span className="journal-entry__volume">
-              {details ? (volume || 'Объём не рассчитан') : (entry.text || 'Детали полива не указаны')}
+              {details ? (volume || translateApp("Объём не рассчитан")) : (entry.text || translateApp("Детали полива не указаны"))}
             </span>
             <div className="journal-entry__watering-facts">
-              {duration ? <span>Длительность: {duration}</span> : null}
-              {wateringMode ? <span>Режим: {wateringMode}</span> : null}
+              {duration ? <span>{translateApp("Длительность:")} {duration}</span> : null}
+              {wateringMode ? <span>{translateApp("Режим:")} {wateringMode}</span> : null}
               {completionReason ? <span>{completionReason}</span> : null}
-              {fertilizers ? <span>{`Удобрения: ${fertilizers}`}</span> : null}
+              {fertilizers ? <span>{translateApp("Удобрения: {{value1}}", { value1: fertilizers })}</span> : null}
             </div>
           </div>
         </div>
@@ -168,7 +169,7 @@ export function JournalEntryCard({ entry, onEdit, photoCache, setPhotoCache, tok
           </div>
         </>
       )}
-      <button type="button" className="journal-entry__edit" onClick={() => onEdit(entry)} title="Редактировать">
+      <button type="button" className="journal-entry__edit" onClick={() => onEdit(entry)} title={translateApp("Редактировать")}>
         ✏
       </button>
     </div>
@@ -205,11 +206,11 @@ function CalendarGrid({ startDate, endDate, entries, plantedAt, selectedDate, on
   return (
     <div className="journal-calendar">
       {months.map(([monthKey, days]) => {
-        const monthLabel = days[0].toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+        const monthLabel = days[0].toLocaleDateString(getIntlLocale(), { month: 'long', year: 'numeric' });
         const normalizedLabel = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
         return (
           <div className="journal-calendar__month" key={monthKey}>
-            <div className="journal-calendar__month-title">{normalizedLabel.replace('Г.', 'г.')}</div>
+            <div className="journal-calendar__month-title">{normalizedLabel.replace(translateApp("Г."), translateApp("г."))}</div>
             <div className="journal-calendar__month-grid">
               {days.map((day) => {
                 const key = dateKeyFromString(day);
@@ -282,7 +283,7 @@ function AppPlantJournal() {
       setFormState((prev) => ({ ...prev, date: prev.date || todayKey }));
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось загрузить журнал');
+      setError(err?.message || translateApp("Не удалось загрузить журнал"));
     } finally {
       setIsLoading(false);
     }
@@ -327,7 +328,7 @@ function AppPlantJournal() {
 
   const selectedDateLabel =
     selectedDate &&
-    new Date(`${selectedDate}T00:00:00`).toLocaleDateString('ru-RU', {
+    new Date(`${selectedDate}T00:00:00`).toLocaleDateString(getIntlLocale(), {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -350,7 +351,7 @@ function AppPlantJournal() {
       await downloadPlantJournalMarkdown(plantId, token);
     } catch (e) {
       console.error(e);
-      alert('Не удалось скачать журнал');
+      alert(translateApp("Не удалось скачать журнал"));
     }
   };
 
@@ -431,14 +432,14 @@ function AppPlantJournal() {
       resetForm();
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось сохранить запись');
+      setError(err?.message || translateApp("Не удалось сохранить запись"));
     }
   };
 
-  const headingTitle = plant ? `Журнал: ${plant.name}` : 'Журнал растения';
+  const headingTitle = plant ? translateApp("Журнал: {{value1}}", { value1: plant.name }) : translateApp("Журнал растения");
   const plantedAtLabel =
     plant?.planted_at &&
-    new Date(plant.planted_at).toLocaleDateString('ru-RU', {
+    new Date(plant.planted_at).toLocaleDateString(getIntlLocale(), {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -451,22 +452,18 @@ function AppPlantJournal() {
           <div className="plant-journal__title">{headingTitle}</div>
           {plant && (
             <div className="plant-journal__subtitle">
-              {plantedAtLabel ? `Посажено ${plantedAtLabel}` : 'Посажено —'}
+              {plantedAtLabel ? translateApp("Посажено {{value1}}", { value1: plantedAtLabel }) : translateApp("Посажено —")}
             </div>
           )}
         </div>
         <div className="plant-journal__actions">
-          <button type="button" className="plant-journal__download" onClick={handleDownloadJournal}>
-            Скачать журнал (.md)
-          </button>
-          <button type="button" className="plant-journal__back" onClick={() => navigate('/app/plants/')}>
-            ← К списку
-          </button>
+          <button type="button" className="plant-journal__download" onClick={handleDownloadJournal}>{translateApp("Скачать журнал (.md)")}</button>
+          <button type="button" className="plant-journal__back" onClick={() => navigate('/app/plants/')}>{translateApp("← К списку")}</button>
         </div>
       </div>
 
       {error && <div className="plant-journal__state plant-journal__state--error">{error}</div>}
-      {isLoading && <div className="plant-journal__state">Загрузка...</div>}
+      {isLoading && <div className="plant-journal__state">{translateApp("Загрузка...")}</div>}
 
       {plant && (
         <CalendarGrid
@@ -482,18 +479,18 @@ function AppPlantJournal() {
       <div className="journal-entries-block">
         <div className="journal-entries-block__header">
           <div className="journal-entries-block__title">
-            {selectedDateLabel ? `Записи за ${selectedDateLabel}` : 'Выберите день в календаре'}
+            {selectedDateLabel ? translateApp("Записи за {{value1}}", { value1: selectedDateLabel }) : translateApp("Выберите день в календаре")}
             {selectedAgeLabel !== null && selectedAgeLabel !== undefined && (
-              <div className="journal-entries-block__age">Возраст {selectedAgeLabel} дней</div>
+              <div className="journal-entries-block__age">{translateApp("Возраст")}{selectedAgeLabel}{translateApp("дней")}</div>
             )}
           </div>
           <button type="button" className="journal-entries-block__add" onClick={handleOpenForm}>
-            {isFormOpen ? 'Закрыть форму' : 'Добавить запись'}
+            {isFormOpen ? translateApp("Закрыть форму") : translateApp("Добавить запись")}
           </button>
         </div>
 
         {selectedDate && entriesForSelectedDate.length === 0 && (
-          <div className="journal-entries-block__empty">Нет записей за выбранную дату</div>
+          <div className="journal-entries-block__empty">{translateApp("Нет записей за выбранную дату")}</div>
         )}
 
         {selectedDate && entriesForSelectedDate.length > 0 && (
@@ -516,7 +513,7 @@ function AppPlantJournal() {
         <form className="journal-form" onSubmit={handleSubmit}>
           <div className="journal-form__row">
             <label className="journal-form__field">
-              <span>Дата</span>
+              <span>{translateApp("Дата")}</span>
               <input
                 type="date"
                 value={formState.date}
@@ -525,7 +522,7 @@ function AppPlantJournal() {
               />
             </label>
             <label className="journal-form__field">
-              <span>Время</span>
+              <span>{translateApp("Время")}</span>
               <input
                 type="time"
                 value={formState.time}
@@ -533,34 +530,34 @@ function AppPlantJournal() {
               />
             </label>
             <label className="journal-form__field">
-              <span>Тип записи</span>
+              <span>{translateApp("Тип записи")}</span>
               <select
                 value={formState.type}
                 onChange={(e) => handleChangeForm('type', e.target.value)}
               >
-                <option value="watering">Полив</option>
-                <option value="feeding">Уход</option>
-                <option value="harvest">Сбор</option>
-                <option value="note">Наблюдение</option>
-                <option value="photo">Фото</option>
-                <option value="other">Наблюдение (other)</option>
+                <option value="watering">{translateApp("Полив")}</option>
+                <option value="feeding">{translateApp("Уход")}</option>
+                <option value="harvest">{translateApp("Сбор")}</option>
+                <option value="note">{translateApp("Наблюдение")}</option>
+                <option value="photo">{translateApp("Фото")}</option>
+                <option value="other">{translateApp("Наблюдение (other)")}</option>
               </select>
             </label>
           </div>
 
           <label className="journal-form__field journal-form__field--wide">
-            <span>Текст / комментарий</span>
+            <span>{translateApp("Текст / комментарий")}</span>
             <textarea
               rows={3}
               value={formState.text}
               onChange={(e) => handleChangeForm('text', e.target.value)}
-              placeholder="Комментарий или детали"
+              placeholder={translateApp("Комментарий или детали")}
             />
           </label>
 
           {formState.type === 'photo' && (
             <label className="journal-form__field journal-form__field--wide">
-              <span>URL фото (пока только ссылка)</span>
+              <span>{translateApp("URL фото (пока только ссылка)")}</span>
               <input
                 type="url"
                 value={formState.photoUrl}
@@ -572,11 +569,9 @@ function AppPlantJournal() {
 
           <div className="journal-form__actions">
             <button type="submit" className="journal-form__submit">
-              {editingId ? 'Сохранить' : 'Добавить'}
+              {editingId ? translateApp("Сохранить") : translateApp("Добавить")}
             </button>
-            <button type="button" className="journal-form__cancel" onClick={resetForm}>
-              Сбросить
-            </button>
+            <button type="button" className="journal-form__cancel" onClick={resetForm}>{translateApp("Сбросить")}</button>
           </div>
         </form>
       )}

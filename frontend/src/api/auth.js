@@ -1,5 +1,6 @@
 ﻿// Translitem: API helpery dlya raboty so sposobami vhoda i paroljem.
 import { apiFetch, normalizeApiErrorMessage } from './client';
+import { translateApp } from '../locales/i18n';
 
 /**
  * Translitem: vozvrashchaet status dostupnyh sposobov vhoda tekushchego polzovatelya.
@@ -8,7 +9,7 @@ export async function fetchAuthMethods(token) {
   void token;
   const response = await apiFetch('/api/auth/methods');
   if (!response.ok) {
-    throw new Error(`Не удалось загрузить способы входа (${response.status})`);
+    throw new Error(translateApp("Не удалось загрузить способы входа ({{value1}})", { value1: response.status }));
   }
   return response.json();
 }
@@ -25,12 +26,12 @@ export async function linkSsoMethod(provider, redirectPath, token) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(normalizeApiErrorMessage(errorData.detail, {
       status: response.status,
-      fallback: `Не удалось начать привязку (${response.status})`,
+      fallback: translateApp("Не удалось начать привязку ({{value1}})", { value1: response.status }),
     }));
   }
   const data = await response.json();
   if (!data?.url) {
-    throw new Error('Не получен URL для SSO');
+    throw new Error(translateApp("Не получен URL для SSO"));
   }
   return data.url;
 }
@@ -47,7 +48,7 @@ export async function unlinkAuthMethod(provider, token) {
   if (!response.ok) {
     throw new Error(normalizeApiErrorMessage(data.detail, {
       status: response.status,
-      fallback: `Не удалось удалить способ входа (${response.status})`,
+      fallback: translateApp("Не удалось удалить способ входа ({{value1}})", { value1: response.status }),
     }));
   }
   return data;
@@ -70,7 +71,7 @@ export async function setLocalLogin(email, password, token) {
   if (!response.ok) {
     throw new Error(normalizeApiErrorMessage(data.detail, {
       status: response.status,
-      fallback: `Не удалось сохранить локальный вход (${response.status})`,
+      fallback: translateApp("Не удалось сохранить локальный вход ({{value1}})", { value1: response.status }),
     }));
   }
   return data;
@@ -96,7 +97,7 @@ export async function changePassword(currentPassword, newPassword, token) {
   if (!response.ok) {
     throw new Error(normalizeApiErrorMessage(data.detail, {
       status: response.status,
-      fallback: `Не удалось изменить пароль (${response.status})`,
+      fallback: translateApp("Не удалось изменить пароль ({{value1}})", { value1: response.status }),
     }));
   }
   return data;

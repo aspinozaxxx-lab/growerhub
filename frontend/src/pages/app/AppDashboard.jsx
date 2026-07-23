@@ -7,6 +7,7 @@ import { Title } from "../../components/ui/Typography";
 import AppPageState from "../../components/layout/AppPageState";
 import DashboardPlantCard from "../../components/plants/DashboardPlantCard";
 import "./AppDashboard.css";
+import { getIntlLocale, translateApp } from '../../locales/i18n';
 
 function AppDashboard() {
   const { plants, isLoading, error } = useDashboardData();
@@ -21,7 +22,7 @@ function AppDashboard() {
   const groupedPlants = useMemo(() => {
     const map = new Map();
     plants.forEach((plant) => {
-      const groupName = plant?.plant_group?.name || 'Без группы';
+      const groupName = plant?.plant_group?.name || translateApp("Без группы");
       if (!map.has(groupName)) {
         map.set(groupName, []);
       }
@@ -29,20 +30,20 @@ function AppDashboard() {
     });
     const entries = Array.from(map.entries());
     entries.sort((a, b) => {
-      if (a[0] === 'Без группы') return 1;
-      if (b[0] === 'Без группы') return -1;
-      return a[0].localeCompare(b[0], 'ru');
+      if (a[0] === translateApp("Без группы")) return 1;
+      if (b[0] === translateApp("Без группы")) return -1;
+      return a[0].localeCompare(b[0], getIntlLocale());
     });
     return entries;
   }, [plants]);
 
   return (
     <div className="dashboard">
-      {isLoading && <AppPageState kind="loading" title="Загрузка..." />}
+      {isLoading && <AppPageState kind="loading" title={translateApp("Загрузка...")} />}
       {error && <AppPageState kind="error" title={error} />}
 
       {!isLoading && !error && plants.length === 0 && (
-        <AppPageState kind="empty" title="Пока нет данных. Добавьте растения и подключите устройства." />
+        <AppPageState kind="empty" title={translateApp("Пока нет данных. Добавьте растения и подключите устройства.")} />
       )}
 
       {!isLoading && !error && plants.length > 0 && (

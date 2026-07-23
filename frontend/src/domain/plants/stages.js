@@ -1,17 +1,18 @@
-﻿// Translitem: edinaya karta stadiy rosta (klyuch - stageId), labels po yazykam.
+﻿import { translateApp } from '../../locales/i18n';
+// Translitem: edinaya karta stadiy rosta (klyuch - stageId), labels po yazykam.
 // Translitem: stageId hraniotsya kak stroka v plant.growth_stage (pustaya stroka = auto po vozrastu).
 
 const STAGES = {
-  seed: { labels: { ru: 'Семя', en: 'Seed' } },
-  seedling: { labels: { ru: 'Рассада', en: 'Seedling' } },
-  vegetative: { labels: { ru: 'Вегетация', en: 'Vegetative' } },
-  preflower: { labels: { ru: 'Предцвет', en: 'Preflower' } },
-  flowering: { labels: { ru: 'Цветение', en: 'Flowering' } },
-  bolting: { labels: { ru: 'Стрелкование', en: 'Bolting' } },
-  fruit_set: { labels: { ru: 'Завязь плодов', en: 'Fruit set' } },
-  ripening: { labels: { ru: 'Созревание', en: 'Ripening' } },
-  mature: { labels: { ru: 'Зрелое растение', en: 'Mature' } },
-  harvest_ready: { labels: { ru: 'Готово к сбору', en: 'Harvest ready' } },
+  seed: { labels: { ru: translateApp("Семя"), en: 'Seed' } },
+  seedling: { labels: { ru: translateApp("Рассада"), en: 'Seedling' } },
+  vegetative: { labels: { ru: translateApp("Вегетация"), en: 'Vegetative' } },
+  preflower: { labels: { ru: translateApp("Предцвет"), en: 'Preflower' } },
+  flowering: { labels: { ru: translateApp("Цветение"), en: 'Flowering' } },
+  bolting: { labels: { ru: translateApp("Стрелкование"), en: 'Bolting' } },
+  fruit_set: { labels: { ru: translateApp("Завязь плодов"), en: 'Fruit set' } },
+  ripening: { labels: { ru: translateApp("Созревание"), en: 'Ripening' } },
+  mature: { labels: { ru: translateApp("Зрелое растение"), en: 'Mature' } },
+  harvest_ready: { labels: { ru: translateApp("Готово к сбору"), en: 'Harvest ready' } },
 };
 
 function getStageLabel(stageId, lang = 'ru') {

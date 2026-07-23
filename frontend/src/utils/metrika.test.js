@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { METRIKA_ID } from '../domain/siteConfig';
+import { getCurrentLocale } from '../locales/i18n';
 import { trackProductGoal, trackProductGoalOnce } from './metrika';
 
 describe('product metrika goals', () => {
@@ -24,6 +25,7 @@ describe('product metrika goals', () => {
       page_path: '/app/onboarding/',
       step: 'device_detected',
       connection_mode: 'bridge',
+      locale: getCurrentLocale(),
     });
   });
 

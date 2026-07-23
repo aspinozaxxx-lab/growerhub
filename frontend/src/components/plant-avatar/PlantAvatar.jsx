@@ -6,6 +6,7 @@ import {
   normalizePlantTypeId,
   resolveAvatarAsset,
 } from '../../domain/plants';
+import { getCurrentLocale, translateApp } from '../../locales/i18n';
 
 // Translitem: prostyj avatar rastenija: beret png-asset po tipu i stadii iz plants domain.
 function PlantAvatar({
@@ -20,8 +21,9 @@ function PlantAvatar({
 }) {
   const typeId = plantType ? normalizePlantTypeId(plantType) : null;
   const imageSrc = resolveAvatarAsset(typeId, stage);
-  const stageLabel = stage ? getStageLabel(stage, 'ru') : '';
-  const typeLabel = plantType ? getPlantTypeLabel(plantType, 'ru') : 'Растение';
+  const locale = getCurrentLocale();
+  const stageLabel = stage ? getStageLabel(stage, locale) : '';
+  const typeLabel = plantType ? getPlantTypeLabel(plantType, locale) : translateApp("Растение");
   const title = `${typeLabel}${stageLabel ? ` · ${stageLabel}` : ''}`;
 
   const className = [

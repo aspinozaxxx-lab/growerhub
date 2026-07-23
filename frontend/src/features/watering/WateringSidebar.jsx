@@ -8,6 +8,7 @@ import SidePanel from '../../components/ui/SidePanel';
 import Button from '../../components/ui/Button';
 import '../sensors/SensorStatsSidebar.css';
 import './WateringSidebar.css';
+import { translateApp } from '../../locales/i18n';
 
 function WateringSidebar() {
   const {
@@ -55,9 +56,9 @@ function WateringSidebar() {
 
   const title = useMemo(() => {
     if (pumpLabel) {
-      return `Полив: ${pumpLabel}`;
+      return translateApp("Полив: {{value1}}", { value1: pumpLabel });
     }
-    return pumpId ? `Полив насоса #${pumpId}` : 'Полив';
+    return pumpId ? translateApp("Полив насоса #{{value1}}", { value1: pumpId }) : translateApp("Полив");
   }, [pumpId, pumpLabel]);
 
   if (!isOpen) {
@@ -92,7 +93,7 @@ function WateringSidebar() {
       setSuccess(true);
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось запустить полив');
+      setError(err?.message || translateApp("Не удалось запустить полив"));
     } finally {
       setIsSubmitting(false);
     }
@@ -103,9 +104,9 @@ function WateringSidebar() {
       isOpen={isOpen}
       onClose={closeWateringSidebar}
       title={title}
-      subtitle={plantId ? `Растение №${plantId}` : ''}
+      subtitle={plantId ? translateApp("Растение №{{value1}}", { value1: plantId }) : ''}
     >
-      <FormField label="Объем воды, l" htmlFor="water-volume">
+      <FormField label={translateApp("Объем воды, l")} htmlFor="water-volume">
         <input
           id="water-volume"
           type="range"
@@ -118,12 +119,11 @@ function WateringSidebar() {
       </FormField>
       <div className="gh-hint">{waterVolume.toFixed(1)} l</div>
       {wateringAdvice && (
-        <div className="watering-recommendation">
-          Рекомендация: {wateringAdvice.recommended_water_volume_l ?? '—'} l
+        <div className="watering-recommendation">{translateApp("Рекомендация:")}{wateringAdvice.recommended_water_volume_l ?? '—'} l
         </div>
       )}
 
-      <FormField label="pH (опционально)" htmlFor="water-ph">
+      <FormField label={translateApp("pH (опционально)")} htmlFor="water-ph">
         <input
           id="water-ph"
           type="number"
@@ -134,12 +134,11 @@ function WateringSidebar() {
         />
       </FormField>
       {wateringAdvice && (
-        <div className="watering-recommendation">
-          Рекомендация: {wateringAdvice.recommended_ph ?? '—'}
+        <div className="watering-recommendation">{translateApp("Рекомендация:")}{wateringAdvice.recommended_ph ?? '—'}
         </div>
       )}
 
-      <FormField label="Удобрения на литр (опционально)" htmlFor="water-fertilizers">
+      <FormField label={translateApp("Удобрения на литр (опционально)")} htmlFor="water-fertilizers">
         <textarea
           id="water-fertilizers"
           rows={3}
@@ -149,16 +148,15 @@ function WateringSidebar() {
         />
       </FormField>
       {wateringAdvice && (
-        <div className="watering-recommendation">
-          Рекомендация: {wateringAdvice.recommended_fertilizers_per_liter ?? '—'}
+        <div className="watering-recommendation">{translateApp("Рекомендация:")}{wateringAdvice.recommended_fertilizers_per_liter ?? '—'}
         </div>
       )}
 
       {error && <div className="sensor-sidebar__state sensor-sidebar__state--error">{error}</div>}
-      {success && <div className="sensor-sidebar__state">Полив запущен</div>}
+      {success && <div className="sensor-sidebar__state">{translateApp("Полив запущен")}</div>}
 
       <Button variant="primary" onClick={handleStart} disabled={isSubmitting} style={{ width: '100%', marginTop: 12 }}>
-        {isSubmitting ? 'Запуск...' : 'Начать полив'}
+        {isSubmitting ? translateApp("Запуск...") : translateApp("Начать полив")}
       </Button>
     </SidePanel>
   );

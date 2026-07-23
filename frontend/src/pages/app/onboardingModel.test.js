@@ -39,13 +39,14 @@ describe('onboardingModel', () => {
   });
 
   it('создаёт направленный bridge без wildcard-forward', () => {
+    const setup = {
+      username: 'z2m_demo',
+      password: 'one-time-secret',
+      client_id: 'z2m_demo',
+      base_topic: 'gh/z2m/z2m_demo',
+    };
     const config = buildBridgeConfig({
-      setup: {
-        username: 'z2m_demo',
-        password: 'one-time-secret',
-        client_id: 'z2m_demo',
-        base_topic: 'gh/z2m/z2m_demo',
-      },
+      setup,
       local: { host: '192.0.2.10', port: '1883', username: 'local', password: 'local-secret' },
     });
 
@@ -54,5 +55,18 @@ describe('onboardingModel', () => {
     expect(config).toContain('# Создано в браузере GrowerHub.');
     expect(config).not.toContain('Sozdan v brauzere');
     expect(config).not.toContain('topic #');
+
+    const englishConfig = buildBridgeConfig({
+      setup,
+      local: {
+        host: '192.0.2.10',
+        port: '1883',
+        username: 'local',
+        password: 'local-secret',
+      },
+      locale: 'en',
+    });
+    expect(englishConfig).toContain('# Generated in the GrowerHub browser interface.');
+    expect(englishConfig).not.toMatch(/[\u0400-\u04ff]/u);
   });
 });

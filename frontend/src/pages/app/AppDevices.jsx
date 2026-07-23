@@ -10,6 +10,7 @@ import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import AppGrid from '../../components/layout/AppGrid';
 import './AppDevices.css';
+import { translateApp } from '../../locales/i18n';
 
 function AppDevices() {
   const { token } = useAuth();
@@ -37,7 +38,7 @@ function AppDevices() {
       } catch (err) {
         if (!cancelled) {
           if (isSessionExpiredError(err)) return;
-          setError(err?.message || 'Не удалось загрузить данные');
+          setError(err?.message || translateApp("Не удалось загрузить данные"));
         }
       } finally {
         if (!cancelled) {
@@ -57,7 +58,7 @@ function AppDevices() {
       setDevices(Array.isArray(devs) ? devs : []);
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось обновить устройства');
+      setError(err?.message || translateApp("Не удалось обновить устройства"));
     }
   };
 
@@ -76,12 +77,12 @@ function AppDevices() {
 
   return (
     <div className="app-devices">
-      <AppPageHeader title="Устройства" />
-      {isLoading && <AppPageState kind="loading" title="Загрузка..." />}
+      <AppPageHeader title={translateApp("Устройства")} />
+      {isLoading && <AppPageState kind="loading" title={translateApp("Загрузка...")} />}
       {error && <AppPageState kind="error" title={error} />}
 
       {!isLoading && !error && devices.length === 0 && (
-        <AppPageState kind="empty" title="Пока нет ваших устройств." />
+        <AppPageState kind="empty" title={translateApp("Пока нет ваших устройств.")} />
       )}
 
       <AppGrid min={280}>

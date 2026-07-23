@@ -17,11 +17,12 @@ import {
   sourceLabel,
 } from './manualWateringModel';
 import './BoxWateringStatsPanel.css';
+import { translateApp } from '../../locales/i18n';
 
 const RANGE_OPTIONS = [
-  { key: 'day', label: 'День' },
-  { key: 'week', label: 'Неделя' },
-  { key: 'month', label: 'Месяц' },
+  { key: 'day', label: translateApp("День") },
+  { key: 'week', label: translateApp("Неделя") },
+  { key: 'month', label: translateApp("Месяц") },
 ];
 const PAGE_SIZE = 10;
 
@@ -95,7 +96,7 @@ function BoxWateringStatsPanel({ target, onClose }) {
     } catch (err) {
       if (requestVersion !== requestVersionRef.current) return;
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось загрузить статистику полива');
+      setError(err?.message || translateApp("Не удалось загрузить статистику полива"));
     } finally {
       if (requestVersion === requestVersionRef.current && !silent) {
         setIsLoading(false);
@@ -133,7 +134,7 @@ function BoxWateringStatsPanel({ target, onClose }) {
     const session = statistics?.active_session;
     const pumpId = session?.pump_id || target?.pumpId;
     if (!pumpId) return;
-    const accepted = window.confirm('Остановить насос? Полив завершится во всех привязанных к нему боксах.');
+    const accepted = window.confirm(translateApp("Остановить насос? Полив завершится во всех привязанных к нему боксах."));
     if (!accepted) return;
     setIsStopping(true);
     setError('');
@@ -142,7 +143,7 @@ function BoxWateringStatsPanel({ target, onClose }) {
       await loadStatistics({ silent: true });
     } catch (err) {
       if (isSessionExpiredError(err)) return;
-      setError(err?.message || 'Не удалось остановить полив');
+      setError(err?.message || translateApp("Не удалось остановить полив"));
     } finally {
       setIsStopping(false);
     }
@@ -159,11 +160,11 @@ function BoxWateringStatsPanel({ target, onClose }) {
     <SidePanel
       isOpen
       onClose={onClose}
-      title="Статистика полива"
-      subtitle={target.title || 'Бокс'}
+      title={translateApp("Статистика полива")}
+      subtitle={target.title || translateApp("Бокс")}
       width="lg"
     >
-      <div className="box-watering-stats__ranges" role="group" aria-label="Период статистики">
+      <div className="box-watering-stats__ranges" role="group" aria-label={translateApp("Период статистики")}>
         {RANGE_OPTIONS.map((option) => (
           <button
             key={option.key}
@@ -192,7 +193,7 @@ function BoxWateringStatsPanel({ target, onClose }) {
       </div>
 
       {error ? <div className="box-watering-stats__state is-error" role="alert">{error}</div> : null}
-      {isLoading && !statistics ? <div className="box-watering-stats__state">Загрузка...</div> : null}
+      {isLoading && !statistics ? <div className="box-watering-stats__state">{translateApp("Загрузка...")}</div> : null}
 
       {statistics ? (
         <div className="box-watering-stats">
@@ -203,51 +204,45 @@ function BoxWateringStatsPanel({ target, onClose }) {
                 <strong>{phaseLabel(activeSession.phase)}</strong>
                 <span>{modeLabel(activeSession.mode)} · {formatDurationSeconds(activeSession.active_duration_s)}</span>
                 <small>
-                  <AlertTriangle size={13} aria-hidden="true" />
-                  Остановка затронет все боксы этого насоса.
-                </small>
+                  <AlertTriangle size={13} aria-hidden="true" />{translateApp("Остановка затронет все боксы этого насоса.")}</small>
               </div>
               <Button type="button" variant="danger" size="sm" onClick={handleStop} isLoading={isStopping}>
-                <Square size={13} aria-hidden="true" />
-                Остановить
-              </Button>
+                <Square size={13} aria-hidden="true" />{translateApp("Остановить")}</Button>
             </section>
           ) : null}
 
-          <section className="box-watering-stats__summary" aria-label="Итоги периода">
-            <div><span>Сессии</span><strong>{statistics.session_count ?? 0}</strong></div>
-            <div><span>Активное время</span><strong>{formatDurationSeconds(statistics.active_duration_s)}</strong></div>
+          <section className="box-watering-stats__summary" aria-label={translateApp("Итоги периода")}>
+            <div><span>{translateApp("Сессии")}</span><strong>{statistics.session_count ?? 0}</strong></div>
+            <div><span>{translateApp("Активное время")}</span><strong>{formatDurationSeconds(statistics.active_duration_s)}</strong></div>
             <div>
-              <span>Рассчитанный объём</span>
+              <span>{translateApp("Рассчитанный объём")}</span>
               <strong>{formatVolumeLiters(statistics.known_volume_l)}</strong>
-              {statistics.partial_volume ? <small>Есть растения без указанной скорости</small> : null}
+              {statistics.partial_volume ? <small>{translateApp("Есть растения без указанной скорости")}</small> : null}
             </div>
           </section>
 
           <section className="box-watering-stats__counts">
             <div>
-              <h3>Режимы</h3>
-              {modeCounts.length === 0 ? <span>Нет данных</span> : modeCounts.map(([mode, count]) => (
+              <h3>{translateApp("Режимы")}</h3>
+              {modeCounts.length === 0 ? <span>{translateApp("Нет данных")}</span> : modeCounts.map(([mode, count]) => (
                 <span key={mode}>{modeLabel(mode)}: <strong>{count}</strong></span>
               ))}
             </div>
             <div>
-              <h3>Причины завершения</h3>
-              {reasonCounts.length === 0 ? <span>Нет данных</span> : reasonCounts.map(([reason, count]) => (
+              <h3>{translateApp("Причины завершения")}</h3>
+              {reasonCounts.length === 0 ? <span>{translateApp("Нет данных")}</span> : reasonCounts.map(([reason, count]) => (
                 <span key={reason}>{completionReasonLabel(reason)}: <strong>{count}</strong></span>
               ))}
             </div>
           </section>
 
           <section className="box-watering-stats__sessions">
-            <h3>Сессии полива</h3>
+            <h3>{translateApp("Сессии полива")}</h3>
             {sessions.length === 0 ? (
-              <div className="box-watering-stats__state">В выбранном периоде поливов не было</div>
+              <div className="box-watering-stats__state">{translateApp("В выбранном периоде поливов не было")}</div>
             ) : sessions.map((session) => <StatisticsSession key={session.id} session={session} />)}
             {nextBeforeId ? (
-              <Button type="button" variant="ghost" size="sm" onClick={() => loadStatistics({ append: true })} isLoading={isLoadingMore}>
-                Показать ещё
-              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => loadStatistics({ append: true })} isLoading={isLoadingMore}>{translateApp("Показать ещё")}</Button>
             ) : null}
           </section>
         </div>

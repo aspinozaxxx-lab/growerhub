@@ -1,46 +1,47 @@
 import { formatDateTimeDDMMYYYY } from '../../utils/formatters';
+import { getIntlLocale, translateApp } from '../../locales/i18n';
 
 const MODE_LABELS = {
-  timed: 'По времени',
-  until_leak: 'До протечки',
+  timed: translateApp("По времени"),
+  until_leak: translateApp("До протечки"),
 };
 
 const PHASE_LABELS = {
-  active: 'Полив активен',
-  running: 'Насос работает',
-  pause: 'Пауза импульса',
-  stopping: 'Останавливается',
-  terminal: 'Завершён',
-  completed: 'Завершён',
-  failed: 'Ошибка',
+  active: translateApp("Полив активен"),
+  running: translateApp("Насос работает"),
+  pause: translateApp("Пауза импульса"),
+  stopping: translateApp("Останавливается"),
+  terminal: translateApp("Завершён"),
+  completed: translateApp("Завершён"),
+  failed: translateApp("Ошибка"),
 };
 
 const SOURCE_LABELS = {
-  admin_manual: 'Ручной полив администратора',
-  automation: 'Автоматизация',
-  user_manual: 'Ручной полив пользователя',
+  admin_manual: translateApp("Ручной полив администратора"),
+  automation: translateApp("Автоматизация"),
+  user_manual: translateApp("Ручной полив пользователя"),
 };
 
 const REASON_LABELS = {
-  duration: 'Завершён по времени',
-  leak: 'Остановлен по протечке',
-  limit: 'Остановлен по предельному времени',
-  manual: 'Остановлен вручную',
-  error: 'Остановлен из-за ошибки',
-  command_error: 'Остановлен из-за ошибки команды',
-  device_offline: 'Остановлен из-за потери связи с насосом',
-  sensor_unavailable: 'Остановлен из-за потери датчиков протечки',
-  recovery: 'Завершён при восстановлении после перезапуска',
+  duration: translateApp("Завершён по времени"),
+  leak: translateApp("Остановлен по протечке"),
+  limit: translateApp("Остановлен по предельному времени"),
+  manual: translateApp("Остановлен вручную"),
+  error: translateApp("Остановлен из-за ошибки"),
+  command_error: translateApp("Остановлен из-за ошибки команды"),
+  device_offline: translateApp("Остановлен из-за потери связи с насосом"),
+  sensor_unavailable: translateApp("Остановлен из-за потери датчиков протечки"),
+  recovery: translateApp("Завершён при восстановлении после перезапуска"),
 };
 
 const BLOCK_REASON_LABELS = {
-  pump_offline: 'Насос не в сети',
-  pump_running: 'Насос уже включён',
-  pump_session_active: 'У насоса уже есть активная сессия',
-  device_busy: 'Физическое устройство занято',
-  no_boxes: 'К насосу не привязаны боксы',
-  no_plants: 'В привязанных боксах нет растений',
-  leak_triggered: 'Один из датчиков уже показывает протечку',
+  pump_offline: translateApp("Насос не в сети"),
+  pump_running: translateApp("Насос уже включён"),
+  pump_session_active: translateApp("У насоса уже есть активная сессия"),
+  device_busy: translateApp("Физическое устройство занято"),
+  no_boxes: translateApp("К насосу не привязаны боксы"),
+  no_plants: translateApp("В привязанных боксах нет растений"),
+  leak_triggered: translateApp("Один из датчиков уже показывает протечку"),
 };
 
 export function listOrEmpty(value) {
@@ -116,48 +117,48 @@ export function formatDurationSeconds(value) {
   const minutes = Math.floor((seconds % 3600) / 60);
   const restSeconds = seconds % 60;
   const parts = [];
-  if (hours > 0) parts.push(`${hours} ч`);
-  if (minutes > 0) parts.push(`${minutes} мин`);
-  if (restSeconds > 0 || parts.length === 0) parts.push(`${restSeconds} сек`);
+  if (hours > 0) parts.push(translateApp("{{value1}} ч", { value1: hours }));
+  if (minutes > 0) parts.push(translateApp("{{value1}} мин", { value1: minutes }));
+  if (restSeconds > 0 || parts.length === 0) parts.push(translateApp("{{value1}} сек", { value1: restSeconds }));
   return parts.join(' ');
 }
 
-export function formatVolumeLiters(value, emptyLabel = 'Не рассчитан') {
+export function formatVolumeLiters(value, emptyLabel = translateApp("Не рассчитан")) {
   if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) {
     return emptyLabel;
   }
-  return `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 3 }).format(Number(value))} л`;
+  return translateApp("{{value1}} л", { value1: new Intl.NumberFormat(getIntlLocale(), { maximumFractionDigits: 3 }).format(Number(value)) });
 }
 
 export function formatDateTime(value) {
-  return formatDateTimeDDMMYYYY(value) || 'Время неизвестно';
+  return formatDateTimeDDMMYYYY(value) || translateApp("Время неизвестно");
 }
 
 export function modeLabel(value) {
-  return MODE_LABELS[value] || 'Режим неизвестен';
+  return MODE_LABELS[value] || translateApp("Режим неизвестен");
 }
 
 export function phaseLabel(value) {
-  return PHASE_LABELS[value] || 'Состояние обновляется';
+  return PHASE_LABELS[value] || translateApp("Состояние обновляется");
 }
 
 export function sourceLabel(value) {
-  return SOURCE_LABELS[value] || 'Источник неизвестен';
+  return SOURCE_LABELS[value] || translateApp("Источник неизвестен");
 }
 
 export function completionReasonLabel(value) {
-  return REASON_LABELS[value] || (value ? `Причина: ${value}` : 'Причина не указана');
+  return REASON_LABELS[value] || (value ? translateApp("Причина: {{value1}}", { value1: value }) : translateApp("Причина не указана"));
 }
 
 export function startBlockReasonLabel(value) {
-  return BLOCK_REASON_LABELS[value] || value || 'Запуск недоступен';
+  return BLOCK_REASON_LABELS[value] || value || translateApp("Запуск недоступен");
 }
 
 export function sessionBoxesLabel(session) {
   const names = listOrEmpty(session?.boxes)
     .map((box) => box.box_name || box.name)
     .filter(Boolean);
-  return names.length > 0 ? names.join(', ') : 'Боксы не указаны';
+  return names.length > 0 ? names.join(', ') : translateApp("Боксы не указаны");
 }
 
 export function sessionPlantsCount(session) {
