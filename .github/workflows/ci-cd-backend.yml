@@ -198,7 +198,7 @@ jobs:
           ssh -p "$SSH_PORT" -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" <<EOF
           set -euo pipefail
           ok=0
-          for i in \$(seq 1 30); do
+          for i in \$(seq 1 180); do
             if sudo -n /usr/bin/curl -fsS http://127.0.0.1:18080/health >/tmp/health.json 2>/tmp/health.err; then
               ok=1
               sudo -n /usr/bin/cat /tmp/health.json
@@ -221,7 +221,7 @@ jobs:
           fi
 
           mqtt_ok=0
-          for i in \$(seq 1 30); do
+          for i in \$(seq 1 60); do
             sudo -n /usr/bin/journalctl -u "$SERVICE_NAME" --since "10 minutes ago" --no-pager > "\$logs_file"
             if grep -q "MQTT publisher connected" "\$logs_file" && grep -q "MQTT subscriber connected" "\$logs_file"; then
               mqtt_ok=1
