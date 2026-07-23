@@ -494,7 +494,7 @@ function AdminZigbee() {
                   <td>
                     <div className="admin-zigbee-actions">
                       {controls.length === 0 ? (
-                        <span className="admin-zigbee-control__readonly">Нет writable metadata</span>
+                        <span className="admin-zigbee-control__readonly">Нет данных о возможности записи</span>
                       ) : controls.map((feature) => renderControl(device, feature))}
                       <div className="admin-row-actions">
                         <input

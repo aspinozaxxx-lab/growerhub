@@ -35,6 +35,8 @@ jobs:
 
       - name: Build frontend
         working-directory: frontend
+        env:
+          VITE_SELF_SERVICE_ENABLED: "true"
         run: npm run build
 
       - name: Setup SSH

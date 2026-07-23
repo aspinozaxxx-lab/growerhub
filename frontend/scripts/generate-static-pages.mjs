@@ -589,7 +589,7 @@ const renderMiniFarmPage = (template, assets, data) => {
           ${leadCta('mini_farm_bottom', 'Подключите первое устройство', 'Начните самостоятельно с координатора и датчика. Зоны и автоматизации можно добавлять постепенно.')}`;
 
   return pageShell(template, {
-    title: `${data.title} — бесплатная beta`,
+    title: `${data.title} — бесплатная бета`,
     description: data.description,
     canonical,
     jsonLd: [

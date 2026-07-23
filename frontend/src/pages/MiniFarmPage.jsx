@@ -11,7 +11,7 @@ function ZonesDemo() {
     <div className="product-demo" role="img" aria-label="Синтетический обзор двух зон GrowerHub">
       <div className="product-demo__bar"><span /> GrowerHub · зоны</div>
       <div className="product-demo__zones">
-        <div><strong>Стеллаж «Зелень»</strong><span className="status-ok">Online</span><p>23,4 °C · 61% · свет включён</p></div>
+        <div><strong>Стеллаж «Зелень»</strong><span className="status-ok">В сети</span><p>23,4 °C · 61% · свет включён</p></div>
         <div><strong>Бокс «Рассада»</strong><span className="status-warn">Проверить</span><p>24,1 °C · 57% · данные 12 мин назад</p></div>
       </div>
     </div>
@@ -37,7 +37,7 @@ function ConnectionDemo() {
     <div className="product-demo" role="img" aria-label="Синтетический экран подключения GrowerHub">
       <div className="product-demo__bar"><span /> Подключения</div>
       <div className="product-demo__connection">
-        <div><strong>Координатор «Теплица»</strong><span className="status-ok">ONLINE</span></div>
+        <div><strong>Координатор «Теплица»</strong><span className="status-ok">В сети</span></div>
         <p>3 устройства обнаружены автоматически</p>
         <ul><li>Датчик микроклимата</li><li>Розетка освещения</li><li>Датчик протечки</li></ul>
       </div>
