@@ -51,7 +51,7 @@ function EquipmentIndexPage() {
               <Link className="secondary-link" to={`/oborudovanie/${category.slug}/`}>Посмотреть варианты</Link>
             </article>
           ))}
-          <article className="card"><h3>{equipmentContent.pump.title}</h3><p>{equipmentContent.pump.summary}</p><Link className="secondary-link" to="/oborudovanie/nasos-dlya-poliva/">О раннем доступе</Link></article>
+          <article className="card"><h3>{equipmentContent.pump.title}</h3><p>{equipmentContent.pump.summary}</p><Link className="secondary-link" to="/oborudovanie/nasos-dlya-poliva/">О насосе GrowerHub</Link></article>
         </div>
       </section>
 

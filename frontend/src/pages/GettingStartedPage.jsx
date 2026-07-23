@@ -6,7 +6,7 @@ import { SITE_NAME, SITE_URL } from '../domain/siteConfig';
 import useSeoMeta from '../utils/useSeoMeta';
 
 function GettingStartedPage() {
-  const { start, minimum, beta_text: betaText } = platformContent;
+  const { start, minimum, early_access_text: earlyAccessText } = platformContent;
   const jsonLd = [{
     '@context': 'https://schema.org',
     '@type': 'HowTo',
@@ -39,8 +39,8 @@ function GettingStartedPage() {
           <LeadCta placement="getting_started_hero" compact />
         </div>
         <aside className="landing-summary">
-          <strong>Открытая бета</strong>
-          <p>{betaText}</p>
+          <strong>Ранний доступ открыт</strong>
+          <p>{earlyAccessText}</p>
         </aside>
       </section>
 
@@ -67,8 +67,8 @@ function GettingStartedPage() {
       </section>
 
       <section className="content-section">
-        <h2>Помощь остаётся рядом</h2>
-        <p>Обращение в Telegram не требуется для запуска. Если что-то не подключается или непонятна функция, мы на связи и поможем на любом этапе подключения и настройки.</p>
+        <h2>Поможем с подключением и настройкой</h2>
+        <p>Если что-то не подключается или хочется быстрее разобраться с функцией, напишите нам в Telegram. Команда GrowerHub поможет на любом этапе.</p>
         <TelegramContactLink placement="getting_started_help" className="secondary-link">Помощь в Telegram</TelegramContactLink>
       </section>
 

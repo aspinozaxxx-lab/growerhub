@@ -9,7 +9,7 @@ import './SelfServicePages.css';
 const LABELS = {
   BOX_CLIMATE: 'Климатический порог',
   LIGHT_SCHEDULE: 'Расписание освещения',
-  WATERING: 'Полив (бета)',
+  WATERING: 'Полив',
 };
 
 const toRequest = (scenarios, changedType, patch) => scenarios.map((scenario) => ({
@@ -37,7 +37,7 @@ function AppAutomations() {
   useEffect(() => { load(); }, []);
 
   const saveScenario = async (section, scenario, patch) => {
-    if (scenario.scenario_type === 'WATERING' && patch.enabled && !window.confirm('Полив находится в бета-тестировании. Проверьте воду, питание, аварийное отключение и безопасный лимит времени. Включить?')) return;
+    if (scenario.scenario_type === 'WATERING' && patch.enabled && !window.confirm('Перед включением полива проверьте подачу воды, питание, аварийное отключение и безопасный лимит времени. Включить сценарий?')) return;
     const key = `${section.id}:${scenario.scenario_type}`;
     setBusy(key);
     try {
@@ -72,7 +72,7 @@ function AppAutomations() {
                   <div><h3>{LABELS[scenario.scenario_type]}</h3><p>{readiness?.ready ? 'Оборудование готово' : readiness?.reason || 'Проверьте назначенные устройства'}</p></div>
                   {scenario.scenario_type === 'LIGHT_SCHEDULE' ? <div className="scenario-fields"><label>Включить<input type="time" defaultValue={scenario.config?.start_time || '06:00'} onBlur={(event) => saveScenario(section, scenario, { enabled: scenario.enabled, config: { start_time: event.target.value } })} /></label><label>Выключить<input type="time" defaultValue={scenario.config?.end_time || '22:00'} onBlur={(event) => saveScenario(section, scenario, { enabled: scenario.enabled, config: { end_time: event.target.value } })} /></label></div> : null}
                   {scenario.scenario_type === 'BOX_CLIMATE' ? <div className="scenario-fields"><label>Ниже, °C<input type="number" step="0.5" defaultValue={scenario.config?.min_c ?? 24} onBlur={(event) => saveScenario(section, scenario, { enabled: scenario.enabled, config: { min_c: Number(event.target.value) } })} /></label><label>Выше, °C<input type="number" step="0.5" defaultValue={scenario.config?.max_c ?? 28} onBlur={(event) => saveScenario(section, scenario, { enabled: scenario.enabled, config: { max_c: Number(event.target.value) } })} /></label></div> : null}
-                  {scenario.scenario_type === 'WATERING' ? <p className="beta-warning">Сценарий доступен только при назначенных датчике влажности и насосе. Используются интервалы и ограничения длительности; физическое аварийное отключение остаётся обязательным.</p> : null}
+                  {scenario.scenario_type === 'WATERING' ? <p className="automation-note">Для запуска назначьте датчик влажности и насос. GrowerHub использует интервалы и лимиты длительности; дополнительно предусмотрите физическое аварийное отключение.</p> : null}
                   <Button variant={scenario.enabled ? 'danger' : 'primary'} disabled={!scenario.enabled && !readiness?.ready} isLoading={busy === key} onClick={() => saveScenario(section, scenario, { enabled: !scenario.enabled, config: {} })}>{scenario.enabled ? 'Выключить' : 'Включить'}</Button>
                 </article>
               );

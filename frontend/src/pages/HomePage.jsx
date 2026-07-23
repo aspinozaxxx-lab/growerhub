@@ -7,7 +7,7 @@ import { homeContent } from '../content/pages';
 import { SELF_SERVICE_PUBLIC_ENABLED, SITE_URL } from '../domain/siteConfig';
 import useSeoMeta from '../utils/useSeoMeta';
 
-const pageDescription = 'GrowerHub объединяет Zigbee-устройства, зоны, историю датчиков и автоматизации мини-фермы в одном кабинете. Бесплатная открытая бета без карты.';
+const pageDescription = 'GrowerHub — платформа, в которой собран большой практический опыт автоматизации теплиц: Zigbee-устройства, зоны, история датчиков и сценарии управления.';
 
 const softwareApplicationLd = {
   '@context': 'https://schema.org',
@@ -74,9 +74,9 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="content-section beta-note">
-        <h2>Бесплатно в открытой бете</h2>
-        <p>{homeContent.beta}</p>
+      <section className="content-section early-access-note">
+        <h2>Большой опыт автоматизации — в одной платформе</h2>
+        <p>{homeContent.early_access}</p>
         <div className="cta-row">
           <Link className="secondary-link" to="/oborudovanie/">Какое оборудование подойдёт</Link>
           <Link className="secondary-link" to="/avtomatizatsiya-mini-fermy/">Возможности платформы</Link>

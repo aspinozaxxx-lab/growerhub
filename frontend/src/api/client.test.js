@@ -4,7 +4,7 @@ import { normalizeApiErrorMessage } from './client';
 describe('normalizeApiErrorMessage', () => {
   it('не показывает транслит из ответа API', () => {
     expect(normalizeApiErrorMessage(
-      'Self-service poka vyklyuchen do zavershenija proverki',
+      'Servis vremenno nedostupen',
       { status: 503 },
     )).toBe('Сервис временно недоступен');
   });

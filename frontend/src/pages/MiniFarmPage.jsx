@@ -52,7 +52,7 @@ function AutomationDemo() {
       <dl className="product-demo__rules">
         <div><dt>Освещение</dt><dd>06:00–22:00 · готово</dd></div>
         <div><dt>Климат</dt><dd>24–28 °C · гистерезис включён</dd></div>
-        <div><dt>Полив в бета-версии</dt><dd>выключен до назначения защитных ресурсов</dd></div>
+        <div><dt>Полив</dt><dd>готов к настройке после назначения датчика и насоса</dd></div>
       </dl>
       <span className="status-ok">1 сценарий активен</span>
     </div>
@@ -92,7 +92,7 @@ function MiniFarmPage() {
   }];
 
   useSeoMeta({
-    title: `${data.title} — бесплатная бета-версия`,
+    title: data.title,
     description: data.description,
     path: '/avtomatizatsiya-mini-fermy/',
     jsonLd,
@@ -111,9 +111,9 @@ function MiniFarmPage() {
           </div>
         </div>
         <aside className="landing-summary">
-          <strong>Открытая бета</strong>
-          <p>{data.beta}</p>
-          <p>Растения, культуры и подробная конфигурация фермы для регистрации не нужны.</p>
+          <strong>Ранний доступ открыт</strong>
+          <p>{data.early_access}</p>
+          <p>Начните с оборудования и зон; растения и дополнительные настройки можно добавить позже.</p>
         </aside>
       </section>
 
@@ -160,10 +160,10 @@ function MiniFarmPage() {
       </section>
 
       <section className="content-section split-section">
-        <div><h2>Честные ограничения</h2><ul className="check-list limitations-list">{data.limitations.map((item) => <li key={item}>{item}</li>)}</ul></div>
+        <div><h2>Что важно знать</h2><ul className="check-list limitations-list">{data.limitations.map((item) => <li key={item}>{item}</li>)}</ul></div>
         <div className="info-block">
-          <h2>Помощь необязательна, но доступна</h2>
-          <p>Мы на связи и поможем на любом этапе подключения и настройки — без обещания 24/7 или фиксированного срока ответа.</p>
+          <h2>Мы рядом, если понадобится помощь</h2>
+          <p>Напишите нам в Telegram — поможем подключить оборудование, разобраться с функциями и настроить GrowerHub под вашу ферму.</p>
           <TelegramContactLink placement="mini_farm_help" className="secondary-link">Помощь в Telegram</TelegramContactLink>
         </div>
       </section>

@@ -9,6 +9,14 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST_DIR = path.join(ROOT, 'dist');
 const read = (target) => fs.readFileSync(target, 'utf8').replace(/^\ufeff/, '');
 const failures = [];
+const deprecatedPositioning = [
+  { pattern: /\bбета/iu, label: 'бета' },
+  { pattern: /\bbeta\b/iu, label: 'beta' },
+  { pattern: /\bSLA\b/u, label: 'SLA' },
+  { pattern: /24\/7/u, label: '24/7' },
+  { pattern: /фиксированного срока ответа/iu, label: 'фиксированный срок ответа' },
+  { pattern: /без обещания/iu, label: 'без обещания' },
+];
 
 const assert = (condition, message) => {
   if (!condition) {
@@ -63,6 +71,11 @@ collectHtml(DIST_DIR);
 for (const filePath of publicHtmlFiles) {
   const html = read(filePath);
   const hrefs = [...html.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);
+  const relativePath = path.relative(DIST_DIR, filePath);
+
+  for (const item of deprecatedPositioning) {
+    assert(!item.pattern.test(html), `Deprecated positioning "${item.label}" in ${relativePath}`);
+  }
 
   for (const href of hrefs) {
     if (!href.startsWith('/') || href.startsWith('//')) {
@@ -89,6 +102,8 @@ for (const filePath of publicHtmlFiles) {
 const homeHtml = read(path.join(DIST_DIR, 'index.html'));
 const landingHtml = read(path.join(DIST_DIR, 'avtomatizatsiya-mini-fermy', 'index.html'));
 assert(homeHtml.includes(homeContent.hero.title), 'Static home differs from shared home content');
+assert(homeHtml.includes('GrowerHub · ранний доступ открыт'), 'Home has no early-access positioning');
+assert(homeHtml.includes('большого практического опыта автоматизации теплиц'), 'Home has no experience positioning');
 assert(landingHtml.includes(miniFarmContent.title), 'Static landing differs from shared landing content');
 assert(landingHtml.includes(TELEGRAM_DIRECT_URL), 'Landing has no direct Telegram URL');
 

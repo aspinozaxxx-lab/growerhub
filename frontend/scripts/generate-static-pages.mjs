@@ -424,7 +424,7 @@ ${otherClusters.map((item) => `              <a href="/articles/clusters/${htmlE
 
 const renderHomePage = (template, assets, homeContent, articles, articlesBySlug) => {
   const { hero, secondary, features } = homeContent;
-  const description = 'GrowerHub объединяет Zigbee-устройства, зоны, историю датчиков и автоматизации мини-фермы в одном кабинете. Бесплатная открытая бета без карты.';
+  const description = 'GrowerHub — платформа, в которой собран большой практический опыт автоматизации теплиц: Zigbee-устройства, зоны, история датчиков и сценарии управления.';
   const mainHtml = `
           <div class="hero">
             <div>
@@ -450,9 +450,9 @@ ${secondary.points.map((point) => `                <div class="info-block"><stro
 ${features.items.map((item) => `              <div class="card"><h3>${htmlEscape(item.title)}</h3><p>${htmlEscape(item.text)}</p></div>`).join('\n')}
             </div>
           </section>
-          <section class="content-section beta-note">
-            <h2>Бесплатно в открытой бете</h2>
-            <p>${htmlEscape(homeContent.beta)}</p>
+          <section class="content-section early-access-note">
+            <h2>Большой опыт автоматизации — в одной платформе</h2>
+            <p>${htmlEscape(homeContent.early_access)}</p>
             <div class="cta-row"><a class="secondary-link" href="/oborudovanie/">Какое оборудование подойдёт</a><a class="secondary-link" href="/avtomatizatsiya-mini-fermy/">Возможности платформы</a></div>
           </section>
           <section class="content-section">
@@ -547,7 +547,7 @@ const renderAboutPage = (template, assets, aboutContent) => {
 const renderMiniFarmDemos = (screens) => `
           <section class="content-section" id="demo-ekrany">
             <h2>Интерфейс на синтетических данных</h2>
-            <p>Все названия и значения вымышлены. На экранах нет реальных адресов, IEEE, логинов или credentials.</p>
+            <p>Все названия и значения вымышлены. На экранах нет реальных адресов, IEEE, логинов или данных доступа.</p>
             <div class="demo-grid demo-grid--four">
               <figure class="demo-card">
                 <img class="product-screenshot" src="/screenshots/zones.png" alt="Обзор двух зон GrowerHub на синтетических данных" width="1010" height="520" loading="eager">
@@ -573,7 +573,7 @@ const renderMiniFarmPage = (template, assets, data) => {
   const mainHtml = `
           <section class="landing-hero">
             <div><div class="badge">${htmlEscape(data.hero.eyebrow)}</div><h1>${htmlEscape(data.title)}</h1><p>${htmlEscape(data.hero.text)}</p><div class="cta-row">${platformLink('mini_farm_hero', SELF_SERVICE_PUBLIC_ENABLED ? data.hero.cta : 'Как начать')}<a class="secondary-link" href="/oborudovanie/">Подобрать оборудование</a></div></div>
-            <aside class="landing-summary"><strong>Открытая бета</strong><p>${htmlEscape(data.beta)}</p><p>Растения, культуры и подробная конфигурация фермы для регистрации не нужны.</p></aside>
+            <aside class="landing-summary"><strong>Ранний доступ открыт</strong><p>${htmlEscape(data.early_access)}</p><p>Начните с оборудования и зон; растения и дополнительные настройки можно добавить позже.</p></aside>
           </section>
           <section class="content-section"><h2>Что можно сделать</h2><div class="card-grid">${data.tasks.map((item) => `<article class="card"><h3>${htmlEscape(item.title)}</h3><p>${htmlEscape(item.text)}</p></article>`).join('')}</div></section>
           <section class="content-section split-section">
@@ -583,13 +583,13 @@ const renderMiniFarmPage = (template, assets, data) => {
           ${renderMiniFarmDemos(data.screens)}
           <section class="content-section"><h2>Путь от входа до дашборда</h2><ol class="steps-list">${data.stages.map((stage) => `<li><strong>${htmlEscape(stage.title)}</strong><span>${htmlEscape(stage.text)}</span></li>`).join('')}</ol></section>
           <section class="content-section split-section">
-            <div><h2>Честные ограничения</h2><ul class="check-list limitations-list">${data.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></div>
-            <div class="info-block"><h2>Помощь необязательна, но доступна</h2><p>Мы на связи и поможем на любом этапе подключения и настройки — без обещания 24/7 или фиксированного срока ответа.</p>${telegramLink('mini_farm_help')}</div>
+            <div><h2>Что важно знать</h2><ul class="check-list limitations-list">${data.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></div>
+            <div class="info-block"><h2>Мы рядом, если понадобится помощь</h2><p>Напишите нам в Telegram — поможем подключить оборудование, разобраться с функциями и настроить GrowerHub под вашу ферму.</p>${telegramLink('mini_farm_help')}</div>
           </section>
           ${leadCta('mini_farm_bottom', 'Подключите первое устройство', 'Начните самостоятельно с координатора и датчика. Зоны и автоматизации можно добавлять постепенно.')}`;
 
   return pageShell(template, {
-    title: `${data.title} — бесплатная бета`,
+    title: data.title,
     description: data.description,
     canonical,
     jsonLd: [
@@ -615,19 +615,19 @@ const renderMiniFarmPage = (template, assets, data) => {
 };
 
 const renderGettingStartedPage = (template, assets, platformContent) => {
-  const { start, minimum, beta_text: betaText } = platformContent;
+  const { start, minimum, early_access_text: earlyAccessText } = platformContent;
   const canonical = toCanonicalUrl('/kak-nachat/');
   const mainHtml = `
           <section class="landing-hero">
             <div><div class="badge">Самостоятельный запуск</div><h1>${htmlEscape(start.title)}</h1><p>${htmlEscape(start.intro)}</p>${leadCta('getting_started_hero')}</div>
-            <aside class="landing-summary"><strong>Открытая бета</strong><p>${htmlEscape(betaText)}</p></aside>
+            <aside class="landing-summary"><strong>Ранний доступ открыт</strong><p>${htmlEscape(earlyAccessText)}</p></aside>
           </section>
           <section class="content-section"><h2>Семь коротких шагов</h2><ol class="steps-list">${start.steps.map((step) => `<li><strong>${htmlEscape(step.title)}</strong><span>${htmlEscape(step.text)}</span></li>`).join('')}</ol></section>
           <section class="content-section split-section">
             <div><h2>${htmlEscape(minimum.title)}</h2><div class="info-grid"><div class="info-block"><h3>Только мониторинг</h3><p>${htmlEscape(minimum.monitoring)}</p></div><div class="info-block"><h3>Управление</h3><p>${htmlEscape(minimum.control)}</p></div></div></div>
             <div class="info-block"><h2>Уже есть Home Assistant?</h2><p>${htmlEscape(minimum.existing)}</p><a class="secondary-link" href="/oborudovanie/zigbee-koordinator/">Проверить оборудование</a></div>
           </section>
-          <section class="content-section"><h2>Помощь остаётся рядом</h2><p>Обращение в Telegram не требуется для запуска. Если что-то не подключается или непонятна функция, мы на связи и поможем на любом этапе подключения и настройки.</p>${telegramLink('getting_started_help')}</section>
+          <section class="content-section"><h2>Поможем с подключением и настройкой</h2><p>Если что-то не подключается или хочется быстрее разобраться с функцией, напишите нам в Telegram. Команда GrowerHub поможет на любом этапе.</p>${telegramLink('getting_started_help')}</section>
           ${leadCta('getting_started_bottom')}`;
 
   return pageShell(template, {
@@ -665,7 +665,7 @@ const renderEquipmentIndexPage = (template, assets, equipment, platformContent) 
           <section class="content-section start-kit"><h2>Минимальный старт</h2><div class="card-grid"><article class="card"><h3>Для мониторинга</h3><p>${htmlEscape(platformContent.minimum.monitoring)}</p></article><article class="card"><h3>Для управления</h3><p>${htmlEscape(platformContent.minimum.control)}</p></article><article class="card"><h3>Если всё уже работает</h3><p>${htmlEscape(platformContent.minimum.existing)}</p></article></div></section>
           <section class="content-section"><h2>Выберите раздел</h2><div class="card-grid">
 ${categories.map((category) => `            <article class="card"><h3>${htmlEscape(category.title)}</h3><p>${htmlEscape(category.intro)}</p><a class="secondary-link" href="/oborudovanie/${htmlEscape(category.slug)}/">Посмотреть варианты</a></article>`).join('\n')}
-            <article class="card"><h3>${htmlEscape(equipment.pump.title)}</h3><p>${htmlEscape(equipment.pump.summary)}</p><a class="secondary-link" href="/oborudovanie/nasos-dlya-poliva/">О раннем доступе</a></article>
+            <article class="card"><h3>${htmlEscape(equipment.pump.title)}</h3><p>${htmlEscape(equipment.pump.summary)}</p><a class="secondary-link" href="/oborudovanie/nasos-dlya-poliva/">О насосе GrowerHub</a></article>
           </div></section>
           <section class="content-section info-block"><h2>Почему не любой Wi‑Fi-датчик</h2><p>${htmlEscape(equipment.wifi_note)}</p></section>
           ${leadCta('equipment_index_bottom')}`;
@@ -748,9 +748,9 @@ const renderPumpEarlyAccessPage = (template, assets, equipment) => {
   const canonical = toCanonicalUrl('/oborudovanie/nasos-dlya-poliva/');
   const mainHtml = `
           <div class="badge">${htmlEscape(pump.status)}</div><h1>${htmlEscape(pump.title)}</h1><p class="article-lead">${htmlEscape(pump.summary)}</p>
-          <section class="content-section split-section"><div class="info-block"><h2>Два варианта связи</h2><p>Zigbee для общей сети устройств или Wi‑Fi с прямым MQTT GrowerHub. Публичная доступность обоих режимов зависит от завершения TLS и испытаний безопасности.</p></div><div class="info-block"><h2>Что это значит сейчас</h2><p>Нет обещания продажи, цены или даты готовности. Мы приглашаем только к раннему тестированию и отдельно согласуем безопасную схему.</p></div></section>
-          <section class="content-section"><h2>Обязательные ограничения</h2><ul class="check-list limitations-list">${pump.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></section>
-          <section class="lead-cta"><div><h2>Стать тестировщиком</h2><p>Напишите только если готовы тестировать прототип и соблюдать ограничения по воде, питанию и аварийному отключению.</p></div>${telegramLink('pump_early_access', 'Написать в Telegram', 'hero-cta')}</section>
+          <section class="content-section split-section"><div class="info-block"><h2>Два варианта связи</h2><p>Проектируем два режима: Zigbee для общей сети устройств и Wi‑Fi с прямым MQTT GrowerHub. Оба варианта работают с единым кабинетом платформы.</p></div><div class="info-block"><h2>Текущий этап</h2><p>Прототип проходит испытания. Если хотите присоединиться к первым пользователям, напишите нам — обсудим оборудование и подходящий сценарий.</p></div></section>
+          <section class="content-section"><h2>Что мы проверяем</h2><ul class="check-list limitations-list">${pump.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></section>
+          <section class="lead-cta"><div><h2>Стать одним из первых пользователей</h2><p>Расскажите, где планируете использовать насос. Мы ответим на вопросы и подскажем, как подготовиться к первым испытаниям.</p></div>${telegramLink('pump_early_access', 'Написать в Telegram', 'hero-cta')}</section>
           ${leadCta('pump_platform_bottom', 'Начать с готового оборудования', 'Для мониторинга GrowerHub насос не нужен: достаточно координатора и одного Zigbee-датчика.')}`;
 
   return pageShell(template, {
@@ -784,8 +784,8 @@ const renderLegalPage = (template, assets, legal, type) => {
           <h1>${htmlEscape(title)}</h1><p>Оператор: ${htmlEscape(legal.operator_name)}. Контакт: ${htmlEscape(legal.operator_contact)}.</p>
           ${isPrivacy
     ? '<h2>Какие данные обрабатываются</h2><p>Адрес электронной почты и идентификатор выбранного способа входа, технические данные подключений и устройств, события безопасности, настройки зон и автоматизаций.</p><h2>Для чего</h2><p>Для входа, работы платформы, защиты пользовательского пространства, диагностики и поддержки по обращению пользователя.</p><h2>Секреты подключения</h2><p>Одноразовый MQTT-пароль показывается при создании или ротации и не хранится в базе GrowerHub в открытом виде. Локальные данные доступа Home Assistant вводятся только в браузере для скачиваемого файла.</p><h2>Обращения</h2><p>По вопросам данных и удаления аккаунта используйте доменный контакт оператора.</p>'
-    : '<h2>Статус сервиса</h2><p>GrowerHub предоставляется бесплатно в открытой бете без карты. Функции, совместимость и условия могут меняться; о существенном изменении условий сообщается заранее.</p><h2>Безопасность оборудования</h2><p>Платформа не заменяет электробезопасный монтаж, защиту от воды, проверку нагрузки и физическое аварийное отключение. Пользователь отвечает за безопасную установку оборудования.</p><h2>Поддержка</h2><p>Помощь через Telegram доступна без SLA и не является обязательным этапом настройки.</p>'}` : `
-          <div class="badge">Черновик — самостоятельное подключение выключено</div><h1>${htmlEscape(title)}</h1><p>Страница технически подготовлена, но юридический текст ещё не опубликован. Владелец GrowerHub должен добавить данные оператора и доменный контакт, затем проверить и утвердить документ.</p><p>До этого самостоятельное подключение и основная кнопка запуска остаются выключенными.</p>`;
+    : '<h2>Ранний доступ</h2><p>GrowerHub доступен бесплатно и без карты. Основные функции уже работают, а каталог устройств и сценариев постоянно расширяется. О важных изменениях сообщим заранее.</p><h2>Подключение оборудования</h2><p>Для оборудования с водой и сетевым питанием соблюдайте электробезопасность, проверяйте нагрузку и предусмотрите физическое аварийное отключение.</p><h2>Поддержка</h2><p>Если понадобится помощь, напишите нам в Telegram — подскажем с подключением, устройствами и настройкой функций.</p>'}` : `
+          <div class="badge">Информация обновляется</div><h1>${htmlEscape(title)}</h1><p>Мы обновляем эту страницу. Если у вас есть вопрос о GrowerHub или работе с данными, напишите команде в Telegram.</p>`;
 
   return pageShell(template, {
     title,

@@ -9,7 +9,7 @@ function PlatformStartLink({ placement, className = 'hero-cta', children, onClic
   const handleClick = (event) => {
     trackProductGoal('platform_start', {
       placement,
-      step: SELF_SERVICE_PUBLIC_ENABLED ? 'login' : 'beta_waitlist',
+      step: SELF_SERVICE_PUBLIC_ENABLED ? 'login' : 'early_access_waitlist',
     });
     onClick?.(event);
   };
