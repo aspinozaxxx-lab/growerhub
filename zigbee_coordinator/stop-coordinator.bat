@@ -1,11 +1,12 @@
 @echo off
+chcp 65001 >nul
 setlocal EnableExtensions
 
 set "FRONTEND_PORT=8080"
 set "NO_PAUSE="
 if /i "%~1"=="--no-pause" set "NO_PAUSE=1"
 
-echo Stopping Zigbee2MQTT coordinator...
+echo Останавливается координатор Zigbee2MQTT...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$ErrorActionPreference = 'Stop';" ^
   "$listeners = Get-NetTCPConnection -LocalPort %FRONTEND_PORT% -State Listen -ErrorAction SilentlyContinue;" ^
@@ -15,9 +16,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "  if ($process -and $process.Name -ieq 'node.exe') {" ^
   "    Stop-Process -Id $listener.OwningProcess -Force;" ^
   "    $stopped[$listener.OwningProcess] = $true;" ^
-  "    Write-Host ('Stopped Zigbee2MQTT process PID ' + $listener.OwningProcess);" ^
+  "    Write-Host ('Остановлен процесс Zigbee2MQTT, PID ' + $listener.OwningProcess);" ^
   "  } elseif ($process) {" ^
-  "    Write-Error ('Frontend port %FRONTEND_PORT% is used by ' + $process.Name + ' PID ' + $listener.OwningProcess + '. Stop it manually or change frontend.port in data\configuration.yaml.');" ^
+  "    Write-Error ('Порт интерфейса %FRONTEND_PORT% занят процессом ' + $process.Name + ', PID ' + $listener.OwningProcess + '. Остановите его вручную или измените frontend.port в data\configuration.yaml.');" ^
   "    exit 2;" ^
   "  }" ^
   "}" ^
@@ -26,10 +27,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "  if (-not $stopped.ContainsKey($process.ProcessId)) {" ^
   "    Stop-Process -Id $process.ProcessId -Force;" ^
   "    $stopped[$process.ProcessId] = $true;" ^
-  "    Write-Host ('Stopped Zigbee2MQTT process PID ' + $process.ProcessId);" ^
+  "    Write-Host ('Остановлен процесс Zigbee2MQTT, PID ' + $process.ProcessId);" ^
   "  }" ^
   "}" ^
-  "if ($stopped.Count -eq 0) { Write-Host 'No running Zigbee2MQTT coordinator found.'; }" ^
+  "if ($stopped.Count -eq 0) { Write-Host 'Запущенный координатор Zigbee2MQTT не найден.'; }" ^
   "Start-Sleep -Milliseconds 800;"
 set "EXITCODE=%ERRORLEVEL%"
 

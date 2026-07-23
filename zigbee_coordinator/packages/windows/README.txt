@@ -1,11 +1,11 @@
-GrowerHub coordinator for Windows
+Координатор GrowerHub для Windows
 
-1. Install current Node.js LTS with Corepack.
-2. In GrowerHub create a connection and download configuration.yaml and secret.yaml.
-3. Put both files into the data folder. Do not share secret.yaml.
-4. Run setup-coordinator.bat and select COM port plus adapter:
-   - zstack for SONOFF ZBDongle-P and compatible CC2652 coordinators;
-   - ember for SONOFF ZBDongle-E and compatible Ember coordinators.
-5. Run start-coordinator.bat. Check status with status-coordinator.bat.
+1. Установите актуальную LTS-версию Node.js с Corepack.
+2. Создайте подключение в GrowerHub и скачайте configuration.yaml и secret.yaml.
+3. Поместите оба файла в папку data. Никому не передавайте secret.yaml.
+4. Запустите setup-coordinator.bat и выберите COM-порт и тип адаптера:
+   - zstack для SONOFF ZBDongle-P и совместимых координаторов CC2652;
+   - ember для SONOFF ZBDongle-E и совместимых координаторов Ember.
+5. Запустите start-coordinator.bat. Состояние можно проверить через status-coordinator.bat.
 
-The package contains no GrowerHub credentials. Telegram help is available from the onboarding screen.
+В пакете нет данных доступа GrowerHub. Ссылка на помощь в Telegram доступна на экране подключения.

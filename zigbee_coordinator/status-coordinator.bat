@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 setlocal EnableExtensions
 
 set "FRONTEND_PORT=8080"
@@ -15,21 +16,21 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "  if ($process) { $portOwners += $process; }" ^
   "}" ^
   "if ($z2m.Count -gt 0) {" ^
-  "  Write-Host 'Zigbee2MQTT status: running';" ^
+  "  Write-Host 'Состояние Zigbee2MQTT: запущен';" ^
   "  foreach ($process in $z2m) {" ^
   "    Write-Host ('PID: ' + $process.ProcessId);" ^
-  "    Write-Host ('Command: ' + $process.CommandLine);" ^
+  "    Write-Host ('Команда: ' + $process.CommandLine);" ^
   "  }" ^
-  "  if ($listeners.Count -gt 0) { Write-Host 'Frontend: http://127.0.0.1:%FRONTEND_PORT%'; } else { Write-Host 'Frontend: not listening yet'; }" ^
+  "  if ($listeners.Count -gt 0) { Write-Host 'Интерфейс: http://127.0.0.1:%FRONTEND_PORT%'; } else { Write-Host 'Интерфейс ещё не запущен'; }" ^
   "  exit 0;" ^
   "}" ^
   "$blocking = @($portOwners | Where-Object { $_.Name -ine 'node.exe' });" ^
   "if ($blocking.Count -gt 0) {" ^
-  "  Write-Host 'Zigbee2MQTT status: stopped';" ^
-  "  foreach ($process in $blocking) { Write-Host ('Frontend port %FRONTEND_PORT% is used by ' + $process.Name + ' PID ' + $process.ProcessId); }" ^
+  "  Write-Host 'Состояние Zigbee2MQTT: остановлен';" ^
+  "  foreach ($process in $blocking) { Write-Host ('Порт интерфейса %FRONTEND_PORT% занят процессом ' + $process.Name + ', PID ' + $process.ProcessId); }" ^
   "  exit 2;" ^
   "}" ^
-  "Write-Host 'Zigbee2MQTT status: stopped';" ^
+  "Write-Host 'Состояние Zigbee2MQTT: остановлен';" ^
   "exit 1;"
 set "EXITCODE=%ERRORLEVEL%"
 
