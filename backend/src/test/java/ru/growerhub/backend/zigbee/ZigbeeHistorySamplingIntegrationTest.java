@@ -47,7 +47,7 @@ class ZigbeeHistorySamplingIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals(1, propertyCount("state", "OFF"));
         Assertions.assertEquals(1, propertyCount("state", "ON"));
         Assertions.assertEquals(3, propertyCount("temperature", null));
-        Assertions.assertEquals(1, propertyCount("battery", null));
+        Assertions.assertEquals(2, propertyCount("battery", null));
         Assertions.assertEquals(2, propertyCount("action", "single"));
         Assertions.assertEquals(0, propertyCount("countdown", null));
         Assertions.assertEquals(5, stateEventCount());

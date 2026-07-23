@@ -941,6 +941,7 @@ public class ZigbeeFacade {
         Map<String, NumericHistoryCheckpoint> checkpoints = readHistoryCheckpoints(
                 device.getHistoryCheckpointJson()
         );
+        boolean deviceStateChanged = historyPropertyChanged(map, previousState, "state");
         List<HistoryProperty> selected = new ArrayList<>();
         for (Map.Entry<?, ?> entry : map.entrySet()) {
             String property = entry.getKey() != null ? entry.getKey().toString().trim() : null;
@@ -965,7 +966,8 @@ public class ZigbeeFacade {
                         number,
                         previousValue,
                         checkpoints.get(canonicalProperty),
-                        message.receivedAt()
+                        message.receivedAt(),
+                        deviceStateChanged
                 )) {
                     selected.add(new HistoryProperty(property, canonicalProperty, value, true));
                 }
@@ -1092,13 +1094,25 @@ public class ZigbeeFacade {
         return previousState.get(canonicalProperty);
     }
 
+    private boolean historyPropertyChanged(Map<?, ?> currentState, Map<?, ?> previousState, String property) {
+        if (!currentState.containsKey(property)) {
+            return false;
+        }
+        return !previousState.containsKey(property)
+                || !historyValuesEqual(currentState.get(property), previousState.get(property));
+    }
+
     private boolean shouldRecordNumericHistory(
             String property,
             Number current,
             Object previous,
             NumericHistoryCheckpoint checkpoint,
-            LocalDateTime receivedAt
+            LocalDateTime receivedAt,
+            boolean force
     ) {
+        if (force) {
+            return true;
+        }
         boolean intervalDue = checkpoint == null
                 || !receivedAt.isBefore(
                         checkpoint.ts().plusSeconds(historySettings.numericIntervalSeconds(property))
