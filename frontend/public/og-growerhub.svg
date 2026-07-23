@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">GrowerHub — автоматизация мини-фермы</title>
+  <desc id="desc">Тёмно-синий баннер GrowerHub с карточками двух зон, датчиками и графиком</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#081321" />
+      <stop offset="0.58" stop-color="#10243d" />
+      <stop offset="1" stop-color="#0b1728" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5fd491" />
+      <stop offset="1" stop-color="#43b674" />
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="24" />
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#background)" />
+  <circle cx="1060" cy="84" r="150" fill="#5fd491" opacity="0.12" filter="url(#glow)" />
+  <circle cx="120" cy="570" r="170" fill="#3f8cff" opacity="0.1" filter="url(#glow)" />
+
+  <g transform="translate(72 78)">
+    <rect width="76" height="76" rx="22" fill="url(#accent)" />
+    <path d="M24 46c16-2 26-12 29-30 12 20 5 38-13 42-8 2-14-2-16-12Z" fill="#0b1728" />
+    <path d="M37 55c-2-13 2-23 12-31" fill="none" stroke="#0b1728" stroke-width="5" stroke-linecap="round" />
+    <text x="98" y="42" fill="#f6fbff" font-family="Inter,Segoe UI,sans-serif" font-size="40" font-weight="700">GrowerHub</text>
+    <text x="0" y="146" fill="#f6fbff" font-family="Inter,Segoe UI,sans-serif" font-size="58" font-weight="700">Автоматизация</text>
+    <text x="0" y="211" fill="#f6fbff" font-family="Inter,Segoe UI,sans-serif" font-size="58" font-weight="700">мини-фермы</text>
+    <text x="0" y="266" fill="#b8cae3" font-family="Inter,Segoe UI,sans-serif" font-size="26">Зоны, датчики, история и управление</text>
+    <rect y="318" width="330" height="62" rx="16" fill="url(#accent)" />
+    <text x="34" y="358" fill="#081321" font-family="Inter,Segoe UI,sans-serif" font-size="24" font-weight="700">Бесплатный разбор</text>
+  </g>
+
+  <g transform="translate(660 92)">
+    <rect width="468" height="446" rx="28" fill="#0d1d32" stroke="#294361" stroke-width="2" />
+    <circle cx="34" cy="32" r="6" fill="#5fd491" />
+    <text x="52" y="40" fill="#91add1" font-family="Inter,Segoe UI,sans-serif" font-size="16">Обзор зон</text>
+    <g transform="translate(26 72)">
+      <rect width="416" height="104" rx="16" fill="#132740" stroke="#2a4564" />
+      <text x="20" y="32" fill="#f6fbff" font-family="Inter,Segoe UI,sans-serif" font-size="19" font-weight="700">Стеллаж «Зелень»</text>
+      <rect x="326" y="14" width="70" height="28" rx="14" fill="#153d35" stroke="#5fd491" />
+      <text x="342" y="34" fill="#9de8ba" font-family="Inter,Segoe UI,sans-serif" font-size="13">Норма</text>
+      <text x="20" y="72" fill="#9db5d5" font-family="Inter,Segoe UI,sans-serif" font-size="16">23,4 °C</text>
+      <text x="126" y="72" fill="#9db5d5" font-family="Inter,Segoe UI,sans-serif" font-size="16">61%</text>
+      <text x="202" y="72" fill="#9db5d5" font-family="Inter,Segoe UI,sans-serif" font-size="16">почва 48%</text>
+    </g>
+    <g transform="translate(26 192)">
+      <rect width="416" height="104" rx="16" fill="#132740" stroke="#2a4564" />
+      <text x="20" y="32" fill="#f6fbff" font-family="Inter,Segoe UI,sans-serif" font-size="19" font-weight="700">Бокс «Рассада»</text>
+      <rect x="326" y="14" width="70" height="28" rx="14" fill="#153d35" stroke="#5fd491" />
+      <text x="342" y="34" fill="#9de8ba" font-family="Inter,Segoe UI,sans-serif" font-size="13">Норма</text>
+      <text x="20" y="72" fill="#9db5d5" font-family="Inter,Segoe UI,sans-serif" font-size="16">24,1 °C</text>
+      <text x="126" y="72" fill="#9db5d5" font-family="Inter,Segoe UI,sans-serif" font-size="16">57%</text>
+      <text x="202" y="72" fill="#9db5d5" font-family="Inter,Segoe UI,sans-serif" font-size="16">почва 42%</text>
+    </g>
+    <g transform="translate(28 332)">
+      <path d="M0 58 C42 18 76 68 114 35 S188 58 230 24 S308 51 350 18 S388 31 412 8" fill="none" stroke="#5fd491" stroke-width="5" stroke-linecap="round" />
+      <path d="M0 78 C48 55 78 86 120 61 S194 88 238 58 S312 79 356 50 S392 60 412 42" fill="none" stroke="#4da1ff" stroke-width="4" stroke-linecap="round" opacity="0.85" />
+    </g>
+  </g>
+</svg>

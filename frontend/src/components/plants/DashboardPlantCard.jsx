@@ -252,7 +252,7 @@ function DashboardPlantCard({
           >
             Журнал
           </Button>
-          <Link className="dashboard-plant-card__link" to="/app/plants">
+          <Link className="dashboard-plant-card__link" to="/app/plants/">
             Перейти {'>'}
           </Link>
         </div>

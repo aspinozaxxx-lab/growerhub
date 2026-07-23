@@ -1,12 +1,22 @@
-﻿import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import LeadCta from '../components/LeadCta';
 import { articleClusters } from '../content/articleClusters';
 import { getArticlesByCluster } from '../content/articles';
+import useSeoMeta from '../utils/useSeoMeta';
+
+const description = 'Практические материалы GrowerHub об автополиве, датчиках, Zigbee2MQTT, Home Assistant и автоматизации мини-фермы.';
 
 function ArticlesListPage() {
+  useSeoMeta({
+    title: 'Статьи GrowerHub — датчики, полив и автоматизация',
+    description,
+    path: '/articles/',
+  });
+
   return (
     <div className="section">
-      <h1>Статьи</h1>
-      <p>Практические разделы GrowerHub сгруппированы по задачам: от безопасного автополива до Zigbee, журнала ухода, мини-фермы и DIY-интеграций.</p>
+      <h1>Статьи GrowerHub</h1>
+      <p>{description}</p>
       <div className="cluster-list">
         {articleClusters.map((cluster) => {
           const clusterArticles = getArticlesByCluster(cluster.slug);
@@ -18,35 +28,36 @@ function ArticlesListPage() {
                   <h2>{cluster.title}</h2>
                   <p>{cluster.description}</p>
                 </div>
-                <Link to={`/articles/clusters/${cluster.slug}`} className="secondary-link">
+                <Link to={`/articles/clusters/${cluster.slug}/`} className="secondary-link">
                   Раздел
                 </Link>
               </div>
               <div className="cluster-meta-grid">
                 <div>
-                  <strong>Кому полезно</strong>
-                  <p>{cluster.persona}</p>
+                  <strong>Подходит, если</strong>
+                  <p>{cluster.fit}</p>
                 </div>
                 <div>
-                  <strong>Коммерческий смысл</strong>
-                  <p>{cluster.commercialIntent}</p>
+                  <strong>Задачи, которые разбираем</strong>
+                  <p>{cluster.tasks}</p>
                 </div>
               </div>
               <div className="articles-list">
                 {clusterArticles.map((article) => (
-                  <div className="article-card" key={article.slug}>
+                  <article className="article-card" key={article.slug}>
                     <div className="article-meta">
-                      {new Date(article.created_at).toLocaleDateString('ru-RU')}
+                      Обновлено {new Date(article.updated_at).toLocaleDateString('ru-RU')}
                     </div>
-                    <Link to={`/articles/${article.slug}`}>{article.title}</Link>
+                    <Link to={`/articles/${article.slug}/`}>{article.title}</Link>
                     <p>{article.summary}</p>
-                  </div>
+                  </article>
                 ))}
               </div>
             </section>
           );
         })}
       </div>
+      <LeadCta placement="articles_index_bottom" />
     </div>
   );
 }

@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 @Table(
     name = "zigbee_device_snapshots",
     indexes = {
-        @Index(name = "ix_zigbee_device_snapshots_friendly", columnList = "friendly_name")
+        @Index(name = "ix_zigbee_device_snapshots_coordinator_friendly", columnList = "coordinator_id,friendly_name")
     }
 )
 public class ZigbeeDeviceSnapshotEntity {
@@ -21,6 +21,9 @@ public class ZigbeeDeviceSnapshotEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
+
+    @Column(name = "coordinator_id", nullable = false)
+    private Integer coordinatorId;
 
     @Column(name = "ieee_address")
     private String ieeeAddress;
@@ -58,8 +61,9 @@ public class ZigbeeDeviceSnapshotEntity {
     protected ZigbeeDeviceSnapshotEntity() {
     }
 
-    public static ZigbeeDeviceSnapshotEntity create(String friendlyName, LocalDateTime now) {
+    public static ZigbeeDeviceSnapshotEntity create(Integer coordinatorId, String friendlyName, LocalDateTime now) {
         ZigbeeDeviceSnapshotEntity entity = new ZigbeeDeviceSnapshotEntity();
+        entity.coordinatorId = coordinatorId;
         entity.friendlyName = friendlyName;
         entity.updatedAt = now;
         return entity;
@@ -67,6 +71,10 @@ public class ZigbeeDeviceSnapshotEntity {
 
     public Integer getId() {
         return id;
+    }
+
+    public Integer getCoordinatorId() {
+        return coordinatorId;
     }
 
     public String getIeeeAddress() {

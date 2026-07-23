@@ -15,14 +15,14 @@ function AuthProvider({ children }) {
   const clearError = useCallback(() => setError(null), []);
 
   const setRedirectAfterLogin = useCallback((path) => {
-    if (!path || path === '/app/login') {
+    if (!path || path === '/app/login/') {
       return;
     }
     setRedirectAfterLoginState(path);
   }, []);
 
   const consumeRedirectAfterLogin = useCallback(() => {
-    const target = redirectAfterLogin || '/app';
+    const target = redirectAfterLogin || '/app/';
     setRedirectAfterLoginState(null);
     return target;
   }, [redirectAfterLogin]);
@@ -107,27 +107,18 @@ function AuthProvider({ children }) {
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    const urlToken = url.searchParams.get('access_token');
-    let effectiveToken = localStorage.getItem(STORAGE_KEY);
-
-    if (urlToken) {
-      // Translitem: podhvatyvaem token iz URL posle SSO i chistim ego iz stroki brauzera
-      effectiveToken = urlToken;
-      localStorage.setItem(STORAGE_KEY, urlToken);
-      setToken(urlToken);
-
+    if (url.searchParams.has('access_token')) {
+      // Translitem: legacy token iz URL nikogda ne ispol'zuem i srazu udal jaem.
       url.searchParams.delete('access_token');
       const cleanedSearch = url.searchParams.toString();
       const cleanedUrl = `${url.pathname}${cleanedSearch ? `?${cleanedSearch}` : ''}${url.hash}`;
       window.history.replaceState({}, document.title, cleanedUrl);
     }
 
-    if (effectiveToken) {
-      setToken(effectiveToken);
-      loadCurrentUser(effectiveToken);
-    } else {
-      setStatus('unauthorized');
-    }
+    const effectiveToken = localStorage.getItem(STORAGE_KEY);
+    if (effectiveToken) setToken(effectiveToken);
+    // Translitem: posle SSO access token vosstanavlivaetsja cherez HttpOnly refresh-cookie.
+    loadCurrentUser(effectiveToken);
   }, [loadCurrentUser]);
 
   const value = useMemo(

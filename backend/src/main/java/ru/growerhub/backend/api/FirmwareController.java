@@ -4,6 +4,7 @@ import java.util.List;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,20 +19,28 @@ import ru.growerhub.backend.firmware.FirmwareFacade;
 import ru.growerhub.backend.firmware.contract.FirmwareTriggerResult;
 import ru.growerhub.backend.firmware.contract.FirmwareUploadResult;
 import ru.growerhub.backend.firmware.contract.FirmwareVersionInfo;
+import ru.growerhub.backend.common.contract.AuthenticatedDevice;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
+import ru.growerhub.backend.device.DeviceFacade;
 
 @RestController
 @Validated
 public class FirmwareController {
     private final FirmwareFacade firmwareFacade;
+    private final DeviceFacade deviceFacade;
 
-    public FirmwareController(FirmwareFacade firmwareFacade) {
+    public FirmwareController(FirmwareFacade firmwareFacade, DeviceFacade deviceFacade) {
         this.firmwareFacade = firmwareFacade;
+        this.deviceFacade = deviceFacade;
     }
 
     @GetMapping("/api/device/{device_id}/firmware")
     public FirmwareDtos.FirmwareCheckResponse checkFirmwareUpdate(
-            @PathVariable("device_id") String deviceId
+            @PathVariable("device_id") String deviceId,
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @AuthenticationPrincipal AuthenticatedDevice authenticatedDevice
     ) {
+        requireDeviceAccess(deviceId, user, authenticatedDevice);
         FirmwareCheckResult result = firmwareFacade.checkFirmwareUpdate(deviceId);
         return new FirmwareDtos.FirmwareCheckResponse(
                 result.updateAvailable(),
@@ -43,8 +52,10 @@ public class FirmwareController {
     @PostMapping("/api/upload-firmware")
     public ResponseEntity<FirmwareDtos.UploadFirmwareResponse> uploadFirmware(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("version") String version
+            @RequestParam("version") String version,
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
+        requireAdmin(user);
         FirmwareUploadResult result = firmwareFacade.uploadFirmware(file, version);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new FirmwareDtos.UploadFirmwareResponse(
@@ -57,8 +68,10 @@ public class FirmwareController {
     @PostMapping("/api/device/{device_id}/trigger-update")
     public ResponseEntity<FirmwareDtos.TriggerFirmwareUpdateResponse> triggerUpdate(
             @PathVariable("device_id") String deviceId,
-            @RequestBody FirmwareDtos.TriggerFirmwareUpdateRequest request
+            @RequestBody FirmwareDtos.TriggerFirmwareUpdateRequest request,
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
+        requireUserDeviceAccess(deviceId, user);
         String version = resolveVersion(request);
         FirmwareTriggerResult result = firmwareFacade.triggerUpdate(deviceId, version);
         return ResponseEntity.status(HttpStatus.ACCEPTED)
@@ -71,7 +84,10 @@ public class FirmwareController {
     }
 
     @GetMapping("/api/firmware/versions")
-    public ResponseEntity<List<FirmwareDtos.FirmwareVersionResponse>> listFirmwareVersions() {
+    public ResponseEntity<List<FirmwareDtos.FirmwareVersionResponse>> listFirmwareVersions(
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
+        requireAdmin(user);
         List<FirmwareVersionInfo> versions = firmwareFacade.listFirmwareVersions();
         List<FirmwareDtos.FirmwareVersionResponse> response = versions.stream()
                 .map(this::toVersionResponse)
@@ -106,5 +122,29 @@ public class FirmwareController {
             throw new ApiValidationException(new ApiValidationError(List.of(item)));
         }
         return candidate;
+    }
+
+    private void requireDeviceAccess(
+            String deviceId,
+            AuthenticatedUser user,
+            AuthenticatedDevice authenticatedDevice
+    ) {
+        if (authenticatedDevice != null && deviceId.equals(authenticatedDevice.deviceId())) {
+            return;
+        }
+        requireUserDeviceAccess(deviceId, user);
+    }
+
+    private void requireUserDeviceAccess(String deviceId, AuthenticatedUser user) {
+        boolean allowed = user != null && deviceFacade.canUserAccessDevice(deviceId, user.id(), user.isAdmin());
+        if (!allowed) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Ustrojstvo ne naideno");
+        }
+    }
+
+    private void requireAdmin(AuthenticatedUser user) {
+        if (user == null || !user.isAdmin()) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Nedostatochno prav");
+        }
     }
 }

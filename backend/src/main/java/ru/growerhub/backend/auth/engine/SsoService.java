@@ -191,13 +191,13 @@ public class SsoService {
         }
     }
 
-    public Integer getOrCreateUser(String provider, String subject, String email) {
+    public SsoUserResolution getOrCreateUser(String provider, String subject, String email) {
         validateProvider(provider);
         UserAuthIdentityEntity identity = identityRepository
                 .findByProviderAndProviderSubject(provider, subject)
                 .orElse(null);
         if (identity != null) {
-            return identity.getUserId();
+            return new SsoUserResolution(identity.getUserId(), false);
         }
 
         String normalizedEmail = (email != null && !email.isEmpty()) ? email : null;
@@ -219,7 +219,7 @@ public class SsoService {
                 now
         );
         identityRepository.save(newIdentity);
-        return user.id();
+        return new SsoUserResolution(user.id(), true);
     }
 
     public UserAuthIdentityEntity findIdentityBySubject(String provider, String subject) {
@@ -321,6 +321,9 @@ public class SsoService {
     public record SsoProfile(String subject, String email, Boolean emailVerified) {
     }
 
+    public record SsoUserResolution(Integer userId, boolean created) {
+    }
+
     private record ProviderConfig(
             String clientId,
             String clientSecret,
@@ -342,6 +345,5 @@ public class SsoService {
     public static class SsoStateException extends RuntimeException {
     }
 }
-
 
 

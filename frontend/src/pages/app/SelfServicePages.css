@@ -1,0 +1,246 @@
+.self-service-page {
+  display: grid;
+  gap: 18px;
+}
+
+.page-intro {
+  max-width: 760px;
+  margin: 0;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.summary-grid,
+.zone-grid,
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+.summary-grid article,
+.self-service-section,
+.zone-card,
+.device-card-v2,
+.secret-card {
+  padding: 18px;
+  border: 1px solid var(--border-1);
+  border-radius: 16px;
+  background: var(--surface-1);
+  box-shadow: var(--shadow-1);
+}
+
+.summary-grid article {
+  display: grid;
+  gap: 5px;
+}
+
+.summary-grid span,
+.summary-grid small,
+.connection-meta,
+.device-card-v2__header p,
+.zone-card p,
+.self-service-section > p {
+  color: var(--text-3);
+}
+
+.summary-grid strong {
+  color: var(--text-1);
+  font-size: 28px;
+}
+
+.self-service-section,
+.zone-card,
+.device-card-v2,
+.secret-card,
+.connection-list,
+.automation-list {
+  display: grid;
+  gap: 14px;
+}
+
+.self-service-section h2,
+.self-service-section h3,
+.zone-card h2,
+.zone-card h3,
+.device-card-v2 h2,
+.secret-card h2,
+.self-service-section p,
+.zone-card p,
+.device-card-v2 p,
+.secret-card p {
+  margin: 0;
+}
+
+.section-heading,
+.zone-card__header,
+.device-card-v2__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.section-heading a,
+.device-readonly a {
+  color: var(--accent);
+}
+
+.status-chip {
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--text-3);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 12px;
+}
+
+.status-chip.is-online {
+  color: #9de8ba;
+  background: rgba(95, 212, 145, 0.13);
+}
+
+.zone-card__metrics,
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.zone-card__metrics > div,
+.metric-grid > div,
+.zone-sections > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.zone-card__metrics span,
+.metric-grid span,
+.zone-sections span {
+  overflow-wrap: anywhere;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.connection-list > article,
+.automation-card {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  gap: 10px 18px;
+  padding: 16px;
+  border: 1px solid var(--border-1);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.connection-list h3,
+.connection-list p,
+.automation-card h3,
+.automation-card p {
+  margin: 0;
+}
+
+.connection-meta,
+.connection-list .inline-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.compact-form {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.compact-form label,
+.scenario-fields label {
+  display: grid;
+  gap: 5px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.compact-form input,
+.scenario-fields input {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-1);
+  border-radius: 9px;
+  color: var(--text-1);
+  background: var(--surface-2);
+}
+
+.secret-card {
+  border-color: rgba(255, 193, 92, 0.45);
+}
+
+.secret-card > div:first-child > span {
+  color: #ffd48d;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.secret-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.secret-card dl div {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.secret-card dt { color: var(--text-3); font-size: 12px; }
+.secret-card dd { overflow-wrap: anywhere; margin: 4px 0 0; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+
+.inline-actions,
+.device-controls > div,
+.scenario-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.device-controls,
+.device-readonly {
+  padding-top: 12px;
+  border-top: 1px solid var(--border-1);
+}
+
+.readonly-control,
+.beta-warning {
+  color: #ffd48d;
+  font-size: 13px;
+}
+
+.automation-card > .gh-btn {
+  width: fit-content;
+}
+
+@media (max-width: 680px) {
+  .connection-list > article,
+  .automation-card {
+    grid-template-columns: 1fr;
+  }
+
+  .connection-meta,
+  .connection-list .inline-actions {
+    grid-column: auto;
+  }
+
+  .secret-card dl {
+    grid-template-columns: 1fr;
+  }
+}

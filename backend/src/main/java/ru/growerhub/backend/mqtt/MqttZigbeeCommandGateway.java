@@ -3,38 +3,29 @@ package ru.growerhub.backend.mqtt;
 import java.util.Map;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
-import ru.growerhub.backend.common.config.mqtt.MqttTopicSettings;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.zigbee.contract.ZigbeeCommandGateway;
 
 @Component
 public class MqttZigbeeCommandGateway implements ZigbeeCommandGateway {
     private final ObjectProvider<MqttPublisher> publisherProvider;
-    private final MqttTopicSettings topicSettings;
-
-    public MqttZigbeeCommandGateway(ObjectProvider<MqttPublisher> publisherProvider, MqttTopicSettings topicSettings) {
+    public MqttZigbeeCommandGateway(ObjectProvider<MqttPublisher> publisherProvider) {
         this.publisherProvider = publisherProvider;
-        this.topicSettings = topicSettings;
     }
 
     @Override
-    public void publishPermitJoin(int seconds) {
-        publish(bridgeTopic("request/permit_join"), Map.of("time", seconds));
+    public void publishPermitJoin(String baseTopic, int seconds) {
+        publish(bridgeTopic(baseTopic, "request/permit_join"), Map.of("time", seconds));
     }
 
     @Override
-    public void publishSetState(String friendlyName, String state) {
-        publishSet(friendlyName, Map.of("state", state));
+    public void publishSet(String baseTopic, String friendlyName, Map<String, Object> payload) {
+        publish(baseTopic + "/" + friendlyName + "/set", payload);
     }
 
     @Override
-    public void publishSet(String friendlyName, Map<String, Object> payload) {
-        publish(topicSettings.getZigbeeBase() + "/" + friendlyName + "/set", payload);
-    }
-
-    @Override
-    public void publishRename(String fromFriendlyName, String toFriendlyName) {
-        publish(bridgeTopic("request/device/rename"), Map.of(
+    public void publishRename(String baseTopic, String fromFriendlyName, String toFriendlyName) {
+        publish(bridgeTopic(baseTopic, "request/device/rename"), Map.of(
                 "from", fromFriendlyName,
                 "to", toFriendlyName,
                 "homeassistant_rename", false
@@ -53,7 +44,7 @@ public class MqttZigbeeCommandGateway implements ZigbeeCommandGateway {
         }
     }
 
-    private String bridgeTopic(String relative) {
-        return topicSettings.getZigbeeBase() + "/bridge/" + relative;
+    private String bridgeTopic(String baseTopic, String relative) {
+        return baseTopic + "/bridge/" + relative;
     }
 }

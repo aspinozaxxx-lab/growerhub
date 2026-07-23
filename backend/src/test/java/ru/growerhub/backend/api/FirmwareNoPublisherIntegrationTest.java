@@ -3,10 +3,18 @@
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import io.restassured.RestAssured;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -19,6 +27,8 @@ import org.springframework.test.context.DynamicPropertySource;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
+import ru.growerhub.backend.user.jpa.UserEntity;
+import ru.growerhub.backend.user.jpa.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "MQTT_HOST=")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -32,6 +42,9 @@ class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private DeviceRepository deviceRepository;
+
+    @Autowired
+    private UserRepository userRepository;
 
     private static Path firmwareDir;
 
@@ -63,8 +76,10 @@ class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId("fw-no-pub");
         deviceRepository.save(device);
+        String adminToken = createAdminToken();
 
         given()
+                .header("Authorization", "Bearer " + adminToken)
                 .contentType("application/json")
                 .body(java.util.Map.of("version", version))
                 .when()
@@ -72,6 +87,25 @@ class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(503)
                 .body("detail", equalTo("MQTT publisher unavailable"));
+    }
+
+    private String createAdminToken() {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        UserEntity admin = userRepository.save(UserEntity.create(
+                "firmware-no-publisher-admin@example.com",
+                null,
+                "admin",
+                true,
+                now,
+                now
+        ));
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("user_id", admin.getId());
+        return Jwts.builder()
+                .setClaims(claims)
+                .setExpiration(Date.from(java.time.Instant.now().plusSeconds(3600)))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)), SignatureAlgorithm.HS256)
+                .compact();
     }
 
     private void clearDatabase() {
@@ -93,5 +127,4 @@ class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
-
 

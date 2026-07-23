@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -50,6 +51,8 @@ import ru.growerhub.backend.user.jpa.UserRepository;
 import ru.growerhub.backend.zigbee.ZigbeeFacade;
 import ru.growerhub.backend.zigbee.contract.ZigbeeMqttMessageType;
 import ru.growerhub.backend.zigbee.contract.ZigbeeMqttSnapshotMessage;
+import ru.growerhub.backend.zigbee.jpa.ZigbeeCoordinatorEntity;
+import ru.growerhub.backend.zigbee.jpa.ZigbeeCoordinatorRepository;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -75,6 +78,9 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
     private ZigbeeFacade zigbeeFacade;
 
     @Autowired
+    private ZigbeeCoordinatorRepository coordinatorRepository;
+
+    @Autowired
     private AutomationFacade automationFacade;
 
     @Autowired
@@ -86,12 +92,17 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
     @SpyBean
     private PumpFacade pumpFacade;
 
+    @Autowired
+    private TestPublisher testPublisher;
+
     @BeforeEach
     void setUp() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
         clearDatabase();
+        seedLegacyCoordinator();
         seedZigbee();
+        testPublisher.clear();
     }
 
     @Test
@@ -470,6 +481,59 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(400)
                 .body("detail", equalTo("dlya until_drain nuzhen LEAK_SENSOR"));
+    }
+
+    @Test
+    void legacyLightAutomationKeepsPublishingToExistingBaseTopic() {
+        UserEntity admin = createUser("automation-legacy-light@example.com", "admin");
+        String token = buildToken(admin.getId());
+        Integer roomId = createRoom(token, "Legacy Room");
+        Integer boxId = createBox(token, roomId, "Legacy Box");
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"resources":[{
+                          "role":"LIGHT_SWITCH",
+                          "source_type":"ZIGBEE_DEVICE",
+                          "zigbee_ieee_address":"0xa4c13895af2c1df3",
+                          "command_property":"state"
+                        }]}
+                        """)
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/resources")
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"scenarios":[{
+                          "scenario_type":"LIGHT_SCHEDULE",
+                          "enabled":true,
+                          "config":{"start_time":"00:00","end_time":"00:00","days":[1,2,3,4,5,6,7]}
+                        }]}
+                        """)
+                .when()
+                .put("/api/admin/automation/boxes/" + boxId + "/scenarios")
+                .then()
+                .statusCode(200);
+
+        automationFacade.evaluateAll();
+
+        assertThat(testPublisher.published()).anySatisfy(message -> {
+            assertThat(message.topic()).isEqualTo("zigbee2growerhub/smartplug1/set");
+            assertThat(message.payload()).isInstanceOf(Map.class);
+            assertThat(((Map<?, ?>) message.payload()).get("state")).isEqualTo("ON");
+        });
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT result FROM automation_action_log WHERE scope_type='BOX' AND scope_id=? "
+                        + "AND scenario_type='LIGHT_SCHEDULE' ORDER BY id DESC LIMIT 1",
+                String.class,
+                boxId
+        )).isEqualTo("published");
     }
 
     @Test
@@ -1050,6 +1114,19 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
         seedZigbeeAvailability("leak1", "online", now);
     }
 
+    private void seedLegacyCoordinator() {
+        UserEntity owner = createUser("automation-legacy-owner@example.com", "admin");
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        coordinatorRepository.save(ZigbeeCoordinatorEntity.create(
+                UUID.fromString("00000000-0000-0000-0000-000000000001"),
+                owner.getId(),
+                "Legacy coordinator",
+                "legacy",
+                "zigbee2growerhub",
+                now
+        ));
+    }
+
     private void seedLeakState(LocalDateTime receivedAt, boolean leak) {
         zigbeeFacade.handleMqttSnapshot(new ZigbeeMqttSnapshotMessage(
                 ZigbeeMqttMessageType.DEVICE_STATE,
@@ -1332,6 +1409,7 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM zigbee_command_response_snapshots");
         jdbcTemplate.update("DELETE FROM zigbee_device_snapshots");
         jdbcTemplate.update("DELETE FROM zigbee_bridge_snapshots");
+        jdbcTemplate.update("DELETE FROM zigbee_coordinators");
         jdbcTemplate.update("DELETE FROM user_auth_identities");
         jdbcTemplate.update("DELETE FROM user_refresh_tokens");
         jdbcTemplate.update("DELETE FROM users");
@@ -1349,12 +1427,26 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
     }
 
     static class TestPublisher implements MqttPublisher {
+        private final List<PublishedMessage> published = new ArrayList<>();
+
         @Override
         public void publishCmd(String deviceId, Object cmd) {
         }
 
         @Override
         public void publishJson(String topic, Object payload, int qos, boolean retained) {
+            published.add(new PublishedMessage(topic, payload));
         }
+
+        List<PublishedMessage> published() {
+            return List.copyOf(published);
+        }
+
+        void clear() {
+            published.clear();
+        }
+    }
+
+    private record PublishedMessage(String topic, Object payload) {
     }
 }

@@ -459,7 +459,7 @@ function AppPlantJournal() {
           <button type="button" className="plant-journal__download" onClick={handleDownloadJournal}>
             Скачать журнал (.md)
           </button>
-          <button type="button" className="plant-journal__back" onClick={() => navigate('/app/plants')}>
+          <button type="button" className="plant-journal__back" onClick={() => navigate('/app/plants/')}>
             ← К списку
           </button>
         </div>

@@ -79,15 +79,24 @@
 }
 
 .app-link {
-  background: var(--accent);
-  color: #0a1120;
-  font-weight: 700;
-  border-color: rgba(95, 212, 145, 0.6);
-  box-shadow: 0 12px 30px rgba(95, 212, 145, 0.28);
+  color: #9de8ba;
+  border-color: rgba(157, 232, 186, 0.35);
 }
 
 .app-link:hover {
+  color: #f6fbff;
+}
+
+.contact-link {
   background: var(--accent-strong);
+  color: #0a1120;
+  font-weight: 700;
+  border-color: rgba(95, 212, 145, 0.6);
+  box-shadow: 0 10px 24px rgba(95, 212, 145, 0.24);
+}
+
+.contact-link:hover {
+  background: var(--accent);
   color: #0a1120;
 }
 
@@ -102,6 +111,18 @@
   color: var(--muted);
   font-size: 14px;
   text-align: center;
+}
+
+.app-footer a {
+  color: #9de8ba;
+  text-decoration: none;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 16px;
 }
 
 @media (max-width: 820px) {

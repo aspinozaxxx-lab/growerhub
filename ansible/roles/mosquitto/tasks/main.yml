@@ -1,43 +1,226 @@
 ---
-# roles/mosquitto/tasks/main.yml
 - name: Install Mosquitto broker
-  apt:
+  ansible.builtin.apt:
     name:
       - mosquitto
       - mosquitto-clients
     state: present
-    update_cache: yes
+    update_cache: true
 
-- name: Ensure Mosquitto is enabled and running
-  systemd:
-    name: mosquitto
-    enabled: yes
-    state: started
+- name: Validate Mosquitto secret inputs
+  ansible.builtin.assert:
+    that:
+      - mosquitto_admin_password | length >= 32
+      - mosquitto_backend_password | length >= 32
+      - mosquitto_provisioning_password | length >= 32
+      - not mosquitto_legacy_listener_enabled or mosquitto_legacy_username | length > 0
+      - not mosquitto_legacy_listener_enabled or mosquitto_legacy_password | length >= 32
+    fail_msg: >-
+      MQTT credentials dolzhny byt' peredany cherez vault ili GH_MQTT_* environment
+      i imet' dlinu ne menee 32 simvolov.
+  no_log: true
 
-- name: Copy Mosquitto configuration
-  copy:
-    src: mosquitto.conf
+- name: Check Dynamic Security plugin
+  ansible.builtin.stat:
+    path: "{{ mosquitto_dynamic_security_plugin }}"
+  register: mosquitto_dynsec_plugin
+
+- name: Fail when Dynamic Security plugin is missing
+  ansible.builtin.assert:
+    that:
+      - mosquitto_dynsec_plugin.stat.exists
+    fail_msg: "Mosquitto Dynamic Security plugin ne naiden: {{ mosquitto_dynamic_security_plugin }}"
+
+- name: Check TLS certificate files
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ mosquitto_cert_source }}"
+    - "{{ mosquitto_key_source }}"
+  register: mosquitto_tls_sources
+
+- name: Fail when TLS certificate is not ready
+  ansible.builtin.assert:
+    that:
+      - mosquitto_tls_sources.results | map(attribute='stat.exists') | min
+    fail_msg: "Snachala vypustite Let's Encrypt sertifikat dlya {{ mosquitto_domain }}."
+
+- name: Create Mosquitto certificate directory
+  ansible.builtin.file:
+    path: /etc/mosquitto/certs
+    state: directory
+    owner: root
+    group: mosquitto
+    mode: "0750"
+
+- name: Copy TLS certificate for Mosquitto
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    remote_src: true
+    owner: root
+    group: mosquitto
+    mode: "0640"
+  loop:
+    - src: "{{ mosquitto_cert_source }}"
+      dest: "{{ mosquitto_cert_path }}"
+    - src: "{{ mosquitto_key_source }}"
+      dest: "{{ mosquitto_key_path }}"
+  notify: Restart Mosquitto
+
+- name: Check Dynamic Security configuration
+  ansible.builtin.stat:
+    path: "{{ mosquitto_dynamic_security_file }}"
+  register: mosquitto_dynsec_config
+
+- name: Initialize Dynamic Security configuration
+  ansible.builtin.command:
+    argv:
+      - mosquitto_ctrl
+      - dynsec
+      - init
+      - "{{ mosquitto_dynamic_security_file }}"
+      - "{{ mosquitto_admin_username }}"
+      - "{{ mosquitto_admin_password }}"
+  when: not mosquitto_dynsec_config.stat.exists
+  no_log: true
+
+- name: Secure Dynamic Security configuration
+  ansible.builtin.file:
+    path: "{{ mosquitto_dynamic_security_file }}"
+    owner: root
+    group: mosquitto
+    mode: "0640"
+
+- name: Install Mosquitto configuration
+  ansible.builtin.template:
+    src: mosquitto.conf.j2
     dest: /etc/mosquitto/mosquitto.conf
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
   notify: Restart Mosquitto
 
-- name: Allow MQTT ports in UFW (1883 - plain, 8883 - TLS)
-  ufw:
-    rule: allow
-    port: "{{ item }}"
-    proto: tcp
-  with_items:
-    - 1883
-    - 8883
-
-- name: Create credentials file (basic auth)
-  copy:
-    src: passwd
-    dest: /etc/mosquitto/passwd
+- name: Install certificate renewal hook for Mosquitto
+  ansible.builtin.template:
+    src: copy-cert-hook.sh.j2
+    dest: /etc/letsencrypt/renewal-hooks/deploy/02-reload-mosquitto.sh
     owner: root
-    group: mosquitto
-    mode: '0640'
-  notify: Restart Mosquitto
+    group: root
+    mode: "0755"
 
+- name: Apply Mosquitto configuration before Dynamic Security bootstrap
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure Mosquitto is enabled and running
+  ansible.builtin.systemd:
+    name: mosquitto
+    enabled: true
+    state: started
+
+- name: Wait for local authenticated MQTT listener
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ mosquitto_local_port }}"
+    timeout: 20
+
+- name: Check GrowerHub Dynamic Security bootstrap marker
+  ansible.builtin.stat:
+    path: "{{ mosquitto_bootstrap_marker }}"
+  register: mosquitto_bootstrap
+
+- name: Bootstrap least-privilege MQTT roles and clients
+  ansible.builtin.shell: |
+    set -euo pipefail
+    ctrl=(mosquitto_ctrl -h 127.0.0.1 -p {{ mosquitto_local_port }} -u "$GH_ADMIN_USER" -P "$GH_ADMIN_PASSWORD" dynsec)
+
+    "${ctrl[@]}" deleteClient "$GH_BACKEND_USER" >/dev/null 2>&1 || true
+    "${ctrl[@]}" deleteClient "$GH_PROVISIONING_USER" >/dev/null 2>&1 || true
+    "${ctrl[@]}" deleteClient "$GH_LEGACY_USER" >/dev/null 2>&1 || true
+    "${ctrl[@]}" deleteRole "{{ mosquitto_backend_role }}" >/dev/null 2>&1 || true
+    "${ctrl[@]}" deleteRole "{{ mosquitto_provisioning_role }}" >/dev/null 2>&1 || true
+    "${ctrl[@]}" deleteRole "{{ mosquitto_legacy_role }}" >/dev/null 2>&1 || true
+    "${ctrl[@]}" deleteRole "{{ mosquitto_coordinator_role }}" >/dev/null 2>&1 || true
+
+    "${ctrl[@]}" setDefaultACLAccess publishClientSend deny
+    "${ctrl[@]}" setDefaultACLAccess publishClientReceive deny
+    "${ctrl[@]}" setDefaultACLAccess subscribe deny
+    "${ctrl[@]}" setDefaultACLAccess unsubscribe deny
+
+    "${ctrl[@]}" createRole "{{ mosquitto_coordinator_role }}"
+    "${ctrl[@]}" addRoleACL "{{ mosquitto_coordinator_role }}" publishClientSend 'gh/z2m/%u/#' allow
+    "${ctrl[@]}" addRoleACL "{{ mosquitto_coordinator_role }}" publishClientReceive 'gh/z2m/%u/#' allow
+    "${ctrl[@]}" addRoleACL "{{ mosquitto_coordinator_role }}" subscribePattern 'gh/z2m/%u/#' allow
+    "${ctrl[@]}" addRoleACL "{{ mosquitto_coordinator_role }}" unsubscribePattern 'gh/z2m/%u/#' allow
+
+    "${ctrl[@]}" createRole "{{ mosquitto_backend_role }}"
+    for topic in 'gh/z2m/#' 'gh/dev/#' 'zigbee2growerhub/#'; do
+      "${ctrl[@]}" addRoleACL "{{ mosquitto_backend_role }}" publishClientSend "$topic" allow
+      "${ctrl[@]}" addRoleACL "{{ mosquitto_backend_role }}" publishClientReceive "$topic" allow
+      "${ctrl[@]}" addRoleACL "{{ mosquitto_backend_role }}" subscribeLiteral "$topic" allow
+      "${ctrl[@]}" addRoleACL "{{ mosquitto_backend_role }}" unsubscribeLiteral "$topic" allow
+    done
+    "${ctrl[@]}" createClient "$GH_BACKEND_USER" -p "$GH_BACKEND_PASSWORD"
+    "${ctrl[@]}" addClientRole "$GH_BACKEND_USER" "{{ mosquitto_backend_role }}"
+
+    "${ctrl[@]}" createRole "{{ mosquitto_provisioning_role }}"
+    "${ctrl[@]}" addRoleACL "{{ mosquitto_provisioning_role }}" publishClientSend '$CONTROL/dynamic-security/v1' allow
+    "${ctrl[@]}" addRoleACL "{{ mosquitto_provisioning_role }}" publishClientReceive '$CONTROL/dynamic-security/v1/response' allow
+    "${ctrl[@]}" addRoleACL "{{ mosquitto_provisioning_role }}" subscribeLiteral '$CONTROL/dynamic-security/v1/response' allow
+    "${ctrl[@]}" addRoleACL "{{ mosquitto_provisioning_role }}" unsubscribeLiteral '$CONTROL/dynamic-security/v1/response' allow
+    "${ctrl[@]}" createClient "$GH_PROVISIONING_USER" -p "$GH_PROVISIONING_PASSWORD"
+    "${ctrl[@]}" addClientRole "$GH_PROVISIONING_USER" "{{ mosquitto_provisioning_role }}"
+
+    if [ "{{ mosquitto_legacy_listener_enabled | bool | lower }}" = "true" ]; then
+      "${ctrl[@]}" createRole "{{ mosquitto_legacy_role }}"
+      "${ctrl[@]}" addRoleACL "{{ mosquitto_legacy_role }}" publishClientSend 'zigbee2growerhub/#' allow
+      "${ctrl[@]}" addRoleACL "{{ mosquitto_legacy_role }}" publishClientReceive 'zigbee2growerhub/#' allow
+      "${ctrl[@]}" addRoleACL "{{ mosquitto_legacy_role }}" subscribeLiteral 'zigbee2growerhub/#' allow
+      "${ctrl[@]}" addRoleACL "{{ mosquitto_legacy_role }}" unsubscribeLiteral 'zigbee2growerhub/#' allow
+      "${ctrl[@]}" createClient "$GH_LEGACY_USER" -p "$GH_LEGACY_PASSWORD"
+      "${ctrl[@]}" addClientRole "$GH_LEGACY_USER" "{{ mosquitto_legacy_role }}"
+    fi
+
+    install -o root -g mosquitto -m 0640 /dev/null "{{ mosquitto_bootstrap_marker }}"
+  args:
+    executable: /bin/bash
+  environment:
+    GH_ADMIN_USER: "{{ mosquitto_admin_username }}"
+    GH_ADMIN_PASSWORD: "{{ mosquitto_admin_password }}"
+    GH_BACKEND_USER: "{{ mosquitto_backend_username }}"
+    GH_BACKEND_PASSWORD: "{{ mosquitto_backend_password }}"
+    GH_PROVISIONING_USER: "{{ mosquitto_provisioning_username }}"
+    GH_PROVISIONING_PASSWORD: "{{ mosquitto_provisioning_password }}"
+    GH_LEGACY_USER: "{{ mosquitto_legacy_username }}"
+    GH_LEGACY_PASSWORD: "{{ mosquitto_legacy_password }}"
+  when: not mosquitto_bootstrap.stat.exists
+  no_log: true
+
+- name: Allow public MQTTS port in UFW
+  ansible.builtin.command: "ufw allow {{ mosquitto_tls_port }}/tcp"
+  register: mosquitto_ufw_tls
+  changed_when: "'Rule added' in mosquitto_ufw_tls.stdout"
+
+- name: Keep public plain MQTT closed
+  ansible.builtin.command: "ufw deny 1883/tcp"
+  register: mosquitto_ufw_plain
+  changed_when: "'Rule added' in mosquitto_ufw_plain.stdout"
+  when: not mosquitto_legacy_public_enabled
+
+- name: Verify anonymous MQTT access is denied
+  ansible.builtin.command:
+    argv:
+      - mosquitto_sub
+      - -h
+      - 127.0.0.1
+      - -p
+      - "{{ mosquitto_local_port }}"
+      - -t
+      - "#"
+      - -C
+      - "1"
+      - -W
+      - "1"
+  register: mosquitto_anonymous_probe
+  changed_when: false
+  failed_when: mosquitto_anonymous_probe.rc == 0

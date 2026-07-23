@@ -1,0 +1,14 @@
+services:
+  zigbee2mqtt:
+    image: koenkk/zigbee2mqtt:2.12.0
+    container_name: growerhub-zigbee2mqtt
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - /run/udev:/run/udev:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+    devices:
+      - "${ZIGBEE_DEVICE:-/dev/ttyUSB0}:/dev/ttyUSB0"
+    environment:
+      TZ: "${TZ:-Europe/Moscow}"

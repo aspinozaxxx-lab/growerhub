@@ -83,6 +83,20 @@
       esli ispol'zuetsya autentifikaciya.
   when: java_backend_mqtt_host | default("") | length > 0
 
+- name: Assert provisioning MQTT vars when self-service is enabled
+  ansible.builtin.assert:
+    that:
+      - java_backend_mqtt_provisioning_enabled | bool
+      - java_backend_mqtt_provisioning_host | length > 0
+      - (java_backend_mqtt_provisioning_port | int) > 0
+      - java_backend_mqtt_provisioning_username | length > 0
+      - java_backend_mqtt_provisioning_password | length >= 32
+      - java_backend_self_service_legacy_owner_email | length > 0
+    fail_msg: >-
+      Self-service nel'zya vklyuchit' bez provisioning MQTT credentials
+      i SELF_SERVICE_LEGACY_OWNER_EMAIL.
+  when: java_backend_self_service_enabled | bool
+
 - name: Ensure env directory exists
   become: true
   ansible.builtin.file:

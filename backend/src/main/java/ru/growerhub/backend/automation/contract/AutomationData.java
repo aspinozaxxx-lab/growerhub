@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import ru.growerhub.backend.pump.contract.PumpSessionData;
 
 public final class AutomationData {
@@ -36,6 +38,18 @@ public final class AutomationData {
             @JsonProperty("last_actions") List<ActionLog> lastActions,
             @JsonProperty("settings") Settings settings
     ) {
+    }
+
+    public record ProductAnalyticsSnapshot(
+            Set<Integer> usersWithZone,
+            Set<Integer> usersWithAutomation,
+            long zonesCreated,
+            long automationsEnabled
+    ) {
+        public ProductAnalyticsSnapshot {
+            usersWithZone = Set.copyOf(usersWithZone);
+            usersWithAutomation = Set.copyOf(usersWithAutomation);
+        }
     }
 
     public record Settings(
@@ -105,6 +119,7 @@ public final class AutomationData {
             @JsonProperty("source_type") String sourceType,
             @JsonProperty("native_sensor_id") Integer nativeSensorId,
             @JsonProperty("native_pump_id") Integer nativePumpId,
+            @JsonProperty("zigbee_coordinator_id") UUID zigbeeCoordinatorId,
             @JsonProperty("zigbee_ieee_address") String zigbeeIeeeAddress,
             @JsonProperty("zigbee_property") String zigbeeProperty,
             @JsonProperty("command_property") String commandProperty,
@@ -213,6 +228,8 @@ public final class AutomationData {
     }
 
     public record ZigbeeDevice(
+            @JsonProperty("coordinator_id") UUID coordinatorId,
+            @JsonProperty("coordinator_name") String coordinatorName,
             @JsonProperty("ieee_address") String ieeeAddress,
             @JsonProperty("friendly_name") String friendlyName,
             @JsonProperty("type") String type,
@@ -327,6 +344,7 @@ public final class AutomationData {
             @JsonProperty("source_type") String sourceType,
             @JsonProperty("native_sensor_id") Integer nativeSensorId,
             @JsonProperty("native_pump_id") Integer nativePumpId,
+            @JsonProperty("zigbee_coordinator_id") UUID zigbeeCoordinatorId,
             @JsonProperty("zigbee_ieee_address") String zigbeeIeeeAddress,
             @JsonProperty("zigbee_property") String zigbeeProperty,
             @JsonProperty("command_property") String commandProperty,

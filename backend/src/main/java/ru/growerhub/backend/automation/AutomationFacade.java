@@ -16,6 +16,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -45,6 +46,7 @@ import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.contract.DeviceSummary;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.plant.contract.AdminPlantInfo;
+import ru.growerhub.backend.plant.contract.PlantInfo;
 import ru.growerhub.backend.pump.PumpFacade;
 import ru.growerhub.backend.pump.contract.PumpSessionData;
 import ru.growerhub.backend.pump.contract.PumpStartResult;
@@ -54,6 +56,7 @@ import ru.growerhub.backend.sensor.contract.SensorView;
 import ru.growerhub.backend.zigbee.ZigbeeFacade;
 import ru.growerhub.backend.zigbee.contract.ZigbeeDeviceData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeFeatureData;
+import ru.growerhub.backend.zigbee.contract.ZigbeeOwnedDeviceData;
 
 @Service
 @Transactional
@@ -128,10 +131,49 @@ public class AutomationFacade {
     }
 
     @Transactional(readOnly = true)
-    public AutomationData.Overview getOverview() {
-        Catalog catalog = buildCatalog();
-        List<AutomationRoomEntity> rooms = roomRepository.findAllByOrderByNameAscIdAsc();
-        List<AutomationBoxEntity> boxes = boxRepository.findAllByOrderByNameAscIdAsc();
+    public AutomationData.ProductAnalyticsSnapshot getProductAnalytics() {
+        List<AutomationRoomEntity> rooms = roomRepository.findAll();
+        List<AutomationBoxEntity> boxes = boxRepository.findAll();
+        Map<Integer, Integer> roomOwners = rooms.stream()
+                .collect(Collectors.toMap(AutomationRoomEntity::getId, AutomationRoomEntity::getUserId));
+        Map<Integer, Integer> boxOwners = boxes.stream()
+                .collect(Collectors.toMap(AutomationBoxEntity::getId, box -> box.getRoom().getUserId()));
+        Set<Integer> usersWithZone = rooms.stream()
+                .map(AutomationRoomEntity::getUserId)
+                .collect(Collectors.toSet());
+        Set<Integer> usersWithAutomation = new HashSet<>();
+        long enabled = 0;
+
+        for (AutomationScenarioConfigEntity scenario : configRepository.findAll()) {
+            if (!scenario.isEnabled()) {
+                continue;
+            }
+            Integer userId = AutomationData.SCOPE_ROOM.equals(scenario.getScopeType())
+                    ? roomOwners.get(scenario.getScopeId())
+                    : boxOwners.get(scenario.getScopeId());
+            if (userId != null) {
+                usersWithAutomation.add(userId);
+                enabled++;
+            }
+        }
+
+        return new AutomationData.ProductAnalyticsSnapshot(
+                usersWithZone,
+                usersWithAutomation,
+                rooms.size(),
+                enabled
+        );
+    }
+
+    public AutomationData.Overview getOverview(AuthenticatedUser user) {
+        requireAuthenticated(user);
+        Catalog catalog = buildCatalog(user);
+        List<AutomationRoomEntity> rooms = user.isAdmin()
+                ? roomRepository.findAllByOrderByNameAscIdAsc()
+                : roomRepository.findAllByUserIdOrderByNameAscIdAsc(user.id());
+        List<AutomationBoxEntity> boxes = user.isAdmin()
+                ? boxRepository.findAllByOrderByNameAscIdAsc()
+                : boxRepository.findAllByRoom_UserIdOrderByNameAscIdAsc(user.id());
         Map<Integer, List<AutomationBoxEntity>> boxesByRoom = boxes.stream()
                 .collect(Collectors.groupingBy(AutomationBoxEntity::getRoomId));
         Map<Integer, List<AutomationBoxPlantEntity>> plantsByBox = groupPlants(boxes);
@@ -149,7 +191,7 @@ public class AutomationFacade {
         return new AutomationData.Overview(
                 roomData,
                 catalog.toData(),
-                actionLogRepository.findTop20ByOrderByCreatedAtDesc().stream().map(this::toActionLogData).toList(),
+                overviewActionLogs(user, rooms, boxes),
                 new AutomationData.Settings(
                         settings.getTimezone(),
                         settings.getStaleSensorMinutes(),
@@ -159,18 +201,27 @@ public class AutomationFacade {
         );
     }
 
-    public AutomationData.Overview createRoom(AutomationData.SaveRoomRequest request) {
+    public AutomationData.Overview createRoom(AuthenticatedUser user, AutomationData.SaveRoomRequest request) {
+        requireAuthenticated(user);
         LocalDateTime now = nowUtc();
-        AutomationRoomEntity room = AutomationRoomEntity.create(requiredName(request != null ? request.name() : null), now);
+        AutomationRoomEntity room = AutomationRoomEntity.create(
+                user.id(),
+                requiredName(request != null ? request.name() : null),
+                now
+        );
         if (request != null && request.enabled() != null) {
             room.setEnabled(request.enabled());
         }
         roomRepository.save(room);
-        return getOverview();
+        return getOverview(user);
     }
 
-    public AutomationData.Overview updateRoom(Integer roomId, AutomationData.SaveRoomRequest request) {
-        AutomationRoomEntity room = requireRoom(roomId);
+    public AutomationData.Overview updateRoom(
+            AuthenticatedUser user,
+            Integer roomId,
+            AutomationData.SaveRoomRequest request
+    ) {
+        AutomationRoomEntity room = requireRoom(user, roomId);
         if (request != null && request.name() != null) {
             room.setName(requiredName(request.name()));
         }
@@ -179,11 +230,11 @@ public class AutomationFacade {
         }
         room.setUpdatedAt(nowUtc());
         roomRepository.save(room);
-        return getOverview();
+        return getOverview(user);
     }
 
-    public void deleteRoom(Integer roomId) {
-        AutomationRoomEntity room = requireRoom(roomId);
+    public void deleteRoom(AuthenticatedUser user, Integer roomId) {
+        AutomationRoomEntity room = requireRoom(user, roomId);
         List<AutomationBoxEntity> boxes = boxRepository.findAllByRoom_IdOrderByNameAscIdAsc(room.getId());
         Set<Integer> pumpIds = boxes.stream()
                 .map(AutomationBoxEntity::getId)
@@ -199,19 +250,27 @@ public class AutomationFacade {
         pumpIds.forEach(this::syncAutomationPump);
     }
 
-    public AutomationData.Overview createBox(Integer roomId, AutomationData.SaveBoxRequest request) {
-        AutomationRoomEntity room = requireRoom(roomId);
+    public AutomationData.Overview createBox(
+            AuthenticatedUser user,
+            Integer roomId,
+            AutomationData.SaveBoxRequest request
+    ) {
+        AutomationRoomEntity room = requireRoom(user, roomId);
         LocalDateTime now = nowUtc();
         AutomationBoxEntity box = AutomationBoxEntity.create(room, requiredName(request != null ? request.name() : null), now);
         if (request != null && request.enabled() != null) {
             box.setEnabled(request.enabled());
         }
         boxRepository.save(box);
-        return getOverview();
+        return getOverview(user);
     }
 
-    public AutomationData.Overview updateBox(Integer boxId, AutomationData.SaveBoxRequest request) {
-        AutomationBoxEntity box = requireBox(boxId);
+    public AutomationData.Overview updateBox(
+            AuthenticatedUser user,
+            Integer boxId,
+            AutomationData.SaveBoxRequest request
+    ) {
+        AutomationBoxEntity box = requireBox(user, boxId);
         if (request != null && request.name() != null) {
             box.setName(requiredName(request.name()));
         }
@@ -220,11 +279,11 @@ public class AutomationFacade {
         }
         box.setUpdatedAt(nowUtc());
         boxRepository.save(box);
-        return getOverview();
+        return getOverview(user);
     }
 
-    public void deleteBox(Integer boxId) {
-        AutomationBoxEntity box = requireBox(boxId);
+    public void deleteBox(AuthenticatedUser user, Integer boxId) {
+        AutomationBoxEntity box = requireBox(user, boxId);
         Integer pumpId = automationPumpId(box.getId());
         deleteBoxResources(box.getId());
         boxRepository.delete(box);
@@ -234,8 +293,13 @@ public class AutomationFacade {
         }
     }
 
-    public AutomationData.Overview replaceBoxPlants(Integer boxId, AutomationData.SavePlantsRequest request) {
-        AutomationBoxEntity box = requireBox(boxId);
+    public AutomationData.Overview replaceBoxPlants(
+            AuthenticatedUser user,
+            Integer boxId,
+            AutomationData.SavePlantsRequest request
+    ) {
+        AutomationBoxEntity box = requireBox(user, boxId);
+        Catalog catalog = buildCatalog(user);
         LocalDateTime now = nowUtc();
         List<AutomationData.BoxPlantRequest> items = boxPlantRequests(request);
         List<Integer> plantIds = items.stream().map(AutomationData.BoxPlantRequest::plantId).toList();
@@ -251,7 +315,7 @@ public class AutomationFacade {
             if (item.rateMlPerHour() != null && item.rateMlPerHour() <= 0) {
                 throw new DomainException("bad_request", "rate_ml_per_hour dolzhen byt' bol'she nulya");
             }
-            if (plantFacade.getPlantInfoById(plantId) == null) {
+            if (!catalog.plantsById.containsKey(plantId)) {
                 throw new DomainException("not_found", "rastenie ne naideno");
             }
         }
@@ -265,7 +329,7 @@ public class AutomationFacade {
         if (pumpId != null) {
             syncAutomationPump(pumpId);
         }
-        return getOverview();
+        return getOverview(user);
     }
 
     private List<AutomationData.BoxPlantRequest> boxPlantRequests(AutomationData.SavePlantsRequest request) {
@@ -286,16 +350,24 @@ public class AutomationFacade {
                 .toList();
     }
 
-    public AutomationData.Overview replaceRoomResources(Integer roomId, AutomationData.SaveResourcesRequest request) {
-        requireRoom(roomId);
-        replaceResources(AutomationData.SCOPE_ROOM, roomId, request);
-        return getOverview();
+    public AutomationData.Overview replaceRoomResources(
+            AuthenticatedUser user,
+            Integer roomId,
+            AutomationData.SaveResourcesRequest request
+    ) {
+        requireRoom(user, roomId);
+        replaceResources(AutomationData.SCOPE_ROOM, roomId, request, buildCatalog(user));
+        return getOverview(user);
     }
 
-    public AutomationData.Overview replaceBoxResources(Integer boxId, AutomationData.SaveResourcesRequest request) {
-        requireBox(boxId);
+    public AutomationData.Overview replaceBoxResources(
+            AuthenticatedUser user,
+            Integer boxId,
+            AutomationData.SaveResourcesRequest request
+    ) {
+        requireBox(user, boxId);
         Integer previousPumpId = automationPumpId(boxId);
-        replaceResources(AutomationData.SCOPE_BOX, boxId, request);
+        replaceResources(AutomationData.SCOPE_BOX, boxId, request, buildCatalog(user));
         Integer nextPumpId = automationPumpId(boxId);
         Set<Integer> affectedPumpIds = new HashSet<>();
         if (previousPumpId != null) {
@@ -305,7 +377,7 @@ public class AutomationFacade {
             affectedPumpIds.add(nextPumpId);
         }
         affectedPumpIds.forEach(this::syncAutomationPump);
-        return getOverview();
+        return getOverview(user);
     }
 
     @Transactional(readOnly = true)
@@ -453,16 +525,24 @@ public class AutomationFacade {
         return pumpFacade.boxStatistics(boxId, range, limit, beforeId);
     }
 
-    public AutomationData.Overview replaceRoomScenarios(Integer roomId, AutomationData.SaveScenariosRequest request) {
-        requireRoom(roomId);
+    public AutomationData.Overview replaceRoomScenarios(
+            AuthenticatedUser user,
+            Integer roomId,
+            AutomationData.SaveScenariosRequest request
+    ) {
+        requireRoom(user, roomId);
         replaceScenarios(AutomationData.SCOPE_ROOM, roomId, ROOM_SCENARIOS, request);
-        return getOverview();
+        return getOverview(user);
     }
 
-    public AutomationData.Overview replaceBoxScenarios(Integer boxId, AutomationData.SaveScenariosRequest request) {
-        requireBox(boxId);
+    public AutomationData.Overview replaceBoxScenarios(
+            AuthenticatedUser user,
+            Integer boxId,
+            AutomationData.SaveScenariosRequest request
+    ) {
+        requireBox(user, boxId);
         replaceScenarios(AutomationData.SCOPE_BOX, boxId, BOX_SCENARIOS, request);
-        return getOverview();
+        return getOverview(user);
     }
 
     public void evaluateAll() {
@@ -525,9 +605,13 @@ public class AutomationFacade {
         }
     }
 
-    private void replaceResources(String scopeType, Integer scopeId, AutomationData.SaveResourcesRequest request) {
+    private void replaceResources(
+            String scopeType,
+            Integer scopeId,
+            AutomationData.SaveResourcesRequest request,
+            Catalog catalog
+    ) {
         LocalDateTime now = nowUtc();
-        Catalog catalog = buildCatalog();
         List<AutomationData.ResourceBindingRequest> resources =
                 request != null && request.resources() != null ? request.resources() : List.of();
         Set<String> seenRoles = new HashSet<>();
@@ -540,9 +624,18 @@ public class AutomationFacade {
             validateRoleForScope(scopeType, role);
             validateResource(role, item, catalog);
             AutomationResourceBindingEntity entity = AutomationResourceBindingEntity.create(scopeType, scopeId, role, now);
-            entity.setSourceType(normalizeRequired(item.sourceType(), "source_type"));
+            String sourceType = normalizeRequired(item.sourceType(), "source_type");
+            entity.setSourceType(sourceType);
             entity.setNativeSensorId(item.nativeSensorId());
             entity.setNativePumpId(item.nativePumpId());
+            if (AutomationData.SOURCE_ZIGBEE_DEVICE.equals(sourceType)) {
+                UUID publicCoordinatorId = resolveCoordinatorPublicId(catalog, item.zigbeeCoordinatorId());
+                Integer coordinatorId = catalog.coordinatorInternalByPublic.get(publicCoordinatorId);
+                if (coordinatorId == null) {
+                    throw new DomainException("bad_request", "Zigbee koordinator ne naiden");
+                }
+                entity.setZigbeeCoordinatorId(coordinatorId);
+            }
             entity.setZigbeeIeeeAddress(blankToNull(item.zigbeeIeeeAddress()));
             entity.setZigbeeProperty(defaultProperty(role, item.zigbeeProperty()));
             entity.setCommandProperty(defaultCommandProperty(role, item.commandProperty()));
@@ -949,7 +1042,12 @@ public class AutomationFacade {
         }
         String property = defaultCommandProperty(binding.getRole(), binding.getCommandProperty());
         try {
-            zigbeeFacade.setDeviceProperty(binding.getZigbeeIeeeAddress(), property, desired);
+            zigbeeFacade.setAutomationDeviceProperty(
+                    binding.getZigbeeCoordinatorId(),
+                    binding.getZigbeeIeeeAddress(),
+                    property,
+                    desired
+            );
             logAction(scopeType, scopeId, scenarioType, binding,
                     switchAction(binding.getRole(), on), reason, "published", durationS, now);
             AutomationScenarioStateEntity state = stateFor(scopeType, scopeId, scenarioType, now);
@@ -1127,6 +1225,7 @@ public class AutomationFacade {
                 binding.getSourceType(),
                 binding.getNativeSensorId(),
                 binding.getNativePumpId(),
+                catalog.coordinatorPublicByInternal.get(binding.getZigbeeCoordinatorId()),
                 binding.getZigbeeIeeeAddress(),
                 binding.getZigbeeProperty(),
                 binding.getCommandProperty(),
@@ -1298,7 +1397,7 @@ public class AutomationFacade {
             return new ResourceStatus(true, null, pump.isRunning(), pump.lastSeenAt(), pump.label(), false);
         }
         if (AutomationData.SOURCE_ZIGBEE_DEVICE.equals(binding.getSourceType())) {
-            AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(binding.getZigbeeIeeeAddress());
+            AutomationData.ZigbeeDevice device = findZigbeeDevice(binding, catalog);
             if (device == null) {
                 return ResourceStatus.notReady("Zigbee ustrojstvo ne naideno");
             }
@@ -1332,7 +1431,7 @@ public class AutomationFacade {
             return sensor != null ? new SensorValue(sensor.lastValue(), sensor.lastTs()) : null;
         }
         if (AutomationData.SOURCE_ZIGBEE_DEVICE.equals(binding.getSourceType())) {
-            AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(binding.getZigbeeIeeeAddress());
+            AutomationData.ZigbeeDevice device = findZigbeeDevice(binding, catalog);
             Double value = asDouble(readZigbeeFeatureValue(device, binding.getZigbeeProperty()));
             return device != null ? new SensorValue(value, device.lastStateAt()) : null;
         }
@@ -1343,7 +1442,7 @@ public class AutomationFacade {
         if (binding == null || !AutomationData.SOURCE_ZIGBEE_DEVICE.equals(binding.getSourceType())) {
             return null;
         }
-        AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(binding.getZigbeeIeeeAddress());
+        AutomationData.ZigbeeDevice device = findZigbeeDevice(binding, catalog);
         return readZigbeeFeatureValue(device, defaultCommandProperty(binding.getRole(), binding.getCommandProperty()));
     }
 
@@ -1371,6 +1470,9 @@ public class AutomationFacade {
 
     private void validateResource(String role, AutomationData.ResourceBindingRequest item, Catalog catalog) {
         String sourceType = normalizeRequired(item.sourceType(), "source_type");
+        if (AutomationData.SOURCE_ZIGBEE_DEVICE.equals(sourceType)) {
+            requireZigbeeDeviceReference(catalog, item.zigbeeCoordinatorId(), item.zigbeeIeeeAddress());
+        }
         if (AutomationData.ROLE_WATER_PUMP.equals(role)) {
             if (!AutomationData.SOURCE_NATIVE_PUMP.equals(sourceType) || !catalog.pumpsById.containsKey(item.nativePumpId())) {
                 throw new DomainException("bad_request", "WATER_PUMP v v1 dolzhen byt' native pump");
@@ -1382,7 +1484,12 @@ public class AutomationFacade {
                 throw new DomainException("bad_request", role + " v v1 dolzhen byt' Zigbee switch");
             }
             String property = defaultCommandProperty(role, item.commandProperty());
-            if (!zigbeeHasWritableProperty(catalog, item.zigbeeIeeeAddress(), property)) {
+            if (!zigbeeHasWritableProperty(
+                    catalog,
+                    item.zigbeeCoordinatorId(),
+                    item.zigbeeIeeeAddress(),
+                    property
+            )) {
                 throw new DomainException("bad_request", role + " dolzhen imet' writable " + property);
             }
             return;
@@ -1392,7 +1499,12 @@ public class AutomationFacade {
                 throw new DomainException("bad_request", "LEAK_SENSOR dolzhen byt' Zigbee sensor");
             }
             String property = defaultProperty(role, item.zigbeeProperty());
-            if (!zigbeeHasReadableProperty(catalog, item.zigbeeIeeeAddress(), property)) {
+            if (!zigbeeHasReadableProperty(
+                    catalog,
+                    item.zigbeeCoordinatorId(),
+                    item.zigbeeIeeeAddress(),
+                    property
+            )) {
                 throw new DomainException("bad_request", "LEAK_SENSOR dolzhen imet' readable " + property);
             }
             return;
@@ -1408,7 +1520,12 @@ public class AutomationFacade {
             }
             if (AutomationData.SOURCE_ZIGBEE_DEVICE.equals(sourceType)) {
                 String property = defaultProperty(role, item.zigbeeProperty());
-                if (!zigbeeHasReadableProperty(catalog, item.zigbeeIeeeAddress(), property)) {
+                if (!zigbeeHasReadableProperty(
+                        catalog,
+                        item.zigbeeCoordinatorId(),
+                        item.zigbeeIeeeAddress(),
+                        property
+                )) {
                     throw new DomainException("bad_request", role + " dolzhen imet' readable " + property);
                 }
                 return;
@@ -1417,16 +1534,43 @@ public class AutomationFacade {
         throw new DomainException("bad_request", "nekorrektnyj resource binding");
     }
 
-    private boolean zigbeeHasWritableProperty(Catalog catalog, String ieeeAddress, String property) {
-        AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(blankToNull(ieeeAddress));
+    private AutomationData.ZigbeeDevice requireZigbeeDeviceReference(
+            Catalog catalog,
+            UUID coordinatorId,
+            String ieeeAddress
+    ) {
+        UUID resolvedCoordinatorId = resolveCoordinatorPublicId(catalog, coordinatorId);
+        if (resolvedCoordinatorId == null
+                || !catalog.coordinatorInternalByPublic.containsKey(resolvedCoordinatorId)) {
+            throw new DomainException("not_found", "Zigbee ustrojstvo ne naideno");
+        }
+        AutomationData.ZigbeeDevice device = findZigbeeDevice(catalog, resolvedCoordinatorId, ieeeAddress);
+        if (device == null) {
+            throw new DomainException("not_found", "Zigbee ustrojstvo ne naideno");
+        }
+        return device;
+    }
+
+    private boolean zigbeeHasWritableProperty(
+            Catalog catalog,
+            UUID coordinatorId,
+            String ieeeAddress,
+            String property
+    ) {
+        AutomationData.ZigbeeDevice device = findZigbeeDevice(catalog, coordinatorId, ieeeAddress);
         if (device == null || property == null) {
             return false;
         }
         return device.controls().stream().anyMatch(feature -> property.equals(feature.property()));
     }
 
-    private boolean zigbeeHasReadableProperty(Catalog catalog, String ieeeAddress, String property) {
-        AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(blankToNull(ieeeAddress));
+    private boolean zigbeeHasReadableProperty(
+            Catalog catalog,
+            UUID coordinatorId,
+            String ieeeAddress,
+            String property
+    ) {
+        AutomationData.ZigbeeDevice device = findZigbeeDevice(catalog, coordinatorId, ieeeAddress);
         if (device == null || property == null) {
             return false;
         }
@@ -1434,17 +1578,63 @@ public class AutomationFacade {
                 || device.controls().stream().anyMatch(feature -> property.equals(feature.property()));
     }
 
+    private AutomationData.ZigbeeDevice findZigbeeDevice(
+            AutomationResourceBindingEntity binding,
+            Catalog catalog
+    ) {
+        if (binding == null) {
+            return null;
+        }
+        UUID coordinatorId = catalog.coordinatorPublicByInternal.get(binding.getZigbeeCoordinatorId());
+        return findZigbeeDevice(catalog, coordinatorId, binding.getZigbeeIeeeAddress());
+    }
+
+    private AutomationData.ZigbeeDevice findZigbeeDevice(
+            Catalog catalog,
+            UUID coordinatorId,
+            String ieeeAddress
+    ) {
+        UUID resolvedCoordinatorId = resolveCoordinatorPublicId(catalog, coordinatorId);
+        String key = zigbeeKey(resolvedCoordinatorId, blankToNull(ieeeAddress));
+        return key != null ? catalog.zigbeeByKey.get(key) : null;
+    }
+
+    private UUID resolveCoordinatorPublicId(Catalog catalog, UUID requestedCoordinatorId) {
+        if (requestedCoordinatorId != null) {
+            return requestedCoordinatorId;
+        }
+        if (catalog.coordinatorInternalByPublic.size() == 1) {
+            return catalog.coordinatorInternalByPublic.keySet().iterator().next();
+        }
+        return null;
+    }
+
+    private String zigbeeKey(UUID coordinatorId, String ieeeAddress) {
+        if (coordinatorId == null || ieeeAddress == null || ieeeAddress.isBlank()) {
+            return null;
+        }
+        return coordinatorId + "|" + ieeeAddress;
+    }
+
     private Catalog buildCatalog() {
-        List<AutomationData.Plant> plants = plantFacade.listAdminPlants(SYSTEM_ADMIN).stream()
-                .map(this::toPlantData)
-                .toList();
+        return buildCatalog(null);
+    }
+
+    private Catalog buildCatalog(AuthenticatedUser user) {
+        boolean allData = user == null || user.isAdmin();
+        List<AutomationData.Plant> plants = allData
+                ? plantFacade.listAdminPlants(SYSTEM_ADMIN).stream().map(this::toPlantData).toList()
+                : plantFacade.listPlants(user).stream().map(this::toPlantData).toList();
         Map<Integer, AutomationData.Plant> plantsById = plants.stream()
                 .collect(Collectors.toMap(AutomationData.Plant::id, Function.identity()));
 
         List<AutomationData.NativeDevice> nativeDevices = new ArrayList<>();
         Map<Integer, AutomationData.NativeSensor> sensorsById = new HashMap<>();
         Map<Integer, AutomationData.NativePump> pumpsById = new HashMap<>();
-        for (DeviceSummary summary : deviceFacade.listAdminDevices()) {
+        List<DeviceSummary> deviceSummaries = allData
+                ? deviceFacade.listAdminDevices()
+                : deviceFacade.listMyDevices(user.id());
+        for (DeviceSummary summary : deviceSummaries) {
             DeviceShadowState shadow = deviceFacade.getShadowState(summary.deviceId());
             List<AutomationData.NativeSensor> sensors = sensorFacade.listByDeviceId(summary.id()).stream()
                     .map(sensor -> toNativeSensorData(sensor, summary))
@@ -1465,14 +1655,44 @@ public class AutomationFacade {
             ));
         }
 
-        List<AutomationData.ZigbeeDevice> zigbeeDevices = zigbeeFacade.getOverview().devices().stream()
-                .filter(device -> !device.coordinator())
+        List<ZigbeeOwnedDeviceData> ownedZigbeeDevices = allData
+                ? zigbeeFacade.getDevicesForAutomation()
+                : zigbeeFacade.getDevicesForUser(user);
+        List<AutomationData.ZigbeeDevice> zigbeeDevices = ownedZigbeeDevices.stream()
+                .filter(item -> !item.device().coordinator())
                 .map(this::toZigbeeDeviceData)
                 .toList();
-        Map<String, AutomationData.ZigbeeDevice> zigbeeByIeee = zigbeeDevices.stream()
-                .filter(device -> device.ieeeAddress() != null)
-                .collect(Collectors.toMap(AutomationData.ZigbeeDevice::ieeeAddress, Function.identity(), (left, right) -> left));
-        return new Catalog(plants, plantsById, nativeDevices, sensorsById, pumpsById, zigbeeDevices, zigbeeByIeee);
+        Map<String, AutomationData.ZigbeeDevice> zigbeeByKey = ownedZigbeeDevices.stream()
+                .filter(item -> !item.device().coordinator())
+                .filter(item -> item.device().ieeeAddress() != null)
+                .collect(Collectors.toMap(
+                        item -> zigbeeKey(item.coordinatorId(), item.device().ieeeAddress()),
+                        this::toZigbeeDeviceData,
+                        (left, right) -> left
+                ));
+        Map<Integer, UUID> coordinatorPublicByInternal = ownedZigbeeDevices.stream()
+                .collect(Collectors.toMap(
+                        ZigbeeOwnedDeviceData::coordinatorInternalId,
+                        ZigbeeOwnedDeviceData::coordinatorId,
+                        (left, right) -> left
+                ));
+        Map<UUID, Integer> coordinatorInternalByPublic = ownedZigbeeDevices.stream()
+                .collect(Collectors.toMap(
+                        ZigbeeOwnedDeviceData::coordinatorId,
+                        ZigbeeOwnedDeviceData::coordinatorInternalId,
+                        (left, right) -> left
+                ));
+        return new Catalog(
+                plants,
+                plantsById,
+                nativeDevices,
+                sensorsById,
+                pumpsById,
+                zigbeeDevices,
+                zigbeeByKey,
+                coordinatorPublicByInternal,
+                coordinatorInternalByPublic
+        );
     }
 
     private AutomationData.Plant toPlantData(AdminPlantInfo plant) {
@@ -1483,6 +1703,17 @@ public class AutomationFacade {
                 plant.ownerUsername(),
                 plant.ownerId(),
                 plant.groupName()
+        );
+    }
+
+    private AutomationData.Plant toPlantData(PlantInfo plant) {
+        return new AutomationData.Plant(
+                plant.id(),
+                plant.name(),
+                null,
+                null,
+                plant.userId(),
+                plant.plantGroup() != null ? plant.plantGroup().name() : null
         );
     }
 
@@ -1530,8 +1761,11 @@ public class AutomationFacade {
         );
     }
 
-    private AutomationData.ZigbeeDevice toZigbeeDeviceData(ZigbeeDeviceData device) {
+    private AutomationData.ZigbeeDevice toZigbeeDeviceData(ZigbeeOwnedDeviceData ownedDevice) {
+        ZigbeeDeviceData device = ownedDevice.device();
         return new AutomationData.ZigbeeDevice(
+                ownedDevice.coordinatorId(),
+                ownedDevice.coordinatorName(),
                 device.ieeeAddress(),
                 device.friendlyName(),
                 device.type(),
@@ -1699,13 +1933,16 @@ public class AutomationFacade {
             AutomationResourceBindingEntity binding,
             Catalog catalog
     ) {
-        AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(binding.getZigbeeIeeeAddress());
+        AutomationData.ZigbeeDevice device = findZigbeeDevice(binding, catalog);
         String property = defaultProperty(AutomationData.ROLE_LEAK_SENSOR, binding.getZigbeeProperty());
         return new PumpSessionData.LeakTarget(
                 "automation-resource:" + binding.getId(),
                 binding.getId(),
                 binding.getSourceType(),
-                binding.getZigbeeIeeeAddress(),
+                zigbeeKey(
+                        catalog.coordinatorPublicByInternal.get(binding.getZigbeeCoordinatorId()),
+                        binding.getZigbeeIeeeAddress()
+                ),
                 property,
                 device != null ? device.friendlyName() : null,
                 isLeakAvailable(device, property),
@@ -1717,7 +1954,7 @@ public class AutomationFacade {
             PumpSessionData.LeakTarget target,
             Catalog catalog
     ) {
-        AutomationData.ZigbeeDevice device = catalog.zigbeeByIeee.get(target.externalId());
+        AutomationData.ZigbeeDevice device = catalog.zigbeeByKey.get(target.externalId());
         return new PumpSessionData.LeakState(
                 target.reference(),
                 isLeakAvailable(device, target.property()),
@@ -1854,6 +2091,66 @@ public class AutomationFacade {
         resourceRepository.deleteAllByScopeTypeAndScopeId(AutomationData.SCOPE_BOX, boxId);
         configRepository.deleteAllByScopeTypeAndScopeId(AutomationData.SCOPE_BOX, boxId);
         stateRepository.deleteAllByScopeTypeAndScopeId(AutomationData.SCOPE_BOX, boxId);
+    }
+
+    private List<AutomationData.ActionLog> overviewActionLogs(
+            AuthenticatedUser user,
+            List<AutomationRoomEntity> rooms,
+            List<AutomationBoxEntity> boxes
+    ) {
+        if (user.isAdmin()) {
+            return actionLogRepository.findTop20ByOrderByCreatedAtDesc().stream()
+                    .map(this::toActionLogData)
+                    .toList();
+        }
+        List<AutomationActionLogEntity> logs = new ArrayList<>();
+        for (AutomationRoomEntity room : rooms) {
+            logs.addAll(actionLogRepository.findTop10ByScopeTypeAndScopeIdOrderByCreatedAtDesc(
+                    AutomationData.SCOPE_ROOM,
+                    room.getId()
+            ));
+        }
+        for (AutomationBoxEntity box : boxes) {
+            logs.addAll(actionLogRepository.findTop10ByScopeTypeAndScopeIdOrderByCreatedAtDesc(
+                    AutomationData.SCOPE_BOX,
+                    box.getId()
+            ));
+        }
+        return logs.stream()
+                .sorted((left, right) -> right.getCreatedAt().compareTo(left.getCreatedAt()))
+                .limit(20)
+                .map(this::toActionLogData)
+                .toList();
+    }
+
+    private AutomationRoomEntity requireRoom(AuthenticatedUser user, Integer roomId) {
+        requireAuthenticated(user);
+        if (user.isAdmin()) {
+            return requireRoom(roomId);
+        }
+        if (roomId == null) {
+            throw new DomainException("bad_request", "room_id obyazatelen");
+        }
+        return roomRepository.findByIdAndUserId(roomId, user.id())
+                .orElseThrow(() -> new DomainException("not_found", "pomeshchenie ne naideno"));
+    }
+
+    private AutomationBoxEntity requireBox(AuthenticatedUser user, Integer boxId) {
+        requireAuthenticated(user);
+        if (user.isAdmin()) {
+            return requireBox(boxId);
+        }
+        if (boxId == null) {
+            throw new DomainException("bad_request", "box_id obyazatelen");
+        }
+        return boxRepository.findByIdAndRoom_UserId(boxId, user.id())
+                .orElseThrow(() -> new DomainException("not_found", "box ne naiden"));
+    }
+
+    private void requireAuthenticated(AuthenticatedUser user) {
+        if (user == null || user.id() == null) {
+            throw new DomainException("unauthorized", "Nuzhna avtorizacija");
+        }
     }
 
     private AutomationRoomEntity requireRoom(Integer roomId) {
@@ -2206,7 +2503,9 @@ public class AutomationFacade {
             Map<Integer, AutomationData.NativeSensor> sensorsById,
             Map<Integer, AutomationData.NativePump> pumpsById,
             List<AutomationData.ZigbeeDevice> zigbeeDevices,
-            Map<String, AutomationData.ZigbeeDevice> zigbeeByIeee
+            Map<String, AutomationData.ZigbeeDevice> zigbeeByKey,
+            Map<Integer, UUID> coordinatorPublicByInternal,
+            Map<UUID, Integer> coordinatorInternalByPublic
     ) {
         AutomationData.ResourceCatalog toData() {
             return new AutomationData.ResourceCatalog(plants, nativeDevices, zigbeeDevices);

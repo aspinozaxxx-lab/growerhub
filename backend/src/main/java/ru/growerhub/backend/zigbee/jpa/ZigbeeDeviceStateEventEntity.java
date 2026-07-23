@@ -17,8 +17,8 @@ import org.hibernate.annotations.OnDeleteAction;
 @Table(
     name = "zigbee_device_state_events",
     indexes = {
-        @Index(name = "ix_zigbee_state_events_ieee_ts", columnList = "ieee_address, ts"),
-        @Index(name = "ix_zigbee_state_events_friendly_ts", columnList = "friendly_name, ts")
+        @Index(name = "ix_zigbee_state_events_coordinator_ieee_ts", columnList = "coordinator_id,ieee_address,ts"),
+        @Index(name = "ix_zigbee_state_events_coordinator_friendly_ts", columnList = "coordinator_id,friendly_name,ts")
     }
 )
 public class ZigbeeDeviceStateEventEntity {
@@ -26,6 +26,9 @@ public class ZigbeeDeviceStateEventEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
+
+    @Column(name = "coordinator_id", nullable = false)
+    private Integer coordinatorId;
 
     @ManyToOne
     @JoinColumn(name = "device_snapshot_id")
@@ -50,12 +53,18 @@ public class ZigbeeDeviceStateEventEntity {
     protected ZigbeeDeviceStateEventEntity() {
     }
 
-    public static ZigbeeDeviceStateEventEntity create() {
-        return new ZigbeeDeviceStateEventEntity();
+    public static ZigbeeDeviceStateEventEntity create(Integer coordinatorId) {
+        ZigbeeDeviceStateEventEntity entity = new ZigbeeDeviceStateEventEntity();
+        entity.coordinatorId = coordinatorId;
+        return entity;
     }
 
     public Integer getId() {
         return id;
+    }
+
+    public Integer getCoordinatorId() {
+        return coordinatorId;
     }
 
     public ZigbeeDeviceSnapshotEntity getDeviceSnapshot() {

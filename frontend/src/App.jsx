@@ -1,36 +1,21 @@
-﻿import { Navigate, Route, Routes } from 'react-router-dom';
-import { useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useRef } from 'react';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import Layout from './components/layout/Layout';
-import AppLayout from './components/layout/AppLayout';
+import { METRIKA_ID } from './domain/siteConfig';
 import AboutPage from './pages/AboutPage';
 import ArticleClusterPage from './pages/ArticleClusterPage';
 import ArticlePage from './pages/ArticlePage';
 import ArticlesListPage from './pages/ArticlesListPage';
 import HomePage from './pages/HomePage';
-import AppDashboard from './pages/app/AppDashboard';
-import AppDevices from './pages/app/AppDevices';
-import AppPlants from './pages/app/AppPlants';
-import AppProfile from './pages/app/AppProfile';
-import AdminLayout from './pages/app/admin/AdminLayout';
-import AdminUsers from './pages/app/admin/AdminUsers';
-import AdminDevices from './pages/app/admin/AdminDevices';
-import AdminPlants from './pages/app/admin/AdminPlants';
-import AdminMqtt from './pages/app/admin/AdminMqtt';
-import AdminZigbee from './pages/app/admin/AdminZigbee';
-import AdminAutomation from './pages/app/admin/AdminAutomation';
-import AdminFarmDashboard from './pages/app/admin/AdminFarmDashboard';
-import AdminManualWatering from './pages/app/admin/AdminManualWatering';
-import RequireAdmin from './features/auth/RequireAdmin';
-import AppPlantJournal from './pages/app/AppPlantJournal';
-import LoginPage from './pages/app/LoginPage';
-import RequireAuth from './features/auth/RequireAuth';
-import { SensorStatsProvider } from './features/sensors/SensorStatsContext';
-import SensorStatsSidebar from './features/sensors/SensorStatsSidebar';
-import { WateringSidebarProvider } from './features/watering/WateringSidebarContext';
-import WateringSidebar from './features/watering/WateringSidebar';
+import EquipmentCategoryPage from './pages/EquipmentCategoryPage';
+import EquipmentIndexPage from './pages/EquipmentIndexPage';
+import GettingStartedPage from './pages/GettingStartedPage';
+import LegalPage from './pages/LegalPage';
+import MiniFarmPage from './pages/MiniFarmPage';
+import NotFoundPage from './pages/NotFoundPage';
+import PumpEarlyAccessPage from './pages/PumpEarlyAccessPage';
 
-const YANDEX_METRIKA_ID = 110256357;
+const AppSection = lazy(() => import('./pages/app/AppSection'));
 
 function MetrikaRouteTracker() {
   const location = useLocation();
@@ -43,7 +28,7 @@ function MetrikaRouteTracker() {
 
     const timerId = window.setTimeout(() => {
       if (typeof window.ym === 'function') {
-        window.ym(YANDEX_METRIKA_ID, 'hit', url, {
+        window.ym(METRIKA_ID, 'hit', url, {
           referer,
           title: document.title,
         });
@@ -62,52 +47,28 @@ function App() {
       <MetrikaRouteTracker />
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/articles" element={<ArticlesListPage />} />
-        <Route path="/articles/clusters/:clusterSlug" element={<ArticleClusterPage />} />
-        <Route path="/articles/:slug" element={<ArticlePage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/app/login" element={<LoginPage />} />
+        <Route path="/avtomatizatsiya-mini-fermy/" element={<MiniFarmPage />} />
+        <Route path="/kak-nachat/" element={<GettingStartedPage />} />
+        <Route path="/oborudovanie/" element={<EquipmentIndexPage />} />
+        <Route path="/oborudovanie/zigbee-koordinator/" element={<EquipmentCategoryPage categoryKey="coordinators" />} />
+        <Route path="/oborudovanie/datchiki/" element={<EquipmentCategoryPage categoryKey="sensors" />} />
+        <Route path="/oborudovanie/zigbee-rozetki/" element={<EquipmentCategoryPage categoryKey="sockets" />} />
+        <Route path="/oborudovanie/nasos-dlya-poliva/" element={<PumpEarlyAccessPage />} />
+        <Route path="/articles/" element={<ArticlesListPage />} />
+        <Route path="/articles/clusters/:clusterSlug/" element={<ArticleClusterPage />} />
+        <Route path="/articles/:slug/" element={<ArticlePage />} />
+        <Route path="/about/" element={<AboutPage />} />
+        <Route path="/privacy/" element={<LegalPage type="privacy" />} />
+        <Route path="/terms/" element={<LegalPage type="terms" />} />
         <Route
-          path="/app"
+          path="/app/*"
           element={(
-            <RequireAuth>
-              <WateringSidebarProvider>
-                <SensorStatsProvider>
-                  <>
-                    <AppLayout />
-                    <SensorStatsSidebar />
-                    <WateringSidebar />
-                  </>
-                </SensorStatsProvider>
-              </WateringSidebarProvider>
-            </RequireAuth>
+            <Suspense fallback={<div className="app-loading">Загружаем приложение…</div>}>
+              <AppSection />
+            </Suspense>
           )}
-        >
-          <Route index element={<AppDashboard />} />
-          <Route path="plants" element={<AppPlants />} />
-          <Route path="plants/:plantId/journal" element={<AppPlantJournal />} />
-          <Route path="devices" element={<AppDevices />} />
-          <Route path="profile" element={<AppProfile />} />
-          <Route
-            path="admin"
-            element={(
-              <RequireAdmin>
-                <AdminLayout />
-              </RequireAdmin>
-            )}
-          >
-            <Route index element={<Navigate to="dashboard" replace />} />
-            <Route path="dashboard" element={<AdminFarmDashboard />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="devices" element={<AdminDevices />} />
-            <Route path="plants" element={<AdminPlants />} />
-            <Route path="mqtt" element={<AdminMqtt />} />
-            <Route path="zigbee" element={<AdminZigbee />} />
-            <Route path="automation" element={<AdminAutomation />} />
-            <Route path="manual-watering" element={<AdminManualWatering />} />
-          </Route>
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Layout>
   );

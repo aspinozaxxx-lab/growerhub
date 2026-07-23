@@ -1,47 +1,58 @@
-﻿import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import LeadCta from '../components/LeadCta';
+import PlatformStartLink from '../components/PlatformStartLink';
 import { articleClusters } from '../content/articleClusters';
 import { articles, getArticleBySlug } from '../content/articles';
 import { homeContent } from '../content/pages';
+import { SELF_SERVICE_PUBLIC_ENABLED, SITE_URL } from '../domain/siteConfig';
+import useSeoMeta from '../utils/useSeoMeta';
 
-const fallbackHome = {
-  hero: {
-    title: 'GrowerHub — контроль полива и микроклимата теплиц',
-    subtitle: 'Следите за влажностью почвы, температурой и расходом воды в одном окне. Автоматизируйте полив и получайте уведомления.',
-    cta: 'Открыть приложение',
-  },
-  secondary: {
-    title: 'Работает с тем, что уже есть',
-    text: 'Поддерживаем датчики влажности, счётчики расхода и стандартные реле. Всё подключается через контроллер GrowerHub.',
-    points: [],
-  },
-  features: { title: 'Возможности', items: [] },
+const pageDescription = 'GrowerHub объединяет Zigbee-устройства, зоны, историю датчиков и автоматизации мини-фермы в одном кабинете. Бесплатная открытая бета без карты.';
+
+const softwareApplicationLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'GrowerHub',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  url: SITE_URL,
+  description: pageDescription,
+  ...(SELF_SERVICE_PUBLIC_ENABLED ? {
+    isAccessibleForFree: true,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'RUB' },
+  } : {}),
 };
 
 function HomePage() {
-  const data = homeContent || fallbackHome;
-  const hero = data.hero || fallbackHome.hero;
-  const secondary = data.secondary || fallbackHome.secondary;
-  const features = data.features || fallbackHome.features;
+  useSeoMeta({
+    title: 'GrowerHub — платформа управления мини-фермой',
+    description: pageDescription,
+    path: '/',
+    jsonLd: [softwareApplicationLd],
+  });
 
-  const recentArticles = (articles || []).slice(0, 2);
+  const { hero, secondary, features } = homeContent;
+  const recentArticles = articles.slice(0, 4);
 
   return (
     <div className="section">
       <div className="hero">
         <div>
-          <div className="badge">GrowerHub · умный полив</div>
+          <div className="badge">{hero.badge}</div>
           <h1>{hero.title}</h1>
           <p>{hero.subtitle}</p>
-          <a className="hero-cta" href="/app">
-            {hero.cta}
-          </a>
-
+          <div className="cta-row">
+            <PlatformStartLink placement="home_hero">
+              {SELF_SERVICE_PUBLIC_ENABLED ? hero.cta : 'Как начать'}
+            </PlatformStartLink>
+            <Link className="secondary-link" to="/kak-nachat/">Путь подключения</Link>
+          </div>
         </div>
         <div className="card">
-          <h3>{secondary.title}</h3>
+          <h2>{secondary.title}</h2>
           <p>{secondary.text}</p>
           <div className="card-grid">
-            {(secondary.points || []).map((point) => (
+            {secondary.points.map((point) => (
               <div key={point.title} className="info-block">
                 <strong>{point.title}</strong>
                 <p>{point.text}</p>
@@ -51,63 +62,75 @@ function HomePage() {
         </div>
       </div>
 
-      <div className="section" style={{ marginTop: 24 }}>
+      <section className="content-section">
         <h2>{features.title}</h2>
         <div className="card-grid">
-          {(features.items || []).map((item) => (
+          {features.items.map((item) => (
             <div className="card" key={item.title}>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      <div className="section" style={{ marginTop: 24 }}>
+      <section className="content-section beta-note">
+        <h2>Бесплатно в открытой бете</h2>
+        <p>{homeContent.beta}</p>
+        <div className="cta-row">
+          <Link className="secondary-link" to="/oborudovanie/">Какое оборудование подойдёт</Link>
+          <Link className="secondary-link" to="/avtomatizatsiya-mini-fermy/">Возможности платформы</Link>
+        </div>
+      </section>
+
+      <section className="content-section">
         <h2>Практические разделы</h2>
         <div className="cluster-home-grid">
           {articleClusters.map((cluster) => {
             const featuredArticles = cluster.featuredArticles
               .map((slug) => getArticleBySlug(slug))
               .filter(Boolean)
-              .slice(0, 5);
+              .slice(0, 4);
 
             return (
-              <div className="article-card" key={cluster.slug}>
-                <Link to={`/articles/clusters/${cluster.slug}`}>{cluster.title}</Link>
+              <article className="article-card" key={cluster.slug}>
+                <Link to={`/articles/clusters/${cluster.slug}/`}>{cluster.title}</Link>
                 <p>{cluster.description}</p>
                 <ul className="compact-link-list">
                   {featuredArticles.map((article) => (
                     <li key={article.slug}>
-                      <Link to={`/articles/${article.slug}`}>{article.title}</Link>
+                      <Link to={`/articles/${article.slug}/`}>{article.title}</Link>
                     </li>
                   ))}
                 </ul>
-              </div>
+              </article>
             );
           })}
         </div>
-      </div>
+      </section>
 
-      <div className="section" style={{ marginTop: 24 }}>
-        <h2>Свежие статьи</h2>
+      <section className="content-section">
+        <div className="cluster-block__header">
+          <div>
+            <h2>Свежие статьи</h2>
+            <p>Пошаговые материалы по Zigbee, Home Assistant, датчикам и безопасному поливу.</p>
+          </div>
+          <Link to="/articles/" className="secondary-link">Все статьи</Link>
+        </div>
         <div className="articles-list">
           {recentArticles.map((article) => (
-            <div className="article-card" key={article.slug}>
+            <article className="article-card" key={article.slug}>
               <div className="article-meta">
-                {new Date(article.created_at).toLocaleDateString('ru-RU')}
+                {new Date(article.updated_at).toLocaleDateString('ru-RU')}
               </div>
-              <Link to={`/articles/${article.slug}`}>{article.title}</Link>
+              <Link to={`/articles/${article.slug}/`}>{article.title}</Link>
               <p>{article.summary}</p>
-            </div>
+            </article>
           ))}
         </div>
-        <div style={{ marginTop: 14 }}>
-          <Link to="/articles" className="hero-cta" style={{ padding: '10px 14px' }}>
-            Все статьи
-          </Link>
-        </div>
-      </div>
+      </section>
+
+      <LeadCta placement="home_bottom" />
     </div>
   );
 }

@@ -187,16 +187,39 @@ public class MqttMessageHandler {
         if (zigbeeBase != null && !zigbeeBase.isBlank() && topic.startsWith(zigbeeBase + "/")) {
             return "zigbee";
         }
+        String userPrefix = topicSettings.getZigbeeUserPrefix();
+        if (userPrefix != null && !userPrefix.isBlank() && topic.startsWith(userPrefix + "/")) {
+            return "zigbee";
+        }
         return "raw";
     }
 
     private boolean handleZigbeeMessage(String topic, byte[] payload) {
         String zigbeeBase = topicSettings.getZigbeeBase();
-        if (topic == null || zigbeeBase == null || zigbeeBase.isBlank() || !topic.startsWith(zigbeeBase + "/")) {
+        if (topic == null) {
             return false;
         }
 
-        String relativeTopic = topic.substring(zigbeeBase.length() + 1);
+        String mqttUsername = null;
+        String resolvedBaseTopic = null;
+        if (zigbeeBase != null && !zigbeeBase.isBlank() && topic.startsWith(zigbeeBase + "/")) {
+            resolvedBaseTopic = zigbeeBase;
+        } else {
+            String userPrefix = topicSettings.getZigbeeUserPrefix();
+            String prefix = userPrefix != null && !userPrefix.isBlank() ? userPrefix + "/" : null;
+            if (prefix == null || !topic.startsWith(prefix)) {
+                return false;
+            }
+            String afterPrefix = topic.substring(prefix.length());
+            int separator = afterPrefix.indexOf('/');
+            if (separator <= 0) {
+                return true;
+            }
+            mqttUsername = afterPrefix.substring(0, separator);
+            resolvedBaseTopic = userPrefix + "/" + mqttUsername;
+        }
+
+        String relativeTopic = topic.substring(resolvedBaseTopic.length() + 1);
         ZigbeeMqttMessageType type = null;
         String friendlyName = null;
 
@@ -225,6 +248,8 @@ public class MqttMessageHandler {
         String rawPayload = safePayload(payload);
         Object parsedPayload = parseJson(rawPayload);
         zigbeeFacade.handleMqttSnapshot(new ZigbeeMqttSnapshotMessage(
+                mqttUsername,
+                resolvedBaseTopic,
                 type,
                 topic,
                 relativeTopic,

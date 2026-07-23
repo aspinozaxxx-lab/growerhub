@@ -66,6 +66,12 @@ public class DeviceEntity {
     @Column(name = "firmware_url", nullable = true)
     private String firmwareUrl;
 
+    @Column(name = "device_token_hash", length = 64)
+    private String deviceTokenHash;
+
+    @Column(name = "device_token_issued_at")
+    private LocalDateTime deviceTokenIssuedAt;
+
     protected DeviceEntity() {
     }
 
@@ -188,6 +194,21 @@ public class DeviceEntity {
     public void setFirmwareUrl(String firmwareUrl) {
         this.firmwareUrl = firmwareUrl;
     }
-}
 
+    public String getDeviceTokenHash() {
+        return deviceTokenHash;
+    }
+
+    public void setDeviceTokenHash(String deviceTokenHash) {
+        this.deviceTokenHash = deviceTokenHash;
+    }
+
+    public LocalDateTime getDeviceTokenIssuedAt() {
+        return deviceTokenIssuedAt;
+    }
+
+    public void setDeviceTokenIssuedAt(LocalDateTime deviceTokenIssuedAt) {
+        this.deviceTokenIssuedAt = deviceTokenIssuedAt;
+    }
+}
 

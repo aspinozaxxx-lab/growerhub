@@ -28,6 +28,18 @@ export async function fetchAdminUsers(token) {
   return response.json();
 }
 
+// Translitem: poluchaem tolko obezlichennye schetchiki produktovoj voronki.
+export async function fetchAdminProductAnalytics(token) {
+  const response = await apiFetch('/api/admin/product-analytics', token ? {
+    headers: { Authorization: `Bearer ${token}` },
+  } : undefined);
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось загрузить продуктовую воронку');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
+}
+
 // Translitem: sozdanie polzovatelya dlya admin-razdela.
 export async function createAdminUser(payload, token) {
   const response = await apiFetch('/api/users', {

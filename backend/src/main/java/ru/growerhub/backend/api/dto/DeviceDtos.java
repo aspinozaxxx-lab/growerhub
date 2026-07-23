@@ -168,4 +168,11 @@ public final class DeviceDtos {
             @JsonProperty("user_id") Integer userId
     ) {
     }
+
+    public record DeviceCredentialResponse(
+            @JsonProperty("device_id") String deviceId,
+            @JsonProperty("token") String token,
+            @JsonProperty("issued_at") LocalDateTime issuedAt
+    ) {
+    }
 }

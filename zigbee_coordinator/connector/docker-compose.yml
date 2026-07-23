@@ -1,0 +1,9 @@
+services:
+  connector:
+    image: eclipse-mosquitto:2.0.22
+    container_name: growerhub-zigbee-connector
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./bridge.conf:/mosquitto/config/bridge.conf:ro

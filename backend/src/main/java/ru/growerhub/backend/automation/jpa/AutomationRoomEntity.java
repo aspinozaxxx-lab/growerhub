@@ -16,6 +16,9 @@ public class AutomationRoomEntity {
     @Column(name = "id", nullable = false)
     private Integer id;
 
+    @Column(name = "user_id", nullable = false)
+    private Integer userId;
+
     @Column(name = "name", nullable = false)
     private String name;
 
@@ -31,8 +34,9 @@ public class AutomationRoomEntity {
     protected AutomationRoomEntity() {
     }
 
-    public static AutomationRoomEntity create(String name, LocalDateTime now) {
+    public static AutomationRoomEntity create(Integer userId, String name, LocalDateTime now) {
         AutomationRoomEntity entity = new AutomationRoomEntity();
+        entity.userId = userId;
         entity.name = name;
         entity.enabled = true;
         entity.createdAt = now;
@@ -42,6 +46,10 @@ public class AutomationRoomEntity {
 
     public Integer getId() {
         return id;
+    }
+
+    public Integer getUserId() {
+        return userId;
     }
 
     public String getName() {

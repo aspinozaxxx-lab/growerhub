@@ -1,21 +1,23 @@
-﻿import { Link, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import LeadCta from '../components/LeadCta';
 import { articleClusters, getArticleClusterBySlug } from '../content/articleClusters';
 import { getArticlesByCluster } from '../content/articles';
+import useSeoMeta from '../utils/useSeoMeta';
+import NotFoundPage from './NotFoundPage';
 
 function ArticleClusterPage() {
   const { clusterSlug } = useParams();
   const cluster = getArticleClusterBySlug(clusterSlug);
 
+  useSeoMeta({
+    title: cluster ? `${cluster.title} - статьи GrowerHub` : 'Раздел не найден - GrowerHub',
+    description: cluster?.description || 'Запрошенный раздел GrowerHub не найден.',
+    path: cluster ? `/articles/clusters/${cluster.slug}/` : null,
+    robots: cluster ? 'index,follow' : 'noindex,nofollow',
+  });
+
   if (!cluster) {
-    return (
-      <div className="section">
-        <h1>Раздел не найден</h1>
-        <p>Проверьте ссылку или вернитесь к списку статей.</p>
-        <Link to="/articles" className="hero-cta">
-          К списку статей
-        </Link>
-      </div>
-    );
+    return <NotFoundPage />;
   }
 
   const clusterArticles = getArticlesByCluster(cluster.slug);
@@ -29,12 +31,12 @@ function ArticleClusterPage() {
 
       <div className="cluster-meta-grid">
         <div>
-          <strong>Портрет пользователя</strong>
-          <p>{cluster.persona}</p>
+          <strong>Подходит, если</strong>
+          <p>{cluster.fit}</p>
         </div>
         <div>
-          <strong>Коммерческий смысл</strong>
-          <p>{cluster.commercialIntent}</p>
+          <strong>Задачи, которые разбираем</strong>
+          <p>{cluster.tasks}</p>
         </div>
       </div>
 
@@ -44,31 +46,33 @@ function ArticleClusterPage() {
         ))}
       </div>
 
-      <div className="cluster-block">
+      <section className="cluster-block">
         <h2>Статьи раздела</h2>
         <div className="articles-list">
           {clusterArticles.map((article) => (
-            <div className="article-card" key={article.slug}>
+            <article className="article-card" key={article.slug}>
               <div className="article-meta">
-                {new Date(article.created_at).toLocaleDateString('ru-RU')}
+                Обновлено {new Date(article.updated_at).toLocaleDateString('ru-RU')}
               </div>
-              <Link to={`/articles/${article.slug}`}>{article.title}</Link>
+              <Link to={`/articles/${article.slug}/`}>{article.title}</Link>
               <p>{article.summary}</p>
-            </div>
+            </article>
           ))}
         </div>
-      </div>
+      </section>
 
-      <div className="cluster-block">
+      <LeadCta placement="cluster_bottom" />
+
+      <section className="cluster-block">
         <h2>Другие разделы</h2>
         <div className="cluster-nav-grid">
           {otherClusters.map((item) => (
-            <Link to={`/articles/clusters/${item.slug}`} key={item.slug}>
+            <Link to={`/articles/clusters/${item.slug}/`} key={item.slug}>
               {item.title}
             </Link>
           ))}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

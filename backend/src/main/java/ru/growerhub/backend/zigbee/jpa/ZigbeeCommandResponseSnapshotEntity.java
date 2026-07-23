@@ -15,6 +15,9 @@ public class ZigbeeCommandResponseSnapshotEntity {
     @Column(name = "id", nullable = false)
     private Integer id;
 
+    @Column(name = "coordinator_id", nullable = false)
+    private Integer coordinatorId;
+
     @Column(name = "topic", nullable = false)
     private String topic;
 
@@ -33,9 +36,10 @@ public class ZigbeeCommandResponseSnapshotEntity {
     protected ZigbeeCommandResponseSnapshotEntity() {
     }
 
-    public static ZigbeeCommandResponseSnapshotEntity create(LocalDateTime now) {
+    public static ZigbeeCommandResponseSnapshotEntity create(Integer coordinatorId, LocalDateTime now) {
         ZigbeeCommandResponseSnapshotEntity entity = new ZigbeeCommandResponseSnapshotEntity();
-        entity.id = SINGLETON_ID;
+        entity.id = coordinatorId;
+        entity.coordinatorId = coordinatorId;
         entity.topic = "";
         entity.updatedAt = now;
         return entity;
@@ -43,6 +47,10 @@ public class ZigbeeCommandResponseSnapshotEntity {
 
     public Integer getId() {
         return id;
+    }
+
+    public Integer getCoordinatorId() {
+        return coordinatorId;
     }
 
     public String getTopic() {

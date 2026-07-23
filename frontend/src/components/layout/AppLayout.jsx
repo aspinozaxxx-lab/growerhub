@@ -3,10 +3,13 @@ import { NavLink, Outlet } from 'react-router-dom';
 import './AppLayout.css';
 
 const navItems = [
-  { to: '/app', label: 'Dashboard', icon: '🏠', end: true },
-  { to: '/app/plants', label: 'Plants', icon: '🌱' },
-  { to: '/app/devices', label: 'Devices', icon: '🔧' },
-  { to: '/app/profile', label: 'Profile', icon: '👤' },
+  { to: '/app/', label: 'Обзор', icon: '⌂', end: true },
+  { to: '/app/connections/', label: 'Подключения', icon: '⇄' },
+  { to: '/app/zones/', label: 'Зоны', icon: '▦' },
+  { to: '/app/devices/', label: 'Устройства', icon: '◉' },
+  { to: '/app/automations/', label: 'Автоматизации', icon: '⚡' },
+  { to: '/app/profile/', label: 'Профиль', icon: '○' },
+  { to: '/app/plants/', label: 'Растения', icon: '♧' },
 ];
 
 // Funkciya otobrazheniya punktov menyu, ispolzuetsya i v sidebar, i v nizhnej paneli
@@ -43,7 +46,7 @@ function AppLayout() {
       </main>
 
       <div className="app-nav-shell app-nav-shell--bottom">
-        <nav className="app-nav app-nav--bottom" aria-label="Navigation">
+        <nav className="app-nav app-nav--bottom" aria-label="Навигация кабинета">
           {renderNavItems()}
         </nav>
       </div>

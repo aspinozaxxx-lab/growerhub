@@ -7,7 +7,7 @@ function RequireAuth({ children }) {
   const location = useLocation();
 
   useEffect(() => {
-    if (status === 'unauthorized' && location.pathname !== '/app/login') {
+    if (status === 'unauthorized' && location.pathname !== '/app/login/') {
       setRedirectAfterLogin(location.pathname);
     }
   }, [status, location.pathname, setRedirectAfterLogin]);
@@ -17,7 +17,7 @@ function RequireAuth({ children }) {
   }
 
   if (status === 'unauthorized') {
-    return <Navigate to="/app/login" replace />;
+    return <Navigate to="/app/login/" replace />;
   }
 
   return children;

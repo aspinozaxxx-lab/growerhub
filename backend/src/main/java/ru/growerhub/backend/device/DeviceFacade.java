@@ -1,7 +1,12 @@
 ﻿package ru.growerhub.backend.device;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import org.springframework.context.annotation.Lazy;
@@ -11,6 +16,7 @@ import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.contract.DeviceAggregate;
 import ru.growerhub.backend.device.contract.DeviceAckStore;
 import ru.growerhub.backend.device.contract.DeviceFirmwareStatus;
+import ru.growerhub.backend.device.contract.DeviceCredential;
 import ru.growerhub.backend.device.contract.DeviceServiceEventData;
 import ru.growerhub.backend.device.contract.DeviceServiceEventView;
 import ru.growerhub.backend.device.contract.DeviceSettingsData;
@@ -51,6 +57,7 @@ public class DeviceFacade {
     private final SensorFacade sensorFacade;
     private final PlantFacade plantFacade;
     private final PumpFacade pumpFacade;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public DeviceFacade(
             DeviceRepository deviceRepository,
@@ -85,6 +92,49 @@ public class DeviceFacade {
     public Integer findDeviceId(String deviceId) {
         DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
         return device != null ? device.getId() : null;
+    }
+
+    @Transactional(readOnly = true)
+    public boolean authenticateDevice(String deviceId, String rawToken) {
+        if (deviceId == null || deviceId.isBlank() || rawToken == null || rawToken.isBlank()) {
+            return false;
+        }
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        if (device == null || device.getDeviceTokenHash() == null) {
+            return false;
+        }
+        byte[] expected = device.getDeviceTokenHash().getBytes(StandardCharsets.US_ASCII);
+        byte[] actual = hashDeviceToken(rawToken).getBytes(StandardCharsets.US_ASCII);
+        return MessageDigest.isEqual(expected, actual);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean canUserAccessDevice(String deviceId, Integer userId, boolean admin) {
+        if (deviceId == null || userId == null) {
+            return false;
+        }
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        return device != null && (admin || userId.equals(device.getUserId()));
+    }
+
+    @Transactional
+    public DeviceCredential rotateDeviceCredential(Integer devicePk, Integer userId, boolean admin) {
+        DeviceEntity device = requireDevice(devicePk);
+        if (!admin && (userId == null || !userId.equals(device.getUserId()))) {
+            throw new DomainException("not_found", "Ustrojstvo ne naideno");
+        }
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        if (device.getDeviceTokenIssuedAt() != null
+                && device.getDeviceTokenIssuedAt().plusSeconds(30).isAfter(now)) {
+            throw new DomainException("too_many_requests", "Povtorite vydachu device token pozhe");
+        }
+        byte[] randomBytes = new byte[32];
+        secureRandom.nextBytes(randomBytes);
+        String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+        device.setDeviceTokenHash(hashDeviceToken(rawToken));
+        device.setDeviceTokenIssuedAt(now);
+        deviceRepository.save(device);
+        return new DeviceCredential(device.getDeviceId(), rawToken, now);
     }
 
     @Transactional(readOnly = true)
@@ -359,6 +409,16 @@ public class DeviceFacade {
             throw new DomainException("not_found", "ustrojstvo ne najdeno");
         }
         return device;
+    }
+
+    private String hashDeviceToken(String token) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(token.getBytes(StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 unavailable", ex);
+        }
     }
 
     private Double defaultDouble(Double value, double fallback) {

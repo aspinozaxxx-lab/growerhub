@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+install -o root -g mosquitto -m 0640 "{{ mosquitto_cert_source }}" "{{ mosquitto_cert_path }}"
+install -o root -g mosquitto -m 0640 "{{ mosquitto_key_source }}" "{{ mosquitto_key_path }}"
+systemctl reload mosquitto

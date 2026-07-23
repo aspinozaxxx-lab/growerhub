@@ -17,8 +17,8 @@ import org.hibernate.annotations.OnDeleteAction;
 @Table(
     name = "zigbee_device_property_readings",
     indexes = {
-        @Index(name = "ix_zigbee_property_readings_ieee_property_ts", columnList = "ieee_address, property, ts"),
-        @Index(name = "ix_zigbee_property_readings_friendly_property_ts", columnList = "friendly_name, property, ts")
+        @Index(name = "ix_zigbee_property_readings_coordinator_ieee_property_ts", columnList = "coordinator_id,ieee_address,property,ts"),
+        @Index(name = "ix_zigbee_property_readings_coordinator_friendly_property_ts", columnList = "coordinator_id,friendly_name,property,ts")
     }
 )
 public class ZigbeeDevicePropertyReadingEntity {
@@ -26,6 +26,9 @@ public class ZigbeeDevicePropertyReadingEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
+
+    @Column(name = "coordinator_id", nullable = false)
+    private Integer coordinatorId;
 
     @ManyToOne
     @JoinColumn(name = "state_event_id", nullable = false)
@@ -64,12 +67,18 @@ public class ZigbeeDevicePropertyReadingEntity {
     protected ZigbeeDevicePropertyReadingEntity() {
     }
 
-    public static ZigbeeDevicePropertyReadingEntity create() {
-        return new ZigbeeDevicePropertyReadingEntity();
+    public static ZigbeeDevicePropertyReadingEntity create(Integer coordinatorId) {
+        ZigbeeDevicePropertyReadingEntity entity = new ZigbeeDevicePropertyReadingEntity();
+        entity.coordinatorId = coordinatorId;
+        return entity;
     }
 
     public Integer getId() {
         return id;
+    }
+
+    public Integer getCoordinatorId() {
+        return coordinatorId;
     }
 
     public ZigbeeDeviceStateEventEntity getStateEvent() {

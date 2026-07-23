@@ -1,0 +1,30 @@
+---
+mosquitto_domain: "growerhub.ru"
+mosquitto_dynamic_security_plugin: "/usr/lib/x86_64-linux-gnu/mosquitto_dynamic_security.so"
+mosquitto_dynamic_security_file: "/etc/mosquitto/dynamic-security.json"
+mosquitto_bootstrap_marker: "/etc/mosquitto/.growerhub-dynsec-v1"
+mosquitto_local_port: 1884
+mosquitto_tls_port: 8883
+mosquitto_legacy_listener_enabled: true
+mosquitto_legacy_bind_address: "127.0.0.1"
+mosquitto_legacy_public_enabled: false
+
+# Sekrety peredajutsja iz vault ili environment controllera Ansible.
+mosquitto_admin_username: "gh_dynsec_admin"
+mosquitto_admin_password: "{{ lookup('env', 'GH_MQTT_DYNSEC_ADMIN_PASSWORD') }}"
+mosquitto_backend_username: "gh_backend"
+mosquitto_backend_password: "{{ lookup('env', 'GH_MQTT_BACKEND_PASSWORD') }}"
+mosquitto_provisioning_username: "gh_provisioning"
+mosquitto_provisioning_password: "{{ lookup('env', 'GH_MQTT_PROVISIONING_PASSWORD') }}"
+mosquitto_legacy_username: "{{ lookup('env', 'GH_MQTT_LEGACY_USERNAME') }}"
+mosquitto_legacy_password: "{{ lookup('env', 'GH_MQTT_LEGACY_PASSWORD') }}"
+
+mosquitto_coordinator_role: "z2m-coordinator"
+mosquitto_backend_role: "growerhub-backend"
+mosquitto_provisioning_role: "growerhub-provisioning"
+mosquitto_legacy_role: "legacy-z2m"
+
+mosquitto_cert_source: "/etc/letsencrypt/live/{{ mosquitto_domain }}/fullchain.pem"
+mosquitto_key_source: "/etc/letsencrypt/live/{{ mosquitto_domain }}/privkey.pem"
+mosquitto_cert_path: "/etc/mosquitto/certs/fullchain.pem"
+mosquitto_key_path: "/etc/mosquitto/certs/privkey.pem"

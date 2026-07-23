@@ -15,7 +15,7 @@ function AppDashboard() {
   const navigate = useNavigate();
 
   const handleOpenJournal = (plantId) => {
-    navigate(`/app/plants/${plantId}/journal`);
+    navigate(`/app/plants/${plantId}/journal/`);
   };
 
   const groupedPlants = useMemo(() => {
@@ -73,4 +73,3 @@ function AppDashboard() {
 }
 
 export default AppDashboard;
-

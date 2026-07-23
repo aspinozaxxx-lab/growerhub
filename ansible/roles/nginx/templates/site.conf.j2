@@ -2,17 +2,40 @@ upstream api_java_backend {
     server {{ nginx_backend_api | regex_replace('^https?://', '') }};
 }
 
+upstream api_legacy_backend {
+    server {{ nginx_legacy_api | regex_replace('^https?://', '') }};
+}
+
+{% if nginx_alt_domains | length > 0 %}
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name {{ nginx_domain }}{% for domain in nginx_alt_domains %} {{ domain }}{% endfor %};
+    server_name {% for domain in nginx_alt_domains %}{{ domain }}{% if not loop.last %} {% endif %}{% endfor %};
 
     ssl_certificate     /etc/letsencrypt/live/{{ nginx_domain }}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/{{ nginx_domain }}/privkey.pem;
 
-    add_header X-Content-Type-Options nosniff;
-    add_header X-Frame-Options SAMEORIGIN;
-    add_header Referrer-Policy strict-origin-when-cross-origin;
+    location ~ "^/(?:about|articles|avtomatizatsiya-mini-fermy|kak-nachat|oborudovanie|privacy|terms|app)$|^/(?:articles|oborudovanie|app)(?:/[^/.]+)+$" {
+        return 301 https://{{ nginx_domain }}$uri/$is_args$args;
+    }
+
+    location / {
+        return 301 https://{{ nginx_domain }}$request_uri;
+    }
+}
+{% endif %}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name {{ nginx_domain }};
+
+    ssl_certificate     /etc/letsencrypt/live/{{ nginx_domain }}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{{ nginx_domain }}/privkey.pem;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
 
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/letsencrypt;
@@ -35,7 +58,7 @@ server {
     }
 
     location ^~ /firmware/ {
-        proxy_pass http://api_java_backend;
+        proxy_pass http://api_legacy_backend/firmware/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -58,11 +81,55 @@ server {
         proxy_read_timeout 300;
     }
 
+    location = /docs {
+        proxy_pass http://api_legacy_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location = /redoc {
+        proxy_pass http://api_legacy_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location = /openapi.json {
+        proxy_pass http://api_legacy_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location ^~ /static/ {
+        alias {{ nginx_legacy_static_root }}/;
+        try_files $uri =404;
+        access_log off;
+    }
+
     root {{ nginx_static_root }};
     index {{ nginx_index }};
 
-    location / {
+    location ~ "^/(?:about|articles|avtomatizatsiya-mini-fermy|kak-nachat|oborudovanie|privacy|terms|app)$|^/(?:articles|oborudovanie|app)(?:/[^/.]+)+$" {
+        return 301 https://{{ nginx_domain }}$uri/$is_args$args;
+    }
+
+    location /app/ {
         try_files $uri $uri/ /{{ nginx_index }};
+    }
+
+    location / {
+        try_files $uri $uri/index.html =404;
+    }
+
+    error_page 404 /404.html;
+
+    location = /404.html {
+        internal;
     }
 
     access_log /var/log/nginx/growerhub.ru_ssl_access.log timed;
@@ -93,7 +160,11 @@ server {
         proxy_read_timeout 300;
     }
 
+    location ~ "^/(?:about|articles|avtomatizatsiya-mini-fermy|kak-nachat|oborudovanie|privacy|terms|app)$|^/(?:articles|oborudovanie|app)(?:/[^/.]+)+$" {
+        return 301 https://{{ nginx_domain }}$uri/$is_args$args;
+    }
+
     location / {
-        return 301 https://$host$request_uri;
+        return 301 https://{{ nginx_domain }}$request_uri;
     }
 }

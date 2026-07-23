@@ -39,7 +39,7 @@ function AppProfile() {
 
   const handleLogout = useCallback(() => {
     logout();
-    navigate('/app/login', { replace: true });
+    navigate('/app/login/', { replace: true });
   }, [logout, navigate]);
 
   /**
@@ -147,7 +147,7 @@ function AppProfile() {
       setPasswordSuccess('');
       setLinkingProvider(provider);
       try {
-        const redirectPath = '/app/profile';
+        const redirectPath = '/app/profile/';
         const url = await linkSsoMethod(provider, redirectPath, token);
         window.location.href = url;
       } catch (error) {
@@ -187,7 +187,7 @@ function AppProfile() {
           <Button
             type="button"
             variant="secondary"
-            onClick={() => navigate('/app/admin/devices')}
+            onClick={() => navigate('/app/admin/devices/')}
           >
             Администрирование
           </Button>

@@ -1,0 +1,51 @@
+# Lokal'naja storona: sushchestvujushchij broker Zigbee2MQTT/Home Assistant.
+connection local-zigbee2mqtt
+address CHANGE_ME_LOCAL_MQTT_HOST:1883
+bridge_protocol_version mqttv311
+start_type automatic
+cleansession false
+notifications false
+try_private true
+remote_clientid growerhub-connector-local
+remote_username CHANGE_ME_LOCAL_MQTT_USERNAME
+remote_password CHANGE_ME_LOCAL_MQTT_PASSWORD
+
+# Telemetrija: lokal'nyj broker -> izolirovannoe derevo connector.
+topic bridge/state in 1 relay/from-local/ zigbee2mqtt/
+topic bridge/info in 1 relay/from-local/ zigbee2mqtt/
+topic bridge/devices in 1 relay/from-local/ zigbee2mqtt/
+topic bridge/response/# in 1 relay/from-local/ zigbee2mqtt/
+topic + in 1 relay/from-local/ zigbee2mqtt/
+topic +/availability in 1 relay/from-local/ zigbee2mqtt/
+
+# Komandy: izolirovannoe derevo connector -> lokal'nyj broker.
+topic +/set out 1 relay/to-local/ zigbee2mqtt/
+topic +/get out 1 relay/to-local/ zigbee2mqtt/
+topic bridge/request/# out 1 relay/to-local/ zigbee2mqtt/
+
+# Vneshnjaja storona: TLS broker GrowerHub.
+connection growerhub
+address growerhub.ru:8883
+bridge_protocol_version mqttv311
+start_type automatic
+cleansession false
+notifications false
+try_private true
+remote_clientid CHANGE_ME_GROWERHUB_USERNAME
+bridge_cafile /etc/ssl/certs/ca-certificates.crt
+bridge_insecure false
+remote_username CHANGE_ME_GROWERHUB_USERNAME
+remote_password CHANGE_ME_GROWERHUB_PASSWORD
+
+# Telemetrija: izolirovannoe derevo connector -> GrowerHub.
+topic bridge/state out 1 relay/from-local/ CHANGE_ME_GROWERHUB_BASE_TOPIC/
+topic bridge/info out 1 relay/from-local/ CHANGE_ME_GROWERHUB_BASE_TOPIC/
+topic bridge/devices out 1 relay/from-local/ CHANGE_ME_GROWERHUB_BASE_TOPIC/
+topic bridge/response/# out 1 relay/from-local/ CHANGE_ME_GROWERHUB_BASE_TOPIC/
+topic + out 1 relay/from-local/ CHANGE_ME_GROWERHUB_BASE_TOPIC/
+topic +/availability out 1 relay/from-local/ CHANGE_ME_GROWERHUB_BASE_TOPIC/
+
+# Komandy: GrowerHub -> izolirovannoe derevo connector.
+topic +/set in 1 relay/to-local/ CHANGE_ME_GROWERHUB_BASE_TOPIC/
+topic +/get in 1 relay/to-local/ CHANGE_ME_GROWERHUB_BASE_TOPIC/
+topic bridge/request/# in 1 relay/to-local/ CHANGE_ME_GROWERHUB_BASE_TOPIC/

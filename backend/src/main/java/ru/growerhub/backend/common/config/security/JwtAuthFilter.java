@@ -13,7 +13,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import ru.growerhub.backend.auth.AuthFacade;
 import ru.growerhub.backend.common.contract.ApiError;
@@ -23,7 +22,6 @@ import ru.growerhub.backend.user.UserFacade;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "bearer ";
-    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
     private static final Set<String> PUBLIC_PATHS = Set.of(
             "/api/auth/login",
             "/api/auth/refresh",
@@ -42,6 +40,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            return true;
+        }
         String path = request.getRequestURI();
         if (path == null || !path.startsWith("/api/")) {
             return true;
@@ -52,36 +53,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (path.startsWith("/api/auth/sso/")) {
             return true;
         }
-        return isPublicDevicePath(request.getMethod(), path);
-    }
-
-    private boolean isPublicDevicePath(String method, String path) {
-        if ("POST".equalsIgnoreCase(method) && (PATH_MATCHER.match("/api/device/*/status", path)
-                || PATH_MATCHER.match("/api/device/*/status/", path))) {
-            return true;
-        }
-        if ("GET".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/firmware", path)) {
-            return true;
-        }
-        if ("POST".equalsIgnoreCase(method) && "/api/upload-firmware".equals(path)) {
-            return true;
-        }
-        if ("POST".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/trigger-update", path)) {
-            return true;
-        }
-        if ("GET".equalsIgnoreCase(method) && "/api/firmware/versions".equals(path)) {
-            return true;
-        }
-        if ("GET".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/settings", path)) {
-            return true;
-        }
-        if ("PUT".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*/settings", path)) {
-            return true;
-        }
-        if ("GET".equalsIgnoreCase(method) && "/api/devices".equals(path)) {
-            return true;
-        }
-        return "DELETE".equalsIgnoreCase(method) && PATH_MATCHER.match("/api/device/*", path);
+        return false;
     }
 
     @Override
@@ -138,4 +110,3 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         response.flushBuffer();
     }
 }
-

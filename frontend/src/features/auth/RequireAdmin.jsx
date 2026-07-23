@@ -11,11 +11,11 @@ function RequireAdmin({ children }) {
   }
 
   if (status !== 'authorized') {
-    return <Navigate to="/app/profile" replace />;
+    return <Navigate to="/app/profile/" replace />;
   }
 
   if (!user || user.role !== 'admin') {
-    return <Navigate to="/app/profile" replace />;
+    return <Navigate to="/app/profile/" replace />;
   }
 
   return children;

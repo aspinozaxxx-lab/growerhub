@@ -1,14 +1,16 @@
 # Архитектура zigbee_coordinator
 
-`zigbee_coordinator` - локальная обвязка вокруг Zigbee2MQTT для USB-координатора CC2652P и Zigbee-устройств. Компонент запускается на Windows через bat-файлы и подключает Zigbee-сеть к MQTT broker GrowerHub.
+`zigbee_coordinator` — локальная обвязка вокруг Zigbee2MQTT и двусторонний connector для уже работающего локального MQTT. Компонент поддерживает Windows и Raspberry Pi/Linux и подключает Zigbee-сеть к изолированному namespace GrowerHub.
 
 ## Ответственность
 
 - Запуск Zigbee2MQTT `2.12.0` из `zigbee_coordinator/zigbee2mqtt`.
 - Хранение локальной Zigbee runtime-конфигурации в `zigbee_coordinator/data`.
-- Подключение USB-координатора через `COM7` с adapter `zstack`.
+- Выбор USB-порта и adapter `zstack` либо `ember` без зашитого COM-порта.
 - Публикация состояний и прием команд через MQTT namespace Zigbee2MQTT.
 - Предоставление локального frontend Zigbee2MQTT на `127.0.0.1:8080`.
+- Направленная пересылка разрешённых Z2M topics между существующим локальным broker и GrowerHub без циклов.
+- Шаблоны Windows ZIP и Raspberry Pi/Linux Docker Compose без персональных credentials.
 
 ## Границы
 
@@ -22,17 +24,19 @@ Backend строит отображение устройств из metadata Zig
 
 Рабочий broker задается в `zigbee_coordinator/data/configuration.yaml`.
 
-Основной namespace:
+Пользовательский namespace задаётся одноразовым конфигом из кабинета и имеет вид `gh/z2m/<mqtt_username>`:
 
-- `zigbee2growerhub/bridge/state` - состояние Zigbee2MQTT bridge.
-- `zigbee2growerhub/bridge/info` - сведения о bridge, координаторе и конфиге.
-- `zigbee2growerhub/bridge/devices` - список Zigbee-устройств.
-- `zigbee2growerhub/<friendly_name>` - состояние устройства.
-- `zigbee2growerhub/<friendly_name>/set` - команда устройству.
+- `<base_topic>/bridge/state` — состояние Zigbee2MQTT bridge.
+- `<base_topic>/bridge/info` — сведения о bridge, координаторе и конфиге.
+- `<base_topic>/bridge/devices` — список Zigbee-устройств.
+- `<base_topic>/<friendly_name>` — состояние устройства.
+- `<base_topic>/<friendly_name>/set` — команда устройству.
+
+Connector передаёт из локального broker в GrowerHub только state, availability и `bridge/state|info|devices|response`; обратно — только `<device>/set`, `<device>/get` и `bridge/request/*`. Каждое направление имеет отдельный allowlist; сообщение не публикуется обратно в источник.
 
 ## Конфигурация и секреты
 
-В git хранится `configuration.yaml` без MQTT credentials и Zigbee network key. MQTT credentials и network key хранятся локально в ignored файле `zigbee_coordinator/data/secret.yaml`. PAN ID и extended PAN ID не являются учетными данными и зафиксированы в `configuration.yaml`, потому что Zigbee2MQTT валидирует эти поля до подстановки `!secret`.
+В git хранятся только шаблоны без MQTT credentials и Zigbee network key. Одноразовый `secret.yaml` скачивается отдельно из кабинета и хранится локально в ignored runtime-каталоге. Credentials локального broker для connector вводятся только на машине пользователя и не отправляются GrowerHub.
 
 Шаблон для новой машины:
 
@@ -44,9 +48,10 @@ zigbee_coordinator/data/secret.example.yaml
 
 ## Запуск
 
-- `start-coordinator.bat` проверяет Node/Corepack, устанавливает pnpm-зависимости при отсутствии `node_modules`, вызывает `stop-coordinator.bat --no-pause` и запускает новый экземпляр отдельным процессом, не привязанным к консольному окну.
+- `start-coordinator.bat` проверяет конфиг, выбранный COM-порт и adapter, затем запускает Zigbee2MQTT отдельным процессом.
 - `status-coordinator.bat` проверяет процесс Zigbee2MQTT и frontend port `8080`, выводит `running` или `stopped`.
 - `stop-coordinator.bat` останавливает процесс Zigbee2MQTT по frontend port `8080` и по команде `zigbee2mqtt/index.js`.
+- Linux-пакет запускается через Docker Compose, имеет явный USB mapping и постоянный volume.
 
 ## Обновление Zigbee2MQTT
 

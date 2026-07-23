@@ -3,8 +3,44 @@ package ru.growerhub.backend.api.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 public class ZigbeeDtos {
+    public record CreateCoordinatorRequest(@JsonProperty("name") String name) {
+    }
+
+    public record CoordinatorSummaryResponse(
+            @JsonProperty("id") UUID id,
+            @JsonProperty("name") String name,
+            @JsonProperty("mqtt_username") String mqttUsername,
+            @JsonProperty("base_topic") String baseTopic,
+            @JsonProperty("status") String status,
+            @JsonProperty("device_count") int deviceCount,
+            @JsonProperty("last_seen_at") LocalDateTime lastSeenAt,
+            @JsonProperty("connected_at") LocalDateTime connectedAt,
+            @JsonProperty("first_device_seen_at") LocalDateTime firstDeviceSeenAt,
+            @JsonProperty("created_at") LocalDateTime createdAt,
+            @JsonProperty("updated_at") LocalDateTime updatedAt
+    ) {
+    }
+
+    public record CoordinatorSetupResponse(
+            @JsonProperty("server") String server,
+            @JsonProperty("username") String username,
+            @JsonProperty("password") String password,
+            @JsonProperty("client_id") String clientId,
+            @JsonProperty("base_topic") String baseTopic,
+            @JsonProperty("configuration_yaml") String configurationYaml,
+            @JsonProperty("secret_yaml") String secretYaml
+    ) {
+    }
+
+    public record CoordinatorCreatedResponse(
+            @JsonProperty("coordinator") CoordinatorSummaryResponse coordinator,
+            @JsonProperty("setup") CoordinatorSetupResponse setup
+    ) {
+    }
+
     public record OverviewResponse(
             @JsonProperty("bridge") BridgeResponse bridge,
             @JsonProperty("coordinator") CoordinatorResponse coordinator,

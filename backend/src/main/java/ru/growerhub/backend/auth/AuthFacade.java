@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.Map;
@@ -66,8 +67,9 @@ public class AuthFacade {
         String mode = currentUserId != null ? "link" : "login";
         String resolvedRedirectPath = redirectPath;
         if (resolvedRedirectPath == null || resolvedRedirectPath.isEmpty()) {
-            resolvedRedirectPath = "link".equals(mode) ? "/app/profile" : "/app";
+            resolvedRedirectPath = "link".equals(mode) ? "/app/profile/" : "/app/onboarding/";
         }
+        resolvedRedirectPath = normalizeRedirectPath(resolvedRedirectPath);
         String redirectUri = ssoService.buildCallbackUri(provider);
         String state;
         String authUrl;
@@ -116,16 +118,17 @@ public class AuthFacade {
         }
 
         if ("login".equals(stateData.mode())) {
-            Integer userId = ssoService.getOrCreateUser(provider, subject, profile.email());
-            String accessToken = authService.issueAccessToken(userId);
-            String redirectTarget = stateData.redirectPath();
-            if (redirectTarget == null || redirectTarget.isEmpty()) {
-                redirectTarget = "/app";
+            SsoService.SsoUserResolution resolution = ssoService.getOrCreateUser(
+                    provider,
+                    subject,
+                    profile.email()
+            );
+            String redirectTarget = normalizeRedirectPath(stateData.redirectPath());
+            authService.issueRefreshToken(resolution.userId(), request, response);
+            if (resolution.created()) {
+                redirectTarget = appendQueryParameter(redirectTarget, "signup", "complete");
             }
-            String separator = redirectTarget.contains("?") ? "&" : "?";
-            String redirectWithToken = redirectTarget + separator + "access_token=" + accessToken;
-            authService.issueRefreshToken(userId, request, response);
-            return new SsoCallbackResult(redirectWithToken);
+            return new SsoCallbackResult(redirectTarget);
         }
 
         Object currentUserIdRaw = stateData.currentUserId();
@@ -143,10 +146,7 @@ public class AuthFacade {
             throw new DomainException("not_found", "User not found");
         }
 
-        String redirectTarget = stateData.redirectPath();
-        if (redirectTarget == null || redirectTarget.isEmpty()) {
-            redirectTarget = "/app/profile";
-        }
+        String redirectTarget = normalizeRedirectPath(stateData.redirectPath());
 
         UserAuthIdentityEntity identitySameSubject = ssoService.findIdentityBySubject(provider, subject);
         if (identitySameSubject != null
@@ -252,11 +252,38 @@ public class AuthFacade {
         return null;
     }
 
+    private String normalizeRedirectPath(String redirectPath) {
+        String candidate = redirectPath != null && !redirectPath.isBlank()
+                ? redirectPath.trim()
+                : "/app/onboarding/";
+        if (candidate.contains("\\") || candidate.chars().anyMatch(Character::isISOControl)) {
+            throw new DomainException("bad_request", "Invalid redirect path");
+        }
+        try {
+            URI uri = URI.create(candidate);
+            String path = uri.getRawPath();
+            if (uri.isAbsolute()
+                    || uri.getRawAuthority() != null
+                    || uri.getRawFragment() != null
+                    || path == null
+                    || !("/app".equals(path) || path.startsWith("/app/"))) {
+                throw new DomainException("bad_request", "Invalid redirect path");
+            }
+            return uri.toASCIIString();
+        } catch (IllegalArgumentException ex) {
+            throw new DomainException("bad_request", "Invalid redirect path");
+        }
+    }
+
+    private String appendQueryParameter(String target, String name, String value) {
+        String separator = target.contains("?") ? "&" : "?";
+        return target + separator + name + "=" + value;
+    }
+
     public record SsoLoginResult(String authUrl, boolean json) {
     }
 
     public record SsoCallbackResult(String redirectUrl) {
     }
 }
-
 

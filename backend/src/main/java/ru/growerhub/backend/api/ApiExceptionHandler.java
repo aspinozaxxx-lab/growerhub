@@ -128,6 +128,7 @@ public class ApiExceptionHandler {
             case "unprocessable" -> HttpStatus.UNPROCESSABLE_ENTITY;
             case "unavailable" -> HttpStatus.SERVICE_UNAVAILABLE;
             case "bad_gateway" -> HttpStatus.BAD_GATEWAY;
+            case "too_many_requests" -> HttpStatus.TOO_MANY_REQUESTS;
             case "internal_error" -> HttpStatus.INTERNAL_SERVER_ERROR;
             case "bad_request" -> HttpStatus.BAD_REQUEST;
             default -> HttpStatus.BAD_REQUEST;

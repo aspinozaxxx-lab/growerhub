@@ -24,6 +24,21 @@
   font-size: 22px;
 }
 
+.login-intro,
+.login-legal {
+  margin: 0;
+  color: #9eb2cf;
+  line-height: 1.55;
+}
+
+.login-legal {
+  font-size: 12px;
+}
+
+.login-legal a {
+  color: #9de8ba;
+}
+
 .login-form {
   display: grid;
   gap: 8px;
@@ -38,16 +53,8 @@
   font-size: 14px;
 }
 
-.login-divider {
-  text-align: center;
-  color: #8aa3c6;
-  font-size: 14px;
-  margin-top: 4px;
-}
-
 .login-sso {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
 }
 
@@ -63,4 +70,23 @@
 .login-sso__btn:hover {
   border-color: rgba(95, 212, 145, 0.5);
   color: #9de8ba;
+}
+
+.login-sso__btn--primary {
+  border-color: rgba(95, 212, 145, 0.45);
+  color: #0b1524;
+  background: linear-gradient(135deg, #5fd491, #43b674);
+  font-weight: 700;
+}
+
+.login-local {
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.login-local summary {
+  padding: 10px 0;
+  color: #9eb2cf;
+  cursor: pointer;
+  font-size: 13px;
 }

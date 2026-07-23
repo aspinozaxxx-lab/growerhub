@@ -37,6 +37,9 @@ public class AutomationResourceBindingEntity {
     @Column(name = "zigbee_ieee_address")
     private String zigbeeIeeeAddress;
 
+    @Column(name = "zigbee_coordinator_id")
+    private Integer zigbeeCoordinatorId;
+
     @Column(name = "zigbee_property")
     private String zigbeeProperty;
 
@@ -119,6 +122,14 @@ public class AutomationResourceBindingEntity {
 
     public void setZigbeeIeeeAddress(String zigbeeIeeeAddress) {
         this.zigbeeIeeeAddress = zigbeeIeeeAddress;
+    }
+
+    public Integer getZigbeeCoordinatorId() {
+        return zigbeeCoordinatorId;
+    }
+
+    public void setZigbeeCoordinatorId(Integer zigbeeCoordinatorId) {
+        this.zigbeeCoordinatorId = zigbeeCoordinatorId;
     }
 
     public String getZigbeeProperty() {

@@ -8,12 +8,19 @@ import static org.hamcrest.Matchers.not;
 
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.security.MessageDigest;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.Instant;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
@@ -31,10 +38,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import ru.growerhub.backend.IntegrationTestBase;
+import ru.growerhub.backend.device.DeviceFacade;
+import ru.growerhub.backend.device.contract.DeviceCredential;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.mqtt.MqttPublisher;
 import ru.growerhub.backend.mqtt.model.CmdOta;
+import ru.growerhub.backend.user.jpa.UserEntity;
+import ru.growerhub.backend.user.jpa.UserRepository;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -49,6 +60,12 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private DeviceRepository deviceRepository;
+
+    @Autowired
+    private DeviceFacade deviceFacade;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private TestPublisher testPublisher;
@@ -90,8 +107,10 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         device.setUpdateAvailable(true);
         device.setLatestVersion("2.0.1");
         deviceRepository.save(device);
+        String deviceToken = createDeviceCredential(device);
 
         given()
+                .header("Authorization", "Device " + deviceToken)
                 .when()
                 .get("/api/device/fw-check-1/firmware")
                 .then()
@@ -103,24 +122,23 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void checkFirmwareReturnsFalseWhenMissing() {
+    void checkFirmwareRejectsUnknownDevice() {
         given()
                 .when()
                 .get("/api/device/fw-missing/firmware")
                 .then()
-                .statusCode(200)
-                .body("$", aMapWithSize(1))
-                .body("update_available", equalTo(false))
-                .body("$", not(hasKey("latest_version")))
-                .body("$", not(hasKey("firmware_url")));
+                .statusCode(401)
+                .body("detail", equalTo("Not authenticated"));
     }
 
     @Test
     void uploadTriggerAndServeFirmware() throws Exception {
         String version = "9.9.9";
         byte[] data = "firmware-bytes".getBytes(StandardCharsets.UTF_8);
+        String adminToken = createAdminToken("firmware-flow-admin@example.com");
 
         given()
+                .header("Authorization", "Bearer " + adminToken)
                 .multiPart("file", "firmware.bin", data, "application/octet-stream")
                 .multiPart("version", version)
                 .when()
@@ -142,6 +160,7 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         String expectedSha = sha256Hex(data);
 
         given()
+                .header("Authorization", "Bearer " + adminToken)
                 .contentType("application/json")
                 .body(Map.of("version", version))
                 .when()
@@ -181,7 +200,9 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
 
     @Test
     void uploadEmptyFileReturns500() {
+        String adminToken = createAdminToken("firmware-empty-admin@example.com");
         given()
+                .header("Authorization", "Bearer " + adminToken)
                 .multiPart("file", "empty.bin", new byte[0], "application/octet-stream")
                 .multiPart("version", "1.0.0")
                 .when()
@@ -193,7 +214,9 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
 
     @Test
     void uploadMissingFileReturns422() {
+        String adminToken = createAdminToken("firmware-missing-file-admin@example.com");
         given()
+                .header("Authorization", "Bearer " + adminToken)
                 .multiPart("version", "1.0.1")
                 .when()
                 .post("/api/upload-firmware")
@@ -203,7 +226,9 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
 
     @Test
     void uploadMissingVersionReturns422() {
+        String adminToken = createAdminToken("firmware-missing-version-admin@example.com");
         given()
+                .header("Authorization", "Bearer " + adminToken)
                 .multiPart("file", "firmware.bin", "data".getBytes(StandardCharsets.UTF_8), "application/octet-stream")
                 .when()
                 .post("/api/upload-firmware")
@@ -213,14 +238,16 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
 
     @Test
     void triggerUpdateMissingDeviceReturns404() {
+        String adminToken = createAdminToken("firmware-missing-device-admin@example.com");
         given()
+                .header("Authorization", "Bearer " + adminToken)
                 .contentType("application/json")
                 .body(Map.of("version", "1.2.3"))
                 .when()
                 .post("/api/device/fw-missing/trigger-update")
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("Device not found"));
+                .body("detail", equalTo("Ustrojstvo ne naideno"));
     }
 
     @Test
@@ -228,8 +255,10 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId("fw-missing-file");
         deviceRepository.save(device);
+        String adminToken = createAdminToken("firmware-trigger-file-admin@example.com");
 
         given()
+                .header("Authorization", "Bearer " + adminToken)
                 .contentType("application/json")
                 .body(Map.of("version", "2.0.0"))
                 .when()
@@ -244,8 +273,10 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId("fw-validate");
         deviceRepository.save(device);
+        String adminToken = createAdminToken("firmware-validate-admin@example.com");
 
         given()
+                .header("Authorization", "Bearer " + adminToken)
                 .contentType("application/json")
                 .body(Map.of())
                 .when()
@@ -266,10 +297,12 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId("fw-fail");
         deviceRepository.save(device);
+        String adminToken = createAdminToken("firmware-publish-admin@example.com");
 
         testPublisher.failNext();
 
         given()
+                .header("Authorization", "Bearer " + adminToken)
                 .contentType("application/json")
                 .body(Map.of("version", version))
                 .when()
@@ -281,6 +314,7 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
 
     @Test
     void listFirmwareVersionsSortedAndMetadata() throws Exception {
+        String adminToken = createAdminToken("firmware-list-admin@example.com");
         Path newer = firmwareDir.resolve("2.3.4.bin");
         Path older = firmwareDir.resolve("1.0.0.bin");
         byte[] newBytes = "newer".getBytes(StandardCharsets.UTF_8);
@@ -291,6 +325,7 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         Files.setLastModifiedTime(older, FileTime.from(Instant.now().minusSeconds(86400)));
 
         Response response = given()
+                .header("Authorization", "Bearer " + adminToken)
                 .when()
                 .get("/api/firmware/versions")
                 .then()
@@ -309,7 +344,9 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
 
     @Test
     void listFirmwareVersionsEmpty() {
+        String adminToken = createAdminToken("firmware-list-empty-admin@example.com");
         given()
+                .header("Authorization", "Bearer " + adminToken)
                 .when()
                 .get("/api/firmware/versions")
                 .then()
@@ -321,6 +358,23 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
     private String sha256Hex(byte[] data) throws Exception {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         return HexFormat.of().formatHex(digest.digest(data));
+    }
+
+    private String createDeviceCredential(DeviceEntity device) {
+        DeviceCredential credential = deviceFacade.rotateDeviceCredential(device.getId(), null, true);
+        return credential.token();
+    }
+
+    private String createAdminToken(String email) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        UserEntity admin = userRepository.save(UserEntity.create(email, null, "admin", true, now, now));
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("user_id", admin.getId());
+        return Jwts.builder()
+                .setClaims(claims)
+                .setExpiration(Date.from(java.time.Instant.now().plusSeconds(3600)))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)), SignatureAlgorithm.HS256)
+                .compact();
     }
 
     private void clearDatabase() {
@@ -380,5 +434,4 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
     private record PublishedCommand(String deviceId, Object cmd) {
     }
 }
-
 

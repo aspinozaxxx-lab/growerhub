@@ -6,29 +6,16 @@ frontend:
   host: 127.0.0.1
   port: 8080
 mqtt:
-  base_topic: zigbee2growerhub
-  server: mqtt://growerhub.ru:1883
-  user: '!secret mqtt_user'
-  password: '!secret mqtt_password'
+  server: '!secret.yaml server'
+  user: '!secret.yaml user'
+  password: '!secret.yaml password'
+  base_topic: CHANGE_ME_BASE_TOPIC
+  client_id: CHANGE_ME_CLIENT_ID
+  reject_unauthorized: true
 serial:
-  port: COM7
-  adapter: zstack
+  port: CHANGE_ME_SERIAL_PORT
+  adapter: CHANGE_ME_ADAPTER
 advanced:
-  network_key: '!secret network_key'
-  pan_id: 31695
-  ext_pan_id:
-    - 148
-    - 180
-    - 21
-    - 99
-    - 115
-    - 99
-    - 110
-    - 68
+  network_key: GENERATE
 availability:
   enabled: true
-devices:
-  '0xa4c13895af2c1df3':
-    friendly_name: smartplug1
-  '0xa4c138ccd6b42d0c':
-    friendly_name: soil_sensor1

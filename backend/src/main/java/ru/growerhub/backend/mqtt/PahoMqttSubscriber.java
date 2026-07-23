@@ -100,6 +100,15 @@ public class PahoMqttSubscriber implements MqttSubscriber, SmartLifecycle {
             logger.info("mqtt: subscribed to {} qos=1", listenTopic);
             return;
         }
+        if (!topicSettings.getListenTopics().isEmpty()) {
+            for (String topic : topicSettings.getListenTopics()) {
+                if (topic != null && !topic.isBlank()) {
+                    client.subscribe(topic, 1);
+                    logger.info("mqtt: subscribed to {} qos=1", topic);
+                }
+            }
+            return;
+        }
         client.subscribe(topicSettings.getState(), 1);
         client.subscribe(topicSettings.getAck(), 1);
         client.subscribe(topicSettings.getEvents(), 1);

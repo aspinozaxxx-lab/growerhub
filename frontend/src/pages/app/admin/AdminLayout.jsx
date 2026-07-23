@@ -7,14 +7,15 @@ import './AdminPages.css';
 
 // Translitem: punkty navigacii admin-razdela.
 const adminNavItems = [
-  { to: '/app/admin/dashboard', label: 'Дашборд' },
-  { to: '/app/admin/users', label: 'Пользователи' },
-  { to: '/app/admin/devices', label: 'Устройства' },
-  { to: '/app/admin/plants', label: 'Растения' },
-  { to: '/app/admin/mqtt', label: 'MQTT' },
-  { to: '/app/admin/zigbee', label: 'Zigbee' },
-  { to: '/app/admin/automation', label: 'Автоматизация' },
-  { to: '/app/admin/manual-watering', label: 'Ручной полив' },
+  { to: '/app/admin/dashboard/', label: 'Дашборд' },
+  { to: '/app/admin/product-analytics/', label: 'Воронка' },
+  { to: '/app/admin/users/', label: 'Пользователи' },
+  { to: '/app/admin/devices/', label: 'Устройства' },
+  { to: '/app/admin/plants/', label: 'Растения' },
+  { to: '/app/admin/mqtt/', label: 'MQTT' },
+  { to: '/app/admin/zigbee/', label: 'Zigbee' },
+  { to: '/app/admin/automation/', label: 'Автоматизация' },
+  { to: '/app/admin/manual-watering/', label: 'Ручной полив' },
 ];
 
 // Translitem: obshchiy layout dlya admin-stranic.
@@ -24,7 +25,7 @@ function AdminLayout() {
       <AppPageHeader
         title="Администрирование"
         right={(
-          <NavLink to="/app/profile" className="admin-nav__back">
+          <NavLink to="/app/profile/" className="admin-nav__back">
             Назад в профиль
           </NavLink>
         )}

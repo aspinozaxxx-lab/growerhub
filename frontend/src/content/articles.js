@@ -1,5 +1,6 @@
 ﻿import { marked } from 'marked';
 import { articleClusters } from './articleClusters';
+import { canonicalizePublicLinksInHtml } from '../domain/siteConfig';
 
 // Prostyj parser front matter bez Buffer/gray-matter (tol'ko dlya nashih md-fajlov)
 const markdownModules = import.meta.glob('../../content/articles/*.md', {
@@ -72,7 +73,7 @@ const normalizeArray = (value) => {
 const parsedArticles = Object.values(markdownModules)
   .map((raw) => {
     const { meta, body } = parseFrontMatter(raw);
-    const bodyHtml = marked.parse(body || '');
+    const bodyHtml = canonicalizePublicLinksInHtml(marked.parse(body || ''));
     const cluster = clusterSlugs.has(meta.cluster) ? meta.cluster : '';
 
     return {

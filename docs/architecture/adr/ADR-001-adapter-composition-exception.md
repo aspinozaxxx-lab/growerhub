@@ -23,6 +23,9 @@ DevicesController:
 - POST /api/admin/devices/{device_id}/assign
 - POST /api/admin/devices/{device_id}/unassign
 
+ProductAnalyticsController:
+- GET /api/admin/product-analytics — агрегирует только обезличенные множества и счётчики из UserFacade, ZigbeeFacade и AutomationFacade; внутренние user ID используются для дедупликации и не входят в REST-ответ.
+
 ## Ограничения
 - Адаптер не импортирует *Entity/*Repository.
 - Адаптер может вызывать несколько Facade.

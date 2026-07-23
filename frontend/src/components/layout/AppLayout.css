@@ -69,10 +69,10 @@
 
 .app-nav.app-nav--bottom {
   pointer-events: auto;
-  max-width: 480px;
+  max-width: 720px;
   margin: 0 auto;
   width: 100%;
-  justify-content: space-around;
+  justify-content: flex-start;
   background: var(--surface-1);
   border: 1px solid var(--border-1);
   border-radius: 9999px;
@@ -80,6 +80,11 @@
   backdrop-filter: blur(16px);
   height: 64px;
   padding: 0 8px;
+  overflow-x: auto;
+}
+
+.app-nav--bottom .app-nav__item {
+  flex: 0 0 auto;
 }
 
 .app-nav--bottom .app-nav__item {

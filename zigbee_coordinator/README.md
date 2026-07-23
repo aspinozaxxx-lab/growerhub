@@ -1,98 +1,39 @@
-# Zigbee Router Bridge
+# Пакеты подключения Zigbee2MQTT
 
-Локальный Zigbee-шлюз GrowerHub: USB-донгл CC2652P + Zigbee2MQTT + MQTT broker.
+Каталог содержит два безопасных режима self-service GrowerHub:
 
-## Структура
+- `packages/windows/` — локальный мастер Windows с выбором COM-порта и адаптера `zstack`/`ember`;
+- `packages/linux/` — Docker Compose для Raspberry Pi/Linux с USB mapping и постоянным volume;
+- `connector/` — направленный MQTT bridge для уже работающего Zigbee2MQTT/Home Assistant.
 
-- `mosquitto/` - конфиг, база и логи локального MQTT broker, если нужен локальный режим.
-- `data/` - рабочие данные Zigbee2MQTT: `configuration.yaml`, локальный `secret.yaml`, база Zigbee-сети, backup coordinator, state, логи.
-- `zigbee2mqtt/` - само приложение Zigbee2MQTT `2.12.0` из `https://github.com/Koenkk/zigbee2mqtt`.
-- `start-coordinator.bat` - запуск Zigbee2MQTT coordinator.
-- `status-coordinator.bat` - проверка состояния Zigbee2MQTT coordinator.
-- `stop-coordinator.bat` - остановка Zigbee2MQTT coordinator.
+Персональные MQTT credentials в пакеты и Git не входят. Пользователь создаёт координатор в кабинете GrowerHub и отдельно скачивает `configuration.yaml` и `secret.yaml`. Пароль показывается один раз; при утрате выполняется ротация.
 
-## Как работает
+## Новая установка
 
-Zigbee2MQTT запускается из папки `zigbee2mqtt/`, использует данные из `data/`, подключается к USB-донглу на `COM7` как `zstack` coordinator и отправляет MQTT-сообщения на broker из `data\configuration.yaml`.
-
-Текущий MQTT broker:
+Zigbee2MQTT подключается напрямую к:
 
 ```text
-mqtt://growerhub.ru:1883
+mqtts://growerhub.ru:8883
 ```
 
-Текущий MQTT namespace:
+Каждый координатор получает собственные username, client ID и base topic `gh/z2m/<mqtt_username>`. Проверка TLS-сертификата включена. Встроенный frontend слушает только `127.0.0.1:8080`.
 
-```text
-zigbee2growerhub
-```
+1. Скачайте пакет своей платформы из GitHub Releases.
+2. Скачайте личные `configuration.yaml` и `secret.yaml` из кабинета.
+3. Выберите USB-порт и тип адаптера.
+4. Запустите пакет и дождитесь статуса `ONLINE` в GrowerHub.
 
-Веб-интерфейс:
+`data/configuration.yaml` и `data/secret.example.yaml` в репозитории — только шаблоны без рабочих идентификаторов и секретов.
 
-```text
-http://127.0.0.1:8080
-```
+## Существующий Home Assistant
 
-## Запуск
+Connector не заменяет локальный MQTT. Он передаёт наружу только состояние, availability, список устройств и ответы Zigbee2MQTT; обратно — только `/set`, `/get` и `bridge/request/*`. Раздельные внутренние деревья исключают циклическую пересылку.
 
-1. Проверить локальные секреты:
+Локальные MQTT credentials вводятся в браузере и попадают только в скачанный локальный `bridge.conf`; GrowerHub их не получает.
 
-```text
-data\secret.yaml
-```
+## Безопасность
 
-Если файла нет, скопировать `data\secret.example.yaml` в `data\secret.yaml` и заполнить реальные значения.
-
-2. Запустить coordinator:
-
-```bat
-start-coordinator.bat
-```
-
-При первом запуске bat сам установит зависимости Zigbee2MQTT через Corepack/pnpm.
-
-После запуска `start-coordinator.bat` можно закрыть консольное окно: Zigbee2MQTT продолжит работать отдельным процессом.
-
-Остановить coordinator:
-
-```bat
-stop-coordinator.bat
-```
-
-Проверить статус coordinator:
-
-```bat
-status-coordinator.bat
-```
-
-Повторный запуск `start-coordinator.bat` сначала остановит уже работающий Zigbee2MQTT, затем поднимет новый экземпляр.
-
-## Настройка
-
-Основной конфиг:
-
-```text
-data\configuration.yaml
-```
-
-MQTT server:
-
-```yaml
-mqtt:
-  base_topic: zigbee2growerhub
-  server: mqtt://growerhub.ru:1883
-  user: '!secret mqtt_user'
-  password: '!secret mqtt_password'
-```
-
-Для локального broker:
-
-```yaml
-mqtt:
-  base_topic: zigbee2growerhub
-  server: mqtt://127.0.0.1:1883
-```
-
-## Добавление устройств
-
-Открыть веб-интерфейс, включить `Permit join`, затем перевести устройство в режим сопряжения.
+- публичный незащищённый MQTT `1883` не используется;
+- `secret.yaml`, данные Zigbee-сети, логи и локальный `bridge.conf` игнорируются Git;
+- неизвестные namespace и архивные координаторы backend игнорирует;
+- старые общие credentials отзываются только после переноса legacy-координатора и end-to-end smoke-теста.

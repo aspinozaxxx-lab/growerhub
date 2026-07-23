@@ -25,6 +25,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
+import ru.growerhub.backend.device.DeviceFacade;
+import ru.growerhub.backend.device.contract.DeviceCredential;
 import ru.growerhub.backend.device.engine.DeviceShadowStore;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.jpa.DeviceServiceEventEntity;
@@ -67,6 +69,9 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private DeviceRepository deviceRepository;
+
+    @Autowired
+    private DeviceFacade deviceFacade;
 
     @Autowired
     private SensorRepository sensorRepository;
@@ -121,6 +126,8 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
     @Test
     void updateDeviceStatusCreatesDeviceAndSensorReadings() {
+        DeviceEntity device = createDevice("dev-1", null);
+        String deviceToken = createDeviceCredential(device);
         Map<String, Object> payload = new HashMap<>();
         payload.put("device_id", "dev-1");
         payload.put("soil_moisture", 12.5);
@@ -130,6 +137,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         payload.put("is_light_on", true);
 
         given()
+                .header("Authorization", "Device " + deviceToken)
                 .contentType("application/json")
                 .body(payload)
                 .when()
@@ -140,7 +148,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
         DeviceEntity stored = deviceRepository.findByDeviceId("dev-1").orElse(null);
         Assertions.assertNotNull(stored);
-        Assertions.assertEquals("Watering Device dev-1", stored.getName());
+        Assertions.assertEquals("Device dev-1", stored.getName());
         Assertions.assertEquals(3, sensorRepository.count());
         Assertions.assertEquals(3, sensorReadingRepository.count());
     }
@@ -174,6 +182,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         payload.put("is_light_on", true);
 
         given()
+                .header("Authorization", "Device " + createDeviceCredential(device))
                 .contentType("application/json")
                 .body(payload)
                 .when()
@@ -189,7 +198,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void updateDeviceStatusAllowsAnonymous() {
+    void updateDeviceStatusRejectsAnonymous() {
         Map<String, Object> payload = new HashMap<>();
         payload.put("device_id", "dev-1-public");
         payload.put("soil_moisture", 10.0);
@@ -204,14 +213,17 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .when()
                 .post("/api/device/dev-1-public/status")
                 .then()
-                .statusCode(200)
-                .body("message", equalTo("Status updated"));
+                .statusCode(401)
+                .header("WWW-Authenticate", "Bearer")
+                .body("detail", equalTo("Not authenticated"));
 
-        Assertions.assertEquals(3, sensorReadingRepository.count());
+        Assertions.assertEquals(0, sensorReadingRepository.count());
     }
 
     @Test
     void updateDeviceStatusRequiresFields() {
+        DeviceEntity device = createDevice("dev-2", null);
+        String deviceToken = createDeviceCredential(device);
         Map<String, Object> payload = new HashMap<>();
         payload.put("device_id", "dev-2");
         payload.put("air_temperature", 21.0);
@@ -220,6 +232,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         payload.put("is_light_on", true);
 
         given()
+                .header("Authorization", "Device " + deviceToken)
                 .contentType("application/json")
                 .body(payload)
                 .when()
@@ -230,7 +243,10 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
     @Test
     void getDeviceSettingsCreatesDefaults() {
+        DeviceEntity device = createDevice("dev-3", null);
+        String deviceToken = createDeviceCredential(device);
         given()
+                .header("Authorization", "Device " + deviceToken)
                 .when()
                 .get("/api/device/dev-3/settings")
                 .then()
@@ -246,6 +262,8 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
     @Test
     void updateDeviceSettingsNotFound() {
+        UserEntity user = createUser("missing-settings@example.com", "user");
+        String token = buildToken(user.getId());
         Map<String, Object> payload = new HashMap<>();
         payload.put("target_moisture", 55.0);
         payload.put("watering_duration", 10);
@@ -255,18 +273,21 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         payload.put("light_duration", 15);
 
         given()
+                .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .body(payload)
                 .when()
                 .put("/api/device/missing/settings")
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("Device not found"));
+                .body("detail", equalTo("Ustrojstvo ne naideno"));
     }
 
     @Test
     void updateDeviceSettingsUpdatesFields() {
-        DeviceEntity device = createDevice("dev-4", null);
+        UserEntity owner = createUser("settings-owner@example.com", "user");
+        DeviceEntity device = createDevice("dev-4", owner);
+        String token = buildToken(owner.getId());
         Map<String, Object> payload = new HashMap<>();
         payload.put("target_moisture", 55.0);
         payload.put("watering_duration", 10);
@@ -276,6 +297,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         payload.put("light_duration", 15);
 
         given()
+                .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .body(payload)
                 .when()
@@ -292,7 +314,9 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
     @Test
     void listDevicesUsesState() throws Exception {
-        DeviceEntity device = createDevice("dev-5", null);
+        UserEntity owner = createUser("list-owner@example.com", "user");
+        DeviceEntity device = createDevice("dev-5", owner);
+        String token = buildToken(owner.getId());
         PumpEntity pump = PumpEntity.create();
         pump.setDeviceId(device.getId());
         pump.setChannel(0);
@@ -311,6 +335,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         deviceStateLastRepository.save(stored);
 
         given()
+                .header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/devices")
                 .then()
@@ -475,6 +500,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         UserEntity user = createUser("http-owner@example.com", "user");
         DeviceEntity device = createDevice("dev-http-temp", user);
         String token = buildToken(user.getId());
+        String deviceToken = createDeviceCredential(device);
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("device_id", device.getDeviceId());
@@ -485,6 +511,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         payload.put("is_light_on", true);
 
         given()
+                .header("Authorization", "Device " + deviceToken)
                 .contentType("application/json")
                 .body(payload)
                 .when()
@@ -846,6 +873,10 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
     @Test
     void deleteDeviceRemovesSensors() {
+        UserEntity owner = createUser("delete-owner@example.com", "user");
+        DeviceEntity device = createDevice("dev-13", owner);
+        String token = buildToken(owner.getId());
+        String deviceToken = createDeviceCredential(device);
         Map<String, Object> payload = new HashMap<>();
         payload.put("device_id", "dev-13");
         payload.put("soil_moisture", 12.5);
@@ -855,6 +886,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         payload.put("is_light_on", true);
 
         given()
+                .header("Authorization", "Device " + deviceToken)
                 .contentType("application/json")
                 .body(payload)
                 .when()
@@ -865,6 +897,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals(3, sensorReadingRepository.count());
 
         given()
+                .header("Authorization", "Bearer " + token)
                 .when()
                 .delete("/api/device/dev-13")
                 .then()
@@ -909,6 +942,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         settingsPayload.put("light_duration", 15);
 
         given()
+                .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .body(settingsPayload)
                 .when()
@@ -930,6 +964,11 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         device.setUserId(owner != null ? owner.getId() : null);
         device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         return deviceRepository.save(device);
+    }
+
+    private String createDeviceCredential(DeviceEntity device) {
+        DeviceCredential credential = deviceFacade.rotateDeviceCredential(device.getId(), null, true);
+        return credential.token();
     }
 
     private PlantEntity createPlant(UserEntity owner, String name) {
@@ -971,8 +1010,6 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
-
-
 
 
 

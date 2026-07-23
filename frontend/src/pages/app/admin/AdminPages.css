@@ -8,6 +8,32 @@
   gap: 12px;
 }
 
+.admin-funnel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.admin-funnel-grid article {
+  display: grid;
+  gap: 6px;
+  min-height: 112px;
+  padding: 16px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+}
+
+.admin-funnel-grid span,
+.admin-funnel-grid small {
+  color: var(--text-3);
+}
+
+.admin-funnel-grid strong {
+  color: var(--text-1);
+  font-size: 28px;
+}
+
 .admin-section__title {
   margin: 0;
   color: var(--text-1);

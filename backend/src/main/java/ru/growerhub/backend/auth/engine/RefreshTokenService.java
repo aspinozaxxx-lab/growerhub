@@ -79,11 +79,12 @@ public class RefreshTokenService {
     public void clearCookie(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from(authSettings.getRefreshTokenCookieName(), "")
                 .path(authSettings.getRefreshTokenCookiePath())
-                .sameSite("lax")
+                .httpOnly(true)
+                .secure(authSettings.isRefreshTokenCookieSecure())
+                .sameSite(authSettings.getRefreshTokenCookieSameSite())
                 .maxAge(Duration.ZERO)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 }
-
 

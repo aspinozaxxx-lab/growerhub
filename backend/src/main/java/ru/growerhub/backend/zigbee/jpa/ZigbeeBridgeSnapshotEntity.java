@@ -15,6 +15,9 @@ public class ZigbeeBridgeSnapshotEntity {
     @Column(name = "id", nullable = false)
     private Integer id;
 
+    @Column(name = "coordinator_id", nullable = false)
+    private Integer coordinatorId;
+
     @Column(name = "base_topic", nullable = false)
     private String baseTopic;
 
@@ -48,9 +51,10 @@ public class ZigbeeBridgeSnapshotEntity {
     protected ZigbeeBridgeSnapshotEntity() {
     }
 
-    public static ZigbeeBridgeSnapshotEntity create(String baseTopic, LocalDateTime now) {
+    public static ZigbeeBridgeSnapshotEntity create(Integer coordinatorId, String baseTopic, LocalDateTime now) {
         ZigbeeBridgeSnapshotEntity entity = new ZigbeeBridgeSnapshotEntity();
-        entity.id = SINGLETON_ID;
+        entity.id = coordinatorId;
+        entity.coordinatorId = coordinatorId;
         entity.baseTopic = baseTopic;
         entity.updatedAt = now;
         return entity;
@@ -58,6 +62,10 @@ public class ZigbeeBridgeSnapshotEntity {
 
     public Integer getId() {
         return id;
+    }
+
+    public Integer getCoordinatorId() {
+        return coordinatorId;
     }
 
     public String getBaseTopic() {

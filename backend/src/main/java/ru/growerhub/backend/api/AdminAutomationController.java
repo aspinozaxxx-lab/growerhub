@@ -27,7 +27,7 @@ public class AdminAutomationController {
     @GetMapping("/api/admin/automation")
     public AutomationData.Overview getOverview(@AuthenticationPrincipal AuthenticatedUser user) {
         requireAdmin(user);
-        return automationFacade.getOverview();
+        return automationFacade.getOverview(user);
     }
 
     @PostMapping("/api/admin/automation/rooms")
@@ -36,7 +36,7 @@ public class AdminAutomationController {
             @RequestBody AutomationData.SaveRoomRequest request
     ) {
         requireAdmin(user);
-        return automationFacade.createRoom(request);
+        return automationFacade.createRoom(user, request);
     }
 
     @PutMapping("/api/admin/automation/rooms/{room_id}")
@@ -46,7 +46,7 @@ public class AdminAutomationController {
             @RequestBody AutomationData.SaveRoomRequest request
     ) {
         requireAdmin(user);
-        return automationFacade.updateRoom(roomId, request);
+        return automationFacade.updateRoom(user, roomId, request);
     }
 
     @DeleteMapping("/api/admin/automation/rooms/{room_id}")
@@ -55,7 +55,7 @@ public class AdminAutomationController {
             @PathVariable("room_id") Integer roomId
     ) {
         requireAdmin(user);
-        automationFacade.deleteRoom(roomId);
+        automationFacade.deleteRoom(user, roomId);
         return new CommonDtos.MessageResponse("Room deleted");
     }
 
@@ -66,7 +66,7 @@ public class AdminAutomationController {
             @RequestBody AutomationData.SaveBoxRequest request
     ) {
         requireAdmin(user);
-        return automationFacade.createBox(roomId, request);
+        return automationFacade.createBox(user, roomId, request);
     }
 
     @PutMapping("/api/admin/automation/boxes/{box_id}")
@@ -76,7 +76,7 @@ public class AdminAutomationController {
             @RequestBody AutomationData.SaveBoxRequest request
     ) {
         requireAdmin(user);
-        return automationFacade.updateBox(boxId, request);
+        return automationFacade.updateBox(user, boxId, request);
     }
 
     @DeleteMapping("/api/admin/automation/boxes/{box_id}")
@@ -85,7 +85,7 @@ public class AdminAutomationController {
             @PathVariable("box_id") Integer boxId
     ) {
         requireAdmin(user);
-        automationFacade.deleteBox(boxId);
+        automationFacade.deleteBox(user, boxId);
         return new CommonDtos.MessageResponse("Box deleted");
     }
 
@@ -96,7 +96,7 @@ public class AdminAutomationController {
             @RequestBody AutomationData.SavePlantsRequest request
     ) {
         requireAdmin(user);
-        return automationFacade.replaceBoxPlants(boxId, request);
+        return automationFacade.replaceBoxPlants(user, boxId, request);
     }
 
     @PutMapping("/api/admin/automation/rooms/{room_id}/resources")
@@ -106,7 +106,7 @@ public class AdminAutomationController {
             @RequestBody AutomationData.SaveResourcesRequest request
     ) {
         requireAdmin(user);
-        return automationFacade.replaceRoomResources(roomId, request);
+        return automationFacade.replaceRoomResources(user, roomId, request);
     }
 
     @PutMapping("/api/admin/automation/boxes/{box_id}/resources")
@@ -116,7 +116,7 @@ public class AdminAutomationController {
             @RequestBody AutomationData.SaveResourcesRequest request
     ) {
         requireAdmin(user);
-        return automationFacade.replaceBoxResources(boxId, request);
+        return automationFacade.replaceBoxResources(user, boxId, request);
     }
 
     @PutMapping("/api/admin/automation/rooms/{room_id}/scenarios")
@@ -126,7 +126,7 @@ public class AdminAutomationController {
             @RequestBody AutomationData.SaveScenariosRequest request
     ) {
         requireAdmin(user);
-        return automationFacade.replaceRoomScenarios(roomId, request);
+        return automationFacade.replaceRoomScenarios(user, roomId, request);
     }
 
     @PutMapping("/api/admin/automation/boxes/{box_id}/scenarios")
@@ -136,7 +136,7 @@ public class AdminAutomationController {
             @RequestBody AutomationData.SaveScenariosRequest request
     ) {
         requireAdmin(user);
-        return automationFacade.replaceBoxScenarios(boxId, request);
+        return automationFacade.replaceBoxScenarios(user, boxId, request);
     }
 
     private void requireAdmin(AuthenticatedUser user) {

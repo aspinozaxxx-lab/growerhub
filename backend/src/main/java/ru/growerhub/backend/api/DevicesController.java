@@ -8,6 +8,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,8 +22,10 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.api.dto.DeviceDtos;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
+import ru.growerhub.backend.common.contract.AuthenticatedDevice;
 import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceAggregate;
+import ru.growerhub.backend.device.contract.DeviceCredential;
 import ru.growerhub.backend.device.contract.DeviceServiceEventView;
 import ru.growerhub.backend.device.contract.DeviceSettingsData;
 import ru.growerhub.backend.device.contract.DeviceSettingsUpdate;
@@ -57,8 +61,12 @@ public class DevicesController {
     @PostMapping("/api/device/{device_id}/status")
     public CommonDtos.MessageResponse updateDeviceStatus(
             @PathVariable("device_id") String deviceId,
-            @Valid @RequestBody DeviceDtos.DeviceStatusRequest request
+            @Valid @RequestBody DeviceDtos.DeviceStatusRequest request,
+            @AuthenticationPrincipal AuthenticatedDevice authenticatedDevice
     ) {
+        if (authenticatedDevice == null || !deviceId.equals(authenticatedDevice.deviceId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Nedostatochno prav");
+        }
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         DeviceShadowState.RelayState light = new DeviceShadowState.RelayState(request.isLightOn() ? "on" : "off");
         DeviceShadowState.RelayState pump = new DeviceShadowState.RelayState(request.isWatering() ? "on" : "off");
@@ -86,8 +94,11 @@ public class DevicesController {
 
     @GetMapping("/api/device/{device_id}/settings")
     public DeviceDtos.DeviceSettingsResponse getDeviceSettings(
-            @PathVariable("device_id") String deviceId
+            @PathVariable("device_id") String deviceId,
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @AuthenticationPrincipal AuthenticatedDevice authenticatedDevice
     ) {
+        requireDeviceAccess(deviceId, user, authenticatedDevice);
         DeviceSettingsData settings = deviceFacade.getSettings(deviceId);
         return new DeviceDtos.DeviceSettingsResponse(
                 settings.targetMoisture(),
@@ -103,8 +114,10 @@ public class DevicesController {
     @PutMapping("/api/device/{device_id}/settings")
     public CommonDtos.MessageResponse updateDeviceSettings(
             @PathVariable("device_id") String deviceId,
-            @Valid @RequestBody DeviceDtos.DeviceSettingsRequest request
+            @Valid @RequestBody DeviceDtos.DeviceSettingsRequest request,
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
+        requireUserDeviceAccess(deviceId, user);
         deviceFacade.updateSettings(deviceId, new DeviceSettingsUpdate(
                 request.targetMoisture(),
                 request.wateringDuration(),
@@ -117,8 +130,8 @@ public class DevicesController {
     }
 
     @GetMapping("/api/devices")
-    public List<DeviceDtos.DeviceResponse> listDevices() {
-        return mapDeviceResponses(deviceFacade.listDevices());
+    public List<DeviceDtos.DeviceResponse> listDevices(@AuthenticationPrincipal AuthenticatedUser user) {
+        return mapDeviceResponses(deviceFacade.listMyDevices(user != null ? user.id() : null));
     }
 
     @GetMapping("/api/devices/my")
@@ -286,10 +299,32 @@ public class DevicesController {
 
     @DeleteMapping("/api/device/{device_id}")
     public CommonDtos.MessageResponse deleteDevice(
-            @PathVariable("device_id") String deviceId
+            @PathVariable("device_id") String deviceId,
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
+        requireUserDeviceAccess(deviceId, user);
         deviceFacade.deleteDevice(deviceId);
         return new CommonDtos.MessageResponse("Device deleted");
+    }
+
+    @PostMapping("/api/devices/{device_id}/credentials/rotate")
+    public ResponseEntity<DeviceDtos.DeviceCredentialResponse> rotateDeviceCredential(
+            @PathVariable("device_id") Integer deviceId,
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
+        DeviceCredential credential = deviceFacade.rotateDeviceCredential(
+                deviceId,
+                user != null ? user.id() : null,
+                user != null && user.isAdmin()
+        );
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .header("Pragma", "no-cache")
+                .body(new DeviceDtos.DeviceCredentialResponse(
+                        credential.deviceId(),
+                        credential.token(),
+                        credential.issuedAt()
+                ));
     }
 
     private List<DeviceDtos.DeviceResponse> mapDeviceResponses(List<DeviceSummary> summaries) {
@@ -438,6 +473,24 @@ public class DevicesController {
     private void requireAdmin(AuthenticatedUser user) {
         if (user == null || !user.isAdmin()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Nedostatochno prav");
+        }
+    }
+
+    private void requireDeviceAccess(
+            String deviceId,
+            AuthenticatedUser user,
+            AuthenticatedDevice authenticatedDevice
+    ) {
+        if (authenticatedDevice != null && deviceId.equals(authenticatedDevice.deviceId())) {
+            return;
+        }
+        requireUserDeviceAccess(deviceId, user);
+    }
+
+    private void requireUserDeviceAccess(String deviceId, AuthenticatedUser user) {
+        boolean allowed = user != null && deviceFacade.canUserAccessDevice(deviceId, user.id(), user.isAdmin());
+        if (!allowed) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Ustrojstvo ne naideno");
         }
     }
 }

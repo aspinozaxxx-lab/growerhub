@@ -3,6 +3,8 @@
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +39,15 @@ public class UserFacade {
         return userRepository.findAll().stream()
                 .map(this::toProfile)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ProductAnalyticsSnapshot getProductAnalytics() {
+        Set<Integer> registeredUserIds = userRepository.findAll().stream()
+                .filter(user -> !"admin".equalsIgnoreCase(user.getRole()))
+                .map(UserEntity::getId)
+                .collect(Collectors.toUnmodifiableSet());
+        return new ProductAnalyticsSnapshot(registeredUserIds);
     }
 
     @Transactional(readOnly = true)
@@ -201,6 +212,11 @@ public class UserFacade {
 
     public record AuthUser(Integer id, String role, boolean active) {
     }
-}
 
+    public record ProductAnalyticsSnapshot(Set<Integer> registeredUserIds) {
+        public ProductAnalyticsSnapshot {
+            registeredUserIds = Set.copyOf(registeredUserIds);
+        }
+    }
+}
 

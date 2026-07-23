@@ -9,6 +9,9 @@
 `DeviceFacade`
 
 - `findDeviceId(String deviceId)`
+- `authenticateDevice(String deviceId, String rawToken)`
+- `canUserAccessDevice(String deviceId, Integer userId, boolean admin)`
+- `rotateDeviceCredential(Integer devicePk, Integer userId, boolean admin)`
 - `getDeviceSummary(Integer deviceId)`
 - `getFirmwareStatus(String deviceId)`
 - `markFirmwareUpdate(String deviceId, String version, String firmwareUrl)`
@@ -40,6 +43,7 @@
 - `DeviceAckStore`
 - `DeviceAggregate`
 - `DeviceFirmwareStatus`
+- `DeviceCredential`
 - `DeviceServiceEventData`
 - `DeviceServiceEventType`
 - `DeviceServiceEventView`
@@ -67,8 +71,8 @@
 
 ## Алгоритм работы
 
-Facade принимает state, ack и events от адаптеров, обновляет device records и shadow, вызывает нужные домены для насосов, датчиков и растений. Для REST отдает summary, агрегаты, настройки и admin views. Удаление устройства очищает связанные данные через публичные Facade других доменов.
+Facade принимает state, ack и events от адаптеров, обновляет device records и shadow, вызывает нужные домены для насосов, датчиков и растений. Для REST отдает summary, агрегаты, настройки и admin views. Удаление устройства очищает связанные данные через публичные Facade других доменов. HTTP-вызовы самого устройства используют отдельный непрозрачный токен: в БД хранится только SHA-256, исходное значение выдаётся один раз при ротации.
 
 ## Ограничения
 
-Device не должен напрямую владеть JPA других доменов. MQTT parsing остается в adapter. Формат shadow является контрактом. Настройки устройства и интервалы online должны приходить из конфигурации.
+Device не должен напрямую владеть JPA других доменов. MQTT parsing остается в adapter. Формат shadow является контрактом. Настройки устройства и интервалы online должны приходить из конфигурации. Пользовательские операции требуют JWT и владения; HTTP status и чтение device settings/firmware разрешены только самому устройству либо владельцу там, где это явно предусмотрено REST-контрактом.

@@ -1,0 +1,48 @@
+import { legalContent } from '../content/pages';
+import useSeoMeta from '../utils/useSeoMeta';
+
+function LegalPage({ type }) {
+  const isPrivacy = type === 'privacy';
+  const title = isPrivacy ? legalContent.privacy_title : legalContent.terms_title;
+  const path = isPrivacy ? '/privacy/' : '/terms/';
+  useSeoMeta({
+    title,
+    description: `${title}. Юридический текст перед публичным запуском self-service GrowerHub.`,
+    path,
+    robots: 'noindex,follow',
+  });
+
+  if (!legalContent.reviewed || !legalContent.operator_name || !legalContent.operator_contact) {
+    return (
+      <div className="section legal-page">
+        <div className="badge">Черновик — self-service выключен</div>
+        <h1>{title}</h1>
+        <p>Страница технически подготовлена, но юридический текст ещё не опубликован. Владелец GrowerHub должен добавить данные оператора и доменный контакт, затем проверить и утвердить документ.</p>
+        <p>До этого публичный self-service и основной CTA остаются выключенными.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="section legal-page">
+      <h1>{title}</h1>
+      <p>Оператор: {legalContent.operator_name}. Контакт: {legalContent.operator_contact}.</p>
+      {isPrivacy ? (
+        <>
+          <h2>Какие данные обрабатываются</h2><p>Email и идентификатор выбранного способа входа, технические данные подключений и устройств, события безопасности, настройки зон и автоматизаций.</p>
+          <h2>Для чего</h2><p>Для входа, работы платформы, защиты пользовательского пространства, диагностики и поддержки по обращению пользователя.</p>
+          <h2>Секреты подключения</h2><p>Одноразовый MQTT-пароль показывается при создании или ротации и не хранится в базе GrowerHub в открытом виде. Локальные credentials Home Assistant вводятся только в браузере для скачиваемого файла.</p>
+          <h2>Обращения</h2><p>По вопросам данных и удаления аккаунта используйте доменный контакт оператора.</p>
+        </>
+      ) : (
+        <>
+          <h2>Статус сервиса</h2><p>GrowerHub предоставляется бесплатно в открытой бете без карты. Функции, совместимость и условия могут меняться; о существенном изменении условий сообщается заранее.</p>
+          <h2>Безопасность оборудования</h2><p>Платформа не заменяет электробезопасный монтаж, защиту от воды, проверку нагрузки и физическое аварийное отключение. Пользователь отвечает за безопасную установку оборудования.</p>
+          <h2>Поддержка</h2><p>Помощь через Telegram доступна без SLA и не является обязательным этапом настройки.</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default LegalPage;

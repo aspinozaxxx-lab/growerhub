@@ -1,0 +1,244 @@
+.app-onboarding {
+  display: grid;
+  gap: 18px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.onboarding-progress {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.onboarding-progress li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border-1);
+  border-radius: 12px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.onboarding-progress li span {
+  display: inline-grid;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-2);
+}
+
+.onboarding-progress li.is-done {
+  color: var(--text-1);
+  border-color: rgba(95, 212, 145, 0.4);
+}
+
+.onboarding-progress li.is-done span {
+  color: #0b1524;
+  background: var(--accent);
+}
+
+.onboarding-card {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid var(--border-1);
+  border-radius: 18px;
+  background: var(--surface-1);
+  box-shadow: var(--shadow-1);
+}
+
+.onboarding-card h2,
+.onboarding-card h3,
+.onboarding-card p {
+  margin: 0;
+}
+
+.onboarding-card p,
+.choice-card span,
+.onboarding-card li {
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+.onboarding-kicker {
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: var(--accent);
+  background: rgba(95, 212, 145, 0.12);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.onboarding-form,
+.onboarding-fields {
+  display: grid;
+  gap: 12px;
+}
+
+.onboarding-form {
+  max-width: 620px;
+}
+
+.onboarding-form label,
+.onboarding-fields label {
+  display: grid;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.onboarding-form input,
+.onboarding-form select,
+.onboarding-fields input {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border: 1px solid var(--border-1);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-1);
+}
+
+.onboarding-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.choice-card {
+  display: grid;
+  gap: 7px;
+  padding: 16px;
+  border: 1px solid var(--border-1);
+  border-radius: 14px;
+  color: var(--text-1);
+  background: var(--surface-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.choice-card:hover,
+.choice-card.is-selected {
+  border-color: rgba(95, 212, 145, 0.6);
+  background: rgba(95, 212, 145, 0.1);
+}
+
+.onboarding-secret {
+  border-color: rgba(255, 193, 92, 0.35);
+}
+
+.onboarding-credentials {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.onboarding-credentials div {
+  min-width: 0;
+  padding: 11px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.onboarding-credentials dt {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.onboarding-credentials dd {
+  overflow-wrap: anywhere;
+  margin: 5px 0 0;
+  color: var(--text-1);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.onboarding-fields {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.onboarding-local-mqtt {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border-1);
+  border-radius: 14px;
+}
+
+.onboarding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.onboarding-actions .hero-cta {
+  margin-top: 0;
+}
+
+.onboarding-note {
+  padding-left: 12px;
+  border-left: 3px solid #ffc15c;
+}
+
+.onboarding-help a {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.onboarding-wait {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.onboarding-wait .onboarding-help,
+.onboarding-wait .onboarding-diagnostics {
+  grid-column: 1 / -1;
+}
+
+.status-pulse {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 rgba(95, 212, 145, 0.5);
+  animation: onboarding-pulse 1.8s infinite;
+}
+
+.onboarding-diagnostics {
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 193, 92, 0.08);
+}
+
+.onboarding-complete {
+  border-color: rgba(95, 212, 145, 0.45);
+}
+
+@keyframes onboarding-pulse {
+  70% { box-shadow: 0 0 0 12px rgba(95, 212, 145, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(95, 212, 145, 0); }
+}
+
+@media (max-width: 720px) {
+  .onboarding-progress {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .onboarding-credentials,
+  .onboarding-fields {
+    grid-template-columns: 1fr;
+  }
+}

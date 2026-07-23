@@ -70,7 +70,7 @@ advisor:
       # Base URL dlya LLM.
       baseUrl: "https://api.deepseek.com/v1/chat/completions"
       # API key dlya LLM.
-      apiKey: "sk-0a2867b7fe554a9fb41757ce3b0f144f_4234234"
+      apiKey: "${ADVISOR_DEEPSEEK_API_KEY:}"
       # Model LLM.
       model: "deepseek-chat"
       # Timeout zaprosa (sek).
@@ -123,13 +123,26 @@ pump:
       pollIntervalMs: 500
 
 mqtt:
+  provisioning:
+    # Provisioning klient imeet tol'ko prava Dynamic Security control.
+    enabled: ${MQTT_PROVISIONING_ENABLED:false}
+    host: ${MQTT_PROVISIONING_HOST:localhost}
+    port: ${MQTT_PROVISIONING_PORT:8883}
+    tls: ${MQTT_PROVISIONING_TLS:true}
+    username: ${MQTT_PROVISIONING_USERNAME:}
+    password: ${MQTT_PROVISIONING_PASSWORD:}
+    responseTimeoutSeconds: 10
   # Maksimal'noe kolichestvo poslednih MQTT soobshchenij v pamjati.
   recentMessagesLimit: 200
   # Maksimal'naja dlina payload v poslednih MQTT soobshchenijah.
   recentPayloadChars: 4096
   topics:
-    # Topic dlya diagnosticheskoj podpiski.
-    listen: "#"
+    # Ogranichennye topiki backend vmesto global'noj podpiski '#'.
+    listen: "${MQTT_LISTEN_TOPIC:}"
+    listenTopics:
+      - "gh/dev/#"
+      - "zigbee2growerhub/#"
+      - "gh/z2m/#"
     # Topic dlya state.
     state: "gh/dev/+/state"
     # Topic dlya ack.
@@ -138,6 +151,8 @@ mqtt:
     events: "gh/dev/+/events"
     # Bazovyj topic Zigbee2MQTT.
     zigbeeBase: "zigbee2growerhub"
+    # Bazovyj topic pol'zovatel'skih Zigbee2MQTT namespace.
+    zigbeeUserPrefix: "gh/z2m"
     # Suffiks dlya state.
     stateSuffix: "/state"
     # Suffiks dlya ack.
@@ -150,6 +165,19 @@ app:
     plantsTiming: false
 
 zigbee:
+  self-service:
+    # Publichnyj self-service vklyuchaetsja tol'ko posle smoke-proverki.
+    enabled: ${SELF_SERVICE_ENABLED:false}
+    # Publichnoe MQTT podkljuchenie Zigbee2MQTT.
+    mqttServer: "mqtts://growerhub.ru:8883"
+    # Rol' klienta v Mosquitto Dynamic Security.
+    brokerRole: "z2m-coordinator"
+    # Kolichestvo sluchajnyh bytes parolja koordinatore.
+    passwordBytes: 32
+    # Tehnicheskaja zashchita ot chastoj vydachi broker credentials.
+    credentialCooldownSeconds: 30
+    # Bezopasnye writable capabilities dlya pervogo reliza.
+    writableProperties: [state, brightness, color_temp]
   # Vremja otkrytogo soprjazhenija po umolchaniju (sek).
   permitJoinDefaultSeconds: 254
   history:

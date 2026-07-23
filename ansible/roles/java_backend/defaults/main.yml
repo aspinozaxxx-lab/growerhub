@@ -26,7 +26,21 @@ java_backend_db_password: ""
 
 # MQTT defaults dlya backend na hoste.
 java_backend_mqtt_host: "127.0.0.1"
-java_backend_mqtt_port: 1883
+java_backend_mqtt_port: 1884
+java_backend_mqtt_username: "gh_backend"
+java_backend_mqtt_password: "{{ lookup('env', 'GH_MQTT_BACKEND_PASSWORD') }}"
+java_backend_mqtt_tls: false
+java_backend_mqtt_provisioning_enabled: false
+java_backend_mqtt_provisioning_host: "127.0.0.1"
+java_backend_mqtt_provisioning_port: 1884
+java_backend_mqtt_provisioning_tls: false
+java_backend_mqtt_provisioning_username: "gh_provisioning"
+java_backend_mqtt_provisioning_password: "{{ lookup('env', 'GH_MQTT_PROVISIONING_PASSWORD') }}"
+
+# Self-service vklyuchaetsja tol'ko posle polnogo smoke-testa i proverki pravovyh tekstov.
+java_backend_self_service_enabled: false
+java_backend_self_service_legacy_owner_email: "{{ lookup('env', 'SELF_SERVICE_LEGACY_OWNER_EMAIL') }}"
+java_backend_advisor_deepseek_api_key: "{{ lookup('env', 'ADVISOR_DEEPSEEK_API_KEY') }}"
 
 java_backend_env_required:
   SECRET_KEY: "{{ java_backend_secret_key }}"
@@ -40,7 +54,18 @@ java_backend_env_optional:
   MQTT_USERNAME: "{{ java_backend_mqtt_username | default('') }}"
   MQTT_PASSWORD: "{{ java_backend_mqtt_password | default('') }}"
   MQTT_TLS: "{{ java_backend_mqtt_tls | default('') }}"
+  MQTT_PROVISIONING_ENABLED: "{{ java_backend_mqtt_provisioning_enabled | bool | lower }}"
+  MQTT_PROVISIONING_HOST: "{{ java_backend_mqtt_provisioning_host | default('') }}"
+  MQTT_PROVISIONING_PORT: "{{ java_backend_mqtt_provisioning_port | default('') }}"
+  MQTT_PROVISIONING_TLS: "{{ java_backend_mqtt_provisioning_tls | bool | lower }}"
+  MQTT_PROVISIONING_USERNAME: "{{ java_backend_mqtt_provisioning_username | default('') }}"
+  MQTT_PROVISIONING_PASSWORD: "{{ java_backend_mqtt_provisioning_password | default('') }}"
+  SELF_SERVICE_ENABLED: "{{ java_backend_self_service_enabled | bool | lower }}"
+  SELF_SERVICE_LEGACY_OWNER_EMAIL: "{{ java_backend_self_service_legacy_owner_email | default('') }}"
+  ADVISOR_DEEPSEEK_API_KEY: "{{ java_backend_advisor_deepseek_api_key | default('') }}"
   AUTH_SSO_REDIRECT_BASE: "{{ java_backend_auth_sso_redirect_base | default('') }}"
+  REFRESH_TOKEN_COOKIE_SECURE: "true"
+  REFRESH_TOKEN_COOKIE_SAMESITE: "lax"
   AUTH_GOOGLE_CLIENT_ID: "{{ google_client_id | default('') }}"
   AUTH_GOOGLE_CLIENT_SECRET: "{{ google_client_secret | default('') }}"
   AUTH_YANDEX_CLIENT_ID: "{{ yandex_client_id | default('') }}"

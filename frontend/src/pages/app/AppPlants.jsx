@@ -149,7 +149,7 @@ function AppPlants() {
   }, [loadData, refreshVersion]);
 
   const handleOpenJournal = (plant) => {
-    navigate(`/app/plants/${plant.id}/journal`);
+    navigate(`/app/plants/${plant.id}/journal/`);
   };
 
   const handleOpenMetric = (plant, metric) => {
