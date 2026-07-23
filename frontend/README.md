@@ -156,8 +156,24 @@ ID, IEEE и MQTT credentials передавать нельзя.
 - GA4 Measurement ID: `G-CVRE5NEJ9M`;
 - GA4 stream ID: `15312072484`;
 - GA4 property ID: `546877711`;
+- Google Cloud project number: `338797379393`;
 - Search Console: доменный ресурс `sc-domain:growerhub.ru`;
 - sitemap: `https://growerhub.ru/sitemap.xml`.
+
+В Google Cloud должны быть включены:
+
+- `Google Search Console API`;
+- `Google Analytics Data API`.
+
+Состояние на 23 июля 2026 года:
+
+- доменный ресурс подтверждён через DNS, API возвращает уровень `siteOwner`;
+- sitemap отправлен и загружен Google без ошибок и предупреждений;
+- русская главная страница проиндексирована, canonical Google совпадает с
+  `https://growerhub.ru/`;
+- английская главная обнаружена, но ещё не проиндексирована;
+- исторических данных Search Console и GA4 пока нет: интеграция подключена в
+  этот день, поэтому нужно дождаться обхода и накопления статистики.
 
 Нужен доменный ресурс `growerhub.ru`. Он подтверждается DNS TXT и охватывает все
 протоколы и поддомены. Если у исполнителя нет доступа к DNS, владелец:
@@ -197,6 +213,11 @@ web-клиент SSO GrowerHub не меняется. Нужны только sc
 - `https://www.googleapis.com/auth/webmasters.readonly`;
 - `https://www.googleapis.com/auth/analytics.readonly`.
 
+OAuth-приложение переведено в опубликованный режим, чтобы refresh token для
+read-only аудита не истекал через семь дней тестового режима. Отдельная
+верификация приложения не нужна, пока доступ использует только владелец
+GrowerHub.
+
 Файл клиента хранится вне репозитория:
 
 ```text
@@ -231,13 +252,34 @@ npm run audit:seo:google -- --period=56 --locale=en
 Команда читает доступ к доменному ресурсу, sitemap, запросы, страницы и страны
 Search Console, а также landing page, каналы, страны и продуктовые события GA4.
 Числовой период не включает текущий неполный день; можно передать диапазон
-`YYYY-MM-DD:YYYY-MM-DD`.
+`YYYY-MM-DD:YYYY-MM-DD`. Сразу после подключения пустой отчёт является нормой:
+Search Console и обычные отчёты GA4 должны сначала накопить обработанные данные.
+
+### Генеративные функции Google Search
+
+Google постепенно включает для отдельных ресурсов два новых интерфейса Search
+Console. Если они уже доступны для GrowerHub:
+
+1. в «Настройки → Generative AI in Search» выбрать включение ссылок и контента
+   сайта в AI Overviews, AI Mode и генеративные функции Discover;
+2. в отчёте Generative AI отслеживать показы, страницы, страны, устройства и
+   даты;
+3. отсутствие настройки или отчёта не считать ошибкой: Google разворачивает их
+   поэтапно, а отчёт может не отображаться до появления достаточных показов.
+
+Специальный `llms.txt`, отдельная AI-разметка или переписывание текста только
+для ИИ Google не требуются. Для генеративной выдачи остаются важны индексация,
+доступный текст, полезный оригинальный материал и обычные технические требования
+Google Search.
 
 Официальная документация:
 
 - https://support.google.com/webmasters/answer/34592;
 - https://developers.google.com/webmaster-tools/v1/how-tos/authorizing;
 - https://developers.google.com/analytics/devguides/reporting/data/v1;
+- https://developers.google.com/search/docs/fundamentals/ai-optimization-guide;
+- https://support.google.com/webmasters/answer/16908024;
+- https://support.google.com/webmasters/answer/16984139;
 - https://developers.google.com/search/docs/specialty/international/managing-multi-regional-sites.
 
 ## Базы сравнения и цикл решений
