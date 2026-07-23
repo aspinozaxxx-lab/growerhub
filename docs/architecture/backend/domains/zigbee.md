@@ -62,7 +62,7 @@
 
 ## Алгоритм работы
 
-MQTT adapter классифицирует legacy topics `zigbee2growerhub/#` и пользовательские `gh/z2m/<mqtt_username>/#`, затем передаёт identity координатора вместе со snapshot-сообщением в Facade. Неизвестный или архивный namespace игнорируется. Facade обновляет raw JSON snapshot; для device state пишет raw event и примитивные свойства верхнего уровня в history. REST adapter проверяет владельца координатора и публикует команды только в его base topic через `ZigbeeCommandGateway`; итог команды приходит позже через `bridge/response/*`. Features строятся из `bridge/devices[].definition.exposes`. При создании координатора MQTT adapter создаёт отдельную Dynamic Security роль с буквальным ACL его namespace; при архивировании удаляет client и роль.
+MQTT adapter классифицирует legacy topics `zigbee2growerhub/#` и пользовательские `gh/z2m/<mqtt_username>/#`, затем передаёт identity координатора вместе со snapshot-сообщением в Facade. Неизвестный или архивный namespace игнорируется. Facade обновляет raw JSON snapshot; для device state пишет raw event и примитивные свойства верхнего уровня в history. REST adapter проверяет владельца координатора и публикует команды только в его base topic через `ZigbeeCommandGateway`; итог команды приходит позже через `bridge/response/*`. Features строятся из `bridge/devices[].definition.exposes`. При создании координатора MQTT adapter создаёт отдельную Dynamic Security роль с буквальным ACL его namespace; при архивировании удаляет client и роль. Ответ provisioning сопоставляется по `correlationData`, а для Mosquitto 2.0, который не возвращает это поле, — по точной последовательности команд в сериализованной операции.
 
 ## Ограничения
 

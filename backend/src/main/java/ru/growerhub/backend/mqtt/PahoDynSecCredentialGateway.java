@@ -125,7 +125,7 @@ public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGatewa
             client.subscribe(RESPONSE_TOPIC, 1, (topic, message) -> {
                 try {
                     JsonNode candidate = objectMapper.readTree(message.getPayload());
-                    if (correlationData.equals(candidate.path("correlationData").asText())) {
+                    if (matchesResponse(candidate, correlationData, commands)) {
                         responseRef.set(candidate);
                         responseLatch.countDown();
                     }
@@ -176,6 +176,29 @@ public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGatewa
                 throw new DomainException("bad_gateway", "Mosquitto Dynamic Security отклонил операцию");
             }
         }
+    }
+
+    boolean matchesResponse(
+            JsonNode candidate,
+            String correlationData,
+            List<Map<String, Object>> commands
+    ) {
+        JsonNode responseCorrelation = candidate != null ? candidate.get("correlationData") : null;
+        if (responseCorrelation != null && !responseCorrelation.isNull()) {
+            return correlationData.equals(responseCorrelation.asText());
+        }
+        JsonNode responses = candidate != null ? candidate.path("responses") : null;
+        if (responses == null || !responses.isArray() || responses.size() != commands.size()) {
+            return false;
+        }
+        for (int index = 0; index < commands.size(); index++) {
+            Object expectedCommand = commands.get(index).get("command");
+            if (expectedCommand == null
+                    || !expectedCommand.toString().equals(responses.get(index).path("command").asText())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private String scopedRoleName(String roleName, String username) {
