@@ -47,7 +47,7 @@ const exactEquipmentModels = new Set([
 const equipmentByLocale = { ru: ruEquipment, en: enEquipment };
 for (const [locale, catalog] of Object.entries(equipmentByLocale)) {
   const items = Object.values(catalog.categories).flatMap((category) => category.items);
-  assert(items.length === 13, `Equipment ${locale}: expected 13 items, got ${items.length}`);
+  assert(items.length === 14, `Equipment ${locale}: expected 14 items, got ${items.length}`);
   assert(!items.some((item) => item.model === 'TS011F'), `Equipment ${locale}: TS011F returned`);
   for (const item of items) {
     assert(Boolean(item.image), `Equipment ${locale}: no image for ${item.model}`);
