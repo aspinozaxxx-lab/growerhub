@@ -13,8 +13,8 @@
       - mosquitto_admin_password | length >= 32
       - mosquitto_backend_password | length >= 32
       - mosquitto_provisioning_password | length >= 32
-      - not mosquitto_legacy_listener_enabled or mosquitto_legacy_username | length > 0
-      - not mosquitto_legacy_listener_enabled or mosquitto_legacy_password | length >= 32
+      - not mosquitto_legacy_z2m_enabled or mosquitto_legacy_username | length > 0
+      - not mosquitto_legacy_z2m_enabled or mosquitto_legacy_password | length >= 32
     fail_msg: >-
       MQTT credentials dolzhny byt' peredany cherez vault ili GH_MQTT_* environment
       i imet' dlinu ne menee 32 simvolov.
@@ -73,6 +73,14 @@
     path: "{{ mosquitto_dynamic_security_file }}"
   register: mosquitto_dynsec_config
 
+- name: Create Dynamic Security configuration directory
+  ansible.builtin.file:
+    path: "{{ mosquitto_dynamic_security_file | dirname }}"
+    state: directory
+    owner: mosquitto
+    group: mosquitto
+    mode: "0700"
+
 - name: Initialize Dynamic Security configuration
   ansible.builtin.command:
     argv:
@@ -88,9 +96,9 @@
 - name: Secure Dynamic Security configuration
   ansible.builtin.file:
     path: "{{ mosquitto_dynamic_security_file }}"
-    owner: root
+    owner: mosquitto
     group: mosquitto
-    mode: "0640"
+    mode: "0600"
 
 - name: Install Mosquitto configuration
   ansible.builtin.template:
@@ -147,12 +155,6 @@
     "${ctrl[@]}" setDefaultACLAccess subscribe deny
     "${ctrl[@]}" setDefaultACLAccess unsubscribe deny
 
-    "${ctrl[@]}" createRole "{{ mosquitto_coordinator_role }}"
-    "${ctrl[@]}" addRoleACL "{{ mosquitto_coordinator_role }}" publishClientSend 'gh/z2m/%u/#' allow
-    "${ctrl[@]}" addRoleACL "{{ mosquitto_coordinator_role }}" publishClientReceive 'gh/z2m/%u/#' allow
-    "${ctrl[@]}" addRoleACL "{{ mosquitto_coordinator_role }}" subscribePattern 'gh/z2m/%u/#' allow
-    "${ctrl[@]}" addRoleACL "{{ mosquitto_coordinator_role }}" unsubscribePattern 'gh/z2m/%u/#' allow
-
     "${ctrl[@]}" createRole "{{ mosquitto_backend_role }}"
     for topic in 'gh/z2m/#' 'gh/dev/#' 'zigbee2growerhub/#'; do
       "${ctrl[@]}" addRoleACL "{{ mosquitto_backend_role }}" publishClientSend "$topic" allow
@@ -171,13 +173,13 @@
     "${ctrl[@]}" createClient "$GH_PROVISIONING_USER" -p "$GH_PROVISIONING_PASSWORD"
     "${ctrl[@]}" addClientRole "$GH_PROVISIONING_USER" "{{ mosquitto_provisioning_role }}"
 
-    if [ "{{ mosquitto_legacy_listener_enabled | bool | lower }}" = "true" ]; then
+    if [ "{{ mosquitto_legacy_z2m_enabled | bool | lower }}" = "true" ]; then
       "${ctrl[@]}" createRole "{{ mosquitto_legacy_role }}"
       "${ctrl[@]}" addRoleACL "{{ mosquitto_legacy_role }}" publishClientSend 'zigbee2growerhub/#' allow
       "${ctrl[@]}" addRoleACL "{{ mosquitto_legacy_role }}" publishClientReceive 'zigbee2growerhub/#' allow
       "${ctrl[@]}" addRoleACL "{{ mosquitto_legacy_role }}" subscribeLiteral 'zigbee2growerhub/#' allow
       "${ctrl[@]}" addRoleACL "{{ mosquitto_legacy_role }}" unsubscribeLiteral 'zigbee2growerhub/#' allow
-      "${ctrl[@]}" createClient "$GH_LEGACY_USER" -p "$GH_LEGACY_PASSWORD"
+      "${ctrl[@]}" createClient "$GH_LEGACY_USER" -c "$GH_LEGACY_USER" -p "$GH_LEGACY_PASSWORD"
       "${ctrl[@]}" addClientRole "$GH_LEGACY_USER" "{{ mosquitto_legacy_role }}"
     fi
 
@@ -196,6 +198,76 @@
   when: not mosquitto_bootstrap.stat.exists
   no_log: true
 
+- name: Check legacy device password file
+  ansible.builtin.stat:
+    path: "{{ mosquitto_legacy_device_password_file }}"
+  register: mosquitto_legacy_device_password
+  when: mosquitto_legacy_device_enabled
+
+- name: Validate legacy device password file
+  ansible.builtin.assert:
+    that:
+      - mosquitto_legacy_device_password.stat.exists
+    fail_msg: >-
+      Pered vklyucheniem legacy device broker podgotov'te otdel'nyj password_file
+      dlja {{ mosquitto_legacy_device_username }}.
+  when: mosquitto_legacy_device_enabled
+
+- name: Install legacy device ACL
+  ansible.builtin.template:
+    src: legacy-device.acl.j2
+    dest: "{{ mosquitto_legacy_device_acl_file }}"
+    owner: root
+    group: mosquitto
+    mode: "0640"
+  notify: Restart legacy device Mosquitto
+  when: mosquitto_legacy_device_enabled
+
+- name: Install legacy device broker configuration
+  ansible.builtin.template:
+    src: legacy-device.conf.j2
+    dest: "{{ mosquitto_legacy_device_config }}"
+    owner: root
+    group: mosquitto
+    mode: "0640"
+  notify: Restart legacy device Mosquitto
+  no_log: true
+  when: mosquitto_legacy_device_enabled
+
+- name: Install legacy device broker service
+  ansible.builtin.template:
+    src: legacy-device.service.j2
+    dest: "/etc/systemd/system/{{ mosquitto_legacy_device_service }}"
+    owner: root
+    group: root
+    mode: "0644"
+  register: mosquitto_legacy_device_unit
+  notify: Restart legacy device Mosquitto
+  when: mosquitto_legacy_device_enabled
+
+- name: Reload systemd for legacy device broker
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when:
+    - mosquitto_legacy_device_enabled
+    - mosquitto_legacy_device_unit.changed
+
+- name: Ensure legacy device broker is enabled and running
+  ansible.builtin.systemd:
+    name: "{{ mosquitto_legacy_device_service }}"
+    enabled: true
+    state: started
+  when: mosquitto_legacy_device_enabled
+
+- name: Allow legacy device MQTT from trusted LAN in UFW
+  ansible.builtin.command: >-
+    ufw allow from {{ mosquitto_legacy_device_allowed_cidr }}
+    to {{ mosquitto_legacy_device_bind_address }}
+    port {{ mosquitto_legacy_device_port }} proto tcp
+  register: mosquitto_ufw_legacy_lan
+  changed_when: "'Rule added' in mosquitto_ufw_legacy_lan.stdout"
+  when: mosquitto_legacy_device_enabled
+
 - name: Allow public MQTTS port in UFW
   ansible.builtin.command: "ufw allow {{ mosquitto_tls_port }}/tcp"
   register: mosquitto_ufw_tls
@@ -205,7 +277,6 @@
   ansible.builtin.command: "ufw deny 1883/tcp"
   register: mosquitto_ufw_plain
   changed_when: "'Rule added' in mosquitto_ufw_plain.stdout"
-  when: not mosquitto_legacy_public_enabled
 
 - name: Verify anonymous MQTT access is denied
   ansible.builtin.command:

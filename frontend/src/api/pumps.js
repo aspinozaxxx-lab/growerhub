@@ -25,7 +25,7 @@ export async function startPumpWatering({ pumpId, durationS, waterVolumeL, ph, f
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`Failed to start watering (${response.status})`);
+    throw new Error(`Не удалось запустить полив (${response.status})`);
   }
   return response.json();
 }
@@ -36,7 +36,7 @@ export async function stopPumpWatering(pumpId, token) {
     method: 'POST',
   });
   if (!response.ok) {
-    throw new Error(`Failed to stop watering (${response.status})`);
+    throw new Error(`Не удалось остановить полив (${response.status})`);
   }
   return response.json();
 }
@@ -45,7 +45,7 @@ export async function fetchPumpWateringStatus(pumpId, token) {
   void token;
   const response = await apiFetch(`/api/pumps/${encodeURIComponent(pumpId)}/watering/status`);
   if (!response.ok) {
-    throw new Error(`Failed to load watering status (${response.status})`);
+    throw new Error(`Не удалось загрузить состояние полива (${response.status})`);
   }
   return response.json();
 }

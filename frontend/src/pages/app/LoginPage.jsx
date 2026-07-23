@@ -82,7 +82,7 @@ function LoginPage() {
         <details className="login-local">
           <summary>Вход по паролю для существующих аккаунтов</summary>
           <form className="login-form" onSubmit={handleSubmit}>
-            <FormField label="Email" htmlFor="login-email">
+            <FormField label="Электронная почта" htmlFor="login-email">
               <input
                 id="login-email"
                 type="email"

@@ -55,7 +55,7 @@ function HelpLink({ step }) {
 function Progress({ status }) {
   const stages = [
     ['coordinator_count', 'Подключение', status?.coordinator_count > 0],
-    ['coordinator_connected', 'Координатор online', status?.coordinator_connected],
+    ['coordinator_connected', 'Координатор в сети', status?.coordinator_connected],
     ['first_device_seen', 'Первое устройство', status?.first_device_seen],
     ['zone_created', 'Первая зона', status?.zone_created],
   ];
@@ -88,16 +88,16 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
       </div>
 
       <dl className="onboarding-credentials">
-        <div><dt>MQTT server</dt><dd>{setup.server}</dd></div>
-        <div><dt>Username</dt><dd>{setup.username}</dd></div>
-        <div><dt>Password</dt><dd>{setup.password}</dd></div>
-        <div><dt>Base topic</dt><dd>{setup.base_topic}</dd></div>
+        <div><dt>MQTT-сервер</dt><dd>{setup.server}</dd></div>
+        <div><dt>Имя пользователя</dt><dd>{setup.username}</dd></div>
+        <div><dt>Пароль</dt><dd>{setup.password}</dd></div>
+        <div><dt>Базовый топик</dt><dd>{setup.base_topic}</dd></div>
       </dl>
 
       <div className="onboarding-choice-grid" role="group" aria-label="Платформа установки">
         {[
           [SETUP_PLATFORMS.WINDOWS, 'Windows', 'Мастер с выбором COM-порта и Z-Stack/Ember.'],
-          [SETUP_PLATFORMS.LINUX, 'Raspberry Pi / Linux', 'Docker Compose, USB mapping и постоянный volume.'],
+          [SETUP_PLATFORMS.LINUX, 'Raspberry Pi / Linux', 'Docker Compose, подключение USB и постоянное хранилище.'],
           [SETUP_PLATFORMS.MANUAL, 'Вручную', 'Для уже установленного Zigbee2MQTT.'],
         ].map(([value, title, text]) => (
           <button
@@ -118,8 +118,8 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
           <div className="onboarding-fields">
             <label>Адрес<input value={localMqtt.host} onChange={(event) => setLocalMqtt((value) => ({ ...value, host: event.target.value }))} placeholder="192.168.1.10" /></label>
             <label>Порт<input value={localMqtt.port} onChange={(event) => setLocalMqtt((value) => ({ ...value, port: event.target.value }))} inputMode="numeric" /></label>
-            <label>Username<input value={localMqtt.username} onChange={(event) => setLocalMqtt((value) => ({ ...value, username: event.target.value }))} autoComplete="off" /></label>
-            <label>Password<input type="password" value={localMqtt.password} onChange={(event) => setLocalMqtt((value) => ({ ...value, password: event.target.value }))} autoComplete="new-password" /></label>
+            <label>Имя пользователя<input value={localMqtt.username} onChange={(event) => setLocalMqtt((value) => ({ ...value, username: event.target.value }))} autoComplete="off" /></label>
+            <label>Пароль<input type="password" value={localMqtt.password} onChange={(event) => setLocalMqtt((value) => ({ ...value, password: event.target.value }))} autoComplete="new-password" /></label>
           </div>
         </div>
       ) : null}
@@ -202,7 +202,7 @@ function AppOnboarding() {
     } catch (requestError) {
       if (!quiet) {
         setError(requestError.status === 503
-          ? 'Self-service пока выключен до завершения проверки безопасности. Код интерфейса готов, но подключение ещё не открыто.'
+          ? 'Самостоятельное подключение пока выключено до завершения проверки безопасности. Интерфейс готов, но подключение ещё не открыто.'
           : requestError.message);
       }
     } finally {
@@ -344,7 +344,7 @@ function AppOnboarding() {
                 <strong>Новая установка</strong><span>Zigbee2MQTT подключится к GrowerHub напрямую.</span>
               </button>
               <button type="button" className={connectionMode === CONNECTION_MODES.BRIDGE ? 'choice-card is-selected' : 'choice-card'} onClick={() => setConnectionMode(CONNECTION_MODES.BRIDGE)}>
-                <strong>Уже есть Zigbee2MQTT / Home Assistant</strong><span>Connector сохранит локальный MQTT и передаст только нужные топики.</span>
+                <strong>Уже есть Zigbee2MQTT / Home Assistant</strong><span>Модуль связи сохранит локальный MQTT и передаст только нужные топики.</span>
               </button>
             </div>
           </section>
@@ -385,7 +385,7 @@ function AppOnboarding() {
               <div className="onboarding-kicker">Шаг 3</div>
               <h2>{connectionMode === CONNECTION_MODES.BRIDGE ? 'Импортируем существующие устройства' : 'Добавьте первое устройство'}</h2>
               {connectionMode === CONNECTION_MODES.BRIDGE ? (
-                <p>GrowerHub ждёт список устройств от вашего Zigbee2MQTT. Обычно они появляются автоматически после подключения connector.</p>
+                <p>GrowerHub ждёт список устройств от вашего Zigbee2MQTT. Обычно они появляются автоматически после подключения модуля связи.</p>
               ) : (
                 <><p>Разрешите подключение на три минуты, затем переведите датчик или розетку в режим сопряжения.</p><Button variant="primary" onClick={handlePermitJoin} isLoading={busy === 'permit-join'}>Разрешить подключение на 3 минуты</Button></>
               )}

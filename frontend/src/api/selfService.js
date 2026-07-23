@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiFetch, normalizeApiErrorMessage } from './client';
 
 async function requestJson(url, init = {}) {
   const headers = new Headers(init.headers || {});
@@ -10,7 +10,9 @@ async function requestJson(url, init = {}) {
   const response = await apiFetch(url, { ...init, headers });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const error = new Error(data.detail || data.message || `Запрос не выполнен (${response.status})`);
+    const error = new Error(normalizeApiErrorMessage(data.detail || data.message, {
+      status: response.status,
+    }));
     error.status = response.status;
     error.code = data.code;
     throw error;
@@ -38,7 +40,9 @@ export const archiveCoordinator = async (coordinatorId) => {
   });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    const error = new Error(data.detail || data.message || `Запрос не выполнен (${response.status})`);
+    const error = new Error(normalizeApiErrorMessage(data.detail || data.message, {
+      status: response.status,
+    }));
     error.status = response.status;
     throw error;
   }

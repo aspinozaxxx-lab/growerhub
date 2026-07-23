@@ -5,7 +5,7 @@ export async function fetchPlants(token) {
   void token;
   const response = await apiFetch('/api/plants');
   if (!response.ok) {
-    throw new Error(`Failed to load plants (${response.status})`);
+    throw new Error(`Не удалось загрузить растения (${response.status})`);
   }
   return response.json();
 }
@@ -15,7 +15,7 @@ export async function fetchPlant(token, plantId) {
   void token;
   const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}`);
   if (!response.ok) {
-    throw new Error(`Failed to load plant (${response.status})`);
+    throw new Error(`Не удалось загрузить растение (${response.status})`);
   }
   return response.json();
 }
@@ -30,7 +30,7 @@ export async function createPlant(token, payload) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`Failed to create plant (${response.status})`);
+    throw new Error(`Не удалось создать растение (${response.status})`);
   }
   return response.json();
 }
@@ -45,7 +45,7 @@ export async function updatePlant(token, plantId, payload) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`Failed to update plant (${response.status})`);
+    throw new Error(`Не удалось сохранить растение (${response.status})`);
   }
   return response.json();
 }
@@ -57,7 +57,7 @@ export async function deletePlant(token, plantId) {
     method: 'DELETE',
   });
   if (!response.ok) {
-    throw new Error(`Failed to delete plant (${response.status})`);
+    throw new Error(`Не удалось удалить растение (${response.status})`);
   }
   return response.json();
 }
@@ -72,7 +72,7 @@ export async function harvestPlant(plantId, payload, token) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`Failed to harvest plant (${response.status})`);
+    throw new Error(`Не удалось завершить выращивание (${response.status})`);
   }
   return response.json();
 }
@@ -82,7 +82,7 @@ export async function fetchPlantGroups(token) {
   void token;
   const response = await apiFetch('/api/plant-groups');
   if (!response.ok) {
-    throw new Error(`Failed to load plant groups (${response.status})`);
+    throw new Error(`Не удалось загрузить группы растений (${response.status})`);
   }
   return response.json();
 }
@@ -97,7 +97,7 @@ export async function createPlantGroup(token, payload) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`Failed to create plant group (${response.status})`);
+    throw new Error(`Не удалось создать группу растений (${response.status})`);
   }
   return response.json();
 }
@@ -112,7 +112,7 @@ export async function updatePlantGroup(token, groupId, payload) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`Failed to update plant group (${response.status})`);
+    throw new Error(`Не удалось сохранить группу растений (${response.status})`);
   }
   return response.json();
 }
@@ -124,7 +124,7 @@ export async function deletePlantGroup(token, groupId) {
     method: 'DELETE',
   });
   if (!response.ok) {
-    throw new Error(`Failed to delete plant group (${response.status})`);
+    throw new Error(`Не удалось удалить группу растений (${response.status})`);
   }
   return response.json();
 }
@@ -135,7 +135,7 @@ export async function fetchPlantHistory(plantId, hours, metrics, token) {
   const metricsParam = metrics ? `&metrics=${encodeURIComponent(metrics)}` : '';
   const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}/history?hours=${hours}${metricsParam}`);
   if (!response.ok) {
-    throw new Error(`Failed to load plant history (${response.status})`);
+    throw new Error(`Не удалось загрузить историю растения (${response.status})`);
   }
   return response.json();
 }

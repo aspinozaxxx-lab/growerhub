@@ -1,0 +1,13 @@
+[Unit]
+Description=GrowerHub LAN-only legacy MQTT device broker
+After=network-online.target mosquitto.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/mosquitto -c {{ mosquitto_legacy_device_config }}
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

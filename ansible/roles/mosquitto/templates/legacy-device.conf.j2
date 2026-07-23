@@ -1,0 +1,21 @@
+allow_anonymous false
+persistence false
+log_dest syslog
+connection_messages true
+pid_file /run/mosquitto/growerhub-legacy-device.pid
+
+listener {{ mosquitto_legacy_device_port }} {{ mosquitto_legacy_device_bind_address }}
+protocol mqtt
+password_file {{ mosquitto_legacy_device_password_file }}
+acl_file {{ mosquitto_legacy_device_acl_file }}
+
+connection growerhub-legacy-device
+address 127.0.0.1:{{ mosquitto_local_port }}
+remote_clientid gh-legacy-device-bridge
+remote_username {{ mosquitto_backend_username }}
+remote_password {{ mosquitto_backend_password }}
+bridge_protocol_version mqttv311
+cleansession true
+notifications false
+start_type automatic
+topic gh/dev/# both 1

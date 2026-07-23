@@ -5,5 +5,5 @@ public interface ZigbeeBrokerCredentialGateway {
 
     void rotate(String username, String password);
 
-    void revoke(String username);
+    void revoke(String username, String roleName);
 }

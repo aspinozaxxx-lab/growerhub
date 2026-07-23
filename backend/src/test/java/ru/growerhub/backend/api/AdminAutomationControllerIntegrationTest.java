@@ -187,7 +187,7 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 .put("/api/admin/automation/boxes/" + boxId + "/resources")
                 .then()
                 .statusCode(400)
-                .body("detail", equalTo("LIGHT_SWITCH v v1 dolzhen byt' Zigbee switch"));
+                .body("detail", equalTo("LIGHT_SWITCH в первой версии должен быть Zigbee-переключателем"));
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -480,7 +480,7 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 .put("/api/admin/automation/boxes/" + boxId + "/scenarios")
                 .then()
                 .statusCode(400)
-                .body("detail", equalTo("dlya until_drain nuzhen LEAK_SENSOR"));
+                .body("detail", equalTo("Для режима until_drain нужен датчик LEAK_SENSOR"));
     }
 
     @Test
@@ -858,7 +858,7 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 .post("/api/pumps/" + nativeResources.pumpId() + "/watering/start")
                 .then()
                 .statusCode(400)
-                .body("detail", equalTo("ukazhite water_volume_l ili duration_s dlya starta poliva"));
+                .body("detail", equalTo("Укажите water_volume_l или duration_s для запуска полива"));
 
         given()
                 .header("Authorization", "Bearer " + adminToken)

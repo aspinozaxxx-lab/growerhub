@@ -11,6 +11,14 @@ import {
 import { trackProductGoal } from '../../utils/metrika';
 import './SelfServicePages.css';
 
+const STATUS_LABELS = {
+  PROVISIONING: 'Настраивается',
+  OFFLINE: 'Не в сети',
+  ONLINE: 'В сети',
+  ERROR: 'Ошибка',
+  ARCHIVED: 'В архиве',
+};
+
 const downloadTextFile = (name, content) => {
   const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
   const anchor = document.createElement('a');
@@ -90,7 +98,7 @@ function AppConnections() {
       {setup ? (
         <section className="secret-card">
           <div><span>Одноразовые данные</span><h2>Сохраните конфигурацию сейчас</h2><p>После закрытия страницы пароль восстановить нельзя — только выпустить новый.</p></div>
-          <dl><div><dt>Username</dt><dd>{setup.username}</dd></div><div><dt>Password</dt><dd>{setup.password}</dd></div><div><dt>Base topic</dt><dd>{setup.base_topic}</dd></div></dl>
+          <dl><div><dt>Имя пользователя</dt><dd>{setup.username}</dd></div><div><dt>Пароль</dt><dd>{setup.password}</dd></div><div><dt>Базовый топик</dt><dd>{setup.base_topic}</dd></div></dl>
           <div className="inline-actions"><Button variant="primary" onClick={() => downloadTextFile('configuration.yaml', setup.configuration_yaml)}>configuration.yaml</Button><Button onClick={() => downloadTextFile('secret.yaml', setup.secret_yaml)}>secret.yaml</Button><Button onClick={() => setSetup(null)}>Скрыть навсегда</Button></div>
         </section>
       ) : null}
@@ -101,9 +109,9 @@ function AppConnections() {
           {coordinators.map((coordinator) => (
             <article key={coordinator.id}>
               <div><h3>{coordinator.name}</h3><p>{coordinator.base_topic}</p></div>
-              <span className={coordinator.status === 'ONLINE' ? 'status-chip is-online' : 'status-chip'}>{coordinator.status}</span>
+              <span className={coordinator.status === 'ONLINE' ? 'status-chip is-online' : 'status-chip'}>{STATUS_LABELS[coordinator.status] || 'Статус неизвестен'}</span>
               <div className="connection-meta"><span>{coordinator.device_count} устройств</span><span>{coordinator.last_seen_at ? `Связь: ${new Date(coordinator.last_seen_at).toLocaleString('ru-RU')}` : 'Ещё не подключался'}</span></div>
-              <div className="inline-actions"><Button onClick={() => handleRotate(coordinator)} isLoading={busy === coordinator.id}>Новые credentials</Button><Button variant="danger" onClick={() => handleArchive(coordinator)} disabled={busy === coordinator.id}>Архивировать</Button></div>
+              <div className="inline-actions"><Button onClick={() => handleRotate(coordinator)} isLoading={busy === coordinator.id}>Новые данные доступа</Button><Button variant="danger" onClick={() => handleArchive(coordinator)} disabled={busy === coordinator.id}>Архивировать</Button></div>
             </article>
           ))}
           {coordinators.length === 0 ? <AppPageState kind="empty" title="Координаторов пока нет" /> : null}

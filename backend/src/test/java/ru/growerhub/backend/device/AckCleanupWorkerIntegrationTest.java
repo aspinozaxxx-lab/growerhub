@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.engine.AckCleanupWorker;
@@ -25,8 +26,11 @@ class AckCleanupWorkerIntegrationTest extends IntegrationTestBase {
     @Autowired
     private MqttAckRepository mqttAckRepository;
 
+    @MockBean
+    private AckCleanupWorker scheduledAckCleanupWorker;
+
     @Autowired
-    private AckCleanupWorker ackCleanupWorker;
+    private DeviceFacade deviceFacade;
 
     @Autowired
     private Clock clock;
@@ -44,7 +48,7 @@ class AckCleanupWorkerIntegrationTest extends IntegrationTestBase {
 
         Assertions.assertEquals(2, mqttAckRepository.count());
 
-        ackCleanupWorker.cleanupExpired();
+        new AckCleanupWorker(deviceFacade).cleanupExpired();
 
         Assertions.assertEquals(1, mqttAckRepository.count());
         Assertions.assertTrue(mqttAckRepository.findByCorrelationId("corr-active").isPresent());

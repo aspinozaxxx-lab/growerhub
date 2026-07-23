@@ -1,5 +1,5 @@
 ﻿// Translitem: API helpery dlya raboty so sposobami vhoda i paroljem.
-import { apiFetch } from './client';
+import { apiFetch, normalizeApiErrorMessage } from './client';
 
 /**
  * Translitem: vozvrashchaet status dostupnyh sposobov vhoda tekushchego polzovatelya.
@@ -23,7 +23,10 @@ export async function linkSsoMethod(provider, redirectPath, token) {
   const response = await apiFetch(url, { headers });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.detail || `Не удалось начать привязку (${response.status})`);
+    throw new Error(normalizeApiErrorMessage(errorData.detail, {
+      status: response.status,
+      fallback: `Не удалось начать привязку (${response.status})`,
+    }));
   }
   const data = await response.json();
   if (!data?.url) {
@@ -42,7 +45,10 @@ export async function unlinkAuthMethod(provider, token) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.detail || `Не удалось удалить способ входа (${response.status})`);
+    throw new Error(normalizeApiErrorMessage(data.detail, {
+      status: response.status,
+      fallback: `Не удалось удалить способ входа (${response.status})`,
+    }));
   }
   return data;
 }
@@ -62,7 +68,10 @@ export async function setLocalLogin(email, password, token) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.detail || `Не удалось сохранить локальный вход (${response.status})`);
+    throw new Error(normalizeApiErrorMessage(data.detail, {
+      status: response.status,
+      fallback: `Не удалось сохранить локальный вход (${response.status})`,
+    }));
   }
   return data;
 }
@@ -85,7 +94,10 @@ export async function changePassword(currentPassword, newPassword, token) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.detail || `Не удалось изменить пароль (${response.status})`);
+    throw new Error(normalizeApiErrorMessage(data.detail, {
+      status: response.status,
+      fallback: `Не удалось изменить пароль (${response.status})`,
+    }));
   }
   return data;
 }

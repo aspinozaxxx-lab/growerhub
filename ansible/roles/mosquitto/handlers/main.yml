@@ -2,3 +2,9 @@
   ansible.builtin.systemd:
     name: mosquitto
     state: restarted
+
+- name: Restart legacy device Mosquitto
+  ansible.builtin.systemd:
+    name: "{{ mosquitto_legacy_device_service }}"
+    state: restarted
+  when: mosquitto_legacy_device_enabled

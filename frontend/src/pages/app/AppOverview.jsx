@@ -32,7 +32,7 @@ function AppOverview() {
       <AppPageHeader title="Обзор" right={!data.status.zone_created ? <Link className="gh-btn gh-btn--primary gh-btn--md" to="/app/onboarding/">Продолжить настройку</Link> : null} />
 
       <div className="summary-grid">
-        <article><span>Подключения</span><strong>{data.coordinators.length}</strong><small>{data.status.coordinator_connected ? 'есть online' : 'ожидают запуска'}</small></article>
+        <article><span>Подключения</span><strong>{data.coordinators.length}</strong><small>{data.status.coordinator_connected ? 'есть связь' : 'ожидают запуска'}</small></article>
         <article><span>Устройства</span><strong>{deviceCount}</strong><small>{data.status.first_device_seen ? 'получают данные' : 'пока не найдены'}</small></article>
         <article><span>Зоны</span><strong>{zones.length}</strong><small>{data.status.zone_created ? 'настроены' : 'создайте первую зону'}</small></article>
         <article><span>Автоматизации</span><strong>{data.status.automation_enabled ? 'Вкл.' : 'Выкл.'}</strong><small>включаются по желанию</small></article>

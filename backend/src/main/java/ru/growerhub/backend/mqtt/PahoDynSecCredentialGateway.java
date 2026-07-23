@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -16,6 +17,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.springframework.stereotype.Component;
 import ru.growerhub.backend.common.config.mqtt.MqttProvisioningSettings;
+import ru.growerhub.backend.common.config.mqtt.MqttTopicSettings;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.zigbee.contract.ZigbeeBrokerCredentialGateway;
 
@@ -25,53 +27,84 @@ public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGatewa
     private static final String RESPONSE_TOPIC = "$CONTROL/dynamic-security/v1/response";
 
     private final MqttProvisioningSettings settings;
+    private final MqttTopicSettings topicSettings;
     private final ObjectMapper objectMapper;
 
-    public PahoDynSecCredentialGateway(MqttProvisioningSettings settings, ObjectMapper objectMapper) {
+    public PahoDynSecCredentialGateway(
+            MqttProvisioningSettings settings,
+            MqttTopicSettings topicSettings,
+            ObjectMapper objectMapper
+    ) {
         this.settings = settings;
+        this.topicSettings = topicSettings;
         this.objectMapper = objectMapper;
     }
 
     @Override
     public void provision(String username, String password, String clientId, String roleName) {
-        execute(Map.of(
+        String scopedRoleName = scopedRoleName(roleName, username);
+        String topicFilter = topicSettings.getZigbeeUserPrefix() + "/" + username + "/#";
+        List<Map<String, Object>> commands = new ArrayList<>();
+        commands.add(Map.of("command", "createRole", "rolename", scopedRoleName));
+        for (String aclType : List.of(
+                "publishClientSend",
+                "publishClientReceive",
+                "subscribePattern",
+                "unsubscribePattern"
+        )) {
+            commands.add(Map.of(
+                    "command", "addRoleACL",
+                    "rolename", scopedRoleName,
+                    "acltype", aclType,
+                    "topic", topicFilter,
+                    "allow", true,
+                    "priority", 0
+            ));
+        }
+        commands.add(Map.of(
                 "command", "createClient",
                 "username", username,
                 "password", password,
                 "clientid", clientId,
-                "roles", List.of(Map.of("rolename", roleName, "priority", -1))
+                "roles", List.of(Map.of("rolename", scopedRoleName, "priority", -1))
         ));
+        try {
+            execute(commands);
+        } catch (DomainException ex) {
+            cleanupPartialProvisioning(username, scopedRoleName);
+            throw ex;
+        }
     }
 
     @Override
     public void rotate(String username, String password) {
-        execute(Map.of(
+        execute(List.of(Map.of(
                 "command", "setClientPassword",
                 "username", username,
                 "password", password
-        ));
+        )));
     }
 
     @Override
-    public void revoke(String username) {
-        execute(Map.of(
-                "command", "deleteClient",
-                "username", username
+    public void revoke(String username, String roleName) {
+        execute(List.of(
+                Map.of("command", "deleteClient", "username", username),
+                Map.of("command", "deleteRole", "rolename", scopedRoleName(roleName, username))
         ));
     }
 
-    private synchronized void execute(Map<String, Object> command) {
+    private synchronized void execute(List<Map<String, Object>> commands) {
         validateSettings();
         String correlationData = UUID.randomUUID().toString();
         Map<String, Object> request = Map.of(
-                "commands", List.of(command),
+                "commands", commands,
                 "correlationData", correlationData
         );
         byte[] payload;
         try {
             payload = objectMapper.writeValueAsBytes(request);
         } catch (Exception ex) {
-            throw new DomainException("internal_error", "Ne udalos podgotovit MQTT provisioning command");
+            throw new DomainException("internal_error", "Не удалось подготовить команду настройки MQTT");
         }
 
         AtomicReference<JsonNode> responseRef = new AtomicReference<>();
@@ -107,16 +140,16 @@ public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGatewa
 
             Duration timeout = Duration.ofSeconds(Math.max(1, settings.getResponseTimeoutSeconds()));
             if (!responseLatch.await(timeout.toMillis(), TimeUnit.MILLISECONDS)) {
-                throw new DomainException("bad_gateway", "Mosquitto Dynamic Security ne otvetil vovremya");
+                throw new DomainException("bad_gateway", "Mosquitto Dynamic Security не ответил вовремя");
             }
-            validateResponse(responseRef.get());
+            validateResponse(responseRef.get(), commands.size());
         } catch (DomainException ex) {
             throw ex;
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new DomainException("bad_gateway", "MQTT provisioning prervan");
+            throw new DomainException("bad_gateway", "Настройка MQTT прервана");
         } catch (Exception ex) {
-            throw new DomainException("bad_gateway", "MQTT provisioning nedostupen");
+            throw new DomainException("bad_gateway", "Настройка MQTT недоступна");
         } finally {
             closeQuietly(client);
         }
@@ -124,23 +157,42 @@ public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGatewa
 
     private void validateSettings() {
         if (!settings.isEnabled()) {
-            throw new DomainException("unavailable", "MQTT provisioning vyklyuchen");
+            throw new DomainException("unavailable", "Настройка MQTT выключена");
         }
         if (settings.getHost() == null || settings.getHost().isBlank()
                 || settings.getUsername() == null || settings.getPassword() == null) {
-            throw new DomainException("unavailable", "MQTT provisioning ne nastroen");
+            throw new DomainException("unavailable", "Настройка MQTT не подготовлена");
         }
     }
 
-    private void validateResponse(JsonNode response) {
+    private void validateResponse(JsonNode response, int expectedResponses) {
         JsonNode responses = response != null ? response.path("responses") : null;
-        if (responses == null || !responses.isArray() || responses.isEmpty()) {
-            throw new DomainException("bad_gateway", "Mosquitto Dynamic Security vernul nekorrektnyj otvet");
+        if (responses == null || !responses.isArray() || responses.size() != expectedResponses) {
+            throw new DomainException("bad_gateway", "Mosquitto Dynamic Security вернул некорректный ответ");
         }
-        JsonNode first = responses.get(0);
-        String error = first.path("error").asText(null);
-        if (error != null && !error.isBlank()) {
-            throw new DomainException("bad_gateway", "Mosquitto Dynamic Security otklonil operaciyu");
+        for (JsonNode item : responses) {
+            String error = item.path("error").asText(null);
+            if (error != null && !error.isBlank()) {
+                throw new DomainException("bad_gateway", "Mosquitto Dynamic Security отклонил операцию");
+            }
+        }
+    }
+
+    private String scopedRoleName(String roleName, String username) {
+        if (roleName == null || roleName.isBlank() || username == null || username.isBlank()) {
+            throw new DomainException("unavailable", "Настройка MQTT не подготовлена");
+        }
+        return roleName + "--" + username;
+    }
+
+    private void cleanupPartialProvisioning(String username, String scopedRoleName) {
+        try {
+            execute(List.of(
+                    Map.of("command", "deleteClient", "username", username),
+                    Map.of("command", "deleteRole", "rolename", scopedRoleName)
+            ));
+        } catch (DomainException ignored) {
+            // Oshibka ochistki ne dolzhna skryvat pervichnuju oshibku provisioning.
         }
     }
 

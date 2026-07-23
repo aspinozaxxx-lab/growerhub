@@ -51,6 +51,8 @@ describe('onboardingModel', () => {
 
     expect(config).toContain('topic +/set in');
     expect(config).toContain('topic bridge/state out');
+    expect(config).toContain('# Создано в браузере GrowerHub.');
+    expect(config).not.toContain('Sozdan v brauzere');
     expect(config).not.toContain('topic #');
   });
 });

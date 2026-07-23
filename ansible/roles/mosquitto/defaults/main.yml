@@ -1,13 +1,22 @@
 ---
 mosquitto_domain: "growerhub.ru"
 mosquitto_dynamic_security_plugin: "/usr/lib/x86_64-linux-gnu/mosquitto_dynamic_security.so"
-mosquitto_dynamic_security_file: "/etc/mosquitto/dynamic-security.json"
+mosquitto_dynamic_security_file: "/etc/mosquitto/dynamic-security/config.json"
 mosquitto_bootstrap_marker: "/etc/mosquitto/.growerhub-dynsec-v1"
 mosquitto_local_port: 1884
 mosquitto_tls_port: 8883
-mosquitto_legacy_listener_enabled: true
-mosquitto_legacy_bind_address: "127.0.0.1"
-mosquitto_legacy_public_enabled: false
+mosquitto_legacy_z2m_enabled: true
+
+# Vremennyj LAN-only broker dlja kontrolera bez podderzhki MQTTS.
+mosquitto_legacy_device_enabled: false
+mosquitto_legacy_device_bind_address: "127.0.0.1"
+mosquitto_legacy_device_allowed_cidr: "127.0.0.1/32"
+mosquitto_legacy_device_port: 1883
+mosquitto_legacy_device_username: "mosquitto-admin"
+mosquitto_legacy_device_password_file: "/etc/mosquitto/growerhub-legacy-device.passwd"
+mosquitto_legacy_device_acl_file: "/etc/mosquitto/growerhub-legacy-device.acl"
+mosquitto_legacy_device_config: "/etc/mosquitto/growerhub-legacy-device.conf"
+mosquitto_legacy_device_service: "growerhub-mosquitto-legacy-device.service"
 
 # Sekrety peredajutsja iz vault ili environment controllera Ansible.
 mosquitto_admin_username: "gh_dynsec_admin"

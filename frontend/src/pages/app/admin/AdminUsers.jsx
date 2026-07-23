@@ -182,7 +182,7 @@ function AdminUsers() {
         <h3 className="admin-section__title">Создать пользователя</h3>
         <form className="admin-form" onSubmit={handleCreateSubmit}>
           <div className="admin-form__row">
-            <FormField label="Email" htmlFor="create-email">
+            <FormField label="Электронная почта" htmlFor="create-email">
               <input
                 id="create-email"
                 type="email"
@@ -233,7 +233,7 @@ function AdminUsers() {
           <thead>
             <tr>
               <th>ID</th>
-              <th>Email</th>
+              <th>Электронная почта</th>
               <th>Username</th>
               <th>Роль</th>
               <th>Активен</th>

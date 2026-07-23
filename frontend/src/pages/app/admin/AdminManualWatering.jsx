@@ -202,7 +202,7 @@ function PumpCard({
         </div>
         <div className="manual-watering-pump__statuses">
           <span className={pump.is_online === true ? 'is-online' : pump.is_online === false ? 'is-offline' : ''}>
-            {pump.is_online === true ? 'Онлайн' : pump.is_online === false ? 'Оффлайн' : 'Связь неизвестна'}
+            {pump.is_online === true ? 'В сети' : pump.is_online === false ? 'Не в сети' : 'Связь неизвестна'}
           </span>
           <span className={pump.is_running === true ? 'is-running' : ''}>
             {pump.is_running === true ? 'Насос включён' : pump.is_running === false ? 'Ожидание' : 'Состояние неизвестно'}

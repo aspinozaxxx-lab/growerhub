@@ -1,4 +1,4 @@
-﻿import { apiFetch } from './client';
+﻿import { apiFetch, normalizeApiErrorMessage } from './client';
 
 // Translitem: fallback-soobshchenie dlya oshibok admin API.
 const DEFAULT_ERROR_MESSAGE = 'Не удалось выполнить запрос';
@@ -8,7 +8,10 @@ async function readErrorDetail(response, fallback) {
   try {
     const data = await response.json();
     if (data && data.detail) {
-      return data.detail;
+      return normalizeApiErrorMessage(data.detail, {
+        status: response.status,
+        fallback,
+      });
     }
   } catch {
     // Translitem: ignoriruem oshibku parse JSON.

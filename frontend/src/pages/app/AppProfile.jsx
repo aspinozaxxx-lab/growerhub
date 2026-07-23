@@ -200,7 +200,7 @@ function AppProfile() {
             <span>{user.id}</span>
           </div>
           <div className="profile-row">
-            <span className="profile-label">Email</span>
+            <span className="profile-label">Электронная почта</span>
             <span>{user.email || '-'}</span>
           </div>
           <div className="profile-row">
@@ -279,7 +279,7 @@ function AppProfile() {
 
               {!localMethods?.active && showSetLocalForm ? (
                 <form className="profile-auth-form" onSubmit={handleSetLocalLogin}>
-                  <FormField label="Email для входа" htmlFor="local-email">
+                  <FormField label="Электронная почта для входа" htmlFor="local-email">
                     <input
                       id="local-email"
                       type="email"

@@ -2,6 +2,34 @@
 
 const ACCESS_TOKEN_STORAGE_KEY = 'gh_access_token';
 const SESSION_EXPIRED_CODE = 'SESSION_EXPIRED';
+const CYRILLIC_PATTERN = /[А-Яа-яЁё]/;
+
+const STATUS_ERROR_MESSAGES = {
+  400: 'Проверьте введённые данные',
+  401: 'Необходимо войти в аккаунт',
+  403: 'Недостаточно прав для этого действия',
+  404: 'Запрошенные данные не найдены',
+  409: 'Действие конфликтует с текущим состоянием',
+  429: 'Слишком много запросов, повторите попытку позже',
+  502: 'Внешний сервис временно недоступен',
+  503: 'Сервис временно недоступен',
+};
+
+export function normalizeApiErrorMessage(message, { status, fallback } = {}) {
+  const normalized = typeof message === 'string' ? message.trim() : '';
+  if (normalized && CYRILLIC_PATTERN.test(normalized)) {
+    return normalized;
+  }
+  return fallback || STATUS_ERROR_MESSAGES[status] || 'Не удалось выполнить запрос';
+}
+
+export async function readApiErrorMessage(response, fallback) {
+  const data = await response.json().catch(() => ({}));
+  return normalizeApiErrorMessage(data.detail || data.message, {
+    status: response.status,
+    fallback,
+  });
+}
 
 class SessionExpiredError extends Error {
   constructor() {

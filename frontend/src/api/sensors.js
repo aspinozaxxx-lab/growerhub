@@ -23,7 +23,7 @@ export async function updateSensorBindings(sensorId, plantIds, token) {
     body: JSON.stringify({ plant_ids: Array.isArray(plantIds) ? plantIds : [] }),
   });
   if (!response.ok) {
-    throw new Error(`Failed to update sensor bindings (${response.status})`);
+    throw new Error(`Не удалось сохранить привязки датчика (${response.status})`);
   }
   return parseOptionalJson(response);
 }
@@ -32,7 +32,7 @@ export async function fetchSensorHistory(sensorId, hours, token) {
   void token;
   const response = await apiFetch(`/api/sensors/${encodeURIComponent(sensorId)}/history?hours=${hours}`);
   if (!response.ok) {
-    throw new Error(`Failed to load sensor history (${response.status})`);
+    throw new Error(`Не удалось загрузить историю датчика (${response.status})`);
   }
   return response.json();
 }

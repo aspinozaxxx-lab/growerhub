@@ -143,7 +143,7 @@ public class ZigbeeFacade {
             );
         } catch (RuntimeException ex) {
             try {
-                brokerCredentialGateway.revoke(mqttUsername);
+                brokerCredentialGateway.revoke(mqttUsername, selfServiceSettings.getBrokerRole());
             } catch (RuntimeException ignored) {
                 // Otkat broker client vypolnjaetsja po vozmozhnosti bez raskrytija credentials.
             }
@@ -263,7 +263,7 @@ public class ZigbeeFacade {
     public void archiveCoordinator(AuthenticatedUser user, UUID coordinatorPublicId) {
         requireSelfService(user);
         ZigbeeCoordinatorEntity coordinator = findOwnedCoordinator(user, coordinatorPublicId);
-        brokerCredentialGateway.revoke(coordinator.getMqttUsername());
+        brokerCredentialGateway.revoke(coordinator.getMqttUsername(), selfServiceSettings.getBrokerRole());
         LocalDateTime now = LocalDateTime.now(clock);
         coordinator.setArchivedAt(now);
         coordinator.setStatus(ZigbeeCoordinatorStatus.ARCHIVED);
@@ -314,7 +314,7 @@ public class ZigbeeFacade {
         ZigbeeCoordinatorEntity coordinator = findOwnedCoordinator(user, coordinatorPublicId);
         String normalizedProperty = normalizeProperty(property);
         if (!selfServiceSettings.getWritableProperties().contains(normalizedProperty)) {
-            throw new DomainException("bad_request", "Zigbee property nedostupen dlya bezopasnogo upravlenija");
+            throw new DomainException("bad_request", "Свойство Zigbee недоступно для безопасного управления");
         }
         return setDeviceProperty(
                 coordinator.getId(),
@@ -356,10 +356,10 @@ public class ZigbeeFacade {
     ) {
         ZigbeeCoordinatorEntity coordinator = coordinatorRepository
                 .findByIdAndArchivedAtIsNull(coordinatorId)
-                .orElseThrow(() -> new DomainException("not_found", "Koordinator ne naiden"));
+                .orElseThrow(() -> new DomainException("not_found", "Координатор не найден"));
         String normalizedProperty = normalizeProperty(property);
         if (!selfServiceSettings.getWritableProperties().contains(normalizedProperty)) {
-            throw new DomainException("bad_request", "Zigbee property nedostupen dlya bezopasnogo upravlenija");
+            throw new DomainException("bad_request", "Свойство Zigbee недоступно для безопасного управления");
         }
         return setDeviceProperty(
                 coordinator.getId(),
@@ -412,14 +412,14 @@ public class ZigbeeFacade {
             Integer hours
     ) {
         if (ieeeAddress == null || ieeeAddress.isBlank()) {
-            throw new DomainException("bad_request", "ieee_address obyazatelen");
+            throw new DomainException("bad_request", "Поле ieee_address обязательно");
         }
         String normalizedProperty = normalizeProperty(property);
         ZigbeeDeviceSnapshotEntity device = deviceRepository
                 .findByCoordinatorIdAndIeeeAddress(coordinatorId, ieeeAddress)
                 .orElse(null);
         if (device == null) {
-            throw new DomainException("not_found", "Zigbee ustrojstvo ne naideno");
+            throw new DomainException("not_found", "Устройство Zigbee не найдено");
         }
         int resolvedHours = hours != null ? hours : historySettings.getDefaultHours();
         LocalDateTime since = LocalDateTime.now(java.time.ZoneOffset.UTC).minusHours(resolvedHours);
@@ -484,7 +484,7 @@ public class ZigbeeFacade {
     private ZigbeeCommandPublishResult permitJoin(String baseTopic, Integer seconds) {
         int resolvedSeconds = seconds != null ? seconds : zigbeeSettings.getPermitJoinDefaultSeconds();
         if (resolvedSeconds < 0 || resolvedSeconds > 254) {
-            throw new DomainException("bad_request", "seconds dolzhen byt' v diapazone 0..254");
+            throw new DomainException("bad_request", "Параметр seconds должен быть в диапазоне 0..254");
         }
         commandGateway.publishPermitJoin(baseTopic, resolvedSeconds);
         return new ZigbeeCommandPublishResult(
@@ -520,11 +520,11 @@ public class ZigbeeFacade {
         ZigbeeDeviceSnapshotEntity device = findControllableDevice(coordinatorId, ieeeAddress);
         String normalizedProperty = normalizeProperty(property);
         if (value == null) {
-            throw new DomainException("bad_request", "value obyazatelen");
+            throw new DomainException("bad_request", "Поле value обязательно");
         }
         ZigbeeFeatureData feature = findWritableFeature(device, normalizedProperty);
         if (feature == null) {
-            throw new DomainException("bad_request", "Zigbee property nedostupen dlya zapisi");
+            throw new DomainException("bad_request", "Свойство Zigbee недоступно для записи");
         }
         commandGateway.publishSet(baseTopic, device.getFriendlyName(), Map.of(normalizedProperty, value));
         return new ZigbeeCommandPublishResult(
@@ -555,7 +555,7 @@ public class ZigbeeFacade {
                 .findByCoordinatorIdAndFriendlyName(coordinatorId, nextFriendlyName)
                 .orElse(null);
         if (existing != null && !existing.getId().equals(device.getId())) {
-            throw new DomainException("conflict", "friendly_name uzhe ispol'zuetsja v etom koordinatore");
+            throw new DomainException("conflict", "Имя friendly_name уже используется в этом координаторе");
         }
         commandGateway.publishRename(baseTopic, device.getFriendlyName(), nextFriendlyName);
         return new ZigbeeCommandPublishResult(
@@ -714,16 +714,16 @@ public class ZigbeeFacade {
 
     private ZigbeeDeviceSnapshotEntity findControllableDevice(Integer coordinatorId, String ieeeAddress) {
         if (ieeeAddress == null || ieeeAddress.isBlank()) {
-            throw new DomainException("bad_request", "ieee_address obyazatelen");
+            throw new DomainException("bad_request", "Поле ieee_address обязательно");
         }
         ZigbeeDeviceSnapshotEntity device = deviceRepository
                 .findByCoordinatorIdAndIeeeAddress(coordinatorId, ieeeAddress)
                 .orElse(null);
         if (device == null) {
-            throw new DomainException("not_found", "Zigbee ustrojstvo ne naideno");
+            throw new DomainException("not_found", "Устройство Zigbee не найдено");
         }
         if (device.isCoordinator()) {
-            throw new DomainException("bad_request", "Coordinator read-only");
+            throw new DomainException("bad_request", "Координатор доступен только для чтения");
         }
         return device;
     }
@@ -1100,11 +1100,11 @@ public class ZigbeeFacade {
 
     private ZigbeeCoordinatorEntity findOwnedCoordinator(AuthenticatedUser user, UUID publicId) {
         if (publicId == null) {
-            throw new DomainException("not_found", "Koordinator ne naiden");
+            throw new DomainException("not_found", "Координатор не найден");
         }
         return coordinatorRepository
                 .findByPublicIdAndUserIdAndArchivedAtIsNull(publicId, user.id())
-                .orElseThrow(() -> new DomainException("not_found", "Koordinator ne naiden"));
+                .orElseThrow(() -> new DomainException("not_found", "Координатор не найден"));
     }
 
     private ZigbeeCoordinatorSummary toCoordinatorSummary(ZigbeeCoordinatorEntity coordinator) {
@@ -1187,10 +1187,10 @@ public class ZigbeeFacade {
 
     private void requireSelfService(AuthenticatedUser user) {
         if (user == null || user.id() == null) {
-            throw new DomainException("unauthorized", "Nuzhna avtorizacija");
+            throw new DomainException("unauthorized", "Необходимо войти в аккаунт");
         }
         if (!selfServiceSettings.isEnabled()) {
-            throw new DomainException("unavailable", "Self-service poka vyklyuchen do zavershenija proverki");
+            throw new DomainException("unavailable", "Самостоятельное подключение пока выключено до завершения проверки");
         }
     }
 
@@ -1207,7 +1207,7 @@ public class ZigbeeFacade {
         int cooldownSeconds = Math.max(0, selfServiceSettings.getCredentialCooldownSeconds());
         LocalDateTime issuedAt = coordinator.getCredentialIssuedAt();
         if (cooldownSeconds > 0 && issuedAt != null && issuedAt.plusSeconds(cooldownSeconds).isAfter(now)) {
-            throw new DomainException("too_many_requests", "Povtorite vydachu MQTT credentials pozhe");
+            throw new DomainException("too_many_requests", "Повторите выпуск данных доступа MQTT позже");
         }
     }
 
@@ -1226,51 +1226,51 @@ public class ZigbeeFacade {
 
     private String normalizeCoordinatorName(String name) {
         if (name == null || name.trim().isEmpty()) {
-            throw new DomainException("bad_request", "name obyazatelen");
+            throw new DomainException("bad_request", "Поле name обязательно");
         }
         String normalized = name.trim();
         if (normalized.length() > 80) {
-            throw new DomainException("bad_request", "name ne dolzhen byt' dlinnee 80 simvolov");
+            throw new DomainException("bad_request", "Поле name не должно быть длиннее 80 символов");
         }
         return normalized;
     }
 
     private String normalizeState(String state) {
         if (state == null) {
-            throw new DomainException("bad_request", "state obyazatelen");
+            throw new DomainException("bad_request", "Поле state обязательно");
         }
         String normalized = state.trim().toUpperCase();
         if (!"ON".equals(normalized) && !"OFF".equals(normalized)) {
-            throw new DomainException("bad_request", "state dolzhen byt' ON ili OFF");
+            throw new DomainException("bad_request", "Поле state должно иметь значение ON или OFF");
         }
         return normalized;
     }
 
     private String normalizeFriendlyName(String friendlyName) {
         if (friendlyName == null) {
-            throw new DomainException("bad_request", "friendly_name obyazatelen");
+            throw new DomainException("bad_request", "Поле friendly_name обязательно");
         }
         String normalized = friendlyName.trim();
         if (normalized.isBlank()) {
-            throw new DomainException("bad_request", "friendly_name obyazatelen");
+            throw new DomainException("bad_request", "Поле friendly_name обязательно");
         }
         if (normalized.length() > 100
                 || normalized.contains("/")
                 || normalized.contains("+")
                 || normalized.contains("#")
                 || normalized.chars().anyMatch(Character::isISOControl)) {
-            throw new DomainException("bad_request", "friendly_name soderzhit nedopustimye simvoly");
+            throw new DomainException("bad_request", "Поле friendly_name содержит недопустимые символы");
         }
         return normalized;
     }
 
     private String normalizeProperty(String property) {
         if (property == null) {
-            throw new DomainException("bad_request", "property obyazatelen");
+            throw new DomainException("bad_request", "Поле property обязательно");
         }
         String normalized = property.trim();
         if (normalized.isBlank()) {
-            throw new DomainException("bad_request", "property obyazatelen");
+            throw new DomainException("bad_request", "Поле property обязательно");
         }
         return normalized;
     }

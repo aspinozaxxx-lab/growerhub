@@ -441,7 +441,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .post("/api/pumps/" + pump.getId() + "/watering/start")
                 .then()
                 .statusCode(400)
-                .body("detail", equalTo("ukazhite water_volume_l ili duration_s dlya starta poliva"));
+                .body("detail", equalTo("Укажите water_volume_l или duration_s для запуска полива"));
     }
 
     @Test

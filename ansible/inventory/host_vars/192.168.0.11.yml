@@ -8,3 +8,11 @@ google_client_id: "{{ lookup('env', 'GH_GOOGLE_CLIENT_ID') }}"
 google_client_secret: "{{ lookup('env', 'GH_GOOGLE_CLIENT_SECRET') }}"
 yandex_client_id: "{{ lookup('env', 'GH_YANDEX_CLIENT_ID') }}"
 yandex_client_secret: "{{ lookup('env', 'GH_YANDEX_CLIENT_SECRET') }}"
+
+# Vremennyj LAN-only dostup dlja dejstvujushchego kontrolera GROVIKA.
+mosquitto_legacy_device_enabled: true
+mosquitto_legacy_device_bind_address: "192.168.0.11"
+mosquitto_legacy_device_allowed_cidr: "192.168.0.0/24"
+
+java_backend_mqtt_provisioning_enabled: true
+java_backend_self_service_enabled: true

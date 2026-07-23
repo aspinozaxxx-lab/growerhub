@@ -4,7 +4,7 @@ export async function fetchPlantJournal(plantId, token) {
   void token;
   const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}/journal`);
   if (!response.ok) {
-    throw new Error(`Failed to load plant journal (${response.status})`);
+    throw new Error(`Не удалось загрузить журнал растения (${response.status})`);
   }
   return response.json();
 }
@@ -18,7 +18,7 @@ export async function createPlantJournalEntry(plantId, payload, token) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
-    throw new Error(`Failed to create journal entry (${response.status})`);
+    throw new Error(`Не удалось создать запись журнала (${response.status})`);
   }
   return response.json();
 }
@@ -35,7 +35,7 @@ export async function updatePlantJournalEntry(plantId, entryId, payload, token) 
     },
   );
   if (!response.ok) {
-    throw new Error(`Failed to update journal entry (${response.status})`);
+    throw new Error(`Не удалось сохранить запись журнала (${response.status})`);
   }
   return response.json();
 }
@@ -47,7 +47,7 @@ export async function deletePlantJournalEntry(plantId, entryId, token) {
     { method: 'DELETE' },
   );
   if (!response.ok) {
-    throw new Error(`Failed to delete journal entry (${response.status})`);
+    throw new Error(`Не удалось удалить запись журнала (${response.status})`);
   }
   return response.json();
 }
@@ -58,7 +58,7 @@ export async function downloadJournalPhotoBlob(photoId, token) {
     method: 'GET',
   });
   if (!response.ok) {
-    throw new Error(`Failed to load journal photo (${response.status})`);
+    throw new Error(`Не удалось загрузить фотографию (${response.status})`);
   }
   return response.blob();
 }
@@ -69,7 +69,7 @@ export async function downloadPlantJournalMarkdown(plantId, token) {
     method: 'GET',
   });
   if (!response.ok) {
-    throw new Error(`Failed to download journal (${response.status})`);
+    throw new Error(`Не удалось скачать журнал (${response.status})`);
   }
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);

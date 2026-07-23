@@ -11,11 +11,6 @@ plugin_opt_config_file {{ mosquitto_dynamic_security_file }}
 listener {{ mosquitto_local_port }} 127.0.0.1
 protocol mqtt
 
-{% if mosquitto_legacy_listener_enabled %}
-listener 1883 {{ mosquitto_legacy_bind_address }}
-protocol mqtt
-{% endif %}
-
 listener {{ mosquitto_tls_port }} 0.0.0.0
 protocol mqtt
 certfile {{ mosquitto_cert_path }}

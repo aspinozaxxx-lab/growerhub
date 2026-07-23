@@ -146,7 +146,7 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
                         + "/devices/" + SHARED_IEEE + "/history")
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("Koordinator ne naiden"));
+                .body("detail", equalTo("Координатор не найден"));
 
         given()
                 .header("Authorization", "Bearer " + firstToken)
@@ -157,7 +157,7 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
                         + "/devices/" + SHARED_IEEE + "/set-state")
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("Koordinator ne naiden"));
+                .body("detail", equalTo("Координатор не найден"));
 
         Integer firstZone = createZone(firstToken, "Zone one");
         Integer secondZone = createZone(secondToken, "Zone two");
@@ -180,7 +180,7 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
                 .put("/api/automation/zones/" + secondZone)
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("pomeshchenie ne naideno"));
+                .body("detail", equalTo("Помещение не найдено"));
 
         given()
                 .header("Authorization", "Bearer " + firstToken)
@@ -279,7 +279,7 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
                 .get(path)
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("Koordinator ne naiden"));
+                .body("detail", equalTo("Координатор не найден"));
     }
 
     private UserEntity createUser(String email) {

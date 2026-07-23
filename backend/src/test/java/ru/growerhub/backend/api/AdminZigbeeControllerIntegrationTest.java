@@ -234,7 +234,7 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
                 .post("/api/admin/zigbee/devices/0xa4c13895af2c1df3/set")
                 .then()
                 .statusCode(400)
-                .body("detail", equalTo("Zigbee property nedostupen dlya zapisi"));
+                .body("detail", equalTo("Свойство Zigbee недоступно для записи"));
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -244,7 +244,7 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
                 .post("/api/admin/zigbee/devices/0xa4c13895af2c1df3/set")
                 .then()
                 .statusCode(400)
-                .body("detail", equalTo("Zigbee property nedostupen dlya zapisi"));
+                .body("detail", equalTo("Свойство Zigbee недоступно для записи"));
     }
 
     private void seedZigbee() {

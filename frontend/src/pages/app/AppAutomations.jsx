@@ -9,7 +9,7 @@ import './SelfServicePages.css';
 const LABELS = {
   BOX_CLIMATE: 'Климатический порог',
   LIGHT_SCHEDULE: 'Расписание освещения',
-  WATERING: 'Полив (beta)',
+  WATERING: 'Полив (бета)',
 };
 
 const toRequest = (scenarios, changedType, patch) => scenarios.map((scenario) => ({
@@ -37,7 +37,7 @@ function AppAutomations() {
   useEffect(() => { load(); }, []);
 
   const saveScenario = async (section, scenario, patch) => {
-    if (scenario.scenario_type === 'WATERING' && patch.enabled && !window.confirm('Полив — beta. Проверьте воду, питание, аварийное отключение и безопасный лимит времени. Включить?')) return;
+    if (scenario.scenario_type === 'WATERING' && patch.enabled && !window.confirm('Полив находится в бета-тестировании. Проверьте воду, питание, аварийное отключение и безопасный лимит времени. Включить?')) return;
     const key = `${section.id}:${scenario.scenario_type}`;
     setBusy(key);
     try {

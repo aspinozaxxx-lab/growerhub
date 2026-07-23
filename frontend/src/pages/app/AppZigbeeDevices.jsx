@@ -11,6 +11,12 @@ const displayValue = (value, unit) => {
   return `${String(value)}${unit ? ` ${unit}` : ''}`;
 };
 
+const availabilityLabel = (availability) => {
+  if (availability === 'online') return 'В сети';
+  if (availability === 'offline') return 'Не в сети';
+  return 'Статус неизвестен';
+};
+
 function AppZigbeeDevices() {
   const [overview, setOverview] = useState(null);
   const [busy, setBusy] = useState('loading');
@@ -52,7 +58,7 @@ function AppZigbeeDevices() {
       <div className="device-grid">
         {devices.map((device) => (
           <article className="device-card-v2" key={`${device.coordinator_id}:${device.ieee_address}`}>
-            <div className="device-card-v2__header"><div><h2>{device.friendly_name}</h2><p>{device.coordinator_name}</p></div><span className={device.availability === 'online' ? 'status-chip is-online' : 'status-chip'}>{device.availability || 'неизвестно'}</span></div>
+            <div className="device-card-v2__header"><div><h2>{device.friendly_name}</h2><p>{device.coordinator_name}</p></div><span className={device.availability === 'online' ? 'status-chip is-online' : 'status-chip'}>{availabilityLabel(device.availability)}</span></div>
             <div className="metric-grid">
               {(device.metrics || []).map((feature) => <div key={feature.property}><span>{feature.label || feature.property}</span><strong>{displayValue(feature.value, feature.unit)}</strong></div>)}
             </div>
@@ -65,7 +71,7 @@ function AppZigbeeDevices() {
                 })}
               </div>
             ) : (
-              <p className="device-readonly">Устройство обнаружено и доступно для мониторинга. Неизвестные функции остаются read-only. <TelegramContactLink placement="unsupported_device">Запросить поддержку модели</TelegramContactLink></p>
+              <p className="device-readonly">Устройство обнаружено и доступно для мониторинга. Неизвестные функции пока доступны только для чтения. <TelegramContactLink placement="unsupported_device">Запросить поддержку модели</TelegramContactLink></p>
             )}
           </article>
         ))}

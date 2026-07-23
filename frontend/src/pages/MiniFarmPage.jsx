@@ -52,7 +52,7 @@ function AutomationDemo() {
       <dl className="product-demo__rules">
         <div><dt>Освещение</dt><dd>06:00–22:00 · готово</dd></div>
         <div><dt>Климат</dt><dd>24–28 °C · гистерезис включён</dd></div>
-        <div><dt>Полив beta</dt><dd>выключен до назначения защитных ресурсов</dd></div>
+        <div><dt>Полив в бета-версии</dt><dd>выключен до назначения защитных ресурсов</dd></div>
       </dl>
       <span className="status-ok">1 сценарий активен</span>
     </div>
@@ -92,7 +92,7 @@ function MiniFarmPage() {
   }];
 
   useSeoMeta({
-    title: `${data.title} — бесплатная beta`,
+    title: `${data.title} — бесплатная бета-версия`,
     description: data.description,
     path: '/avtomatizatsiya-mini-fermy/',
     jsonLd,
@@ -134,7 +134,7 @@ function MiniFarmPage() {
 
       <section className="content-section" id="demo-ekrany">
         <h2>Интерфейс на синтетических данных</h2>
-        <p>Все названия и значения вымышлены. На экранах нет реальных адресов, IEEE, логинов или credentials.</p>
+        <p>Все названия и значения вымышлены. На экранах нет реальных адресов, IEEE, логинов или данных доступа.</p>
         <div className="demo-grid demo-grid--four">
           {data.screens.map((screen, index) => (
             <figure className="demo-card" key={screen.title}>

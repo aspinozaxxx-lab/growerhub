@@ -305,18 +305,18 @@ public class AutomationFacade {
         List<Integer> plantIds = items.stream().map(AutomationData.BoxPlantRequest::plantId).toList();
         Set<Integer> uniquePlantIds = new HashSet<>(plantIds);
         if (uniquePlantIds.size() != plantIds.size()) {
-            throw new DomainException("bad_request", "plant_ids dolzhny byt' unikalnymi");
+            throw new DomainException("bad_request", "Значения plant_ids должны быть уникальными");
         }
         for (AutomationData.BoxPlantRequest item : items) {
             Integer plantId = item.plantId();
             if (plantId == null) {
-                throw new DomainException("bad_request", "plant_id obyazatelen");
+                throw new DomainException("bad_request", "Поле plant_id обязательно");
             }
             if (item.rateMlPerHour() != null && item.rateMlPerHour() <= 0) {
-                throw new DomainException("bad_request", "rate_ml_per_hour dolzhen byt' bol'she nulya");
+                throw new DomainException("bad_request", "Поле rate_ml_per_hour должно быть больше нуля");
             }
             if (!catalog.plantsById.containsKey(plantId)) {
-                throw new DomainException("not_found", "rastenie ne naideno");
+                throw new DomainException("not_found", "Растение не найдено");
             }
         }
         boxPlantRepository.deleteAllByBox_Id(box.getId());
@@ -338,7 +338,7 @@ public class AutomationFacade {
         }
         if (request.items() != null) {
             if (request.items().stream().anyMatch(Objects::isNull)) {
-                throw new DomainException("bad_request", "items ne dolzhny soderzhat' null");
+                throw new DomainException("bad_request", "Список items не должен содержать null");
             }
             return request.items();
         }
@@ -469,7 +469,7 @@ public class AutomationFacade {
         if (safeRequest.durationS() == null && safeRequest.waterVolumeL() == null) {
             throw new DomainException(
                     "bad_request",
-                    "ukazhite water_volume_l ili duration_s dlya starta poliva"
+                    "Укажите water_volume_l или duration_s для запуска полива"
             );
         }
         Catalog catalog = buildCatalog();
@@ -619,7 +619,7 @@ public class AutomationFacade {
         for (AutomationData.ResourceBindingRequest item : resources) {
             String role = normalizeRequired(item.role(), "role");
             if (!seenRoles.add(role)) {
-                throw new DomainException("bad_request", "rol' resursa dolzhna byt' unikal'noj");
+                throw new DomainException("bad_request", "Роль ресурса должна быть уникальной");
             }
             validateRoleForScope(scopeType, role);
             validateResource(role, item, catalog);
@@ -632,7 +632,7 @@ public class AutomationFacade {
                 UUID publicCoordinatorId = resolveCoordinatorPublicId(catalog, item.zigbeeCoordinatorId());
                 Integer coordinatorId = catalog.coordinatorInternalByPublic.get(publicCoordinatorId);
                 if (coordinatorId == null) {
-                    throw new DomainException("bad_request", "Zigbee koordinator ne naiden");
+                    throw new DomainException("bad_request", "Координатор Zigbee не найден");
                 }
                 entity.setZigbeeCoordinatorId(coordinatorId);
             }
@@ -662,10 +662,10 @@ public class AutomationFacade {
         for (AutomationData.ScenarioConfigRequest item : scenarios) {
             String scenarioType = normalizeRequired(item.scenarioType(), "scenario_type");
             if (!allowedTypes.contains(scenarioType)) {
-                throw new DomainException("bad_request", "scenario_type nedostupen dlya etogo scope");
+                throw new DomainException("bad_request", "Тип сценария недоступен для этой области");
             }
             if (!seen.add(scenarioType)) {
-                throw new DomainException("bad_request", "scenario_type dolzhen byt' unikal'nym");
+                throw new DomainException("bad_request", "Тип сценария должен быть уникальным");
             }
             AutomationScenarioConfigEntity entity = configRepository
                     .findByScopeTypeAndScopeIdAndScenarioType(scopeType, scopeId, scenarioType)
@@ -703,21 +703,21 @@ public class AutomationFacade {
         }
         String stopMode = String.valueOf(cfg.getOrDefault("stop_mode", STOP_MODE_FIXED_DURATION));
         if (!STOP_MODE_FIXED_DURATION.equals(stopMode) && !STOP_MODE_UNTIL_DRAIN.equals(stopMode)) {
-            throw new DomainException("bad_request", "nekorrektnyj stop_mode");
+            throw new DomainException("bad_request", "Некорректный режим остановки");
         }
         if (!STOP_MODE_UNTIL_DRAIN.equals(stopMode)) {
             return;
         }
         if (number(cfg.get("max_run_minutes"), 0.0) <= 0.0) {
-            throw new DomainException("bad_request", "max_run_minutes obyazatelen dlya until_drain");
+            throw new DomainException("bad_request", "Параметр max_run_minutes обязателен для режима until_drain");
         }
         if (number(cfg.get("pulse_run_minutes"), 3.0) <= 0.0 || number(cfg.get("pulse_pause_minutes"), 5.0) <= 0.0) {
-            throw new DomainException("bad_request", "intervaly impulsnogo poliva dolzhny byt' bol'she nulya");
+            throw new DomainException("bad_request", "Интервалы импульсного полива должны быть больше нуля");
         }
         Catalog catalog = buildCatalog();
         Integer pumpId = automationPumpId(scopeId);
         if (pumpId == null || !hasConfiguredLeakSensorForPump(pumpId, null, catalog)) {
-            throw new DomainException("bad_request", "dlya until_drain nuzhen LEAK_SENSOR");
+            throw new DomainException("bad_request", "Для режима until_drain нужен датчик LEAK_SENSOR");
         }
     }
 
@@ -763,11 +763,11 @@ public class AutomationFacade {
         AutomationScenarioStateEntity state = stateFor(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_BOX_CLIMATE, now);
         AutomationData.Readiness readiness = boxClimateReadiness(box.getId(), room != null ? room.getId() : null, catalog);
         if (!box.isEnabled() || room == null || !room.isEnabled()) {
-            markState(state, "disabled", "box ili pomeshchenie vyklyucheny", false, now);
+            markState(state, "disabled", "Бокс или помещение выключены", false, now);
             return;
         }
         if (config == null || !config.isEnabled()) {
-            markState(state, "disabled", "scenario disabled", false, now);
+            markState(state, "disabled", "Сценарий выключен", false, now);
             return;
         }
         if (!readiness.ready()) {
@@ -779,7 +779,7 @@ public class AutomationFacade {
         AutomationResourceBindingEntity exhaustBinding = resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_EXHAUST_SWITCH);
         SensorValue temperature = readSensorValue(tempBinding, catalog);
         if (temperature == null || temperature.value() == null || isStale(temperature.ts(), now)) {
-            markState(state, "stale", "net aktual'noj temperatury boksa", state.isAcRequestActive(), now);
+            markState(state, "stale", "Нет актуальной температуры бокса", state.isAcRequestActive(), now);
             return;
         }
 
@@ -800,11 +800,11 @@ public class AutomationFacade {
         boolean exhaustShouldBeOff = value < exhaustOffBelow;
         if (exhaustShouldBeOn) {
             sendSwitchIfNeeded(exhaustBinding, true, catalog, AutomationData.SCENARIO_BOX_CLIMATE,
-                    AutomationData.SCOPE_BOX, box.getId(), "temperatura " + value + "C", now, null);
+                    AutomationData.SCOPE_BOX, box.getId(), "Температура " + value + " °C", now, null);
             runtime.put("exhaust_desired_state", "ON");
         } else if (exhaustShouldBeOff) {
             sendSwitchIfNeeded(exhaustBinding, false, catalog, AutomationData.SCENARIO_BOX_CLIMATE,
-                    AutomationData.SCOPE_BOX, box.getId(), "temperatura " + value + "C", now, null);
+                    AutomationData.SCOPE_BOX, box.getId(), "Температура " + value + " °C", now, null);
             runtime.put("exhaust_desired_state", "OFF");
         }
 
@@ -833,11 +833,11 @@ public class AutomationFacade {
         AutomationScenarioStateEntity state = stateFor(AutomationData.SCOPE_ROOM, room.getId(), AutomationData.SCENARIO_ROOM_CLIMATE, now);
         AutomationData.Readiness readiness = roomClimateReadiness(room.getId(), allBoxes, catalog);
         if (!room.isEnabled()) {
-            markState(state, "disabled", "pomeshchenie vyklyucheno", false, now);
+            markState(state, "disabled", "Помещение выключено", false, now);
             return;
         }
         if (config == null || !config.isEnabled()) {
-            markState(state, "disabled", "scenario disabled", false, now);
+            markState(state, "disabled", "Сценарий выключен", false, now);
             return;
         }
         if (!readiness.ready()) {
@@ -868,7 +868,7 @@ public class AutomationFacade {
 
         if (hasRequest && toggleAllowed) {
             sendSwitchIfNeeded(acBinding, true, catalog, AutomationData.SCENARIO_ROOM_CLIMATE,
-                    AutomationData.SCOPE_ROOM, room.getId(), "est' zapros kondicionera ot boksa", now, null);
+                    AutomationData.SCOPE_ROOM, room.getId(), "Есть запрос кондиционера от бокса", now, null);
         } else if (!hasRequest
                 && lastRequestAt != null
                 && !lastRequestAt.isAfter(now.minusMinutes(offDelayMinutes))
@@ -885,11 +885,11 @@ public class AutomationFacade {
         AutomationScenarioStateEntity state = stateFor(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_LIGHT_SCHEDULE, now);
         AutomationData.Readiness readiness = lightReadiness(box.getId(), catalog);
         if (!box.isEnabled()) {
-            markState(state, "disabled", "box vyklyuchen", false, now);
+            markState(state, "disabled", "Бокс выключен", false, now);
             return;
         }
         if (config == null || !config.isEnabled()) {
-            markState(state, "disabled", "scenario disabled", false, now);
+            markState(state, "disabled", "Сценарий выключен", false, now);
             return;
         }
         if (!readiness.ready()) {
@@ -901,7 +901,7 @@ public class AutomationFacade {
         boolean shouldBeOn = isLightScheduleActive(cfg, now);
         AutomationResourceBindingEntity lightBinding = resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_LIGHT_SWITCH);
         sendSwitchIfNeeded(lightBinding, shouldBeOn, catalog, AutomationData.SCENARIO_LIGHT_SCHEDULE,
-                AutomationData.SCOPE_BOX, box.getId(), shouldBeOn ? "raspisanie vklyucheniya" : "raspisanie vyklyucheniya", now, null);
+                AutomationData.SCOPE_BOX, box.getId(), shouldBeOn ? "Расписание включения" : "Расписание выключения", now, null);
         markState(state, "active", null, false, now);
     }
 
@@ -915,11 +915,11 @@ public class AutomationFacade {
             state.setRuntimeJson(writeJson(legacyRuntime));
         }
         if (!box.isEnabled()) {
-            markState(state, "disabled", "box vyklyuchen", false, now);
+            markState(state, "disabled", "Бокс выключен", false, now);
             return;
         }
         if (config == null || !config.isEnabled()) {
-            markState(state, "disabled", "scenario disabled", false, now);
+            markState(state, "disabled", "Сценарий выключен", false, now);
             return;
         }
         if (!readiness.ready()) {
@@ -939,7 +939,7 @@ public class AutomationFacade {
                 .flatMap(target -> target.leakSensors().stream())
                 .anyMatch(sensor -> Boolean.TRUE.equals(sensor.available()));
         if (untilDrain && !hasAvailableLeakSensor) {
-            markState(state, "unready", "nuzhen dostupnyj LEAK_SENSOR", false, now);
+            markState(state, "unready", "Нужен доступный датчик LEAK_SENSOR", false, now);
             return;
         }
         if (pumpBinding != null && pumpFacade.currentSession(pumpBinding.getNativePumpId()) != null) {
@@ -949,7 +949,7 @@ public class AutomationFacade {
         AutomationResourceBindingEntity soilBinding = resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_SOIL_MOISTURE_SENSOR);
         SensorValue moisture = readSensorValue(soilBinding, catalog);
         if (moisture == null || moisture.value() == null || isStale(moisture.ts(), now)) {
-            markState(state, "stale", "net aktual'noj vlazhnosti pochvy", false, now);
+            markState(state, "stale", "Нет актуальной влажности почвы", false, now);
             return;
         }
 
@@ -969,19 +969,19 @@ public class AutomationFacade {
         }
         if (lastFinishedAt != null && lastFinishedAt.isAfter(now.minusHours(minIntervalHours))) {
             logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, null,
-                    "SKIP", "min interval mezhdu polivami", "skipped", null, now);
-            markState(state, "limited", "min interval mezhdu polivami", false, now);
+                    "SKIP", "Минимальный интервал между поливами", "skipped", null, now);
+            markState(state, "limited", "Минимальный интервал между поливами", false, now);
             return;
         }
         long usedToday = pumpFacade.boxStatistics(box.getId(), "day", 1, null).activeDurationS();
         if (usedToday + requestedRunSeconds > dailyMaxSeconds) {
             logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, null,
-                    "SKIP", "dnevnoj limit poliva", "skipped", null, now);
-            markState(state, "limited", "dnevnoj limit poliva", false, now);
+                    "SKIP", "Дневной лимит полива", "skipped", null, now);
+            markState(state, "limited", "Дневной лимит полива", false, now);
             return;
         }
 
-        String reason = "vlazhnost' " + moisture.value() + "%";
+        String reason = "Влажность " + moisture.value() + "%";
         startAutomationWatering(box, state, cfg, pumpBinding, reason, untilDrain, requestedRunSeconds, now, topology);
     }
 
@@ -1299,7 +1299,7 @@ public class AutomationFacade {
         List<String> roles = List.of(AutomationData.ROLE_AC_SWITCH);
         ResourceStatus ac = resolveResourceStatus(resource(AutomationData.SCOPE_ROOM, roomId, AutomationData.ROLE_AC_SWITCH), catalog);
         if (!ac.ready()) {
-            return new AutomationData.Readiness(false, "nuzhen AC_SWITCH", roles);
+            return new AutomationData.Readiness(false, "Нужен ресурс AC_SWITCH", roles);
         }
         boolean hasBoxClimate = roomBoxes.stream()
                 .anyMatch(box -> {
@@ -1311,7 +1311,7 @@ public class AutomationFacade {
                     return cfg != null && cfg.isEnabled();
                 });
         if (!hasBoxClimate) {
-            return new AutomationData.Readiness(false, "net vklyuchennyh klimat-scenariev boksov", roles);
+            return new AutomationData.Readiness(false, "Нет включённых климатических сценариев боксов", roles);
         }
         return new AutomationData.Readiness(true, null, roles);
     }
@@ -1327,21 +1327,21 @@ public class AutomationFacade {
                 catalog
         );
         if (!temperature.ready()) {
-            return new AutomationData.Readiness(false, "nuzhen AIR_TEMPERATURE_SENSOR", roles);
+            return new AutomationData.Readiness(false, "Нужен датчик AIR_TEMPERATURE_SENSOR", roles);
         }
         ResourceStatus exhaust = resolveResourceStatus(
                 resource(AutomationData.SCOPE_BOX, boxId, AutomationData.ROLE_EXHAUST_SWITCH),
                 catalog
         );
         if (!exhaust.ready()) {
-            return new AutomationData.Readiness(false, "nuzhen EXHAUST_SWITCH", roles);
+            return new AutomationData.Readiness(false, "Нужен ресурс EXHAUST_SWITCH", roles);
         }
         ResourceStatus ac = resolveResourceStatus(
                 roomId != null ? resource(AutomationData.SCOPE_ROOM, roomId, AutomationData.ROLE_AC_SWITCH) : null,
                 catalog
         );
         if (!ac.ready()) {
-            return new AutomationData.Readiness(false, "v pomeshchenii nuzhen AC_SWITCH", roles);
+            return new AutomationData.Readiness(false, "В помещении нужен ресурс AC_SWITCH", roles);
         }
         return new AutomationData.Readiness(true, null, roles);
     }
@@ -1350,7 +1350,7 @@ public class AutomationFacade {
         List<String> roles = List.of(AutomationData.ROLE_LIGHT_SWITCH);
         ResourceStatus light = resolveResourceStatus(resource(AutomationData.SCOPE_BOX, boxId, AutomationData.ROLE_LIGHT_SWITCH), catalog);
         if (!light.ready()) {
-            return new AutomationData.Readiness(false, "nuzhen Zigbee LIGHT_SWITCH s writable state", roles);
+            return new AutomationData.Readiness(false, "Нужен Zigbee-ресурс LIGHT_SWITCH с управляемым свойством state", roles);
         }
         return new AutomationData.Readiness(true, null, roles);
     }
@@ -1362,11 +1362,11 @@ public class AutomationFacade {
                 catalog
         );
         if (!soil.ready()) {
-            return new AutomationData.Readiness(false, "nuzhen SOIL_MOISTURE_SENSOR", roles);
+            return new AutomationData.Readiness(false, "Нужен датчик SOIL_MOISTURE_SENSOR", roles);
         }
         ResourceStatus pump = resolveResourceStatus(resource(AutomationData.SCOPE_BOX, boxId, AutomationData.ROLE_WATER_PUMP), catalog);
         if (!pump.ready()) {
-            return new AutomationData.Readiness(false, "nuzhen native WATER_PUMP", roles);
+            return new AutomationData.Readiness(false, "Нужен насос WATER_PUMP, подключённый к GrowerHub", roles);
         }
         return new AutomationData.Readiness(true, null, roles);
     }
@@ -1378,7 +1378,7 @@ public class AutomationFacade {
         if (AutomationData.SOURCE_NATIVE_SENSOR.equals(binding.getSourceType())) {
             AutomationData.NativeSensor sensor = catalog.sensorsById.get(binding.getNativeSensorId());
             if (sensor == null) {
-                return ResourceStatus.notReady("native sensor ne naiden");
+                return ResourceStatus.notReady("Датчик GrowerHub не найден");
             }
             return new ResourceStatus(
                     true,
@@ -1392,14 +1392,14 @@ public class AutomationFacade {
         if (AutomationData.SOURCE_NATIVE_PUMP.equals(binding.getSourceType())) {
             AutomationData.NativePump pump = catalog.pumpsById.get(binding.getNativePumpId());
             if (pump == null) {
-                return ResourceStatus.notReady("native pump ne naiden");
+                return ResourceStatus.notReady("Насос GrowerHub не найден");
             }
             return new ResourceStatus(true, null, pump.isRunning(), pump.lastSeenAt(), pump.label(), false);
         }
         if (AutomationData.SOURCE_ZIGBEE_DEVICE.equals(binding.getSourceType())) {
             AutomationData.ZigbeeDevice device = findZigbeeDevice(binding, catalog);
             if (device == null) {
-                return ResourceStatus.notReady("Zigbee ustrojstvo ne naideno");
+                return ResourceStatus.notReady("Устройство Zigbee не найдено");
             }
             Object value = readZigbeeFeatureValue(device, binding.getZigbeeProperty());
             LocalDateTime ts = device.lastStateAt();
@@ -1475,13 +1475,13 @@ public class AutomationFacade {
         }
         if (AutomationData.ROLE_WATER_PUMP.equals(role)) {
             if (!AutomationData.SOURCE_NATIVE_PUMP.equals(sourceType) || !catalog.pumpsById.containsKey(item.nativePumpId())) {
-                throw new DomainException("bad_request", "WATER_PUMP v v1 dolzhen byt' native pump");
+                throw new DomainException("bad_request", "В первой версии WATER_PUMP должен быть насосом GrowerHub");
             }
             return;
         }
         if (isSwitchRole(role)) {
             if (!AutomationData.SOURCE_ZIGBEE_DEVICE.equals(sourceType)) {
-                throw new DomainException("bad_request", role + " v v1 dolzhen byt' Zigbee switch");
+                throw new DomainException("bad_request", role + " в первой версии должен быть Zigbee-переключателем");
             }
             String property = defaultCommandProperty(role, item.commandProperty());
             if (!zigbeeHasWritableProperty(
@@ -1490,13 +1490,13 @@ public class AutomationFacade {
                     item.zigbeeIeeeAddress(),
                     property
             )) {
-                throw new DomainException("bad_request", role + " dolzhen imet' writable " + property);
+                throw new DomainException("bad_request", role + " должен иметь управляемое свойство " + property);
             }
             return;
         }
         if (AutomationData.ROLE_LEAK_SENSOR.equals(role)) {
             if (!AutomationData.SOURCE_ZIGBEE_DEVICE.equals(sourceType)) {
-                throw new DomainException("bad_request", "LEAK_SENSOR dolzhen byt' Zigbee sensor");
+                throw new DomainException("bad_request", "LEAK_SENSOR должен быть Zigbee-датчиком");
             }
             String property = defaultProperty(role, item.zigbeeProperty());
             if (!zigbeeHasReadableProperty(
@@ -1505,7 +1505,7 @@ public class AutomationFacade {
                     item.zigbeeIeeeAddress(),
                     property
             )) {
-                throw new DomainException("bad_request", "LEAK_SENSOR dolzhen imet' readable " + property);
+                throw new DomainException("bad_request", "LEAK_SENSOR должен иметь читаемое свойство " + property);
             }
             return;
         }
@@ -1514,7 +1514,7 @@ public class AutomationFacade {
             if (AutomationData.SOURCE_NATIVE_SENSOR.equals(sourceType)) {
                 AutomationData.NativeSensor sensor = catalog.sensorsById.get(item.nativeSensorId());
                 if (sensor == null || !expectedType.equals(sensor.type())) {
-                    throw new DomainException("bad_request", role + " dolzhen ssylat'sya na sensor " + expectedType);
+                    throw new DomainException("bad_request", role + " должен ссылаться на датчик " + expectedType);
                 }
                 return;
             }
@@ -1526,12 +1526,12 @@ public class AutomationFacade {
                         item.zigbeeIeeeAddress(),
                         property
                 )) {
-                    throw new DomainException("bad_request", role + " dolzhen imet' readable " + property);
+                    throw new DomainException("bad_request", role + " должен иметь читаемое свойство " + property);
                 }
                 return;
             }
         }
-        throw new DomainException("bad_request", "nekorrektnyj resource binding");
+        throw new DomainException("bad_request", "Некорректная привязка ресурса");
     }
 
     private AutomationData.ZigbeeDevice requireZigbeeDeviceReference(
@@ -1542,11 +1542,11 @@ public class AutomationFacade {
         UUID resolvedCoordinatorId = resolveCoordinatorPublicId(catalog, coordinatorId);
         if (resolvedCoordinatorId == null
                 || !catalog.coordinatorInternalByPublic.containsKey(resolvedCoordinatorId)) {
-            throw new DomainException("not_found", "Zigbee ustrojstvo ne naideno");
+            throw new DomainException("not_found", "Устройство Zigbee не найдено");
         }
         AutomationData.ZigbeeDevice device = findZigbeeDevice(catalog, resolvedCoordinatorId, ieeeAddress);
         if (device == null) {
-            throw new DomainException("not_found", "Zigbee ustrojstvo ne naideno");
+            throw new DomainException("not_found", "Устройство Zigbee не найдено");
         }
         return device;
     }
@@ -1794,7 +1794,7 @@ public class AutomationFacade {
     private void validateRoleForScope(String scopeType, String role) {
         if (AutomationData.SCOPE_ROOM.equals(scopeType)) {
             if (!AutomationData.ROLE_AC_SWITCH.equals(role)) {
-                throw new DomainException("bad_request", "rol' nedostupna dlya pomeshcheniya");
+                throw new DomainException("bad_request", "Эта роль недоступна для помещения");
             }
             return;
         }
@@ -1810,7 +1810,7 @@ public class AutomationFacade {
                 return;
             }
         }
-        throw new DomainException("bad_request", "rol' nedostupna dlya scope");
+        throw new DomainException("bad_request", "Эта роль недоступна для выбранной области");
     }
 
     private boolean isSwitchRole(String role) {
@@ -2129,10 +2129,10 @@ public class AutomationFacade {
             return requireRoom(roomId);
         }
         if (roomId == null) {
-            throw new DomainException("bad_request", "room_id obyazatelen");
+            throw new DomainException("bad_request", "Поле room_id обязательно");
         }
         return roomRepository.findByIdAndUserId(roomId, user.id())
-                .orElseThrow(() -> new DomainException("not_found", "pomeshchenie ne naideno"));
+                .orElseThrow(() -> new DomainException("not_found", "Помещение не найдено"));
     }
 
     private AutomationBoxEntity requireBox(AuthenticatedUser user, Integer boxId) {
@@ -2141,32 +2141,32 @@ public class AutomationFacade {
             return requireBox(boxId);
         }
         if (boxId == null) {
-            throw new DomainException("bad_request", "box_id obyazatelen");
+            throw new DomainException("bad_request", "Поле box_id обязательно");
         }
         return boxRepository.findByIdAndRoom_UserId(boxId, user.id())
-                .orElseThrow(() -> new DomainException("not_found", "box ne naiden"));
+                .orElseThrow(() -> new DomainException("not_found", "Бокс не найден"));
     }
 
     private void requireAuthenticated(AuthenticatedUser user) {
         if (user == null || user.id() == null) {
-            throw new DomainException("unauthorized", "Nuzhna avtorizacija");
+            throw new DomainException("unauthorized", "Необходимо войти в аккаунт");
         }
     }
 
     private AutomationRoomEntity requireRoom(Integer roomId) {
         if (roomId == null) {
-            throw new DomainException("bad_request", "room_id obyazatelen");
+            throw new DomainException("bad_request", "Поле room_id обязательно");
         }
         return roomRepository.findById(roomId)
-                .orElseThrow(() -> new DomainException("not_found", "pomeshchenie ne naideno"));
+                .orElseThrow(() -> new DomainException("not_found", "Помещение не найдено"));
     }
 
     private AutomationBoxEntity requireBox(Integer boxId) {
         if (boxId == null) {
-            throw new DomainException("bad_request", "box_id obyazatelen");
+            throw new DomainException("bad_request", "Поле box_id обязательно");
         }
         return boxRepository.findById(boxId)
-                .orElseThrow(() -> new DomainException("not_found", "box ne naiden"));
+                .orElseThrow(() -> new DomainException("not_found", "Бокс не найден"));
     }
 
     private Map<String, Object> defaultConfig(String scenarioType) {
@@ -2381,7 +2381,7 @@ public class AutomationFacade {
     private String requiredName(String name) {
         String normalized = blankToNull(name);
         if (normalized == null) {
-            throw new DomainException("bad_request", "name obyazatelen");
+            throw new DomainException("bad_request", "Поле name обязательно");
         }
         return normalized;
     }
@@ -2389,7 +2389,7 @@ public class AutomationFacade {
     private String normalizeRequired(String value, String field) {
         String normalized = blankToNull(value);
         if (normalized == null) {
-            throw new DomainException("bad_request", field + " obyazatelen");
+            throw new DomainException("bad_request", "Поле " + field + " обязательно");
         }
         return normalized.toUpperCase(Locale.ROOT);
     }
