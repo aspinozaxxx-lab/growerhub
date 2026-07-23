@@ -238,7 +238,12 @@ public class PlantFacade {
         int defaultHours = historySettings.getDefaultHours();
         LocalDateTime since = LocalDateTime.now(ZoneOffset.UTC).minusHours(hours != null ? hours : defaultHours);
         List<PlantMetricSampleEntity> rows = plantMetricSampleRepository
-                .findAllByPlant_IdAndMetricTypeInAndTsGreaterThanEqualOrderByTs(plant.getId(), metricTypes, since);
+                .findBucketedHistory(
+                        plant.getId(),
+                        metricTypes.stream().map(Enum::name).toList(),
+                        since,
+                        Math.max(1, historySettings.getMaxPoints())
+                );
         List<PlantMetricPoint> payload = new ArrayList<>();
         for (PlantMetricSampleEntity row : downsample(rows, historySettings.getMaxPoints())) {
             payload.add(new PlantMetricPoint(
@@ -271,7 +276,12 @@ public class PlantFacade {
         int bucketCount = (int) Math.max(1, totalSeconds / bucketSeconds);
 
         List<PlantMetricSampleEntity> rows = plantMetricSampleRepository
-                .findAllByPlant_IdAndMetricTypeInAndTsGreaterThanEqualOrderByTs(plant.getId(), metricTypes, since);
+                .findLatestByTimeBuckets(
+                        plant.getId(),
+                        metricTypes.stream().map(Enum::name).toList(),
+                        since,
+                        bucketSeconds
+                );
         Map<PlantMetricType, List<PlantMetricSampleEntity>> byMetric = new java.util.HashMap<>();
         for (PlantMetricSampleEntity row : rows) {
             if (row.getMetricType() == null) {
@@ -335,6 +345,16 @@ public class PlantFacade {
             return;
         }
         plantHistoryService.recordWateringEvent(plant, volumeL, eventAt);
+    }
+
+    @Transactional(readOnly = true)
+    public LocalDateTime getOldestHistoryTimestamp() {
+        return plantMetricSampleRepository.findOldestTimestamp();
+    }
+
+    @Transactional
+    public int compactHistoryDay(LocalDateTime fromTs, LocalDateTime toTs) {
+        return plantMetricSampleRepository.compactDay(fromTs, toTs);
     }
 
     private PlantEntity requireUserPlant(Integer plantId, AuthenticatedUser user) {
@@ -451,8 +471,6 @@ public class PlantFacade {
     public record PlantHarvestCommand(LocalDateTime harvestedAt, String text) {
     }
 }
-
-
 
 
 

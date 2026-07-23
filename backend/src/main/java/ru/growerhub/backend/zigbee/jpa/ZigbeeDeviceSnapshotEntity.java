@@ -49,6 +49,9 @@ public class ZigbeeDeviceSnapshotEntity {
     @Column(name = "state_json", columnDefinition = "TEXT")
     private String stateJson;
 
+    @Column(name = "history_checkpoint_json", columnDefinition = "TEXT")
+    private String historyCheckpointJson;
+
     @Column(name = "availability")
     private String availability;
 
@@ -139,6 +142,14 @@ public class ZigbeeDeviceSnapshotEntity {
 
     public void setStateJson(String stateJson) {
         this.stateJson = stateJson;
+    }
+
+    public String getHistoryCheckpointJson() {
+        return historyCheckpointJson;
+    }
+
+    public void setHistoryCheckpointJson(String historyCheckpointJson) {
+        this.historyCheckpointJson = historyCheckpointJson;
     }
 
     public String getAvailability() {

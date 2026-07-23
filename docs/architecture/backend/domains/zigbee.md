@@ -27,6 +27,8 @@
 - `setDeviceState(String ieeeAddress, String state)`
 - `setDeviceProperty(String ieeeAddress, String property, Object value)`
 - `renameDevice(String ieeeAddress, String friendlyName)`
+- `getOldestHistoryTimestamp()`
+- `compactHistoryDay(LocalDateTime fromTs, LocalDateTime toTs)`
 
 ## Публичные контракты
 
@@ -59,11 +61,12 @@
 
 - REST adapter `api`
 - MQTT adapter `mqtt`
+- домен `maintenance`
 
 ## Алгоритм работы
 
-MQTT adapter классифицирует legacy topics `zigbee2growerhub/#` и пользовательские `gh/z2m/<mqtt_username>/#`, затем передаёт identity координатора вместе со snapshot-сообщением в Facade. Неизвестный или архивный namespace игнорируется. Facade обновляет raw JSON snapshot; для device state пишет raw event и примитивные свойства верхнего уровня в history. REST adapter проверяет владельца координатора и публикует команды только в его base topic через `ZigbeeCommandGateway`; итог команды приходит позже через `bridge/response/*`. Features строятся из `bridge/devices[].definition.exposes`. При создании координатора MQTT adapter создаёт отдельную Dynamic Security роль с буквальным ACL его namespace; при архивировании удаляет client и роль. Ответ provisioning сопоставляется по `correlationData`, а для Mosquitto 2.0, который не возвращает это поле, — по точной последовательности команд в сериализованной операции.
+MQTT adapter классифицирует legacy и пользовательские topics и передаёт identity координатора со snapshot-сообщением в Facade. Facade всегда обновляет текущий raw JSON snapshot. В history записываются изменения дискретных свойств, каждое явное событие и числовые значения по интервалу либо при значимом изменении; служебные настройки остаются только в snapshot. Интервалы, пороги и списки свойств задаются конфигурацией, checkpoint хранится в snapshot. Maintenance удаляет старые служебные значения, оставляет числовую точку в час, дискретные переходы и все события. REST проверяет владельца и публикует команды только в base topic через gateway.
 
 ## Ограничения
 
-Frontend не подключается к MQTT напрямую. Переименование устройств выполняется только через Zigbee2MQTT `bridge/request/device/rename`. В history для графиков индексируются только примитивные свойства верхнего уровня state payload; сложные `composite/list/color/climate` остаются в raw JSON. MQTT-пароль формируется криптографически, не сохраняется и возвращается только в ответе создания или ротации с запретом кэширования. Чужой UUID или IEEE возвращает тот же `404`, что неизвестный объект.
+Frontend не подключается к MQTT напрямую. Переименование выполняется только через Zigbee2MQTT. В history индексируются только осмысленные примитивные свойства верхнего уровня; сложные значения остаются в raw JSON snapshot. Текущее состояние и вход автоматизаций не зависят от частоты history. MQTT-пароль не хранится и возвращается один раз. Чужой UUID или IEEE возвращает тот же `404`, что неизвестный объект.

@@ -64,10 +64,9 @@ public class SensorFacade {
         int defaultHours = historySettings.getDefaultHours();
         LocalDateTime since = LocalDateTime.now(ZoneOffset.UTC).minusHours(hours != null ? hours : defaultHours);
         List<SensorReadingEntity> rows = sensorReadingRepository
-                .findAllBySensor_IdAndTsGreaterThanEqualOrderByTs(sensor.getId(), since);
-        List<SensorReadingEntity> sampled = downsample(rows, historySettings.getMaxPoints());
+                .findBucketedHistory(sensor.getId(), since, Math.max(1, historySettings.getMaxPoints()));
         List<SensorHistoryPoint> payload = new ArrayList<>();
-        for (SensorReadingEntity row : sampled) {
+        for (SensorReadingEntity row : rows) {
             payload.add(new SensorHistoryPoint(row.getTs(), row.getValueNumeric()));
         }
         return payload;
@@ -110,6 +109,16 @@ public class SensorFacade {
         return bindingService.getPlantIdsBySensorIds(sensorIds);
     }
 
+    @Transactional(readOnly = true)
+    public LocalDateTime getOldestHistoryTimestamp() {
+        return sensorReadingRepository.findOldestTimestamp();
+    }
+
+    @Transactional
+    public int compactHistoryDay(LocalDateTime fromTs, LocalDateTime toTs) {
+        return sensorReadingRepository.compactDay(fromTs, toTs);
+    }
+
     private SensorEntity requireSensorAccess(Integer sensorId, AuthenticatedUser user) {
         SensorEntity sensor = sensorRepository.findById(sensorId).orElse(null);
         if (sensor == null) {
@@ -128,16 +137,4 @@ public class SensorFacade {
         return sensor;
     }
 
-    private List<SensorReadingEntity> downsample(List<SensorReadingEntity> points, int maxPoints) {
-        if (points.size() <= maxPoints) {
-            return points;
-        }
-        int step = (int) Math.ceil(points.size() / (double) maxPoints);
-        List<SensorReadingEntity> sampled = new ArrayList<>();
-        for (int i = 0; i < points.size(); i += step) {
-            sampled.add(points.get(i));
-        }
-        return sampled;
-    }
 }
-

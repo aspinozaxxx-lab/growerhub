@@ -185,6 +185,67 @@ zigbee:
     maxPoints: 200
     # Chasy istorii Zigbee po umolchaniju.
     defaultHours: 24
+    # Bazovyj interval zapisi chislovyh svojstv (sek).
+    numericIntervalSeconds: 300
+    # Minimal'nyj interval mezhdu zapisyami pri rezkom izmenenii (sek).
+    numericChangeMinIntervalSeconds: 60
+    # Bazovoe znachimoe izmenenie chislovogo svojstva.
+    numericChangeThreshold: 0.5
+    # Individual'nye intervaly redko menjajushchihsja i diagnosticheskih svojstv.
+    numericIntervals:
+      battery: 3600
+      voltage: 3600
+      linkquality: 900
+    # Porogi nemedlennoj zapisi pri znachimom izmenenii.
+    numericChangeThresholds:
+      temperature: 0.3
+      soil_temperature: 0.3
+      humidity: 2.0
+      soil_moisture: 2.0
+      battery: 1.0
+      voltage: 2.0
+      linkquality: 10.0
+      power: 5.0
+      current: 0.05
+      energy: 0.05
+    # Sobytiya, gde povtor odinakovogo znachenija imeet smysl.
+    eventProperties: [action, click, event]
+    # Konfiguracionnye svojstva ostajutsja tol'ko v tekushchem snapshot.
+    ignoredProperties:
+      - child_lock
+      - countdown
+      - humidity_calibration
+      - indicator_mode
+      - power_outage_memory
+      - soil_moisture_calibration
+      - soil_moisture_sampling
+      - soil_calibration
+      - soil_sampling
+      - soil_temperature_calibration
+      - soil_temperature_sampling
+      - soil_warning
+      - switch_type
+      - switch_type_button
+      - temperature_calibration
+      - temperature_sampling
+      - temperature_unit
+
+history:
+  retention:
+    # Ezhednevnoe prorezhivanie istorii vklyucheno.
+    enabled: ${HISTORY_RETENTION_ENABLED:true}
+    # Kolichestvo polnyh sutok syroj istorii.
+    rawDays: 30
+    # Maksimal'noe kolichestvo dnei v odnom catch-up zapuske.
+    maxDaysPerRun: 365
+    # Raspisanie ezhednevnogo zapuska.
+    cron: "0 0 3 * * *"
+    # Chasovoj pojas raspisanija.
+    timezone: "Europe/Istanbul"
+    # Zaderzhka pervogo catch-up posle starta prilozhenija (ms).
+    startupDelayMs: 60000
+    # Period povtornoj proverki backlog posle starta (ms).
+    catchUpPeriodMs: 86400000
 
 automation:
   # Period worker avtomatizacii (ms).

@@ -25,6 +25,8 @@
 - `getPlantInfoById(Integer plantId)`
 - `recordFromSensorBindings(List<SensorReadingSummary> summaries)`
 - `recordWateringEvent(Integer plantId, Double volumeL, LocalDateTime eventAt)`
+- `getOldestHistoryTimestamp()`
+- `compactHistoryDay(LocalDateTime fromTs, LocalDateTime toTs)`
 
 ## Публичные контракты
 
@@ -48,12 +50,12 @@
 ## Внешние пользователи домена
 
 - REST adapter `api`.
-- домены `advisor`, `device`, `journal`, `pump`, `sensor`.
+- домены `advisor`, `device`, `journal`, `maintenance`, `pump`, `sensor`.
 
 ## Алгоритм работы
 
-Facade выполняет CRUD групп и растений, проверяет владение, отдаёт admin views и историю. Метрики создаются по показаниям датчиков и по событиям полива только с известным объёмом. При сборе урожая растение обновляется и создаётся запись журнала.
+Facade выполняет CRUD групп и растений, проверяет владение, отдаёт admin views и историю. Метрики создаются по показаниям датчиков и по событиям полива только с известным объёмом. Выбор точек и временных bucket выполняется в БД. По запросу maintenance старые непрерывные метрики прореживаются до одной точки в час; события `WATERING_VOLUME_L` сохраняются полностью. При сборе урожая растение обновляется и создаётся запись журнала.
 
 ## Ограничения
 
-Plant не владеет журналом, насосами, датчиками, скоростью полива и пользователями. Неизвестный объём сессии не преобразуется в ноль и не создаёт WATERING_VOLUME sample. История ограничивается настройками конфигурации. Composite-сценарии с журналом остаются внутри Facade.
+Plant не владеет журналом, насосами, датчиками, скоростью полива и пользователями. Неизвестный объём сессии не преобразуется в ноль и не создаёт WATERING_VOLUME sample. Сырые непрерывные метрики за период retention не прореживаются. Composite-сценарии с журналом остаются внутри Facade.

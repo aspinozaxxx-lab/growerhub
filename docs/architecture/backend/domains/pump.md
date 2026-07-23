@@ -32,6 +32,8 @@
 - `listByPlantIdLight(Integer plantId)`
 - `ensureDefaultPump(Integer deviceId)`
 - `deleteByDeviceId(Integer deviceId)`
+- `getOldestHistoryTimestamp()`
+- `compactHistoryDay(LocalDateTime fromTs, LocalDateTime toTs)`
 
 ## Публичные контракты
 
@@ -61,12 +63,12 @@
 
 - REST adapter `api`.
 - MQTT adapter `mqtt`.
-- домены `automation`, `device`.
+- домены `automation`, `device`, `maintenance`.
 
 ## Алгоритм работы
 
-Start валидирует насос, targets и единственный active slot физического устройства, сохраняет snapshot и отправляет ограниченную по времени MQTT-команду. Worker по probe ведёт `running/pause/stopping`, считает только активное время, останавливает по duration, leak, limit, manual, ошибке устройства или потере всех leak-сенсоров. Завершение идемпотентно создаёт журнал каждому snapshot-растению; объём равен `rate × active time` и округляется до 0,001 л. Sessions и box statistics включают `admin_manual`, `automation`, `user_manual`. Legacy start использует automation targets при наличии, иначе compatibility fallback.
+Start валидирует насос, targets и единственный active slot физического устройства, сохраняет snapshot и отправляет ограниченную по времени MQTT-команду. Worker по probe ведёт `running/pause/stopping`, считает только активное время и выполняет защитные остановки. История состояния записывает только изменение фактического состояния или статуса; при чтении добавляется состояние на начало диапазона. Maintenance удаляет старые последовательные дубли, сохраняя первый отсчёт суток и все переходы. Завершение идемпотентно создаёт журнал каждому snapshot-растению; объём равен `rate × active time`.
 
 ## Ограничения
 
-Pump не читает automation JPA и не публикует MQTT напрямую. Одновременно на физическом устройстве активна одна сессия. Новый start не прерывает текущую сессию. Паузы pulse не входят в длительность. При неизвестной скорости объём остаётся `null`; метрика объёма не создаётся. Defaults и лимиты задаются конфигурацией.
+Pump не читает automation JPA и не публикует MQTT напрямую. Одновременно на физическом устройстве активна одна сессия. Новый start не прерывает текущую сессию. Паузы pulse не входят в длительность. При неизвестной скорости объём остаётся `null`; метрика объёма не создаётся. Переходы состояния не удаляются. Defaults и лимиты задаются конфигурацией.

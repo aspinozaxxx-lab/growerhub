@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import ru.growerhub.backend.common.config.pump.PumpHistorySettings;
@@ -56,6 +57,14 @@ public class PumpStateHistoryService {
         if (pump == null) {
             return;
         }
+        PumpStateReadingEntity previous = readingRepository
+                .findTopByPump_IdOrderByTsDesc(pump.getId())
+                .orElse(null);
+        if (previous != null
+                && Objects.equals(previous.getIsRunning(), raw.isRunning())
+                && Objects.equals(previous.getRawStatus(), raw.status())) {
+            return;
+        }
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         PumpStateReadingEntity reading = PumpStateReadingEntity.create();
         reading.setPump(pump);
@@ -72,19 +81,29 @@ public class PumpStateHistoryService {
         int resolvedHours = hours != null ? hours : historySettings.getDefaultHours();
         LocalDateTime since = LocalDateTime.now(ZoneOffset.UTC).minusHours(resolvedHours);
         List<PumpStateReadingEntity> rows = readingRepository
-                .findAllByPump_IdAndTsGreaterThanEqualOrderByTs(pump.getId(), since);
-        List<PumpStateReadingEntity> sampled = downsample(rows, historySettings.getMaxPoints());
+                .findStateTransitions(pump.getId(), since);
+        PumpStateReadingEntity anchor = readingRepository
+                .findTopByPump_IdAndTsLessThanOrderByTsDesc(pump.getId(), since)
+                .orElse(null);
+        int maxPoints = Math.max(1, historySettings.getMaxPoints());
+        int rowLimit = maxPoints - (anchor != null ? 1 : 0);
+        List<PumpStateReadingEntity> sampled = rowLimit > 0 ? downsample(rows, rowLimit) : List.of();
         List<PumpHistoryPoint> payload = new ArrayList<>();
+        if (anchor != null) {
+            payload.add(toHistoryPoint(anchor, since));
+        }
         for (PumpStateReadingEntity row : sampled) {
-            Boolean running = row.getIsRunning();
-            payload.add(new PumpHistoryPoint(
-                    row.getTs(),
-                    running != null ? (running ? 1.0 : 0.0) : null,
-                    running,
-                    row.getRawStatus()
-            ));
+            payload.add(toHistoryPoint(row, row.getTs()));
         }
         return payload;
+    }
+
+    public LocalDateTime getOldestTimestamp() {
+        return readingRepository.findOldestTimestamp();
+    }
+
+    public int compactDay(LocalDateTime fromTs, LocalDateTime toTs) {
+        return readingRepository.compactDay(fromTs, toTs);
     }
 
     private PumpEntity requirePumpAccess(Integer pumpId, AuthenticatedUser user) {
@@ -132,6 +151,16 @@ public class PumpStateHistoryService {
             return null;
         }
         return value;
+    }
+
+    private PumpHistoryPoint toHistoryPoint(PumpStateReadingEntity row, LocalDateTime ts) {
+        Boolean running = row.getIsRunning();
+        return new PumpHistoryPoint(
+                ts,
+                running != null ? (running ? 1.0 : 0.0) : null,
+                running,
+                row.getRawStatus()
+        );
     }
 
     private List<PumpStateReadingEntity> downsample(List<PumpStateReadingEntity> points, int maxPoints) {

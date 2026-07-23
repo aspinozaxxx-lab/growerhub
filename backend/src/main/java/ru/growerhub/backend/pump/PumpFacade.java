@@ -164,6 +164,16 @@ public class PumpFacade {
     }
 
     @Transactional(readOnly = true)
+    public LocalDateTime getOldestHistoryTimestamp() {
+        return stateHistoryService.getOldestTimestamp();
+    }
+
+    @Transactional
+    public int compactHistoryDay(LocalDateTime fromTs, LocalDateTime toTs) {
+        return stateHistoryService.compactDay(fromTs, toTs);
+    }
+
+    @Transactional(readOnly = true)
     public List<PumpView> listByDeviceId(Integer deviceId, DeviceShadowState state) {
         return queryService.listByDevice(deviceId, state);
     }

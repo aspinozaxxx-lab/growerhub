@@ -9,9 +9,13 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -423,25 +427,55 @@ public class ZigbeeFacade {
         }
         int resolvedHours = hours != null ? hours : historySettings.getDefaultHours();
         LocalDateTime since = LocalDateTime.now(java.time.ZoneOffset.UTC).minusHours(resolvedHours);
-        List<ZigbeeDevicePropertyReadingEntity> rows = propertyReadingRepository
-                .findAllByCoordinatorIdAndIeeeAddressAndPropertyAndTsGreaterThanEqualOrderByTs(
-                        coordinatorId,
-                        device.getIeeeAddress(),
-                        normalizedProperty,
-                        since
-                );
-        if (rows.isEmpty()) {
-            rows = propertyReadingRepository
-                    .findAllByCoordinatorIdAndFriendlyNameAndPropertyAndTsGreaterThanEqualOrderByTs(
+        int maxPoints = Math.max(1, historySettings.getMaxPoints());
+        ZigbeeDevicePropertyReadingEntity latest = propertyReadingRepository.findLatestHistoryPoint(
+                coordinatorId,
+                device.getId(),
+                device.getIeeeAddress(),
+                device.getFriendlyName(),
+                normalizedProperty,
+                since
+        );
+        if (latest == null) {
+            return List.of();
+        }
+        String canonicalProperty = canonicalHistoryProperty(normalizedProperty);
+        List<ZigbeeDevicePropertyReadingEntity> rows;
+        if (historySettings.getEventProperties().contains(canonicalProperty)) {
+            rows = propertyReadingRepository.findLatestEventHistory(
+                    coordinatorId,
+                    device.getId(),
+                    device.getIeeeAddress(),
+                    device.getFriendlyName(),
+                    normalizedProperty,
+                    since,
+                    maxPoints
+            );
+        } else if (latest.getValueNumeric() != null) {
+            rows = propertyReadingRepository.findBucketedNumericHistory(
+                    coordinatorId,
+                    device.getId(),
+                    device.getIeeeAddress(),
+                    device.getFriendlyName(),
+                    normalizedProperty,
+                    since,
+                    maxPoints
+            );
+        } else {
+            rows = downsample(
+                    propertyReadingRepository.findDiscreteTransitions(
                             coordinatorId,
+                            device.getId(),
+                            device.getIeeeAddress(),
                             device.getFriendlyName(),
                             normalizedProperty,
                             since
-                    );
+                    ),
+                    maxPoints
+            );
         }
-        List<ZigbeeDevicePropertyReadingEntity> sampled = downsample(rows, historySettings.getMaxPoints());
         List<ZigbeeHistoryPoint> payload = new ArrayList<>();
-        for (ZigbeeDevicePropertyReadingEntity row : sampled) {
+        for (ZigbeeDevicePropertyReadingEntity row : rows) {
             payload.add(new ZigbeeHistoryPoint(
                     row.getTs(),
                     row.getProperty(),
@@ -452,6 +486,38 @@ public class ZigbeeFacade {
             ));
         }
         return payload;
+    }
+
+    @Transactional(readOnly = true)
+    public LocalDateTime getOldestHistoryTimestamp() {
+        LocalDateTime eventTs = stateEventRepository.findOldestTimestamp();
+        LocalDateTime propertyTs = propertyReadingRepository.findOldestTimestamp();
+        if (eventTs == null) {
+            return propertyTs;
+        }
+        if (propertyTs == null) {
+            return eventTs;
+        }
+        return eventTs.isBefore(propertyTs) ? eventTs : propertyTs;
+    }
+
+    @Transactional
+    public int compactHistoryDay(LocalDateTime fromTs, LocalDateTime toTs) {
+        int deleted = 0;
+        if (!historySettings.getIgnoredProperties().isEmpty()) {
+            deleted += propertyReadingRepository.deleteIgnoredDay(
+                    fromTs,
+                    toTs,
+                    historySettings.getIgnoredProperties()
+            );
+        }
+        deleted += propertyReadingRepository.compactNumericDay(fromTs, toTs);
+        Set<String> eventProperties = historySettings.getEventProperties().isEmpty()
+                ? Set.of("__growerhub_no_event_property__")
+                : historySettings.getEventProperties();
+        deleted += propertyReadingRepository.compactDiscreteDay(fromTs, toTs, eventProperties);
+        deleted += stateEventRepository.deleteOrphanedDay(fromTs, toTs);
+        return deleted;
     }
 
     @Transactional
@@ -638,11 +704,12 @@ public class ZigbeeFacade {
                 message.friendlyName(),
                 message.receivedAt()
         );
+        String previousStateJson = device.getStateJson();
         device.setStateJson(message.rawPayload());
         device.setLastStateAt(message.receivedAt());
         device.setUpdatedAt(message.receivedAt());
         deviceRepository.save(device);
-        recordDeviceStateHistory(device, message);
+        recordDeviceStateHistory(device, message, previousStateJson);
         markFirstDeviceSeen(context, message.receivedAt());
     }
 
@@ -862,10 +929,56 @@ public class ZigbeeFacade {
         );
     }
 
-    private void recordDeviceStateHistory(ZigbeeDeviceSnapshotEntity device, ZigbeeMqttSnapshotMessage message) {
+    private void recordDeviceStateHistory(
+            ZigbeeDeviceSnapshotEntity device,
+            ZigbeeMqttSnapshotMessage message,
+            String previousStateJson
+    ) {
         if (!(message.payload() instanceof Map<?, ?> map)) {
             return;
         }
+        Map<?, ?> previousState = readHistoryState(previousStateJson);
+        Map<String, NumericHistoryCheckpoint> checkpoints = readHistoryCheckpoints(
+                device.getHistoryCheckpointJson()
+        );
+        List<HistoryProperty> selected = new ArrayList<>();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            String property = entry.getKey() != null ? entry.getKey().toString().trim() : null;
+            Object value = entry.getValue();
+            if (property == null || property.isBlank() || !isPrimitiveHistoryValue(value)) {
+                continue;
+            }
+            String canonicalProperty = canonicalHistoryProperty(property);
+            if (historySettings.getIgnoredProperties().contains(canonicalProperty)) {
+                continue;
+            }
+            if (historySettings.getEventProperties().contains(canonicalProperty)) {
+                selected.add(new HistoryProperty(property, canonicalProperty, value, false));
+                continue;
+            }
+            Object previousValue = previousHistoryValue(previousState, property, canonicalProperty);
+            boolean previousPresent = previousState.containsKey(property)
+                    || previousState.containsKey(canonicalProperty);
+            if (value instanceof Number number) {
+                if (shouldRecordNumericHistory(
+                        canonicalProperty,
+                        number,
+                        previousValue,
+                        checkpoints.get(canonicalProperty),
+                        message.receivedAt()
+                )) {
+                    selected.add(new HistoryProperty(property, canonicalProperty, value, true));
+                }
+                continue;
+            }
+            if (!previousPresent || !historyValuesEqual(value, previousValue)) {
+                selected.add(new HistoryProperty(property, canonicalProperty, value, false));
+            }
+        }
+        if (selected.isEmpty()) {
+            return;
+        }
+
         ZigbeeDeviceStateEventEntity event = ZigbeeDeviceStateEventEntity.create(device.getCoordinatorId());
         event.setDeviceSnapshot(device);
         event.setIeeeAddress(device.getIeeeAddress());
@@ -875,12 +988,8 @@ public class ZigbeeFacade {
         event.setCreatedAt(message.receivedAt());
         stateEventRepository.save(event);
 
-        for (Map.Entry<?, ?> entry : map.entrySet()) {
-            String property = entry.getKey() != null ? entry.getKey().toString() : null;
-            Object value = entry.getValue();
-            if (property == null || property.isBlank() || !isPrimitiveHistoryValue(value)) {
-                continue;
-            }
+        List<ZigbeeDevicePropertyReadingEntity> readings = new ArrayList<>();
+        for (HistoryProperty item : selected) {
             ZigbeeDevicePropertyReadingEntity reading = ZigbeeDevicePropertyReadingEntity.create(
                     device.getCoordinatorId()
             );
@@ -888,12 +997,140 @@ public class ZigbeeFacade {
             reading.setDeviceSnapshot(device);
             reading.setIeeeAddress(device.getIeeeAddress());
             reading.setFriendlyName(device.getFriendlyName());
-            reading.setProperty(property);
+            reading.setProperty(item.property());
             reading.setTs(message.receivedAt());
             reading.setCreatedAt(message.receivedAt());
-            applyHistoryValue(reading, value);
-            propertyReadingRepository.save(reading);
+            applyHistoryValue(reading, item.value());
+            readings.add(reading);
+            if (item.numeric()) {
+                NumericHistoryCheckpoint checkpoint = checkpoints.get(item.checkpointKey());
+                if (checkpoint == null || message.receivedAt().isAfter(checkpoint.ts())) {
+                    checkpoints.put(
+                            item.checkpointKey(),
+                            new NumericHistoryCheckpoint(
+                                    message.receivedAt(),
+                                    ((Number) item.value()).doubleValue()
+                            )
+                    );
+                }
+            }
         }
+        propertyReadingRepository.saveAll(readings);
+        if (selected.stream().anyMatch(HistoryProperty::numeric)) {
+            device.setHistoryCheckpointJson(toHistoryCheckpointsJson(checkpoints));
+        }
+    }
+
+    private Map<?, ?> readHistoryState(String json) {
+        Object value = readJson(json);
+        return value instanceof Map<?, ?> map ? map : Map.of();
+    }
+
+    private Map<String, NumericHistoryCheckpoint> readHistoryCheckpoints(String json) {
+        Object value = readJson(json);
+        if (!(value instanceof Map<?, ?> map)) {
+            return new HashMap<>();
+        }
+        Map<String, NumericHistoryCheckpoint> result = new HashMap<>();
+        for (Map.Entry<?, ?> entry : map.entrySet()) {
+            if (entry.getKey() == null || entry.getValue() == null) {
+                continue;
+            }
+            try {
+                if (entry.getValue() instanceof Map<?, ?> checkpointMap) {
+                    Object ts = checkpointMap.get("ts");
+                    Object checkpointValue = checkpointMap.get("value");
+                    if (ts != null) {
+                        Double numericValue = checkpointValue instanceof Number number
+                                ? number.doubleValue()
+                                : null;
+                        result.put(
+                                entry.getKey().toString(),
+                                new NumericHistoryCheckpoint(LocalDateTime.parse(ts.toString()), numericValue)
+                        );
+                    }
+                } else {
+                    result.put(
+                            entry.getKey().toString(),
+                            new NumericHistoryCheckpoint(
+                                    LocalDateTime.parse(entry.getValue().toString()),
+                                    null
+                            )
+                    );
+                }
+            } catch (RuntimeException ignored) {
+                // Nekorrektnaja checkpoint-zapis' ne dolzhna ostanavlivat' MQTT ingestion.
+            }
+        }
+        return result;
+    }
+
+    private String toHistoryCheckpointsJson(Map<String, NumericHistoryCheckpoint> checkpoints) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        checkpoints.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> payload.put(
+                        entry.getKey(),
+                        toHistoryCheckpointPayload(entry.getValue())
+                ));
+        return toJson(payload);
+    }
+
+    private Map<String, Object> toHistoryCheckpointPayload(NumericHistoryCheckpoint checkpoint) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("ts", checkpoint.ts().toString());
+        if (checkpoint.value() != null) {
+            payload.put("value", checkpoint.value());
+        }
+        return payload;
+    }
+
+    private Object previousHistoryValue(Map<?, ?> previousState, String property, String canonicalProperty) {
+        if (previousState.containsKey(property)) {
+            return previousState.get(property);
+        }
+        return previousState.get(canonicalProperty);
+    }
+
+    private boolean shouldRecordNumericHistory(
+            String property,
+            Number current,
+            Object previous,
+            NumericHistoryCheckpoint checkpoint,
+            LocalDateTime receivedAt
+    ) {
+        boolean intervalDue = checkpoint == null
+                || !receivedAt.isBefore(
+                        checkpoint.ts().plusSeconds(historySettings.numericIntervalSeconds(property))
+                );
+        if (intervalDue) {
+            return true;
+        }
+        if (receivedAt.isBefore(
+                checkpoint.ts().plusSeconds(Math.max(1, historySettings.getNumericChangeMinIntervalSeconds()))
+        )) {
+            return false;
+        }
+        Double baseline = checkpoint.value();
+        if (baseline == null && previous instanceof Number previousNumber) {
+            baseline = previousNumber.doubleValue();
+        }
+        if (baseline == null) {
+            return true;
+        }
+        double change = Math.abs(current.doubleValue() - baseline);
+        return change >= historySettings.numericChangeThreshold(property);
+    }
+
+    private boolean historyValuesEqual(Object first, Object second) {
+        if (first instanceof Number firstNumber && second instanceof Number secondNumber) {
+            return Double.compare(firstNumber.doubleValue(), secondNumber.doubleValue()) == 0;
+        }
+        return Objects.equals(first, second);
+    }
+
+    private String canonicalHistoryProperty(String property) {
+        return property.trim().toLowerCase(Locale.ROOT);
     }
 
     private boolean isPrimitiveHistoryValue(Object value) {
@@ -1284,5 +1521,16 @@ public class ZigbeeFacade {
             String baseTopic,
             ZigbeeCoordinatorEntity coordinator
     ) {
+    }
+
+    private record HistoryProperty(
+            String property,
+            String checkpointKey,
+            Object value,
+            boolean numeric
+    ) {
+    }
+
+    private record NumericHistoryCheckpoint(LocalDateTime ts, Double value) {
     }
 }

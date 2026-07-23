@@ -32,6 +32,7 @@ class ArchitectureRulesTest {
             "device",
             "firmware",
             "journal",
+            "maintenance",
             "plant",
             "pump",
             "sensor",

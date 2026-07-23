@@ -16,6 +16,8 @@
 - `deleteByDeviceId(Integer deviceId)`
 - `recordMeasurements(String deviceId, List<SensorMeasurement> measurements, LocalDateTime ts)`
 - `getPlantIdsBySensorIds(List<Integer> sensorIds)`
+- `getOldestHistoryTimestamp()`
+- `compactHistoryDay(LocalDateTime fromTs, LocalDateTime toTs)`
 
 ## Публичные контракты
 
@@ -40,12 +42,12 @@
 
 - REST adapter `api`
 - MQTT adapter `mqtt`
-- домены `device`, `plant`
+- домены `device`, `maintenance`, `plant`
 
 ## Алгоритм работы
 
-Facade обновляет привязки, проверяет доступ к датчику, отдает списки и историю. При поступлении measurements домен создает или обновляет sensor records, сохраняет readings и возвращает summary для записи метрик растения.
+Facade обновляет привязки, проверяет доступ к датчику, отдаёт списки и историю. При поступлении measurements домен создаёт или обновляет sensor records, сохраняет readings и возвращает summary для записи метрик растения. Выбор точек длинного диапазона выполняется в БД. По запросу maintenance полные старые сутки прореживаются до последней точки каждого датчика в каждом часовом интервале.
 
 ## Ограничения
 
-Sensor не владеет устройствами и растениями. Формат sensor status соответствует системному контракту. Размер истории ограничивается конфигурацией.
+Sensor не владеет устройствами и растениями. Формат sensor status соответствует системному контракту. Сырые данные за период retention не прореживаются. Размер ответа истории ограничивается конфигурацией.

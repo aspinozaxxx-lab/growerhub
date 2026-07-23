@@ -18,3 +18,7 @@ spring:
 
 JWT_SECRET_KEY: test-secret-key-test-secret-key-1234
 MQTT_HOST: ""
+
+history:
+  retention:
+    enabled: false
