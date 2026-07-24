@@ -15,18 +15,9 @@ public interface ZigbeeDevicePropertyReadingRepository extends JpaRepository<Zig
                            friendly_name, property, ts, value_numeric, value_text, value_boolean, created_at
                     FROM zigbee_device_property_readings
                     WHERE coordinator_id = :coordinatorId
+                      AND ieee_address = :ieeeAddress
                       AND property = :property
                       AND ts >= :since
-                      AND (
-                          device_snapshot_id = :deviceSnapshotId
-                          OR (
-                              device_snapshot_id IS NULL
-                              AND (
-                                  ieee_address = :ieeeAddress
-                                  OR friendly_name = :friendlyName
-                              )
-                          )
-                      )
                     ORDER BY ts DESC, id DESC
                     LIMIT 1
                     """,
@@ -34,9 +25,7 @@ public interface ZigbeeDevicePropertyReadingRepository extends JpaRepository<Zig
     )
     ZigbeeDevicePropertyReadingEntity findLatestHistoryPoint(
             @Param("coordinatorId") Integer coordinatorId,
-            @Param("deviceSnapshotId") Integer deviceSnapshotId,
             @Param("ieeeAddress") String ieeeAddress,
-            @Param("friendlyName") String friendlyName,
             @Param("property") String property,
             @Param("since") LocalDateTime since
     );
@@ -58,19 +47,10 @@ public interface ZigbeeDevicePropertyReadingRepository extends JpaRepository<Zig
                                    ) AS bucket_no
                             FROM zigbee_device_property_readings reading
                             WHERE reading.coordinator_id = :coordinatorId
+                              AND reading.ieee_address = :ieeeAddress
                               AND reading.property = :property
                               AND reading.ts >= :since
                               AND reading.value_numeric IS NOT NULL
-                              AND (
-                                  reading.device_snapshot_id = :deviceSnapshotId
-                                  OR (
-                                      reading.device_snapshot_id IS NULL
-                                      AND (
-                                          reading.ieee_address = :ieeeAddress
-                                          OR reading.friendly_name = :friendlyName
-                                      )
-                                  )
-                              )
                         ) bucketed
                     ) ranked
                     WHERE pick_no = 1
@@ -80,9 +60,7 @@ public interface ZigbeeDevicePropertyReadingRepository extends JpaRepository<Zig
     )
     List<ZigbeeDevicePropertyReadingEntity> findBucketedNumericHistory(
             @Param("coordinatorId") Integer coordinatorId,
-            @Param("deviceSnapshotId") Integer deviceSnapshotId,
             @Param("ieeeAddress") String ieeeAddress,
-            @Param("friendlyName") String friendlyName,
             @Param("property") String property,
             @Param("since") LocalDateTime since,
             @Param("maxPoints") int maxPoints
@@ -105,19 +83,10 @@ public interface ZigbeeDevicePropertyReadingRepository extends JpaRepository<Zig
                                ) AS previous_boolean
                         FROM zigbee_device_property_readings reading
                         WHERE reading.coordinator_id = :coordinatorId
+                          AND reading.ieee_address = :ieeeAddress
                           AND reading.property = :property
                           AND reading.ts >= :since
                           AND reading.value_numeric IS NULL
-                          AND (
-                              reading.device_snapshot_id = :deviceSnapshotId
-                              OR (
-                                  reading.device_snapshot_id IS NULL
-                                  AND (
-                                      reading.ieee_address = :ieeeAddress
-                                      OR reading.friendly_name = :friendlyName
-                                  )
-                              )
-                          )
                     ) transitions
                     WHERE row_no = 1
                        OR value_text IS DISTINCT FROM previous_text
@@ -128,9 +97,7 @@ public interface ZigbeeDevicePropertyReadingRepository extends JpaRepository<Zig
     )
     List<ZigbeeDevicePropertyReadingEntity> findDiscreteTransitions(
             @Param("coordinatorId") Integer coordinatorId,
-            @Param("deviceSnapshotId") Integer deviceSnapshotId,
             @Param("ieeeAddress") String ieeeAddress,
-            @Param("friendlyName") String friendlyName,
             @Param("property") String property,
             @Param("since") LocalDateTime since
     );
@@ -143,18 +110,9 @@ public interface ZigbeeDevicePropertyReadingRepository extends JpaRepository<Zig
                         SELECT reading.*
                         FROM zigbee_device_property_readings reading
                         WHERE reading.coordinator_id = :coordinatorId
+                          AND reading.ieee_address = :ieeeAddress
                           AND reading.property = :property
                           AND reading.ts >= :since
-                          AND (
-                              reading.device_snapshot_id = :deviceSnapshotId
-                              OR (
-                                  reading.device_snapshot_id IS NULL
-                                  AND (
-                                      reading.ieee_address = :ieeeAddress
-                                      OR reading.friendly_name = :friendlyName
-                                  )
-                              )
-                          )
                         ORDER BY reading.ts DESC, reading.id DESC
                         LIMIT :maxPoints
                     ) latest
@@ -164,9 +122,7 @@ public interface ZigbeeDevicePropertyReadingRepository extends JpaRepository<Zig
     )
     List<ZigbeeDevicePropertyReadingEntity> findLatestEventHistory(
             @Param("coordinatorId") Integer coordinatorId,
-            @Param("deviceSnapshotId") Integer deviceSnapshotId,
             @Param("ieeeAddress") String ieeeAddress,
-            @Param("friendlyName") String friendlyName,
             @Param("property") String property,
             @Param("since") LocalDateTime since,
             @Param("maxPoints") int maxPoints

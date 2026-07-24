@@ -430,9 +430,7 @@ public class ZigbeeFacade {
         int maxPoints = Math.max(1, historySettings.getMaxPoints());
         ZigbeeDevicePropertyReadingEntity latest = propertyReadingRepository.findLatestHistoryPoint(
                 coordinatorId,
-                device.getId(),
                 device.getIeeeAddress(),
-                device.getFriendlyName(),
                 normalizedProperty,
                 since
         );
@@ -444,9 +442,7 @@ public class ZigbeeFacade {
         if (historySettings.getEventProperties().contains(canonicalProperty)) {
             rows = propertyReadingRepository.findLatestEventHistory(
                     coordinatorId,
-                    device.getId(),
                     device.getIeeeAddress(),
-                    device.getFriendlyName(),
                     normalizedProperty,
                     since,
                     maxPoints
@@ -454,9 +450,7 @@ public class ZigbeeFacade {
         } else if (latest.getValueNumeric() != null) {
             rows = propertyReadingRepository.findBucketedNumericHistory(
                     coordinatorId,
-                    device.getId(),
                     device.getIeeeAddress(),
-                    device.getFriendlyName(),
                     normalizedProperty,
                     since,
                     maxPoints
@@ -465,9 +459,7 @@ public class ZigbeeFacade {
             rows = downsample(
                     propertyReadingRepository.findDiscreteTransitions(
                             coordinatorId,
-                            device.getId(),
                             device.getIeeeAddress(),
-                            device.getFriendlyName(),
                             normalizedProperty,
                             since
                     ),
