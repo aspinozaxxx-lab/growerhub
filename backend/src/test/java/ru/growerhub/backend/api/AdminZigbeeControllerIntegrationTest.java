@@ -164,6 +164,41 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void historyPreservesFrequentBinaryTransitionsForDailyStats() {
+        UserEntity admin = createUser("zigbee-transition-history-admin@example.com", "admin");
+        String token = buildToken(admin.getId());
+        LocalDateTime firstTransitionAt = LocalDateTime.now(ZoneOffset.UTC).minusHours(167);
+        for (int index = 0; index < 315; index++) {
+            String state = index % 2 == 0 ? "ON" : "OFF";
+            zigbeeFacade.handleMqttSnapshot(new ZigbeeMqttSnapshotMessage(
+                    ZigbeeMqttMessageType.DEVICE_STATE,
+                    "zigbee2growerhub/smartplug1",
+                    "smartplug1",
+                    "smartplug1",
+                    "{\"state\":\"" + state + "\"}",
+                    Map.of("state", state),
+                    firstTransitionAt.plusMinutes(index * 30L)
+            ));
+        }
+
+        List<Float> values = given()
+                .header("Authorization", "Bearer " + token)
+                .queryParam("property", "state")
+                .queryParam("hours", 168)
+                .when()
+                .get("/api/admin/zigbee/devices/0xa4c13895af2c1df3/history")
+                .then()
+                .statusCode(200)
+                .extract()
+                .jsonPath()
+                .getList("value", Float.class);
+
+        Assertions.assertEquals(316, values.size());
+        Assertions.assertTrue(values.contains(0.0f));
+        Assertions.assertTrue(values.contains(1.0f));
+    }
+
+    @Test
     void publishesPermitJoinSetStateAndRenameCommands() {
         UserEntity admin = createUser("zigbee-admin-actions@example.com", "admin");
         String token = buildToken(admin.getId());

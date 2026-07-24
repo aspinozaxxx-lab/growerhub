@@ -428,6 +428,7 @@ public class ZigbeeFacade {
         int resolvedHours = hours != null ? hours : historySettings.getDefaultHours();
         LocalDateTime since = LocalDateTime.now(java.time.ZoneOffset.UTC).minusHours(resolvedHours);
         int maxPoints = Math.max(1, historySettings.getMaxPoints());
+        int maxDiscretePoints = Math.max(maxPoints, historySettings.getMaxDiscretePoints());
         ZigbeeDevicePropertyReadingEntity latest = propertyReadingRepository.findLatestHistoryPoint(
                 coordinatorId,
                 device.getIeeeAddress(),
@@ -456,14 +457,14 @@ public class ZigbeeFacade {
                     maxPoints
             );
         } else {
-            rows = downsample(
+            rows = downsampleTransitions(
                     propertyReadingRepository.findDiscreteTransitions(
                             coordinatorId,
                             device.getIeeeAddress(),
                             normalizedProperty,
                             since
                     ),
-                    maxPoints
+                    maxDiscretePoints
             );
         }
         List<ZigbeeHistoryPoint> payload = new ArrayList<>();
@@ -1192,17 +1193,22 @@ public class ZigbeeFacade {
         return row.getValueNumeric() != null ? row.getValueNumeric().toString() : null;
     }
 
-    private List<ZigbeeDevicePropertyReadingEntity> downsample(
+    private List<ZigbeeDevicePropertyReadingEntity> downsampleTransitions(
             List<ZigbeeDevicePropertyReadingEntity> points,
             int maxPoints
     ) {
         if (points.size() <= maxPoints) {
             return points;
         }
-        int step = (int) Math.ceil(points.size() / (double) maxPoints);
+        int bucketCount = Math.max(1, maxPoints / 2);
+        int bucketSize = (int) Math.ceil(points.size() / (double) bucketCount);
         List<ZigbeeDevicePropertyReadingEntity> sampled = new ArrayList<>();
-        for (int i = 0; i < points.size(); i += step) {
-            sampled.add(points.get(i));
+        for (int start = 0; start < points.size(); start += bucketSize) {
+            int end = Math.min(points.size() - 1, start + bucketSize - 1);
+            sampled.add(points.get(start));
+            if (end != start && sampled.size() < maxPoints) {
+                sampled.add(points.get(end));
+            }
         }
         return sampled;
     }

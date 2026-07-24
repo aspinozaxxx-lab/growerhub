@@ -183,6 +183,8 @@ zigbee:
   history:
     # Maksimal'noe kolichestvo tochek Zigbee-svojstva.
     maxPoints: 200
+    # Maksimal'noe kolichestvo perehodov diskretnogo svojstva.
+    maxDiscretePoints: 5000
     # Chasy istorii Zigbee po umolchaniju.
     defaultHours: 24
     # Bazovyj interval zapisi chislovyh svojstv (sek).

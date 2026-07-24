@@ -10,6 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "zigbee.history")
 public class ZigbeeHistorySettings {
     private int maxPoints = 200;
+    private int maxDiscretePoints = 5000;
     private int defaultHours = 24;
     private long numericIntervalSeconds = 300;
     private long numericChangeMinIntervalSeconds = 60;
@@ -25,6 +26,14 @@ public class ZigbeeHistorySettings {
 
     public void setMaxPoints(int maxPoints) {
         this.maxPoints = maxPoints;
+    }
+
+    public int getMaxDiscretePoints() {
+        return maxDiscretePoints;
+    }
+
+    public void setMaxDiscretePoints(int maxDiscretePoints) {
+        this.maxDiscretePoints = maxDiscretePoints;
     }
 
     public int getDefaultHours() {
