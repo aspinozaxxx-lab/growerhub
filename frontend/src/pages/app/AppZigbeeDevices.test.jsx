@@ -8,17 +8,20 @@ import {
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchFarmOverview, setZigbeeProperty } from '../../api/selfService';
+import { fetchFarmsOverview, setZigbeeProperty } from '../../api/selfService';
 import AppZigbeeDevices from './AppZigbeeDevices';
 
 vi.mock('../../api/selfService', () => ({
-  fetchFarmOverview: vi.fn(),
+  fetchFarmsOverview: vi.fn(),
   setZigbeeProperty: vi.fn(),
 }));
 
 const overview = {
-  farm: {
-    zones: [{
+  farms: [{
+    id: 1,
+    name: 'Основная ферма',
+    slots: [],
+    greenhouses: [{
       id: 2,
       name: 'Теплица 2',
       slots: [{
@@ -29,7 +32,7 @@ const overview = {
         zigbee_property: 'temperature',
       }],
     }],
-  },
+  }],
   resource_catalog: {
     zigbee_devices: [
       {
@@ -74,7 +77,7 @@ const overview = {
 
 describe('AppZigbeeDevices', () => {
   beforeEach(() => {
-    fetchFarmOverview.mockResolvedValue(overview);
+    fetchFarmsOverview.mockResolvedValue(overview);
     setZigbeeProperty.mockResolvedValue({});
   });
 
@@ -93,7 +96,7 @@ describe('AppZigbeeDevices', () => {
     const title = await screen.findByRole('heading', { name: 'Датчик климата' });
     const card = title.closest('article');
     expect(card).toHaveClass('farm-device-card');
-    expect(card).toHaveTextContent('Теплица 2 · Температура воздуха');
+    expect(card).toHaveTextContent('Основная ферма · Теплица 2 · Температура воздуха');
     expect(card).toHaveTextContent('Подробнее');
     expect(card.querySelectorAll('.farm-device-card__metrics > div')).toHaveLength(6);
 

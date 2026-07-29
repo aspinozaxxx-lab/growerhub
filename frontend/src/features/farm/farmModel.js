@@ -14,6 +14,8 @@ export const FARM_SLOT_ROLES = [
   'WATER_PUMP',
 ];
 
+export const FARM_ROOM_SLOT_ROLES = ['AC_SWITCH'];
+
 export const FARM_SCENARIO_TYPES = [
   'BOX_CLIMATE',
   'LIGHT_SCHEDULE',
@@ -63,6 +65,11 @@ const SCENARIO_DEFAULTS = {
 
 export const listOrEmpty = (value) => (Array.isArray(value) ? value : []);
 
+export const overviewFarms = (overview) => listOrEmpty(overview?.farms);
+
+export const overviewGreenhouses = (overview) => overviewFarms(overview)
+  .flatMap((farm) => listOrEmpty(farm?.greenhouses));
+
 export function slotForRole(zone, role) {
   return listOrEmpty(zone?.slots).find((slot) => slot.role === role) || null;
 }
@@ -86,15 +93,16 @@ export function createScenarioDrafts(zone) {
   }));
 }
 
-export function buildSlotOccupancy(zones) {
+export function buildSlotOccupancy(scopes) {
   const result = new Map();
-  listOrEmpty(zones).forEach((zone) => {
-    listOrEmpty(zone.slots).forEach((slot) => {
+  listOrEmpty(scopes).forEach((scope) => {
+    listOrEmpty(scope.slots).forEach((slot) => {
       const key = physicalChannelKey(slot);
       if (key) {
         result.set(key, {
-          zoneId: zone.id,
-          zoneName: zone.name,
+          zoneId: scope.id,
+          zoneName: scope.name,
+          scopeType: slot.scope_type || scope.scope_type || 'BOX',
           role: slot.role,
         });
       }
@@ -103,59 +111,49 @@ export function buildSlotOccupancy(zones) {
   return result;
 }
 
-export function findSlotConflicts(zoneId, valuesByRole, zones) {
+export function findSlotConflicts(zoneId, valuesByRole, zones, scopeType = 'BOX') {
   const occupancy = buildSlotOccupancy(zones);
   const conflicts = [];
   Object.entries(valuesByRole || {}).forEach(([role, value]) => {
     const parsed = parseOptionValue(value);
     const key = parsed ? physicalChannelKey(parsed) : null;
     const occupied = key ? occupancy.get(key) : null;
-    if (occupied && occupied.zoneId !== zoneId) {
+    if (occupied && (occupied.zoneId !== zoneId || occupied.scopeType !== scopeType)) {
       conflicts.push({ ...occupied, role, key });
     }
   });
   return conflicts;
 }
 
-export function farmOverviewToDashboardRooms(overview, innerName = 'Контур зоны') {
-  return listOrEmpty(overview?.farm?.zones).map((zone) => {
-    const roomResources = listOrEmpty(zone.slots).filter((slot) => slot.role === 'AC_SWITCH');
-    const boxResources = listOrEmpty(zone.slots).filter((slot) => slot.role !== 'AC_SWITCH');
-    const boxClimate = scenarioForType(zone, 'BOX_CLIMATE');
-    const roomStates = listOrEmpty(zone.states)
-      .filter((state) => state.scenario_type === 'ROOM_CLIMATE');
-    const boxStates = listOrEmpty(zone.states)
-      .filter((state) => state.scenario_type !== 'ROOM_CLIMATE');
+export function farmOverviewToDashboardRooms(overview) {
+  return overviewFarms(overview).map((farm) => {
     return {
-      id: zone.id,
-      name: zone.name,
-      enabled: zone.enabled,
-      resources: roomResources,
-      scenarios: boxClimate ? [{
-        ...boxClimate,
-        scenario_type: 'ROOM_CLIMATE',
-      }] : [],
-      states: roomStates,
-      boxes: [{
-        id: `zone-${zone.id}`,
-        name: innerName,
-        enabled: zone.enabled,
-        plants: listOrEmpty(zone.plants),
-        resources: boxResources,
-        scenarios: listOrEmpty(zone.scenarios),
-        states: boxStates,
-        readiness: zone.readiness || {},
-        last_actions: listOrEmpty(zone.last_actions),
-      }],
-      last_actions: [],
+      id: farm.id,
+      name: farm.name,
+      enabled: farm.enabled,
+      resources: listOrEmpty(farm.slots),
+      scenarios: listOrEmpty(farm.scenarios),
+      states: listOrEmpty(farm.states),
+      boxes: listOrEmpty(farm.greenhouses).map((greenhouse) => ({
+        id: greenhouse.id,
+        name: greenhouse.name,
+        enabled: greenhouse.enabled,
+        plants: listOrEmpty(greenhouse.plants),
+        resources: listOrEmpty(greenhouse.slots),
+        scenarios: listOrEmpty(greenhouse.scenarios),
+        states: listOrEmpty(greenhouse.states),
+        readiness: greenhouse.readiness || {},
+        last_actions: listOrEmpty(greenhouse.last_actions),
+      })),
+      last_actions: listOrEmpty(farm.last_actions),
     };
   });
 }
 
 export function findUnassignedFarmPlants(overview) {
   const assignedPlantIds = new Set(
-    listOrEmpty(overview?.farm?.zones).flatMap((zone) => (
-      listOrEmpty(zone?.plants).map((plant) => plant?.id).filter((id) => id != null)
+    overviewGreenhouses(overview).flatMap((greenhouse) => (
+      listOrEmpty(greenhouse?.plants).map((plant) => plant?.id).filter((id) => id != null)
     )),
   );
   return listOrEmpty(overview?.resource_catalog?.plants)
@@ -163,23 +161,42 @@ export function findUnassignedFarmPlants(overview) {
 }
 
 export function countFarmWarnings(overview) {
-  const zoneWarnings = listOrEmpty(overview?.farm?.zones).reduce((total, zone) => {
-    const offline = listOrEmpty(zone.slots)
+  const farmWarnings = overviewFarms(overview).reduce((total, farm) => {
+    const farmOffline = listOrEmpty(farm.slots)
       .filter((slot) => slot.connection_status === 'warning' || slot.ready === false)
       .length;
-    const unavailable = Object.values(zone.readiness || {})
+    const farmRequests = listOrEmpty(farm.states)
+      .filter((state) => state.scenario_type === 'ROOM_CLIMATE' && state.ac_request_active)
+      .length;
+    return total + farmOffline + farmRequests;
+  }, 0);
+  const greenhouseWarnings = overviewGreenhouses(overview).reduce((total, greenhouse) => {
+    const offline = listOrEmpty(greenhouse.slots)
+      .filter((slot) => slot.connection_status === 'warning' || slot.ready === false)
+      .length;
+    const unavailable = Object.values(greenhouse.readiness || {})
       .filter((readiness) => !readiness?.ready)
       .length;
-    return total + offline + unavailable;
+    const coolingRequests = listOrEmpty(greenhouse.states)
+      .filter((state) => state.scenario_type === 'BOX_CLIMATE' && state.ac_request_active)
+      .length;
+    return total + offline + unavailable + coolingRequests;
   }, 0);
-  return zoneWarnings + findUnassignedFarmPlants(overview).length;
+  return farmWarnings + greenhouseWarnings + findUnassignedFarmPlants(overview).length;
 }
 
 export function assignmentsForZigbeeDevice(overview, device) {
   if (!device) return [];
   const ieee = String(device.ieee_address || '').toLowerCase();
-  return listOrEmpty(overview?.farm?.zones).flatMap((zone) => (
-    listOrEmpty(zone.slots)
+  const scopes = overviewFarms(overview).flatMap((farm) => [
+    { ...farm, assignmentName: farm.name },
+    ...listOrEmpty(farm.greenhouses).map((greenhouse) => ({
+      ...greenhouse,
+      assignmentName: `${farm.name} · ${greenhouse.name}`,
+    })),
+  ]);
+  return scopes.flatMap((scope) => (
+    listOrEmpty(scope.slots)
       .filter((slot) => (
         slot.source_type === 'ZIGBEE_DEVICE'
         && String(slot.zigbee_ieee_address || '').toLowerCase() === ieee
@@ -188,8 +205,8 @@ export function assignmentsForZigbeeDevice(overview, device) {
           || slot.zigbee_coordinator_id === device.coordinator_id)
       ))
       .map((slot) => ({
-        zoneId: zone.id,
-        zoneName: zone.name,
+        zoneId: scope.id,
+        zoneName: scope.assignmentName,
         role: slot.role,
       }))
   ));

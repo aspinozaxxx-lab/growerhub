@@ -456,7 +456,11 @@ function AdminAutomation() {
       <div className="admin-automation-grid">
         {roles.map((role) => {
           const binding = resourceBindingForRole(resources, role);
-          const options = optionsWithCurrentBinding(optionsForRole(role, catalog), binding);
+          const options = optionsWithCurrentBinding(
+            optionsForRole(role, catalog),
+            binding,
+            ROLE_LABELS[role] || role,
+          );
           return (
             <label className="admin-automation-field" key={role}>
               <span>{ROLE_LABELS[role] || role}</span>

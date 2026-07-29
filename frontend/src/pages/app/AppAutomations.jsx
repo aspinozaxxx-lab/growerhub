@@ -4,10 +4,14 @@ import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import Button from '../../components/ui/Button';
 import {
-  fetchFarmOverview,
-  replaceFarmZoneScenarios,
+  fetchFarmsOverview,
+  replaceGreenhouseScenarios,
 } from '../../api/selfService';
-import { SCENARIO_LABELS, listOrEmpty } from '../../features/farm/farmModel';
+import {
+  SCENARIO_LABELS,
+  listOrEmpty,
+  overviewFarms,
+} from '../../features/farm/farmModel';
 import { trackProductGoal } from '../../utils/analytics';
 import { translateApp } from '../../locales/i18n';
 import './SelfServicePages.css';
@@ -29,7 +33,7 @@ function AppAutomations() {
 
   const load = useCallback(async () => {
     try {
-      setOverview(await fetchFarmOverview());
+      setOverview(await fetchFarmsOverview());
       setError('');
     } catch (requestError) {
       setError(requestError?.message || translateApp("Не удалось загрузить автоматизации"));
@@ -42,7 +46,7 @@ function AppAutomations() {
     load();
   }, [load]);
 
-  const saveScenario = async (zone, scenario, patch) => {
+  const saveScenario = async (greenhouse, scenario, patch) => {
     if (
       scenario.scenario_type === 'WATERING'
       && patch.enabled
@@ -53,13 +57,13 @@ function AppAutomations() {
     ) {
       return;
     }
-    const key = `${zone.id}:${scenario.scenario_type}`;
+    const key = `${greenhouse.id}:${scenario.scenario_type}`;
     setBusy(key);
     setError('');
     try {
-      const payload = await replaceFarmZoneScenarios(
-        zone.id,
-        toRequest(listOrEmpty(zone.scenarios), scenario.scenario_type, patch),
+      const payload = await replaceGreenhouseScenarios(
+        greenhouse.id,
+        toRequest(listOrEmpty(greenhouse.scenarios), scenario.scenario_type, patch),
       );
       setOverview(payload);
       if (patch.enabled && !scenario.enabled) {
@@ -79,7 +83,9 @@ function AppAutomations() {
     return <AppPageState kind="loading" title={translateApp("Загружаем автоматизации…")} />;
   }
 
-  const zones = listOrEmpty(overview?.farm?.zones);
+  const farms = overviewFarms(overview);
+  const greenhouses = farms.flatMap((farm) => listOrEmpty(farm.greenhouses)
+    .map((greenhouse) => ({ ...greenhouse, farmName: farm.name })));
   return (
     <div className="self-service-page">
       <AppPageHeader
@@ -90,28 +96,28 @@ function AppAutomations() {
         {translateApp("Сценарии становятся доступны после заполнения обязательных слотов в Конструкторе фермы.")}
       </p>
       {error ? <AppPageState kind="error" title={error} /> : null}
-      {!overview?.farm ? (
+      {farms.length === 0 ? (
         <AppPageState kind="empty" title={translateApp("Сначала создайте ферму")} />
       ) : null}
-      {overview?.farm && zones.length === 0 ? (
+      {farms.length > 0 && greenhouses.length === 0 ? (
         <AppPageState kind="empty" title={translateApp("Сначала добавьте теплицу")} />
       ) : null}
       <div className="automation-list">
-        {zones.map((zone) => (
-          <section className="self-service-section" key={zone.id}>
+        {greenhouses.map((greenhouse) => (
+          <section className="self-service-section" key={greenhouse.id}>
             <div className="section-heading">
               <div>
-                <h2>{zone.name}</h2>
-                <p>{translateApp("Сценарии этой теплицы")}</p>
+                <h2>{greenhouse.name}</h2>
+                <p>{greenhouse.farmName} · {translateApp("Сценарии этой теплицы")}</p>
               </div>
-              <span className={zone.enabled ? 'status-chip is-online' : 'status-chip'}>
-                {zone.enabled ? translateApp("Активна") : translateApp("Выключена")}
+              <span className={greenhouse.enabled ? 'status-chip is-online' : 'status-chip'}>
+                {greenhouse.enabled ? translateApp("Активна") : translateApp("Выключена")}
               </span>
             </div>
-            {listOrEmpty(zone.scenarios).map((scenario) => {
-              const readiness = zone.readiness?.[scenario.scenario_type] || scenario.readiness;
+            {listOrEmpty(greenhouse.scenarios).map((scenario) => {
+              const readiness = greenhouse.readiness?.[scenario.scenario_type] || scenario.readiness;
               const blocked = !readiness?.ready && !scenario.enabled;
-              const key = `${zone.id}:${scenario.scenario_type}`;
+              const key = `${greenhouse.id}:${scenario.scenario_type}`;
               return (
                 <article className="automation-card" key={scenario.scenario_type}>
                   <div>
@@ -122,7 +128,7 @@ function AppAutomations() {
                   </div>
                   <Button
                     variant={scenario.enabled ? 'danger' : 'primary'}
-                    onClick={() => saveScenario(zone, scenario, { enabled: !scenario.enabled })}
+                    onClick={() => saveScenario(greenhouse, scenario, { enabled: !scenario.enabled })}
                     isLoading={busy === key}
                     disabled={blocked}
                   >
@@ -135,7 +141,7 @@ function AppAutomations() {
                         <input
                           type="time"
                           defaultValue={scenario.config?.start_time || '06:00'}
-                          onBlur={(event) => saveScenario(zone, scenario, {
+                          onBlur={(event) => saveScenario(greenhouse, scenario, {
                             config: { start_time: event.target.value },
                           })}
                         />
@@ -145,7 +151,7 @@ function AppAutomations() {
                         <input
                           type="time"
                           defaultValue={scenario.config?.end_time || '22:00'}
-                          onBlur={(event) => saveScenario(zone, scenario, {
+                          onBlur={(event) => saveScenario(greenhouse, scenario, {
                             config: { end_time: event.target.value },
                           })}
                         />
@@ -160,7 +166,7 @@ function AppAutomations() {
                           type="number"
                           step="0.5"
                           defaultValue={scenario.config?.min_c ?? 24}
-                          onBlur={(event) => saveScenario(zone, scenario, {
+                          onBlur={(event) => saveScenario(greenhouse, scenario, {
                             config: { min_c: Number(event.target.value) },
                           })}
                         />
@@ -171,7 +177,7 @@ function AppAutomations() {
                           type="number"
                           step="0.5"
                           defaultValue={scenario.config?.max_c ?? 28}
-                          onBlur={(event) => saveScenario(zone, scenario, {
+                          onBlur={(event) => saveScenario(greenhouse, scenario, {
                             config: { max_c: Number(event.target.value) },
                           })}
                         />

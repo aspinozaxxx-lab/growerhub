@@ -46,11 +46,17 @@ describe('farm model', () => {
       .toMatchObject([{ zoneId: 1, zoneName: 'Теплица 1' }]);
   });
 
-  it('stroitr publichnuyu proekciyu dashboard bez vnutrennego box id', () => {
+  it('stroitr proekciyu dashboard iz ferm i teplic', () => {
     const rooms = farmOverviewToDashboardRooms({
-      farm: {
-        zones: [{
-          id: 7,
+      farms: [{
+        id: 7,
+        name: 'Ферма',
+        enabled: true,
+        slots: [{ role: 'AC_SWITCH' }],
+        scenarios: [{ scenario_type: 'ROOM_CLIMATE', enabled: true }],
+        states: [],
+        greenhouses: [{
+          id: 8,
           name: 'Теплица',
           enabled: true,
           plants: [{ id: 3, name: 'Томат' }],
@@ -63,13 +69,13 @@ describe('farm model', () => {
           readiness: {},
           last_actions: [],
         }],
-      },
-    }, 'Контур');
+      }],
+    });
 
     expect(rooms[0].id).toBe(7);
     expect(rooms[0].boxes[0]).toMatchObject({
-      id: 'zone-7',
-      name: 'Контур',
+      id: 8,
+      name: 'Теплица',
       plants: [{ id: 3, name: 'Томат' }],
     });
     expect(rooms[0].scenarios).toEqual([{
@@ -80,14 +86,14 @@ describe('farm model', () => {
 
   it('pokazyvaet vse rasteniya i schitaet nerazmeschennye preduprezhdeniyami', () => {
     const overview = {
-      farm: {
-        zones: [{
+      farms: [{
+        greenhouses: [{
           id: 7,
           plants: [{ id: 3, name: 'Томат' }],
           slots: [],
           readiness: {},
         }],
-      },
+      }],
       resource_catalog: {
         plants: [
           { id: 3, name: 'Томат' },
@@ -114,8 +120,10 @@ describe('farm model', () => {
     });
 
     const overview = {
-      farm: {
-        zones: [{
+      farms: [{
+        id: 1,
+        name: 'Ферма',
+        greenhouses: [{
           id: 2,
           name: 'Теплица 2',
           slots: [{
@@ -125,12 +133,16 @@ describe('farm model', () => {
             zigbee_ieee_address: '0x1234',
           }],
         }],
-      },
+      }],
     };
     expect(assignmentsForZigbeeDevice(overview, {
       coordinator_id: coordinatorId,
       ieee_address: '0x1234',
-    })).toEqual([{ zoneId: 2, zoneName: 'Теплица 2', role: 'LIGHT_SWITCH' }]);
+    })).toEqual([{
+      zoneId: 2,
+      zoneName: 'Ферма · Теплица 2',
+      role: 'LIGHT_SWITCH',
+    }]);
   });
 
   it('ogranichivaet kartochku ustrojstva prioritetnymi metrikami', () => {

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, Boxes, Cpu, Leaf, RefreshCw } from 'lucide-react';
-import { fetchFarmOverview } from '../../api/selfService';
+import { fetchFarmsOverview } from '../../api/selfService';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
@@ -10,6 +10,8 @@ import {
   farmOverviewToDashboardRooms,
   findUnassignedFarmPlants,
   listOrEmpty,
+  overviewFarms,
+  overviewGreenhouses,
 } from '../../features/farm/farmModel';
 import { FarmDashboardRooms } from './admin/AdminFarmDashboard';
 import { formatDateTime } from './admin/adminFarmDashboardModel';
@@ -29,7 +31,7 @@ function AppOverview() {
     if (!silent) setIsLoading(true);
     setError('');
     try {
-      const payload = await fetchFarmOverview();
+      const payload = await fetchFarmsOverview();
       setOverview(payload && typeof payload === 'object' ? payload : {});
       setLastUpdatedAt(new Date());
     } catch (requestError) {
@@ -54,9 +56,10 @@ function AppOverview() {
     };
   }, [load]);
 
-  const zones = listOrEmpty(overview?.farm?.zones);
+  const farms = overviewFarms(overview);
+  const greenhouses = overviewGreenhouses(overview);
   const rooms = useMemo(
-    () => farmOverviewToDashboardRooms(overview, translateApp("Контур теплицы")),
+    () => farmOverviewToDashboardRooms(overview),
     [overview],
   );
   const catalog = overview?.resource_catalog || {};
@@ -83,7 +86,7 @@ function AppOverview() {
     <div className="self-service-page farm-dashboard">
       <AppPageHeader
         title={translateApp("Обзор")}
-        subtitle={translateApp("Состояние всей фермы обновляется каждые 30 секунд")}
+        subtitle={translateApp("Состояние всех ферм обновляется каждые 30 секунд")}
         right={(
           <div className="farm-dashboard-refresh">
             <RefreshCw size={15} aria-hidden="true" />
@@ -94,21 +97,21 @@ function AppOverview() {
 
       {error ? <AppPageState kind="error" title={error} /> : null}
 
-      {!error && !overview?.farm ? (
-        <AppPageState kind="empty" title={translateApp("Ферма пока не создана")}>
-          <Link className="gh-btn gh-btn--primary gh-btn--md" to="/app/farm/">
-            {translateApp("Открыть Конструктор фермы")}
+      {!error && farms.length === 0 ? (
+        <AppPageState kind="empty" title={translateApp("Фермы пока не созданы")}>
+          <Link className="gh-btn gh-btn--primary gh-btn--md" to="/app/settings/zones/">
+            {translateApp("Открыть настройки зон")}
           </Link>
         </AppPageState>
       ) : null}
 
-      {overview?.farm ? (
+      {farms.length > 0 ? (
         <>
           <div className="summary-grid farm-overview-summary">
             <article>
               <Boxes size={20} aria-hidden="true" />
               <span>{translateApp("Теплицы")}</span>
-              <strong>{zones.length}</strong>
+              <strong>{greenhouses.length}</strong>
             </article>
             <article>
               <Leaf size={20} aria-hidden="true" />
@@ -147,14 +150,14 @@ function AppOverview() {
             </section>
           ) : null}
 
-          {zones.length === 0 ? (
+          {greenhouses.length === 0 ? (
             <AppPageState kind="empty" title={translateApp("Добавьте первую теплицу")}>
-              <Link className="gh-btn gh-btn--primary gh-btn--md" to="/app/farm/">
-                {translateApp("Открыть конструктор")}
+              <Link className="gh-btn gh-btn--primary gh-btn--md" to="/app/settings/zones/">
+                {translateApp("Открыть настройки зон")}
               </Link>
             </AppPageState>
           ) : (
-            <FarmDashboardRooms rooms={rooms} zoneView onOpenStats={handleOpenStats} />
+            <FarmDashboardRooms rooms={rooms} onOpenStats={handleOpenStats} />
           )}
         </>
       ) : null}

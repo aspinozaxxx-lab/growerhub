@@ -67,6 +67,7 @@
 
 .farm-constructor__inline-form input,
 .farm-constructor__farm input,
+.farm-constructor__farm select,
 .farm-constructor__create-zone input,
 .farm-zone-editor input,
 .farm-zone-editor select {
@@ -125,12 +126,24 @@
   margin: 0;
 }
 
-.farm-zone-editor__header > div:first-child > span {
+.farm-zone-editor__header h2 {
   color: var(--accent);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 22px;
+  font-weight: 750;
+}
+
+.farm-zone-editor__status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-chip.is-warning {
+  color: #ffd48d;
+  border-color: rgba(255, 188, 92, 0.38);
+  background: rgba(255, 188, 92, 0.1);
 }
 
 .farm-zone-editor__zone-fields {
@@ -197,6 +210,39 @@
   color: var(--text-1);
   font-size: 13px;
   font-weight: 650;
+}
+
+.farm-slot__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.farm-slot__heading button {
+  padding: 0;
+  border: 0;
+  color: var(--text-3);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+
+.farm-slot__heading button:hover {
+  color: #ffd48d;
+}
+
+.farm-slot-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.farm-slot-add select {
+  flex: 1 1 240px;
+  max-width: 420px;
 }
 
 .farm-slot__status {

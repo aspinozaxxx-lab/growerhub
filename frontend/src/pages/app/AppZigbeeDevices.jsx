@@ -4,7 +4,7 @@ import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import Button from '../../components/ui/Button';
 import TelegramContactLink from '../../components/TelegramContactLink';
-import { fetchFarmOverview, setZigbeeProperty } from '../../api/selfService';
+import { fetchFarmsOverview, setZigbeeProperty } from '../../api/selfService';
 import {
   SLOT_ROLE_LABELS,
   assignmentsForZigbeeDevice,
@@ -42,7 +42,7 @@ function AppZigbeeDevices() {
 
   const load = useCallback(async () => {
     try {
-      setOverview(await fetchFarmOverview());
+      setOverview(await fetchFarmsOverview());
       setError('');
     } catch (requestError) {
       setError(requestError?.message || translateApp("Не удалось загрузить устройства"));

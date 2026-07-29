@@ -23,6 +23,7 @@ const AppPlantJournal = lazy(() => import('./AppPlantJournal'));
 const AppProfile = lazy(() => import('./AppProfile'));
 const AppSettings = lazy(() => import('./AppSettings'));
 const FarmConstructor = lazy(() => import('../../features/farm/FarmConstructor'));
+const FarmZonesSettings = lazy(() => import('../../features/farm/FarmZonesSettings'));
 const AdminAutomation = lazy(() => import('./admin/AdminAutomation'));
 const AdminDevices = lazy(() => import('./admin/AdminDevices'));
 const AdminFarmDashboard = lazy(() => import('./admin/AdminFarmDashboard'));
@@ -64,7 +65,7 @@ function AppSection() {
             <Route path="settings/" element={<AppSettings />}>
               <Route index element={<Navigate to="connections/" replace />} />
               <Route path="connections/" element={<AppConnections />} />
-              <Route path="zones/" element={<FarmConstructor />} />
+              <Route path="zones/" element={<FarmZonesSettings />} />
               <Route path="devices/" element={<AppZigbeeDevices />} />
               <Route path="profile/" element={<AppProfile />} />
             </Route>

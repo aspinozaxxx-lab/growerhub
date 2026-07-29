@@ -37,7 +37,7 @@ const RESOURCE_ROLE_LABELS = {
 
 const SCENARIO_TYPE_LABELS = {
   [SCENARIO_TYPES.ROOM_CLIMATE]: 'Климат фермы',
-  [SCENARIO_TYPES.BOX_CLIMATE]: 'Климат бокса',
+  [SCENARIO_TYPES.BOX_CLIMATE]: 'Климат теплицы',
   [SCENARIO_TYPES.LIGHT_SCHEDULE]: 'Свет',
   [SCENARIO_TYPES.WATERING]: 'Полив',
 };

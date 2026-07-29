@@ -192,7 +192,7 @@ function AcRequestList({ boxes }) {
       {boxes.map((box) => (
         <span key={box.id || box.name} className="farm-dashboard-request-chip">
           <AlertTriangle size={14} aria-hidden="true" />
-          <span>{box.name || translateApp("Бокс без названия")}</span>
+          <span>{box.name || translateApp("Теплица без названия")}</span>
         </span>
       ))}
     </div>
@@ -228,14 +228,14 @@ function FarmBox({
     RESOURCE_ROLES.SOIL_MOISTURE_SENSOR,
   ].includes(resource?.role));
   const plants = listOrEmpty(box.plants);
-  const statsSubtitle = statsSubtitleOverride || box.name || translateApp("Бокс без названия");
+  const statsSubtitle = statsSubtitleOverride || box.name || translateApp("Теплица без названия");
 
   return (
     <section className={`farm-dashboard-box ${hideHeader ? 'is-zone-content' : ''} ${box.enabled ? '' : 'is-disabled'}`}>
       {!hideHeader ? (
         <header className="farm-dashboard-box__header">
           <div>
-            <h4>{box.name || translateApp("Бокс без названия")}</h4>
+            <h4>{box.name || translateApp("Теплица без названия")}</h4>
             <span>{translateApp("{{value1}} растений", { value1: plants.length })}</span>
           </div>
           <StatusBadge tone={box.enabled ? 'success' : 'muted'}>
@@ -323,7 +323,7 @@ function FarmRoom({ room, zoneView = false, onOpenStats }) {
         {!zoneView ? (
           <div className="farm-dashboard-summary-tile">
             <Wind size={20} aria-hidden="true" />
-            <span>{translateApp("Зоны")}</span>
+            <span>{translateApp("Теплицы")}</span>
             <strong>{boxes.length}</strong>
           </div>
         ) : null}
@@ -359,7 +359,7 @@ function FarmRoom({ room, zoneView = false, onOpenStats }) {
 
       <div className="farm-dashboard-boxes">
         {boxes.length === 0 ? (
-          <div className="farm-dashboard-empty-line">{translateApp("Зоны не настроены")}</div>
+          <div className="farm-dashboard-empty-line">{translateApp("Теплицы не настроены")}</div>
         ) : boxes.map((box) => (
           <FarmBox
             key={box.id}
@@ -453,7 +453,7 @@ function AdminFarmDashboard() {
     <div className="admin-page farm-dashboard">
       <AppPageHeader
         title={translateApp("Дашборд фермы")}
-        subtitle={translateApp("Текущее состояние зон и общих ресурсов")}
+        subtitle={translateApp("Текущее состояние теплиц и общих ресурсов")}
         right={(
           <div className="farm-dashboard-refresh">
             <RefreshCw size={15} aria-hidden="true" />

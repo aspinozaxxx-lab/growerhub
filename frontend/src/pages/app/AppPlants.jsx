@@ -1,7 +1,7 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchPlants, harvestPlant } from '../../api/plants';
-import { fetchFarmOverview } from '../../api/selfService';
+import { fetchFarmsOverview } from '../../api/selfService';
 import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
@@ -132,10 +132,18 @@ function AppPlants() {
     try {
       const [plantsPayload, farmPayload] = await Promise.all([
         fetchPlants(token),
-        fetchFarmOverview(),
+        fetchFarmsOverview(),
       ]);
       setPlants(Array.isArray(plantsPayload) ? plantsPayload : []);
-      setZones(Array.isArray(farmPayload?.farm?.zones) ? farmPayload.farm.zones : []);
+      setZones(Array.isArray(farmPayload?.farms)
+        ? farmPayload.farms.flatMap((farm) => (
+          (Array.isArray(farm.greenhouses) ? farm.greenhouses : [])
+            .map((greenhouse) => ({
+              ...greenhouse,
+              name: `${farm.name} · ${greenhouse.name}`,
+            }))
+        ))
+        : []);
     } catch (err) {
       if (isSessionExpiredError(err)) return;
       setError(err?.message || translateApp("Не удалось загрузить растения"));

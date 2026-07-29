@@ -7,14 +7,14 @@ import Button from '../../components/ui/Button';
 import { GITHUB_RELEASES_URL } from '../../domain/siteConfig';
 import {
   createCoordinator,
-  createFarm,
-  createFarmZone,
+  createGreenhouse,
+  createUserFarm,
   enablePermitJoin,
   fetchCoordinatorOverview,
   fetchCoordinators,
-  fetchFarmOverview,
+  fetchFarmsOverview,
   fetchOnboardingStatus,
-  replaceFarmZoneSlots,
+  replaceGreenhouseSlots,
   rotateCoordinatorCredentials,
 } from '../../api/selfService';
 import { trackProductGoal, trackProductGoalOnce } from '../../utils/analytics';
@@ -58,7 +58,7 @@ function Progress({ status }) {
     ['coordinator_count', translateApp("Подключение"), status?.coordinator_count > 0],
     ['coordinator_connected', translateApp("Координатор в сети"), status?.coordinator_connected],
     ['first_device_seen', translateApp("Первое устройство"), status?.first_device_seen],
-    ['zone_created', translateApp("Первая зона"), status?.zone_created],
+    ['zone_created', translateApp("Первая теплица"), status?.zone_created],
   ];
 
   return (
@@ -156,7 +156,7 @@ function AppOnboarding() {
   const [connectionMode, setConnectionMode] = useState(CONNECTION_MODES.DIRECT);
   const [platform, setPlatform] = useState(SETUP_PLATFORMS.WINDOWS);
   const [localMqtt, setLocalMqtt] = useState({ host: '', port: '1883', username: '', password: '' });
-  const [zoneName, setZoneName] = useState(translateApp("Первая зона"));
+  const [zoneName, setZoneName] = useState(translateApp("Первая теплица"));
   const [temperatureChoice, setTemperatureChoice] = useState('');
   const [lightChoice, setLightChoice] = useState('');
   const [busy, setBusy] = useState('');
@@ -287,15 +287,23 @@ function AppOnboarding() {
     setBusy('create-zone');
     setError('');
     try {
-      const currentFarm = await fetchFarmOverview();
-      if (!currentFarm?.farm) {
-        await createFarm(translateApp("Моя ферма"));
+      let currentFarms = await fetchFarmsOverview();
+      if (!currentFarms?.farms?.length) {
+        currentFarms = await createUserFarm({
+          name: translateApp("Моя ферма"),
+          enabled: true,
+        });
       }
-      const afterZone = await createFarmZone({ name: zoneName.trim(), enabled: true });
-      const zones = afterZone?.farm?.zones || [];
-      const zone = [...zones].reverse().find((item) => item.name === zoneName.trim())
-        || zones.at(-1);
-      if (!zone) throw new Error(translateApp("GrowerHub не вернул созданную зону"));
+      const farm = currentFarms.farms[0];
+      const afterGreenhouse = await createGreenhouse(
+        farm.id,
+        { name: zoneName.trim(), enabled: true },
+      );
+      const greenhouses = afterGreenhouse.farms
+        .find((item) => item.id === farm.id)?.greenhouses || [];
+      const greenhouse = [...greenhouses].reverse()
+        .find((item) => item.name === zoneName.trim()) || greenhouses.at(-1);
+      if (!greenhouse) throw new Error(translateApp("GrowerHub не вернул созданную теплицу"));
 
       const resources = buildSectionResources({
         coordinatorId: selectedCoordinator.id,
@@ -304,7 +312,7 @@ function AppOnboarding() {
         overview,
       });
       if (resources.length > 0) {
-        await replaceFarmZoneSlots(zone.id, resources);
+        await replaceGreenhouseSlots(greenhouse.id, resources);
       }
       trackProductGoal('zone_created', { step: resources.length ? 'devices_assigned' : 'zone_only' });
       await refresh({ quiet: true });
@@ -401,10 +409,10 @@ function AppOnboarding() {
           {status?.first_device_seen && !status?.zone_created ? (
             <section className="onboarding-card">
               <div className="onboarding-kicker">{translateApp("Шаг 4")}</div>
-              <h2>{translateApp("Создайте первую зону")}</h2>
-              <p>{translateApp("Достаточно названия. Найденные устройства можно сразу назначить зоне или сделать это позже.")}</p>
+              <h2>{translateApp("Создайте первую теплицу")}</h2>
+              <p>{translateApp("Достаточно названия. Найденные устройства можно сразу назначить теплице или сделать это позже.")}</p>
               <form className="onboarding-form" onSubmit={handleCreateZone}>
-                <label htmlFor="zone-name">{translateApp("Название зоны")}</label>
+                <label htmlFor="zone-name">{translateApp("Название теплицы")}</label>
                 <input id="zone-name" value={zoneName} onChange={(event) => setZoneName(event.target.value)} maxLength="120" required />
 
                 {temperatureFeatures.length > 0 ? (
@@ -423,7 +431,7 @@ function AppOnboarding() {
                   </label>
                 ) : null}
 
-                <Button type="submit" variant="primary" isLoading={busy === 'create-zone'}>{translateApp("Создать зону и открыть обзор")}</Button>
+                <Button type="submit" variant="primary" isLoading={busy === 'create-zone'}>{translateApp("Создать теплицу и открыть обзор")}</Button>
               </form>
               <HelpLink step="create_zone" />
             </section>

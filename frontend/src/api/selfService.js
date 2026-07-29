@@ -70,6 +70,78 @@ export const setZigbeeProperty = (coordinatorId, ieeeAddress, property, value) =
 
 export const fetchFarmOverview = () => requestJson('/api/automation/farm');
 
+export const fetchFarmsOverview = () => requestJson('/api/automation/farms');
+
+export const createUserFarm = (payload) => requestJson('/api/automation/farms', {
+  method: 'POST',
+  body: JSON.stringify(payload),
+});
+
+export const updateUserFarm = (farmId, payload) => requestJson(
+  `/api/automation/farms/${encodeURIComponent(farmId)}`,
+  { method: 'PUT', body: JSON.stringify(payload) },
+);
+
+export const deleteUserFarm = (farmId) => requestJson(
+  `/api/automation/farms/${encodeURIComponent(farmId)}`,
+  { method: 'DELETE' },
+);
+
+export const createGreenhouse = (farmId, payload) => requestJson(
+  `/api/automation/farms/${encodeURIComponent(farmId)}/greenhouses`,
+  { method: 'POST', body: JSON.stringify(payload) },
+);
+
+export const updateGreenhouse = (greenhouseId, payload) => requestJson(
+  `/api/automation/greenhouses/${encodeURIComponent(greenhouseId)}`,
+  { method: 'PUT', body: JSON.stringify(payload) },
+);
+
+export const deleteGreenhouse = (greenhouseId) => requestJson(
+  `/api/automation/greenhouses/${encodeURIComponent(greenhouseId)}`,
+  { method: 'DELETE' },
+);
+
+export const replaceUserFarmSlots = (farmId, slots, reassign = false) => requestJson(
+  `/api/automation/farms/${encodeURIComponent(farmId)}/slots`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({ slots, reassign }),
+  },
+);
+
+export const replaceUserFarmScenarios = (farmId, scenarios) => requestJson(
+  `/api/automation/farms/${encodeURIComponent(farmId)}/scenarios`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({ scenarios }),
+  },
+);
+
+export const replaceGreenhouseSlots = (greenhouseId, slots, reassign = false) => requestJson(
+  `/api/automation/greenhouses/${encodeURIComponent(greenhouseId)}/slots`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({ slots, reassign }),
+  },
+);
+
+export const replaceGreenhousePlants = (greenhouseId, items) => requestJson(
+  `/api/automation/greenhouses/${encodeURIComponent(greenhouseId)}/plants`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({ items }),
+  },
+);
+
+export const replaceGreenhouseScenarios = (greenhouseId, scenarios) => requestJson(
+  `/api/automation/greenhouses/${encodeURIComponent(greenhouseId)}/scenarios`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({ scenarios }),
+  },
+);
+
 export const createFarm = (name) => requestJson('/api/automation/farm', {
   method: 'POST',
   body: JSON.stringify({ name }),

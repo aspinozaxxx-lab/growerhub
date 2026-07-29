@@ -55,7 +55,7 @@ describe('admin farm dashboard model', () => {
 
   it('vozvraschaet russkie podpisi dlya rolej scenariev i statusov', () => {
     expect(resourceRoleLabel(RESOURCE_ROLES.AC_SWITCH)).toBe('Кондиционер');
-    expect(scenarioTypeLabel(SCENARIO_TYPES.BOX_CLIMATE)).toBe('Климат бокса');
+    expect(scenarioTypeLabel(SCENARIO_TYPES.BOX_CLIMATE)).toBe('Климат теплицы');
     expect(scenarioStatusLabel('active')).toBe('Активно');
     expect(scenarioDisplayStatus(null, { enabled: true })).toBe('Ожидает оценки');
     expect(scenarioDisplayStatus({ status: 'stale' }, { enabled: true })).toBe('Нет актуальных данных');

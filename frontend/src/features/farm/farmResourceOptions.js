@@ -262,18 +262,19 @@ export function resourceBindingForRole(resources, role) {
   return listOrEmpty(resources).find((resource) => resource.role === role) || null;
 }
 
-function fallbackBindingLabel(binding) {
+function fallbackBindingLabel(binding, roleLabel) {
   if (!binding) return '';
   const label = binding.label
     || binding.zigbee_ieee_address
     || (binding.native_sensor_id ? 'Native sensor' : null)
     || (binding.native_pump_id ? 'Native pump' : null)
+    || roleLabel
     || binding.role;
   const detail = binding.source_type === 'ZIGBEE_DEVICE' ? binding.zigbee_property : null;
   return [label, detail].filter(Boolean).join(' - ');
 }
 
-export function optionsWithCurrentBinding(options, binding) {
+export function optionsWithCurrentBinding(options, binding, roleLabel) {
   const currentValue = bindingOptionValue(binding);
   if (!currentValue || options.some((option) => option.value === currentValue)) {
     return options;
@@ -281,7 +282,7 @@ export function optionsWithCurrentBinding(options, binding) {
   return [
     {
       value: currentValue,
-      label: fallbackBindingLabel(binding),
+      label: fallbackBindingLabel(binding, roleLabel),
     },
     ...options,
   ];

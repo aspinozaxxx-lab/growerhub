@@ -1,7 +1,8 @@
 ﻿### feat(farm): konstruktor fermy i novaya struktura kabineta
 
-- feat(automation): dobavlena odna ferma polzovatelya, teplicy-zony, sloty resursov, readiness i atomarnoe razmeshchenie rasteniy.
-- feat(front): obnovleny glavnoe menyu, nastroiki, konstruktor fermy, obzor i kompaktnye kartochki ustroystv.
+- feat(automation): odin polzovatel mozhet imet neskolko ferm-pomeshcheniy i teplic, postroennyh na tehnicheskoy modeli room-box.
+- feat(climate): teplitsa formiruet zapros na ohlazhdenie bez kondicionera, lokalnyj kondicioner obrabatyvaet ego pervym, ostalnye zaprosy agregiruet ferma.
+- feat(front): struktura ferm i teplic upravlyaetsya vo vkladke Zony, konstruktor dobavlyaet sloty vyborochno, obzor pokazyvaet zaprosy na ohlazhdenie.
 - refactor(plants): udaleny gruppy rasteniy iz domena, REST, UI i shemy migraciej V16.
 - compatibility: admin diagnostika, automation worker, MQTT namespace i scenarnye kontrakty sohraneny.
 

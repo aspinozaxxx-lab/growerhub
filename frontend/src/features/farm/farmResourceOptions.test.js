@@ -82,6 +82,20 @@ describe('farm resource options', () => {
     expect(options[0].label).toContain('smartplug2');
   });
 
+  it('pokazyvaet ponyatnoe nazvanie roli bez ustrojstva v kataloge', () => {
+    const options = optionsWithCurrentBinding(
+      [],
+      {
+        role: 'AIR_TEMPERATURE_SENSOR',
+        source_type: 'ZIGBEE_DEVICE',
+        zigbee_property: 'temperature',
+      },
+      'Температура воздуха',
+    );
+
+    expect(options[0].label).toBe('Температура воздуха - temperature');
+  });
+
   it('matches saved native sensor bindings to catalog options without showing technical ids', () => {
     const savedNativeBinding = {
       role: 'AIR_TEMPERATURE_SENSOR',
