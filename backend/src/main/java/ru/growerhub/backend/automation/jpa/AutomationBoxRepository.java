@@ -9,6 +9,10 @@ public interface AutomationBoxRepository extends JpaRepository<AutomationBoxEnti
 
     List<AutomationBoxEntity> findAllByRoom_IdOrderByNameAscIdAsc(Integer roomId);
 
+    Optional<AutomationBoxEntity> findByRoom_Id(Integer roomId);
+
+    boolean existsByRoom_Id(Integer roomId);
+
     List<AutomationBoxEntity> findAllByRoom_UserIdOrderByNameAscIdAsc(Integer userId);
 
     Optional<AutomationBoxEntity> findByIdAndRoom_UserId(Integer id, Integer userId);

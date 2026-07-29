@@ -2,35 +2,25 @@ package ru.growerhub.backend.automation.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "automation_rooms")
-public class AutomationRoomEntity {
+@Table(name = "automation_farms")
+public class AutomationFarmEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @Column(name = "user_id", nullable = false)
+    @Column(name = "user_id", nullable = false, unique = true)
     private Integer userId;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "farm_id", nullable = false)
-    private AutomationFarmEntity farm;
 
     @Column(name = "name", nullable = false)
     private String name;
-
-    @Column(name = "enabled", nullable = false)
-    private boolean enabled;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -38,20 +28,13 @@ public class AutomationRoomEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    protected AutomationRoomEntity() {
+    protected AutomationFarmEntity() {
     }
 
-    public static AutomationRoomEntity create(
-            AutomationFarmEntity farm,
-            Integer userId,
-            String name,
-            LocalDateTime now
-    ) {
-        AutomationRoomEntity entity = new AutomationRoomEntity();
-        entity.farm = farm;
+    public static AutomationFarmEntity create(Integer userId, String name, LocalDateTime now) {
+        AutomationFarmEntity entity = new AutomationFarmEntity();
         entity.userId = userId;
         entity.name = name;
-        entity.enabled = true;
         entity.createdAt = now;
         entity.updatedAt = now;
         return entity;
@@ -65,28 +48,12 @@ public class AutomationRoomEntity {
         return userId;
     }
 
-    public AutomationFarmEntity getFarm() {
-        return farm;
-    }
-
-    public Integer getFarmId() {
-        return farm != null ? farm.getId() : null;
-    }
-
     public String getName() {
         return name;
     }
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
     }
 
     public LocalDateTime getCreatedAt() {

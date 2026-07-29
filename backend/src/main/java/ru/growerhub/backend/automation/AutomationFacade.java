@@ -30,6 +30,8 @@ import ru.growerhub.backend.automation.jpa.AutomationBoxEntity;
 import ru.growerhub.backend.automation.jpa.AutomationBoxPlantEntity;
 import ru.growerhub.backend.automation.jpa.AutomationBoxPlantRepository;
 import ru.growerhub.backend.automation.jpa.AutomationBoxRepository;
+import ru.growerhub.backend.automation.jpa.AutomationFarmEntity;
+import ru.growerhub.backend.automation.jpa.AutomationFarmRepository;
 import ru.growerhub.backend.automation.jpa.AutomationResourceBindingEntity;
 import ru.growerhub.backend.automation.jpa.AutomationResourceBindingRepository;
 import ru.growerhub.backend.automation.jpa.AutomationRoomEntity;
@@ -71,6 +73,18 @@ public class AutomationFacade {
             AutomationData.SCENARIO_LIGHT_SCHEDULE,
             AutomationData.SCENARIO_WATERING
     );
+    private static final List<String> ZONE_ROLES = List.of(
+            AutomationData.ROLE_AC_SWITCH,
+            AutomationData.ROLE_AIR_TEMPERATURE_SENSOR,
+            AutomationData.ROLE_AIR_HUMIDITY_SENSOR,
+            AutomationData.ROLE_SOIL_MOISTURE_SENSOR,
+            AutomationData.ROLE_LEAK_SENSOR,
+            AutomationData.ROLE_EXHAUST_SWITCH,
+            AutomationData.ROLE_LIGHT_SWITCH,
+            AutomationData.ROLE_WATER_PUMP
+    );
+    private static final String DEFAULT_FARM_NAME = "Моя ферма";
+    private static final String INTERNAL_BOX_NAME = "Системная секция";
     private static final String STOP_MODE_FIXED_DURATION = "fixed_duration";
     private static final String STOP_MODE_UNTIL_DRAIN = "until_drain";
     private static final String RUNTIME_WATERING_ACTIVE = "watering_session_active";
@@ -85,6 +99,7 @@ public class AutomationFacade {
 
     private final AutomationRoomRepository roomRepository;
     private final AutomationBoxRepository boxRepository;
+    private final AutomationFarmRepository farmRepository;
     private final AutomationBoxPlantRepository boxPlantRepository;
     private final AutomationResourceBindingRepository resourceRepository;
     private final AutomationScenarioConfigRepository configRepository;
@@ -101,6 +116,7 @@ public class AutomationFacade {
     public AutomationFacade(
             AutomationRoomRepository roomRepository,
             AutomationBoxRepository boxRepository,
+            AutomationFarmRepository farmRepository,
             AutomationBoxPlantRepository boxPlantRepository,
             AutomationResourceBindingRepository resourceRepository,
             AutomationScenarioConfigRepository configRepository,
@@ -116,6 +132,7 @@ public class AutomationFacade {
     ) {
         this.roomRepository = roomRepository;
         this.boxRepository = boxRepository;
+        this.farmRepository = farmRepository;
         this.boxPlantRepository = boxPlantRepository;
         this.resourceRepository = resourceRepository;
         this.configRepository = configRepository;
@@ -201,10 +218,253 @@ public class AutomationFacade {
         );
     }
 
+    @Transactional(readOnly = true)
+    public AutomationData.FarmOverview getFarmOverview(AuthenticatedUser user) {
+        requireAuthenticated(user);
+        return buildFarmOverview(user);
+    }
+
+    public AutomationData.FarmOverview createFarm(
+            AuthenticatedUser user,
+            AutomationData.SaveFarmRequest request
+    ) {
+        requireAuthenticated(user);
+        if (farmRepository.findByUserId(user.id()).isPresent()) {
+            throw new DomainException("conflict", "Ферма уже создана");
+        }
+        LocalDateTime now = nowUtc();
+        farmRepository.save(AutomationFarmEntity.create(
+                user.id(),
+                requiredName(request != null ? request.name() : null),
+                now
+        ));
+        return buildFarmOverview(user);
+    }
+
+    public AutomationData.FarmOverview updateFarm(
+            AuthenticatedUser user,
+            AutomationData.SaveFarmRequest request
+    ) {
+        AutomationFarmEntity farm = requireFarm(user);
+        farm.setName(requiredName(request != null ? request.name() : null));
+        farm.setUpdatedAt(nowUtc());
+        farmRepository.save(farm);
+        return buildFarmOverview(user);
+    }
+
+    public AutomationData.FarmOverview createFarmZone(
+            AuthenticatedUser user,
+            AutomationData.SaveRoomRequest request
+    ) {
+        AutomationFarmEntity farm = requireFarm(user);
+        LocalDateTime now = nowUtc();
+        AutomationRoomEntity room = AutomationRoomEntity.create(
+                farm,
+                user.id(),
+                requiredName(request != null ? request.name() : null),
+                now
+        );
+        if (request != null && request.enabled() != null) {
+            room.setEnabled(request.enabled());
+        }
+        roomRepository.save(room);
+        AutomationBoxEntity box = AutomationBoxEntity.create(room, INTERNAL_BOX_NAME, now);
+        box.setEnabled(room.isEnabled());
+        boxRepository.save(box);
+        return buildFarmOverview(user);
+    }
+
+    public AutomationData.FarmOverview updateFarmZone(
+            AuthenticatedUser user,
+            Integer zoneId,
+            AutomationData.SaveRoomRequest request
+    ) {
+        AutomationRoomEntity room = requireFarmZone(user, zoneId);
+        if (request != null && request.name() != null) {
+            room.setName(requiredName(request.name()));
+        }
+        if (request != null && request.enabled() != null) {
+            room.setEnabled(request.enabled());
+            AutomationBoxEntity box = requireInternalBox(room);
+            box.setEnabled(request.enabled());
+            box.setUpdatedAt(nowUtc());
+            boxRepository.save(box);
+        }
+        room.setUpdatedAt(nowUtc());
+        roomRepository.save(room);
+        return buildFarmOverview(user);
+    }
+
+    public void deleteFarmZone(AuthenticatedUser user, Integer zoneId) {
+        AutomationRoomEntity room = requireFarmZone(user, zoneId);
+        deleteRoomWithResources(room);
+    }
+
+    public AutomationData.FarmOverview replaceFarmZoneSlots(
+            AuthenticatedUser user,
+            Integer zoneId,
+            AutomationData.SaveZoneSlotsRequest request
+    ) {
+        AutomationRoomEntity room = requireFarmZone(user, zoneId);
+        AutomationBoxEntity box = requireInternalBox(room);
+        List<AutomationData.ResourceBindingRequest> slots =
+                request != null && request.slots() != null ? request.slots() : List.of();
+        validateZoneSlotRoles(slots);
+        reassignConflictingSlots(
+                user,
+                room,
+                box,
+                slots,
+                request != null && Boolean.TRUE.equals(request.reassign())
+        );
+
+        List<AutomationData.ResourceBindingRequest> roomSlots = slots.stream()
+                .filter(item -> AutomationData.ROLE_AC_SWITCH.equals(item.role()))
+                .toList();
+        List<AutomationData.ResourceBindingRequest> boxSlots = slots.stream()
+                .filter(item -> !AutomationData.ROLE_AC_SWITCH.equals(item.role()))
+                .toList();
+        Catalog catalog = buildOwnedCatalog(user);
+        Integer previousPumpId = automationPumpId(box.getId());
+        resourceRepository.deleteAllByScopeTypeAndScopeId(AutomationData.SCOPE_ROOM, room.getId());
+        resourceRepository.deleteAllByScopeTypeAndScopeId(AutomationData.SCOPE_BOX, box.getId());
+        resourceRepository.flush();
+        replaceResources(
+                AutomationData.SCOPE_ROOM,
+                room.getId(),
+                new AutomationData.SaveResourcesRequest(roomSlots),
+                catalog
+        );
+        replaceResources(
+                AutomationData.SCOPE_BOX,
+                box.getId(),
+                new AutomationData.SaveResourcesRequest(boxSlots),
+                catalog
+        );
+        Integer nextPumpId = automationPumpId(box.getId());
+        syncAffectedPumps(previousPumpId, nextPumpId);
+        return buildFarmOverview(user);
+    }
+
+    public AutomationData.FarmOverview replaceFarmZonePlants(
+            AuthenticatedUser user,
+            Integer zoneId,
+            AutomationData.SavePlantsRequest request
+    ) {
+        AutomationRoomEntity room = requireFarmZone(user, zoneId);
+        replaceZonePlants(user, requireInternalBox(room), request);
+        return buildFarmOverview(user);
+    }
+
+    public AutomationData.FarmOverview replaceFarmZoneScenarios(
+            AuthenticatedUser user,
+            Integer zoneId,
+            AutomationData.SaveScenariosRequest request
+    ) {
+        AutomationRoomEntity room = requireFarmZone(user, zoneId);
+        AutomationBoxEntity box = requireInternalBox(room);
+        List<AutomationData.ScenarioConfigRequest> scenarios =
+                request != null && request.scenarios() != null ? request.scenarios() : List.of();
+        validatePublicScenarioReadiness(room, box, scenarios, buildOwnedCatalog(user));
+        replaceScenarios(
+                AutomationData.SCOPE_BOX,
+                box.getId(),
+                BOX_SCENARIOS,
+                new AutomationData.SaveScenariosRequest(scenarios)
+        );
+        AutomationData.ScenarioConfigRequest climate = scenarios.stream()
+                .filter(item -> AutomationData.SCENARIO_BOX_CLIMATE.equals(item.scenarioType()))
+                .findFirst()
+                .orElse(null);
+        if (climate != null) {
+            Map<String, Object> roomConfig = new LinkedHashMap<>();
+            Map<String, Object> source = climate.config() != null ? climate.config() : Map.of();
+            copyIfPresent(source, roomConfig, "off_delay_minutes");
+            copyIfPresent(source, roomConfig, "min_toggle_minutes");
+            replaceScenarios(
+                    AutomationData.SCOPE_ROOM,
+                    room.getId(),
+                    ROOM_SCENARIOS,
+                    new AutomationData.SaveScenariosRequest(List.of(
+                            new AutomationData.ScenarioConfigRequest(
+                                    AutomationData.SCENARIO_ROOM_CLIMATE,
+                                    climate.enabled(),
+                                    roomConfig
+                            )
+                    ))
+            );
+        }
+        return buildFarmOverview(user);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Integer, AutomationData.ZoneReference> getPlantZones(
+            AuthenticatedUser user,
+            List<Integer> plantIds
+    ) {
+        requireAuthenticated(user);
+        if (plantIds == null || plantIds.isEmpty()) {
+            return Map.of();
+        }
+        Set<Integer> requestedIds = new HashSet<>(plantIds);
+        Map<Integer, AutomationRoomEntity> roomsByBoxId = ownedRoomsByBoxId(user);
+        Map<Integer, AutomationData.ZoneReference> result = new HashMap<>();
+        for (AutomationBoxPlantEntity binding : boxPlantRepository.findAllByPlantIdIn(plantIds)) {
+            if (!requestedIds.contains(binding.getPlantId())) {
+                continue;
+            }
+            AutomationRoomEntity room = roomsByBoxId.get(binding.getBoxId());
+            if (room != null) {
+                result.put(binding.getPlantId(), new AutomationData.ZoneReference(room.getId(), room.getName()));
+            }
+        }
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public AutomationData.ZoneReference getPlantZone(AuthenticatedUser user, Integer plantId) {
+        return getPlantZones(user, plantId != null ? List.of(plantId) : List.of()).get(plantId);
+    }
+
+    public PlantInfo createPlantWithPlacement(
+            AuthenticatedUser user,
+            PlantFacade.PlantCreateCommand command,
+            Integer zoneId
+    ) {
+        requireAuthenticated(user);
+        PlantInfo plant = plantFacade.createPlant(command, user);
+        movePlantToZone(user, plant.id(), zoneId, true);
+        return plant;
+    }
+
+    public PlantInfo updatePlantWithPlacement(
+            AuthenticatedUser user,
+            Integer plantId,
+            PlantFacade.PlantUpdateCommand command,
+            boolean zoneProvided,
+            Integer zoneId
+    ) {
+        requireAuthenticated(user);
+        PlantInfo plant = plantFacade.updatePlant(plantId, command, user);
+        if (zoneProvided) {
+            movePlantToZone(user, plant.id(), zoneId, true);
+        }
+        return plant;
+    }
+
+    public void deletePlantWithPlacement(AuthenticatedUser user, Integer plantId) {
+        requireAuthenticated(user);
+        plantFacade.requireOwnedPlantInfo(plantId, user);
+        movePlantToZone(user, plantId, null, false);
+        plantFacade.deletePlant(plantId, user);
+    }
+
     public AutomationData.Overview createRoom(AuthenticatedUser user, AutomationData.SaveRoomRequest request) {
         requireAuthenticated(user);
         LocalDateTime now = nowUtc();
+        AutomationFarmEntity farm = ensureFarm(user, DEFAULT_FARM_NAME, now);
         AutomationRoomEntity room = AutomationRoomEntity.create(
+                farm,
                 user.id(),
                 requiredName(request != null ? request.name() : null),
                 now
@@ -235,6 +495,10 @@ public class AutomationFacade {
 
     public void deleteRoom(AuthenticatedUser user, Integer roomId) {
         AutomationRoomEntity room = requireRoom(user, roomId);
+        deleteRoomWithResources(room);
+    }
+
+    private void deleteRoomWithResources(AutomationRoomEntity room) {
         List<AutomationBoxEntity> boxes = boxRepository.findAllByRoom_IdOrderByNameAscIdAsc(room.getId());
         Set<Integer> pumpIds = boxes.stream()
                 .map(AutomationBoxEntity::getId)
@@ -245,6 +509,8 @@ public class AutomationFacade {
             deleteBoxResources(box.getId());
         }
         deleteRoomResources(room.getId());
+        boxRepository.deleteAll(boxes);
+        boxRepository.flush();
         roomRepository.delete(room);
         roomRepository.flush();
         pumpIds.forEach(this::syncAutomationPump);
@@ -256,6 +522,9 @@ public class AutomationFacade {
             AutomationData.SaveBoxRequest request
     ) {
         AutomationRoomEntity room = requireRoom(user, roomId);
+        if (boxRepository.existsByRoom_Id(room.getId())) {
+            throw new DomainException("conflict", "У зоны уже есть внутренняя секция");
+        }
         LocalDateTime now = nowUtc();
         AutomationBoxEntity box = AutomationBoxEntity.create(room, requiredName(request != null ? request.name() : null), now);
         if (request != null && request.enabled() != null) {
@@ -1509,8 +1778,10 @@ public class AutomationFacade {
             }
             return;
         }
-        if (AutomationData.ROLE_AIR_TEMPERATURE_SENSOR.equals(role) || AutomationData.ROLE_SOIL_MOISTURE_SENSOR.equals(role)) {
-            String expectedType = AutomationData.ROLE_AIR_TEMPERATURE_SENSOR.equals(role) ? "AIR_TEMPERATURE" : "SOIL_MOISTURE";
+        if (AutomationData.ROLE_AIR_TEMPERATURE_SENSOR.equals(role)
+                || AutomationData.ROLE_AIR_HUMIDITY_SENSOR.equals(role)
+                || AutomationData.ROLE_SOIL_MOISTURE_SENSOR.equals(role)) {
+            String expectedType = expectedNativeSensorType(role);
             if (AutomationData.SOURCE_NATIVE_SENSOR.equals(sourceType)) {
                 AutomationData.NativeSensor sensor = catalog.sensorsById.get(item.nativeSensorId());
                 if (sensor == null || !expectedType.equals(sensor.type())) {
@@ -1616,12 +1887,524 @@ public class AutomationFacade {
         return coordinatorId + "|" + ieeeAddress;
     }
 
+    private AutomationData.FarmOverview buildFarmOverview(AuthenticatedUser user) {
+        Catalog catalog = buildOwnedCatalog(user);
+        AutomationFarmEntity farm = farmRepository.findByUserId(user.id()).orElse(null);
+        AutomationData.Settings publicSettings = new AutomationData.Settings(
+                settings.getTimezone(),
+                settings.getStaleSensorMinutes(),
+                settings.getManualOverrideMinutes(),
+                settings.getResourceOfflineMinutes()
+        );
+        if (farm == null) {
+            return new AutomationData.FarmOverview(null, catalog.toData(), List.of(), publicSettings);
+        }
+
+        List<AutomationRoomEntity> rooms = roomRepository.findAllByFarm_IdOrderByNameAscIdAsc(farm.getId());
+        Set<Integer> roomIds = rooms.stream().map(AutomationRoomEntity::getId).collect(Collectors.toSet());
+        List<AutomationBoxEntity> boxes = boxRepository.findAllByRoom_UserIdOrderByNameAscIdAsc(user.id()).stream()
+                .filter(box -> roomIds.contains(box.getRoomId()))
+                .toList();
+        Map<Integer, List<AutomationBoxEntity>> boxesByRoom = boxes.stream()
+                .collect(Collectors.groupingBy(AutomationBoxEntity::getRoomId));
+        Map<Integer, List<AutomationBoxPlantEntity>> plantsByBox = groupPlants(boxes);
+        Map<String, List<AutomationResourceBindingEntity>> resources = groupResources(rooms, boxes);
+        Map<String, List<AutomationScenarioConfigEntity>> configs = groupConfigs(rooms, boxes);
+        Map<String, List<AutomationScenarioStateEntity>> states = groupStates(rooms, boxes);
+
+        List<AutomationData.Zone> zones = new ArrayList<>();
+        for (AutomationRoomEntity room : rooms) {
+            List<AutomationBoxEntity> roomBoxes = boxesByRoom.getOrDefault(room.getId(), List.of());
+            if (roomBoxes.size() != 1) {
+                throw new DomainException("conflict", "У зоны должна быть ровно одна внутренняя секция");
+            }
+            zones.add(toZoneData(
+                    room,
+                    roomBoxes.get(0),
+                    plantsByBox,
+                    resources,
+                    configs,
+                    states,
+                    catalog
+            ));
+        }
+        AutomationData.Farm farmData = new AutomationData.Farm(
+                farm.getId(),
+                farm.getName(),
+                zones,
+                farm.getCreatedAt(),
+                farm.getUpdatedAt()
+        );
+        return new AutomationData.FarmOverview(
+                farmData,
+                catalog.toData(),
+                overviewActionLogsOwned(rooms, boxes),
+                publicSettings
+        );
+    }
+
+    private AutomationData.Zone toZoneData(
+            AutomationRoomEntity room,
+            AutomationBoxEntity box,
+            Map<Integer, List<AutomationBoxPlantEntity>> plantsByBox,
+            Map<String, List<AutomationResourceBindingEntity>> resources,
+            Map<String, List<AutomationScenarioConfigEntity>> configs,
+            Map<String, List<AutomationScenarioStateEntity>> states,
+            Catalog catalog
+    ) {
+        AutomationData.Box boxData = toBoxData(
+                box,
+                plantsByBox,
+                resources,
+                configs,
+                states,
+                catalog,
+                room.getId()
+        );
+        List<AutomationData.ResourceBinding> slots = new ArrayList<>();
+        resources.getOrDefault(key(AutomationData.SCOPE_ROOM, room.getId()), List.of()).stream()
+                .map(binding -> toBindingData(binding, catalog))
+                .forEach(slots::add);
+        slots.addAll(boxData.resources());
+        slots.sort((left, right) -> Integer.compare(
+                ZONE_ROLES.indexOf(left.role()),
+                ZONE_ROLES.indexOf(right.role())
+        ));
+
+        List<AutomationData.ScenarioConfig> roomScenarios = scenarioData(
+                AutomationData.SCOPE_ROOM,
+                room.getId(),
+                ROOM_SCENARIOS,
+                configs.getOrDefault(key(AutomationData.SCOPE_ROOM, room.getId()), List.of()),
+                catalog,
+                room.getId()
+        );
+        Map<String, Object> roomClimateConfig = roomScenarios.isEmpty()
+                ? Map.of()
+                : roomScenarios.get(0).config();
+        List<AutomationData.ScenarioConfig> publicScenarios = boxData.scenarios().stream()
+                .map(scenario -> mergeRoomClimateConfig(scenario, roomClimateConfig))
+                .toList();
+
+        List<AutomationData.ScenarioState> publicStates = new ArrayList<>(boxData.states());
+        states.getOrDefault(key(AutomationData.SCOPE_ROOM, room.getId()), List.of()).stream()
+                .map(this::toStateData)
+                .forEach(publicStates::add);
+
+        List<AutomationData.ActionLog> actions = new ArrayList<>(boxData.lastActions());
+        actionLogRepository.findTop10ByScopeTypeAndScopeIdOrderByCreatedAtDesc(
+                        AutomationData.SCOPE_ROOM,
+                        room.getId()
+                ).stream()
+                .map(this::toActionLogData)
+                .forEach(actions::add);
+        actions = actions.stream()
+                .sorted((left, right) -> right.createdAt().compareTo(left.createdAt()))
+                .limit(10)
+                .toList();
+
+        return new AutomationData.Zone(
+                room.getId(),
+                room.getName(),
+                room.isEnabled(),
+                boxData.plants(),
+                slots,
+                publicScenarios,
+                publicStates,
+                boxData.readiness(),
+                actions,
+                room.getCreatedAt(),
+                room.getUpdatedAt()
+        );
+    }
+
+    private AutomationData.ScenarioConfig mergeRoomClimateConfig(
+            AutomationData.ScenarioConfig scenario,
+            Map<String, Object> roomClimateConfig
+    ) {
+        if (!AutomationData.SCENARIO_BOX_CLIMATE.equals(scenario.scenarioType())) {
+            return scenario;
+        }
+        Map<String, Object> merged = new LinkedHashMap<>(scenario.config());
+        copyIfPresent(roomClimateConfig, merged, "off_delay_minutes");
+        copyIfPresent(roomClimateConfig, merged, "min_toggle_minutes");
+        return new AutomationData.ScenarioConfig(
+                scenario.id(),
+                scenario.scopeType(),
+                scenario.scopeId(),
+                scenario.scenarioType(),
+                scenario.enabled(),
+                merged,
+                scenario.readiness(),
+                scenario.createdAt(),
+                scenario.updatedAt()
+        );
+    }
+
+    private List<AutomationData.ActionLog> overviewActionLogsOwned(
+            List<AutomationRoomEntity> rooms,
+            List<AutomationBoxEntity> boxes
+    ) {
+        List<AutomationActionLogEntity> logs = new ArrayList<>();
+        for (AutomationRoomEntity room : rooms) {
+            logs.addAll(actionLogRepository.findTop10ByScopeTypeAndScopeIdOrderByCreatedAtDesc(
+                    AutomationData.SCOPE_ROOM,
+                    room.getId()
+            ));
+        }
+        for (AutomationBoxEntity box : boxes) {
+            logs.addAll(actionLogRepository.findTop10ByScopeTypeAndScopeIdOrderByCreatedAtDesc(
+                    AutomationData.SCOPE_BOX,
+                    box.getId()
+            ));
+        }
+        return logs.stream()
+                .sorted((left, right) -> right.getCreatedAt().compareTo(left.getCreatedAt()))
+                .limit(20)
+                .map(this::toActionLogData)
+                .toList();
+    }
+
+    private AutomationFarmEntity ensureFarm(
+            AuthenticatedUser user,
+            String defaultName,
+            LocalDateTime now
+    ) {
+        return farmRepository.findByUserId(user.id())
+                .orElseGet(() -> farmRepository.save(
+                        AutomationFarmEntity.create(user.id(), defaultName, now)
+                ));
+    }
+
+    private AutomationFarmEntity requireFarm(AuthenticatedUser user) {
+        requireAuthenticated(user);
+        return farmRepository.findByUserId(user.id())
+                .orElseThrow(() -> new DomainException("not_found", "Ферма не найдена"));
+    }
+
+    private AutomationRoomEntity requireFarmZone(AuthenticatedUser user, Integer zoneId) {
+        requireAuthenticated(user);
+        if (zoneId == null) {
+            throw new DomainException("bad_request", "Поле zone_id обязательно");
+        }
+        AutomationRoomEntity room = roomRepository.findByIdAndUserId(zoneId, user.id())
+                .orElseThrow(() -> new DomainException("not_found", "Зона не найдена"));
+        AutomationFarmEntity farm = requireFarm(user);
+        if (!Objects.equals(room.getFarmId(), farm.getId())) {
+            throw new DomainException("not_found", "Зона не найдена");
+        }
+        return room;
+    }
+
+    private AutomationBoxEntity requireInternalBox(AutomationRoomEntity room) {
+        return boxRepository.findByRoom_Id(room.getId())
+                .orElseThrow(() -> new DomainException("conflict", "Внутренняя секция зоны не найдена"));
+    }
+
+    private Map<Integer, AutomationRoomEntity> ownedRoomsByBoxId(AuthenticatedUser user) {
+        List<AutomationRoomEntity> rooms = roomRepository.findAllByUserIdOrderByNameAscIdAsc(user.id());
+        Map<Integer, AutomationRoomEntity> roomsById = rooms.stream()
+                .collect(Collectors.toMap(AutomationRoomEntity::getId, Function.identity()));
+        Map<Integer, AutomationRoomEntity> result = new HashMap<>();
+        for (AutomationBoxEntity box : boxRepository.findAllByRoom_UserIdOrderByNameAscIdAsc(user.id())) {
+            AutomationRoomEntity room = roomsById.get(box.getRoomId());
+            if (room != null) {
+                result.put(box.getId(), room);
+            }
+        }
+        return result;
+    }
+
+    private void validateZoneSlotRoles(List<AutomationData.ResourceBindingRequest> slots) {
+        Set<String> roles = new HashSet<>();
+        for (AutomationData.ResourceBindingRequest slot : slots) {
+            if (slot == null) {
+                throw new DomainException("bad_request", "Список slots не должен содержать null");
+            }
+            String role = normalizeRequired(slot.role(), "role");
+            if (!ZONE_ROLES.contains(role)) {
+                throw new DomainException("bad_request", "Роль недоступна для зоны");
+            }
+            if (!roles.add(role)) {
+                throw new DomainException("bad_request", "Роль слота должна быть уникальной");
+            }
+        }
+    }
+
+    private void reassignConflictingSlots(
+            AuthenticatedUser user,
+            AutomationRoomEntity targetRoom,
+            AutomationBoxEntity targetBox,
+            List<AutomationData.ResourceBindingRequest> slots,
+            boolean reassign
+    ) {
+        Catalog catalog = buildOwnedCatalog(user);
+        Map<String, AutomationData.ResourceBindingRequest> requestedByKey = new LinkedHashMap<>();
+        for (AutomationData.ResourceBindingRequest slot : slots) {
+            String resourceKey = physicalResourceKey(slot, catalog);
+            if (resourceKey == null) {
+                continue;
+            }
+            if (requestedByKey.putIfAbsent(resourceKey, slot) != null) {
+                throw new DomainException("bad_request", "Один физический канал нельзя назначить в несколько слотов");
+            }
+        }
+        if (requestedByKey.isEmpty()) {
+            return;
+        }
+
+        List<AutomationRoomEntity> rooms = roomRepository.findAllByUserIdOrderByNameAscIdAsc(user.id());
+        List<AutomationBoxEntity> boxes = boxRepository.findAllByRoom_UserIdOrderByNameAscIdAsc(user.id());
+        Map<Integer, AutomationRoomEntity> roomsById = rooms.stream()
+                .collect(Collectors.toMap(AutomationRoomEntity::getId, Function.identity()));
+        Map<Integer, AutomationRoomEntity> roomsByBoxId = boxes.stream()
+                .collect(Collectors.toMap(
+                        AutomationBoxEntity::getId,
+                        box -> roomsById.get(box.getRoomId())
+                ));
+        List<AutomationResourceBindingEntity> existing = new ArrayList<>();
+        List<Integer> roomIds = rooms.stream().map(AutomationRoomEntity::getId).toList();
+        List<Integer> boxIds = boxes.stream().map(AutomationBoxEntity::getId).toList();
+        if (!roomIds.isEmpty()) {
+            existing.addAll(resourceRepository.findAllByScopeTypeAndScopeIdInOrderByIdAsc(
+                    AutomationData.SCOPE_ROOM,
+                    roomIds
+            ));
+        }
+        if (!boxIds.isEmpty()) {
+            existing.addAll(resourceRepository.findAllByScopeTypeAndScopeIdInOrderByIdAsc(
+                    AutomationData.SCOPE_BOX,
+                    boxIds
+            ));
+        }
+
+        List<AutomationResourceBindingEntity> conflicts = new ArrayList<>();
+        for (AutomationResourceBindingEntity binding : existing) {
+            boolean targetBinding = AutomationData.SCOPE_ROOM.equals(binding.getScopeType())
+                    ? Objects.equals(binding.getScopeId(), targetRoom.getId())
+                    : Objects.equals(binding.getScopeId(), targetBox.getId());
+            if (targetBinding) {
+                continue;
+            }
+            String resourceKey = physicalResourceKey(binding, catalog);
+            if (resourceKey != null && requestedByKey.containsKey(resourceKey)) {
+                conflicts.add(binding);
+            }
+        }
+        if (conflicts.isEmpty()) {
+            return;
+        }
+        if (!reassign) {
+            AutomationResourceBindingEntity conflict = conflicts.get(0);
+            AutomationRoomEntity origin = AutomationData.SCOPE_ROOM.equals(conflict.getScopeType())
+                    ? roomsById.get(conflict.getScopeId())
+                    : roomsByBoxId.get(conflict.getScopeId());
+            String zoneName = origin != null ? origin.getName() : "другая зона";
+            throw new DomainException(
+                    "conflict",
+                    "Ресурс уже назначен слоту " + conflict.getRole() + " зоны «" + zoneName + "»"
+            );
+        }
+        Set<Integer> affectedPumps = conflicts.stream()
+                .map(AutomationResourceBindingEntity::getNativePumpId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        resourceRepository.deleteAll(conflicts);
+        resourceRepository.flush();
+        affectedPumps.forEach(this::syncAutomationPump);
+    }
+
+    private String physicalResourceKey(
+            AutomationData.ResourceBindingRequest request,
+            Catalog catalog
+    ) {
+        String sourceType = normalizeRequired(request.sourceType(), "source_type");
+        if (AutomationData.SOURCE_NATIVE_SENSOR.equals(sourceType)) {
+            return request.nativeSensorId() != null ? "sensor:" + request.nativeSensorId() : null;
+        }
+        if (AutomationData.SOURCE_NATIVE_PUMP.equals(sourceType)) {
+            return request.nativePumpId() != null ? "pump:" + request.nativePumpId() : null;
+        }
+        if (!AutomationData.SOURCE_ZIGBEE_DEVICE.equals(sourceType)) {
+            return null;
+        }
+        UUID coordinatorId = resolveCoordinatorPublicId(catalog, request.zigbeeCoordinatorId());
+        String ieee = blankToNull(request.zigbeeIeeeAddress());
+        String property = isSwitchRole(request.role())
+                ? defaultCommandProperty(request.role(), request.commandProperty())
+                : defaultProperty(request.role(), request.zigbeeProperty());
+        if (coordinatorId == null || ieee == null || property == null) {
+            return null;
+        }
+        return "zigbee:" + coordinatorId + ":" + ieee.toLowerCase(Locale.ROOT) + ":" + property;
+    }
+
+    private String physicalResourceKey(
+            AutomationResourceBindingEntity binding,
+            Catalog catalog
+    ) {
+        if (AutomationData.SOURCE_NATIVE_SENSOR.equals(binding.getSourceType())) {
+            return binding.getNativeSensorId() != null ? "sensor:" + binding.getNativeSensorId() : null;
+        }
+        if (AutomationData.SOURCE_NATIVE_PUMP.equals(binding.getSourceType())) {
+            return binding.getNativePumpId() != null ? "pump:" + binding.getNativePumpId() : null;
+        }
+        if (!AutomationData.SOURCE_ZIGBEE_DEVICE.equals(binding.getSourceType())) {
+            return null;
+        }
+        UUID coordinatorId = catalog.coordinatorPublicByInternal.get(binding.getZigbeeCoordinatorId());
+        String ieee = blankToNull(binding.getZigbeeIeeeAddress());
+        String property = isSwitchRole(binding.getRole())
+                ? defaultCommandProperty(binding.getRole(), binding.getCommandProperty())
+                : defaultProperty(binding.getRole(), binding.getZigbeeProperty());
+        if (coordinatorId == null || ieee == null || property == null) {
+            return null;
+        }
+        return "zigbee:" + coordinatorId + ":" + ieee.toLowerCase(Locale.ROOT) + ":" + property;
+    }
+
+    private void replaceZonePlants(
+            AuthenticatedUser user,
+            AutomationBoxEntity targetBox,
+            AutomationData.SavePlantsRequest request
+    ) {
+        List<AutomationData.BoxPlantRequest> items = boxPlantRequests(request);
+        List<Integer> plantIds = items.stream().map(AutomationData.BoxPlantRequest::plantId).toList();
+        if (plantIds.stream().anyMatch(Objects::isNull)) {
+            throw new DomainException("bad_request", "Поле plant_id обязательно");
+        }
+        if (new HashSet<>(plantIds).size() != plantIds.size()) {
+            throw new DomainException("bad_request", "Значения plant_ids должны быть уникальными");
+        }
+        items.forEach(item -> {
+            plantFacade.requireOwnedPlantInfo(item.plantId(), user);
+            if (item.rateMlPerHour() != null && item.rateMlPerHour() <= 0) {
+                throw new DomainException("bad_request", "Поле rate_ml_per_hour должно быть больше нуля");
+            }
+        });
+
+        Map<Integer, AutomationBoxPlantEntity> previousByPlant = boxPlantRepository
+                .findAllByPlantIdIn(plantIds)
+                .stream()
+                .collect(Collectors.toMap(AutomationBoxPlantEntity::getPlantId, Function.identity()));
+        Set<Integer> affectedPumps = new HashSet<>();
+        for (AutomationBoxPlantEntity binding : previousByPlant.values()) {
+            if (!Objects.equals(binding.getBoxId(), targetBox.getId())) {
+                Integer pumpId = automationPumpId(binding.getBoxId());
+                if (pumpId != null) {
+                    affectedPumps.add(pumpId);
+                }
+                boxPlantRepository.delete(binding);
+            }
+        }
+        Integer targetPumpId = automationPumpId(targetBox.getId());
+        if (targetPumpId != null) {
+            affectedPumps.add(targetPumpId);
+        }
+        boxPlantRepository.deleteAllByBox_Id(targetBox.getId());
+        boxPlantRepository.flush();
+        LocalDateTime now = nowUtc();
+        List<AutomationBoxPlantEntity> rows = items.stream()
+                .map(item -> {
+                    AutomationBoxPlantEntity previous = previousByPlant.get(item.plantId());
+                    Integer rate = item.rateMlPerHour() != null
+                            ? item.rateMlPerHour()
+                            : previous != null ? previous.getRateMlPerHour() : null;
+                    return AutomationBoxPlantEntity.create(targetBox, item.plantId(), rate, now);
+                })
+                .toList();
+        boxPlantRepository.saveAll(rows);
+        boxPlantRepository.flush();
+        affectedPumps.forEach(this::syncAutomationPump);
+    }
+
+    private void movePlantToZone(
+            AuthenticatedUser user,
+            Integer plantId,
+            Integer zoneId,
+            boolean validatePlant
+    ) {
+        if (validatePlant) {
+            plantFacade.requireOwnedPlantInfo(plantId, user);
+        }
+        AutomationBoxPlantEntity previous = boxPlantRepository.findByPlantId(plantId).orElse(null);
+        Integer previousPumpId = previous != null ? automationPumpId(previous.getBoxId()) : null;
+        Integer rate = previous != null ? previous.getRateMlPerHour() : null;
+        if (previous != null) {
+            boxPlantRepository.delete(previous);
+            boxPlantRepository.flush();
+        }
+        Integer nextPumpId = null;
+        if (zoneId != null) {
+            AutomationRoomEntity zone = requireFarmZone(user, zoneId);
+            AutomationBoxEntity box = requireInternalBox(zone);
+            boxPlantRepository.save(AutomationBoxPlantEntity.create(box, plantId, rate, nowUtc()));
+            boxPlantRepository.flush();
+            nextPumpId = automationPumpId(box.getId());
+        }
+        syncAffectedPumps(previousPumpId, nextPumpId);
+    }
+
+    private void syncAffectedPumps(Integer... pumpIds) {
+        Set<Integer> unique = java.util.Arrays.stream(pumpIds)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        unique.forEach(this::syncAutomationPump);
+    }
+
+    private void validatePublicScenarioReadiness(
+            AutomationRoomEntity room,
+            AutomationBoxEntity box,
+            List<AutomationData.ScenarioConfigRequest> scenarios,
+            Catalog catalog
+    ) {
+        Set<String> seen = new HashSet<>();
+        for (AutomationData.ScenarioConfigRequest scenario : scenarios) {
+            if (scenario == null) {
+                throw new DomainException("bad_request", "Список scenarios не должен содержать null");
+            }
+            String scenarioType = normalizeRequired(scenario.scenarioType(), "scenario_type");
+            if (!BOX_SCENARIOS.contains(scenarioType)) {
+                throw new DomainException("bad_request", "Тип сценария недоступен для зоны");
+            }
+            if (!seen.add(scenarioType)) {
+                throw new DomainException("bad_request", "Тип сценария должен быть уникальным");
+            }
+            if (!Boolean.TRUE.equals(scenario.enabled())) {
+                continue;
+            }
+            AutomationData.Readiness readiness = readinessForScenario(
+                    AutomationData.SCOPE_BOX,
+                    box.getId(),
+                    scenarioType,
+                    room.getId(),
+                    catalog
+            );
+            if (!readiness.ready()) {
+                throw new DomainException("conflict", readiness.reason());
+            }
+        }
+    }
+
+    private void copyIfPresent(Map<String, Object> source, Map<String, Object> target, String key) {
+        if (source != null && source.containsKey(key)) {
+            target.put(key, source.get(key));
+        }
+    }
+
     private Catalog buildCatalog() {
-        return buildCatalog(null);
+        return buildCatalog(null, true);
     }
 
     private Catalog buildCatalog(AuthenticatedUser user) {
-        boolean allData = user == null || user.isAdmin();
+        return buildCatalog(user, user == null || user.isAdmin());
+    }
+
+    private Catalog buildOwnedCatalog(AuthenticatedUser user) {
+        return buildCatalog(user, false);
+    }
+
+    private Catalog buildCatalog(AuthenticatedUser user, boolean allData) {
         List<AutomationData.Plant> plants = allData
                 ? plantFacade.listAdminPlants(SYSTEM_ADMIN).stream().map(this::toPlantData).toList()
                 : plantFacade.listPlants(user).stream().map(this::toPlantData).toList();
@@ -1801,6 +2584,7 @@ public class AutomationFacade {
         if (AutomationData.SCOPE_BOX.equals(scopeType)) {
             if (List.of(
                     AutomationData.ROLE_AIR_TEMPERATURE_SENSOR,
+                    AutomationData.ROLE_AIR_HUMIDITY_SENSOR,
                     AutomationData.ROLE_EXHAUST_SWITCH,
                     AutomationData.ROLE_LIGHT_SWITCH,
                     AutomationData.ROLE_LEAK_SENSOR,
@@ -2340,6 +3124,7 @@ public class AutomationFacade {
 
     private boolean isDashboardSensorRole(String role) {
         return AutomationData.ROLE_AIR_TEMPERATURE_SENSOR.equals(role)
+                || AutomationData.ROLE_AIR_HUMIDITY_SENSOR.equals(role)
                 || AutomationData.ROLE_SOIL_MOISTURE_SENSOR.equals(role);
     }
 
@@ -2351,6 +3136,9 @@ public class AutomationFacade {
         if (AutomationData.ROLE_AIR_TEMPERATURE_SENSOR.equals(role)) {
             return "temperature";
         }
+        if (AutomationData.ROLE_AIR_HUMIDITY_SENSOR.equals(role)) {
+            return "humidity";
+        }
         if (AutomationData.ROLE_SOIL_MOISTURE_SENSOR.equals(role)) {
             return "soil_moisture";
         }
@@ -2358,6 +3146,16 @@ public class AutomationFacade {
             return "water_leak";
         }
         return "state";
+    }
+
+    private String expectedNativeSensorType(String role) {
+        if (AutomationData.ROLE_AIR_TEMPERATURE_SENSOR.equals(role)) {
+            return "AIR_TEMPERATURE";
+        }
+        if (AutomationData.ROLE_AIR_HUMIDITY_SENSOR.equals(role)) {
+            return "AIR_HUMIDITY";
+        }
+        return "SOIL_MOISTURE";
     }
 
     private String defaultCommandProperty(String role, String property) {

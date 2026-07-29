@@ -25,6 +25,8 @@ import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.automation.contract.AutomationData;
 import ru.growerhub.backend.automation.jpa.AutomationBoxEntity;
 import ru.growerhub.backend.automation.jpa.AutomationBoxRepository;
+import ru.growerhub.backend.automation.jpa.AutomationFarmEntity;
+import ru.growerhub.backend.automation.jpa.AutomationFarmRepository;
 import ru.growerhub.backend.automation.jpa.AutomationRoomEntity;
 import ru.growerhub.backend.automation.jpa.AutomationRoomRepository;
 import ru.growerhub.backend.automation.jpa.AutomationScenarioConfigEntity;
@@ -58,6 +60,9 @@ class ProductAnalyticsIntegrationTest extends IntegrationTestBase {
     private AutomationBoxRepository boxRepository;
 
     @Autowired
+    private AutomationFarmRepository farmRepository;
+
+    @Autowired
     private AutomationScenarioConfigRepository scenarioRepository;
 
     @BeforeEach
@@ -81,8 +86,11 @@ class ProductAnalyticsIntegrationTest extends IntegrationTestBase {
         coordinatorRepository.save(online);
         coordinatorRepository.save(createCoordinator(started.getId(), "started", now));
 
+        AutomationFarmEntity farm = farmRepository.save(
+                AutomationFarmEntity.create(activated.getId(), "Synthetic farm", now)
+        );
         AutomationRoomEntity zone = roomRepository.save(
-                AutomationRoomEntity.create(activated.getId(), "Synthetic zone", now)
+                AutomationRoomEntity.create(farm, activated.getId(), "Synthetic zone", now)
         );
         AutomationBoxEntity section = boxRepository.save(
                 AutomationBoxEntity.create(zone, "Synthetic section", now)

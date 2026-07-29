@@ -38,6 +38,7 @@ public final class PlantDtos {
             @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
             @JsonProperty("planted_at") LocalDateTime plantedAt,
             @JsonProperty("plant_group_id") Integer plantGroupId,
+            @JsonProperty("zone_id") Integer zoneId,
             @JsonProperty("plant_type") String plantType,
             @JsonProperty("strain") String strain,
             @JsonProperty("growth_stage") String growthStage
@@ -49,6 +50,7 @@ public final class PlantDtos {
             @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
             @JsonProperty("planted_at") LocalDateTime plantedAt,
             @JsonProperty("plant_group_id") Integer plantGroupId,
+            @JsonProperty("zone_id") Integer zoneId,
             @JsonProperty("plant_type") String plantType,
             @JsonProperty("strain") String strain,
             @JsonProperty("growth_stage") String growthStage
@@ -73,6 +75,7 @@ public final class PlantDtos {
             @JsonProperty("growth_stage") String growthStage,
             @JsonProperty("user_id") Integer userId,
             @JsonProperty("plant_group") PlantGroupResponse plantGroup,
+            @JsonProperty("zone") ZoneResponse zone,
             @JsonProperty("sensors") List<SensorResponse> sensors,
             @JsonProperty("pumps") List<PumpResponse> pumps,
             @JsonProperty("watering_previous") PlantWateringPreviousResponse wateringPrevious,
@@ -90,8 +93,15 @@ public final class PlantDtos {
             @JsonProperty("growth_stage") String growthStage,
             @JsonProperty("user_id") Integer userId,
             @JsonProperty("plant_group") PlantGroupResponse plantGroup,
+            @JsonProperty("zone") ZoneResponse zone,
             @JsonProperty("sensors") List<PlantListSensorResponse> sensors,
             @JsonProperty("pumps") List<PlantListPumpResponse> pumps
+    ) {
+    }
+
+    public record ZoneResponse(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("name") String name
     ) {
     }
 

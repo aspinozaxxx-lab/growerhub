@@ -15,5 +15,10 @@ public interface AutomationResourceBindingRepository extends JpaRepository<Autom
             String role
     );
 
+    List<AutomationResourceBindingEntity> findAllByScopeTypeAndScopeIdInOrderByIdAsc(
+            String scopeType,
+            List<Integer> scopeIds
+    );
+
     void deleteAllByScopeTypeAndScopeId(String scopeType, Integer scopeId);
 }

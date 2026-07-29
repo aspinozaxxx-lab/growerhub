@@ -9,6 +9,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -31,6 +32,8 @@ import ru.growerhub.backend.advisor.AdvisorFacade;
 import ru.growerhub.backend.advisor.contract.WateringAdvice;
 import ru.growerhub.backend.advisor.contract.WateringAdviceBundle;
 import ru.growerhub.backend.advisor.contract.WateringPrevious;
+import ru.growerhub.backend.automation.AutomationFacade;
+import ru.growerhub.backend.automation.contract.AutomationData;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.pump.PumpFacade;
@@ -47,6 +50,7 @@ import ru.growerhub.backend.diagnostics.PlantTiming;
 @Validated
 public class PlantController {
     private final PlantFacade plantFacade;
+    private final AutomationFacade automationFacade;
     private final SensorFacade sensorFacade;
     private final PumpFacade pumpFacade;
     private final AdvisorFacade advisorFacade;
@@ -54,12 +58,14 @@ public class PlantController {
 
     public PlantController(
             PlantFacade plantFacade,
+            AutomationFacade automationFacade,
             SensorFacade sensorFacade,
             PumpFacade pumpFacade,
             AdvisorFacade advisorFacade,
             DeviceFacade deviceFacade
     ) {
         this.plantFacade = plantFacade;
+        this.automationFacade = automationFacade;
         this.sensorFacade = sensorFacade;
         this.pumpFacade = pumpFacade;
         this.advisorFacade = advisorFacade;
@@ -116,8 +122,12 @@ public class PlantController {
         List<PlantDtos.PlantListResponse> responses = new ArrayList<>();
         try {
             List<PlantInfo> plants = plantFacade.listPlants(user);
+            Map<Integer, AutomationData.ZoneReference> zones = automationFacade.getPlantZones(
+                    user,
+                    plants.stream().map(PlantInfo::id).toList()
+            );
             for (PlantInfo plant : plants) {
-                responses.add(toPlantListResponse(plant));
+                responses.add(toPlantListResponse(plant, zones.get(plant.id())));
             }
             return responses;
         } finally {
@@ -132,7 +142,8 @@ public class PlantController {
             @Valid @RequestBody PlantDtos.PlantCreateRequest request,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        PlantInfo plant = plantFacade.createPlant(
+        PlantInfo plant = automationFacade.createPlantWithPlacement(
+                user,
                 new PlantFacade.PlantCreateCommand(
                         request.name(),
                         request.plantedAt(),
@@ -141,7 +152,7 @@ public class PlantController {
                         request.strain(),
                         request.growthStage()
                 ),
-                user
+                request.zoneId()
         );
         return toPlantResponse(plant, user);
     }
@@ -161,8 +172,14 @@ public class PlantController {
             @RequestBody JsonNode request,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        PlantFacade.PlantUpdateCommand command = parseUpdateCommand(request);
-        PlantInfo plant = plantFacade.updatePlant(plantId, command, user);
+        ParsedPlantUpdate parsed = parseUpdateCommand(request);
+        PlantInfo plant = automationFacade.updatePlantWithPlacement(
+                user,
+                plantId,
+                parsed.command(),
+                parsed.zoneProvided(),
+                parsed.zoneId()
+        );
         return toPlantResponse(plant, user);
     }
 
@@ -171,7 +188,7 @@ public class PlantController {
             @PathVariable("plant_id") Integer plantId,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        plantFacade.deletePlant(plantId, user);
+        automationFacade.deletePlantWithPlacement(user, plantId);
         return new CommonDtos.MessageResponse("plant deleted");
     }
 
@@ -213,6 +230,7 @@ public class PlantController {
         PlantDtos.PlantGroupResponse groupResponse = group != null
                 ? new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId())
                 : null;
+        PlantDtos.ZoneResponse zoneResponse = toZoneResponse(automationFacade.getPlantZone(user, plant.id()));
         List<DeviceDtos.SensorResponse> sensors = mapSensors(sensorFacade.listByPlantId(plant.id()));
         List<DeviceDtos.PumpResponse> pumps = mapPumps(pumpFacade.listByPlantId(plant.id()));
         WateringAdviceBundle bundle = advisorFacade.getWateringAdvice(plant.id(), user);
@@ -228,6 +246,7 @@ public class PlantController {
                 plant.growthStage(),
                 plant.userId(),
                 groupResponse,
+                zoneResponse,
                 sensors,
                 pumps,
                 previousResponse,
@@ -235,7 +254,10 @@ public class PlantController {
         );
     }
 
-    private PlantDtos.PlantListResponse toPlantListResponse(PlantInfo plant) {
+    private PlantDtos.PlantListResponse toPlantListResponse(
+            PlantInfo plant,
+            AutomationData.ZoneReference zone
+    ) {
         PlantGroupInfo group = plant.plantGroup();
         PlantDtos.PlantGroupResponse groupResponse = group != null
                 ? new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId())
@@ -255,6 +277,7 @@ public class PlantController {
                 plant.growthStage(),
                 plant.userId(),
                 groupResponse,
+                toZoneResponse(zone),
                 sensors,
                 pumps
         );
@@ -395,11 +418,17 @@ public class PlantController {
         return isOnline;
     }
 
-    private PlantFacade.PlantUpdateCommand parseUpdateCommand(JsonNode request) {
+    private PlantDtos.ZoneResponse toZoneResponse(AutomationData.ZoneReference zone) {
+        return zone != null ? new PlantDtos.ZoneResponse(zone.id(), zone.name()) : null;
+    }
+
+    private ParsedPlantUpdate parseUpdateCommand(JsonNode request) {
         String name = null;
         LocalDateTime plantedAt = null;
         Integer groupId = null;
         boolean groupProvided = false;
+        Integer zoneId = null;
+        boolean zoneProvided = false;
         String plantType = null;
         String strain = null;
         String growthStage = null;
@@ -414,6 +443,10 @@ public class PlantController {
             groupProvided = true;
             groupId = intValue(request.get("plant_group_id"), "plant_group_id");
         }
+        if (request.has("zone_id")) {
+            zoneProvided = true;
+            zoneId = intValue(request.get("zone_id"), "zone_id");
+        }
         if (request.has("plant_type")) {
             plantType = textValue(request.get("plant_type"));
         }
@@ -424,15 +457,26 @@ public class PlantController {
             growthStage = textValue(request.get("growth_stage"));
         }
 
-        return new PlantFacade.PlantUpdateCommand(
-                name,
-                plantedAt,
-                groupId,
-                groupProvided,
-                plantType,
-                strain,
-                growthStage
+        return new ParsedPlantUpdate(
+                new PlantFacade.PlantUpdateCommand(
+                        name,
+                        plantedAt,
+                        groupId,
+                        groupProvided,
+                        plantType,
+                        strain,
+                        growthStage
+                ),
+                zoneProvided,
+                zoneId
         );
+    }
+
+    private record ParsedPlantUpdate(
+            PlantFacade.PlantUpdateCommand command,
+            boolean zoneProvided,
+            Integer zoneId
+    ) {
     }
 
     private LocalDateTime parseDateValue(JsonNode node, String fieldName) {

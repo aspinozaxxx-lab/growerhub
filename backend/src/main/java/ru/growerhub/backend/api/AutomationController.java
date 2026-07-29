@@ -28,6 +28,80 @@ public class AutomationController {
         return automationFacade.getOverview(user);
     }
 
+    @GetMapping("/farm")
+    public AutomationData.FarmOverview farmOverview(@AuthenticationPrincipal AuthenticatedUser user) {
+        return automationFacade.getFarmOverview(user);
+    }
+
+    @PostMapping("/farm")
+    public AutomationData.FarmOverview createFarm(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestBody AutomationData.SaveFarmRequest request
+    ) {
+        return automationFacade.createFarm(user, request);
+    }
+
+    @PutMapping("/farm")
+    public AutomationData.FarmOverview updateFarm(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestBody AutomationData.SaveFarmRequest request
+    ) {
+        return automationFacade.updateFarm(user, request);
+    }
+
+    @PostMapping("/farm/zones")
+    public AutomationData.FarmOverview createFarmZone(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestBody AutomationData.SaveRoomRequest request
+    ) {
+        return automationFacade.createFarmZone(user, request);
+    }
+
+    @PutMapping("/farm/zones/{zone_id}")
+    public AutomationData.FarmOverview updateFarmZone(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("zone_id") Integer zoneId,
+            @RequestBody AutomationData.SaveRoomRequest request
+    ) {
+        return automationFacade.updateFarmZone(user, zoneId, request);
+    }
+
+    @DeleteMapping("/farm/zones/{zone_id}")
+    public CommonDtos.MessageResponse deleteFarmZone(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("zone_id") Integer zoneId
+    ) {
+        automationFacade.deleteFarmZone(user, zoneId);
+        return new CommonDtos.MessageResponse("Zone deleted");
+    }
+
+    @PutMapping("/farm/zones/{zone_id}/slots")
+    public AutomationData.FarmOverview replaceFarmZoneSlots(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("zone_id") Integer zoneId,
+            @RequestBody AutomationData.SaveZoneSlotsRequest request
+    ) {
+        return automationFacade.replaceFarmZoneSlots(user, zoneId, request);
+    }
+
+    @PutMapping("/farm/zones/{zone_id}/plants")
+    public AutomationData.FarmOverview replaceFarmZonePlants(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("zone_id") Integer zoneId,
+            @RequestBody AutomationData.SavePlantsRequest request
+    ) {
+        return automationFacade.replaceFarmZonePlants(user, zoneId, request);
+    }
+
+    @PutMapping("/farm/zones/{zone_id}/scenarios")
+    public AutomationData.FarmOverview replaceFarmZoneScenarios(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("zone_id") Integer zoneId,
+            @RequestBody AutomationData.SaveScenariosRequest request
+    ) {
+        return automationFacade.replaceFarmZoneScenarios(user, zoneId, request);
+    }
+
     @PostMapping("/zones")
     public AutomationData.Overview createZone(
             @AuthenticationPrincipal AuthenticatedUser user,
