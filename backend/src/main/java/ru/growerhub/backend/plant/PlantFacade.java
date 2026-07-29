@@ -18,15 +18,12 @@ import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.journal.JournalFacade;
 import ru.growerhub.backend.plant.contract.AdminPlantInfo;
-import ru.growerhub.backend.plant.contract.PlantGroupInfo;
 import ru.growerhub.backend.plant.contract.PlantInfo;
 import ru.growerhub.backend.plant.contract.PlantMetricPoint;
 import ru.growerhub.backend.plant.contract.PlantMetricBucketPoint;
 import ru.growerhub.backend.plant.contract.PlantMetricType;
 import ru.growerhub.backend.plant.engine.PlantHistoryService;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
-import ru.growerhub.backend.plant.jpa.PlantGroupEntity;
-import ru.growerhub.backend.plant.jpa.PlantGroupRepository;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleRepository;
 import ru.growerhub.backend.plant.jpa.PlantRepository;
@@ -37,7 +34,6 @@ import ru.growerhub.backend.user.UserFacade;
 @Service
 public class PlantFacade {
     private final PlantRepository plantRepository;
-    private final PlantGroupRepository plantGroupRepository;
     private final PlantMetricSampleRepository plantMetricSampleRepository;
     private final PlantHistoryService plantHistoryService;
     private final JournalFacade journalFacade;
@@ -46,7 +42,6 @@ public class PlantFacade {
 
     public PlantFacade(
             PlantRepository plantRepository,
-            PlantGroupRepository plantGroupRepository,
             PlantMetricSampleRepository plantMetricSampleRepository,
             PlantHistoryService plantHistoryService,
             JournalFacade journalFacade,
@@ -54,56 +49,11 @@ public class PlantFacade {
             PlantHistorySettings historySettings
     ) {
         this.plantRepository = plantRepository;
-        this.plantGroupRepository = plantGroupRepository;
         this.plantMetricSampleRepository = plantMetricSampleRepository;
         this.plantHistoryService = plantHistoryService;
         this.journalFacade = journalFacade;
         this.userFacade = userFacade;
         this.historySettings = historySettings;
-    }
-
-    @Transactional(readOnly = true)
-    public List<PlantGroupInfo> listGroups(AuthenticatedUser user) {
-        List<PlantGroupEntity> groups = plantGroupRepository.findAllByUserId(user.id());
-        return groups.stream().map(this::toGroupInfo).toList();
-    }
-
-    @Transactional
-    public PlantGroupInfo createGroup(String name, AuthenticatedUser user) {
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        PlantGroupEntity group = PlantGroupEntity.create();
-        group.setName(name);
-        group.setUserId(requireUserId(user));
-        group.setCreatedAt(now);
-        group.setUpdatedAt(now);
-        plantGroupRepository.save(group);
-        return toGroupInfo(group);
-    }
-
-    @Transactional
-    public PlantGroupInfo updateGroup(Integer groupId, String name, AuthenticatedUser user) {
-        PlantGroupEntity group = plantGroupRepository.findByIdAndUserId(groupId, user.id()).orElse(null);
-        if (group == null) {
-            throw new DomainException("not_found", "gruppa ne naidena");
-        }
-        group.setName(name);
-        group.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
-        plantGroupRepository.save(group);
-        return toGroupInfo(group);
-    }
-
-    @Transactional
-    public void deleteGroup(Integer groupId, AuthenticatedUser user) {
-        PlantGroupEntity group = plantGroupRepository.findByIdAndUserId(groupId, user.id()).orElse(null);
-        if (group == null) {
-            throw new DomainException("not_found", "gruppa ne naidena");
-        }
-        List<PlantEntity> plants = plantRepository.findAllByUserIdAndPlantGroup_Id(user.id(), groupId);
-        for (PlantEntity plant : plants) {
-            plant.setPlantGroup(null);
-        }
-        plantRepository.saveAll(plants);
-        plantGroupRepository.delete(group);
     }
 
     @Transactional(readOnly = true)
@@ -129,7 +79,6 @@ public class PlantFacade {
         plant.setName(command.name());
         plant.setPlantedAt(plantedAt);
         plant.setUserId(requireUserId(user));
-        plant.setPlantGroup(resolvePlantGroup(command.plantGroupId()));
         plant.setPlantType(command.plantType());
         plant.setStrain(command.strain());
         plant.setGrowthStage(command.growthStage());
@@ -156,11 +105,6 @@ public class PlantFacade {
         }
         if (command.plantedAt() != null) {
             plant.setPlantedAt(command.plantedAt());
-            changed = true;
-        }
-        if (command.plantGroupProvided()) {
-            Integer groupId = command.plantGroupId();
-            plant.setPlantGroup(groupId != null ? resolvePlantGroup(groupId) : null);
             changed = true;
         }
         if (command.plantType() != null) {
@@ -213,14 +157,12 @@ public class PlantFacade {
         for (PlantEntity plant : plants) {
             Integer ownerId = plant.getUserId();
             UserFacade.UserProfile owner = ownerId != null ? userFacade.getUser(ownerId) : null;
-            PlantGroupEntity group = plant.getPlantGroup();
             responses.add(new AdminPlantInfo(
                     plant.getId(),
                     plant.getName(),
                     owner != null ? owner.email() : null,
                     owner != null ? owner.username() : null,
-                    owner != null ? owner.id() : null,
-                    group != null ? group.getName() : null
+                    owner != null ? owner.id() : null
             ));
         }
         return responses;
@@ -365,32 +307,7 @@ public class PlantFacade {
         return plant;
     }
 
-    private PlantGroupEntity resolvePlantGroup(Integer groupId) {
-        if (groupId == null) {
-            return null;
-        }
-        return plantGroupRepository.getReferenceById(groupId);
-    }
-
-    private PlantGroupInfo toGroupInfo(PlantGroupEntity group) {
-        Integer ownerId = group.getUserId();
-        return new PlantGroupInfo(
-                group.getId(),
-                group.getName(),
-                ownerId
-        );
-    }
-
     private PlantInfo toPlantInfo(PlantEntity plant) {
-        PlantGroupEntity group = plant.getPlantGroup();
-        PlantGroupInfo groupInfo = null;
-        if (group != null) {
-            groupInfo = new PlantGroupInfo(
-                    group.getId(),
-                    group.getName(),
-                    group.getUserId()
-            );
-        }
         Integer ownerId = plant.getUserId();
         return new PlantInfo(
                 plant.getId(),
@@ -400,8 +317,7 @@ public class PlantFacade {
                 plant.getPlantType(),
                 plant.getStrain(),
                 plant.getGrowthStage(),
-                ownerId,
-                groupInfo
+                ownerId
         );
     }
 
@@ -450,7 +366,6 @@ public class PlantFacade {
     public record PlantCreateCommand(
             String name,
             LocalDateTime plantedAt,
-            Integer plantGroupId,
             String plantType,
             String strain,
             String growthStage
@@ -460,8 +375,6 @@ public class PlantFacade {
     public record PlantUpdateCommand(
             String name,
             LocalDateTime plantedAt,
-            Integer plantGroupId,
-            boolean plantGroupProvided,
             String plantType,
             String strain,
             String growthStage
@@ -471,6 +384,5 @@ public class PlantFacade {
     public record PlantHarvestCommand(LocalDateTime harvestedAt, String text) {
     }
 }
-
 
 

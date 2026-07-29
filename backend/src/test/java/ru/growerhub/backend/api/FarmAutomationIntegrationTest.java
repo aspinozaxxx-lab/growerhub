@@ -352,7 +352,6 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM plant_journal_photos");
         jdbcTemplate.update("DELETE FROM plant_journal_entries");
         jdbcTemplate.update("DELETE FROM plants");
-        jdbcTemplate.update("DELETE FROM plant_groups");
         jdbcTemplate.update("DELETE FROM device_service_events");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM zigbee_device_property_readings");

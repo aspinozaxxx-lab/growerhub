@@ -13,31 +13,11 @@ public final class PlantDtos {
     private PlantDtos() {
     }
 
-    public record PlantGroupCreateRequest(
-            @NotNull
-            @JsonProperty("name") String name
-    ) {
-    }
-
-    public record PlantGroupUpdateRequest(
-            @NotNull
-            @JsonProperty("name") String name
-    ) {
-    }
-
-    public record PlantGroupResponse(
-            @JsonProperty("id") Integer id,
-            @JsonProperty("name") String name,
-            @JsonProperty("user_id") Integer userId
-    ) {
-    }
-
     public record PlantCreateRequest(
             @NotNull
             @JsonProperty("name") String name,
             @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
             @JsonProperty("planted_at") LocalDateTime plantedAt,
-            @JsonProperty("plant_group_id") Integer plantGroupId,
             @JsonProperty("zone_id") Integer zoneId,
             @JsonProperty("plant_type") String plantType,
             @JsonProperty("strain") String strain,
@@ -49,7 +29,6 @@ public final class PlantDtos {
             @JsonProperty("name") String name,
             @JsonDeserialize(using = FlexibleLocalDateTimeDeserializer.class)
             @JsonProperty("planted_at") LocalDateTime plantedAt,
-            @JsonProperty("plant_group_id") Integer plantGroupId,
             @JsonProperty("zone_id") Integer zoneId,
             @JsonProperty("plant_type") String plantType,
             @JsonProperty("strain") String strain,
@@ -74,7 +53,6 @@ public final class PlantDtos {
             @JsonProperty("strain") String strain,
             @JsonProperty("growth_stage") String growthStage,
             @JsonProperty("user_id") Integer userId,
-            @JsonProperty("plant_group") PlantGroupResponse plantGroup,
             @JsonProperty("zone") ZoneResponse zone,
             @JsonProperty("sensors") List<SensorResponse> sensors,
             @JsonProperty("pumps") List<PumpResponse> pumps,
@@ -92,7 +70,6 @@ public final class PlantDtos {
             @JsonProperty("strain") String strain,
             @JsonProperty("growth_stage") String growthStage,
             @JsonProperty("user_id") Integer userId,
-            @JsonProperty("plant_group") PlantGroupResponse plantGroup,
             @JsonProperty("zone") ZoneResponse zone,
             @JsonProperty("sensors") List<PlantListSensorResponse> sensors,
             @JsonProperty("pumps") List<PlantListPumpResponse> pumps
@@ -197,8 +174,7 @@ public final class PlantDtos {
             @JsonProperty("name") String name,
             @JsonProperty("owner_email") String ownerEmail,
             @JsonProperty("owner_username") String ownerUsername,
-            @JsonProperty("owner_id") Integer ownerId,
-            @JsonProperty("group_name") String groupName
+            @JsonProperty("owner_id") Integer ownerId
     ) {
     }
 }

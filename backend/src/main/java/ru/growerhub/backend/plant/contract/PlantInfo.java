@@ -10,7 +10,6 @@ public record PlantInfo(
         String plantType,
         String strain,
         String growthStage,
-        Integer userId,
-        PlantGroupInfo plantGroup
+        Integer userId
 ) {
 }

@@ -30,26 +30,6 @@
   font-size: 13px;
 }
 
-.plant-dialog__group-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.plant-dialog__group-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.plant-dialog__group-actions button {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #e2e8f0;
-  border-radius: 8px;
-  padding: 6px 8px;
-  cursor: pointer;
-}
-
 .plant-dialog__section {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-top: 8px;

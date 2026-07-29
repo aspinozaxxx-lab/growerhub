@@ -8,7 +8,5 @@ import ru.growerhub.backend.plant.jpa.PlantEntity;
 public interface PlantRepository extends JpaRepository<PlantEntity, Integer> {
     List<PlantEntity> findAllByUserId(Integer userId);
 
-    List<PlantEntity> findAllByUserIdAndPlantGroup_Id(Integer userId, Integer plantGroupId);
-
     Optional<PlantEntity> findByIdAndUserId(Integer id, Integer userId);
 }

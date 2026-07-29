@@ -23,11 +23,6 @@ public class AutomationController {
         this.automationFacade = automationFacade;
     }
 
-    @GetMapping
-    public AutomationData.Overview overview(@AuthenticationPrincipal AuthenticatedUser user) {
-        return automationFacade.getOverview(user);
-    }
-
     @GetMapping("/farm")
     public AutomationData.FarmOverview farmOverview(@AuthenticationPrincipal AuthenticatedUser user) {
         return automationFacade.getFarmOverview(user);
@@ -100,94 +95,5 @@ public class AutomationController {
             @RequestBody AutomationData.SaveScenariosRequest request
     ) {
         return automationFacade.replaceFarmZoneScenarios(user, zoneId, request);
-    }
-
-    @PostMapping("/zones")
-    public AutomationData.Overview createZone(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @RequestBody AutomationData.SaveRoomRequest request
-    ) {
-        return automationFacade.createRoom(user, request);
-    }
-
-    @PutMapping("/zones/{zone_id}")
-    public AutomationData.Overview updateZone(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable("zone_id") Integer zoneId,
-            @RequestBody AutomationData.SaveRoomRequest request
-    ) {
-        return automationFacade.updateRoom(user, zoneId, request);
-    }
-
-    @DeleteMapping("/zones/{zone_id}")
-    public CommonDtos.MessageResponse deleteZone(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable("zone_id") Integer zoneId
-    ) {
-        automationFacade.deleteRoom(user, zoneId);
-        return new CommonDtos.MessageResponse("Zone deleted");
-    }
-
-    @PutMapping("/zones/{zone_id}/resources")
-    public AutomationData.Overview replaceZoneResources(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable("zone_id") Integer zoneId,
-            @RequestBody AutomationData.SaveResourcesRequest request
-    ) {
-        return automationFacade.replaceRoomResources(user, zoneId, request);
-    }
-
-    @PutMapping("/zones/{zone_id}/scenarios")
-    public AutomationData.Overview replaceZoneScenarios(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable("zone_id") Integer zoneId,
-            @RequestBody AutomationData.SaveScenariosRequest request
-    ) {
-        return automationFacade.replaceRoomScenarios(user, zoneId, request);
-    }
-
-    @PostMapping("/zones/{zone_id}/sections")
-    public AutomationData.Overview createSection(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable("zone_id") Integer zoneId,
-            @RequestBody AutomationData.SaveBoxRequest request
-    ) {
-        return automationFacade.createBox(user, zoneId, request);
-    }
-
-    @PutMapping("/sections/{section_id}")
-    public AutomationData.Overview updateSection(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable("section_id") Integer sectionId,
-            @RequestBody AutomationData.SaveBoxRequest request
-    ) {
-        return automationFacade.updateBox(user, sectionId, request);
-    }
-
-    @DeleteMapping("/sections/{section_id}")
-    public CommonDtos.MessageResponse deleteSection(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable("section_id") Integer sectionId
-    ) {
-        automationFacade.deleteBox(user, sectionId);
-        return new CommonDtos.MessageResponse("Section deleted");
-    }
-
-    @PutMapping("/sections/{section_id}/resources")
-    public AutomationData.Overview replaceSectionResources(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable("section_id") Integer sectionId,
-            @RequestBody AutomationData.SaveResourcesRequest request
-    ) {
-        return automationFacade.replaceBoxResources(user, sectionId, request);
-    }
-
-    @PutMapping("/sections/{section_id}/scenarios")
-    public AutomationData.Overview replaceSectionScenarios(
-            @AuthenticationPrincipal AuthenticatedUser user,
-            @PathVariable("section_id") Integer sectionId,
-            @RequestBody AutomationData.SaveScenariosRequest request
-    ) {
-        return automationFacade.replaceBoxScenarios(user, sectionId, request);
     }
 }

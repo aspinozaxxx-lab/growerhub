@@ -159,34 +159,35 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
                 .statusCode(404)
                 .body("detail", equalTo("Координатор не найден"));
 
+        createFarm(firstToken, "Farm one");
+        createFarm(secondToken, "Farm two");
         Integer firstZone = createZone(firstToken, "Zone one");
         Integer secondZone = createZone(secondToken, "Zone two");
-        Integer firstSection = createSection(firstToken, firstZone, "Section one");
 
         given()
                 .header("Authorization", "Bearer " + firstToken)
                 .when()
-                .get("/api/automation")
+                .get("/api/automation/farm")
                 .then()
                 .statusCode(200)
-                .body("rooms", hasSize(1))
-                .body("rooms[0].id", equalTo(firstZone));
+                .body("farm.zones", hasSize(1))
+                .body("farm.zones[0].id", equalTo(firstZone));
 
         given()
                 .header("Authorization", "Bearer " + firstToken)
                 .contentType("application/json")
                 .body("{\"name\":\"stolen\"}")
                 .when()
-                .put("/api/automation/zones/" + secondZone)
+                .put("/api/automation/farm/zones/" + secondZone)
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("Помещение не найдено"));
+                .body("detail", equalTo("Зона не найдена"));
 
         given()
                 .header("Authorization", "Bearer " + firstToken)
                 .contentType("application/json")
                 .body("""
-                        {"resources":[{
+                        {"slots":[{
                           "role":"LIGHT_SWITCH",
                           "source_type":"ZIGBEE_DEVICE",
                           "zigbee_coordinator_id":"%s",
@@ -195,7 +196,38 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
                         }]}
                         """.formatted(secondCoordinator.id(), SHARED_IEEE))
                 .when()
-                .put("/api/automation/sections/" + firstSection + "/resources")
+                .put("/api/automation/farm/zones/" + firstZone + "/slots")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void legacyAutomationSelfServiceApiIsRemoved() {
+        UserEntity owner = createUser("legacy-api@example.com");
+        String token = buildToken(owner.getId());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/automation")
+                .then()
+                .statusCode(404);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(Map.of("name", "Removed"))
+                .when()
+                .post("/api/automation/zones")
+                .then()
+                .statusCode(404);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(Map.of("resources", java.util.List.of()))
+                .when()
+                .put("/api/automation/sections/1/resources")
                 .then()
                 .statusCode(404);
     }
@@ -218,30 +250,28 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
         );
     }
 
+    private void createFarm(String token, String name) {
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(Map.of("name", name))
+                .when()
+                .post("/api/automation/farm")
+                .then()
+                .statusCode(200);
+    }
+
     private Integer createZone(String token, String name) {
         return given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .body(Map.of("name", name))
                 .when()
-                .post("/api/automation/zones")
+                .post("/api/automation/farm/zones")
                 .then()
                 .statusCode(200)
                 .extract()
-                .path("rooms[0].id");
-    }
-
-    private Integer createSection(String token, Integer zoneId, String name) {
-        return given()
-                .header("Authorization", "Bearer " + token)
-                .contentType("application/json")
-                .body(Map.of("name", name))
-                .when()
-                .post("/api/automation/zones/" + zoneId + "/sections")
-                .then()
-                .statusCode(200)
-                .extract()
-                .path("rooms[0].boxes[0].id");
+                .path("farm.zones[0].id");
     }
 
     private void seedPlug(Coordinator coordinator, String state, double power) {
@@ -305,6 +335,7 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM automation_box_plants");
         jdbcTemplate.update("DELETE FROM automation_boxes");
         jdbcTemplate.update("DELETE FROM automation_rooms");
+        jdbcTemplate.update("DELETE FROM automation_farms");
         jdbcTemplate.update("DELETE FROM zigbee_device_property_readings");
         jdbcTemplate.update("DELETE FROM zigbee_device_state_events");
         jdbcTemplate.update("DELETE FROM zigbee_command_response_snapshots");

@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,7 +20,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import ru.growerhub.backend.api.ApiException;
 import ru.growerhub.backend.api.ApiValidationError;
 import ru.growerhub.backend.api.ApiValidationErrorItem;
 import ru.growerhub.backend.api.ApiValidationException;
@@ -41,7 +39,6 @@ import ru.growerhub.backend.pump.contract.PumpView;
 import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.contract.SensorView;
 import ru.growerhub.backend.plant.contract.AdminPlantInfo;
-import ru.growerhub.backend.plant.contract.PlantGroupInfo;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.plant.contract.PlantInfo;
 import ru.growerhub.backend.diagnostics.PlantTiming;
@@ -70,43 +67,6 @@ public class PlantController {
         this.pumpFacade = pumpFacade;
         this.advisorFacade = advisorFacade;
         this.deviceFacade = deviceFacade;
-    }
-
-    @GetMapping("/api/plant-groups")
-    public List<PlantDtos.PlantGroupResponse> listPlantGroups(
-            @AuthenticationPrincipal AuthenticatedUser user
-    ) {
-        return plantFacade.listGroups(user).stream()
-                .map(group -> new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId()))
-                .toList();
-    }
-
-    @PostMapping("/api/plant-groups")
-    public PlantDtos.PlantGroupResponse createPlantGroup(
-            @Valid @RequestBody PlantDtos.PlantGroupCreateRequest request,
-            @AuthenticationPrincipal AuthenticatedUser user
-    ) {
-        PlantGroupInfo group = plantFacade.createGroup(request.name(), user);
-        return new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId());
-    }
-
-    @PatchMapping("/api/plant-groups/{group_id}")
-    public PlantDtos.PlantGroupResponse updatePlantGroup(
-            @PathVariable("group_id") Integer groupId,
-            @Valid @RequestBody PlantDtos.PlantGroupUpdateRequest request,
-            @AuthenticationPrincipal AuthenticatedUser user
-    ) {
-        PlantGroupInfo group = plantFacade.updateGroup(groupId, request.name(), user);
-        return new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId());
-    }
-
-    @DeleteMapping("/api/plant-groups/{group_id}")
-    public CommonDtos.MessageResponse deletePlantGroup(
-            @PathVariable("group_id") Integer groupId,
-            @AuthenticationPrincipal AuthenticatedUser user
-    ) {
-        plantFacade.deleteGroup(groupId, user);
-        return new CommonDtos.MessageResponse("group deleted");
     }
 
     @GetMapping("/api/plants")
@@ -147,7 +107,6 @@ public class PlantController {
                 new PlantFacade.PlantCreateCommand(
                         request.name(),
                         request.plantedAt(),
-                        request.plantGroupId(),
                         request.plantType(),
                         request.strain(),
                         request.growthStage()
@@ -218,18 +177,13 @@ public class PlantController {
                     plant.name(),
                     plant.ownerEmail(),
                     plant.ownerUsername(),
-                    plant.ownerId(),
-                    plant.groupName()
+                    plant.ownerId()
             ));
         }
         return responses;
     }
 
     private PlantDtos.PlantResponse toPlantResponse(PlantInfo plant, AuthenticatedUser user) {
-        PlantGroupInfo group = plant.plantGroup();
-        PlantDtos.PlantGroupResponse groupResponse = group != null
-                ? new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId())
-                : null;
         PlantDtos.ZoneResponse zoneResponse = toZoneResponse(automationFacade.getPlantZone(user, plant.id()));
         List<DeviceDtos.SensorResponse> sensors = mapSensors(sensorFacade.listByPlantId(plant.id()));
         List<DeviceDtos.PumpResponse> pumps = mapPumps(pumpFacade.listByPlantId(plant.id()));
@@ -245,7 +199,6 @@ public class PlantController {
                 plant.strain(),
                 plant.growthStage(),
                 plant.userId(),
-                groupResponse,
                 zoneResponse,
                 sensors,
                 pumps,
@@ -258,10 +211,6 @@ public class PlantController {
             PlantInfo plant,
             AutomationData.ZoneReference zone
     ) {
-        PlantGroupInfo group = plant.plantGroup();
-        PlantDtos.PlantGroupResponse groupResponse = group != null
-                ? new PlantDtos.PlantGroupResponse(group.id(), group.name(), group.userId())
-                : null;
         List<SensorView> sensorViews = sensorFacade.listByPlantIdLight(plant.id());
         List<PumpView> pumpViews = pumpFacade.listByPlantIdLight(plant.id());
         HashMap<Integer, Boolean> onlineByDeviceId = new HashMap<>();
@@ -276,7 +225,6 @@ public class PlantController {
                 plant.strain(),
                 plant.growthStage(),
                 plant.userId(),
-                groupResponse,
                 toZoneResponse(zone),
                 sensors,
                 pumps
@@ -425,8 +373,6 @@ public class PlantController {
     private ParsedPlantUpdate parseUpdateCommand(JsonNode request) {
         String name = null;
         LocalDateTime plantedAt = null;
-        Integer groupId = null;
-        boolean groupProvided = false;
         Integer zoneId = null;
         boolean zoneProvided = false;
         String plantType = null;
@@ -438,10 +384,6 @@ public class PlantController {
         }
         if (request.has("planted_at")) {
             plantedAt = parseDateValue(request.get("planted_at"), "planted_at");
-        }
-        if (request.has("plant_group_id")) {
-            groupProvided = true;
-            groupId = intValue(request.get("plant_group_id"), "plant_group_id");
         }
         if (request.has("zone_id")) {
             zoneProvided = true;
@@ -461,8 +403,6 @@ public class PlantController {
                 new PlantFacade.PlantUpdateCommand(
                         name,
                         plantedAt,
-                        groupId,
-                        groupProvided,
                         plantType,
                         strain,
                         growthStage
@@ -527,9 +467,4 @@ public class PlantController {
         return new ApiValidationException(new ApiValidationError(List.of(item)));
     }
 
-    private void requireAdmin(AuthenticatedUser user) {
-        if (user == null || !user.isAdmin()) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Nedostatochno prav");
-        }
-    }
 }

@@ -105,7 +105,7 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
             {plant.plant_type && <span className="plant-card__tag">{getPlantTypeLabel(plant.plant_type, locale)}</span>}
             {plant.strain && <span className="plant-card__tag">{plant.strain}</span>}
           </div>
-          <Text tone="muted" className="plant-card__group">{zoneName}</Text>
+          <Text tone="muted" className="plant-card__zone">{zoneName}</Text>
         </div>
         <div className="plant-card__actions">
           <button type="button" className="plant-card__edit" onClick={handleEdit} aria-label={translateApp("Редактировать")}>

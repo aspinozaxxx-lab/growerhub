@@ -77,10 +77,6 @@ Legend: DONE = implemented, TODO = stub (501 Not Implemented)
 ## Plants
 | Method | Path | Status |
 | --- | --- | --- |
-| GET | /api/plant-groups | DONE |
-| POST | /api/plant-groups | DONE |
-| PATCH | /api/plant-groups/{group_id} | DONE |
-| DELETE | /api/plant-groups/{group_id} | DONE |
 | GET | /api/plants | DONE |
 | POST | /api/plants | DONE |
 | GET | /api/plants/{plant_id} | DONE |
@@ -95,3 +91,16 @@ Legend: DONE = implemented, TODO = stub (501 Not Implemented)
 | DELETE | /api/plants/{plant_id}/journal/{entry_id} | DONE |
 | GET | /api/journal/photos/{photo_id} | DONE |
 | GET | /api/admin/plants | DONE |
+
+## Farm automation
+| Method | Path | Status |
+| --- | --- | --- |
+| GET | /api/automation/farm | DONE |
+| POST | /api/automation/farm | DONE |
+| PUT | /api/automation/farm | DONE |
+| POST | /api/automation/farm/zones | DONE |
+| PUT | /api/automation/farm/zones/{zone_id} | DONE |
+| DELETE | /api/automation/farm/zones/{zone_id} | DONE |
+| PUT | /api/automation/farm/zones/{zone_id}/slots | DONE |
+| PUT | /api/automation/farm/zones/{zone_id}/plants | DONE |
+| PUT | /api/automation/farm/zones/{zone_id}/scenarios | DONE |

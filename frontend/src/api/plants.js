@@ -78,58 +78,6 @@ export async function harvestPlant(plantId, payload, token) {
   return response.json();
 }
 
-// Translitem: zagruzka spiska grupp rastenij.
-export async function fetchPlantGroups(token) {
-  void token;
-  const response = await apiFetch('/api/plant-groups');
-  if (!response.ok) {
-    throw new Error(translateApp("Не удалось загрузить группы растений ({{value1}})", { value1: response.status }));
-  }
-  return response.json();
-}
-
-// Translitem: sozdanie gruppy rastenij (pole name).
-export async function createPlantGroup(token, payload) {
-  void token;
-  const headers = { 'Content-Type': 'application/json' };
-  const response = await apiFetch('/api/plant-groups', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    throw new Error(translateApp("Не удалось создать группу растений ({{value1}})", { value1: response.status }));
-  }
-  return response.json();
-}
-
-// Translitem: pereimenovanie gruppy rastenij po id (pole name).
-export async function updatePlantGroup(token, groupId, payload) {
-  void token;
-  const headers = { 'Content-Type': 'application/json' };
-  const response = await apiFetch(`/api/plant-groups/${encodeURIComponent(groupId)}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    throw new Error(translateApp("Не удалось сохранить группу растений ({{value1}})", { value1: response.status }));
-  }
-  return response.json();
-}
-
-// Translitem: udalenie gruppy rastenij po id.
-export async function deletePlantGroup(token, groupId) {
-  void token;
-  const response = await apiFetch(`/api/plant-groups/${encodeURIComponent(groupId)}`, {
-    method: 'DELETE',
-  });
-  if (!response.ok) {
-    throw new Error(translateApp("Не удалось удалить группу растений ({{value1}})", { value1: response.status }));
-  }
-  return response.json();
-}
-
 // Translitem: istoriya metrik rastenija.
 export async function fetchPlantHistory(plantId, hours, metrics, token) {
   void token;

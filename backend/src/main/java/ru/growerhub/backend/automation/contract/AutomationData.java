@@ -135,7 +135,6 @@ public final class AutomationData {
             @JsonProperty("owner_email") String ownerEmail,
             @JsonProperty("owner_username") String ownerUsername,
             @JsonProperty("owner_id") Integer ownerId,
-            @JsonProperty("group_name") String groupName,
             @JsonProperty("rate_ml_per_hour") Integer rateMlPerHour
     ) {
     }
@@ -145,8 +144,7 @@ public final class AutomationData {
             @JsonProperty("name") String name,
             @JsonProperty("owner_email") String ownerEmail,
             @JsonProperty("owner_username") String ownerUsername,
-            @JsonProperty("owner_id") Integer ownerId,
-            @JsonProperty("group_name") String groupName
+            @JsonProperty("owner_id") Integer ownerId
     ) {
     }
 

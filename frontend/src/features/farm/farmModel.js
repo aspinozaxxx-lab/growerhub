@@ -152,8 +152,18 @@ export function farmOverviewToDashboardRooms(overview, innerName = 'Контур
   });
 }
 
+export function findUnassignedFarmPlants(overview) {
+  const assignedPlantIds = new Set(
+    listOrEmpty(overview?.farm?.zones).flatMap((zone) => (
+      listOrEmpty(zone?.plants).map((plant) => plant?.id).filter((id) => id != null)
+    )),
+  );
+  return listOrEmpty(overview?.resource_catalog?.plants)
+    .filter((plant) => plant?.id != null && !assignedPlantIds.has(plant.id));
+}
+
 export function countFarmWarnings(overview) {
-  return listOrEmpty(overview?.farm?.zones).reduce((total, zone) => {
+  const zoneWarnings = listOrEmpty(overview?.farm?.zones).reduce((total, zone) => {
     const offline = listOrEmpty(zone.slots)
       .filter((slot) => slot.connection_status === 'warning' || slot.ready === false)
       .length;
@@ -162,6 +172,7 @@ export function countFarmWarnings(overview) {
       .length;
     return total + offline + unavailable;
   }, 0);
+  return zoneWarnings + findUnassignedFarmPlants(overview).length;
 }
 
 export function assignmentsForZigbeeDevice(overview, device) {

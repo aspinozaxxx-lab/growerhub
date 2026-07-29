@@ -60,20 +60,18 @@ function AdminPlants() {
               <th>ID</th>
               <th>Имя</th>
               <th>Владелец</th>
-              <th>Группа</th>
             </tr>
           </thead>
           <tbody>
             {preparedPlants.length === 0 && !isLoading ? (
               <tr>
-                <td colSpan="4" className="admin-table__empty">Нет данных</td>
+                <td colSpan="3" className="admin-table__empty">Нет данных</td>
               </tr>
             ) : preparedPlants.map((plant) => (
               <tr key={plant.id}>
                 <td>{plant.id}</td>
                 <td>{plant.name}</td>
                 <td>{plant.ownerText}</td>
-                <td>{plant.group_name || ''}</td>
               </tr>
             ))}
           </tbody>

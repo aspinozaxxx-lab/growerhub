@@ -67,6 +67,47 @@
   color: #ffd48d;
 }
 
+.farm-overview-unassigned {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 18px;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid rgba(255, 193, 92, 0.45);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 193, 92, 0.08);
+}
+
+.farm-overview-unassigned > div:first-child {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.farm-overview-unassigned h3,
+.farm-overview-unassigned p {
+  margin: 0;
+}
+
+.farm-overview-unassigned p {
+  margin-top: 4px;
+  color: var(--text-3);
+}
+
+.farm-overview-unassigned__plants {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.farm-overview-unassigned__plants span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(255, 193, 92, 0.12);
+}
+
 .self-service-section,
 .zone-card,
 .device-card-v2,
@@ -476,6 +517,10 @@
 
   .farm-device-filters,
   .farm-device-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .farm-overview-unassigned {
     grid-template-columns: 1fr;
   }
 }

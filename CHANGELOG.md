@@ -1,4 +1,11 @@
-﻿### feat(front): static SEO stranicy i ruchnaya pererabotka statey
+﻿### feat(farm): konstruktor fermy i novaya struktura kabineta
+
+- feat(automation): dobavlena odna ferma polzovatelya, teplicy-zony, sloty resursov, readiness i atomarnoe razmeshchenie rasteniy.
+- feat(front): obnovleny glavnoe menyu, nastroiki, konstruktor fermy, obzor i kompaktnye kartochki ustroystv.
+- refactor(plants): udaleny gruppy rasteniy iz domena, REST, UI i shemy migraciej V16.
+- compatibility: admin diagnostika, automation worker, MQTT namespace i scenarnye kontrakty sohraneny.
+
+### feat(front): static SEO stranicy i ruchnaya pererabotka statey
 
 - feat(content): 53 statyi perepisany vruchnuyu po temam, ubrany shablonnye abzacy i dubliruyushchie SVG-shemy v nachale.
 - feat(content): vse statyi ispolzuyut odnu GrowerHub WebP-illyustraciyu, obnovleny related links i metadata klasterov.

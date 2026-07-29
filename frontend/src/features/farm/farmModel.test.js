@@ -3,8 +3,10 @@ import {
   assignmentsForZigbeeDevice,
   buildSlotOccupancy,
   createScenarioDrafts,
+  countFarmWarnings,
   filterZigbeeDevices,
   farmOverviewToDashboardRooms,
+  findUnassignedFarmPlants,
   findSlotConflicts,
   priorityDeviceMetrics,
 } from './farmModel';
@@ -74,6 +76,28 @@ describe('farm model', () => {
       scenario_type: 'ROOM_CLIMATE',
       enabled: true,
     }]);
+  });
+
+  it('pokazyvaet vse rasteniya i schitaet nerazmeschennye preduprezhdeniyami', () => {
+    const overview = {
+      farm: {
+        zones: [{
+          id: 7,
+          plants: [{ id: 3, name: 'Томат' }],
+          slots: [],
+          readiness: {},
+        }],
+      },
+      resource_catalog: {
+        plants: [
+          { id: 3, name: 'Томат' },
+          { id: 4, name: 'Розмарин' },
+        ],
+      },
+    };
+
+    expect(findUnassignedFarmPlants(overview)).toEqual([{ id: 4, name: 'Розмарин' }]);
+    expect(countFarmWarnings(overview)).toBe(1);
   });
 
   it('vozvrashchaet gotovye drafty scenariev i roli ustrojstva', () => {

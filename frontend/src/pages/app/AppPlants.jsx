@@ -58,7 +58,7 @@ function ArchivePlantCard({ plant, onOpenJournal, onOpenMetric }) {
       <div className="archive-plant-card__header">
         <div className="archive-plant-card__title">
           <Title level={3} className="archive-plant-card__name">{plant.name}</Title>
-          <Text tone="muted" className="archive-plant-card__group">
+          <Text tone="muted" className="archive-plant-card__zone">
             {plant?.zone?.name || translateApp("Без теплицы")}
           </Text>
         </div>

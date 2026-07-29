@@ -1,5 +1,4 @@
 import { apiFetch, normalizeApiErrorMessage } from './client';
-import { translateApp } from '../locales/i18n';
 
 async function requestJson(url, init = {}) {
   const headers = new Headers(init.headers || {});
@@ -69,8 +68,6 @@ export const setZigbeeProperty = (coordinatorId, ieeeAddress, property, value) =
   },
 );
 
-export const fetchAutomationOverview = () => requestJson('/api/automation');
-
 export const fetchFarmOverview = () => requestJson('/api/automation/farm');
 
 export const createFarm = (name) => requestJson('/api/automation/farm', {
@@ -120,43 +117,4 @@ export const replaceFarmZoneScenarios = (zoneId, scenarios) => requestJson(
     method: 'PUT',
     body: JSON.stringify({ scenarios }),
   },
-);
-
-export const createZone = (name) => requestJson('/api/automation/zones', {
-  method: 'POST',
-  body: JSON.stringify({ name, enabled: true }),
-});
-
-export const createZoneSection = (zoneId, name = translateApp("Основная зона")) => requestJson(
-  `/api/automation/zones/${encodeURIComponent(zoneId)}/sections`,
-  {
-    method: 'POST',
-    body: JSON.stringify({ name, enabled: true }),
-  },
-);
-
-export const replaceSectionResources = (sectionId, resources) => requestJson(
-  `/api/automation/sections/${encodeURIComponent(sectionId)}/resources`,
-  {
-    method: 'PUT',
-    body: JSON.stringify({ resources }),
-  },
-);
-
-export const replaceSectionScenarios = (sectionId, scenarios) => requestJson(
-  `/api/automation/sections/${encodeURIComponent(sectionId)}/scenarios`,
-  {
-    method: 'PUT',
-    body: JSON.stringify({ scenarios }),
-  },
-);
-
-export const updateZone = (zoneId, payload) => requestJson(
-  `/api/automation/zones/${encodeURIComponent(zoneId)}`,
-  { method: 'PUT', body: JSON.stringify(payload) },
-);
-
-export const deleteZone = (zoneId) => requestJson(
-  `/api/automation/zones/${encodeURIComponent(zoneId)}`,
-  { method: 'DELETE' },
 );

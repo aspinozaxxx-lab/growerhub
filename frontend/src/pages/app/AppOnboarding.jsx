@@ -7,13 +7,14 @@ import Button from '../../components/ui/Button';
 import { GITHUB_RELEASES_URL } from '../../domain/siteConfig';
 import {
   createCoordinator,
-  createZone,
-  createZoneSection,
+  createFarm,
+  createFarmZone,
   enablePermitJoin,
   fetchCoordinatorOverview,
   fetchCoordinators,
+  fetchFarmOverview,
   fetchOnboardingStatus,
-  replaceSectionResources,
+  replaceFarmZoneSlots,
   rotateCoordinatorCredentials,
 } from '../../api/selfService';
 import { trackProductGoal, trackProductGoalOnce } from '../../utils/analytics';
@@ -286,22 +287,24 @@ function AppOnboarding() {
     setBusy('create-zone');
     setError('');
     try {
-      const afterZone = await createZone(zoneName.trim());
-      const zone = [...(afterZone.rooms || [])].reverse().find((item) => item.name === zoneName.trim())
-        || afterZone.rooms?.at(-1);
+      const currentFarm = await fetchFarmOverview();
+      if (!currentFarm?.farm) {
+        await createFarm(translateApp("Моя ферма"));
+      }
+      const afterZone = await createFarmZone({ name: zoneName.trim(), enabled: true });
+      const zones = afterZone?.farm?.zones || [];
+      const zone = [...zones].reverse().find((item) => item.name === zoneName.trim())
+        || zones.at(-1);
       if (!zone) throw new Error(translateApp("GrowerHub не вернул созданную зону"));
 
-      const afterSection = await createZoneSection(zone.id);
-      const updatedZone = afterSection.rooms?.find((item) => item.id === zone.id);
-      const section = updatedZone?.boxes?.at(-1);
       const resources = buildSectionResources({
         coordinatorId: selectedCoordinator.id,
         temperatureChoice,
         lightChoice,
         overview,
       });
-      if (section && resources.length > 0) {
-        await replaceSectionResources(section.id, resources);
+      if (resources.length > 0) {
+        await replaceFarmZoneSlots(zone.id, resources);
       }
       trackProductGoal('zone_created', { step: resources.length ? 'devices_assigned' : 'zone_only' });
       await refresh({ quiet: true });

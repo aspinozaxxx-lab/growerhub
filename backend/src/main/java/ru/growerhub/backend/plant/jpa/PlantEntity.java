@@ -5,12 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "plants")
@@ -41,11 +37,6 @@ public class PlantEntity {
 
     @Column(name = "harvested_at", nullable = true)
     private LocalDateTime harvestedAt;
-
-    @ManyToOne
-    @JoinColumn(name = "plant_group_id", nullable = true)
-    @OnDelete(action = OnDeleteAction.SET_NULL)
-    private PlantGroupEntity plantGroup;
 
     @Column(name = "created_at", nullable = true)
     private LocalDateTime createdAt;
@@ -118,14 +109,6 @@ public class PlantEntity {
 
     public void setHarvestedAt(LocalDateTime harvestedAt) {
         this.harvestedAt = harvestedAt;
-    }
-
-    public PlantGroupEntity getPlantGroup() {
-        return plantGroup;
-    }
-
-    public void setPlantGroup(PlantGroupEntity plantGroup) {
-        this.plantGroup = plantGroup;
     }
 
     public LocalDateTime getCreatedAt() {

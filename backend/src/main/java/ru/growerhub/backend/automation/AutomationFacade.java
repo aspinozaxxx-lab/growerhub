@@ -2484,8 +2484,7 @@ public class AutomationFacade {
                 plant.name(),
                 plant.ownerEmail(),
                 plant.ownerUsername(),
-                plant.ownerId(),
-                plant.groupName()
+                plant.ownerId()
         );
     }
 
@@ -2495,8 +2494,7 @@ public class AutomationFacade {
                 plant.name(),
                 null,
                 null,
-                plant.userId(),
-                plant.plantGroup() != null ? plant.plantGroup().name() : null
+                plant.userId()
         );
     }
 
@@ -2513,7 +2511,6 @@ public class AutomationFacade {
                 plant.ownerEmail(),
                 plant.ownerUsername(),
                 plant.ownerId(),
-                plant.groupName(),
                 binding.getRateMlPerHour()
         );
     }

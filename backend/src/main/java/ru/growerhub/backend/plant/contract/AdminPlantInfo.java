@@ -5,8 +5,6 @@ public record AdminPlantInfo(
         String name,
         String ownerEmail,
         String ownerUsername,
-        Integer ownerId,
-        String groupName
+        Integer ownerId
 ) {
 }
-

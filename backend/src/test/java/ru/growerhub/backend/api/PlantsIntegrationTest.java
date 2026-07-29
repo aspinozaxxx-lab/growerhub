@@ -3,7 +3,9 @@
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -39,8 +41,6 @@ import ru.growerhub.backend.journal.jpa.PlantJournalPhotoRepository;
 import ru.growerhub.backend.journal.jpa.PlantJournalWateringDetailsEntity;
 import ru.growerhub.backend.journal.jpa.PlantJournalWateringDetailsRepository;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
-import ru.growerhub.backend.plant.jpa.PlantGroupEntity;
-import ru.growerhub.backend.plant.jpa.PlantGroupRepository;
 import ru.growerhub.backend.plant.jpa.PlantRepository;
 import ru.growerhub.backend.pump.jpa.PumpEntity;
 import ru.growerhub.backend.pump.jpa.PumpPlantBindingEntity;
@@ -67,9 +67,6 @@ class PlantsIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private PlantGroupRepository plantGroupRepository;
 
     @Autowired
     private PlantRepository plantRepository;
@@ -110,103 +107,51 @@ class PlantsIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void plantGroupsCrudAndValidation() {
+    void plantGroupApiIsRemoved() {
         UserEntity owner = createUser("group-owner@example.com", "user");
         String token = buildToken(owner.getId());
 
         given()
                 .header("Authorization", "Bearer " + token)
-                .contentType("application/json")
-                .body(Map.of("name", "My Group"))
-                .when()
-                .post("/api/plant-groups")
-                .then()
-                .statusCode(200)
-                .body("name", equalTo("My Group"))
-                .body("user_id", equalTo(owner.getId()));
-
-        given()
-                .header("Authorization", "Bearer " + token)
                 .when()
                 .get("/api/plant-groups")
                 .then()
-                .statusCode(200)
-                .body("size()", equalTo(1));
-
-        PlantGroupEntity stored = plantGroupRepository.findAll().get(0);
+                .statusCode(404);
 
         given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
-                .body(Map.of("name", "Updated"))
-                .when()
-                .patch("/api/plant-groups/" + stored.getId())
-                .then()
-                .statusCode(200)
-                .body("name", equalTo("Updated"));
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .when()
-                .delete("/api/plant-groups/" + stored.getId())
-                .then()
-                .statusCode(200)
-                .body("message", equalTo("group deleted"));
-
-        given()
-                .header("Authorization", "Bearer " + token)
-                .contentType("application/json")
-                .body(new HashMap<>())
+                .body(Map.of("name", "Removed"))
                 .when()
                 .post("/api/plant-groups")
                 .then()
-                .statusCode(422);
-    }
-
-    @Test
-    void plantGroupsNotFoundDetails() {
-        UserEntity owner = createUser("group-missing@example.com", "user");
-        String token = buildToken(owner.getId());
+                .statusCode(404);
 
         given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
-                .body(Map.of("name", "Missing"))
+                .body(Map.of("name", "Removed"))
                 .when()
-                .patch("/api/plant-groups/99999")
+                .patch("/api/plant-groups/1")
                 .then()
-                .statusCode(404)
-                .body("detail", equalTo("gruppa ne naidena"));
+                .statusCode(404);
 
         given()
                 .header("Authorization", "Bearer " + token)
                 .when()
-                .delete("/api/plant-groups/99999")
+                .delete("/api/plant-groups/1")
                 .then()
-                .statusCode(404)
-                .body("detail", equalTo("gruppa ne naidena"));
+                .statusCode(404);
     }
 
     @Test
-    void plantGroupsRequireAuth() {
-        given()
-                .when()
-                .get("/api/plant-groups")
-                .then()
-                .statusCode(401)
-                .header("WWW-Authenticate", "Bearer")
-                .body("detail", equalTo("Not authenticated"));
-    }
-
-    @Test
-    void plantCrudAndPatchAllowsNullGroup() {
+    void plantCrudHasNullableZoneAndNoGroupContract() {
         UserEntity owner = createUser("plant-owner@example.com", "user");
         String token = buildToken(owner.getId());
-        PlantGroupEntity group = createGroup(owner, "Group A");
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("name", "Basil");
-        payload.put("plant_group_id", group.getId());
+        payload.put("zone_id", null);
         payload.put("plant_type", "flowering");
         payload.put("strain", "Mint");
         payload.put("growth_stage", "seedling");
@@ -220,23 +165,26 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(200)
                 .body("user_id", equalTo(owner.getId()))
+                .body("zone", nullValue())
+                .body("$", not(hasKey("plant_group")))
                 .extract()
                 .response();
 
         Integer plantId = create.jsonPath().getInt("id");
 
-        Map<String, Object> clearGroup = new HashMap<>();
-        clearGroup.put("plant_group_id", null);
+        Map<String, Object> keepUnassigned = new HashMap<>();
+        keepUnassigned.put("zone_id", null);
 
         given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
-                .body(clearGroup)
+                .body(keepUnassigned)
                 .when()
                 .patch("/api/plants/" + plantId)
                 .then()
                 .statusCode(200)
-                .body("plant_group", nullValue());
+                .body("zone", nullValue())
+                .body("$", not(hasKey("plant_group")));
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -813,15 +761,6 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         return userRepository.save(user);
     }
 
-    private PlantGroupEntity createGroup(UserEntity owner, String name) {
-        PlantGroupEntity group = PlantGroupEntity.create();
-        group.setName(name);
-        group.setUserId(owner != null ? owner.getId() : null);
-        group.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
-        group.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
-        return plantGroupRepository.save(group);
-    }
-
     private PlantEntity createPlant(UserEntity owner, String name) {
         PlantEntity plant = PlantEntity.create();
         plant.setName(name);
@@ -862,7 +801,6 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM plant_journal_entries");
         jdbcTemplate.update("DELETE FROM plant_journal_photos");
         jdbcTemplate.update("DELETE FROM plants");
-        jdbcTemplate.update("DELETE FROM plant_groups");
         jdbcTemplate.update("DELETE FROM device_service_events");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM user_auth_identities");
@@ -870,7 +808,6 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
-
 
 
 

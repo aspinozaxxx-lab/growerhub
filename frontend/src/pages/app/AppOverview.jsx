@@ -8,6 +8,7 @@ import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext
 import {
   countFarmWarnings,
   farmOverviewToDashboardRooms,
+  findUnassignedFarmPlants,
   listOrEmpty,
 } from '../../features/farm/farmModel';
 import { FarmDashboardRooms } from './admin/AdminFarmDashboard';
@@ -58,8 +59,10 @@ function AppOverview() {
     () => farmOverviewToDashboardRooms(overview, translateApp("Контур теплицы")),
     [overview],
   );
-  const plantCount = zones.reduce((total, zone) => total + listOrEmpty(zone.plants).length, 0);
   const catalog = overview?.resource_catalog || {};
+  const plants = listOrEmpty(catalog.plants);
+  const unassignedPlants = findUnassignedFarmPlants(overview);
+  const plantCount = plants.length;
   const deviceCount = listOrEmpty(catalog.native_devices).length
     + listOrEmpty(catalog.zigbee_devices).length;
   const warningCount = countFarmWarnings(overview);
@@ -123,6 +126,26 @@ function AppOverview() {
               <strong>{warningCount}</strong>
             </article>
           </div>
+
+          {unassignedPlants.length > 0 ? (
+            <section className="farm-overview-unassigned">
+              <div>
+                <AlertTriangle size={20} aria-hidden="true" />
+                <div>
+                  <h3>{translateApp("Растения без теплицы")}</h3>
+                  <p>{translateApp("Разместите растения, чтобы включить для них автоматизацию.")}</p>
+                </div>
+              </div>
+              <div className="farm-overview-unassigned__plants">
+                {unassignedPlants.map((plant) => (
+                  <span key={plant.id}>{plant.name || translateApp("Растение без названия")}</span>
+                ))}
+              </div>
+              <Link className="gh-btn gh-btn--secondary gh-btn--md" to="/app/farm/">
+                {translateApp("Разместить в конструкторе")}
+              </Link>
+            </section>
+          ) : null}
 
           {zones.length === 0 ? (
             <AppPageState kind="empty" title={translateApp("Добавьте первую теплицу")}>
