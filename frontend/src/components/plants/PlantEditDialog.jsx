@@ -13,9 +13,6 @@ import {
   createPlant,
   updatePlant,
   deletePlant,
-  createPlantGroup,
-  updatePlantGroup,
-  deletePlantGroup,
 } from '../../api/plants';
 import FormField from '../ui/FormField';
 import Modal from '../ui/Modal';
@@ -23,12 +20,12 @@ import Button from '../ui/Button';
 import './PlantEditDialog.css';
 import { getCurrentLocale, translateApp } from '../../locales/i18n';
 
-// Translitem: PlantEditDialog - dialog CRUD rastenija (polya i gruppy); privyazki vypolnyayutsya v ustrojstvah.
+// Translitem: PlantEditDialog - dialog CRUD rastenija s atomarnym vyborom teplicy.
 function PlantEditDialog({
   isOpen,
   mode,
   plant,
-  plantGroups,
+  zones,
   onClose,
   onSaved,
 }) {
@@ -39,9 +36,8 @@ function PlantEditDialog({
     strain: '',
     growth_stage: '',
     planted_at: '',
-    plant_group_id: null,
+    zone_id: null,
   });
-  const [localGroups, setLocalGroups] = useState([]);
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -73,7 +69,6 @@ function PlantEditDialog({
     if (!isOpen) return;
     setError(null);
     setIsSaving(false);
-    setLocalGroups(Array.isArray(plantGroups) ? plantGroups : []);
     if (mode === 'edit' && plant) {
       setLocalPlant({
         name: plant.name || '',
@@ -81,7 +76,7 @@ function PlantEditDialog({
         strain: plant.strain || '',
         growth_stage: plant.growth_stage || '',
         planted_at: toLocalDateTimeInput(plant.planted_at),
-        plant_group_id: plant.plant_group?.id ?? plant.plant_group_id ?? null,
+        zone_id: plant.zone?.id ?? plant.zone_id ?? null,
       });
     } else {
       setLocalPlant({
@@ -90,19 +85,19 @@ function PlantEditDialog({
         strain: '',
         growth_stage: '',
         planted_at: '',
-        plant_group_id: null,
+        zone_id: null,
       });
     }
-  }, [isOpen, mode, plant, plantGroups]);
+  }, [isOpen, mode, plant]);
 
   if (!isOpen) {
     return null;
   }
 
-  const handleGroupChange = (value) => {
+  const handleZoneChange = (value) => {
     setLocalPlant((prev) => ({
       ...prev,
-      plant_group_id: value === '' || value === null ? null : Number(value),
+      zone_id: value === '' || value === null ? null : Number(value),
     }));
   };
 
@@ -120,53 +115,6 @@ function PlantEditDialog({
     });
   };
 
-  // Translitem: operacii nad gruppami vnutri dialoga (roditel potom refetch cherez onSaved()).
-  const handleCreateGroup = async () => {
-    const name = window.prompt(translateApp("Введите название новой группы"));
-    if (!name || !name.trim()) return;
-    try {
-      const created = await createPlantGroup(token, { name: name.trim() });
-      setLocalGroups((prev) => [...prev, created]);
-      setLocalPlant((prev) => ({ ...prev, plant_group_id: created.id }));
-    } catch (err) {
-      if (isSessionExpiredError(err)) return;
-      setError(err?.message || translateApp("Не удалось создать группу"));
-    }
-  };
-
-  const handleRenameGroup = async () => {
-    const groupId = localPlant.plant_group_id;
-    if (!groupId) {
-      window.alert(translateApp("Выберите группу для переименования"));
-      return;
-    }
-    const current = localGroups.find((g) => g.id === groupId);
-    const newName = window.prompt(translateApp("Новое название группы"), current?.name || '');
-    if (!newName || !newName.trim()) return;
-    try {
-      const updated = await updatePlantGroup(token, groupId, { name: newName.trim() });
-      setLocalGroups((prev) => prev.map((g) => (g.id === groupId ? updated : g)));
-    } catch (err) {
-      if (isSessionExpiredError(err)) return;
-      setError(err?.message || translateApp("Не удалось переименовать группу"));
-    }
-  };
-
-  const handleDeleteGroup = async () => {
-    const groupId = localPlant.plant_group_id;
-    if (!groupId) return;
-    const confirmed = window.confirm(translateApp("Удалить группу?"));
-    if (!confirmed) return;
-    try {
-      await deletePlantGroup(token, groupId);
-      setLocalGroups((prev) => prev.filter((g) => g.id !== groupId));
-      setLocalPlant((prev) => ({ ...prev, plant_group_id: null }));
-    } catch (err) {
-      if (isSessionExpiredError(err)) return;
-      setError(err?.message || translateApp("Не удалось удалить группу"));
-    }
-  };
-
   const handleSave = async () => {
     if (!localPlant.name.trim()) {
       setError(translateApp("Укажите название растения"));
@@ -179,7 +127,7 @@ function PlantEditDialog({
       plant_type: localPlant.plant_type || null,
       strain: localPlant.strain || null,
       growth_stage: localPlant.growth_stage || null,
-      plant_group_id: localPlant.plant_group_id ?? null,
+      zone_id: localPlant.zone_id ?? null,
     };
     const plantedIso = toIsoString(localPlant.planted_at);
     if (plantedIso) {
@@ -290,25 +238,18 @@ function PlantEditDialog({
           />
         </FormField>
 
-        <div className="plant-dialog__group-row">
-          <FormField label={translateApp("Группа")} htmlFor="plant-group" className="plant-dialog__field">
-            <select
-              id="plant-group"
-              value={localPlant.plant_group_id ?? ''}
-              onChange={(e) => handleGroupChange(e.target.value)}
-            >
-              <option value="">{translateApp("Без группы")}</option>
-              {localGroups.map((group) => (
-                <option key={group.id} value={group.id}>{group.name}</option>
-              ))}
-            </select>
-          </FormField>
-          <div className="plant-dialog__group-actions">
-            <button type="button" onClick={handleCreateGroup}>{translateApp("Создать")}</button>
-            <button type="button" onClick={handleRenameGroup}>{translateApp("Переименовать")}</button>
-            <button type="button" onClick={handleDeleteGroup}>{translateApp("Удалить")}</button>
-          </div>
-        </div>
+        <FormField label={translateApp("Теплица")} htmlFor="plant-zone" className="plant-dialog__field">
+          <select
+            id="plant-zone"
+            value={localPlant.zone_id ?? ''}
+            onChange={(e) => handleZoneChange(e.target.value)}
+          >
+            <option value="">{translateApp("Без теплицы")}</option>
+            {(Array.isArray(zones) ? zones : []).map((zone) => (
+              <option key={zone.id} value={zone.id}>{zone.name}</option>
+            ))}
+          </select>
+        </FormField>
       </div>
     </Modal>
   );

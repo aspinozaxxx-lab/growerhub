@@ -15,7 +15,7 @@ describe('EditDeviceModal', () => {
           sensors: [{ id: 2, label: 'Почва', type: 'SOIL_MOISTURE', bound_plants: [] }],
           pumps: [{ id: 3, label: 'Скрытый насос', bound_plants: [] }],
         }}
-        plants={[{ id: 10, name: 'Томат', plant_group: { name: 'Овощи' } }]}
+        plants={[{ id: 10, name: 'Томат', zone: { name: 'Теплица 1' } }]}
         onClose={vi.fn()}
         onSaved={vi.fn()}
         token="token"

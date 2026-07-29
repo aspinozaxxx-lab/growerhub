@@ -8,20 +8,11 @@ import {
   translateApp,
 } from '../../locales/i18n';
 import { translateCommon } from '../../locales/i18n';
-
-const navItems = [
-  { to: '/app/', label: 'Обзор', icon: '⌂', end: true },
-  { to: '/app/connections/', label: 'Подключения', icon: '⇄' },
-  { to: '/app/zones/', label: 'Зоны', icon: '▦' },
-  { to: '/app/devices/', label: 'Устройства', icon: '◉' },
-  { to: '/app/automations/', label: 'Автоматизации', icon: '⚡' },
-  { to: '/app/profile/', label: 'Профиль', icon: '○' },
-  { to: '/app/plants/', label: 'Растения', icon: '♧' },
-];
+import { APP_NAV_ITEMS } from '../../pages/app/appNavigation';
 
 // Funkciya otobrazheniya punktov menyu, ispolzuetsya i v sidebar, i v nizhnej paneli
 const renderNavItems = () =>
-  navItems.map((item) => (
+  APP_NAV_ITEMS.map((item) => (
     <NavLink
       key={item.to}
       to={item.to}

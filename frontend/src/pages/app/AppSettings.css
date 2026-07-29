@@ -1,0 +1,50 @@
+.app-settings {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.app-settings__tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--border-1);
+  border-radius: 14px;
+  background: var(--surface-1);
+}
+
+.app-settings__tab {
+  min-width: 0;
+  padding: 10px 8px;
+  border-radius: 10px;
+  color: var(--text-2);
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.app-settings__tab:hover {
+  color: var(--text-1);
+  background: var(--surface-2);
+}
+
+.app-settings__tab.is-active {
+  color: var(--text-1);
+  background: rgba(95, 212, 145, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(95, 212, 145, 0.35);
+}
+
+.app-settings__content {
+  min-width: 0;
+}
+
+.app-settings__content .app-page-header:first-child {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .app-settings__tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

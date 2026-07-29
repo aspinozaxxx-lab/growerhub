@@ -1,0 +1,353 @@
+.farm-constructor {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.farm-constructor__intro {
+  max-width: 920px;
+  margin: 0;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+.farm-constructor__notice {
+  padding: 11px 14px;
+  border: 1px solid rgba(95, 212, 145, 0.4);
+  border-radius: 12px;
+  color: #9de8ba;
+  background: rgba(95, 212, 145, 0.1);
+}
+
+.farm-constructor__empty,
+.farm-constructor__farm,
+.farm-constructor__create-zone,
+.farm-zone-editor {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--border-1);
+  border-radius: 16px;
+  background: var(--surface-1);
+  box-shadow: var(--shadow-1);
+}
+
+.farm-constructor__empty {
+  display: grid;
+  gap: 12px;
+}
+
+.farm-constructor__empty h2,
+.farm-constructor__empty p {
+  margin: 0;
+}
+
+.farm-constructor__empty p {
+  color: var(--text-2);
+}
+
+.farm-constructor__inline-form,
+.farm-constructor__farm,
+.farm-constructor__create-zone {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.farm-constructor__inline-form label,
+.farm-constructor__farm label,
+.farm-constructor__create-zone label {
+  display: grid;
+  flex: 1 1 260px;
+  gap: 6px;
+  min-width: 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.farm-constructor__inline-form input,
+.farm-constructor__farm input,
+.farm-constructor__create-zone input,
+.farm-zone-editor input,
+.farm-zone-editor select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-1);
+  border-radius: 9px;
+  color: var(--text-1);
+  background: var(--surface-2);
+}
+
+.farm-constructor__farm > div {
+  display: grid;
+  flex: 1 1 220px;
+  gap: 3px;
+}
+
+.farm-constructor__farm > div > span,
+.farm-constructor__farm small {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.farm-constructor__farm strong {
+  font-size: 20px;
+}
+
+.farm-constructor__zones {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.farm-zone-editor {
+  display: grid;
+  gap: 16px;
+}
+
+.farm-zone-editor.is-disabled {
+  opacity: 0.78;
+}
+
+.farm-zone-editor__header,
+.farm-zone-editor__section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.farm-zone-editor__header h2,
+.farm-zone-editor__section h3,
+.farm-zone-editor__section p {
+  margin: 0;
+}
+
+.farm-zone-editor__header > div:first-child > span {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.farm-zone-editor__zone-fields {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 1 1 520px;
+  flex-wrap: wrap;
+}
+
+.farm-zone-editor__zone-fields > input {
+  flex: 1 1 190px;
+  max-width: 360px;
+}
+
+.farm-zone-editor__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.farm-zone-editor__toggle input,
+.farm-scenario__header input,
+.farm-zone-plant input[type="checkbox"] {
+  width: 17px;
+  min-height: 17px;
+  margin: 0;
+}
+
+.farm-zone-editor__section {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-1);
+}
+
+.farm-zone-editor__section-heading p {
+  margin-top: 4px;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.farm-slots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.farm-slot {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border-1);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.farm-slot__label {
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.farm-slot__status {
+  overflow-wrap: anywhere;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.farm-slot__status.is-warning {
+  color: #ffd48d;
+}
+
+.farm-zone-plants {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.farm-zone-plant {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 150px);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border-1);
+  border-radius: 11px;
+  background: var(--surface-2);
+}
+
+.farm-zone-plant.is-selected {
+  border-color: rgba(95, 212, 145, 0.45);
+}
+
+.farm-zone-plant > label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.farm-zone-plant > label:last-child {
+  display: grid;
+  gap: 4px;
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.farm-zone-plant strong,
+.farm-zone-plant small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.farm-zone-plant small,
+.farm-zone-editor__empty {
+  color: var(--text-3);
+}
+
+.farm-scenarios {
+  display: grid;
+  gap: 10px;
+}
+
+.farm-scenario {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-1);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.farm-scenario.is-ready {
+  border-color: rgba(95, 212, 145, 0.28);
+}
+
+.farm-scenario__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.farm-scenario__header label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.farm-scenario__header > span {
+  color: var(--text-3);
+  font-size: 12px;
+  text-align: right;
+}
+
+.farm-scenario.is-unready .farm-scenario__header > span {
+  color: #ffd48d;
+}
+
+.farm-scenario__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.farm-scenario__fields label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .farm-slots,
+  .farm-zone-plants {
+    grid-template-columns: 1fr;
+  }
+
+  .farm-zone-editor__header {
+    display: grid;
+  }
+
+  .farm-zone-editor__zone-fields {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .farm-constructor__empty,
+  .farm-constructor__farm,
+  .farm-constructor__create-zone,
+  .farm-zone-editor {
+    padding: 14px;
+  }
+
+  .farm-zone-editor__section-heading,
+  .farm-scenario__header {
+    display: grid;
+  }
+
+  .farm-zone-editor__section-heading .gh-btn {
+    width: 100%;
+  }
+
+  .farm-zone-plant {
+    grid-template-columns: 1fr;
+  }
+
+  .farm-scenario__header > span {
+    text-align: left;
+  }
+}

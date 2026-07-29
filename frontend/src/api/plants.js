@@ -21,7 +21,7 @@ export async function fetchPlant(token, plantId) {
   return response.json();
 }
 
-// Translitem: sozdanie rastenija (name, planted_at, plant_group_id, plant_type, strain, growth_stage).
+// Translitem: sozdanie rastenija (name, planted_at, zone_id, plant_type, strain, growth_stage).
 export async function createPlant(token, payload) {
   void token;
   const headers = { 'Content-Type': 'application/json' };
@@ -36,7 +36,7 @@ export async function createPlant(token, payload) {
   return response.json();
 }
 
-// Translitem: obnovlenie rastenija po id (name, planted_at, plant_group_id, plant_type, strain, growth_stage).
+// Translitem: obnovlenie rastenija po id (name, planted_at, zone_id, plant_type, strain, growth_stage).
 export async function updatePlant(token, plantId, payload) {
   void token;
   const headers = { 'Content-Type': 'application/json' };

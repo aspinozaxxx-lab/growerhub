@@ -71,6 +71,57 @@ export const setZigbeeProperty = (coordinatorId, ieeeAddress, property, value) =
 
 export const fetchAutomationOverview = () => requestJson('/api/automation');
 
+export const fetchFarmOverview = () => requestJson('/api/automation/farm');
+
+export const createFarm = (name) => requestJson('/api/automation/farm', {
+  method: 'POST',
+  body: JSON.stringify({ name }),
+});
+
+export const updateFarm = (name) => requestJson('/api/automation/farm', {
+  method: 'PUT',
+  body: JSON.stringify({ name }),
+});
+
+export const createFarmZone = (payload) => requestJson('/api/automation/farm/zones', {
+  method: 'POST',
+  body: JSON.stringify(payload),
+});
+
+export const updateFarmZone = (zoneId, payload) => requestJson(
+  `/api/automation/farm/zones/${encodeURIComponent(zoneId)}`,
+  { method: 'PUT', body: JSON.stringify(payload) },
+);
+
+export const deleteFarmZone = (zoneId) => requestJson(
+  `/api/automation/farm/zones/${encodeURIComponent(zoneId)}`,
+  { method: 'DELETE' },
+);
+
+export const replaceFarmZoneSlots = (zoneId, slots, reassign = false) => requestJson(
+  `/api/automation/farm/zones/${encodeURIComponent(zoneId)}/slots`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({ slots, reassign }),
+  },
+);
+
+export const replaceFarmZonePlants = (zoneId, items) => requestJson(
+  `/api/automation/farm/zones/${encodeURIComponent(zoneId)}/plants`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({ items }),
+  },
+);
+
+export const replaceFarmZoneScenarios = (zoneId, scenarios) => requestJson(
+  `/api/automation/farm/zones/${encodeURIComponent(zoneId)}/scenarios`,
+  {
+    method: 'PUT',
+    body: JSON.stringify({ scenarios }),
+  },
+);
+
 export const createZone = (name) => requestJson('/api/automation/zones', {
   method: 'POST',
   body: JSON.stringify({ name, enabled: true }),

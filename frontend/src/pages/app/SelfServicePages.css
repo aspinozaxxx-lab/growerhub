@@ -49,6 +49,24 @@
   font-size: 28px;
 }
 
+.farm-overview-summary article {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.farm-overview-summary article strong {
+  grid-column: 1 / -1;
+}
+
+.farm-overview-summary article.has-warning {
+  border-color: rgba(255, 193, 92, 0.45);
+}
+
+.farm-overview-summary article.has-warning svg,
+.farm-overview-summary article.has-warning strong {
+  color: #ffd48d;
+}
+
 .self-service-section,
 .zone-card,
 .device-card-v2,
@@ -229,6 +247,218 @@
   width: fit-content;
 }
 
+.automation-readiness {
+  margin-top: 5px !important;
+  color: #ffd48d;
+  font-size: 12px;
+}
+
+.automation-readiness.is-ready {
+  color: #9de8ba;
+}
+
+.farm-device-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 230px);
+  gap: 10px;
+}
+
+.farm-device-filters label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.farm-device-filters input,
+.farm-device-filters select {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-1);
+  border-radius: 10px;
+  color: var(--text-1);
+  background: var(--surface-1);
+}
+
+.farm-device-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.farm-device-card {
+  display: grid;
+  align-content: start;
+  gap: 13px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--border-1);
+  border-radius: 16px;
+  background: var(--surface-1);
+  box-shadow: var(--shadow-1);
+}
+
+.farm-device-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.farm-device-card__header > div {
+  min-width: 0;
+}
+
+.farm-device-card__header h2,
+.farm-device-card__header p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.farm-device-card__header h2 {
+  font-size: 17px;
+}
+
+.farm-device-card__header p {
+  margin-top: 3px;
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.farm-device-card__metrics,
+.farm-device-card__all-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.farm-device-card__metrics > div,
+.farm-device-card__all-metrics > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px;
+  border-radius: 9px;
+  background: var(--surface-2);
+}
+
+.farm-device-card__metrics span,
+.farm-device-card__all-metrics span {
+  overflow-wrap: anywhere;
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.farm-device-card__metrics strong,
+.farm-device-card__all-metrics strong {
+  overflow-wrap: anywhere;
+  color: var(--text-1);
+  font-size: 14px;
+}
+
+.farm-device-card__metrics > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-3);
+  font-size: 13px;
+}
+
+.farm-device-card__roles {
+  display: grid;
+  gap: 7px;
+  padding-top: 11px;
+  border-top: 1px solid var(--border-1);
+}
+
+.farm-device-card__roles > span,
+.farm-device-card__state > span {
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.farm-device-card__roles > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.farm-device-card__roles a {
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px 8px;
+  border-radius: 999px;
+  color: #9de8ba;
+  background: rgba(95, 212, 145, 0.12);
+  font-size: 12px;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.farm-device-card__state {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px 10px;
+  padding-top: 11px;
+  border-top: 1px solid var(--border-1);
+}
+
+.farm-device-card__state > div {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.farm-device-card__details {
+  min-width: 0;
+  padding-top: 11px;
+  border-top: 1px solid var(--border-1);
+}
+
+.farm-device-card__details summary {
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.farm-device-card__details dl {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0;
+}
+
+.farm-device-card__details dl > div {
+  display: grid;
+  grid-template-columns: minmax(100px, auto) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.farm-device-card__details dt {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.farm-device-card__details dd {
+  min-width: 0;
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1180px) {
+  .farm-device-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 680px) {
   .connection-list > article,
   .automation-card {
@@ -241,6 +471,11 @@
   }
 
   .secret-card dl {
+    grid-template-columns: 1fr;
+  }
+
+  .farm-device-filters,
+  .farm-device-grid {
     grid-template-columns: 1fr;
   }
 }

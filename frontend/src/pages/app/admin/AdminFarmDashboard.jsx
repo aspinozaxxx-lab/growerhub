@@ -22,6 +22,7 @@ import { useSensorStatsContext } from '../../../features/sensors/SensorStatsCont
 import { isSessionExpiredError } from '../../../api/client';
 import { fetchAdminAutomationOverview } from '../../../api/admin';
 import BoxWateringStatsPanel from '../../../features/manual-watering/BoxWateringStatsPanel';
+import { translateApp } from '../../../locales/i18n';
 import {
   RESOURCE_ROLES,
   SCENARIO_TYPES,
@@ -102,7 +103,7 @@ function ResourceTile({ role, resource, icon: Icon, motion = 'pulse', statsSubti
         type="button"
         className={classes}
         onClick={() => onOpenStats?.(statsPayload)}
-        aria-label={`Открыть статистику: ${resourceRoleLabel(role)}`}
+        aria-label={translateApp("Открыть статистику: {{value1}}", { value1: resourceRoleLabel(role) })}
       >
         {content}
       </button>
@@ -118,7 +119,13 @@ function ResourceTile({ role, resource, icon: Icon, motion = 'pulse', statsSubti
 
 function SensorTile({ resource, statsSubtitle, onOpenStats }) {
   const role = resource?.role;
-  const Icon = role === RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR ? Thermometer : Gauge;
+  const Icon = role === RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR
+    ? Thermometer
+    : role === RESOURCE_ROLES.AIR_HUMIDITY_SENSOR
+      ? Droplets
+      : role === RESOURCE_ROLES.LEAK_SENSOR
+        ? AlertTriangle
+        : Gauge;
   const tone = resourceTone(resource, false);
   const value = formatResourceValue(resource, role);
 
@@ -145,7 +152,7 @@ function SensorTile({ resource, statsSubtitle, onOpenStats }) {
         type="button"
         className={classes}
         onClick={() => onOpenStats?.(statsPayload)}
-        aria-label={`Открыть статистику: ${resourceRoleLabel(role)}`}
+        aria-label={translateApp("Открыть статистику: {{value1}}", { value1: resourceRoleLabel(role) })}
       >
         {content}
       </button>
@@ -175,7 +182,7 @@ function AcRequestList({ boxes }) {
     return (
       <div className="farm-dashboard-ac-requests__empty">
         <CircleDot size={16} aria-hidden="true" />
-        <span>Запросов нет</span>
+        <span>{translateApp("Запросов нет")}</span>
       </div>
     );
   }
@@ -185,7 +192,7 @@ function AcRequestList({ boxes }) {
       {boxes.map((box) => (
         <span key={box.id || box.name} className="farm-dashboard-request-chip">
           <AlertTriangle size={14} aria-hidden="true" />
-          <span>{box.name || 'Бокс без названия'}</span>
+          <span>{box.name || translateApp("Бокс без названия")}</span>
         </span>
       ))}
     </div>
@@ -195,38 +202,47 @@ function AcRequestList({ boxes }) {
 function PlantList({ plants }) {
   const items = listOrEmpty(plants);
   if (items.length === 0) {
-    return <span className="farm-dashboard-plants__empty">Растения не привязаны</span>;
+    return <span className="farm-dashboard-plants__empty">{translateApp("Растения не привязаны")}</span>;
   }
 
   return (
     <div className="farm-dashboard-plants__chips">
       {items.map((plant) => (
-        <span key={plant.id || plant.name}>{plant.name || 'Растение без названия'}</span>
+        <span key={plant.id || plant.name}>{plant.name || translateApp("Растение без названия")}</span>
       ))}
     </div>
   );
 }
 
-function FarmBox({ box, onOpenStats }) {
+function FarmBox({
+  box,
+  hideHeader = false,
+  statsSubtitleOverride = '',
+  onOpenStats,
+}) {
   const resources = listOrEmpty(box.resources);
   const sensors = resources.filter((resource) => [
     RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR,
+    RESOURCE_ROLES.AIR_HUMIDITY_SENSOR,
+    RESOURCE_ROLES.LEAK_SENSOR,
     RESOURCE_ROLES.SOIL_MOISTURE_SENSOR,
   ].includes(resource?.role));
   const plants = listOrEmpty(box.plants);
-  const statsSubtitle = box.name || 'Бокс без названия';
+  const statsSubtitle = statsSubtitleOverride || box.name || translateApp("Бокс без названия");
 
   return (
-    <section className={`farm-dashboard-box ${box.enabled ? '' : 'is-disabled'}`}>
-      <header className="farm-dashboard-box__header">
-        <div>
-          <h4>{box.name || 'Бокс без названия'}</h4>
-          <span>{plants.length} растений</span>
-        </div>
-        <StatusBadge tone={box.enabled ? 'success' : 'muted'}>
-          {box.enabled ? 'Активен' : 'Выключен'}
-        </StatusBadge>
-      </header>
+    <section className={`farm-dashboard-box ${hideHeader ? 'is-zone-content' : ''} ${box.enabled ? '' : 'is-disabled'}`}>
+      {!hideHeader ? (
+        <header className="farm-dashboard-box__header">
+          <div>
+            <h4>{box.name || translateApp("Бокс без названия")}</h4>
+            <span>{translateApp("{{value1}} растений", { value1: plants.length })}</span>
+          </div>
+          <StatusBadge tone={box.enabled ? 'success' : 'muted'}>
+            {box.enabled ? translateApp("Активен") : translateApp("Выключен")}
+          </StatusBadge>
+        </header>
+      ) : null}
 
       <div className="farm-dashboard-box__scene">
         <div className="farm-dashboard-box__plants">
@@ -251,7 +267,7 @@ function FarmBox({ box, onOpenStats }) {
 
       <div className="farm-dashboard-sensors">
         {sensors.length === 0 ? (
-          <div className="farm-dashboard-empty-line">Датчики не привязаны</div>
+          <div className="farm-dashboard-empty-line">{translateApp("Датчики не привязаны")}</div>
         ) : sensors.map((sensor) => (
           <SensorTile
             key={sensor.id || sensor.role}
@@ -276,7 +292,7 @@ function FarmBox({ box, onOpenStats }) {
   );
 }
 
-function FarmRoom({ room, onOpenStats }) {
+function FarmRoom({ room, zoneView = false, onOpenStats }) {
   const boxes = listOrEmpty(room.boxes);
   const acResource = findResource(room.resources, RESOURCE_ROLES.AC_SWITCH);
   const acRequests = buildAcRequestBoxes(room);
@@ -288,12 +304,12 @@ function FarmRoom({ room, onOpenStats }) {
     <Surface variant="card" padding="md" className="farm-dashboard-room">
       <header className="farm-dashboard-room__header">
         <div>
-          <h3>{room.name || 'Ферма без названия'}</h3>
-          <span>Общие ресурсы фермы</span>
+          <h3>{room.name || translateApp("Ферма без названия")}</h3>
+          <span>{zoneView ? translateApp("Ресурсы теплицы") : translateApp("Общие ресурсы фермы")}</span>
         </div>
         <div className="farm-dashboard-room__badges">
           <StatusBadge tone={room.enabled ? 'success' : 'muted'}>
-            {room.enabled ? 'Активна' : 'Выключена'}
+            {room.enabled ? translateApp("Активна") : translateApp("Выключена")}
           </StatusBadge>
           <ScenarioPill
             scenarioType={SCENARIO_TYPES.ROOM_CLIMATE}
@@ -303,20 +319,22 @@ function FarmRoom({ room, onOpenStats }) {
         </div>
       </header>
 
-      <div className="farm-dashboard-room__summary">
-        <div className="farm-dashboard-summary-tile">
-          <Wind size={20} aria-hidden="true" />
-          <span>Боксы</span>
-          <strong>{boxes.length}</strong>
-        </div>
+      <div className={`farm-dashboard-room__summary ${zoneView ? 'is-zone-view' : ''}`}>
+        {!zoneView ? (
+          <div className="farm-dashboard-summary-tile">
+            <Wind size={20} aria-hidden="true" />
+            <span>{translateApp("Зоны")}</span>
+            <strong>{boxes.length}</strong>
+          </div>
+        ) : null}
         <div className="farm-dashboard-summary-tile">
           <Leaf size={20} aria-hidden="true" />
-          <span>Растения</span>
+          <span>{translateApp("Растения")}</span>
           <strong>{plantCount}</strong>
         </div>
         <div className="farm-dashboard-summary-tile">
           <Activity size={20} aria-hidden="true" />
-          <span>Запросы кондиционера</span>
+          <span>{translateApp("Запросы кондиционера")}</span>
           <strong>{acRequests.length}</strong>
         </div>
       </div>
@@ -327,12 +345,12 @@ function FarmRoom({ room, onOpenStats }) {
           resource={acResource}
           icon={Snowflake}
           motion="cool"
-          statsSubtitle={room.name || 'Ферма без названия'}
+          statsSubtitle={room.name || translateApp("Ферма без названия")}
           onOpenStats={onOpenStats}
         />
         <div className="farm-dashboard-ac-requests">
           <div>
-            <h4>Запросы на кондиционер</h4>
+            <h4>{translateApp("Запросы на кондиционер")}</h4>
             <span>{scenarioTypeLabel(SCENARIO_TYPES.ROOM_CLIMATE)}: {scenarioDisplayStatus(roomState, roomScenario)}</span>
           </div>
           <AcRequestList boxes={acRequests} />
@@ -341,12 +359,28 @@ function FarmRoom({ room, onOpenStats }) {
 
       <div className="farm-dashboard-boxes">
         {boxes.length === 0 ? (
-          <div className="farm-dashboard-empty-line">Боксы не настроены</div>
+          <div className="farm-dashboard-empty-line">{translateApp("Зоны не настроены")}</div>
         ) : boxes.map((box) => (
-          <FarmBox key={box.id} box={box} onOpenStats={onOpenStats} />
+          <FarmBox
+            key={box.id}
+            box={box}
+            hideHeader={zoneView}
+            statsSubtitleOverride={zoneView ? room.name : ''}
+            onOpenStats={onOpenStats}
+          />
         ))}
       </div>
     </Surface>
+  );
+}
+
+export function FarmDashboardRooms({ rooms, zoneView = false, onOpenStats }) {
+  return (
+    <div className="farm-dashboard-rooms">
+      {listOrEmpty(rooms).map((room) => (
+        <FarmRoom key={room.id} room={room} zoneView={zoneView} onOpenStats={onOpenStats} />
+      ))}
+    </div>
   );
 }
 
@@ -374,7 +408,7 @@ function AdminFarmDashboard() {
         setLastUpdatedAt(new Date());
       } catch (err) {
         if (isCancelled || isSessionExpiredError(err)) return;
-        setError(err?.message || 'Не удалось загрузить дашборд фермы');
+        setError(err?.message || translateApp("Не удалось загрузить дашборд фермы"));
       } finally {
         if (!isCancelled && !silent) {
           setIsLoading(false);
@@ -404,7 +438,9 @@ function AdminFarmDashboard() {
   }, [token]);
 
   const rooms = useMemo(() => listOrEmpty(overview?.rooms), [overview]);
-  const updatedLabel = lastUpdatedAt ? formatDateTime(lastUpdatedAt.toISOString()) : 'Ожидает обновления';
+  const updatedLabel = lastUpdatedAt
+    ? formatDateTime(lastUpdatedAt.toISOString())
+    : translateApp("Ожидает обновления");
   const handleOpenStats = (payload) => {
     if (payload?.mode === 'box-watering') {
       setWateringStatsTarget({ ...payload, title: payload.subtitle || payload.title });
@@ -416,33 +452,29 @@ function AdminFarmDashboard() {
   return (
     <div className="admin-page farm-dashboard">
       <AppPageHeader
-        title="Дашборд фермы"
-        subtitle="Текущее состояние боксов и общих ресурсов"
+        title={translateApp("Дашборд фермы")}
+        subtitle={translateApp("Текущее состояние зон и общих ресурсов")}
         right={(
           <div className="farm-dashboard-refresh">
             <RefreshCw size={15} aria-hidden="true" />
-            <span>Обновлено: {updatedLabel}</span>
+            <span>{translateApp("Обновлено: {{value1}}", { value1: updatedLabel })}</span>
           </div>
         )}
       />
 
-      {isLoading && !overview && <AppPageState kind="loading" title="Загрузка..." />}
+      {isLoading && !overview && <AppPageState kind="loading" title={translateApp("Загрузка...")} />}
       {error && <AppPageState kind="error" title={error} />}
 
       {!isLoading && !error && rooms.length === 0 && (
         <AppPageState
           kind="empty"
-          title="Ферма пока не настроена"
-          hint="Создайте помещение, боксы и привязки в разделе автоматизации."
+          title={translateApp("Ферма пока не настроена")}
+          hint={translateApp("Создайте теплицы и привязки в Конструкторе фермы.")}
         />
       )}
 
       {rooms.length > 0 && (
-        <div className="farm-dashboard-rooms">
-          {rooms.map((room) => (
-            <FarmRoom key={room.id} room={room} onOpenStats={handleOpenStats} />
-          ))}
-        </div>
+        <FarmDashboardRooms rooms={rooms} onOpenStats={handleOpenStats} />
       )}
 
       <BoxWateringStatsPanel

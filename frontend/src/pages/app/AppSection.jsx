@@ -9,18 +9,20 @@ import { WateringSidebarProvider } from '../../features/watering/WateringSidebar
 import NotFoundPage from '../NotFoundPage';
 import LoginPage from './LoginPage';
 import { translateApp } from '../../locales/i18n';
+import { LEGACY_APP_REDIRECTS } from './appNavigation';
 
 const AppOverview = lazy(() => import('./AppOverview'));
 const SensorStatsSidebar = lazy(() => import('../../features/sensors/SensorStatsSidebar'));
 const WateringSidebar = lazy(() => import('../../features/watering/WateringSidebar'));
 const AppOnboarding = lazy(() => import('./AppOnboarding'));
 const AppConnections = lazy(() => import('./AppConnections'));
-const AppZones = lazy(() => import('./AppZones'));
 const AppZigbeeDevices = lazy(() => import('./AppZigbeeDevices'));
 const AppAutomations = lazy(() => import('./AppAutomations'));
 const AppPlants = lazy(() => import('./AppPlants'));
 const AppPlantJournal = lazy(() => import('./AppPlantJournal'));
 const AppProfile = lazy(() => import('./AppProfile'));
+const AppSettings = lazy(() => import('./AppSettings'));
+const FarmConstructor = lazy(() => import('../../features/farm/FarmConstructor'));
 const AdminAutomation = lazy(() => import('./admin/AdminAutomation'));
 const AdminDevices = lazy(() => import('./admin/AdminDevices'));
 const AdminFarmDashboard = lazy(() => import('./admin/AdminFarmDashboard'));
@@ -55,13 +57,24 @@ function AppSection() {
           <Route element={<ProtectedAppLayout />}>
             <Route index element={<AppOverview />} />
             <Route path="onboarding/" element={<AppOnboarding />} />
-            <Route path="connections/" element={<AppConnections />} />
-            <Route path="zones/" element={<AppZones />} />
-            <Route path="devices/" element={<AppZigbeeDevices />} />
+            <Route path="farm/" element={<FarmConstructor />} />
             <Route path="automations/" element={<AppAutomations />} />
             <Route path="plants/" element={<AppPlants />} />
             <Route path="plants/:plantId/journal/" element={<AppPlantJournal />} />
-            <Route path="profile/" element={<AppProfile />} />
+            <Route path="settings/" element={<AppSettings />}>
+              <Route index element={<Navigate to="connections/" replace />} />
+              <Route path="connections/" element={<AppConnections />} />
+              <Route path="zones/" element={<FarmConstructor />} />
+              <Route path="devices/" element={<AppZigbeeDevices />} />
+              <Route path="profile/" element={<AppProfile />} />
+            </Route>
+            {Object.entries(LEGACY_APP_REDIRECTS).map(([source, target]) => (
+              <Route
+                key={source}
+                path={source.replace(/^\/app\//u, '')}
+                element={<Navigate to={target} replace />}
+              />
+            ))}
             <Route
               path="admin/"
               element={(

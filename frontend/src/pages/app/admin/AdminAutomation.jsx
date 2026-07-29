@@ -25,7 +25,7 @@ import {
   optionsWithCurrentBinding,
   resourceBindingForRole,
   resourcePayload,
-} from './adminAutomationResources';
+} from '../../../features/farm/farmResourceOptions';
 import {
   buildPlantItemsPayload,
   createPlantDrafts,

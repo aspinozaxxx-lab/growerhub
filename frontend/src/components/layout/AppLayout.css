@@ -72,7 +72,7 @@
   max-width: 720px;
   margin: 0 auto;
   width: 100%;
-  justify-content: flex-start;
+  justify-content: stretch;
   background: var(--surface-1);
   border: 1px solid var(--border-1);
   border-radius: 9999px;
@@ -80,11 +80,13 @@
   backdrop-filter: blur(16px);
   height: 64px;
   padding: 0 8px;
-  overflow-x: auto;
+  overflow: hidden;
 }
 
 .app-nav--bottom .app-nav__item {
-  flex: 0 0 auto;
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: 4px;
 }
 
 .app-nav--bottom .app-nav__item {
@@ -93,6 +95,13 @@
 
 .app-nav--bottom .app-nav__item.is-active {
   color: var(--accent);
+}
+
+.app-nav--bottom .app-nav__label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Sidebar dlya desktopa */

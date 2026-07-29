@@ -1,7 +1,11 @@
+import { getIntlLocale, translateApp } from '../../../locales/i18n';
+
 export const RESOURCE_ROLES = {
   AC_SWITCH: 'AC_SWITCH',
   AIR_TEMPERATURE_SENSOR: 'AIR_TEMPERATURE_SENSOR',
+  AIR_HUMIDITY_SENSOR: 'AIR_HUMIDITY_SENSOR',
   EXHAUST_SWITCH: 'EXHAUST_SWITCH',
+  LEAK_SENSOR: 'LEAK_SENSOR',
   LIGHT_SWITCH: 'LIGHT_SWITCH',
   SOIL_MOISTURE_SENSOR: 'SOIL_MOISTURE_SENSOR',
   WATER_PUMP: 'WATER_PUMP',
@@ -23,7 +27,9 @@ export const RESOURCE_SOURCE_TYPES = {
 const RESOURCE_ROLE_LABELS = {
   [RESOURCE_ROLES.AC_SWITCH]: 'Кондиционер',
   [RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR]: 'Температура воздуха',
+  [RESOURCE_ROLES.AIR_HUMIDITY_SENSOR]: 'Влажность воздуха',
   [RESOURCE_ROLES.EXHAUST_SWITCH]: 'Обдув',
+  [RESOURCE_ROLES.LEAK_SENSOR]: 'Протечка',
   [RESOURCE_ROLES.LIGHT_SWITCH]: 'Свет',
   [RESOURCE_ROLES.SOIL_MOISTURE_SENSOR]: 'Влажность почвы',
   [RESOURCE_ROLES.WATER_PUMP]: 'Полив',
@@ -49,17 +55,16 @@ const SCENARIO_STATUS_LABELS = {
 
 const SENSOR_UNITS = {
   [RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR]: '°C',
+  [RESOURCE_ROLES.AIR_HUMIDITY_SENSOR]: '%',
   [RESOURCE_ROLES.SOIL_MOISTURE_SENSOR]: '%',
 };
 
 const SENSOR_METRICS = {
   [RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR]: 'air_temperature',
+  [RESOURCE_ROLES.AIR_HUMIDITY_SENSOR]: 'air_humidity',
+  [RESOURCE_ROLES.LEAK_SENSOR]: 'water_leak',
   [RESOURCE_ROLES.SOIL_MOISTURE_SENSOR]: 'soil_moisture',
 };
-
-const NUMBER_FORMATTER = new Intl.NumberFormat('ru-RU', {
-  maximumFractionDigits: 1,
-});
 
 export function listOrEmpty(value) {
   return Array.isArray(value) ? value : [];
@@ -78,15 +83,15 @@ export function findState(states, scenarioType) {
 }
 
 export function resourceRoleLabel(role) {
-  return RESOURCE_ROLE_LABELS[role] || 'Ресурс';
+  return translateApp(RESOURCE_ROLE_LABELS[role] || 'Ресурс');
 }
 
 export function scenarioTypeLabel(scenarioType) {
-  return SCENARIO_TYPE_LABELS[scenarioType] || 'Сценарий';
+  return translateApp(SCENARIO_TYPE_LABELS[scenarioType] || 'Сценарий');
 }
 
 export function scenarioStatusLabel(status) {
-  return SCENARIO_STATUS_LABELS[status] || 'Состояние неизвестно';
+  return translateApp(SCENARIO_STATUS_LABELS[status] || 'Состояние неизвестно');
 }
 
 export function scenarioDisplayStatus(state, scenario) {
@@ -135,19 +140,19 @@ export function isEquipmentActive(resource, role) {
 
 export function switchStateLabel(isActive, hasValue = true) {
   if (!hasValue) {
-    return 'Нет данных';
+    return translateApp("Нет данных");
   }
-  return isActive ? 'Включено' : 'Выключено';
+  return isActive ? translateApp("Включено") : translateApp("Выключено");
 }
 
 export function resourceReadyLabel(resource) {
   if (!resource) {
-    return 'Не привязано';
+    return translateApp("Не привязано");
   }
   if (resource.connection_status === 'warning') {
-    return resource.connection_message || 'нет связи';
+    return resource.connection_message || translateApp("нет связи");
   }
-  return resource.ready ? 'Готово' : 'Не готово';
+  return resource.ready ? translateApp("Готово") : translateApp("Не готово");
 }
 
 export function resourceTone(resource, isActive = false) {
@@ -158,28 +163,43 @@ export function resourceTone(resource, isActive = false) {
 
 export function formatSensorValue(value, unit = '') {
   if (value === null || value === undefined || value === '' || Number.isNaN(Number(value))) {
-    return 'Нет данных';
+    return translateApp("Нет данных");
   }
-  return `${NUMBER_FORMATTER.format(Number(value))}${unit ? ` ${unit}` : ''}`;
+  const formatter = new Intl.NumberFormat(getIntlLocale(), {
+    maximumFractionDigits: 1,
+  });
+  return `${formatter.format(Number(value))}${unit ? ` ${unit}` : ''}`;
 }
 
 export function formatResourceValue(resource, role) {
   if (!resource) {
-    return 'Не привязано';
+    return translateApp("Не привязано");
   }
-  if (role === RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR || role === RESOURCE_ROLES.SOIL_MOISTURE_SENSOR) {
+  if ([
+    RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR,
+    RESOURCE_ROLES.AIR_HUMIDITY_SENSOR,
+    RESOURCE_ROLES.SOIL_MOISTURE_SENSOR,
+  ].includes(role)) {
     return formatSensorValue(resource.current_value, SENSOR_UNITS[role]);
+  }
+  if (role === RESOURCE_ROLES.LEAK_SENSOR) {
+    if (!hasCurrentValue(resource)) {
+      return translateApp("Нет данных");
+    }
+    const active = resource.current_value === true
+      || String(resource.current_value).toLowerCase() === 'true';
+    return active ? translateApp("Протечка") : translateApp("Сухо");
   }
   if (role === RESOURCE_ROLES.WATER_PUMP) {
     if (!hasCurrentValue(resource)) {
-      return 'Нет данных';
+      return translateApp("Нет данных");
     }
-    return isPumpResourceRunning(resource) ? 'Идет полив' : 'Ожидание';
+    return isPumpResourceRunning(resource) ? translateApp("Идет полив") : translateApp("Ожидание");
   }
   return switchStateLabel(isSwitchResourceOn(resource), hasCurrentValue(resource));
 }
 
-export function formatDateTime(value, fallback = 'Время неизвестно') {
+export function formatDateTime(value, fallback = translateApp("Время неизвестно")) {
   if (!value) {
     return fallback;
   }
@@ -187,7 +207,7 @@ export function formatDateTime(value, fallback = 'Время неизвестн�
   if (Number.isNaN(date.getTime())) {
     return fallback;
   }
-  return date.toLocaleString('ru-RU', {
+  return date.toLocaleString(getIntlLocale(), {
     day: '2-digit',
     month: '2-digit',
     hour: '2-digit',
@@ -222,6 +242,12 @@ export function resourceStatsProperty(resource, role) {
   }
   if (role === RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR) {
     return 'temperature';
+  }
+  if (role === RESOURCE_ROLES.AIR_HUMIDITY_SENSOR) {
+    return 'humidity';
+  }
+  if (role === RESOURCE_ROLES.LEAK_SENSOR) {
+    return 'water_leak';
   }
   if (role === RESOURCE_ROLES.SOIL_MOISTURE_SENSOR) {
     return 'soil_moisture';
@@ -259,7 +285,11 @@ export function buildResourceStatsPayload(resource, role, subtitle, scope = {}) 
     if (!property) {
       return null;
     }
-    const isSensor = role === RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR || role === RESOURCE_ROLES.SOIL_MOISTURE_SENSOR;
+    const isSensor = [
+      RESOURCE_ROLES.AIR_TEMPERATURE_SENSOR,
+      RESOURCE_ROLES.AIR_HUMIDITY_SENSOR,
+      RESOURCE_ROLES.SOIL_MOISTURE_SENSOR,
+    ].includes(role);
     return {
       mode: 'zigbee',
       zigbeeIeeeAddress: resource.zigbee_ieee_address,
@@ -269,8 +299,8 @@ export function buildResourceStatsPayload(resource, role, subtitle, scope = {}) 
       title,
       subtitle: resolvedSubtitle,
       valueLabel: title,
-      binaryOnLabel: 'Включено',
-      binaryOffLabel: 'Выключено',
+      binaryOnLabel: translateApp("Включено"),
+      binaryOffLabel: translateApp("Выключено"),
     };
   }
   return null;

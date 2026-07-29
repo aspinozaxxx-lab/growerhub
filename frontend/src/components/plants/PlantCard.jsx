@@ -73,7 +73,7 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
   const stageId = manualStageId || (ageDays !== null ? getAutoStageFromAge(plantTypeId, ageDays) : undefined);
   const stageLabel = stageId ? getStageLabel(stageId, locale) : '';
 
-  const groupName = plant?.plant_group?.name || translateApp("Без группы");
+  const zoneName = plant?.zone?.name || translateApp("Без теплицы");
   const plantedLabel = plantedDate && !Number.isNaN(plantedDate.getTime())
     ? plantedDate.toLocaleDateString(getIntlLocale())
     : translateApp("Дата не указана");
@@ -105,7 +105,7 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
             {plant.plant_type && <span className="plant-card__tag">{getPlantTypeLabel(plant.plant_type, locale)}</span>}
             {plant.strain && <span className="plant-card__tag">{plant.strain}</span>}
           </div>
-          <Text tone="muted" className="plant-card__group">{groupName}</Text>
+          <Text tone="muted" className="plant-card__group">{zoneName}</Text>
         </div>
         <div className="plant-card__actions">
           <button type="button" className="plant-card__edit" onClick={handleEdit} aria-label={translateApp("Редактировать")}>

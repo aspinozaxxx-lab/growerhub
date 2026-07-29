@@ -4,9 +4,10 @@ import {
   optionsForRole,
   optionsWithCurrentBinding,
   resourcePayload,
-} from './adminAutomationResources';
+} from './farmResourceOptions';
 
 const smartplug2 = {
+  coordinator_id: '4f69fd28-bad8-4bd1-b2ff-6cc61ec15f50',
   friendly_name: 'smartplug2',
   ieee_address: '0xa4c1380000000002',
   definition: {
@@ -24,6 +25,7 @@ const smartplug2 = {
 const savedLightBinding = {
   role: 'LIGHT_SWITCH',
   source_type: 'ZIGBEE_DEVICE',
+  zigbee_coordinator_id: smartplug2.coordinator_id,
   zigbee_ieee_address: smartplug2.ieee_address,
   zigbee_property: 'state',
   command_property: 'state',
@@ -50,7 +52,7 @@ const nativeCatalog = {
   ],
 };
 
-describe('admin automation resources', () => {
+describe('farm resource options', () => {
   it('uses the same option value for saved Zigbee switch bindings and catalog options', () => {
     const catalog = { zigbee_devices: [smartplug2] };
 
@@ -63,6 +65,7 @@ describe('admin automation resources', () => {
       source_type: 'ZIGBEE_DEVICE',
       native_sensor_id: null,
       native_pump_id: null,
+      zigbee_coordinator_id: smartplug2.coordinator_id,
       zigbee_ieee_address: smartplug2.ieee_address,
       zigbee_property: 'state',
       command_property: 'state',
@@ -100,6 +103,7 @@ describe('admin automation resources', () => {
       source_type: 'NATIVE_SENSOR',
       native_sensor_id: 1,
       native_pump_id: null,
+      zigbee_coordinator_id: null,
       zigbee_ieee_address: null,
       zigbee_property: null,
       command_property: null,
@@ -110,6 +114,7 @@ describe('admin automation resources', () => {
 
   it('stroitr option dlya Zigbee datchika protechki', () => {
     const leakDevice = {
+      coordinator_id: '4f69fd28-bad8-4bd1-b2ff-6cc61ec15f50',
       friendly_name: 'leak1',
       ieee_address: '0xa4c1380000000003',
       metrics: [{ property: 'water_leak', value: false }],
@@ -124,11 +129,40 @@ describe('admin automation resources', () => {
       source_type: 'ZIGBEE_DEVICE',
       native_sensor_id: null,
       native_pump_id: null,
+      zigbee_coordinator_id: leakDevice.coordinator_id,
       zigbee_ieee_address: leakDevice.ieee_address,
       zigbee_property: 'water_leak',
       command_property: null,
       on_value: null,
       off_value: null,
+    });
+  });
+
+  it('stroitr otdelnye options temperatury i vlazhnosti kombinirovannogo datchika', () => {
+    const climateDevice = {
+      coordinator_id: '4f69fd28-bad8-4bd1-b2ff-6cc61ec15f50',
+      friendly_name: 'climate1',
+      ieee_address: '0xa4c1380000000004',
+      metrics: [
+        { property: 'temperature', value: 24.2 },
+        { property: 'humidity', value: 61 },
+      ],
+      controls: [],
+    };
+
+    const temperature = optionsForRole(
+      'AIR_TEMPERATURE_SENSOR',
+      { zigbee_devices: [climateDevice] },
+    )[0];
+    const humidity = optionsForRole(
+      'AIR_HUMIDITY_SENSOR',
+      { zigbee_devices: [climateDevice] },
+    )[0];
+
+    expect(temperature.value).not.toBe(humidity.value);
+    expect(resourcePayload('AIR_HUMIDITY_SENSOR', humidity.value)).toMatchObject({
+      zigbee_coordinator_id: climateDevice.coordinator_id,
+      zigbee_property: 'humidity',
     });
   });
 });

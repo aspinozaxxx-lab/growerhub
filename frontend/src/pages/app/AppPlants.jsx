@@ -1,6 +1,7 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchPlants, fetchPlantGroups, harvestPlant } from '../../api/plants';
+import { fetchPlants, harvestPlant } from '../../api/plants';
+import { fetchFarmOverview } from '../../api/selfService';
 import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
@@ -58,7 +59,7 @@ function ArchivePlantCard({ plant, onOpenJournal, onOpenMetric }) {
         <div className="archive-plant-card__title">
           <Title level={3} className="archive-plant-card__name">{plant.name}</Title>
           <Text tone="muted" className="archive-plant-card__group">
-            {plant?.plant_group?.name || translateApp("Без группы")}
+            {plant?.zone?.name || translateApp("Без теплицы")}
           </Text>
         </div>
         <div className="archive-plant-card__avatar" aria-hidden="true">
@@ -110,7 +111,7 @@ function AppPlants() {
   const { refreshVersion } = useWateringSidebar();
   const navigate = useNavigate();
   const [plants, setPlants] = useState([]);
-  const [plantGroups, setPlantGroups] = useState([]);
+  const [zones, setZones] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -129,12 +130,12 @@ function AppPlants() {
     setIsLoading(true);
     setError(null);
     try {
-      const [plantsPayload, groupsPayload] = await Promise.all([
+      const [plantsPayload, farmPayload] = await Promise.all([
         fetchPlants(token),
-        fetchPlantGroups(token),
+        fetchFarmOverview(),
       ]);
       setPlants(Array.isArray(plantsPayload) ? plantsPayload : []);
-      setPlantGroups(Array.isArray(groupsPayload) ? groupsPayload : []);
+      setZones(Array.isArray(farmPayload?.farm?.zones) ? farmPayload.farm.zones : []);
     } catch (err) {
       if (isSessionExpiredError(err)) return;
       setError(err?.message || translateApp("Не удалось загрузить растения"));
@@ -285,7 +286,7 @@ function AppPlants() {
         isOpen={dialogOpen}
         mode={dialogMode}
         plant={selectedPlant}
-        plantGroups={plantGroups}
+        zones={zones}
         onClose={() => setDialogOpen(false)}
         onSaved={handleSaved}
       />

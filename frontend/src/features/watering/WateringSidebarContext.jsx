@@ -127,4 +127,6 @@ function useWateringSidebar() {
   return ctx;
 }
 
+// Translitem: hook i provider namerenno eksportiruyutsya iz odnogo kontekstnogo modulya.
+// eslint-disable-next-line react-refresh/only-export-components
 export { WateringSidebarProvider, useWateringSidebar };

@@ -41,9 +41,9 @@ function formatPlantAge(plantedAt) {
 function buildPlantLabel(plant) {
   const idPart = plant?.id !== null && plant?.id !== undefined ? plant.id : '-';
   const namePart = plant?.name || translateApp("Без названия");
-  const groupPart = plant?.plant_group?.name || translateApp("Без группы");
+  const zonePart = plant?.zone?.name || translateApp("Без теплицы");
   const agePart = formatPlantAge(plant?.planted_at);
-  return `${idPart} · ${namePart} · ${groupPart} · ${agePart}`;
+  return `${idPart} · ${namePart} · ${zonePart} · ${agePart}`;
 }
 
 function EditDeviceModal({

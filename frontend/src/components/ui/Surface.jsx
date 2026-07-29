@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import './Surface.css';
 
-function Surface({ variant = 'card', padding = 'md', className, children, as: Component = 'div' }) {
+function Surface({ variant = 'card', padding = 'md', className, children, as = 'div' }) {
   const classes = [
     'gh-surface',
     `gh-surface--${variant}`,
@@ -11,7 +11,7 @@ function Surface({ variant = 'card', padding = 'md', className, children, as: Co
     .filter(Boolean)
     .join(' ');
 
-  return <Component className={classes}>{children}</Component>;
+  return React.createElement(as, { className: classes }, children);
 }
 
 export function Divider({ className }) {

@@ -8,7 +8,7 @@ function Stack({
   justify = 'flex-start',
   wrap = 'nowrap',
   className,
-  as: Component = 'div',
+  as = 'div',
   children,
 }) {
   const styles = {
@@ -21,11 +21,7 @@ function Stack({
 
   const classes = ['gh-stack', className || ''].filter(Boolean).join(' ');
 
-  return (
-    <Component className={classes} style={styles}>
-      {children}
-    </Component>
-  );
+  return React.createElement(as, { className: classes, style: styles }, children);
 }
 
 export default Stack;

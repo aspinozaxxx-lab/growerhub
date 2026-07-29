@@ -4,6 +4,7 @@ const OPTION_KEYS = [
   'source_type',
   'native_sensor_id',
   'native_pump_id',
+  'zigbee_coordinator_id',
   'zigbee_ieee_address',
   'zigbee_property',
   'command_property',
@@ -22,6 +23,7 @@ function normalizeOptionPayload(payload = {}) {
   }, {});
   if (normalized.source_type === 'NATIVE_SENSOR') {
     normalized.native_pump_id = null;
+    normalized.zigbee_coordinator_id = null;
     normalized.zigbee_ieee_address = null;
     normalized.zigbee_property = null;
     normalized.command_property = null;
@@ -30,6 +32,7 @@ function normalizeOptionPayload(payload = {}) {
   }
   if (normalized.source_type === 'NATIVE_PUMP') {
     normalized.native_sensor_id = null;
+    normalized.zigbee_coordinator_id = null;
     normalized.zigbee_ieee_address = null;
     normalized.zigbee_property = null;
     normalized.command_property = null;
@@ -47,7 +50,7 @@ export function optionValue(payload) {
   return JSON.stringify(normalizeOptionPayload(payload));
 }
 
-function parseOptionValue(value) {
+export function parseOptionValue(value) {
   if (!value) return null;
   try {
     return JSON.parse(value);
@@ -62,6 +65,7 @@ export function bindingOptionValue(binding) {
     source_type: binding.source_type,
     native_sensor_id: binding.native_sensor_id,
     native_pump_id: binding.native_pump_id,
+    zigbee_coordinator_id: binding.zigbee_coordinator_id,
     zigbee_ieee_address: binding.zigbee_ieee_address,
     zigbee_property: binding.zigbee_property || binding.command_property,
     command_property: binding.command_property,
@@ -102,9 +106,23 @@ export function optionsForRole(role, catalog) {
   const zigbeeDevices = listOrEmpty(catalog?.zigbee_devices);
   const options = [];
 
-  if (role === 'AIR_TEMPERATURE_SENSOR' || role === 'SOIL_MOISTURE_SENSOR') {
-    const expectedType = role === 'AIR_TEMPERATURE_SENSOR' ? 'AIR_TEMPERATURE' : 'SOIL_MOISTURE';
-    const zigbeeProperty = role === 'AIR_TEMPERATURE_SENSOR' ? 'temperature' : 'soil_moisture';
+  if ([
+    'AIR_TEMPERATURE_SENSOR',
+    'AIR_HUMIDITY_SENSOR',
+    'SOIL_MOISTURE_SENSOR',
+  ].includes(role)) {
+    const typeByRole = {
+      AIR_TEMPERATURE_SENSOR: 'AIR_TEMPERATURE',
+      AIR_HUMIDITY_SENSOR: 'AIR_HUMIDITY',
+      SOIL_MOISTURE_SENSOR: 'SOIL_MOISTURE',
+    };
+    const propertyByRole = {
+      AIR_TEMPERATURE_SENSOR: 'temperature',
+      AIR_HUMIDITY_SENSOR: 'humidity',
+      SOIL_MOISTURE_SENSOR: 'soil_moisture',
+    };
+    const expectedType = typeByRole[role];
+    const zigbeeProperty = propertyByRole[role];
     nativeDevices.forEach((device) => {
       listOrEmpty(device.sensors)
         .filter((sensor) => sensor.type === expectedType)
@@ -115,6 +133,9 @@ export function optionsForRole(role, catalog) {
               native_sensor_id: sensor.id,
             }),
             label: `${sensor.label || expectedType} · ${nativeDeviceLabel(nativeDevices, sensor.device_id)}`,
+            currentValue: sensor.last_value,
+            lastSeenAt: sensor.last_ts || sensor.last_seen_at,
+            connectionStatus: device.is_online === false ? 'offline' : sensor.status,
           });
         });
     });
@@ -124,10 +145,15 @@ export function optionsForRole(role, catalog) {
         options.push({
           value: optionValue({
             source_type: 'ZIGBEE_DEVICE',
+            zigbee_coordinator_id: device.coordinator_id,
             zigbee_ieee_address: device.ieee_address,
             zigbee_property: zigbeeProperty,
           }),
           label: `${device.friendly_name} · ${featureLabel({ property: zigbeeProperty })}`,
+          currentValue: listOrEmpty(device.metrics)
+            .find((feature) => feature.property === zigbeeProperty)?.value,
+          lastSeenAt: device.last_state_at,
+          connectionStatus: device.availability,
         });
       });
   }
@@ -139,10 +165,15 @@ export function optionsForRole(role, catalog) {
         options.push({
           value: optionValue({
             source_type: 'ZIGBEE_DEVICE',
+            zigbee_coordinator_id: device.coordinator_id,
             zigbee_ieee_address: device.ieee_address,
             zigbee_property: 'water_leak',
           }),
           label: `${device.friendly_name} · ${featureLabel({ property: 'water_leak' })}`,
+          currentValue: listOrEmpty(device.metrics)
+            .find((feature) => feature.property === 'water_leak')?.value,
+          lastSeenAt: device.last_state_at,
+          connectionStatus: device.availability,
         });
       });
   }
@@ -154,6 +185,7 @@ export function optionsForRole(role, catalog) {
         options.push({
           value: optionValue({
             source_type: 'ZIGBEE_DEVICE',
+            zigbee_coordinator_id: device.coordinator_id,
             zigbee_ieee_address: device.ieee_address,
             zigbee_property: 'state',
             command_property: 'state',
@@ -161,6 +193,10 @@ export function optionsForRole(role, catalog) {
             off_value: 'OFF',
           }),
           label: `${device.friendly_name}${zigbeeModel(device) ? ` · ${zigbeeModel(device)}` : ''}`,
+          currentValue: listOrEmpty(device.controls)
+            .find((feature) => feature.property === 'state')?.value,
+          lastSeenAt: device.last_state_at,
+          connectionStatus: device.availability,
         });
       });
   }
@@ -174,6 +210,9 @@ export function optionsForRole(role, catalog) {
             native_pump_id: pump.id,
           }),
           label: `${pump.label || `Насос ${pump.channel ?? ''}`} · ${nativeDeviceLabel(nativeDevices, pump.device_id)}`,
+          currentValue: pump.is_running,
+          lastSeenAt: pump.last_seen_at,
+          connectionStatus: pump.is_online === false ? 'offline' : 'online',
         });
       });
     });
@@ -191,12 +230,32 @@ export function resourcePayload(role, value) {
     source_type: parsed.source_type,
     native_sensor_id: parsed.native_sensor_id || null,
     native_pump_id: parsed.native_pump_id || null,
+    zigbee_coordinator_id: parsed.zigbee_coordinator_id || null,
     zigbee_ieee_address: parsed.zigbee_ieee_address || null,
     zigbee_property: parsed.zigbee_property || (isSwitch ? 'state' : null),
     command_property: parsed.command_property || (isSwitch ? 'state' : null),
     on_value: parsed.on_value || (isSwitch ? 'ON' : null),
     off_value: parsed.off_value || (isSwitch ? 'OFF' : null),
   };
+}
+
+export function physicalChannelKey(payload = {}) {
+  if (payload.source_type === 'NATIVE_SENSOR' && payload.native_sensor_id) {
+    return `sensor:${payload.native_sensor_id}`;
+  }
+  if (payload.source_type === 'NATIVE_PUMP' && payload.native_pump_id) {
+    return `pump:${payload.native_pump_id}`;
+  }
+  if (payload.source_type !== 'ZIGBEE_DEVICE' || !payload.zigbee_ieee_address) {
+    return null;
+  }
+  const property = payload.command_property || payload.zigbee_property || 'state';
+  return [
+    'zigbee',
+    payload.zigbee_coordinator_id || '',
+    String(payload.zigbee_ieee_address).toLowerCase(),
+    property,
+  ].join(':');
 }
 
 export function resourceBindingForRole(resources, role) {

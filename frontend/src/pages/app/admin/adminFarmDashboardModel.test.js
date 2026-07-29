@@ -71,6 +71,14 @@ describe('admin farm dashboard model', () => {
       ready: true,
     }, RESOURCE_ROLES.WATER_PUMP)).toBe('Идет полив');
     expect(formatResourceValue(null, RESOURCE_ROLES.LIGHT_SWITCH)).toBe('Не привязано');
+    expect(formatResourceValue({
+      current_value: 54.2,
+      ready: true,
+    }, RESOURCE_ROLES.AIR_HUMIDITY_SENSOR)).toBe('54,2 %');
+    expect(formatResourceValue({
+      current_value: true,
+      ready: true,
+    }, RESOURCE_ROLES.LEAK_SENSOR)).toBe('Протечка');
   });
 
   it('pokazyvaet net svyazi kak warning status resursa', () => {
@@ -126,6 +134,19 @@ describe('admin farm dashboard model', () => {
       chartKind: 'binary',
       title: 'Свет',
       subtitle: 'Бокс 2',
+    });
+  });
+
+  it('stroitr chislovoj payload statistiki dlya vlazhnosti vozduha', () => {
+    expect(buildResourceStatsPayload({
+      source_type: RESOURCE_SOURCE_TYPES.ZIGBEE_DEVICE,
+      zigbee_ieee_address: '0xhumidity',
+      zigbee_property: 'humidity',
+    }, RESOURCE_ROLES.AIR_HUMIDITY_SENSOR, 'Теплица')).toMatchObject({
+      mode: 'zigbee',
+      zigbeeProperty: 'humidity',
+      metric: 'air_humidity',
+      chartKind: 'numeric',
     });
   });
 
