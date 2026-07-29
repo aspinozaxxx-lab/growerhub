@@ -49,6 +49,44 @@ public final class AutomationData {
     ) {
     }
 
+    public record FarmsOverview(
+            @JsonProperty("farms") List<UserFarm> farms,
+            @JsonProperty("resource_catalog") ResourceCatalog resourceCatalog,
+            @JsonProperty("last_actions") List<ActionLog> lastActions,
+            @JsonProperty("settings") Settings settings
+    ) {
+    }
+
+    public record UserFarm(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("name") String name,
+            @JsonProperty("enabled") boolean enabled,
+            @JsonProperty("slots") List<ResourceBinding> slots,
+            @JsonProperty("scenarios") List<ScenarioConfig> scenarios,
+            @JsonProperty("states") List<ScenarioState> states,
+            @JsonProperty("greenhouses") List<Greenhouse> greenhouses,
+            @JsonProperty("last_actions") List<ActionLog> lastActions,
+            @JsonProperty("created_at") LocalDateTime createdAt,
+            @JsonProperty("updated_at") LocalDateTime updatedAt
+    ) {
+    }
+
+    public record Greenhouse(
+            @JsonProperty("id") Integer id,
+            @JsonProperty("farm_id") Integer farmId,
+            @JsonProperty("name") String name,
+            @JsonProperty("enabled") boolean enabled,
+            @JsonProperty("plants") List<BoxPlant> plants,
+            @JsonProperty("slots") List<ResourceBinding> slots,
+            @JsonProperty("scenarios") List<ScenarioConfig> scenarios,
+            @JsonProperty("states") List<ScenarioState> states,
+            @JsonProperty("readiness") Map<String, Readiness> readiness,
+            @JsonProperty("last_actions") List<ActionLog> lastActions,
+            @JsonProperty("created_at") LocalDateTime createdAt,
+            @JsonProperty("updated_at") LocalDateTime updatedAt
+    ) {
+    }
+
     public record Farm(
             @JsonProperty("id") Integer id,
             @JsonProperty("name") String name,
@@ -75,7 +113,9 @@ public final class AutomationData {
 
     public record ZoneReference(
             @JsonProperty("id") Integer id,
-            @JsonProperty("name") String name
+            @JsonProperty("name") String name,
+            @JsonProperty("farm_id") Integer farmId,
+            @JsonProperty("farm_name") String farmName
     ) {
     }
 
@@ -309,6 +349,13 @@ public final class AutomationData {
     }
 
     public record SaveBoxRequest(
+            @JsonProperty("name") String name,
+            @JsonProperty("enabled") Boolean enabled
+    ) {
+    }
+
+    public record SaveGreenhouseRequest(
+            @JsonProperty("farm_id") Integer farmId,
             @JsonProperty("name") String name,
             @JsonProperty("enabled") Boolean enabled
     ) {

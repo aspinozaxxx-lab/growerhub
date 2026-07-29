@@ -181,7 +181,7 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
                 .put("/api/automation/farm/zones/" + secondZone)
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("Зона не найдена"));
+                .body("detail", equalTo("Теплица не найдена"));
 
         given()
                 .header("Authorization", "Bearer " + firstToken)
@@ -335,7 +335,6 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM automation_box_plants");
         jdbcTemplate.update("DELETE FROM automation_boxes");
         jdbcTemplate.update("DELETE FROM automation_rooms");
-        jdbcTemplate.update("DELETE FROM automation_farms");
         jdbcTemplate.update("DELETE FROM zigbee_device_property_readings");
         jdbcTemplate.update("DELETE FROM zigbee_device_state_events");
         jdbcTemplate.update("DELETE FROM zigbee_command_response_snapshots");

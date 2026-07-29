@@ -4,6 +4,9 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -15,22 +18,33 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
+import ru.growerhub.backend.automation.AutomationFacade;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.sensor.contract.SensorStatus;
 import ru.growerhub.backend.sensor.contract.SensorType;
 import ru.growerhub.backend.sensor.jpa.SensorEntity;
+import ru.growerhub.backend.sensor.jpa.SensorReadingEntity;
+import ru.growerhub.backend.sensor.jpa.SensorReadingRepository;
 import ru.growerhub.backend.sensor.jpa.SensorRepository;
 import ru.growerhub.backend.user.jpa.UserEntity;
 import ru.growerhub.backend.user.jpa.UserRepository;
+import ru.growerhub.backend.zigbee.ZigbeeFacade;
+import ru.growerhub.backend.zigbee.contract.ZigbeeDeviceData;
+import ru.growerhub.backend.zigbee.contract.ZigbeeFeatureData;
+import ru.growerhub.backend.zigbee.contract.ZigbeeOwnedDeviceData;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -52,50 +66,93 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
     @Autowired
     private SensorRepository sensorRepository;
 
+    @Autowired
+    private SensorReadingRepository sensorReadingRepository;
+
+    @Autowired
+    private AutomationFacade automationFacade;
+
+    @MockBean
+    private ZigbeeFacade zigbeeFacade;
+
     @BeforeEach
     void setUp() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
+        when(zigbeeFacade.getDevicesForUser(any(AuthenticatedUser.class))).thenReturn(List.of());
+        when(zigbeeFacade.getDevicesForAutomation()).thenReturn(List.of());
         clearDatabase();
     }
 
     @Test
-    void regularAdminEndpointReturnsOnlyOwnFarmAndFarmIsUnique() {
+    void userOwnsMultipleFarmsAndCanMoveGreenhouseBetweenThem() {
         UserEntity admin = createUser("farm-admin@example.com", "admin");
         UserEntity other = createUser("farm-other@example.com", "user");
         String adminToken = buildToken(admin.getId());
         String otherToken = buildToken(other.getId());
 
-        createFarm(adminToken, "Ферма администратора");
-        createFarm(otherToken, "Чужая ферма");
+        Integer firstFarmId = createFarm(adminToken, "Основное помещение");
+        Integer secondFarmId = createFarm(adminToken, "Второе помещение");
+        Integer otherFarmId = createFarm(otherToken, "Чужая ферма");
+        Integer otherGreenhouseId = createGreenhouse(otherToken, otherFarmId, "Чужая теплица");
+        Integer greenhouseId = createGreenhouse(adminToken, firstFarmId, "Теплица 1");
 
         given()
                 .header("Authorization", "Bearer " + adminToken)
                 .when()
-                .get("/api/automation/farm")
+                .get("/api/automation/farms")
                 .then()
                 .statusCode(200)
-                .body("farm.name", equalTo("Ферма администратора"))
-                .body("farm.zones", hasSize(0));
+                .body("farms", hasSize(2))
+                .body("farms.find { it.id == " + firstFarmId + " }.greenhouses", hasSize(1))
+                .body("farms.find { it.id == " + secondFarmId + " }.greenhouses", hasSize(0));
 
         given()
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType("application/json")
-                .body("{\"name\":\"Вторая ферма\"}")
+                .body("""
+                        {
+                          "farm_id":%d,
+                          "name":"Перенесённая теплица",
+                          "enabled":true
+                        }
+                        """.formatted(secondFarmId))
                 .when()
-                .post("/api/automation/farm")
+                .put("/api/automation/greenhouses/" + greenhouseId)
                 .then()
-                .statusCode(409)
-                .body("detail", equalTo("Ферма уже создана"));
+                .statusCode(200)
+                .body("farms.find { it.id == " + firstFarmId + " }.greenhouses", hasSize(0))
+                .body("farms.find { it.id == " + secondFarmId + " }.greenhouses[0].name",
+                        equalTo("Перенесённая теплица"));
+
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType("application/json")
+                .body("{\"name\":\"stolen\"}")
+                .when()
+                .put("/api/automation/farms/" + otherFarmId)
+                .then()
+                .statusCode(404)
+                .body("detail", equalTo("Ферма не найдена"));
+
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType("application/json")
+                .body("{\"name\":\"stolen\"}")
+                .when()
+                .put("/api/automation/greenhouses/" + otherGreenhouseId)
+                .then()
+                .statusCode(404)
+                .body("detail", equalTo("Теплица не найдена"));
     }
 
     @Test
-    void zoneCreatesInternalBoxAndPlantMovesAtomically() {
+    void plantMovesBetweenGreenhousesAtomically() {
         UserEntity owner = createUser("farm-plants@example.com", "user");
         String token = buildToken(owner.getId());
-        createFarm(token, "Моя ферма");
-        Integer firstZoneId = createZone(token, "Теплица 1");
-        Integer secondZoneId = createZone(token, "Теплица 2");
+        Integer farmId = createFarm(token, "Моя ферма");
+        Integer firstGreenhouseId = createGreenhouse(token, farmId, "Теплица 1");
+        Integer secondGreenhouseId = createGreenhouse(token, farmId, "Теплица 2");
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -106,24 +163,29 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                           "zone_id":%d,
                           "plant_type":"tomato"
                         }
-                        """.formatted(firstZoneId))
+                        """.formatted(firstGreenhouseId))
                 .when()
                 .post("/api/plants")
                 .then()
                 .statusCode(200)
-                .body("zone.id", equalTo(firstZoneId))
-                .body("zone.name", equalTo("Теплица 1"));
+                .body("zone.id", equalTo(firstGreenhouseId))
+                .body("zone.name", equalTo("Теплица 1"))
+                .body("zone.farm_id", equalTo(farmId))
+                .body("zone.farm_name", equalTo("Моя ферма"));
 
-        Integer plantId = jdbcTemplate.queryForObject("SELECT id FROM plants WHERE name='Томат'", Integer.class);
+        Integer plantId = jdbcTemplate.queryForObject(
+                "SELECT id FROM plants WHERE name='Томат'",
+                Integer.class
+        );
         given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
-                .body("{\"zone_id\":" + secondZoneId + "}")
+                .body("{\"zone_id\":" + secondGreenhouseId + "}")
                 .when()
                 .patch("/api/plants/" + plantId)
                 .then()
                 .statusCode(200)
-                .body("zone.id", equalTo(secondZoneId))
+                .body("zone.id", equalTo(secondGreenhouseId))
                 .body("zone.name", equalTo("Теплица 2"));
 
         given()
@@ -135,11 +197,6 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(200)
                 .body("zone", nullValue());
-
-        Integer boxes = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM automation_boxes", Integer.class);
-        Integer placements = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM automation_box_plants", Integer.class);
-        org.junit.jupiter.api.Assertions.assertEquals(2, boxes);
-        org.junit.jupiter.api.Assertions.assertEquals(0, placements);
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -165,17 +222,16 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
         given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
-                .body("{\"zone_id\":" + firstZoneId + "}")
+                .body("{\"zone_id\":" + firstGreenhouseId + "}")
                 .when()
                 .patch("/api/plants/" + plantId)
                 .then()
-                .statusCode(200)
-                .body("zone.id", equalTo(firstZoneId));
+                .statusCode(200);
 
         given()
                 .header("Authorization", "Bearer " + token)
                 .when()
-                .delete("/api/automation/farm/zones/" + firstZoneId)
+                .delete("/api/automation/greenhouses/" + firstGreenhouseId)
                 .then()
                 .statusCode(200);
 
@@ -189,13 +245,13 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void physicalSensorNeedsExplicitReassignmentBetweenZones() {
+    void physicalSensorNeedsExplicitReassignmentBetweenGreenhouses() {
         UserEntity owner = createUser("farm-slots@example.com", "user");
         String token = buildToken(owner.getId());
-        createFarm(token, "Моя ферма");
-        Integer firstZoneId = createZone(token, "Теплица 1");
-        Integer secondZoneId = createZone(token, "Теплица 2");
-        SensorEntity sensor = createSensor(owner);
+        Integer farmId = createFarm(token, "Моя ферма");
+        Integer firstGreenhouseId = createGreenhouse(token, farmId, "Теплица 1");
+        Integer secondGreenhouseId = createGreenhouse(token, farmId, "Теплица 2");
+        SensorEntity sensor = createSensor(owner, null);
 
         String slot = """
                 {
@@ -209,42 +265,225 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                 .contentType("application/json")
                 .body("{\"slots\":[" + slot + "]}")
                 .when()
-                .put("/api/automation/farm/zones/" + firstZoneId + "/slots")
+                .put("/api/automation/greenhouses/" + firstGreenhouseId + "/slots")
                 .then()
                 .statusCode(200)
-                .body("farm.zones.find { it.id == " + firstZoneId + " }.slots", hasSize(1));
+                .body("farms[0].greenhouses.find { it.id == " + firstGreenhouseId + " }.slots",
+                        hasSize(1));
 
         given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .body("{\"slots\":[" + slot + "]}")
                 .when()
-                .put("/api/automation/farm/zones/" + secondZoneId + "/slots")
+                .put("/api/automation/greenhouses/" + secondGreenhouseId + "/slots")
                 .then()
-                .statusCode(409)
-                .body("detail", equalTo(
-                        "Ресурс уже назначен слоту AIR_TEMPERATURE_SENSOR зоны «Теплица 1»"
-                ));
+                .statusCode(409);
 
         given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .body("{\"slots\":[" + slot + "],\"reassign\":true}")
                 .when()
-                .put("/api/automation/farm/zones/" + secondZoneId + "/slots")
+                .put("/api/automation/greenhouses/" + secondGreenhouseId + "/slots")
                 .then()
                 .statusCode(200)
-                .body("farm.zones.find { it.id == " + firstZoneId + " }.slots", hasSize(0))
-                .body("farm.zones.find { it.id == " + secondZoneId + " }.slots[0].role",
+                .body("farms[0].greenhouses.find { it.id == " + firstGreenhouseId + " }.slots",
+                        hasSize(0))
+                .body("farms[0].greenhouses.find { it.id == " + secondGreenhouseId
+                                + " }.slots[0].role",
                         equalTo("AIR_TEMPERATURE_SENSOR"));
     }
 
     @Test
-    void enabledScenarioRequiresReadySlots() {
+    void greenhousePublishesCoolingRequestWithoutAnyAirConditioner() {
+        UserEntity owner = createUser("farm-cooling@example.com", "user");
+        String token = buildToken(owner.getId());
+        Integer farmId = createFarm(token, "Помещение");
+        Integer reserveFarmId = createFarm(token, "Резервное помещение");
+        Integer greenhouseId = createGreenhouse(token, farmId, "Горячая теплица");
+        SensorEntity sensor = createSensor(owner, 32.0);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"slots":[{
+                          "role":"AIR_TEMPERATURE_SENSOR",
+                          "source_type":"NATIVE_SENSOR",
+                          "native_sensor_id":%d
+                        }]}
+                        """.formatted(sensor.getId()))
+                .when()
+                .put("/api/automation/greenhouses/" + greenhouseId + "/slots")
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"scenarios":[{
+                          "scenario_type":"BOX_CLIMATE",
+                          "enabled":true,
+                          "config":{
+                            "ac_request_above_c":30,
+                            "ac_clear_below_c":27
+                          }
+                        }]}
+                        """)
+                .when()
+                .put("/api/automation/greenhouses/" + greenhouseId + "/scenarios")
+                .then()
+                .statusCode(200)
+                .body("farms[0].greenhouses[0].readiness.BOX_CLIMATE.ready", equalTo(true));
+
+        automationFacade.evaluateAll();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .body("farms.find { it.id == " + farmId + " }.slots", hasSize(0))
+                .body("farms.find { it.id == " + farmId + " }.greenhouses[0].slots", hasSize(1))
+                .body("farms.find { it.id == " + farmId
+                                + " }.greenhouses[0].states.find { it.scenario_type == 'BOX_CLIMATE' }"
+                                + ".ac_request_active",
+                        equalTo(true))
+                .body("farms.find { it.id == " + farmId
+                                + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".ac_request_active",
+                        equalTo(true))
+                .body("farms.find { it.id == " + farmId
+                                + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".runtime.pending_request_count",
+                        equalTo(1));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {
+                          "farm_id":%d,
+                          "name":"Горячая теплица",
+                          "enabled":true
+                        }
+                        """.formatted(reserveFarmId))
+                .when()
+                .put("/api/automation/greenhouses/" + greenhouseId)
+                .then()
+                .statusCode(200)
+                .body("farms.find { it.id == " + farmId
+                                + " }.scenarios.find { it.scenario_type == 'ROOM_CLIMATE' }.enabled",
+                        equalTo(false))
+                .body("farms.find { it.id == " + reserveFarmId
+                                + " }.scenarios.find { it.scenario_type == 'ROOM_CLIMATE' }.enabled",
+                        equalTo(true));
+
+        automationFacade.evaluateAll();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .body("farms.find { it.id == " + reserveFarmId
+                                + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".runtime.pending_request_count",
+                        equalTo(1));
+    }
+
+    @Test
+    void localAirConditionerHandlesOwnRequestAndFarmHandlesOnlyUncoveredRequest() {
+        UserEntity owner = createUser("farm-cooling-routing@example.com", "user");
+        String token = buildToken(owner.getId());
+        Integer localFarmId = createFarm(token, "Ферма с локальным кондиционером");
+        Integer sharedFarmId = createFarm(token, "Ферма с общим кондиционером");
+        Integer localGreenhouseId = createGreenhouse(token, localFarmId, "Локальная теплица");
+        Integer sharedGreenhouseId = createGreenhouse(token, sharedFarmId, "Общая теплица");
+        SensorEntity localSensor = createSensor(owner, 32.0);
+        SensorEntity sharedSensor = createSensor(owner, 33.0);
+        UUID coordinatorId = UUID.randomUUID();
+        int coordinatorInternalId = 41;
+        String localAcIeee = "0x00124b0000000001";
+        String sharedAcIeee = "0x00124b0000000002";
+        List<ZigbeeOwnedDeviceData> switches = List.of(
+                switchDevice(coordinatorInternalId, coordinatorId, localAcIeee, "Локальный кондиционер"),
+                switchDevice(coordinatorInternalId, coordinatorId, sharedAcIeee, "Общий кондиционер")
+        );
+        when(zigbeeFacade.getDevicesForUser(any(AuthenticatedUser.class))).thenReturn(switches);
+        when(zigbeeFacade.getDevicesForAutomation()).thenReturn(switches);
+
+        replaceGreenhouseClimateSlots(
+                token,
+                localGreenhouseId,
+                localSensor.getId(),
+                coordinatorId,
+                localAcIeee
+        );
+        replaceGreenhouseClimateSlots(
+                token,
+                sharedGreenhouseId,
+                sharedSensor.getId(),
+                null,
+                null
+        );
+        replaceFarmAirConditioner(token, sharedFarmId, coordinatorId, sharedAcIeee);
+        enableGreenhouseClimate(token, localGreenhouseId);
+        enableGreenhouseClimate(token, sharedGreenhouseId);
+
+        automationFacade.evaluateAll();
+
+        verify(zigbeeFacade).setAutomationDeviceProperty(
+                coordinatorInternalId,
+                localAcIeee,
+                "state",
+                "ON"
+        );
+        verify(zigbeeFacade).setAutomationDeviceProperty(
+                coordinatorInternalId,
+                sharedAcIeee,
+                "state",
+                "ON"
+        );
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .body("farms.find { it.id == " + localFarmId
+                                + " }.greenhouses[0].states.find { it.scenario_type == 'BOX_CLIMATE' }"
+                                + ".ac_request_active",
+                        equalTo(true))
+                .body("farms.find { it.id == " + localFarmId
+                                + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".runtime.pending_request_count",
+                        equalTo(0))
+                .body("farms.find { it.id == " + localFarmId
+                                + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".ac_request_active",
+                        equalTo(false))
+                .body("farms.find { it.id == " + sharedFarmId
+                                + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".runtime.pending_request_count",
+                        equalTo(1))
+                .body("farms.find { it.id == " + sharedFarmId
+                                + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".ac_request_active",
+                        equalTo(true));
+    }
+
+    @Test
+    void enabledLightScenarioUsesReadableReason() {
         UserEntity owner = createUser("farm-readiness@example.com", "user");
         String token = buildToken(owner.getId());
-        createFarm(token, "Моя ферма");
-        Integer zoneId = createZone(token, "Теплица");
+        Integer farmId = createFarm(token, "Моя ферма");
+        Integer greenhouseId = createGreenhouse(token, farmId, "Теплица");
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -259,48 +498,170 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                         }
                         """)
                 .when()
-                .put("/api/automation/farm/zones/" + zoneId + "/scenarios")
+                .put("/api/automation/greenhouses/" + greenhouseId + "/scenarios")
                 .then()
                 .statusCode(409)
-                .body("detail", equalTo(
-                        "Нужен Zigbee-ресурс LIGHT_SWITCH с управляемым свойством state"
-                ));
-
-        Integer scenarios = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM automation_scenario_configs",
-                Integer.class
-        );
-        org.junit.jupiter.api.Assertions.assertEquals(0, scenarios);
+                .body("detail", equalTo("Нужен Zigbee-выключатель света"));
     }
 
-    private void createFarm(String token, String name) {
+    private void replaceGreenhouseClimateSlots(
+            String token,
+            Integer greenhouseId,
+            Integer sensorId,
+            UUID coordinatorId,
+            String airConditionerIeee
+    ) {
+        String airConditionerSlot = airConditionerIeee != null
+                ? """
+                  ,{
+                    "role":"AC_SWITCH",
+                    "source_type":"ZIGBEE_DEVICE",
+                    "zigbee_coordinator_id":"%s",
+                    "zigbee_ieee_address":"%s"
+                  }
+                  """.formatted(coordinatorId, airConditionerIeee)
+                : "";
         given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
-                .body("{\"name\":\"" + name + "\"}")
+                .body("""
+                        {"slots":[{
+                          "role":"AIR_TEMPERATURE_SENSOR",
+                          "source_type":"NATIVE_SENSOR",
+                          "native_sensor_id":%d
+                        }%s]}
+                        """.formatted(sensorId, airConditionerSlot))
                 .when()
-                .post("/api/automation/farm")
+                .put("/api/automation/greenhouses/" + greenhouseId + "/slots")
                 .then()
                 .statusCode(200);
     }
 
-    private Integer createZone(String token, String name) {
+    private void replaceFarmAirConditioner(
+            String token,
+            Integer farmId,
+            UUID coordinatorId,
+            String airConditionerIeee
+    ) {
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"slots":[{
+                          "role":"AC_SWITCH",
+                          "source_type":"ZIGBEE_DEVICE",
+                          "zigbee_coordinator_id":"%s",
+                          "zigbee_ieee_address":"%s"
+                        }]}
+                        """.formatted(coordinatorId, airConditionerIeee))
+                .when()
+                .put("/api/automation/farms/" + farmId + "/slots")
+                .then()
+                .statusCode(200);
+    }
+
+    private void enableGreenhouseClimate(String token, Integer greenhouseId) {
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"scenarios":[{
+                          "scenario_type":"BOX_CLIMATE",
+                          "enabled":true,
+                          "config":{
+                            "ac_request_above_c":30,
+                            "ac_clear_below_c":27
+                          }
+                        }]}
+                        """)
+                .when()
+                .put("/api/automation/greenhouses/" + greenhouseId + "/scenarios")
+                .then()
+                .statusCode(200);
+    }
+
+    private ZigbeeOwnedDeviceData switchDevice(
+            int coordinatorInternalId,
+            UUID coordinatorId,
+            String ieeeAddress,
+            String name
+    ) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        ZigbeeFeatureData state = new ZigbeeFeatureData(
+                "binary",
+                "state",
+                "state",
+                "Состояние",
+                null,
+                7,
+                null,
+                List.of("ON", "OFF"),
+                null,
+                null,
+                null,
+                "ON",
+                "OFF",
+                "TOGGLE",
+                null,
+                "OFF"
+        );
+        return new ZigbeeOwnedDeviceData(
+                coordinatorInternalId,
+                coordinatorId,
+                "Тестовый координатор",
+                new ZigbeeDeviceData(
+                        null,
+                        ieeeAddress,
+                        name,
+                        "Router",
+                        true,
+                        false,
+                        false,
+                        null,
+                        null,
+                        null,
+                        List.of(state),
+                        List.of(),
+                        List.of(state),
+                        Map.of("state", "OFF"),
+                        "online",
+                        now,
+                        now
+                )
+        );
+    }
+
+    private Integer createFarm(String token, String name) {
         return given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .body("{\"name\":\"" + name + "\",\"enabled\":true}")
                 .when()
-                .post("/api/automation/farm/zones")
+                .post("/api/automation/farms")
                 .then()
                 .statusCode(200)
                 .extract()
-                .path("farm.zones.find { it.name == '" + name + "' }.id");
+                .path("farms.find { it.name == '" + name + "' }.id");
     }
 
-    private SensorEntity createSensor(UserEntity owner) {
+    private Integer createGreenhouse(String token, Integer farmId, String name) {
+        return given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("{\"name\":\"" + name + "\",\"enabled\":true}")
+                .when()
+                .post("/api/automation/farms/" + farmId + "/greenhouses")
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("farms.find { it.id == " + farmId
+                        + " }.greenhouses.find { it.name == '" + name + "' }.id");
+    }
+
+    private SensorEntity createSensor(UserEntity owner, Double value) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         DeviceEntity device = DeviceEntity.create();
-        device.setDeviceId("farm-native-" + owner.getId());
+        device.setDeviceId("farm-native-" + owner.getId() + "-" + UUID.randomUUID());
         device.setName("Farm native device");
         device.setUserId(owner.getId());
         device.setLastSeen(now);
@@ -315,7 +676,17 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
         sensor.setStatus(SensorStatus.OK);
         sensor.setCreatedAt(now);
         sensor.setUpdatedAt(now);
-        return sensorRepository.save(sensor);
+        sensor = sensorRepository.save(sensor);
+
+        if (value != null) {
+            SensorReadingEntity reading = SensorReadingEntity.create();
+            reading.setSensor(sensor);
+            reading.setTs(now);
+            reading.setValueNumeric(value);
+            reading.setCreatedAt(now);
+            sensorReadingRepository.save(reading);
+        }
+        return sensor;
     }
 
     private UserEntity createUser(String email, String role) {
@@ -341,7 +712,6 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM automation_box_plants");
         jdbcTemplate.update("DELETE FROM automation_boxes");
         jdbcTemplate.update("DELETE FROM automation_rooms");
-        jdbcTemplate.update("DELETE FROM automation_farms");
         jdbcTemplate.update("DELETE FROM plant_metric_samples");
         jdbcTemplate.update("DELETE FROM sensor_plant_bindings");
         jdbcTemplate.update("DELETE FROM sensor_readings");

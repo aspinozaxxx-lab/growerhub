@@ -60,6 +60,10 @@ public class AutomationBoxEntity {
         return room != null ? room.getId() : null;
     }
 
+    public void setRoom(AutomationRoomEntity room) {
+        this.room = room;
+    }
+
     public String getName() {
         return name;
     }

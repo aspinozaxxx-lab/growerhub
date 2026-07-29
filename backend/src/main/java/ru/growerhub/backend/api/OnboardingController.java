@@ -25,18 +25,18 @@ public class OnboardingController {
     @GetMapping("/api/onboarding/status")
     public OnboardingDtos.StatusResponse status(@AuthenticationPrincipal AuthenticatedUser user) {
         List<ZigbeeCoordinatorSummary> coordinators = zigbeeFacade.listCoordinators(user);
-        AutomationData.FarmOverview automation = automationFacade.getFarmOverview(user);
+        AutomationData.FarmsOverview automation = automationFacade.getFarmsOverview(user);
 
         boolean connected = coordinators.stream()
                 .anyMatch(item -> item.status() == ZigbeeCoordinatorStatus.ONLINE);
         boolean firstDeviceSeen = coordinators.stream()
                 .anyMatch(item -> item.firstDeviceSeenAt() != null || item.deviceCount() > 0);
-        List<AutomationData.Zone> zones = automation.farm() != null
-                ? automation.farm().zones()
-                : List.of();
-        boolean zoneCreated = !zones.isEmpty();
-        boolean automationEnabled = zones.stream().anyMatch(zone ->
-                zone.scenarios().stream().anyMatch(AutomationData.ScenarioConfig::enabled)
+        List<AutomationData.Greenhouse> greenhouses = automation.farms().stream()
+                .flatMap(farm -> farm.greenhouses().stream())
+                .toList();
+        boolean zoneCreated = !greenhouses.isEmpty();
+        boolean automationEnabled = greenhouses.stream().anyMatch(greenhouse ->
+                greenhouse.scenarios().stream().anyMatch(AutomationData.ScenarioConfig::enabled)
         );
 
         return new OnboardingDtos.StatusResponse(

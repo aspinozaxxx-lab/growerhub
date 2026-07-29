@@ -2,12 +2,9 @@ package ru.growerhub.backend.automation.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 
@@ -21,10 +18,6 @@ public class AutomationRoomEntity {
 
     @Column(name = "user_id", nullable = false)
     private Integer userId;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "farm_id", nullable = false)
-    private AutomationFarmEntity farm;
 
     @Column(name = "name", nullable = false)
     private String name;
@@ -42,13 +35,11 @@ public class AutomationRoomEntity {
     }
 
     public static AutomationRoomEntity create(
-            AutomationFarmEntity farm,
             Integer userId,
             String name,
             LocalDateTime now
     ) {
         AutomationRoomEntity entity = new AutomationRoomEntity();
-        entity.farm = farm;
         entity.userId = userId;
         entity.name = name;
         entity.enabled = true;
@@ -63,14 +54,6 @@ public class AutomationRoomEntity {
 
     public Integer getUserId() {
         return userId;
-    }
-
-    public AutomationFarmEntity getFarm() {
-        return farm;
-    }
-
-    public Integer getFarmId() {
-        return farm != null ? farm.getId() : null;
     }
 
     public String getName() {

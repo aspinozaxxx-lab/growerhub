@@ -78,7 +78,9 @@ public final class PlantDtos {
 
     public record ZoneResponse(
             @JsonProperty("id") Integer id,
-            @JsonProperty("name") String name
+            @JsonProperty("name") String name,
+            @JsonProperty("farm_id") Integer farmId,
+            @JsonProperty("farm_name") String farmName
     ) {
     }
 

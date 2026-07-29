@@ -367,7 +367,9 @@ public class PlantController {
     }
 
     private PlantDtos.ZoneResponse toZoneResponse(AutomationData.ZoneReference zone) {
-        return zone != null ? new PlantDtos.ZoneResponse(zone.id(), zone.name()) : null;
+        return zone != null
+                ? new PlantDtos.ZoneResponse(zone.id(), zone.name(), zone.farmId(), zone.farmName())
+                : null;
     }
 
     private ParsedPlantUpdate parseUpdateCommand(JsonNode request) {

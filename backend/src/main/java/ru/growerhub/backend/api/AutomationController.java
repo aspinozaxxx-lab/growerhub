@@ -23,6 +23,109 @@ public class AutomationController {
         this.automationFacade = automationFacade;
     }
 
+    @GetMapping("/farms")
+    public AutomationData.FarmsOverview farmsOverview(@AuthenticationPrincipal AuthenticatedUser user) {
+        return automationFacade.getFarmsOverview(user);
+    }
+
+    @PostMapping("/farms")
+    public AutomationData.FarmsOverview createUserFarm(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestBody AutomationData.SaveRoomRequest request
+    ) {
+        return automationFacade.createUserFarm(user, request);
+    }
+
+    @PutMapping("/farms/{farm_id}")
+    public AutomationData.FarmsOverview updateUserFarm(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("farm_id") Integer farmId,
+            @RequestBody AutomationData.SaveRoomRequest request
+    ) {
+        return automationFacade.updateUserFarm(user, farmId, request);
+    }
+
+    @DeleteMapping("/farms/{farm_id}")
+    public CommonDtos.MessageResponse deleteUserFarm(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("farm_id") Integer farmId
+    ) {
+        automationFacade.deleteUserFarm(user, farmId);
+        return new CommonDtos.MessageResponse("Farm deleted");
+    }
+
+    @PostMapping("/farms/{farm_id}/greenhouses")
+    public AutomationData.FarmsOverview createGreenhouse(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("farm_id") Integer farmId,
+            @RequestBody AutomationData.SaveBoxRequest request
+    ) {
+        return automationFacade.createGreenhouse(user, farmId, request);
+    }
+
+    @PutMapping("/greenhouses/{greenhouse_id}")
+    public AutomationData.FarmsOverview updateGreenhouse(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("greenhouse_id") Integer greenhouseId,
+            @RequestBody AutomationData.SaveGreenhouseRequest request
+    ) {
+        return automationFacade.updateGreenhouse(user, greenhouseId, request);
+    }
+
+    @DeleteMapping("/greenhouses/{greenhouse_id}")
+    public CommonDtos.MessageResponse deleteGreenhouse(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("greenhouse_id") Integer greenhouseId
+    ) {
+        automationFacade.deleteGreenhouse(user, greenhouseId);
+        return new CommonDtos.MessageResponse("Greenhouse deleted");
+    }
+
+    @PutMapping("/farms/{farm_id}/slots")
+    public AutomationData.FarmsOverview replaceUserFarmSlots(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("farm_id") Integer farmId,
+            @RequestBody AutomationData.SaveZoneSlotsRequest request
+    ) {
+        return automationFacade.replaceUserFarmSlots(user, farmId, request);
+    }
+
+    @PutMapping("/farms/{farm_id}/scenarios")
+    public AutomationData.FarmsOverview replaceUserFarmScenarios(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("farm_id") Integer farmId,
+            @RequestBody AutomationData.SaveScenariosRequest request
+    ) {
+        return automationFacade.replaceUserFarmScenarios(user, farmId, request);
+    }
+
+    @PutMapping("/greenhouses/{greenhouse_id}/slots")
+    public AutomationData.FarmsOverview replaceGreenhouseSlots(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("greenhouse_id") Integer greenhouseId,
+            @RequestBody AutomationData.SaveZoneSlotsRequest request
+    ) {
+        return automationFacade.replaceGreenhouseSlots(user, greenhouseId, request);
+    }
+
+    @PutMapping("/greenhouses/{greenhouse_id}/plants")
+    public AutomationData.FarmsOverview replaceGreenhousePlants(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("greenhouse_id") Integer greenhouseId,
+            @RequestBody AutomationData.SavePlantsRequest request
+    ) {
+        return automationFacade.replaceGreenhousePlants(user, greenhouseId, request);
+    }
+
+    @PutMapping("/greenhouses/{greenhouse_id}/scenarios")
+    public AutomationData.FarmsOverview replaceGreenhouseScenarios(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("greenhouse_id") Integer greenhouseId,
+            @RequestBody AutomationData.SaveScenariosRequest request
+    ) {
+        return automationFacade.replaceGreenhouseScenarios(user, greenhouseId, request);
+    }
+
     @GetMapping("/farm")
     public AutomationData.FarmOverview farmOverview(@AuthenticationPrincipal AuthenticatedUser user) {
         return automationFacade.getFarmOverview(user);

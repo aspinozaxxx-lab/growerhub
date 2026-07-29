@@ -9,7 +9,5 @@ public interface AutomationRoomRepository extends JpaRepository<AutomationRoomEn
 
     List<AutomationRoomEntity> findAllByUserIdOrderByNameAscIdAsc(Integer userId);
 
-    List<AutomationRoomEntity> findAllByFarm_IdOrderByNameAscIdAsc(Integer farmId);
-
     Optional<AutomationRoomEntity> findByIdAndUserId(Integer id, Integer userId);
 }
