@@ -1,10 +1,21 @@
-﻿name: Deploy Frontend
+name: Deploy Frontend
 
 on:
   push:
     branches: [ "main" ]
     paths:
       - "frontend/**"
+      - ".github/workflows/deploy-frontend.yml"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Deployment target
+        required: true
+        default: vps
+        type: choice
+        options:
+          - vps
+          - legacy
 
 permissions:
   contents: read
@@ -14,12 +25,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    name: Deploy frontend
+  build:
+    name: Build frontend
     runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://growerhub.ru/
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,10 +36,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20.19.0"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend deps
+      - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Test frontend
+        working-directory: frontend
+        run: npm test
 
       - name: Build frontend
         working-directory: frontend
@@ -39,29 +53,182 @@ jobs:
           VITE_SELF_SERVICE_ENABLED: "true"
         run: npm run build
 
-      - name: Setup SSH
+      - name: Upload frontend dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          if-no-files-found: error
+
+  deploy_vps:
+    name: Deploy frontend to VPS
+    runs-on: ubuntu-latest
+    needs: [ build ]
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.target == 'vps') }}
+    environment:
+      name: production
+      url: https://growerhub.ru/
+    env:
+      SSH_HOST: ${{ secrets.IP_VPS_HOST }}
+      SSH_PORT: "22"
+      SSH_USER: growerhub-deploy
+      SSH_HOST_ED25519_FINGERPRINT: "SHA256:HVqlFDK4gfDJ8KnRBE3nApvW3YZA3N4ActMDm/lFTPM"
+      RELEASES_DIR: /opt/growerhub/releases/frontend
+      CURRENT_LINK: /opt/growerhub/current/frontend
+    steps:
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-artifact
+
+      - name: Setup pinned VPS SSH
+        shell: bash
         run: |
+          set -euo pipefail
           install -m 700 -d ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY_VPS_HOST }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -p 6733 growerhub.ru > ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
 
-      - name: SSH smoke test
-        run: |
-          ssh -p 6733 -o StrictHostKeyChecking=yes watering-admin@growerhub.ru "echo 'SSH OK'"
+          scan_file="$(mktemp)"
+          ssh-keyscan -T 10 -p "$SSH_PORT" -t ed25519 "$SSH_HOST" > "$scan_file" 2>/dev/null
+          actual_fingerprint="$(ssh-keygen -lf "$scan_file" -E sha256 | awk 'NR == 1 { print $2 }')"
+          if [ "$actual_fingerprint" != "$SSH_HOST_ED25519_FINGERPRINT" ]; then
+            echo "Unexpected VPS SSH host fingerprint: $actual_fingerprint" >&2
+            rm -f "$scan_file"
+            exit 1
+          fi
+          install -m 644 "$scan_file" ~/.ssh/known_hosts
+          rm -f "$scan_file"
 
-      - name: Ensure frontend target dir exists
+      - name: Verify restricted deploy access
         run: |
-          ssh -p 6733 -o StrictHostKeyChecking=yes watering-admin@growerhub.ru \
-            "mkdir -p /home/watering-admin/growerhub/frontend/dist && chmod 755 /home/watering-admin/growerhub/frontend/dist"
+          set -euo pipefail
+          ssh -p "$SSH_PORT" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" "test \"\$(id -un)\" = '$SSH_USER'"
 
-      - name: Sync frontend dist to server
+      - name: Upload frontend release
+        shell: bash
         run: |
-          rsync -azv --delete \
+          set -euo pipefail
+          release_dir="$RELEASES_DIR/$GITHUB_SHA"
+          ssh -p "$SSH_PORT" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" "install -d -m 0755 '$release_dir'"
+          rsync -az --delete \
             --omit-dir-times --no-perms --no-owner --no-group \
-            -e "ssh -p 6733 -o StrictHostKeyChecking=yes" \
-            ./frontend/dist/ watering-admin@growerhub.ru:/home/watering-admin/growerhub/frontend/dist/
+            -e "ssh -p $SSH_PORT -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+            ./frontend-artifact/ "$SSH_USER@$SSH_HOST:$release_dir/"
+          ssh -p "$SSH_PORT" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" "test -s '$release_dir/index.html'"
+
+      - name: Switch frontend release with rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -p "$SSH_PORT" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" <<EOF
+          set -euo pipefail
+          release_dir="$RELEASES_DIR/$GITHUB_SHA"
+          old_target="\$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
+          next_link="$CURRENT_LINK.next"
+
+          ln -sfn "\$release_dir" "\$next_link"
+          mv -Tf "\$next_link" "$CURRENT_LINK"
+
+          if ! curl -fsS \
+            --resolve growerhub.ru:443:127.0.0.1 \
+            https://growerhub.ru/ >/dev/null; then
+            if [ -n "\$old_target" ] && [ -d "\$old_target" ]; then
+              ln -sfn "\$old_target" "\$next_link"
+              mv -Tf "\$next_link" "$CURRENT_LINK"
+            fi
+            exit 1
+          fi
+          EOF
+
+      - name: Verify public frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --retry 5 --retry-delay 2 --retry-all-errors \
+            https://growerhub.ru/ >/dev/null
+
+      - name: Remove stale frontend releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -p "$SSH_PORT" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" <<EOF
+          set -euo pipefail
+          current_target="\$(readlink -f "$CURRENT_LINK")"
+          mapfile -t stale_releases < <(
+            find "$RELEASES_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' |
+              sort -rn |
+              tail -n +6 |
+              cut -d' ' -f2-
+          )
+          for candidate in "\${stale_releases[@]}"; do
+            resolved="\$(readlink -f "\$candidate")"
+            case "\$resolved" in
+              "$RELEASES_DIR"/*)
+                if [ "\$resolved" != "\$current_target" ]; then
+                  rm -rf -- "\$resolved"
+                fi
+                ;;
+              *)
+                echo "Unsafe release cleanup target: \$resolved" >&2
+                exit 1
+                ;;
+            esac
+          done
+          EOF
+
+  deploy_legacy:
+    name: Deploy frontend to legacy manually
+    runs-on: ubuntu-latest
+    needs: [ build ]
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.target == 'legacy' }}
+    environment:
+      name: production
+      url: https://growerhub.ru/
+    env:
+      SSH_HOST: growerhub.ru
+      SSH_PORT: "6733"
+      SSH_USER: watering-admin
+      DEPLOY_DIR: /home/watering-admin/growerhub/frontend/dist
+    steps:
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-artifact
+
+      - name: Setup legacy SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+
+      - name: Verify legacy SSH access
+        run: |
+          ssh -p "$SSH_PORT" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" "echo 'SSH OK'"
+
+      - name: Ensure legacy frontend directory exists
+        run: |
+          ssh -p "$SSH_PORT" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" "mkdir -p '$DEPLOY_DIR' && chmod 755 '$DEPLOY_DIR'"
+
+      - name: Sync frontend dist to legacy
+        run: |
+          rsync -az --delete \
+            --omit-dir-times --no-perms --no-owner --no-group \
+            -e "ssh -p $SSH_PORT -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+            ./frontend-artifact/ "$SSH_USER@$SSH_HOST:$DEPLOY_DIR/"
 
       - name: Log deployed sha
         run: |

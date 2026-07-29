@@ -5,15 +5,23 @@ persistence_location /var/lib/mosquitto/
 log_dest syslog
 connection_messages true
 
+{% if mosquitto_queue_limits_enabled %}
+max_queued_messages {{ mosquitto_max_queued_messages }}
+max_queued_bytes {{ mosquitto_max_queued_bytes }}
+persistent_client_expiration {{ mosquitto_persistent_client_expiration }}
+{% endif %}
+
 plugin {{ mosquitto_dynamic_security_plugin }}
 plugin_opt_config_file {{ mosquitto_dynamic_security_file }}
 
 listener {{ mosquitto_local_port }} 127.0.0.1
 protocol mqtt
 
-listener {{ mosquitto_tls_port }} 0.0.0.0
+{% if mosquitto_tls_ready %}
+listener {{ mosquitto_tls_port }} {{ mosquitto_public_bind_address }}
 protocol mqtt
 certfile {{ mosquitto_cert_path }}
 keyfile {{ mosquitto_key_path }}
 tls_version tlsv1.2
 require_certificate false
+{% endif %}

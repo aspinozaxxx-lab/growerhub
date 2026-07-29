@@ -5,7 +5,7 @@ Ansible описывает серверную инфраструктуру Growe
 ## Структура
 
 - `ansible.cfg` - настройки запуска Ansible.
-- `inventory` - список хостов и host vars.
+- `inventory` - список хостов, профили и host vars.
 - `group_vars` - общие переменные.
 - `playbooks` - сценарии установки и настройки.
 - `roles` - переиспользуемые роли.
@@ -19,6 +19,17 @@ Ansible описывает серверную инфраструктуру Growe
 - `nginx` - reverse proxy и раздача frontend dist.
 - `gh_db_postgresql` - PostgreSQL.
 - `pgadmin` - администрирование БД.
+
+## Профили развертывания
+
+- `legacy` использует существующий `inventory/hosts.ini`, существующие host vars и профильные playbook без изменения топологии.
+- `vps` использует `inventory/vps/hosts.ini`; один хост одновременно входит в группы `web`, `application`, `database` и `mqtt`.
+- `playbooks/vps.yml` устанавливает только runtime-компоненты, принимает готовые JAR и frontend dist с локального контроллера и не выполняет серверную сборку.
+- `playbooks/vps-tls.yml` запускается после переключения DNS, проверяет DNS на локальном контроллере, выпускает сертификат и включает HTTPS и публичный MQTTS.
+
+Локальный Ansible запускается из venv. Команды `make legacy-*` явно используют старый inventory, команды `make vps-*` — VPS inventory, локальный SSH-ключ и ignored-файл пароля Vault.
+
+Секреты VPS находятся только в зашифрованном `inventory/vps/group_vars/all/vault.yml`. Пароль Vault и приватные SSH-ключи не входят в репозиторий.
 
 ## Правила
 

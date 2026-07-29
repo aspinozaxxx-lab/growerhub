@@ -1,19 +1,38 @@
 ---
-# Настройка PostgreSQL на gh-db
-- name: Ensure helper packages for PostgreSQL modules are present
+# Nastrojka PostgreSQL na gh-db.
+- name: Install PostgreSQL runtime and module dependencies
   ansible.builtin.apt:
-    name:
-      - python3-psycopg2
-      - acl
-      - ufw
+    name: "{{ gh_db_postgresql_packages }}"
     state: present
     update_cache: true
+
+- name: Ensure PostgreSQL service is enabled and running
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Check PostgreSQL configuration paths
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop:
+    - "{{ postgresql_conf_path }}"
+    - "{{ pg_hba_conf_path }}"
+  register: gh_db_config_files
+
+- name: Validate PostgreSQL configuration paths
+  ansible.builtin.assert:
+    that:
+      - gh_db_config_files.results | map(attribute='stat.exists') | min
+    fail_msg: >-
+      PostgreSQL config files ne najdeny. Prover'te postgresql_version
+      i puti postgresql_conf_path/pg_hba_conf_path.
 
 - name: Configure listen_addresses in postgresql.conf
   ansible.builtin.lineinfile:
     path: "{{ postgresql_conf_path }}"
     regexp: '^#?\s*listen_addresses\s*='
-    line: "listen_addresses = '*'"
+    line: "listen_addresses = '{{ gh_db_listen_addresses }}'"
     state: present
   notify: Restart PostgreSQL
 
@@ -25,6 +44,35 @@
     state: present
   notify: Restart PostgreSQL
 
+- name: Check PostgreSQL tuning parameter compatibility
+  community.postgresql.postgresql_query:
+    login_db: postgres
+    query: "SELECT name FROM pg_settings WHERE name = %(setting)s"
+    named_args:
+      setting: "{{ item.key }}"
+  loop: "{{ gh_db_tuning | dict2items }}"
+  become: true
+  become_user: postgres
+  register: gh_db_tuning_compatibility
+  changed_when: false
+
+- name: Validate PostgreSQL tuning parameter compatibility
+  ansible.builtin.assert:
+    that:
+      - item.rowcount == 1
+    fail_msg: "PostgreSQL parametr {{ item.item.key }} ne podderzhivaetsja ustanovlennoj versiej."
+  loop: "{{ gh_db_tuning_compatibility.results }}"
+  when: not item.skipped | default(false)
+
+- name: Configure PostgreSQL tuning profile
+  ansible.builtin.lineinfile:
+    path: "{{ postgresql_conf_path }}"
+    regexp: "^#?\\s*{{ item.key }}\\s*="
+    line: "{{ item.key }} = {{ item.value }}"
+    state: present
+  loop: "{{ gh_db_tuning | dict2items }}"
+  notify: Restart PostgreSQL
+
 - name: Deploy pg_hba.conf with trusted hosts
   ansible.builtin.template:
     src: pg_hba.conf.j2
@@ -34,6 +82,17 @@
     mode: '0640'
   notify: Restart PostgreSQL
 
+- name: Check whether database role exists
+  community.postgresql.postgresql_query:
+    login_db: postgres
+    query: "SELECT 1 FROM pg_roles WHERE rolname = %(role_name)s"
+    named_args:
+      role_name: "{{ gh_db_admin_user }}"
+  become: true
+  become_user: postgres
+  register: gh_db_role_state
+  changed_when: false
+
 - name: Ensure db-admin role exists
   community.postgresql.postgresql_user:
     name: "{{ gh_db_admin_user }}"
@@ -41,12 +100,15 @@
     role_attr_flags: "LOGIN"
   become: true
   become_user: postgres
+  no_log: true
+  when:
+    - gh_db_password_update == 'always' or gh_db_role_state.rowcount == 0
 
 - name: Ensure gh_db database exists
   community.postgresql.postgresql_db:
     name: "{{ gh_db_name }}"
     owner: "{{ gh_db_admin_user }}"
-    encoding: "UTF8"
+    encoding: "{{ gh_db_encoding }}"
   become: true
   become_user: postgres
 
@@ -64,7 +126,9 @@
     src: "{{ item }}"
     comment: "Dostup k PostgreSQL dlya doverennogo hosta"
   loop: "{{ gh_db_trusted_clients }}"
+  when: gh_db_manage_firewall
 
 - name: Ensure UFW is enabled
   community.general.ufw:
     state: enabled
+  when: gh_db_manage_firewall

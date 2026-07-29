@@ -3,5 +3,6 @@ reports/
 .retry
 .cache/
 collections/
+.venv/
 .vault_pass.txt
 playbooks/imported/

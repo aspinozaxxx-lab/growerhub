@@ -11,10 +11,10 @@
 
 - name: smoke-check api health
   become: true
-  ansible.builtin.command: curl -fsS http://127.0.0.1/api/health
+  ansible.builtin.command: "curl -fsS {{ nginx_health_url }}"
   register: nginx_api_health
   changed_when: false
   retries: 5
   delay: 2
   until: nginx_api_health.rc == 0
-
+  when: nginx_smoke_check_enabled

@@ -1,10 +1,23 @@
 nginx_enable_https: false
+nginx_obtain_certificate: true
+nginx_certbot_install_method: "snap"
 nginx_domain: ""
 nginx_alt_domains: []             # primer: ["www.growerhub.ru"]
 nginx_backend_api: "http://127.0.0.1:18080"  # Java backend
 nginx_legacy_api: "http://127.0.0.1:8000"    # FastAPI dlya firmware i dokumentacii
+nginx_enable_legacy_routes: true
+nginx_firmware_backend: "legacy"
 nginx_static_root: "/home/watering-admin/growerhub/frontend/dist"  # React dist
 nginx_legacy_static_root: "/home/watering-admin/growerhub/static"  # Statika legacy backend
 nginx_index: "index.html"                    # glavnyj fajl SPA
 nginx_letsencrypt_email: ""
 nginx_letsencrypt_staging: false
+nginx_deploy_static: false
+nginx_static_src: "{{ playbook_dir }}/../../frontend/dist"
+nginx_static_deploy_method: "copy"
+nginx_releases_dir: "/opt/growerhub/releases/frontend"
+nginx_current_link: "/opt/growerhub/current/frontend"
+nginx_deploy_user: "{{ ansible_user | default('watering-admin') }}"
+nginx_deploy_group: "{{ ansible_user | default('watering-admin') }}"
+nginx_smoke_check_enabled: true
+nginx_health_url: "http://127.0.0.1/health"

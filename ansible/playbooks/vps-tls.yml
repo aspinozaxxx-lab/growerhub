@@ -1,0 +1,85 @@
+---
+- name: Finalize GrowerHub VPS TLS after DNS switch
+  hosts: vps
+  become: true
+  gather_facts: false
+  serial: 1
+
+  pre_tasks:
+    - name: Resolve TLS domains from local controller
+      delegate_to: localhost
+      become: false
+      ansible.builtin.command:
+        argv:
+          - getent
+          - ahostsv4
+          - "{{ item }}"
+      loop: "{{ [nginx_domain] + nginx_alt_domains }}"
+      register: growerhub_tls_dns
+      changed_when: false
+
+    - name: Require every TLS domain to point to the VPS
+      ansible.builtin.assert:
+        that:
+          - ansible_host in item.stdout
+        fail_msg: "DNS dlya {{ item.item }} eshche ne ukazyvaet na {{ ansible_host }}."
+      loop: "{{ growerhub_tls_dns.results }}"
+
+  tasks:
+    - name: Obtain certificate and enable Nginx HTTPS
+      ansible.builtin.include_role:
+        name: nginx
+      vars:
+        nginx_obtain_certificate: true
+        nginx_smoke_check_enabled: true
+
+    - name: Apply Nginx TLS handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Enable public Mosquitto TLS listener
+      ansible.builtin.include_role:
+        name: mosquitto
+      vars:
+        mosquitto_tls_required: true
+
+    - name: Apply Mosquitto TLS handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Verify Nginx certificate without disabling validation
+      ansible.builtin.command:
+        argv:
+          - curl
+          - --fail
+          - --silent
+          - --show-error
+          - --resolve
+          - "{{ nginx_domain }}:443:127.0.0.1"
+          - "https://{{ nginx_domain }}/health"
+      changed_when: false
+
+    - name: Verify Mosquitto certificate without disabling validation
+      ansible.builtin.shell: >-
+        openssl s_client
+        -connect 127.0.0.1:{{ mosquitto_tls_port }}
+        -servername {{ mosquitto_domain }}
+        -verify_return_error
+        -CApath /etc/ssl/certs
+        </dev/null
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Verify public TLS services are listening
+      ansible.builtin.command:
+        argv:
+          - ss
+          - -lnt
+      register: growerhub_tls_sockets
+      changed_when: false
+
+    - name: Validate public TLS listeners
+      ansible.builtin.assert:
+        that:
+          - "':443' in growerhub_tls_sockets.stdout"
+          - "':8883' in growerhub_tls_sockets.stdout"
+          - "':1883' not in growerhub_tls_sockets.stdout"

@@ -38,12 +38,34 @@
     - "{{ mosquitto_cert_source }}"
     - "{{ mosquitto_key_source }}"
   register: mosquitto_tls_sources
+  when: mosquitto_tls_enabled
 
-- name: Fail when TLS certificate is not ready
+- name: Set Mosquitto TLS readiness
+  ansible.builtin.set_fact:
+    mosquitto_tls_ready: >-
+      {{
+        mosquitto_tls_enabled
+        and (
+          mosquitto_tls_sources.results
+          | map(attribute='stat.exists')
+          | min
+        )
+      }}
+  when: mosquitto_tls_enabled
+
+- name: Disable Mosquitto TLS when it is not requested
+  ansible.builtin.set_fact:
+    mosquitto_tls_ready: false
+  when: not mosquitto_tls_enabled
+
+- name: Fail when required TLS certificate is not ready
   ansible.builtin.assert:
     that:
-      - mosquitto_tls_sources.results | map(attribute='stat.exists') | min
+      - mosquitto_tls_ready
     fail_msg: "Snachala vypustite Let's Encrypt sertifikat dlya {{ mosquitto_domain }}."
+  when:
+    - mosquitto_tls_enabled
+    - mosquitto_tls_required
 
 - name: Create Mosquitto certificate directory
   ansible.builtin.file:
@@ -52,6 +74,7 @@
     owner: root
     group: mosquitto
     mode: "0750"
+  when: mosquitto_tls_ready
 
 - name: Copy TLS certificate for Mosquitto
   ansible.builtin.copy:
@@ -67,6 +90,7 @@
     - src: "{{ mosquitto_key_source }}"
       dest: "{{ mosquitto_key_path }}"
   notify: Restart Mosquitto
+  when: mosquitto_tls_ready
 
 - name: Check Dynamic Security configuration
   ansible.builtin.stat:
@@ -116,6 +140,7 @@
     owner: root
     group: root
     mode: "0755"
+  when: mosquitto_tls_ready
 
 - name: Apply Mosquitto configuration before Dynamic Security bootstrap
   ansible.builtin.meta: flush_handlers
@@ -266,17 +291,21 @@
     port {{ mosquitto_legacy_device_port }} proto tcp
   register: mosquitto_ufw_legacy_lan
   changed_when: "'Rule added' in mosquitto_ufw_legacy_lan.stdout"
-  when: mosquitto_legacy_device_enabled
+  when:
+    - mosquitto_manage_firewall
+    - mosquitto_legacy_device_enabled
 
 - name: Allow public MQTTS port in UFW
   ansible.builtin.command: "ufw allow {{ mosquitto_tls_port }}/tcp"
   register: mosquitto_ufw_tls
   changed_when: "'Rule added' in mosquitto_ufw_tls.stdout"
+  when: mosquitto_manage_firewall
 
 - name: Keep public plain MQTT closed
   ansible.builtin.command: "ufw deny 1883/tcp"
   register: mosquitto_ufw_plain
   changed_when: "'Rule added' in mosquitto_ufw_plain.stdout"
+  when: mosquitto_manage_firewall
 
 - name: Verify anonymous MQTT access is denied
   ansible.builtin.command:

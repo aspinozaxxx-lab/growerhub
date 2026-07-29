@@ -1,0 +1,654 @@
+---
+- name: Deploy GrowerHub single-host VPS profile
+  hosts: vps
+  become: true
+  gather_facts: true
+  serial: 1
+
+  pre_tasks:
+    - name: Validate VPS topology
+      ansible.builtin.assert:
+        that:
+          - growerhub_profile == 'vps'
+          - groups['vps'] | length == 1
+          - inventory_hostname in groups['web']
+          - inventory_hostname in groups['application']
+          - inventory_hostname in groups['database']
+          - inventory_hostname in groups['mqtt']
+          - ansible_facts.distribution == 'Ubuntu'
+          - ansible_facts.distribution_version is version('22.04', '>=')
+          - ansible_facts.architecture == 'x86_64'
+          - ansible_facts.memtotal_mb | int >= 1700
+          - ansible_ssh_private_key_file | length > 0
+          - growerhub_deploy_public_key_file | length > 0
+          - growerhub_github_actions_public_key is match('^ssh-ed25519 ')
+          - growerhub_deploy_authorized_keys | length == 2
+        fail_msg: "VPS inventory ili controller environment zadany neverno."
+      tags:
+        - preflight
+
+    - name: Check controller SSH files
+      delegate_to: localhost
+      become: false
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ ansible_ssh_private_key_file }}"
+        - "{{ growerhub_deploy_public_key_file }}"
+      register: growerhub_controller_ssh_files
+      tags:
+        - preflight
+
+    - name: Validate controller SSH files
+      ansible.builtin.assert:
+        that:
+          - growerhub_controller_ssh_files.results | map(attribute='stat.exists') | min
+        fail_msg: "Lokalnyj SSH private/public key ne najden."
+      tags:
+        - preflight
+
+    - name: Validate vaulted server secrets
+      ansible.builtin.assert:
+        that:
+          - vault_gh_db_password | length >= 32
+          - vault_java_backend_secret_key | length >= 32
+          - vault_mqtt_admin_password | length >= 32
+          - vault_mqtt_backend_password | length >= 32
+          - vault_mqtt_provisioning_password | length >= 32
+          - vault_mqtt_legacy_password | length >= 32
+          - vault_self_service_legacy_owner_email | length > 0
+          - vault_initial_admin_password | length >= 40
+          - vault_google_client_secret | length >= 16
+          - vault_yandex_client_secret | length >= 16
+          - google_client_id | length >= 32
+          - yandex_client_id | length >= 32
+          - java_backend_auth_sso_redirect_base == 'https://growerhub.ru'
+        fail_msg: "VPS vault ne soderzhit vse obyazatelnye znacheniya."
+      no_log: true
+      tags:
+        - preflight
+
+    - name: Update APT cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+      tags:
+        - base
+
+    - name: Install minimal base packages
+      ansible.builtin.apt:
+        name: "{{ growerhub_base_packages }}"
+        state: present
+      tags:
+        - base
+
+    - name: Set server timezone
+      community.general.timezone:
+        name: "{{ server_timezone }}"
+      tags:
+        - base
+
+    - name: Ensure GrowerHub service group exists
+      ansible.builtin.group:
+        name: "{{ growerhub_service_group }}"
+        system: true
+        state: present
+      tags:
+        - users
+
+    - name: Ensure GrowerHub service user exists
+      ansible.builtin.user:
+        name: "{{ growerhub_service_user }}"
+        group: "{{ growerhub_service_group }}"
+        home: "/var/lib/{{ growerhub_service_user }}"
+        shell: "/usr/sbin/nologin"
+        system: true
+        create_home: true
+        state: present
+      tags:
+        - users
+
+    - name: Ensure GrowerHub deploy user exists
+      ansible.builtin.user:
+        name: "{{ growerhub_deploy_user }}"
+        group: "{{ growerhub_service_group }}"
+        home: "/home/{{ growerhub_deploy_user }}"
+        shell: "/bin/bash"
+        create_home: true
+        state: present
+      tags:
+        - users
+
+    - name: Authorize GrowerHub deploy keys
+      ansible.posix.authorized_key:
+        user: "{{ growerhub_deploy_user }}"
+        path: "/home/{{ growerhub_deploy_user }}/.ssh/authorized_keys"
+        key: "{{ growerhub_deploy_authorized_keys | join('\n') }}"
+        state: present
+        exclusive: true
+      tags:
+        - users
+
+    - name: Prepare GrowerHub persistent and release directories
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group | default(growerhub_service_group) }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - path: "/opt/growerhub"
+          owner: "root"
+          mode: "0755"
+        - path: "/opt/growerhub/releases"
+          owner: "{{ growerhub_deploy_user }}"
+          mode: "0755"
+        - path: "/opt/growerhub/releases/backend"
+          owner: "{{ growerhub_deploy_user }}"
+          mode: "0750"
+        - path: "/opt/growerhub/releases/frontend"
+          owner: "{{ growerhub_deploy_user }}"
+          mode: "0755"
+        - path: "/opt/growerhub/current"
+          owner: "{{ growerhub_deploy_user }}"
+          mode: "0755"
+        - path: "/opt/growerhub/env"
+          owner: "root"
+          group: "root"
+          mode: "0750"
+        - path: "/var/lib/growerhub/firmware_binaries"
+          owner: "{{ growerhub_service_user }}"
+          mode: "0750"
+      tags:
+        - users
+
+    - name: Install restricted deploy sudoers policy
+      ansible.builtin.copy:
+        dest: "/etc/sudoers.d/growerhub-deploy"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: "/usr/sbin/visudo -cf %s"
+        content: |-
+          Cmnd_Alias GH_BACKEND_CONTROL = /usr/bin/systemctl restart growerhub-java-backend.service, /usr/bin/systemctl is-active growerhub-java-backend.service, /usr/bin/systemctl is-enabled growerhub-java-backend.service, /usr/bin/systemctl --no-pager --full status growerhub-java-backend.service
+          Cmnd_Alias GH_BACKEND_LOGS = /usr/bin/journalctl -u growerhub-java-backend.service --no-pager -n 200
+          {{ growerhub_deploy_user }} ALL=(root) NOPASSWD: GH_BACKEND_CONTROL, GH_BACKEND_LOGS
+      tags:
+        - users
+
+    - name: Verify deploy user SSH before firewall changes
+      delegate_to: localhost
+      become: false
+      ansible.builtin.command:
+        argv:
+          - ssh
+          - -i
+          - "{{ ansible_ssh_private_key_file }}"
+          - -p
+          - "{{ ansible_port | string }}"
+          - -o
+          - BatchMode=yes
+          - -o
+          - StrictHostKeyChecking=accept-new
+          - "{{ growerhub_deploy_user }}@{{ ansible_host }}"
+          - "true"
+      changed_when: false
+      when: not ansible_check_mode
+      tags:
+        - users
+        - firewall
+
+    - name: Remove GitHub Actions deploy key from root
+      ansible.posix.authorized_key:
+        user: root
+        key: "{{ growerhub_github_actions_public_key }}"
+        state: absent
+      when: growerhub_remove_github_actions_key_from_root
+      tags:
+        - users
+        - ssh
+
+    - name: Install hardened SSH drop-in
+      ansible.builtin.copy:
+        dest: "/etc/ssh/sshd_config.d/60-growerhub.conf"
+        owner: root
+        group: root
+        mode: "0644"
+        content: |-
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          PubkeyAuthentication yes
+          PermitRootLogin prohibit-password
+          X11Forwarding no
+          MaxAuthTries 4
+      register: growerhub_sshd_dropin
+      tags:
+        - ssh
+
+    - name: Validate SSH configuration
+      ansible.builtin.command: /usr/sbin/sshd -t
+      changed_when: false
+      tags:
+        - ssh
+
+    - name: Reload SSH after validated change
+      ansible.builtin.service:
+        name: ssh
+        state: reloaded
+      when:
+        - growerhub_sshd_dropin.changed
+        - not ansible_check_mode
+      tags:
+        - ssh
+
+    - name: Verify root key SSH after hardening
+      delegate_to: localhost
+      become: false
+      ansible.builtin.command:
+        argv:
+          - ssh
+          - -i
+          - "{{ ansible_ssh_private_key_file }}"
+          - -p
+          - "{{ ansible_port | string }}"
+          - -o
+          - BatchMode=yes
+          - -o
+          - StrictHostKeyChecking=yes
+          - "root@{{ ansible_host }}"
+          - "true"
+      changed_when: false
+      when: not ansible_check_mode
+      tags:
+        - ssh
+        - firewall
+
+    - name: Set UFW default incoming policy
+      community.general.ufw:
+        direction: incoming
+        policy: deny
+      tags:
+        - firewall
+
+    - name: Set UFW default outgoing policy
+      community.general.ufw:
+        direction: outgoing
+        policy: allow
+      tags:
+        - firewall
+
+    - name: Allow required public TCP ports
+      community.general.ufw:
+        rule: allow
+        port: "{{ item }}"
+        proto: tcp
+      loop: "{{ growerhub_public_tcp_ports }}"
+      tags:
+        - firewall
+
+    - name: Deny private service TCP ports explicitly
+      community.general.ufw:
+        rule: deny
+        port: "{{ item }}"
+        proto: tcp
+      loop: "{{ growerhub_denied_tcp_ports }}"
+      tags:
+        - firewall
+
+    - name: Enable UFW after SSH verification
+      community.general.ufw:
+        state: enabled
+        logging: "low"
+      tags:
+        - firewall
+
+    - name: Verify separate SSH connections after firewall enable
+      delegate_to: localhost
+      become: false
+      ansible.builtin.command:
+        argv:
+          - ssh
+          - -i
+          - "{{ ansible_ssh_private_key_file }}"
+          - -p
+          - "{{ ansible_port | string }}"
+          - -o
+          - BatchMode=yes
+          - -o
+          - StrictHostKeyChecking=yes
+          - "{{ item }}@{{ ansible_host }}"
+          - "true"
+      loop:
+        - root
+        - "{{ growerhub_deploy_user }}"
+      changed_when: false
+      when: not ansible_check_mode
+      tags:
+        - firewall
+
+    - name: Check VPS swap file
+      ansible.builtin.stat:
+        path: "{{ growerhub_swap_file }}"
+      register: growerhub_swap_file_stat
+      tags:
+        - memory
+
+    - name: Allocate swap file when no swap exists
+      ansible.builtin.command:
+        argv:
+          - fallocate
+          - -l
+          - "{{ growerhub_swap_size }}"
+          - "{{ growerhub_swap_file }}"
+        creates: "{{ growerhub_swap_file }}"
+      when: ansible_facts.swaptotal_mb | int == 0
+      tags:
+        - memory
+
+    - name: Secure swap file
+      ansible.builtin.file:
+        path: "{{ growerhub_swap_file }}"
+        owner: root
+        group: root
+        mode: "0600"
+      when: ansible_facts.swaptotal_mb | int == 0
+      tags:
+        - memory
+
+    - name: Format new swap file
+      ansible.builtin.command:
+        argv:
+          - mkswap
+          - "{{ growerhub_swap_file }}"
+      when:
+        - ansible_facts.swaptotal_mb | int == 0
+        - not growerhub_swap_file_stat.stat.exists
+      tags:
+        - memory
+
+    - name: Persist swap file
+      ansible.posix.mount:
+        path: none
+        src: "{{ growerhub_swap_file }}"
+        fstype: swap
+        opts: sw
+        state: present
+      when: ansible_facts.swaptotal_mb | int == 0
+      tags:
+        - memory
+
+    - name: Enable new swap file
+      ansible.builtin.command:
+        argv:
+          - swapon
+          - "{{ growerhub_swap_file }}"
+      when: ansible_facts.swaptotal_mb | int == 0
+      changed_when: true
+      tags:
+        - memory
+
+    - name: Configure conservative swappiness
+      ansible.posix.sysctl:
+        name: vm.swappiness
+        value: "{{ growerhub_swappiness }}"
+        state: present
+        sysctl_set: true
+        reload: true
+      tags:
+        - memory
+
+    - name: Ensure journald drop-in directory exists
+      ansible.builtin.file:
+        path: "/etc/systemd/journald.conf.d"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      tags:
+        - logging
+
+    - name: Limit journald disk usage
+      ansible.builtin.copy:
+        dest: "/etc/systemd/journald.conf.d/60-growerhub.conf"
+        owner: root
+        group: root
+        mode: "0644"
+        content: |-
+          [Journal]
+          Storage=persistent
+          Compress=yes
+          SystemMaxUse={{ growerhub_journal_system_max_use }}
+          RuntimeMaxUse={{ growerhub_journal_runtime_max_use }}
+          SystemKeepFree={{ growerhub_journal_system_keep_free }}
+          MaxRetentionSec={{ growerhub_journal_max_retention }}
+      notify: Restart journald
+      tags:
+        - logging
+
+  tasks:
+    - name: Configure local PostgreSQL
+      ansible.builtin.include_role:
+        name: gh_db_postgresql
+        apply:
+          tags:
+            - database
+      tags:
+        - database
+
+    - name: Apply PostgreSQL handlers before backend deployment
+      ansible.builtin.meta: flush_handlers
+      tags:
+        - database
+
+    - name: Configure Nginx and deploy frontend dist
+      ansible.builtin.include_role:
+        name: nginx
+        apply:
+          tags:
+            - web
+      tags:
+        - web
+
+    - name: Apply Nginx handlers before backend deployment
+      ansible.builtin.meta: flush_handlers
+      tags:
+        - web
+
+    - name: Configure Mosquitto
+      ansible.builtin.include_role:
+        name: mosquitto
+        apply:
+          tags:
+            - mqtt
+      tags:
+        - mqtt
+
+    - name: Apply Mosquitto handlers before backend deployment
+      ansible.builtin.meta: flush_handlers
+      tags:
+        - mqtt
+
+    - name: Deploy Java backend
+      ansible.builtin.include_role:
+        name: java_backend
+        apply:
+          tags:
+            - application
+      tags:
+        - application
+
+    - name: Apply backend handlers before validation
+      ansible.builtin.meta: flush_handlers
+      tags:
+        - application
+
+  post_tasks:
+    - name: Restart journald when its limits changed
+      ansible.builtin.meta: flush_handlers
+      tags:
+        - verify
+
+    - name: Verify required services are active
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - "{{ item }}"
+      loop:
+        - postgresql.service
+        - mosquitto.service
+        - growerhub-java-backend.service
+        - nginx.service
+      changed_when: false
+      tags:
+        - verify
+
+    - name: Verify required services are enabled
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-enabled
+          - "{{ item }}"
+      loop:
+        - postgresql.service
+        - mosquitto.service
+        - growerhub-java-backend.service
+        - nginx.service
+      changed_when: false
+      tags:
+        - verify
+
+    - name: Verify backend health directly
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ java_backend_host_port }}/health"
+        return_content: true
+        status_code: 200
+      register: growerhub_backend_health
+      changed_when: false
+      tags:
+        - verify
+
+    - name: Verify frontend through Nginx
+      ansible.builtin.uri:
+        url: "http://127.0.0.1/"
+        status_code: 200
+      changed_when: false
+      tags:
+        - verify
+
+    - name: Verify backend health through Nginx
+      ansible.builtin.uri:
+        url: "http://127.0.0.1/health"
+        return_content: true
+        status_code: 200
+      register: growerhub_nginx_health
+      changed_when: false
+      tags:
+        - verify
+
+    - name: Verify API proxy through Nginx
+      ansible.builtin.uri:
+        url: "http://127.0.0.1/api/auth/me"
+        status_code:
+          - 200
+          - 401
+          - 403
+      changed_when: false
+      tags:
+        - verify
+
+    - name: Read PostgreSQL runtime settings
+      community.postgresql.postgresql_query:
+        login_db: "{{ gh_db_name }}"
+        query: >-
+          SELECT
+            current_database() AS database_name,
+            pg_encoding_to_char(encoding) AS encoding,
+            current_setting('TimeZone') AS timezone,
+            current_setting('listen_addresses') AS listen_addresses,
+            current_setting('max_connections') AS max_connections
+          FROM pg_database
+          WHERE datname = current_database()
+      become: true
+      become_user: postgres
+      register: growerhub_postgresql_runtime
+      changed_when: false
+      tags:
+        - verify
+
+    - name: Validate PostgreSQL runtime settings
+      ansible.builtin.assert:
+        that:
+          - growerhub_postgresql_runtime.query_result[0].database_name == gh_db_name
+          - growerhub_postgresql_runtime.query_result[0].encoding == 'UTF8'
+          - growerhub_postgresql_runtime.query_result[0].timezone == gh_db_timezone
+          - growerhub_postgresql_runtime.query_result[0].listen_addresses == '127.0.0.1'
+          - growerhub_postgresql_runtime.query_result[0].max_connections | int <= 20
+      tags:
+        - verify
+
+    - name: Read Flyway migration state
+      community.postgresql.postgresql_query:
+        login_db: "{{ gh_db_name }}"
+        query: >-
+          SELECT version, success
+          FROM flyway_schema_history
+          ORDER BY installed_rank DESC
+          LIMIT 1
+      become: true
+      become_user: postgres
+      register: growerhub_flyway_state
+      changed_when: false
+      tags:
+        - verify
+
+    - name: Validate Flyway migration state
+      ansible.builtin.assert:
+        that:
+          - growerhub_flyway_state.rowcount == 1
+          - growerhub_flyway_state.query_result[0].success
+      tags:
+        - verify
+
+    - name: Read listening sockets
+      ansible.builtin.command:
+        argv:
+          - ss
+          - -lnt
+      register: growerhub_listening_sockets
+      changed_when: false
+      check_mode: false
+      tags:
+        - verify
+
+    - name: Validate private listeners
+      ansible.builtin.assert:
+        that:
+          - "'127.0.0.1:5432' in growerhub_listening_sockets.stdout"
+          - "'127.0.0.1:1884' in growerhub_listening_sockets.stdout"
+          - "'0.0.0.0:5432' not in growerhub_listening_sockets.stdout"
+          - "'[::]:5432' not in growerhub_listening_sockets.stdout"
+          - "':1883' not in growerhub_listening_sockets.stdout"
+      tags:
+        - verify
+
+    - name: Gather installed package facts
+      ansible.builtin.package_facts:
+        manager: auto
+      tags:
+        - verify
+
+    - name: Validate forbidden packages are absent
+      ansible.builtin.assert:
+        that:
+          - item not in ansible_facts.packages
+        fail_msg: "Zapreshchennyj dlya VPS paket ustanovlen: {{ item }}"
+      loop: "{{ growerhub_forbidden_packages }}"
+      tags:
+        - verify
+
+  handlers:
+    - name: Restart journald
+      ansible.builtin.service:
+        name: systemd-journald
+        state: restarted

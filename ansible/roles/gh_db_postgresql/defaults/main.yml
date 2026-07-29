@@ -1,0 +1,23 @@
+---
+postgresql_version: 14
+postgresql_conf_dir: "/etc/postgresql/{{ postgresql_version }}/main"
+postgresql_conf_path: "{{ postgresql_conf_dir }}/postgresql.conf"
+pg_hba_conf_path: "{{ postgresql_conf_dir }}/pg_hba.conf"
+
+gh_db_name: "gh_db"
+gh_db_admin_user: "db-admin"
+gh_db_admin_password: ""
+gh_db_password_update: "always"
+gh_db_encoding: "UTF8"
+gh_db_timezone: "Europe/Moscow"
+gh_db_listen_addresses: "*"
+gh_db_trusted_clients: []
+gh_db_tuning: {}
+gh_db_manage_firewall: true
+
+gh_db_postgresql_packages:
+  - postgresql
+  - postgresql-contrib
+  - python3-psycopg2
+  - acl
+  - ufw

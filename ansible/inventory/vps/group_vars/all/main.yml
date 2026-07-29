@@ -1,0 +1,171 @@
+---
+growerhub_profile: "vps"
+growerhub_service_user: "growerhub"
+growerhub_service_group: "growerhub"
+growerhub_deploy_user: "growerhub-deploy"
+growerhub_deploy_public_key_file: "{{ lookup('env', 'GH_VPS_DEPLOY_PUBLIC_KEY') }}"
+growerhub_github_actions_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPuexv67vrwwdc9RWovSNVgjk2xmLzzn9BPjOzlRwF4f oleg@DESKTOP-QAMQP1S"
+growerhub_deploy_authorized_keys:
+  - "{{ lookup('file', growerhub_deploy_public_key_file) }}"
+  - "{{ growerhub_github_actions_public_key }}"
+growerhub_remove_github_actions_key_from_root: true
+
+growerhub_base_packages:
+  - acl
+  - ca-certificates
+  - curl
+  - openssl
+  - rsync
+  - sudo
+  - ufw
+
+growerhub_public_tcp_ports:
+  - "{{ ansible_port }}"
+  - 80
+  - 443
+  - 8883
+
+growerhub_denied_tcp_ports:
+  - 1883
+  - 5432
+
+growerhub_swap_file: "/swapfile"
+growerhub_swap_size: "2G"
+growerhub_swappiness: 10
+
+growerhub_journal_system_max_use: "128M"
+growerhub_journal_runtime_max_use: "64M"
+growerhub_journal_system_keep_free: "512M"
+growerhub_journal_max_retention: "7day"
+
+growerhub_forbidden_packages:
+  - containerd
+  - docker-ce
+  - docker-compose
+  - docker.io
+  - elasticsearch
+  - grafana
+  - gradle
+  - loki
+  - maven
+  - nodejs
+  - npm
+  - openjdk-21-jdk
+  - portainer
+  - prometheus
+  - redis-server
+
+gh_db_name: "growerhub"
+gh_db_admin_user: "growerhub_app"
+gh_db_admin_password: "{{ vault_gh_db_password }}"
+gh_db_password_update: "on_create"
+gh_db_encoding: "UTF8"
+gh_db_timezone: "Europe/Moscow"
+gh_db_listen_addresses: "127.0.0.1"
+gh_db_trusted_clients: []
+gh_db_manage_firewall: false
+gh_db_tuning:
+  shared_buffers: "128MB"
+  effective_cache_size: "512MB"
+  work_mem: "2MB"
+  maintenance_work_mem: "32MB"
+  max_connections: "20"
+
+nginx_enable_https: true
+nginx_obtain_certificate: false
+nginx_certbot_install_method: "apt"
+nginx_domain: "growerhub.ru"
+nginx_alt_domains:
+  - "www.growerhub.ru"
+nginx_backend_api: "http://127.0.0.1:18080"
+nginx_enable_legacy_routes: false
+nginx_firmware_backend: "java"
+nginx_static_src: "{{ playbook_dir }}/../../frontend/dist"
+nginx_static_root: "/opt/growerhub/current/frontend"
+nginx_index: "index.html"
+nginx_letsencrypt_email: "oleg@growerhub.ru"
+nginx_letsencrypt_staging: false
+nginx_deploy_static: true
+nginx_static_deploy_method: "archive"
+nginx_releases_dir: "/opt/growerhub/releases/frontend"
+nginx_current_link: "/opt/growerhub/current/frontend"
+nginx_deploy_user: "{{ growerhub_deploy_user }}"
+nginx_deploy_group: "{{ growerhub_service_group }}"
+nginx_smoke_check_enabled: false
+
+mosquitto_domain: "growerhub.ru"
+mosquitto_local_port: 1884
+mosquitto_tls_port: 8883
+mosquitto_tls_enabled: true
+mosquitto_tls_required: false
+mosquitto_public_bind_address: "0.0.0.0"
+mosquitto_manage_firewall: false
+mosquitto_queue_limits_enabled: true
+mosquitto_max_queued_messages: 1000
+mosquitto_max_queued_bytes: 10485760
+mosquitto_persistent_client_expiration: "14d"
+mosquitto_legacy_z2m_enabled: true
+mosquitto_legacy_device_enabled: false
+mosquitto_admin_username: "gh_dynsec_admin"
+mosquitto_admin_password: "{{ vault_mqtt_admin_password }}"
+mosquitto_backend_username: "gh_backend"
+mosquitto_backend_password: "{{ vault_mqtt_backend_password }}"
+mosquitto_provisioning_username: "gh_provisioning"
+mosquitto_provisioning_password: "{{ vault_mqtt_provisioning_password }}"
+mosquitto_legacy_username: "gh_legacy_z2m"
+mosquitto_legacy_password: "{{ vault_mqtt_legacy_password }}"
+
+java_backend_user: "{{ growerhub_service_user }}"
+java_backend_group: "{{ growerhub_service_group }}"
+java_backend_deploy_user: "{{ growerhub_deploy_user }}"
+java_backend_release_mode: true
+java_backend_releases_dir: "/opt/growerhub/releases/backend"
+java_backend_current_link: "/opt/growerhub/current/backend"
+java_backend_firmware_dir: "/var/lib/growerhub/firmware_binaries"
+java_backend_java_opts:
+  - "-Xms128m"
+  - "-Xmx512m"
+  - "-XX:MaxMetaspaceSize=192m"
+  - "-XX:+ExitOnOutOfMemoryError"
+java_backend_bind_ip: "127.0.0.1"
+java_backend_host_port: 18080
+java_backend_enforce_bind_ip: true
+java_backend_after_units:
+  - network-online.target
+  - postgresql.service
+  - mosquitto.service
+java_backend_systemd_extra_directives:
+  - "UMask=0027"
+  - "NoNewPrivileges=true"
+  - "PrivateTmp=true"
+  - "ProtectHome=true"
+  - "ProtectSystem=strict"
+  - "ReadWritePaths={{ java_backend_firmware_dir }}"
+java_backend_env_dir_mode: "0750"
+java_backend_manage_deploy_sudoers: false
+java_backend_remove_legacy_docker: false
+java_backend_secret_key: "{{ vault_java_backend_secret_key }}"
+java_backend_db_url: "jdbc:postgresql://127.0.0.1:5432/{{ gh_db_name }}"
+java_backend_db_username: "{{ gh_db_admin_user }}"
+java_backend_db_password: "{{ vault_gh_db_password }}"
+java_backend_mqtt_host: "127.0.0.1"
+java_backend_mqtt_port: "{{ mosquitto_local_port }}"
+java_backend_mqtt_username: "{{ mosquitto_backend_username }}"
+java_backend_mqtt_password: "{{ vault_mqtt_backend_password }}"
+java_backend_mqtt_tls: false
+java_backend_mqtt_provisioning_enabled: true
+java_backend_mqtt_provisioning_host: "127.0.0.1"
+java_backend_mqtt_provisioning_port: "{{ mosquitto_local_port }}"
+java_backend_mqtt_provisioning_tls: false
+java_backend_mqtt_provisioning_username: "{{ mosquitto_provisioning_username }}"
+java_backend_mqtt_provisioning_password: "{{ vault_mqtt_provisioning_password }}"
+java_backend_self_service_enabled: true
+java_backend_self_service_legacy_owner_email: "{{ vault_self_service_legacy_owner_email }}"
+java_backend_public_base_url: "https://growerhub.ru"
+java_backend_auth_sso_redirect_base: "https://growerhub.ru"
+google_client_id: "338797379393-53ev1mtudl9054veuhs1vfuukrp2jb7q.apps.googleusercontent.com"
+google_client_secret: "{{ vault_google_client_secret }}"
+yandex_client_id: "0b96fed4517b49b7bdc3ad1f0df2de42"
+yandex_client_secret: "{{ vault_yandex_client_secret }}"
+java_backend_env_extra:
+  SPRING_JPA_HIBERNATE_DDL_AUTO: "validate"

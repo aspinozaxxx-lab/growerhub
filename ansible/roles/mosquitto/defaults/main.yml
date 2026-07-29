@@ -5,7 +5,16 @@ mosquitto_dynamic_security_file: "/etc/mosquitto/dynamic-security/config.json"
 mosquitto_bootstrap_marker: "/etc/mosquitto/.growerhub-dynsec-v1"
 mosquitto_local_port: 1884
 mosquitto_tls_port: 8883
+mosquitto_tls_enabled: true
+mosquitto_tls_required: true
+mosquitto_public_bind_address: "0.0.0.0"
 mosquitto_legacy_z2m_enabled: true
+mosquitto_manage_firewall: true
+
+mosquitto_queue_limits_enabled: false
+mosquitto_max_queued_messages: 1000
+mosquitto_max_queued_bytes: 10485760
+mosquitto_persistent_client_expiration: "14d"
 
 # Vremennyj LAN-only broker dlja kontrolera bez podderzhki MQTTS.
 mosquitto_legacy_device_enabled: false

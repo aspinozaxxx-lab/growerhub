@@ -2,11 +2,13 @@ upstream api_java_backend {
     server {{ nginx_backend_api | regex_replace('^https?://', '') }};
 }
 
+{% if nginx_enable_legacy_routes %}
 upstream api_legacy_backend {
     server {{ nginx_legacy_api | regex_replace('^https?://', '') }};
 }
+{% endif %}
 
-{% if nginx_alt_domains | length > 0 %}
+{% if nginx_cert_ready and nginx_alt_domains | length > 0 %}
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
@@ -30,12 +32,18 @@ server {
 {% endif %}
 
 server {
+{% if nginx_cert_ready %}
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
     server_name {{ nginx_domain }};
 
     ssl_certificate     /etc/letsencrypt/live/{{ nginx_domain }}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/{{ nginx_domain }}/privkey.pem;
+{% else %}
+    listen 80;
+    listen [::]:80;
+    server_name {{ nginx_domain }}{% for domain in nginx_alt_domains %} {{ domain }}{% endfor %};
+{% endif %}
 
     add_header X-Content-Type-Options nosniff always;
     add_header X-Frame-Options SAMEORIGIN always;
@@ -67,6 +75,20 @@ server {
         client_max_body_size 20m;
     }
 
+{% if nginx_firmware_backend == 'java' %}
+    location ^~ /firmware/ {
+        proxy_pass http://api_java_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_read_timeout 300;
+        client_max_body_size 20m;
+        add_header Cache-Control "no-store";
+    }
+{% elif nginx_enable_legacy_routes %}
     location ^~ /firmware/ {
         proxy_pass http://api_legacy_backend/firmware/;
         proxy_set_header Host $host;
@@ -79,6 +101,7 @@ server {
         client_max_body_size 20m;
         add_header Cache-Control "no-store";
     }
+{% endif %}
 
     location = /health {
         proxy_pass http://api_java_backend/health;
@@ -91,6 +114,7 @@ server {
         proxy_read_timeout 300;
     }
 
+{% if nginx_enable_legacy_routes %}
     location = /docs {
         proxy_pass http://api_legacy_backend;
         proxy_set_header Host $host;
@@ -120,16 +144,17 @@ server {
         try_files $uri =404;
         access_log off;
     }
+{% endif %}
 
     root {{ nginx_static_root }};
     index {{ nginx_index }};
 
     location = /en {
-        return 301 https://{{ nginx_domain }}/en/$is_args$args;
+        return 301 {{ 'https' if nginx_cert_ready else 'http' }}://{{ nginx_domain }}/en/$is_args$args;
     }
 
     location ~ "^/(?:about|articles|avtomatizatsiya-mini-fermy|kak-nachat|oborudovanie|privacy|terms|app)$|^/(?:articles|oborudovanie|app)(?:/[^/.]+)+$|^/en/(?:about|articles|farm-automation|getting-started|equipment|privacy|terms)(?:/[^/.]+)*$" {
-        return 301 https://{{ nginx_domain }}$uri/$is_args$args;
+        return 301 {{ 'https' if nginx_cert_ready else 'http' }}://{{ nginx_domain }}$uri/$is_args$args;
     }
 
     location ^~ /assets/ {
@@ -170,6 +195,7 @@ server {
     error_log  /var/log/nginx/growerhub.ru_ssl_error.log;
 }
 
+{% if nginx_cert_ready %}
 server {
     listen 80;
     listen [::]:80;
@@ -206,3 +232,4 @@ server {
         return 301 https://{{ nginx_domain }}$request_uri;
     }
 }
+{% endif %}

@@ -13,6 +13,15 @@ on:
       - "ansible/**"
       - ".github/workflows/ci-cd-backend.yml"
   workflow_dispatch:
+    inputs:
+      target:
+        description: Deployment target
+        required: true
+        default: vps
+        type: choice
+        options:
+          - vps
+          - legacy
 
 permissions:
   contents: read
@@ -54,11 +63,146 @@ jobs:
           path: backend/build/libs/app.jar
           if-no-files-found: error
 
-  deploy:
-    name: Deploy to production (java backend)
+  deploy_vps:
+    name: Deploy backend to VPS
     runs-on: ubuntu-latest
     needs: [ ci ]
-    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && inputs.target == 'vps') }}
+    environment:
+      name: production
+      url: https://growerhub.ru/health
+    env:
+      SSH_HOST: ${{ secrets.IP_VPS_HOST }}
+      SSH_PORT: "22"
+      SSH_USER: growerhub-deploy
+      SSH_HOST_ED25519_FINGERPRINT: "SHA256:HVqlFDK4gfDJ8KnRBE3nApvW3YZA3N4ActMDm/lFTPM"
+      RELEASES_DIR: /opt/growerhub/releases/backend
+      CURRENT_LINK: /opt/growerhub/current/backend
+      SERVICE_NAME: growerhub-java-backend.service
+    steps:
+      - name: Download backend jar
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: backend-artifact
+
+      - name: Setup pinned VPS SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY_VPS_HOST }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          scan_file="$(mktemp)"
+          ssh-keyscan -T 10 -p "$SSH_PORT" -t ed25519 "$SSH_HOST" > "$scan_file" 2>/dev/null
+          actual_fingerprint="$(ssh-keygen -lf "$scan_file" -E sha256 | awk 'NR == 1 { print $2 }')"
+          if [ "$actual_fingerprint" != "$SSH_HOST_ED25519_FINGERPRINT" ]; then
+            echo "Unexpected VPS SSH host fingerprint: $actual_fingerprint" >&2
+            rm -f "$scan_file"
+            exit 1
+          fi
+          install -m 644 "$scan_file" ~/.ssh/known_hosts
+          rm -f "$scan_file"
+
+      - name: Verify restricted deploy access
+        run: |
+          set -euo pipefail
+          ssh -p "$SSH_PORT" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" "test \"\$(id -un)\" = '$SSH_USER'"
+
+      - name: Upload backend release
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_dir="$RELEASES_DIR/$GITHUB_SHA"
+          ssh -p "$SSH_PORT" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" "install -d -m 0750 '$release_dir'"
+          rsync -az \
+            --omit-dir-times --no-perms --no-owner --no-group \
+            -e "ssh -p $SSH_PORT -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes" \
+            ./backend-artifact/app.jar "$SSH_USER@$SSH_HOST:$release_dir/app.jar.new"
+          ssh -p "$SSH_PORT" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" \
+            "set -eu; chmod 0640 '$release_dir/app.jar.new'; mv -f '$release_dir/app.jar.new' '$release_dir/app.jar'; test -s '$release_dir/app.jar'"
+
+      - name: Switch backend release with rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -p "$SSH_PORT" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" <<EOF
+          set -euo pipefail
+          release_dir="$RELEASES_DIR/$GITHUB_SHA"
+          old_target="\$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
+          next_link="$CURRENT_LINK.next"
+
+          ln -sfn "\$release_dir" "\$next_link"
+          mv -Tf "\$next_link" "$CURRENT_LINK"
+          sudo -n /usr/bin/systemctl restart "$SERVICE_NAME"
+
+          health_ok=0
+          for attempt in \$(seq 1 180); do
+            if sudo -n /usr/bin/systemctl is-active "$SERVICE_NAME" >/dev/null \
+              && curl -fsS http://127.0.0.1:18080/health >/dev/null; then
+              health_ok=1
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "\$health_ok" -ne 1 ]; then
+            if [ -n "\$old_target" ] && [ -d "\$old_target" ]; then
+              ln -sfn "\$old_target" "\$next_link"
+              mv -Tf "\$next_link" "$CURRENT_LINK"
+              sudo -n /usr/bin/systemctl restart "$SERVICE_NAME"
+            fi
+            sudo -n /usr/bin/journalctl -u "$SERVICE_NAME" --no-pager -n 200 || true
+            exit 1
+          fi
+          EOF
+
+      - name: Verify public backend health
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --retry 5 --retry-delay 2 --retry-all-errors \
+            https://growerhub.ru/health >/dev/null
+
+      - name: Remove stale backend releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -p "$SSH_PORT" -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" <<EOF
+          set -euo pipefail
+          current_target="\$(readlink -f "$CURRENT_LINK")"
+          mapfile -t stale_releases < <(
+            find "$RELEASES_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\n' |
+              sort -rn |
+              tail -n +6 |
+              cut -d' ' -f2-
+          )
+          for candidate in "\${stale_releases[@]}"; do
+            resolved="\$(readlink -f "\$candidate")"
+            case "\$resolved" in
+              "$RELEASES_DIR"/*)
+                if [ "\$resolved" != "\$current_target" ]; then
+                  rm -rf -- "\$resolved"
+                fi
+                ;;
+              *)
+                echo "Unsafe release cleanup target: \$resolved" >&2
+                exit 1
+                ;;
+            esac
+          done
+          EOF
+
+  deploy_legacy:
+    name: Deploy backend to legacy manually
+    runs-on: ubuntu-latest
+    needs: [ ci ]
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.target == 'legacy' }}
     environment:
       name: production
       url: https://growerhub.ru/health

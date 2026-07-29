@@ -5,18 +5,32 @@ java_backend_deploy_dir: "/opt/growerhub/java-backend"
 java_backend_jar_src: "{{ playbook_dir }}/../../backend/build/libs/app.jar"
 java_backend_user: "{{ ansible_user | default('watering-admin') }}"
 java_backend_group: "{{ ansible_user | default('watering-admin') }}"
+java_backend_deploy_user: "{{ java_backend_user }}"
+java_backend_release_mode: false
+java_backend_releases_dir: "/opt/growerhub/releases/backend"
+java_backend_current_link: "/opt/growerhub/current/backend"
+java_backend_firmware_dir: "{{ java_backend_deploy_dir }}/firmware_binaries"
 
 java_backend_service_name: "growerhub-java-backend.service"
 java_backend_java_bin: "/usr/bin/java"
+java_backend_java_opts: []
 java_backend_bind_ip: "127.0.0.1"
+java_backend_enforce_bind_ip: false
 java_backend_host_port: 18080
+java_backend_after_units:
+  - network-online.target
+  - mosquitto.service
+java_backend_systemd_extra_directives: []
 
 java_backend_env_dir: "/opt/growerhub/env"
+java_backend_env_dir_mode: "0755"
 java_backend_env_file_path: "/opt/growerhub/env/growerhub-java-backend.env"
 java_backend_env_file: "{{ java_backend_env_file_path }}"
 
 java_backend_sudo_user: "watering-admin"
 java_backend_sudoers_file: "/etc/sudoers.d/growerhub-java-deploy"
+java_backend_manage_deploy_sudoers: true
+java_backend_remove_legacy_docker: true
 
 # Required env values (dolzhny byt' zadany v vars/vault)
 java_backend_secret_key: ""
@@ -41,6 +55,8 @@ java_backend_mqtt_provisioning_password: "{{ lookup('env', 'GH_MQTT_PROVISIONING
 java_backend_self_service_enabled: false
 java_backend_self_service_legacy_owner_email: "{{ lookup('env', 'SELF_SERVICE_LEGACY_OWNER_EMAIL') }}"
 java_backend_advisor_deepseek_api_key: "{{ lookup('env', 'ADVISOR_DEEPSEEK_API_KEY') }}"
+java_backend_public_base_url: "https://growerhub.ru"
+java_backend_env_extra: {}
 
 java_backend_env_required:
   SECRET_KEY: "{{ java_backend_secret_key }}"
@@ -63,6 +79,8 @@ java_backend_env_optional:
   SELF_SERVICE_ENABLED: "{{ java_backend_self_service_enabled | bool | lower }}"
   SELF_SERVICE_LEGACY_OWNER_EMAIL: "{{ java_backend_self_service_legacy_owner_email | default('') }}"
   ADVISOR_DEEPSEEK_API_KEY: "{{ java_backend_advisor_deepseek_api_key | default('') }}"
+  SERVER_PUBLIC_BASE_URL: "{{ java_backend_public_base_url }}"
+  FIRMWARE_BINARIES_DIR: "{{ java_backend_firmware_dir }}"
   AUTH_SSO_REDIRECT_BASE: "{{ java_backend_auth_sso_redirect_base | default('') }}"
   REFRESH_TOKEN_COOKIE_SECURE: "true"
   REFRESH_TOKEN_COOKIE_SAMESITE: "lax"
@@ -71,4 +89,9 @@ java_backend_env_optional:
   AUTH_YANDEX_CLIENT_ID: "{{ yandex_client_id | default('') }}"
   AUTH_YANDEX_CLIENT_SECRET: "{{ yandex_client_secret | default('') }}"
 
-java_backend_env: "{{ java_backend_env_required | combine(java_backend_env_optional) }}"
+java_backend_env: >-
+  {{
+    java_backend_env_required
+    | combine(java_backend_env_optional)
+    | combine(java_backend_env_extra)
+  }}

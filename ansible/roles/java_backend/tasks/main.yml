@@ -16,6 +16,7 @@
     content: |-
       {{ java_backend_sudo_user }} ALL=(root) NOPASSWD: /usr/bin/test, /usr/bin/grep, /usr/bin/curl, /usr/bin/cat, /bin/sed, /usr/bin/systemctl, /bin/systemctl, /usr/bin/journalctl
     validate: "/usr/sbin/visudo -cf %s"
+  when: java_backend_manage_deploy_sudoers
 
 - name: Ensure deployment directory exists
   become: true
@@ -25,15 +26,16 @@
     owner: "{{ java_backend_user }}"
     group: "{{ java_backend_group }}"
     mode: "0755"
+  when: not java_backend_release_mode
 
 - name: Ensure firmware binaries directory exists
   become: true
   ansible.builtin.file:
-    path: "{{ java_backend_deploy_dir }}/firmware_binaries"
+    path: "{{ java_backend_firmware_dir }}"
     state: directory
     owner: "{{ java_backend_user }}"
     group: "{{ java_backend_group }}"
-    mode: "0755"
+    mode: "0750"
 
 - name: Check local backend jar exists
   delegate_to: localhost
@@ -47,7 +49,52 @@
     msg: "Backend jar not found: {{ java_backend_jar_src }}. Run backend build before java_backend role."
   when: not java_backend_jar_stat.stat.exists
 
-- name: Deploy backend jar
+- name: Ensure backend release directories exist
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ java_backend_group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - path: "{{ java_backend_releases_dir }}"
+      owner: "{{ java_backend_deploy_user }}"
+      mode: "0750"
+    - path: "{{ java_backend_current_link | dirname }}"
+      owner: "{{ java_backend_deploy_user }}"
+      mode: "0755"
+    - path: "{{ java_backend_releases_dir }}/{{ java_backend_jar_stat.stat.checksum }}"
+      owner: "{{ java_backend_deploy_user }}"
+      mode: "0750"
+  when: java_backend_release_mode
+
+- name: Deploy backend jar to immutable release
+  become: true
+  ansible.builtin.copy:
+    src: "{{ java_backend_jar_src }}"
+    dest: "{{ java_backend_releases_dir }}/{{ java_backend_jar_stat.stat.checksum }}/app.jar"
+    owner: "{{ java_backend_deploy_user }}"
+    group: "{{ java_backend_group }}"
+    mode: "0640"
+  notify:
+    - restart java backend
+  when: java_backend_release_mode
+
+- name: Switch current backend release
+  become: true
+  ansible.builtin.file:
+    src: "{{ java_backend_releases_dir }}/{{ java_backend_jar_stat.stat.checksum }}"
+    dest: "{{ java_backend_current_link }}"
+    state: link
+    force: true
+    owner: "{{ java_backend_deploy_user }}"
+    group: "{{ java_backend_group }}"
+  notify:
+    - restart java backend
+  when: java_backend_release_mode
+
+- name: Deploy backend jar to fixed directory
   become: true
   ansible.builtin.copy:
     src: "{{ java_backend_jar_src }}"
@@ -57,6 +104,16 @@
     mode: "0644"
   notify:
     - restart java backend
+  when: not java_backend_release_mode
+
+- name: Select backend runtime directory
+  ansible.builtin.set_fact:
+    java_backend_runtime_dir: >-
+      {{
+        java_backend_current_link
+        if java_backend_release_mode
+        else java_backend_deploy_dir
+      }}
 
 - name: Assert required env values are set
   ansible.builtin.assert:
@@ -104,7 +161,7 @@
     state: directory
     owner: root
     group: root
-    mode: "0755"
+    mode: "{{ java_backend_env_dir_mode }}"
 
 - name: Render env file for java backend
   become: true
@@ -117,6 +174,9 @@
       {% for item in java_backend_env | dict2items %}
       {{ item.key }}={{ item.value }}
       {% endfor %}
+  no_log: true
+  notify:
+    - restart java backend
 
 - name: Install systemd unit for java backend
   become: true
@@ -128,19 +188,26 @@
     content: |-
       [Unit]
       Description=GrowerHub Java Backend
-      After=network-online.target mosquitto.service
+      After={{ java_backend_after_units | join(' ') }}
       Wants=network-online.target
 
       [Service]
       Type=simple
       User={{ java_backend_user }}
-      WorkingDirectory={{ java_backend_deploy_dir }}
+      Group={{ java_backend_group }}
+      WorkingDirectory={{ java_backend_runtime_dir }}
       EnvironmentFile={{ java_backend_env_file_path }}
       Environment=SERVER_PORT={{ java_backend_host_port }}
-      ExecStart={{ java_backend_java_bin }} -jar {{ java_backend_deploy_dir }}/app.jar
+      {% if java_backend_enforce_bind_ip %}
+      Environment=SERVER_ADDRESS={{ java_backend_bind_ip }}
+      {% endif %}
+      ExecStart={{ java_backend_java_bin }}{% if java_backend_java_opts | length > 0 %} {{ java_backend_java_opts | join(' ') }}{% endif %} -jar {{ java_backend_runtime_dir }}/app.jar
       Restart=always
       RestartSec=5
       SuccessExitStatus=143
+      {% for directive in java_backend_systemd_extra_directives %}
+      {{ directive }}
+      {% endfor %}
 
       [Install]
       WantedBy=multi-user.target
@@ -154,6 +221,7 @@
   register: java_backend_legacy_container
   changed_when: java_backend_legacy_container.rc == 0
   failed_when: false
+  when: java_backend_remove_legacy_docker
 
 - name: Flush handlers before validation
   ansible.builtin.meta: flush_handlers
@@ -163,6 +231,7 @@
   ansible.builtin.systemd:
     name: "{{ java_backend_service_name }}"
     enabled: true
+    state: started
 
 - name: Wait for java backend health endpoint
   become: true
@@ -183,6 +252,7 @@
     fi
   args:
     executable: /bin/bash
+  changed_when: false
 
 - name: Fail if MQTT failed to start
   become: true
@@ -197,18 +267,24 @@
     rm -f "$logs_file"
   args:
     executable: /bin/bash
+  changed_when: false
 
 - name: Assert MQTT publisher and subscriber connected
   become: true
   ansible.builtin.shell: |
     set -euo pipefail
     logs_file="$(mktemp)"
-    journalctl -u {{ java_backend_service_name }} --since "10 minutes ago" --no-pager > "$logs_file"
+    trap 'rm -f -- "$logs_file"' EXIT
+    journalctl -b -u {{ java_backend_service_name }} --no-pager > "$logs_file"
     grep -q "MQTT publisher connected" "$logs_file"
     grep -q "MQTT subscriber connected" "$logs_file"
-    rm -f "$logs_file"
+    connection_count="$(
+      ss -Htn state established '( sport = :{{ java_backend_mqtt_port }} )' | wc -l
+    )"
+    test "$connection_count" -ge 2
   args:
     executable: /bin/bash
+  changed_when: false
 
 - name: Remove legacy docker image if present
   become: true
@@ -216,3 +292,4 @@
   register: java_backend_legacy_image
   changed_when: java_backend_legacy_image.rc == 0
   failed_when: false
+  when: java_backend_remove_legacy_docker

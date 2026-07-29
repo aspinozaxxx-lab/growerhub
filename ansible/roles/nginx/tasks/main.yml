@@ -5,6 +5,194 @@
     update_cache: true
     state: present
 
+- name: Validate Nginx profile values
+  ansible.builtin.assert:
+    that:
+      - nginx_certbot_install_method in ['apt', 'snap']
+      - nginx_firmware_backend in ['java', 'legacy']
+      - nginx_static_deploy_method in ['copy', 'archive']
+      - nginx_domain | length > 0
+    fail_msg: "Nginx profile variables zadany neverno."
+
+- name: Check local frontend dist
+  delegate_to: localhost
+  become: false
+  ansible.builtin.find:
+    paths: "{{ nginx_static_src }}"
+    recurse: true
+    file_type: file
+    get_checksum: true
+  register: nginx_static_files
+  when: nginx_deploy_static
+
+- name: Validate local frontend dist
+  ansible.builtin.assert:
+    that:
+      - nginx_static_files.matched | int > 0
+    fail_msg: "Frontend dist ne najden: {{ nginx_static_src }}. Snachala vypolnite frontend build."
+  when: nginx_deploy_static
+
+- name: Calculate frontend release id
+  ansible.builtin.set_fact:
+    nginx_static_release_id: >-
+      {{
+        nginx_static_files.files
+        | sort(attribute='path')
+        | map(attribute='checksum')
+        | join
+        | hash('sha256')
+      }}
+  when: nginx_deploy_static
+
+- name: Ensure frontend release directories exist
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ nginx_deploy_user }}"
+    group: "{{ nginx_deploy_group }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - path: "{{ nginx_releases_dir }}"
+      mode: "0755"
+    - path: "{{ nginx_current_link | dirname }}"
+      mode: "0755"
+    - path: "{{ nginx_releases_dir }}/{{ nginx_static_release_id }}"
+      mode: "0755"
+  when: nginx_deploy_static
+
+- name: Deploy frontend dist to release
+  become: true
+  ansible.builtin.copy:
+    src: "{{ nginx_static_src }}/"
+    dest: "{{ nginx_releases_dir }}/{{ nginx_static_release_id }}/"
+    owner: "{{ nginx_deploy_user }}"
+    group: "{{ nginx_deploy_group }}"
+    directory_mode: "0755"
+    mode: "0644"
+  when:
+    - nginx_deploy_static
+    - nginx_static_deploy_method == 'copy'
+
+- name: Check completed frontend archive release
+  become: true
+  ansible.builtin.stat:
+    path: "{{ nginx_releases_dir }}/.{{ nginx_static_release_id }}.complete"
+  register: nginx_static_archive_marker
+  when:
+    - nginx_deploy_static
+    - nginx_static_deploy_method == 'archive'
+
+- name: Validate archive release path
+  ansible.builtin.assert:
+    that:
+      - nginx_static_release_id is match('^[0-9a-f]{64}$')
+      - (nginx_releases_dir ~ '/' ~ nginx_static_release_id).startswith(nginx_releases_dir ~ '/')
+    fail_msg: "Put frontend release dlya archive-opredelen neverno."
+  when:
+    - nginx_deploy_static
+    - nginx_static_deploy_method == 'archive'
+
+- name: Deploy frontend archive release
+  when:
+    - nginx_deploy_static
+    - nginx_static_deploy_method == 'archive'
+    - not nginx_static_archive_marker.stat.exists
+    - not ansible_check_mode
+  block:
+    - name: Build local frontend archive
+      delegate_to: localhost
+      become: false
+      ansible.builtin.command:
+        argv:
+          - tar
+          - -C
+          - "{{ nginx_static_src }}"
+          - -czf
+          - "/tmp/growerhub-frontend-{{ nginx_static_release_id }}.tar.gz"
+          - "."
+        creates: "/tmp/growerhub-frontend-{{ nginx_static_release_id }}.tar.gz"
+
+    - name: Remove incomplete frontend release
+      become: true
+      ansible.builtin.file:
+        path: "{{ nginx_releases_dir }}/{{ nginx_static_release_id }}"
+        state: absent
+
+    - name: Recreate frontend release directory
+      become: true
+      ansible.builtin.file:
+        path: "{{ nginx_releases_dir }}/{{ nginx_static_release_id }}"
+        state: directory
+        owner: "{{ nginx_deploy_user }}"
+        group: "{{ nginx_deploy_group }}"
+        mode: "0755"
+
+    - name: Extract frontend release archive
+      become: true
+      ansible.builtin.unarchive:
+        src: "/tmp/growerhub-frontend-{{ nginx_static_release_id }}.tar.gz"
+        dest: "{{ nginx_releases_dir }}/{{ nginx_static_release_id }}"
+        owner: "{{ nginx_deploy_user }}"
+        group: "{{ nginx_deploy_group }}"
+
+    - name: Normalize frontend directory modes
+      become: true
+      ansible.builtin.command:
+        argv:
+          - find
+          - "{{ nginx_releases_dir }}/{{ nginx_static_release_id }}"
+          - -type
+          - d
+          - -exec
+          - chmod
+          - "0755"
+          - "{}"
+          - "+"
+      changed_when: true
+
+    - name: Normalize frontend file modes
+      become: true
+      ansible.builtin.command:
+        argv:
+          - find
+          - "{{ nginx_releases_dir }}/{{ nginx_static_release_id }}"
+          - -type
+          - f
+          - -exec
+          - chmod
+          - "0644"
+          - "{}"
+          - "+"
+      changed_when: true
+
+    - name: Mark frontend archive release complete
+      become: true
+      ansible.builtin.file:
+        path: "{{ nginx_releases_dir }}/.{{ nginx_static_release_id }}.complete"
+        state: touch
+        owner: "{{ nginx_deploy_user }}"
+        group: "{{ nginx_deploy_group }}"
+        mode: "0644"
+  always:
+    - name: Remove local frontend archive
+      delegate_to: localhost
+      become: false
+      ansible.builtin.file:
+        path: "/tmp/growerhub-frontend-{{ nginx_static_release_id }}.tar.gz"
+        state: absent
+
+- name: Switch current frontend release
+  become: true
+  ansible.builtin.file:
+    src: "{{ nginx_releases_dir }}/{{ nginx_static_release_id }}"
+    dest: "{{ nginx_current_link }}"
+    state: link
+    force: true
+    owner: "{{ nginx_deploy_user }}"
+    group: "{{ nginx_deploy_group }}"
+  when: nginx_deploy_static
+
 - name: Deploy main nginx.conf
   become: true
   ansible.builtin.copy:
@@ -18,22 +206,17 @@
     - reload nginx
     - smoke-check api health
 
-#- name: Create backup of current /etc/nginx (одноразово, если нет бэкапа)
-#  ansible.builtin.command:
-#    cmd: tar -czf /etc/nginx.backup.tgz /etc/nginx
-#    creates: /etc/nginx.backup.tgz
-
-# Валидация текущей конфигурации (до изменений)
+# Proverka tekushchej konfiguracii do izmenenij.
 - name: Remove other enabled sites (keep only growerhub.conf)
   become: true
-  find:
+  ansible.builtin.find:
     paths: /etc/nginx/sites-enabled
     file_type: any
   register: enabled_sites
 
 - name: Disable stray sites
   become: true
-  file:
+  ansible.builtin.file:
     path: "{{ item.path }}"
     state: absent
   loop: "{{ enabled_sites.files | rejectattr('path','equalto','/etc/nginx/sites-enabled/growerhub.conf') | list }}"
@@ -42,22 +225,24 @@
     - reload nginx
     - smoke-check api health
 
-# === HTTPS подготовка (если включён) ===
+# HTTPS podgotovka, esli vklyuchen.
 - name: Ensure certbot installed when HTTPS enabled
   when: nginx_enable_https
   become: true
   block:
-    - name: Install certbot (via snap)
+    - name: Install snapd for certbot
       ansible.builtin.apt:
         name: snapd
         state: present
         update_cache: yes
+      when: nginx_certbot_install_method == 'snap'
 
-    - name: Install certbot
+    - name: Install certbot from snap
       community.general.snap:
         name: certbot
         classic: yes
         state: present
+      when: nginx_certbot_install_method == 'snap'
 
     - name: Link certbot binary
       ansible.builtin.file:
@@ -65,6 +250,14 @@
         dest: /usr/bin/certbot
         state: link
         force: yes
+      when: nginx_certbot_install_method == 'snap'
+
+    - name: Install certbot from APT
+      ansible.builtin.apt:
+        name: certbot
+        state: present
+        update_cache: true
+      when: nginx_certbot_install_method == 'apt'
 
     - name: Create ACME challenge dir
       ansible.builtin.file:
@@ -74,20 +267,6 @@
         owner: www-data
         group: www-data
 
-# ⬇️ ВАЖНО: здесь должен оказаться серверный блок с /.well-known/acme-challenge
-# Вариант А (как у тебя): копируем дерево etc/nginx/ из роли
-#- name: Deploy captured nginx config tree
-#  ansible.builtin.copy:
-#    src: etc/nginx/
-#    dest: /etc/nginx/
-#    owner: root
-#    group: root
-    # Не задаём общий mode для директорий, чтобы не сбить права; файлы получат 0644 по-умолчанию
-    # mode: "0644"
-#  notify:
-#    - test nginx config
-#    - reload nginx
-
 - name: Check if LE cert exists
   ansible.builtin.stat:
     path: "/etc/letsencrypt/live/{{ nginx_domain }}/fullchain.pem"
@@ -95,7 +274,11 @@
 
 - name: Set flag if cert ready
   ansible.builtin.set_fact:
-    nginx_cert_ready: "{{ le_cert.stat.exists | default(false) }}"
+    nginx_cert_ready: >-
+      {{
+        nginx_enable_https
+        and (le_cert.stat.exists | default(false))
+      }}
 
 - name: Deploy site from template
   ansible.builtin.template:
@@ -133,13 +316,17 @@
   changed_when: false
   failed_when: nginx_test.rc != 0
 
-# 🔔 Выполним хендлеры сейчас (перезагрузим nginx), чтобы certbot получил доступ к webroot
+# Primenyaem konfiguraciyu do zapuska certbot.
 - name: Apply config now before certbot
   ansible.builtin.meta: flush_handlers
 
-# Выпускаем сертификат (webroot). Работает только если домен и email заданы
+# Vypusk sertifikata vozmozhen tolko pri gotovyh domene i email.
 - name: Obtain/renew Let’s Encrypt certificate
-  when: nginx_enable_https and (nginx_domain | length > 0) and (nginx_letsencrypt_email | length > 0)
+  when:
+    - nginx_enable_https
+    - nginx_obtain_certificate
+    - nginx_domain | length > 0
+    - nginx_letsencrypt_email | length > 0
   become: true
   ansible.builtin.command: >
     certbot certonly --webroot
@@ -177,9 +364,11 @@
     - smoke-check api health
 
 
-# Хук автопродления — перезагружаем nginx после обновления сертификатов
+# Hook prodleniya perezagruzhaet Nginx posle obnovleniya sertifikata.
 - name: Ensure certbot renew hook reloads nginx
-  when: nginx_enable_https
+  when:
+    - nginx_enable_https
+    - nginx_cert_ready
   become: true
   ansible.builtin.copy:
     dest: /etc/letsencrypt/renewal-hooks/deploy/01-reload-nginx.sh
