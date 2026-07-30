@@ -654,5 +654,12 @@
   "Ферма — это помещение. В каждой ферме можно создать несколько теплиц и переносить их между помещениями.": "A farm is a room. Each farm can contain multiple greenhouses that can be moved between rooms.",
   "Фермы пока не созданы": "No farms created yet",
   "Запрос охлаждения выше, °C": "Request cooling above, °C",
-  "Снять запрос ниже, °C": "Clear request below, °C"
+  "Снять запрос ниже, °C": "Clear request below, °C",
+  "Часовой пояс": "Time zone",
+  "Часовой пояс сохранён": "Time zone saved",
+  "Не удалось сохранить профиль": "Failed to save profile",
+  "Не удалось сохранить часовой пояс": "Failed to save time zone",
+  "Используется для времени на сайте, расписаний автоматизации и суточных лимитов полива.": "Used for timestamps, automation schedules, and daily watering limits.",
+  "на связи": "online",
+  "статус неизвестен": "status unknown"
 }

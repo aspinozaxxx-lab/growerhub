@@ -37,6 +37,7 @@ import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.contract.SensorView;
 import ru.growerhub.backend.sensor.contract.SensorStatus;
 import ru.growerhub.backend.user.UserFacade;
+import ru.growerhub.backend.user.contract.UserProfile;
 
 @RestController
 @Validated
@@ -154,7 +155,7 @@ public class DevicesController {
             DeviceDtos.DeviceResponse base = mapAdminDeviceResponse(summary);
             // Translitem: owner mozhet byt' null pri neprivyazannom ili udalyonnom polzovatele.
             Integer ownerId = summary.userId();
-            UserFacade.UserProfile owner = ownerId != null ? userFacade.getUser(ownerId) : null;
+            UserProfile owner = ownerId != null ? userFacade.getUser(ownerId) : null;
             DeviceDtos.DeviceOwnerInfoResponse ownerPayload = owner != null
                     ? new DeviceDtos.DeviceOwnerInfoResponse(owner.id(), owner.email(), owner.username())
                     : null;
@@ -216,7 +217,7 @@ public class DevicesController {
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         requireAdmin(user);
-        UserFacade.UserProfile owner = userFacade.getUser(request.userId());
+        UserProfile owner = userFacade.getUser(request.userId());
         if (owner == null) {
             throw new ApiException(HttpStatus.NOT_FOUND, "polzovatel' ne najden");
         }

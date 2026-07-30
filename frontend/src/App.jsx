@@ -15,6 +15,7 @@ import NotFoundPage from './pages/NotFoundPage';
 import PumpEarlyAccessPage from './pages/PumpEarlyAccessPage';
 import { loadAppTranslations, translateCommon } from './locales/i18n';
 import { trackPageView } from './utils/analytics';
+import { AuthProvider } from './features/auth/AuthContext';
 
 const AppSection = lazy(async () => {
   await loadAppTranslations();
@@ -42,9 +43,10 @@ function AnalyticsRouteTracker() {
 
 function App() {
   return (
-    <Layout>
-      <AnalyticsRouteTracker />
-      <Routes>
+    <AuthProvider>
+      <Layout>
+        <AnalyticsRouteTracker />
+        <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/en/" element={<HomePage />} />
         <Route path="/avtomatizatsiya-mini-fermy/" element={<MiniFarmPage />} />
@@ -82,8 +84,9 @@ function App() {
           )}
         />
         <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </Layout>
+        </Routes>
+      </Layout>
+    </AuthProvider>
   );
 }
 

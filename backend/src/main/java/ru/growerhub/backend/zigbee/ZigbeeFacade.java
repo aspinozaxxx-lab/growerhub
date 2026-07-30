@@ -409,6 +409,22 @@ public class ZigbeeFacade {
         return getHistory(LEGACY_COORDINATOR_ID, ieeeAddress, property, hours);
     }
 
+    @Transactional(readOnly = true)
+    public List<ZigbeeHistoryPoint> getHistoryForAdmin(
+            UUID coordinatorPublicId,
+            String ieeeAddress,
+            String property,
+            Integer hours
+    ) {
+        if (coordinatorPublicId == null) {
+            throw new DomainException("not_found", "Koordinator ne najden");
+        }
+        ZigbeeCoordinatorEntity coordinator = coordinatorRepository
+                .findByPublicIdAndArchivedAtIsNull(coordinatorPublicId)
+                .orElseThrow(() -> new DomainException("not_found", "Koordinator ne najden"));
+        return getHistory(coordinator.getId(), ieeeAddress, property, hours);
+    }
+
     private List<ZigbeeHistoryPoint> getHistory(
             Integer coordinatorId,
             String ieeeAddress,

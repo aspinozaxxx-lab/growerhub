@@ -4,6 +4,7 @@ import AppPageHeader from '../../../components/layout/AppPageHeader';
 import AppPageState from '../../../components/layout/AppPageState';
 import { useAuth } from '../../../features/auth/AuthContext';
 import './AdminPages.css';
+import { formatDateTimeDDMMYYYY } from '../../../utils/formatters';
 
 const FUNNEL = [
   ['registrations', 'Регистрация'],
@@ -33,7 +34,7 @@ function AdminProductAnalytics() {
   return (
     <div className="admin-page">
       <AppPageHeader title="Продуктовая воронка" />
-      <p>Только агрегаты без email, user ID, coordinator ID и IEEE. Обновлено {new Date(data.generated_at).toLocaleString('ru-RU')}.</p>
+      <p>Только агрегаты без email, user ID, coordinator ID и IEEE. Обновлено {formatDateTimeDDMMYYYY(data.generated_at)}.</p>
       <div className="admin-funnel-grid">
         {FUNNEL.map(([key, label]) => <article key={key}><span>{label}</span><strong>{data[key]}</strong><small>уникальных пользователей</small></article>)}
       </div>

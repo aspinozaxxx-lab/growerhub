@@ -12,6 +12,7 @@ import {
   fetchAdminZigbeeOverview,
 } from '../../../api/admin';
 import './AdminPages.css';
+import { formatDateTimeDDMMYYYY } from '../../../utils/formatters';
 
 const POLL_INTERVAL_MS = 5000;
 const SIMPLE_CONTROL_TYPES = new Set(['binary', 'enum', 'numeric', 'text']);
@@ -20,11 +21,7 @@ function formatDateTime(value) {
   if (!value) {
     return '';
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return date.toLocaleString('ru-RU');
+  return formatDateTimeDDMMYYYY(value) || value;
 }
 
 function formatValue(value) {

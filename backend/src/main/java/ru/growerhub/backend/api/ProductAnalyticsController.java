@@ -13,6 +13,7 @@ import ru.growerhub.backend.automation.AutomationFacade;
 import ru.growerhub.backend.automation.contract.AutomationData;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.user.UserFacade;
+import ru.growerhub.backend.user.contract.ProductAnalyticsSnapshot;
 import ru.growerhub.backend.zigbee.ZigbeeFacade;
 import ru.growerhub.backend.zigbee.contract.ZigbeeProductAnalytics;
 
@@ -35,7 +36,7 @@ public class ProductAnalyticsController {
     @GetMapping("/api/admin/product-analytics")
     public ProductAnalyticsDtos.Response get(@AuthenticationPrincipal AuthenticatedUser user) {
         requireAdmin(user);
-        UserFacade.ProductAnalyticsSnapshot users = userFacade.getProductAnalytics();
+        ProductAnalyticsSnapshot users = userFacade.getProductAnalytics();
         ZigbeeProductAnalytics zigbee = zigbeeFacade.getProductAnalytics();
         AutomationData.ProductAnalyticsSnapshot automation = automationFacade.getProductAnalytics();
         Set<Integer> registrations = users.registeredUserIds();

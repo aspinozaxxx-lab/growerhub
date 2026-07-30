@@ -2,6 +2,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { apiFetch, registerAuthHandlers } from '../../api/client';
 import { translateApp } from '../../locales/i18n';
+import { DEFAULT_UI_TIME_ZONE, setUiTimeZone } from '../../utils/formatters';
 
 const STORAGE_KEY = 'gh_access_token';
 
@@ -36,6 +37,7 @@ function AuthProvider({ children }) {
     setStatus('unauthorized');
     setRedirectAfterLoginState(null);
     setError(null);
+    setUiTimeZone(DEFAULT_UI_TIME_ZONE);
   }, []);
 
   useEffect(() => {
@@ -56,6 +58,7 @@ function AuthProvider({ children }) {
       }
 
       const data = await response.json();
+      setUiTimeZone(data?.timezone);
       setUser(data);
       const refreshedToken = localStorage.getItem(STORAGE_KEY) || effectiveToken;
       setToken(refreshedToken);
@@ -65,6 +68,7 @@ function AuthProvider({ children }) {
       return { success: true, user: data };
     } catch {
       localStorage.removeItem(STORAGE_KEY);
+      setUiTimeZone(DEFAULT_UI_TIME_ZONE);
       setUser(null);
       setToken(null);
       setStatus('unauthorized');
@@ -136,6 +140,10 @@ function AuthProvider({ children }) {
       setRedirectAfterLogin,
       consumeRedirectAfterLogin,
       clearError,
+      setCurrentUser: (nextUser) => {
+        setUiTimeZone(nextUser?.timezone);
+        setUser(nextUser);
+      },
     }),
     [
       status,

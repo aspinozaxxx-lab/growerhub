@@ -103,7 +103,12 @@ public class AuthController {
             @RequestBody AuthDtos.UserProfileUpdateRequest request,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        AuthUserProfile profile = authFacade.updateProfile(user, request.email(), request.username());
+        AuthUserProfile profile = authFacade.updateProfile(
+                user,
+                request.email(),
+                request.username(),
+                request.timezone()
+        );
         return toUserResponse(profile);
     }
 
@@ -144,6 +149,8 @@ public class AuthController {
                 profile.username(),
                 profile.role(),
                 profile.active(),
+                profile.timezone(),
+                profile.onboardingCompleted(),
                 profile.createdAt(),
                 profile.updatedAt()
         );

@@ -14,7 +14,8 @@ import { Title, Text } from '../ui/Typography';
 import WateringInProgressBanner from '../watering/WateringInProgressBanner';
 import usePumpWateringStatus from '../../features/watering/usePumpWateringStatus';
 import './PlantCard.css';
-import { getCurrentLocale, getIntlLocale, translateApp } from '../../locales/i18n';
+import { getCurrentLocale, translateApp } from '../../locales/i18n';
+import { formatDateOnly, parseBackendTimestamp } from '../../utils/formatters';
 
 const CURRENT_TIME_MS = Date.now();
 const MS_IN_DAY = 1000 * 60 * 60 * 24;
@@ -63,7 +64,7 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
   const locale = getCurrentLocale();
   const plantedAt = plant?.planted_at;
   const plantedDate = useMemo(
-    () => (plantedAt ? new Date(plantedAt) : null),
+    () => parseBackendTimestamp(plantedAt),
     [plantedAt],
   );
   const ageDays = calculateAgeDays(plantedDate);
@@ -75,7 +76,7 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
 
   const zoneName = plant?.zone?.name || translateApp("Без теплицы");
   const plantedLabel = plantedDate && !Number.isNaN(plantedDate.getTime())
-    ? plantedDate.toLocaleDateString(getIntlLocale())
+    ? formatDateOnly(plantedDate)
     : translateApp("Дата не указана");
 
   const sensors = Array.isArray(plant?.sensors) ? plant.sensors : [];

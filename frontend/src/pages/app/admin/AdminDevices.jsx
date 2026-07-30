@@ -12,17 +12,14 @@ import {
   fetchAdminDevices,
 } from '../../../api/admin';
 import './AdminPages.css';
+import { formatDateTimeDDMMYYYY } from '../../../utils/formatters';
 
 // Translitem: admin-stranica upravleniya ustroystvami.
 function formatEventTime(value) {
   if (!value) {
     return '';
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return date.toLocaleString('ru-RU');
+  return formatDateTimeDDMMYYYY(value) || value;
 }
 
 function buildEventLabel(event) {

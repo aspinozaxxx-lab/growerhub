@@ -1,15 +1,15 @@
-﻿package ru.growerhub.backend.auth.contract;
+package ru.growerhub.backend.user.contract;
 
 import java.time.LocalDateTime;
 
-public record AuthUserProfile(
+public record UserProfile(
         Integer id,
         String email,
         String username,
         String role,
         boolean active,
         String timezone,
-        boolean onboardingCompleted,
+        LocalDateTime onboardingCompletedAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {

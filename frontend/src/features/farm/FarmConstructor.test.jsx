@@ -99,4 +99,41 @@ describe('FarmConstructor', () => {
     expect(replaceGreenhousePlants).not.toHaveBeenCalled();
     expect(replaceGreenhouseScenarios).not.toHaveBeenCalled();
   });
+
+  it('pokazyvaet aktualnyj status svjazi dlya svezhego binding', async () => {
+    fetchFarmsOverview.mockResolvedValueOnce({
+      ...overview,
+      farms: [{
+        ...overview.farms[0],
+        greenhouses: [{
+          ...overview.farms[0].greenhouses[0],
+          slots: [{
+            id: 99,
+            role: 'AIR_TEMPERATURE_SENSOR',
+            source_type: 'ZIGBEE_DEVICE',
+            zigbee_coordinator_id: '7b17f42e-28ad-48a0-9f61-f9f3fe160a85',
+            zigbee_ieee_address: '0xabc',
+            zigbee_property: 'temperature',
+            current_value: 23.4,
+            connection_status: 'ok',
+            connection_message: null,
+            label: 'Датчик',
+          }],
+        }],
+      }],
+    });
+
+    render(
+      <MemoryRouter>
+        <FarmConstructor />
+      </MemoryRouter>,
+    );
+
+    const greenhouse = (await screen.findByRole('heading', { name: 'Северная' })).closest('article');
+    expect(within(greenhouse).getByText((_, element) => (
+      element.classList.contains('farm-slot__status')
+      && element.textContent.includes('на связи')
+    ))).toBeInTheDocument();
+    expect(within(greenhouse).queryByText('статус неизвестен')).not.toBeInTheDocument();
+  });
 });

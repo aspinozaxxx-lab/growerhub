@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button';
 import { GITHUB_RELEASES_URL } from '../../domain/siteConfig';
 import {
   createCoordinator,
+  completeOnboarding,
   createGreenhouse,
   createUserFarm,
   enablePermitJoin,
@@ -17,6 +18,7 @@ import {
   replaceGreenhouseSlots,
   rotateCoordinatorCredentials,
 } from '../../api/selfService';
+import { useAuth } from '../../features/auth/AuthContext';
 import { trackProductGoal, trackProductGoalOnce } from '../../utils/analytics';
 import {
   buildBridgeConfig,
@@ -145,6 +147,7 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
 }
 
 function AppOnboarding() {
+  const { loadCurrentUser } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [status, setStatus] = useState(null);
@@ -314,6 +317,8 @@ function AppOnboarding() {
       if (resources.length > 0) {
         await replaceGreenhouseSlots(greenhouse.id, resources);
       }
+      await completeOnboarding();
+      await loadCurrentUser();
       trackProductGoal('zone_created', { step: resources.length ? 'devices_assigned' : 'zone_only' });
       await refresh({ quiet: true });
       navigate('/app/');
@@ -323,6 +328,23 @@ function AppOnboarding() {
       setBusy('');
     }
   };
+
+  useEffect(() => {
+    if (status?.step !== 'COMPLETE' || status?.completed) return undefined;
+    let cancelled = false;
+    completeOnboarding()
+      .then(() => {
+        if (!cancelled) return loadCurrentUser();
+        return null;
+      })
+      .then(() => {
+        if (!cancelled) setStatus((current) => (current ? { ...current, completed: true } : current));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [loadCurrentUser, status?.completed, status?.step]);
 
   if (busy === 'loading' && !status && !error) {
     return <AppPageState kind="loading" title={translateApp("Проверяем подключение…")} />;

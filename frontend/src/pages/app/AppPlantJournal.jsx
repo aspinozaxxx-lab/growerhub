@@ -15,7 +15,14 @@ import {
   formatDurationSeconds,
   modeLabel,
 } from '../../features/manual-watering/manualWateringModel';
-import { formatDateKeyYYYYMMDD, formatTimeHHMM, parseBackendTimestamp } from '../../utils/formatters';
+import {
+  formatDateKeyYYYYMMDD,
+  formatCalendarDateLong,
+  formatDateLong,
+  formatTimeHHMM,
+  parseBackendTimestamp,
+  zonedDateTimeInputToUtc,
+} from '../../utils/formatters';
 import './AppPlantJournal.css';
 import { getIntlLocale, translateApp } from '../../locales/i18n';
 
@@ -31,7 +38,7 @@ const JOURNAL_TYPE_CONFIG = {
 const BACKEND_TYPES = ['watering', 'feeding', 'harvest', 'photo', 'note', 'other'];
 
 function toLocalDateKeyFromIso(isoString) {
-  // Translitem: backend otdaet UTC datetime, a v UI nuzhen key v timezone Moskva.
+  // Translitem: backend otdaet UTC datetime, a v UI nuzhen key v timezone polzovatelja.
   return formatDateKeyYYYYMMDD(isoString);
 }
 
@@ -326,22 +333,15 @@ function AppPlantJournal() {
       });
   }, [entries, selectedDate]);
 
-  const selectedDateLabel =
-    selectedDate &&
-    new Date(`${selectedDate}T00:00:00`).toLocaleDateString(getIntlLocale(), {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
+  const selectedDateLabel = selectedDate && formatCalendarDateLong(selectedDate);
 
   const selectedAgeLabel =
     selectedDate && plant?.planted_at
       ? (() => {
           const [y, m, d] = selectedDate.split('-').map((part) => Number(part));
-          const selectedLocal = new Date(y, m - 1, d);
-          const planted = new Date(plant.planted_at);
-          const plantedLocal = new Date(planted.getFullYear(), planted.getMonth(), planted.getDate());
-          const diff = selectedLocal.getTime() - plantedLocal.getTime();
+          const plantedKey = formatDateKeyYYYYMMDD(plant.planted_at);
+          const [py, pm, pd] = plantedKey.split('-').map((part) => Number(part));
+          const diff = Date.UTC(y, m - 1, d) - Date.UTC(py, pm - 1, pd);
           return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
         })()
       : null;
@@ -396,8 +396,8 @@ function AppPlantJournal() {
   const buildEventAtIso = (dateStr, timeStr) => {
     if (!dateStr) return null;
     const safeTime = timeStr && timeStr.includes(':') ? timeStr : '00:00';
-    const iso = new Date(`${dateStr}T${safeTime}:00`);
-    if (Number.isNaN(iso.getTime())) {
+    const iso = zonedDateTimeInputToUtc(`${dateStr}T${safeTime}:00`);
+    if (!iso) {
       return null;
     }
     return iso.toISOString();
@@ -437,13 +437,7 @@ function AppPlantJournal() {
   };
 
   const headingTitle = plant ? translateApp("Журнал: {{value1}}", { value1: plant.name }) : translateApp("Журнал растения");
-  const plantedAtLabel =
-    plant?.planted_at &&
-    new Date(plant.planted_at).toLocaleDateString(getIntlLocale(), {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
+  const plantedAtLabel = plant?.planted_at && formatDateLong(plant.planted_at);
 
   return (
     <div className="plant-journal-page">

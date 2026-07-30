@@ -21,6 +21,7 @@
 - `listSessions(Integer pumpId, int limit, Long beforeId)`
 - `lastCompletedSessionForBox(Integer boxId)`
 - `boxStatistics(Integer boxId, String range, int limit, Long beforeId)`
+- `boxStatistics(Integer boxId, String range, int limit, Long beforeId, String timezone)`
 - `listActiveSessionProbes()`
 - `advanceSession(Long sessionId, PumpSessionData.LeakProbe probe, LocalDateTime now)`
 - `syncAutomationBindings(Integer pumpId, List<PumpSessionData.BoxTarget> targets)`
@@ -67,7 +68,16 @@
 
 ## Алгоритм работы
 
-Start валидирует насос, targets и единственный active slot физического устройства, сохраняет snapshot и отправляет ограниченную по времени MQTT-команду. Worker по probe ведёт `running/pause/stopping`, считает только активное время и выполняет защитные остановки. История состояния записывает только изменение фактического состояния или статуса; при чтении добавляется состояние на начало диапазона. Maintenance удаляет старые последовательные дубли, сохраняя первый отсчёт суток и все переходы. Завершение идемпотентно создаёт журнал каждому snapshot-растению; объём равен `rate × active time`.
+Start валидирует насос, targets и единственный active slot физического
+устройства, сохраняет snapshot и отправляет ограниченную по времени
+MQTT-команду. Worker по probe ведёт `running/pause/stopping`, считает только
+активное время и выполняет защитные остановки. История состояния записывает
+только изменение фактического состояния или статуса; при чтении добавляется
+состояние на начало диапазона. Maintenance удаляет старые последовательные
+дубли, сохраняя первый отсчёт суток и все переходы. Завершение идемпотентно
+создаёт журнал каждому snapshot-растению; объём равен `rate × active time`.
+Календарные диапазоны статистики принимают timezone вызывающего сценария;
+legacy-вызов использует системное значение automation.
 
 ## Ограничения
 

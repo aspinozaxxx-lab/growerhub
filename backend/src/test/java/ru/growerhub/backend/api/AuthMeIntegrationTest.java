@@ -169,7 +169,8 @@ class AuthMeIntegrationTest extends IntegrationTestBase {
             LocalDateTime updatedAt
     ) {
         jdbcTemplate.update(
-                "INSERT INTO users (id, email, username, role, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO users (id, email, username, role, is_active, timezone, created_at, updated_at) "
+                        + "VALUES (?, ?, ?, ?, ?, 'Europe/Moscow', ?, ?)",
                 id,
                 email,
                 username,
@@ -192,5 +193,4 @@ class AuthMeIntegrationTest extends IntegrationTestBase {
                 .compact();
     }
 }
-
 

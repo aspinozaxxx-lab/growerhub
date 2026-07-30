@@ -1,7 +1,10 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../features/auth/AuthContext';
 import { isSessionExpiredError } from '../../api/client';
-import { formatDateKeyYYYYMMDD, formatTimeHHMM } from '../../utils/formatters';
+import {
+  formatDateTimeInput,
+  zonedDateTimeInputToUtc,
+} from '../../utils/formatters';
 import {
   DEFAULT_PLANT_TYPE_ID,
   getPlantTypeOptions,
@@ -51,17 +54,13 @@ function PlantEditDialog({
 
   const toLocalDateTimeInput = (isoValue) => {
     if (!isoValue) return '';
-    // Translitem: datetime iz backenda privodim k UI timezone (Moskva) i formatu input[type=datetime-local].
-    const dateKey = formatDateKeyYYYYMMDD(isoValue);
-    const time = formatTimeHHMM(isoValue);
-    if (!dateKey || !time) return '';
-    return `${dateKey}T${time}`;
+    return formatDateTimeInput(isoValue);
   };
 
   const toIsoString = (localValue) => {
     if (!localValue) return null;
-    const date = new Date(localValue);
-    if (Number.isNaN(date.getTime())) return null;
+    const date = zonedDateTimeInputToUtc(localValue);
+    if (!date) return null;
     return date.toISOString();
   };
 

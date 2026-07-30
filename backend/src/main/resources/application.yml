@@ -164,6 +164,10 @@ app:
   debug:
     plantsTiming: false
 
+user:
+  # Chasovoj pojas novogo polzovatelja.
+  defaultTimezone: "Europe/Moscow"
+
 zigbee:
   self-service:
     # Publichnyj self-service vklyuchaetsja tol'ko posle smoke-proverki.

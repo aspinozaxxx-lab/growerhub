@@ -184,14 +184,22 @@ export async function fetchAdminZigbeeOverview(token) {
 }
 
 // Translitem: zagruzka istorii Zigbee-svojstva dlya admin-statistiki.
-export async function fetchAdminZigbeeHistory(ieeeAddress, property, hours, token) {
+export async function fetchAdminZigbeeHistory(
+  ieeeAddress,
+  property,
+  hours,
+  token,
+  coordinatorId = null,
+) {
   const params = new URLSearchParams();
   params.set('property', property);
   if (hours !== null && hours !== undefined) {
     params.set('hours', hours);
   }
   const response = await apiFetch(
-    `/api/admin/zigbee/devices/${encodeURIComponent(ieeeAddress)}/history?${params.toString()}`,
+    coordinatorId
+      ? `/api/admin/zigbee/coordinators/${encodeURIComponent(coordinatorId)}/devices/${encodeURIComponent(ieeeAddress)}/history?${params.toString()}`
+      : `/api/admin/zigbee/devices/${encodeURIComponent(ieeeAddress)}/history?${params.toString()}`,
     token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
   );
   if (!response.ok) {

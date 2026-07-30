@@ -19,6 +19,8 @@ import ru.growerhub.backend.auth.jpa.UserAuthIdentityRepository;
 import ru.growerhub.backend.auth.jpa.UserRefreshTokenEntity;
 import ru.growerhub.backend.auth.jpa.UserRefreshTokenRepository;
 import ru.growerhub.backend.user.UserFacade;
+import ru.growerhub.backend.user.contract.AuthUser;
+import ru.growerhub.backend.user.contract.UserProfile;
 
 @Service
 public class AuthService {
@@ -48,7 +50,7 @@ public class AuthService {
     }
 
     public Integer authenticateLocalUser(String email, String password) {
-        UserFacade.UserProfile user = userFacade.findByEmail(email);
+        UserProfile user = userFacade.findByEmail(email);
         if (user == null) {
             return null;
         }
@@ -112,7 +114,7 @@ public class AuthService {
             throw new DomainException("unauthorized", "Refresh token expired");
         }
         Integer userId = record.getUserId();
-        UserFacade.UserProfile user = userFacade.getUser(userId);
+        UserProfile user = userFacade.getUser(userId);
         if (user == null) {
             throw new DomainException("unauthorized", "User not found");
         }
@@ -154,8 +156,8 @@ public class AuthService {
         refreshTokenService.clearCookie(response);
     }
 
-    public AuthUserProfile updateProfile(Integer userId, String email, String username) {
-        UserFacade.UserProfile updated = userFacade.updateProfile(userId, email, username);
+    public AuthUserProfile updateProfile(Integer userId, String email, String username, String timezone) {
+        UserProfile updated = userFacade.updateProfile(userId, email, username, timezone);
         if (updated == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
@@ -184,7 +186,7 @@ public class AuthService {
         if (userId == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
-        UserFacade.UserProfile user = userFacade.getUser(userId);
+        UserProfile user = userFacade.getUser(userId);
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
@@ -196,14 +198,14 @@ public class AuthService {
             throw new DomainException("unauthorized", "Not authenticated");
         }
 
-        UserFacade.UserProfile user = userFacade.getUser(userId);
+        UserProfile user = userFacade.getUser(userId);
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
 
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         if (email != null && !email.equals(user.email())) {
-            user = userFacade.updateProfile(userId, email, null);
+            user = userFacade.updateProfile(userId, email, null, null);
         }
         UserAuthIdentityEntity identity = identityRepository
                 .findByUserIdAndProvider(user.id(), PROVIDER_LOCAL)
@@ -246,7 +248,7 @@ public class AuthService {
             throw new DomainException("not_found", "Sposob vhoda ne najden");
         }
         identityRepository.delete(identity);
-        UserFacade.UserProfile user = userFacade.getUser(userId);
+        UserProfile user = userFacade.getUser(userId);
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
@@ -292,7 +294,7 @@ public class AuthService {
             if (userId == null) {
                 return null;
             }
-            UserFacade.AuthUser user = userFacade.getAuthUser(userId);
+            AuthUser user = userFacade.getAuthUser(userId);
             return user != null ? user.id() : null;
         } catch (Exception ex) {
             return null;
@@ -303,11 +305,11 @@ public class AuthService {
         if (userId == null) {
             return null;
         }
-        UserFacade.UserProfile user = userFacade.getUser(userId);
+        UserProfile user = userFacade.getUser(userId);
         return user != null ? toUserProfile(user) : null;
     }
 
-    private AuthMethods buildAuthMethods(UserFacade.UserProfile user) {
+    private AuthMethods buildAuthMethods(UserProfile user) {
         List<UserAuthIdentityEntity> identities = identityRepository.findAllByUserId(user.id());
         int total = identities.size();
         UserAuthIdentityEntity local = identities.stream()
@@ -372,13 +374,15 @@ public class AuthService {
         return null;
     }
 
-    private AuthUserProfile toUserProfile(UserFacade.UserProfile user) {
+    private AuthUserProfile toUserProfile(UserProfile user) {
         return new AuthUserProfile(
                 user.id(),
                 user.email(),
                 user.username(),
                 user.role(),
                 user.active(),
+                user.timezone(),
+                user.onboardingCompletedAt() != null,
                 user.createdAt(),
                 user.updatedAt()
         );

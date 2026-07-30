@@ -24,6 +24,7 @@ import ru.growerhub.backend.auth.jpa.UserAuthIdentityEntity;
 import ru.growerhub.backend.auth.jpa.UserAuthIdentityRepository;
 import ru.growerhub.backend.common.config.auth.AuthSsoSettings;
 import ru.growerhub.backend.user.UserFacade;
+import ru.growerhub.backend.user.contract.UserProfile;
 
 @Service
 public class SsoService {
@@ -201,14 +202,14 @@ public class SsoService {
         }
 
         String normalizedEmail = (email != null && !email.isEmpty()) ? email : null;
-        UserFacade.UserProfile existingEmailUser =
+        UserProfile existingEmailUser =
                 normalizedEmail != null ? userFacade.findByEmail(normalizedEmail) : null;
         String userEmail = normalizedEmail != null ? normalizedEmail : provider + "_" + subject + "@example.invalid";
         if (existingEmailUser != null) {
             userEmail = provider + "_" + subject + "@example.invalid";
         }
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        UserFacade.UserProfile user = userFacade.createExternalUser(userEmail, null);
+        UserProfile user = userFacade.createExternalUser(userEmail, null);
 
         UserAuthIdentityEntity newIdentity = UserAuthIdentityEntity.create(
                 user.id(),
@@ -345,5 +346,4 @@ public class SsoService {
     public static class SsoStateException extends RuntimeException {
     }
 }
-
 

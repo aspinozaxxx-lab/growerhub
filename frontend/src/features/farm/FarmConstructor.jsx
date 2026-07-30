@@ -158,8 +158,18 @@ function SlotEditor({
             const isCurrentBinding = selectedValue === bindingOptionValue(binding);
             const currentValue = isCurrentBinding ? binding?.current_value : selectedOption?.currentValue;
             const connectionLabel = isCurrentBinding
-              ? binding?.connection_message
-              : selectedOption?.connectionStatus;
+              ? (
+                binding?.connection_status === 'ok'
+                  ? translateApp('на связи')
+                  : (binding?.connection_message || translateApp('статус неизвестен'))
+              )
+              : (
+                selectedOption?.connectionStatus === 'online'
+                  ? translateApp('на связи')
+                  : (selectedOption?.connectionStatus === 'offline'
+                    ? translateApp('нет связи')
+                    : translateApp('статус неизвестен'))
+              );
             const isWarning = isCurrentBinding
               ? binding?.connection_status === 'warning'
               : selectedOption?.connectionStatus === 'offline';

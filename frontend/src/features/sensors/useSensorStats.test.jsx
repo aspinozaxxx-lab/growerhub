@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchAdminPumpHistory, fetchAdminZigbeeHistory } from '../../api/admin';
 import { fetchPlantHistory } from '../../api/plants';
 import { fetchSensorHistory } from '../../api/sensors';
+import { fetchZigbeeHistory } from '../../api/selfService';
 import { useSensorStats } from './useSensorStats';
 
 vi.mock('../auth/AuthContext', () => ({
@@ -21,6 +22,10 @@ vi.mock('../../api/plants', () => ({
 
 vi.mock('../../api/sensors', () => ({
   fetchSensorHistory: vi.fn(),
+}));
+
+vi.mock('../../api/selfService', () => ({
+  fetchZigbeeHistory: vi.fn(),
 }));
 
 function Probe(props) {
@@ -42,6 +47,7 @@ describe('useSensorStats', () => {
     fetchAdminZigbeeHistory.mockReset();
     fetchPlantHistory.mockReset();
     fetchSensorHistory.mockReset();
+    fetchZigbeeHistory.mockReset();
   });
 
   afterEach(() => {
@@ -109,6 +115,31 @@ describe('useSensorStats', () => {
       expect(data[1].timeMs - data[0].timeMs).toBe(13 * 60 * 1000);
       expect(data[2].timeMs - data[1].timeMs).toBe(13 * 60 * 1000);
     });
+  });
+
+  it('zagruzhaet istoriyu Zigbee tekushchego polzovatelja po coordinator ID', async () => {
+    fetchZigbeeHistory.mockResolvedValueOnce([
+      { ts: '2026-01-01T00:00:00', value: 23.5 },
+    ]);
+
+    render(
+      <Probe
+        mode="zigbee"
+        zigbeeCoordinatorId="7b17f42e-28ad-48a0-9f61-f9f3fe160a85"
+        zigbeeIeeeAddress="0xabc"
+        zigbeeProperty="temperature"
+        zigbeeHistoryScope="self-service"
+        metric="air_temperature"
+      />,
+    );
+
+    await waitFor(() => expect(fetchZigbeeHistory).toHaveBeenCalledWith(
+      '7b17f42e-28ad-48a0-9f61-f9f3fe160a85',
+      '0xabc',
+      'temperature',
+      24,
+    ));
+    expect(fetchAdminZigbeeHistory).not.toHaveBeenCalled();
   });
 
   it('schitaet vremya vklyuchennogo sostoyaniya po dnyam za poslednyuyu nedelyu', async () => {

@@ -1,4 +1,5 @@
 import { getIntlLocale, translateApp } from '../../../locales/i18n';
+import { formatTimestampLabel } from '../../../utils/formatters';
 
 export const RESOURCE_ROLES = {
   AC_SWITCH: 'AC_SWITCH',
@@ -200,19 +201,7 @@ export function formatResourceValue(resource, role) {
 }
 
 export function formatDateTime(value, fallback = translateApp("Время неизвестно")) {
-  if (!value) {
-    return fallback;
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return fallback;
-  }
-  return date.toLocaleString(getIntlLocale(), {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatTimestampLabel(value) || fallback;
 }
 
 export function resourceLastSeenLabel(resource) {
@@ -292,6 +281,7 @@ export function buildResourceStatsPayload(resource, role, subtitle, scope = {}) 
     ].includes(role);
     return {
       mode: 'zigbee',
+      zigbeeCoordinatorId: resource.zigbee_coordinator_id || null,
       zigbeeIeeeAddress: resource.zigbee_ieee_address,
       zigbeeProperty: property,
       metric: SENSOR_METRICS[role] || 'device_state',

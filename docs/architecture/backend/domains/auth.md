@@ -14,7 +14,7 @@
 - `ssoCallback(String provider, String code, String state, HttpServletRequest request, HttpServletResponse response)`
 - `refresh(HttpServletRequest request, HttpServletResponse response)`
 - `logout(HttpServletRequest request, HttpServletResponse response)`
-- `updateProfile(AuthenticatedUser user, String email, String username)`
+- `updateProfile(AuthenticatedUser user, String email, String username, String timezone)`
 - `changePassword(AuthenticatedUser user, String currentPassword, String newPassword)`
 - `authMethods(AuthenticatedUser user)`
 - `configureLocal(AuthenticatedUser user, String email, String password)`
@@ -47,7 +47,12 @@
 
 ## Алгоритм работы
 
-Facade принимает сценарий входа, проверки, обновления или выхода. Engine валидирует учетные данные, работает с identity и refresh token, выпускает access token и управляет cookie. SSO flow строит redirect, проверяет state, получает профиль провайдера и связывает identity с пользователем.
+Facade принимает сценарий входа, проверки, обновления или выхода. Engine
+валидирует учетные данные, работает с identity и refresh token, выпускает
+access token и управляет cookie. Профиль auth возвращает timezone и постоянный
+признак завершения онбординга из домена `user`. SSO flow строит redirect,
+проверяет state, получает профиль провайдера и связывает identity с
+пользователем.
 
 SSO callback не передаёт access token через URL. После проверки провайдера он устанавливает защищённую refresh-cookie и перенаправляет только на разрешённый путь внутри `/app`; frontend восстанавливает access token отдельным refresh-запросом.
 

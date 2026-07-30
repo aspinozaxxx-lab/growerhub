@@ -69,6 +69,7 @@ MQTT-топики:
 - `docs/architecture/backend/domains/firmware.md`
 - `docs/architecture/backend/domains/journal.md`
 - `docs/architecture/backend/domains/maintenance.md`
+- `docs/architecture/backend/domains/onboarding.md`
 - `docs/architecture/backend/domains/plant.md`
 - `docs/architecture/backend/domains/pump.md`
 - `docs/architecture/backend/domains/sensor.md`

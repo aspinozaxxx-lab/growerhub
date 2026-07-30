@@ -2,7 +2,8 @@
 
 ## Назначение
 
-Управляет пользователями, профилями, ролями, активностью и admin CRUD.
+Управляет пользователями, профилями, часовым поясом, постоянным признаком
+завершения первичной настройки, ролями, активностью и admin CRUD.
 
 ## Публичный Facade
 
@@ -15,15 +16,17 @@
 - `createUser(String email, String username, String role, String password)`
 - `createExternalUser(String email, String username)`
 - `updateUser(Integer userId, String username, String role, Boolean active)`
-- `updateProfile(Integer userId, String email, String username)`
+- `updateProfile(Integer userId, String email, String username, String timezone)`
+- `getTimezone(Integer userId)`
+- `getTimezones(Set<Integer> userIds)`
+- `markOnboardingCompleted(Integer userId)`
 - `deleteUser(Integer userId)`
 
 ## Публичные контракты
 
-Пакет `contract` отсутствует. Публичные records объявлены внутри Facade:
-
 - `UserProfile`
 - `AuthUser`
+- `ProductAnalyticsSnapshot`
 
 ## Владение данными
 
@@ -38,12 +41,20 @@
 
 - REST adapter `api`
 - security filter в `common.config.security`
-- домены `auth`, `plant`
+- домены `auth`, `automation`, `onboarding`, `plant`
 
 ## Алгоритм работы
 
-Facade читает пользователей, создает локальных и внешних пользователей, обновляет профиль и admin-поля. При создании локального пользователя вызывает auth для identity. При удалении отвязывает устройства и удаляет auth identities.
+Facade читает пользователей, создаёт локальных и внешних пользователей,
+валидирует IANA timezone, обновляет профиль и admin-поля. При создании
+локального пользователя вызывает auth для identity. При удалении отвязывает
+устройства и удаляет auth identities. Завершение первичной настройки
+записывается один раз и не откатывается при временной потере связи или удалении
+ресурса.
 
 ## Ограничения
 
-User не хранит auth credentials. Удаление пользователя должно координироваться через Facade других доменов. Публичные user DTO должны быть вынесены в `contract` при следующем изменении публичной поверхности.
+User не хранит auth credentials. Удаление пользователя должно координироваться
+через Facade других доменов. Значение timezone должно быть валидным
+идентификатором IANA; значение для нового пользователя приходит из
+конфигурации.

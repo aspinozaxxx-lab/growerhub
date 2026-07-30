@@ -19,9 +19,9 @@ import AppPageState from '../../components/layout/AppPageState';
 import AppGrid from '../../components/layout/AppGrid';
 import Button from '../../components/ui/Button';
 import { DEFAULT_PLANT_TYPE_ID, getAutoStageFromAge, normalizePlantTypeId } from '../../domain/plants';
-import { formatDateKeyYYYYMMDD, parseBackendTimestamp } from '../../utils/formatters';
+import { formatDateKeyYYYYMMDD, formatDateOnly, parseBackendTimestamp } from '../../utils/formatters';
 import './AppPlants.css';
-import { getIntlLocale, translateApp } from '../../locales/i18n';
+import { translateApp } from '../../locales/i18n';
 
 // Translitem: Stranica spiska rastenij s kartochkami i rabochim dialogom redaktirovaniya.
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
@@ -36,7 +36,7 @@ const METRIC_LABELS = {
 function formatPlantDate(value) {
   const date = parseBackendTimestamp(value);
   if (!date) return '-';
-  return date.toLocaleDateString(getIntlLocale());
+  return formatDateOnly(date);
 }
 
 function calcAgeAtHarvest(plantedAt, harvestedAt) {

@@ -18,6 +18,7 @@ import ru.growerhub.backend.auth.AuthFacade;
 import ru.growerhub.backend.common.contract.ApiError;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.user.UserFacade;
+import ru.growerhub.backend.user.contract.AuthUser;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -80,7 +81,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        UserFacade.AuthUser user = userFacade.getAuthUser(userId);
+        AuthUser user = userFacade.getAuthUser(userId);
         if (user == null) {
             writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "Polzovatel' ne najden", true);
             return;

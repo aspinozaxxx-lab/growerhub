@@ -57,6 +57,7 @@ import ru.growerhub.backend.zigbee.ZigbeeFacade;
 import ru.growerhub.backend.zigbee.contract.ZigbeeDeviceData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeFeatureData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeOwnedDeviceData;
+import ru.growerhub.backend.user.UserFacade;
 
 @Service
 @Transactional
@@ -106,6 +107,7 @@ public class AutomationFacade {
     private final PumpFacade pumpFacade;
     private final PlantFacade plantFacade;
     private final ZigbeeFacade zigbeeFacade;
+    private final UserFacade userFacade;
     private final AutomationSettings settings;
     private final ObjectMapper objectMapper;
 
@@ -122,6 +124,7 @@ public class AutomationFacade {
             PumpFacade pumpFacade,
             PlantFacade plantFacade,
             ZigbeeFacade zigbeeFacade,
+            UserFacade userFacade,
             AutomationSettings settings,
             ObjectMapper objectMapper
     ) {
@@ -137,6 +140,7 @@ public class AutomationFacade {
         this.pumpFacade = pumpFacade;
         this.plantFacade = plantFacade;
         this.zigbeeFacade = zigbeeFacade;
+        this.userFacade = userFacade;
         this.settings = settings;
         this.objectMapper = objectMapper;
     }
@@ -204,7 +208,7 @@ public class AutomationFacade {
                 catalog.toData(),
                 overviewActionLogs(user, rooms, boxes),
                 new AutomationData.Settings(
-                        settings.getTimezone(),
+                        userFacade.getTimezone(user.id()),
                         settings.getStaleSensorMinutes(),
                         settings.getManualOverrideMinutes(),
                         settings.getResourceOfflineMinutes()
@@ -975,12 +979,18 @@ public class AutomationFacade {
         List<AutomationBoxEntity> boxes = boxRepository.findAllByOrderByNameAscIdAsc();
         Map<Integer, AutomationRoomEntity> roomsById = rooms.stream()
                 .collect(Collectors.toMap(AutomationRoomEntity::getId, Function.identity()));
+        Map<Integer, String> timezones = userFacade.getTimezones(
+                rooms.stream().map(AutomationRoomEntity::getUserId).collect(Collectors.toSet())
+        );
 
         for (AutomationBoxEntity box : boxes) {
             AutomationRoomEntity room = roomsById.get(box.getRoomId());
+            String timezone = room != null
+                    ? timezones.getOrDefault(room.getUserId(), settings.getTimezone())
+                    : settings.getTimezone();
             evaluateBoxClimate(box, room, catalog, now);
-            evaluateLightSchedule(box, catalog, now);
-            evaluateWatering(box, catalog, now);
+            evaluateLightSchedule(box, catalog, now, timezone);
+            evaluateWatering(box, catalog, now, timezone);
         }
         for (AutomationRoomEntity room : rooms) {
             evaluateRoomClimate(room, boxes, catalog, now);
@@ -1353,7 +1363,12 @@ public class AutomationFacade {
         markState(state, "active", null, hasRequest, now);
     }
 
-    private void evaluateLightSchedule(AutomationBoxEntity box, Catalog catalog, LocalDateTime now) {
+    private void evaluateLightSchedule(
+            AutomationBoxEntity box,
+            Catalog catalog,
+            LocalDateTime now,
+            String timezone
+    ) {
         AutomationScenarioConfigEntity config = configFor(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_LIGHT_SCHEDULE);
         AutomationScenarioStateEntity state = stateFor(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_LIGHT_SCHEDULE, now);
         AutomationData.Readiness readiness = lightReadiness(box.getId(), catalog);
@@ -1371,14 +1386,19 @@ public class AutomationFacade {
         }
 
         Map<String, Object> cfg = configMap(config, AutomationData.SCENARIO_LIGHT_SCHEDULE);
-        boolean shouldBeOn = isLightScheduleActive(cfg, now);
+        boolean shouldBeOn = isLightScheduleActive(cfg, now, timezone);
         AutomationResourceBindingEntity lightBinding = resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_LIGHT_SWITCH);
         sendSwitchIfNeeded(lightBinding, shouldBeOn, catalog, AutomationData.SCENARIO_LIGHT_SCHEDULE,
                 AutomationData.SCOPE_BOX, box.getId(), shouldBeOn ? "Расписание включения" : "Расписание выключения", now, null);
         markState(state, "active", null, false, now);
     }
 
-    private void evaluateWatering(AutomationBoxEntity box, Catalog catalog, LocalDateTime now) {
+    private void evaluateWatering(
+            AutomationBoxEntity box,
+            Catalog catalog,
+            LocalDateTime now,
+            String timezone
+    ) {
         AutomationScenarioConfigEntity config = configFor(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING);
         AutomationScenarioStateEntity state = stateFor(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, now);
         AutomationData.Readiness readiness = wateringReadiness(box.getId(), catalog);
@@ -1446,7 +1466,13 @@ public class AutomationFacade {
             markState(state, "limited", "Минимальный интервал между поливами", false, now);
             return;
         }
-        long usedToday = pumpFacade.boxStatistics(box.getId(), "day", 1, null).activeDurationS();
+        long usedToday = pumpFacade.boxStatistics(
+                box.getId(),
+                "day",
+                1,
+                null,
+                timezone
+        ).activeDurationS();
         if (usedToday + requestedRunSeconds > dailyMaxSeconds) {
             logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, null,
                     "SKIP", "Дневной лимит полива", "skipped", null, now);
@@ -2098,7 +2124,7 @@ public class AutomationFacade {
         Map<String, List<AutomationScenarioConfigEntity>> configs = groupConfigs(farms, greenhouses);
         Map<String, List<AutomationScenarioStateEntity>> states = groupStates(farms, greenhouses);
         AutomationData.Settings publicSettings = new AutomationData.Settings(
-                settings.getTimezone(),
+                userFacade.getTimezone(user.id()),
                 settings.getStaleSensorMinutes(),
                 settings.getManualOverrideMinutes(),
                 settings.getResourceOfflineMinutes()
@@ -2186,7 +2212,7 @@ public class AutomationFacade {
         List<AutomationRoomEntity> ownedFarms =
                 roomRepository.findAllByUserIdOrderByNameAscIdAsc(user.id());
         AutomationData.Settings publicSettings = new AutomationData.Settings(
-                settings.getTimezone(),
+                userFacade.getTimezone(user.id()),
                 settings.getStaleSensorMinutes(),
                 settings.getManualOverrideMinutes(),
                 settings.getResourceOfflineMinutes()
@@ -3375,8 +3401,12 @@ public class AutomationFacade {
         }
     }
 
-    private boolean isLightScheduleActive(Map<String, Object> config, LocalDateTime nowUtc) {
-        ZoneId zone = ZoneId.of(settings.getTimezone());
+    private boolean isLightScheduleActive(
+            Map<String, Object> config,
+            LocalDateTime nowUtc,
+            String timezone
+    ) {
+        ZoneId zone = ZoneId.of(timezone);
         ZonedDateTime local = nowUtc.atZone(ZoneOffset.UTC).withZoneSameInstant(zone);
         int day = local.getDayOfWeek().getValue();
         Object daysValue = config.get("days");

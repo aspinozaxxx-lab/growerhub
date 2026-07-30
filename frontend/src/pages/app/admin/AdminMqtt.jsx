@@ -8,6 +8,7 @@ import { useAuth } from '../../../features/auth/AuthContext';
 import { isSessionExpiredError } from '../../../api/client';
 import { fetchAdminMqttMessages } from '../../../api/admin';
 import './AdminPages.css';
+import { formatDateTimeDDMMYYYY } from '../../../utils/formatters';
 
 const LIMIT_OPTIONS = [
   { value: '', label: 'Все' },
@@ -29,11 +30,7 @@ function formatMessageTime(value) {
   if (!value) {
     return '';
   }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return date.toLocaleString('ru-RU');
+  return formatDateTimeDDMMYYYY(value) || value;
 }
 
 function formatDirection(value) {

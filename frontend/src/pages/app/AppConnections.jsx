@@ -10,7 +10,8 @@ import {
 } from '../../api/selfService';
 import { trackProductGoal } from '../../utils/analytics';
 import './SelfServicePages.css';
-import { getIntlLocale, translateApp } from '../../locales/i18n';
+import { translateApp } from '../../locales/i18n';
+import { formatDateTimeDDMMYYYY } from '../../utils/formatters';
 
 const STATUS_LABELS = {
   PROVISIONING: translateApp("Настраивается"),
@@ -111,7 +112,7 @@ function AppConnections() {
             <article key={coordinator.id}>
               <div><h3>{coordinator.name}</h3><p>{coordinator.base_topic}</p></div>
               <span className={coordinator.status === 'ONLINE' ? 'status-chip is-online' : 'status-chip'}>{STATUS_LABELS[coordinator.status] || translateApp("Статус неизвестен")}</span>
-              <div className="connection-meta"><span>{translateApp('device_count', { count: coordinator.device_count })}</span><span>{coordinator.last_seen_at ? translateApp("Связь: {{value1}}", { value1: new Date(coordinator.last_seen_at).toLocaleString(getIntlLocale()) }) : translateApp("Ещё не подключался")}</span></div>
+              <div className="connection-meta"><span>{translateApp('device_count', { count: coordinator.device_count })}</span><span>{coordinator.last_seen_at ? translateApp("Связь: {{value1}}", { value1: formatDateTimeDDMMYYYY(coordinator.last_seen_at) }) : translateApp("Ещё не подключался")}</span></div>
               <div className="inline-actions"><Button onClick={() => handleRotate(coordinator)} isLoading={busy === coordinator.id}>{translateApp("Новые данные доступа")}</Button><Button variant="danger" onClick={() => handleArchive(coordinator)} disabled={busy === coordinator.id}>{translateApp("Архивировать")}</Button></div>
             </article>
           ))}

@@ -34,6 +34,7 @@ import {
   updatePlantDraftRate,
 } from './automationPlantDrafts';
 import './AdminPages.css';
+import { formatDateTimeDDMMYYYY } from '../../../utils/formatters';
 
 const ROOM_SCOPE = 'ROOM';
 const BOX_SCOPE = 'BOX';
@@ -101,9 +102,7 @@ function listOrEmpty(value) {
 
 function formatDateTime(value) {
   if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('ru-RU');
+  return formatDateTimeDDMMYYYY(value) || value;
 }
 
 function formatValue(value) {

@@ -1,5 +1,47 @@
 import { getIntlLocale } from '../locales/i18n';
 
+export const DEFAULT_UI_TIME_ZONE = 'Europe/Moscow';
+let uiTimeZone = DEFAULT_UI_TIME_ZONE;
+
+export function isValidTimeZone(value) {
+  if (!value || typeof value !== 'string') return false;
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: value }).format();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function setUiTimeZone(value) {
+  uiTimeZone = isValidTimeZone(value) ? value : DEFAULT_UI_TIME_ZONE;
+  return uiTimeZone;
+}
+
+export function getUiTimeZone() {
+  return uiTimeZone;
+}
+
+export function getSupportedTimeZones() {
+  if (typeof Intl.supportedValuesOf === 'function') {
+    return Intl.supportedValuesOf('timeZone');
+  }
+  return [
+    'Europe/Moscow',
+    'Europe/Kaliningrad',
+    'Europe/Samara',
+    'Asia/Yekaterinburg',
+    'Asia/Omsk',
+    'Asia/Krasnoyarsk',
+    'Asia/Irkutsk',
+    'Asia/Yakutsk',
+    'Asia/Vladivostok',
+    'Asia/Magadan',
+    'Asia/Kamchatka',
+    'UTC',
+  ];
+}
+
 export function formatSensorValue(value, fractionDigits = 1) {
   if (value === null || value === undefined) {
     return '-';
@@ -11,9 +53,6 @@ export function formatSensorValue(value, fractionDigits = 1) {
   return num.toFixed(fractionDigits);
 }
 
-// Translitem: vremennaya zona dlya otobrazheniya dat/ vremeni v UI.
-// TODO(translit): kogda poyavitsya nastroika polzovatelya, podmenit na ee znachenie.
-const UI_TIME_ZONE = 'Europe/Moscow';
 // Translitem: backend chasto otdaet datetime bez timezone (naive) no po smyslu eto UTC.
 function _normalizeBackendIso(value) {
   if (typeof value !== 'string') return value;
@@ -54,20 +93,21 @@ export function parseBackendTimestamp(value) {
 }
 
 // Translitem: raskladyvaem Date na y/m/d/h/m v nuzhnoj timezone (Moskva).
-function _getDateTimeParts(date) {
+function _getDateTimeParts(date, options = {}) {
   const formatter = new Intl.DateTimeFormat(getIntlLocale(), {
-    timeZone: UI_TIME_ZONE,
+    timeZone: options.timeZone || uiTimeZone,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
     hour12: false,
   });
   const parts = formatter.formatToParts(date);
   const result = {};
   for (const part of parts) {
-    if (part.type === 'year' || part.type === 'month' || part.type === 'day' || part.type === 'hour' || part.type === 'minute') {
+    if (['year', 'month', 'day', 'hour', 'minute', 'second'].includes(part.type)) {
       result[part.type] = part.value;
     }
   }
@@ -90,12 +130,45 @@ export function formatDateDDMM(timestamp) {
   return `${day}.${month}`;
 }
 
+export function formatDateOnly(timestamp) {
+  const date = parseBackendTimestamp(timestamp);
+  if (!date) return '';
+  return new Intl.DateTimeFormat(getIntlLocale(), {
+    timeZone: uiTimeZone,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+}
+
+export function formatDateLong(timestamp) {
+  const date = parseBackendTimestamp(timestamp);
+  if (!date) return '';
+  return new Intl.DateTimeFormat(getIntlLocale(), {
+    timeZone: uiTimeZone,
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(date);
+}
+
+export function formatCalendarDateLong(dateKey) {
+  const match = String(dateKey || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return '';
+  return new Intl.DateTimeFormat(getIntlLocale(), {
+    timeZone: 'UTC',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))));
+}
+
 export function formatTimestampLabel(timestamp) {
   const date = parseBackendTimestamp(timestamp);
   if (!date) return '';
   if (getIntlLocale() === 'en-GB') {
     return new Intl.DateTimeFormat('en-GB', {
-      timeZone: UI_TIME_ZONE,
+      timeZone: uiTimeZone,
       day: '2-digit',
       month: '2-digit',
       hour: '2-digit',
@@ -113,7 +186,7 @@ export function formatDateTimeDDMMYYYY(timestamp) {
   if (!date) return '';
   if (getIntlLocale() === 'en-GB') {
     return new Intl.DateTimeFormat('en-GB', {
-      timeZone: UI_TIME_ZONE,
+      timeZone: uiTimeZone,
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -133,4 +206,86 @@ export function formatTimeHHMM(dateOrString) {
   const { hour, minute } = _getDateTimeParts(date);
   if (!hour || !minute) return '';
   return `${hour}:${minute}`;
+}
+
+function zonedPartsToUtc(parts, timeZone = uiTimeZone) {
+  const desiredUtc = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    Number(parts.hour || 0),
+    Number(parts.minute || 0),
+    Number(parts.second || 0),
+  );
+  let candidate = desiredUtc;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const actual = _getDateTimeParts(new Date(candidate), { timeZone });
+    const actualUtc = Date.UTC(
+      Number(actual.year),
+      Number(actual.month) - 1,
+      Number(actual.day),
+      Number(actual.hour),
+      Number(actual.minute),
+      Number(actual.second),
+    );
+    const correction = desiredUtc - actualUtc;
+    candidate += correction;
+    if (correction === 0) break;
+  }
+  return new Date(candidate);
+}
+
+export function zonedDateTimeInputToUtc(value, timeZone = uiTimeZone) {
+  const match = String(value || '').match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/,
+  );
+  if (!match || !isValidTimeZone(timeZone)) return null;
+  return zonedPartsToUtc({
+    year: match[1],
+    month: match[2],
+    day: match[3],
+    hour: match[4],
+    minute: match[5],
+    second: match[6] || '00',
+  }, timeZone);
+}
+
+export function formatDateTimeInput(timestamp) {
+  const date = parseBackendTimestamp(timestamp);
+  if (!date) return '';
+  const parts = _getDateTimeParts(date);
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+
+export function startOfUiDayMs(timestamp = Date.now()) {
+  const date = parseBackendTimestamp(timestamp);
+  if (!date) return null;
+  const parts = _getDateTimeParts(date);
+  return zonedPartsToUtc({
+    year: parts.year,
+    month: parts.month,
+    day: parts.day,
+    hour: '00',
+    minute: '00',
+    second: '00',
+  }).getTime();
+}
+
+export function addUiCalendarDaysMs(timestamp, days) {
+  const date = parseBackendTimestamp(timestamp);
+  if (!date) return null;
+  const parts = _getDateTimeParts(date);
+  const calendar = new Date(Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day) + Number(days || 0),
+  ));
+  return zonedPartsToUtc({
+    year: String(calendar.getUTCFullYear()),
+    month: String(calendar.getUTCMonth() + 1).padStart(2, '0'),
+    day: String(calendar.getUTCDate()).padStart(2, '0'),
+    hour: parts.hour,
+    minute: parts.minute,
+    second: parts.second,
+  }).getTime();
 }

@@ -30,6 +30,7 @@ import ru.growerhub.backend.plant.jpa.PlantRepository;
 import ru.growerhub.backend.sensor.contract.SensorReadingSummary;
 import ru.growerhub.backend.sensor.contract.SensorView;
 import ru.growerhub.backend.user.UserFacade;
+import ru.growerhub.backend.user.contract.UserProfile;
 
 @Service
 public class PlantFacade {
@@ -156,7 +157,7 @@ public class PlantFacade {
         List<AdminPlantInfo> responses = new ArrayList<>();
         for (PlantEntity plant : plants) {
             Integer ownerId = plant.getUserId();
-            UserFacade.UserProfile owner = ownerId != null ? userFacade.getUser(ownerId) : null;
+            UserProfile owner = ownerId != null ? userFacade.getUser(ownerId) : null;
             responses.add(new AdminPlantInfo(
                     plant.getId(),
                     plant.getName(),
@@ -384,5 +385,4 @@ public class PlantFacade {
     public record PlantHarvestCommand(LocalDateTime harvestedAt, String text) {
     }
 }
-
 

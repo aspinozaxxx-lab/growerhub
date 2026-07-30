@@ -75,7 +75,7 @@ function AppOverview() {
 
   const handleOpenStats = (payload) => {
     if (!payload || payload.mode === 'box-watering') return;
-    openSensorStats(payload);
+    openSensorStats({ ...payload, zigbeeHistoryScope: 'self-service' });
   };
 
   if (isLoading && !overview) {

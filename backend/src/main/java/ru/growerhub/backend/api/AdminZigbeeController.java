@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.UUID;
 import ru.growerhub.backend.api.dto.ZigbeeDtos;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.zigbee.ZigbeeFacade;
@@ -45,6 +46,20 @@ public class AdminZigbeeController {
     ) {
         requireAdmin(user);
         return zigbeeFacade.getHistory(ieeeAddress, property, hours).stream()
+                .map(this::toHistoryPointResponse)
+                .toList();
+    }
+
+    @GetMapping("/api/admin/zigbee/coordinators/{coordinator_id}/devices/{ieee_address}/history")
+    public java.util.List<ZigbeeDtos.HistoryPointResponse> getCoordinatorHistory(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("coordinator_id") UUID coordinatorId,
+            @PathVariable("ieee_address") String ieeeAddress,
+            @RequestParam("property") String property,
+            @RequestParam(value = "hours", required = false) Integer hours
+    ) {
+        requireAdmin(user);
+        return zigbeeFacade.getHistoryForAdmin(coordinatorId, ieeeAddress, property, hours).stream()
                 .map(this::toHistoryPointResponse)
                 .toList();
     }

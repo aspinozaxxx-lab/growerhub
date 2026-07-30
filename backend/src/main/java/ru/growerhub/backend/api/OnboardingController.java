@@ -1,72 +1,41 @@
 package ru.growerhub.backend.api;
 
-import java.util.List;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.OnboardingDtos;
-import ru.growerhub.backend.automation.AutomationFacade;
-import ru.growerhub.backend.automation.contract.AutomationData;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
-import ru.growerhub.backend.zigbee.ZigbeeFacade;
-import ru.growerhub.backend.zigbee.contract.ZigbeeCoordinatorStatus;
-import ru.growerhub.backend.zigbee.contract.ZigbeeCoordinatorSummary;
+import ru.growerhub.backend.onboarding.OnboardingFacade;
+import ru.growerhub.backend.onboarding.contract.OnboardingStatus;
 
 @RestController
 public class OnboardingController {
-    private final ZigbeeFacade zigbeeFacade;
-    private final AutomationFacade automationFacade;
+    private final OnboardingFacade onboardingFacade;
 
-    public OnboardingController(ZigbeeFacade zigbeeFacade, AutomationFacade automationFacade) {
-        this.zigbeeFacade = zigbeeFacade;
-        this.automationFacade = automationFacade;
+    public OnboardingController(OnboardingFacade onboardingFacade) {
+        this.onboardingFacade = onboardingFacade;
     }
 
     @GetMapping("/api/onboarding/status")
     public OnboardingDtos.StatusResponse status(@AuthenticationPrincipal AuthenticatedUser user) {
-        List<ZigbeeCoordinatorSummary> coordinators = zigbeeFacade.listCoordinators(user);
-        AutomationData.FarmsOverview automation = automationFacade.getFarmsOverview(user);
-
-        boolean connected = coordinators.stream()
-                .anyMatch(item -> item.status() == ZigbeeCoordinatorStatus.ONLINE);
-        boolean firstDeviceSeen = coordinators.stream()
-                .anyMatch(item -> item.firstDeviceSeenAt() != null || item.deviceCount() > 0);
-        List<AutomationData.Greenhouse> greenhouses = automation.farms().stream()
-                .flatMap(farm -> farm.greenhouses().stream())
-                .toList();
-        boolean zoneCreated = !greenhouses.isEmpty();
-        boolean automationEnabled = greenhouses.stream().anyMatch(greenhouse ->
-                greenhouse.scenarios().stream().anyMatch(AutomationData.ScenarioConfig::enabled)
-        );
-
-        return new OnboardingDtos.StatusResponse(
-                resolveStep(coordinators.isEmpty(), connected, firstDeviceSeen, zoneCreated),
-                coordinators.size(),
-                connected,
-                firstDeviceSeen,
-                zoneCreated,
-                automationEnabled
-        );
+        return toResponse(onboardingFacade.getStatus(user));
     }
 
-    private String resolveStep(
-            boolean coordinatorMissing,
-            boolean connected,
-            boolean firstDeviceSeen,
-            boolean zoneCreated
-    ) {
-        if (coordinatorMissing) {
-            return "CREATE_COORDINATOR";
-        }
-        if (!connected) {
-            return "CONNECT_COORDINATOR";
-        }
-        if (!firstDeviceSeen) {
-            return "ADD_DEVICE";
-        }
-        if (!zoneCreated) {
-            return "CREATE_ZONE";
-        }
-        return "COMPLETE";
+    @PostMapping("/api/onboarding/complete")
+    public OnboardingDtos.StatusResponse complete(@AuthenticationPrincipal AuthenticatedUser user) {
+        return toResponse(onboardingFacade.complete(user));
+    }
+
+    private OnboardingDtos.StatusResponse toResponse(OnboardingStatus status) {
+        return new OnboardingDtos.StatusResponse(
+                status.step(),
+                status.coordinatorCount(),
+                status.coordinatorConnected(),
+                status.firstDeviceSeen(),
+                status.zoneCreated(),
+                status.automationEnabled(),
+                status.completed()
+        );
     }
 }

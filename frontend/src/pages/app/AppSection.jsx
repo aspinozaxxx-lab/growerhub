@@ -3,7 +3,6 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import AppLayout from '../../components/layout/AppLayout';
 import RequireAdmin from '../../features/auth/RequireAdmin';
 import RequireAuth from '../../features/auth/RequireAuth';
-import { AuthProvider } from '../../features/auth/AuthContext';
 import { SensorStatsProvider } from '../../features/sensors/SensorStatsContext';
 import { WateringSidebarProvider } from '../../features/watering/WateringSidebarContext';
 import NotFoundPage from '../NotFoundPage';
@@ -51,8 +50,7 @@ function ProtectedAppLayout() {
 
 function AppSection() {
   return (
-    <AuthProvider>
-      <Suspense fallback={<div className="app-loading">{translateApp("Загружаем раздел…")}</div>}>
+    <Suspense fallback={<div className="app-loading">{translateApp("Загружаем раздел…")}</div>}>
         <Routes>
           <Route path="login/" element={<LoginPage />} />
           <Route element={<ProtectedAppLayout />}>
@@ -98,8 +96,7 @@ function AppSection() {
           </Route>
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
-      </Suspense>
-    </AuthProvider>
+    </Suspense>
   );
 }
 

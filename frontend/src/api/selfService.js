@@ -22,6 +22,8 @@ async function requestJson(url, init = {}) {
 
 export const fetchOnboardingStatus = () => requestJson('/api/onboarding/status');
 
+export const completeOnboarding = () => requestJson('/api/onboarding/complete', { method: 'POST' });
+
 export const fetchCoordinators = () => requestJson('/api/zigbee/coordinators');
 
 export const createCoordinator = (name) => requestJson('/api/zigbee/coordinators', {
@@ -50,6 +52,11 @@ export const archiveCoordinator = async (coordinatorId) => {
 
 export const fetchCoordinatorOverview = (coordinatorId) => requestJson(
   `/api/zigbee/coordinators/${encodeURIComponent(coordinatorId)}/overview`,
+);
+
+export const fetchZigbeeHistory = (coordinatorId, ieeeAddress, property, hours = 24) => requestJson(
+  `/api/zigbee/coordinators/${encodeURIComponent(coordinatorId)}/devices/${encodeURIComponent(ieeeAddress)}/history`
+    + `?property=${encodeURIComponent(property)}&hours=${encodeURIComponent(hours)}`,
 );
 
 export const enablePermitJoin = (coordinatorId, seconds = 180) => requestJson(

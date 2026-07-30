@@ -78,6 +78,17 @@ public class PumpFacade {
     }
 
     @Transactional(readOnly = true)
+    public PumpSessionData.BoxStatistics boxStatistics(
+            Integer boxId,
+            String range,
+            int limit,
+            Long beforeId,
+            String timezone
+    ) {
+        return sessionService.boxStatistics(boxId, range, limit, beforeId, timezone);
+    }
+
+    @Transactional(readOnly = true)
     public PumpSessionData.View lastCompletedSessionForBox(Integer boxId) {
         return sessionService.lastCompletedForBox(boxId);
     }

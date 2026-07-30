@@ -9,6 +9,8 @@ public record UserResponse(
         @JsonProperty("username") String username,
         @JsonProperty("role") String role,
         @JsonProperty("is_active") boolean isActive,
+        @JsonProperty("timezone") String timezone,
+        @JsonProperty("onboarding_completed") boolean onboardingCompleted,
         @JsonProperty("created_at") LocalDateTime createdAt,
         @JsonProperty("updated_at") LocalDateTime updatedAt
 ) {}

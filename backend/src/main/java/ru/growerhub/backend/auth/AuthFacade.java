@@ -169,11 +169,16 @@ public class AuthFacade {
     }
 
     @Transactional
-    public AuthUserProfile updateProfile(AuthenticatedUser user, String email, String username) {
+    public AuthUserProfile updateProfile(
+            AuthenticatedUser user,
+            String email,
+            String username,
+            String timezone
+    ) {
         if (user == null) {
             throw new DomainException("unauthorized", "Not authenticated");
         }
-        return authService.updateProfile(user.id(), email, username);
+        return authService.updateProfile(user.id(), email, username, timezone);
     }
 
     @Transactional
@@ -286,4 +291,3 @@ public class AuthFacade {
     public record SsoCallbackResult(String redirectUrl) {
     }
 }
-

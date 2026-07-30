@@ -1,4 +1,11 @@
-﻿### feat(farm): konstruktor fermy i novaya struktura kabineta
+﻿### fix(account): timezone, onboarding i Zigbee statistika
+
+- feat(profile): dobavlen vybor IANA timezone dlya vremeni v UI, raspisanij sveta i sutochnyh limitov poliva.
+- fix(onboarding): zavershenie pervichnoj nastrojki hranitsya postoyanno; CTA skryt posle zaversheniya i predlagaet prodolzhit nastrojku do nego.
+- fix(farm): svezhie privyazannye resursy pokazyvayut status svyazi vmesto neizvestnogo.
+- fix(zigbee): statistika v lichnom kabinete zaprashivaet istoriyu vnutri publichnogo UUID koordinatora s proverkoj vladelca.
+
+### feat(farm): konstruktor fermy i novaya struktura kabineta
 
 - feat(automation): odin polzovatel mozhet imet neskolko ferm-pomeshcheniy i teplic, postroennyh na tehnicheskoy modeli room-box.
 - feat(climate): teplitsa formiruet zapros na ohlazhdenie bez kondicionera, lokalnyj kondicioner obrabatyvaet ego pervym, ostalnye zaprosy agregiruet ferma.

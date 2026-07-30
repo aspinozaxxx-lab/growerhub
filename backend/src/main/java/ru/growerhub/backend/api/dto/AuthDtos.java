@@ -20,7 +20,8 @@ public final class AuthDtos {
 
     public record UserProfileUpdateRequest(
             @JsonProperty("email") String email,
-            @JsonProperty("username") String username
+            @JsonProperty("username") String username,
+            @JsonProperty("timezone") String timezone
     ) {
     }
 

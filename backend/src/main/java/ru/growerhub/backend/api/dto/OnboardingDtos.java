@@ -12,7 +12,8 @@ public final class OnboardingDtos {
             @JsonProperty("coordinator_connected") boolean coordinatorConnected,
             @JsonProperty("first_device_seen") boolean firstDeviceSeen,
             @JsonProperty("zone_created") boolean zoneCreated,
-            @JsonProperty("automation_enabled") boolean automationEnabled
+            @JsonProperty("automation_enabled") boolean automationEnabled,
+            @JsonProperty("completed") boolean completed
     ) {
     }
 }

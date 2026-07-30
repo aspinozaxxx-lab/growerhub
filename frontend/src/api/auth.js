@@ -2,6 +2,22 @@
 import { apiFetch, normalizeApiErrorMessage } from './client';
 import { translateApp } from '../locales/i18n';
 
+export async function updateCurrentProfile(payload) {
+  const response = await apiFetch('/api/auth/me', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(normalizeApiErrorMessage(data.detail, {
+      status: response.status,
+      fallback: translateApp("Не удалось сохранить профиль"),
+    }));
+  }
+  return data;
+}
+
 /**
  * Translitem: vozvrashchaet status dostupnyh sposobov vhoda tekushchego polzovatelya.
  */

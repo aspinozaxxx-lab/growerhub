@@ -1,6 +1,13 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { changePassword, fetchAuthMethods, linkSsoMethod, setLocalLogin, unlinkAuthMethod } from '../../api/auth';
+import {
+  changePassword,
+  fetchAuthMethods,
+  linkSsoMethod,
+  setLocalLogin,
+  unlinkAuthMethod,
+  updateCurrentProfile,
+} from '../../api/auth';
 import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
 import AppPageHeader from '../../components/layout/AppPageHeader';
@@ -11,9 +18,10 @@ import Surface from '../../components/ui/Surface';
 import { Title, Text } from '../../components/ui/Typography';
 import './AppProfile.css';
 import { translateApp } from '../../locales/i18n';
+import { getSupportedTimeZones } from '../../utils/formatters';
 
 function AppProfile() {
-  const { user, token, status, logout } = useAuth();
+  const { user, token, status, logout, setCurrentUser } = useAuth();
   const navigate = useNavigate();
 
   const [authMethods, setAuthMethods] = useState(null);
@@ -26,6 +34,9 @@ function AppProfile() {
   const [unlinkingProvider, setUnlinkingProvider] = useState(null);
   const [showSetLocalForm, setShowSetLocalForm] = useState(false);
   const [showChangePasswordForm, setShowChangePasswordForm] = useState(false);
+  const [timezone, setTimezone] = useState('Europe/Moscow');
+  const [savingTimezone, setSavingTimezone] = useState(false);
+  const [timezoneMessage, setTimezoneMessage] = useState('');
 
   const [localEmail, setLocalEmail] = useState('');
   const [localPassword, setLocalPassword] = useState('');
@@ -36,7 +47,29 @@ function AppProfile() {
 
   useEffect(() => {
     setLocalEmail(user?.email || '');
+    setTimezone(user?.timezone || 'Europe/Moscow');
   }, [user]);
+
+  const timezones = useMemo(() => {
+    const values = getSupportedTimeZones();
+    return values.includes('Europe/Moscow') ? values : ['Europe/Moscow', ...values];
+  }, []);
+
+  const handleTimezoneSave = useCallback(async () => {
+    setSavingTimezone(true);
+    setTimezoneMessage('');
+    setMethodsError('');
+    try {
+      const nextUser = await updateCurrentProfile({ timezone });
+      setCurrentUser(nextUser);
+      setTimezoneMessage(translateApp("Часовой пояс сохранён"));
+    } catch (requestError) {
+      if (isSessionExpiredError(requestError)) return;
+      setMethodsError(requestError?.message || translateApp("Не удалось сохранить часовой пояс"));
+    } finally {
+      setSavingTimezone(false);
+    }
+  }, [setCurrentUser, timezone]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -216,6 +249,37 @@ function AppProfile() {
           </div>
           <div className="profile-actions">
             <Button type="button" variant="secondary" onClick={handleLogout}>{translateApp("Выйти")}</Button>
+          </div>
+        </Surface>
+
+        <Surface variant="card" padding="md" className="profile-card profile-timezone-card">
+          <Title level={3}>{translateApp("Часовой пояс")}</Title>
+          <Text tone="muted">
+            {translateApp("Используется для времени на сайте, расписаний автоматизации и суточных лимитов полива.")}
+          </Text>
+          <FormField label={translateApp("Часовой пояс")} htmlFor="profile-timezone">
+            <select
+              id="profile-timezone"
+              value={timezone}
+              onChange={(event) => {
+                setTimezone(event.target.value);
+                setTimezoneMessage('');
+              }}
+              disabled={savingTimezone}
+            >
+              {timezones.map((item) => <option value={item} key={item}>{item}</option>)}
+            </select>
+          </FormField>
+          <div className="profile-auth-actions">
+            <Button
+              type="button"
+              variant="primary"
+              onClick={handleTimezoneSave}
+              disabled={savingTimezone || timezone === user.timezone}
+            >
+              {savingTimezone ? translateApp("Сохраняем...") : translateApp("Сохранить")}
+            </Button>
+            {timezoneMessage ? <Text className="profile-auth-success">{timezoneMessage}</Text> : null}
           </div>
         </Surface>
 

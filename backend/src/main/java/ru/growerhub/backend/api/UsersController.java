@@ -17,6 +17,7 @@ import jakarta.validation.Valid;
 import ru.growerhub.backend.api.dto.UserDtos;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.user.UserFacade;
+import ru.growerhub.backend.user.contract.UserProfile;
 
 @RestController
 @Validated
@@ -42,7 +43,7 @@ public class UsersController {
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         requireAdmin(user);
-        UserFacade.UserProfile target = userFacade.getUser(userId);
+        UserProfile target = userFacade.getUser(userId);
         if (target == null) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Polzovatel' ne najden");
         }
@@ -56,7 +57,7 @@ public class UsersController {
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         requireAdmin(user);
-        UserFacade.UserProfile created = userFacade.createUser(
+        UserProfile created = userFacade.createUser(
                 request.email(),
                 request.username(),
                 request.role(),
@@ -72,7 +73,7 @@ public class UsersController {
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         requireAdmin(user);
-        UserFacade.UserProfile updated = userFacade.updateUser(
+        UserProfile updated = userFacade.updateUser(
                 userId,
                 request.username(),
                 request.role(),
@@ -103,13 +104,15 @@ public class UsersController {
         }
     }
 
-    private UserResponse toResponse(UserFacade.UserProfile user) {
+    private UserResponse toResponse(UserProfile user) {
         return new UserResponse(
                 user.id(),
                 user.email(),
                 user.username(),
                 user.role(),
                 user.active(),
+                user.timezone(),
+                user.onboardingCompletedAt() != null,
                 user.createdAt(),
                 user.updatedAt()
         );

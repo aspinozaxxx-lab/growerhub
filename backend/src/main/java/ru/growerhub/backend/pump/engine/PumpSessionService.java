@@ -372,7 +372,17 @@ public class PumpSessionService {
     }
 
     public PumpSessionData.BoxStatistics boxStatistics(Integer boxId, String range, int limit, Long beforeId) {
-        TimeRange timeRange = timeRange(range);
+        return boxStatistics(boxId, range, limit, beforeId, automationSettings.getTimezone());
+    }
+
+    public PumpSessionData.BoxStatistics boxStatistics(
+            Integer boxId,
+            String range,
+            int limit,
+            Long beforeId,
+            String timezone
+    ) {
+        TimeRange timeRange = timeRange(range, timezone);
         List<PumpWateringSessionBoxEntity> all = boxRepository
                 .findAllByBoxIdAndSession_FinishedAtGreaterThanEqualAndSession_FinishedAtLessThan(
                         boxId,
@@ -1224,13 +1234,13 @@ public class PumpSessionService {
         return Math.min(positive, settings.getSessionPageMax());
     }
 
-    private TimeRange timeRange(String requestedRange) {
+    private TimeRange timeRange(String requestedRange, String timezone) {
         String range = requestedRange != null ? requestedRange : "day";
         ZoneId zone;
         try {
-            zone = ZoneId.of(automationSettings.getTimezone());
+            zone = ZoneId.of(timezone);
         } catch (RuntimeException ex) {
-            throw new DomainException("bad_request", "nekorrektnyj automation.timezone");
+            throw new DomainException("bad_request", "nekorrektnyj chasovoj pojas");
         }
         LocalDate today = ZonedDateTime.now(ZoneOffset.UTC).withZoneSameInstant(zone).toLocalDate();
         LocalDate fromDate;

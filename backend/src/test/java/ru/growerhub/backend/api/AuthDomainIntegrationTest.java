@@ -229,6 +229,47 @@ class AuthDomainIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void updateMePersistsIanaTimezone() {
+        UserEntity user = createUser("timezone@example.com", true);
+        String token = buildToken(user.getId());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(Map.of("timezone", "Asia/Yekaterinburg"))
+                .when()
+                .patch("/api/auth/me")
+                .then()
+                .statusCode(200)
+                .body("timezone", equalTo("Asia/Yekaterinburg"))
+                .body("onboarding_completed", equalTo(false));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/auth/me")
+                .then()
+                .statusCode(200)
+                .body("timezone", equalTo("Asia/Yekaterinburg"));
+    }
+
+    @Test
+    void updateMeRejectsInvalidTimezone() {
+        UserEntity user = createUser("bad-timezone@example.com", true);
+        String token = buildToken(user.getId());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(Map.of("timezone", "Mars/Olympus"))
+                .when()
+                .patch("/api/auth/me")
+                .then()
+                .statusCode(400)
+                .body("detail", equalTo("Nekorrektnyj chasovoj pojas"));
+    }
+
+    @Test
     void changePasswordRejectsWrongCurrent() {
         UserEntity user = createUser("pwd@example.com", true);
         createIdentity(user, "local", null, passwordHasher.hash("current"));

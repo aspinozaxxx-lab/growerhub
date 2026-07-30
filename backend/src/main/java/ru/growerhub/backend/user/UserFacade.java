@@ -1,8 +1,10 @@
 ﻿package ru.growerhub.backend.user;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.context.annotation.Lazy;
@@ -11,7 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.auth.AuthFacade;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.common.component.PasswordHasher;
+import ru.growerhub.backend.common.config.UserSettings;
 import ru.growerhub.backend.device.DeviceFacade;
+import ru.growerhub.backend.user.contract.AuthUser;
+import ru.growerhub.backend.user.contract.ProductAnalyticsSnapshot;
+import ru.growerhub.backend.user.contract.UserProfile;
 import ru.growerhub.backend.user.jpa.UserEntity;
 import ru.growerhub.backend.user.jpa.UserRepository;
 
@@ -21,17 +27,20 @@ public class UserFacade {
     private final PasswordHasher passwordHasher;
     private final AuthFacade authFacade;
     private final DeviceFacade deviceFacade;
+    private final UserSettings settings;
 
     public UserFacade(
             UserRepository userRepository,
             PasswordHasher passwordHasher,
             @Lazy AuthFacade authFacade,
-            @Lazy DeviceFacade deviceFacade
+            @Lazy DeviceFacade deviceFacade,
+            UserSettings settings
     ) {
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
         this.authFacade = authFacade;
         this.deviceFacade = deviceFacade;
+        this.settings = settings;
     }
 
     @Transactional(readOnly = true)
@@ -93,6 +102,7 @@ public class UserFacade {
                 username,
                 resolvedRole,
                 true,
+                defaultTimezone(),
                 now,
                 now
         );
@@ -116,6 +126,7 @@ public class UserFacade {
                 username,
                 "user",
                 true,
+                defaultTimezone(),
                 now,
                 now
         );
@@ -150,7 +161,7 @@ public class UserFacade {
     }
 
     @Transactional
-    public UserProfile updateProfile(Integer userId, String email, String username) {
+    public UserProfile updateProfile(Integer userId, String email, String username, String timezone) {
         UserEntity user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             return null;
@@ -168,10 +179,48 @@ public class UserFacade {
             user.setUsername(username);
             changed = true;
         }
+        if (timezone != null) {
+            user.setTimezone(normalizeTimezone(timezone));
+            changed = true;
+        }
         if (changed) {
             user.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         }
         userRepository.save(user);
+        return toProfile(user);
+    }
+
+    @Transactional(readOnly = true)
+    public String getTimezone(Integer userId) {
+        UserEntity user = userId != null ? userRepository.findById(userId).orElse(null) : null;
+        return user != null ? resolvedTimezone(user) : defaultTimezone();
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Integer, String> getTimezones(Set<Integer> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        return userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        UserEntity::getId,
+                        this::resolvedTimezone,
+                        (left, right) -> left
+                ));
+    }
+
+    @Transactional
+    public UserProfile markOnboardingCompleted(Integer userId) {
+        UserEntity user = userId != null ? userRepository.findById(userId).orElse(null) : null;
+        if (user == null) {
+            throw new DomainException("not_found", "Polzovatel' ne najden");
+        }
+        if (user.getOnboardingCompletedAt() == null) {
+            LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+            user.setOnboardingCompletedAt(now);
+            user.setUpdatedAt(now);
+            userRepository.save(user);
+        }
         return toProfile(user);
     }
 
@@ -194,29 +243,31 @@ public class UserFacade {
                 user.getUsername(),
                 user.getRole(),
                 user.isActive(),
+                resolvedTimezone(user),
+                user.getOnboardingCompletedAt(),
                 user.getCreatedAt(),
                 user.getUpdatedAt()
         );
     }
 
-    public record UserProfile(
-            Integer id,
-            String email,
-            String username,
-            String role,
-            boolean active,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
-    ) {
+    private String resolvedTimezone(UserEntity user) {
+        return user.getTimezone() != null && !user.getTimezone().isBlank()
+                ? normalizeTimezone(user.getTimezone())
+                : defaultTimezone();
     }
 
-    public record AuthUser(Integer id, String role, boolean active) {
+    private String defaultTimezone() {
+        return normalizeTimezone(settings.getDefaultTimezone());
     }
 
-    public record ProductAnalyticsSnapshot(Set<Integer> registeredUserIds) {
-        public ProductAnalyticsSnapshot {
-            registeredUserIds = Set.copyOf(registeredUserIds);
+    private String normalizeTimezone(String timezone) {
+        if (timezone == null || timezone.isBlank()) {
+            throw new DomainException("bad_request", "Chasovoj pojas ne ukazan");
+        }
+        try {
+            return ZoneId.of(timezone.trim()).getId();
+        } catch (RuntimeException ex) {
+            throw new DomainException("bad_request", "Nekorrektnyj chasovoj pojas");
         }
     }
 }
-

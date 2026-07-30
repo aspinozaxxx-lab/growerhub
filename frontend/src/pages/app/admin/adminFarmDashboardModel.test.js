@@ -100,7 +100,7 @@ describe('admin farm dashboard model', () => {
       last_seen_at: '2026-07-11T12:34:00',
     };
 
-    expect(resourceLastSeenLabel(resource)).toBe('11.07, 12:34');
+    expect(resourceLastSeenLabel(resource)).toBe('11.07 15:34');
     expect(resourceLastSeenLabel({ last_seen_at: null })).toBe('—');
     expect(resourceLastSeenLabel(null)).toBe('—');
     expect(resourceTone(resource, false)).toBe('warning');
@@ -124,10 +124,12 @@ describe('admin farm dashboard model', () => {
   it('stroitr payload statistiki dlya Zigbee svojstva', () => {
     expect(buildResourceStatsPayload({
       source_type: RESOURCE_SOURCE_TYPES.ZIGBEE_DEVICE,
+      zigbee_coordinator_id: '7b17f42e-28ad-48a0-9f61-f9f3fe160a85',
       zigbee_ieee_address: '0xabc',
       zigbee_property: 'state',
     }, RESOURCE_ROLES.LIGHT_SWITCH, 'Бокс 2')).toMatchObject({
       mode: 'zigbee',
+      zigbeeCoordinatorId: '7b17f42e-28ad-48a0-9f61-f9f3fe160a85',
       zigbeeIeeeAddress: '0xabc',
       zigbeeProperty: 'state',
       metric: 'device_state',

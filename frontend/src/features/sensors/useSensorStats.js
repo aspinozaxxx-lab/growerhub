@@ -2,13 +2,19 @@
 import { fetchSensorHistory } from '../../api/sensors';
 import { fetchPlantHistory } from '../../api/plants';
 import { fetchAdminPumpHistory, fetchAdminZigbeeHistory } from '../../api/admin';
+import { fetchZigbeeHistory } from '../../api/selfService';
 import { isSessionExpiredError } from '../../api/client';
-import { formatDateDDMM, formatDateKeyYYYYMMDD, parseBackendTimestamp } from '../../utils/formatters';
+import {
+  addUiCalendarDaysMs,
+  formatDateDDMM,
+  formatDateKeyYYYYMMDD,
+  parseBackendTimestamp,
+  startOfUiDayMs,
+} from '../../utils/formatters';
 import { useAuth } from '../auth/AuthContext';
 import { translateApp } from '../../locales/i18n';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const UI_DAY_OFFSET_MS = 3 * 60 * 60 * 1000;
 const DAILY_SUMMARY_DAYS = 7;
 
 const RANGE_TO_HOURS = {
@@ -42,10 +48,6 @@ function sortChartPoints(points) {
     .sort((a, b) => a.timeMs - b.timeMs);
 }
 
-function startOfUiDayMs(timeMs) {
-  return Math.floor((timeMs + UI_DAY_OFFSET_MS) / DAY_MS) * DAY_MS - UI_DAY_OFFSET_MS;
-}
-
 function buildDailyOnDurations(points, nowMs) {
   if (!Array.isArray(points) || points.length === 0 || !Number.isFinite(nowMs)) {
     return [];
@@ -58,7 +60,7 @@ function buildDailyOnDurations(points, nowMs) {
 
   const endWindow = nowMs;
   const startToday = startOfUiDayMs(nowMs);
-  const startWindow = startToday - (DAILY_SUMMARY_DAYS - 1) * DAY_MS;
+  const startWindow = addUiCalendarDaysMs(startToday, -(DAILY_SUMMARY_DAYS - 1));
   const days = new Map();
 
   const ensureDay = (timeMs) => {
@@ -91,7 +93,7 @@ function buildDailyOnDurations(points, nowMs) {
     let cursor = intervalStart;
     while (cursor < intervalEnd) {
       const dayStartMs = startOfUiDayMs(cursor);
-      const nextDayMs = dayStartMs + DAY_MS;
+      const nextDayMs = addUiCalendarDaysMs(dayStartMs, 1);
       const segmentEnd = Math.min(intervalEnd, nextDayMs);
       const day = ensureDay(cursor);
       if (day && isOn) {
@@ -126,8 +128,10 @@ export function useSensorStats({
   plantId,
   metric,
   pumpId,
+  zigbeeCoordinatorId,
   zigbeeIeeeAddress,
   zigbeeProperty,
+  zigbeeHistoryScope,
   chartKind,
 }) {
   const { token } = useAuth();
@@ -146,7 +150,18 @@ export function useSensorStats({
     setIsLoading(false);
     setIsDailyLoading(false);
     inFlightKeysRef.current = new Set();
-  }, [mode, sensorId, plantId, metric, pumpId, zigbeeIeeeAddress, zigbeeProperty, chartKind]);
+  }, [
+    mode,
+    sensorId,
+    plantId,
+    metric,
+    pumpId,
+    zigbeeCoordinatorId,
+    zigbeeIeeeAddress,
+    zigbeeProperty,
+    zigbeeHistoryScope,
+    chartKind,
+  ]);
 
   const loadRange = useCallback(
     async (range, options = {}) => {
@@ -162,8 +177,10 @@ export function useSensorStats({
         plantId || '',
         metric || '',
         pumpId || '',
+        zigbeeCoordinatorId || '',
         zigbeeIeeeAddress || '',
         zigbeeProperty || '',
+        zigbeeHistoryScope || '',
         range,
       ].join(':');
       if (
@@ -201,7 +218,29 @@ export function useSensorStats({
             [range]: { plantHistory, loadedAtMs },
           }));
         } else if (hasZigbeeTarget) {
-          const zigbeeHistory = await fetchAdminZigbeeHistory(zigbeeIeeeAddress, zigbeeProperty, hours, token);
+          const zigbeeHistory = zigbeeHistoryScope === 'self-service'
+            ? await fetchZigbeeHistory(
+              zigbeeCoordinatorId,
+              zigbeeIeeeAddress,
+              zigbeeProperty,
+              hours,
+            )
+            : await (
+              zigbeeCoordinatorId
+                ? fetchAdminZigbeeHistory(
+                  zigbeeIeeeAddress,
+                  zigbeeProperty,
+                  hours,
+                  token,
+                  zigbeeCoordinatorId,
+                )
+                : fetchAdminZigbeeHistory(
+                  zigbeeIeeeAddress,
+                  zigbeeProperty,
+                  hours,
+                  token,
+                )
+            );
           setDataByRange((prev) => ({
             ...prev,
             [range]: { zigbeeHistory, loadedAtMs },
@@ -228,7 +267,19 @@ export function useSensorStats({
         }
       }
     },
-    [dataByRange, metric, mode, plantId, pumpId, sensorId, token, zigbeeIeeeAddress, zigbeeProperty],
+    [
+      dataByRange,
+      metric,
+      mode,
+      plantId,
+      pumpId,
+      sensorId,
+      token,
+      zigbeeCoordinatorId,
+      zigbeeHistoryScope,
+      zigbeeIeeeAddress,
+      zigbeeProperty,
+    ],
   );
 
   useEffect(() => {

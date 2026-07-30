@@ -35,6 +35,12 @@ public class UserEntity {
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
 
+    @Column(name = "timezone", nullable = false, length = 64)
+    private String timezone;
+
+    @Column(name = "onboarding_completed_at")
+    private LocalDateTime onboardingCompletedAt;
+
     @Column(name = "created_at", nullable = true)
     private LocalDateTime createdAt;
 
@@ -52,11 +58,25 @@ public class UserEntity {
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {
+        // Translitem: sovmestimost' testovyh fixture; production peredaet timezone iz konfiguracii.
+        return create(email, username, role, isActive, "Europe/Moscow", createdAt, updatedAt);
+    }
+
+    public static UserEntity create(
+            String email,
+            String username,
+            String role,
+            boolean isActive,
+            String timezone,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
         UserEntity user = new UserEntity();
         user.email = email;
         user.username = username;
         user.role = role;
         user.isActive = isActive;
+        user.timezone = timezone;
         user.createdAt = createdAt;
         user.updatedAt = updatedAt;
         return user;
@@ -96,6 +116,22 @@ public class UserEntity {
 
     public void setActive(boolean active) {
         isActive = active;
+    }
+
+    public String getTimezone() {
+        return timezone;
+    }
+
+    public void setTimezone(String timezone) {
+        this.timezone = timezone;
+    }
+
+    public LocalDateTime getOnboardingCompletedAt() {
+        return onboardingCompletedAt;
+    }
+
+    public void setOnboardingCompletedAt(LocalDateTime onboardingCompletedAt) {
+        this.onboardingCompletedAt = onboardingCompletedAt;
     }
 
     public LocalDateTime getCreatedAt() {
