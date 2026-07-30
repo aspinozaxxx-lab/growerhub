@@ -81,35 +81,10 @@
   background: var(--surface-2);
 }
 
-.farm-constructor__farm select,
-.farm-zone-editor select {
-  border-color: rgba(95, 212, 145, 0.38);
-  color: #ffffff;
-  background: linear-gradient(135deg, #123d49, #185449);
-  color-scheme: dark;
-}
-
-.farm-constructor__farm select:hover,
-.farm-zone-editor select:hover {
-  border-color: rgba(95, 212, 145, 0.62);
-}
-
-.farm-constructor__farm select:focus,
-.farm-zone-editor select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(95, 212, 145, 0.16);
-}
-
 .farm-constructor__farm select option,
 .farm-zone-editor select option {
-  color: #ffffff;
-  background: #123d49;
-}
-
-.farm-constructor__farm select option:checked,
-.farm-zone-editor select option:checked {
-  background: #1b625b;
+  color: var(--text-1);
+  background: var(--surface-1);
 }
 
 .farm-constructor__farm > div {
