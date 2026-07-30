@@ -309,6 +309,20 @@
   font-size: 11px;
 }
 
+.farm-zone-plant__save-state {
+  grid-column: 2;
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+.farm-zone-plant__save-state.is-saved {
+  color: var(--accent);
+}
+
+.farm-zone-plant__save-state.is-error {
+  color: var(--danger);
+}
+
 .farm-zone-editor__empty {
   color: var(--text-3);
 }
@@ -402,6 +416,10 @@
 
   .farm-zone-plant {
     grid-template-columns: 1fr;
+  }
+
+  .farm-zone-plant__save-state {
+    grid-column: 1;
   }
 
   .farm-scenario__header > span {

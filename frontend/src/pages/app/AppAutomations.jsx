@@ -6,20 +6,14 @@ import Button from '../../components/ui/Button';
 import {
   fetchFarmsOverview,
   replaceGreenhouseScenarios,
-  replaceUserFarmScenarios,
 } from '../../api/selfService';
 import {
   SCENARIO_LABELS,
-  createFarmClimateDraft,
   createScenarioDrafts,
   listOrEmpty,
   overviewFarms,
-  slotForRole,
 } from '../../features/farm/farmModel';
-import {
-  AirConditionerSettingsFields,
-  ClimateScenarioFields,
-} from '../../features/farm/ClimateScenarioFields';
+import { ClimateScenarioFields } from '../../features/farm/ClimateScenarioFields';
 import { trackProductGoal } from '../../utils/analytics';
 import { translateApp } from '../../locales/i18n';
 import './SelfServicePages.css';
@@ -36,7 +30,6 @@ const toRequest = (scenarios, changedType, patch) => scenarios.map((scenario) =>
 
 function AppAutomations() {
   const [overview, setOverview] = useState(null);
-  const [farmDrafts, setFarmDrafts] = useState({});
   const [greenhouseDrafts, setGreenhouseDrafts] = useState({});
   const [busy, setBusy] = useState('loading');
   const [error, setError] = useState('');
@@ -45,10 +38,6 @@ function AppAutomations() {
     const normalized = payload && typeof payload === 'object' ? payload : {};
     const farms = overviewFarms(normalized);
     setOverview(normalized);
-    setFarmDrafts(Object.fromEntries(farms.map((farm) => [
-      farm.id,
-      createFarmClimateDraft(farm),
-    ])));
     setGreenhouseDrafts(Object.fromEntries(farms.flatMap((farm) => (
       listOrEmpty(farm.greenhouses).map((greenhouse) => [
         greenhouse.id,
@@ -138,19 +127,6 @@ function AppAutomations() {
     });
   };
 
-  const saveFarmConditioner = async (farm) => {
-    const key = `${farm.id}:ROOM_CLIMATE`;
-    setBusy(key);
-    setError('');
-    try {
-      applyOverview(await replaceUserFarmScenarios(farm.id, [farmDrafts[farm.id]]));
-    } catch (requestError) {
-      setError(requestError?.message || translateApp('Не удалось сохранить настройки кондиционера'));
-    } finally {
-      setBusy('');
-    }
-  };
-
   if (busy === 'loading') {
     return <AppPageState kind="loading" title={translateApp("Загружаем автоматизации…")} />;
   }
@@ -175,40 +151,6 @@ function AppAutomations() {
         <AppPageState kind="empty" title={translateApp("Сначала добавьте теплицу")} />
       ) : null}
       <div className="automation-list">
-        {farms.filter((farm) => slotForRole(farm, 'AC_SWITCH')).map((farm) => {
-          const scenario = farmDrafts[farm.id] || createFarmClimateDraft(farm);
-          const key = `${farm.id}:ROOM_CLIMATE`;
-          return (
-            <section className="self-service-section" key={`farm:${farm.id}`}>
-              <div className="section-heading">
-                <div>
-                  <h2>{farm.name}</h2>
-                  <p>{translateApp('Общий кондиционер фермы')}</p>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => saveFarmConditioner(farm)}
-                  isLoading={busy === key}
-                >
-                  {translateApp('Сохранить')}
-                </Button>
-              </div>
-              <AirConditionerSettingsFields
-                config={scenario.config}
-                onChange={(field, value) => setFarmDrafts((current) => ({
-                  ...current,
-                  [farm.id]: {
-                    ...scenario,
-                    config: {
-                      ...(scenario.config || {}),
-                      [field]: value,
-                    },
-                  },
-                }))}
-              />
-            </section>
-          );
-        })}
         {greenhouses.map((greenhouse) => (
           <section className="self-service-section" key={greenhouse.id}>
             <div className="section-heading">
@@ -295,30 +237,6 @@ function AppAutomations() {
                 </article>
               );
             })}
-            {slotForRole(greenhouse, 'AC_SWITCH') ? (
-              <article className="automation-card">
-                <div>
-                  <h3>{translateApp('Настройки кондиционера')}</h3>
-                </div>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => saveGreenhouseSettings(greenhouse, 'BOX_CLIMATE')}
-                  isLoading={busy === `${greenhouse.id}:BOX_CLIMATE`}
-                >
-                  {translateApp('Сохранить')}
-                </Button>
-                <AirConditionerSettingsFields
-                  config={greenhouseDrafts[greenhouse.id]?.BOX_CLIMATE?.config}
-                  onChange={(field, value) => patchGreenhouseScenario(
-                    greenhouse.id,
-                    'BOX_CLIMATE',
-                    field,
-                    value,
-                  )}
-                />
-              </article>
-            ) : null}
           </section>
         ))}
       </div>

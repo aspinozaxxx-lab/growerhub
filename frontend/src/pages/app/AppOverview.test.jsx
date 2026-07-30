@@ -51,9 +51,13 @@ describe('AppOverview warnings', () => {
             ready: false,
             reason: 'Устройство Zigbee не найдено',
           }],
-          scenarios: [],
+          scenarios: [
+            { scenario_type: 'LIGHT_SCHEDULE', enabled: false },
+            { scenario_type: 'WATERING', enabled: true },
+          ],
           readiness: {
             LIGHT_SCHEDULE: { ready: false, reason: 'Нужен Zigbee-выключатель света' },
+            WATERING: { ready: false, reason: 'Нужен насос' },
           },
           states: [{ id: 21, scenario_type: 'BOX_CLIMATE', ac_request_active: true }],
           last_actions: [],
@@ -78,9 +82,11 @@ describe('AppOverview warnings', () => {
     const tooltip = within(tile).getByRole('tooltip');
     expect(tile).toHaveAttribute('tabindex', '0');
     expect(tile).toHaveAttribute('aria-describedby', tooltip.id);
-    expect(within(tile).getByText('6')).toBeInTheDocument();
-    expect(within(tooltip).getAllByRole('listitem')).toHaveLength(6);
+    expect(within(tile).getByText('5')).toBeInTheDocument();
+    expect(within(tooltip).getAllByRole('listitem')).toHaveLength(5);
     expect(within(tooltip).getByText('Кондиционер — нет связи')).toBeInTheDocument();
+    expect(within(tooltip).queryByText(/Нужен Zigbee-выключатель света/)).not.toBeInTheDocument();
+    expect(within(tooltip).getByText('Полив — Нужен насос')).toBeInTheDocument();
     expect(within(tooltip).getByText('Размещение — Не выбрана теплица')).toBeInTheDocument();
     fireEvent.click(tile);
     expect(tile).toHaveAttribute('aria-expanded', 'true');

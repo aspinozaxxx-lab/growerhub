@@ -54,17 +54,38 @@ describe('admin farm dashboard model', () => {
     expect(buildAcRequestBoxes(room).map((box) => box.name)).toEqual(['Бокс 1']);
   });
 
-  it('obyasnyaet zaderzhku i vnescenarnoe vklyuchenie kondicionera', () => {
+  it('obyasnyaet fazy upravleniya kondicionerom bez skrytyh zaderzhek', () => {
     expect(acControlStatusLabel({
-      ac_control_status: 'holding_after_request',
-      ac_next_transition_at: '2026-07-30T09:30:00',
-    })).toContain('Запрос снят, кондиционер выключится после');
+      runtime: {
+        ac_control: {
+          phase: 'cooling',
+          request_count: 2,
+        },
+      },
+    })).toBe('Кондиционер работает по запросам: 2');
     expect(acControlStatusLabel({
-      ac_control_status: 'on_outside_scenario',
-    })).toBe('Кондиционер включён вне климатического сценария');
+      runtime: {
+        ac_control: {
+          phase: 'switching_on',
+          last_command_at: '2026-07-30T09:30:00',
+        },
+      },
+    })).toContain('Ожидается подтверждение включения, команда');
     expect(acControlStatusLabel({
-      ac_control_status: 'handling_request',
-    })).toBe('Кондиционер обрабатывает запрос на охлаждение');
+      runtime: { ac_control: { phase: 'switching_off' } },
+    })).toBe('Запросов нет, ожидается подтверждение выключения');
+    expect(acControlStatusLabel({
+      runtime: { ac_control: { phase: 'disabled' } },
+    })).toBe('Автоматика выключена, кондиционер не управляется');
+    expect(acControlStatusLabel({
+      runtime: { ac_control: { phase: 'unexpected_on' } },
+    })).toBe('Кондиционер включён без запроса, выключение не подтверждено');
+    expect(acControlStatusLabel({
+      runtime: { ac_control: { phase: 'idle' } },
+    })).toBe('Запросов на охлаждение нет, кондиционер не требуется');
+    expect(acControlStatusLabel({
+      runtime: { ac_control: { phase: 'unavailable' } },
+    })).toBe('Кондиционер недоступен для сценария');
   });
 
   it('vozvraschaet russkie podpisi dlya rolej scenariev i statusov', () => {

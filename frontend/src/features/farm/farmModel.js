@@ -42,11 +42,9 @@ export const SCENARIO_LABELS = {
 const SCENARIO_DEFAULTS = {
   BOX_CLIMATE: {
     max_c: 28,
-    exhaust_off_below_c: 26,
-    ac_request_above_c: 30,
+    exhaust_off_below_c: 27,
+    ac_request_above_c: 29,
     ac_clear_below_c: 27,
-    off_delay_minutes: 3,
-    min_toggle_minutes: 5,
   },
   LIGHT_SCHEDULE: {
     start_time: '06:00',
@@ -60,11 +58,6 @@ const SCENARIO_DEFAULTS = {
     daily_max_seconds: 300,
     stop_mode: 'fixed_duration',
   },
-};
-
-const FARM_CLIMATE_DEFAULTS = {
-  off_delay_minutes: 5,
-  min_toggle_minutes: 5,
 };
 
 export const listOrEmpty = (value) => (Array.isArray(value) ? value : []);
@@ -95,18 +88,6 @@ export function createScenarioDrafts(zone) {
       },
     }];
   }));
-}
-
-export function createFarmClimateDraft(farm) {
-  const current = scenarioForType(farm, 'ROOM_CLIMATE');
-  return {
-    scenario_type: 'ROOM_CLIMATE',
-    enabled: Boolean(current?.enabled),
-    config: {
-      ...FARM_CLIMATE_DEFAULTS,
-      ...(current?.config || {}),
-    },
-  };
 }
 
 export function buildSlotOccupancy(scopes) {
@@ -190,18 +171,13 @@ export function listFarmWarnings(overview) {
           : (SLOT_ROLE_LABELS[slot.role] || slot.role),
         message: slot.connection_message || slot.reason || 'Не готово',
       }));
-    listOrEmpty(farm.states)
-      .filter((state) => state.scenario_type === 'ROOM_CLIMATE' && state.ac_request_active)
-      .forEach((state) => warnings.push({
-        id: `farm:${farm.id}:request:${state.id || 'room-climate'}`,
-        scopeLabel: 'Ферма',
-        scopeName: farm.name,
-        label: 'Климат фермы',
-        message: 'Есть запрос теплицы на охлаждение',
-      }));
-
     listOrEmpty(farm.greenhouses).forEach((greenhouse) => {
       const scopeName = `${farm.name} · ${greenhouse.name}`;
+      const enabledScenarios = new Set(
+        listOrEmpty(greenhouse.scenarios)
+          .filter((scenario) => scenario?.enabled)
+          .map((scenario) => scenario.scenario_type),
+      );
       listOrEmpty(greenhouse.slots)
         .filter((slot) => slot.connection_status === 'warning' || slot.ready === false)
         .forEach((slot) => warnings.push({
@@ -214,7 +190,9 @@ export function listFarmWarnings(overview) {
           message: slot.connection_message || slot.reason || 'Не готово',
         }));
       Object.entries(greenhouse.readiness || {})
-        .filter(([, readiness]) => !readiness?.ready)
+        .filter(([scenarioType, readiness]) => (
+          enabledScenarios.has(scenarioType) && !readiness?.ready
+        ))
         .forEach(([scenarioType, readiness]) => warnings.push({
           id: `greenhouse:${greenhouse.id}:readiness:${scenarioType}`,
           scopeLabel: 'Теплица',
@@ -242,10 +220,6 @@ export function listFarmWarnings(overview) {
     message: 'Не выбрана теплица',
   }));
   return warnings;
-}
-
-export function countFarmWarnings(overview) {
-  return listFarmWarnings(overview).length;
 }
 
 export function assignmentsForZigbeeDevice(overview, device) {

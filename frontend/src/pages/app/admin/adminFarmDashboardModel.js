@@ -216,29 +216,45 @@ export function buildAcRequestBoxes(room) {
 }
 
 export function acControlStatusLabel(state) {
-  if (!state?.ac_control_status) {
+  const control = state?.runtime?.ac_control;
+  const phase = control?.phase || state?.ac_control_status;
+  if (!phase) {
     return '';
   }
-  const transitionAt = state.ac_next_transition_at
-    ? formatDateTime(state.ac_next_transition_at)
+  const commandAt = control?.last_command_at
+    ? formatDateTime(control.last_command_at)
     : '';
-  switch (state.ac_control_status) {
-    case 'handling_request':
-      return translateApp('Кондиционер обрабатывает запрос на охлаждение');
-    case 'waiting_to_start':
-      return transitionAt
-        ? translateApp('Включение ожидается после {{value1}}', { value1: transitionAt })
-        : translateApp('Включение ожидает защиты от частых переключений');
-    case 'holding_after_request':
-      return transitionAt
-        ? translateApp('Запрос снят, кондиционер выключится после {{value1}}', { value1: transitionAt })
-        : translateApp('Запрос снят, действует задержка выключения');
-    case 'on_outside_scenario':
-      return translateApp('Кондиционер включён вне климатического сценария');
+  switch (phase) {
+    case 'cooling':
+      return translateApp('Кондиционер работает по запросам: {{value1}}', {
+        value1: control?.request_count ?? 0,
+      });
+    case 'switching_on':
+      return commandAt
+        ? translateApp('Ожидается подтверждение включения, команда {{value1}}', { value1: commandAt })
+        : translateApp('Ожидается подтверждение включения');
+    case 'switching_off':
+      return commandAt
+        ? translateApp('Запросов нет, ожидается подтверждение выключения, команда {{value1}}', {
+          value1: commandAt,
+        })
+        : translateApp('Запросов нет, ожидается подтверждение выключения');
+    case 'disabled':
+      return translateApp('Автоматика выключена, кондиционер не управляется');
+    case 'unexpected_on':
+      return translateApp('Кондиционер включён без запроса, выключение не подтверждено');
     case 'idle':
       return translateApp('Запросов на охлаждение нет, кондиционер не требуется');
     case 'unavailable':
       return translateApp('Кондиционер недоступен для сценария');
+    case 'handling_request':
+      return translateApp('Кондиционер обрабатывает запрос на охлаждение');
+    case 'waiting_to_start':
+      return translateApp('Ожидается подтверждение включения');
+    case 'holding_after_request':
+      return translateApp('Запросов нет, ожидается подтверждение выключения');
+    case 'on_outside_scenario':
+      return translateApp('Кондиционер включён вне климатического сценария');
     default:
       return '';
   }

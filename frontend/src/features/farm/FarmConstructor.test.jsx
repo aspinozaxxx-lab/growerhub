@@ -13,7 +13,6 @@ import {
   fetchFarmsOverview,
   replaceGreenhouseScenarios,
   replaceGreenhouseSlots,
-  replaceUserFarmScenarios,
   replaceUserFarmSlots,
   updateGreenhousePlantWateringRate,
 } from '../../api/selfService';
@@ -24,7 +23,6 @@ vi.mock('../../api/selfService', () => ({
   fetchFarmsOverview: vi.fn(),
   replaceGreenhouseScenarios: vi.fn(),
   replaceGreenhouseSlots: vi.fn(),
-  replaceUserFarmScenarios: vi.fn(),
   replaceUserFarmSlots: vi.fn(),
   updateGreenhousePlantWateringRate: vi.fn(),
 }));
@@ -64,6 +62,15 @@ const overview = {
         ac_request_active: true,
       }],
       readiness: {},
+    }, {
+      id: 3,
+      name: 'Южная',
+      enabled: true,
+      plants: [],
+      slots: [],
+      scenarios: [],
+      states: [],
+      readiness: {},
     }],
   }],
   resource_catalog: {
@@ -94,7 +101,9 @@ describe('FarmConstructor', () => {
     const greenhouse = greenhouseTitle.closest('article');
 
     expect(within(greenhouse).getByText('Требуется охлаждение')).toBeInTheDocument();
-    expect(within(greenhouse).getByRole('button', { name: 'Томат' })).toBeInTheDocument();
+    const plantName = within(greenhouse).getByRole('button', { name: 'Томат' });
+    expect(plantName).toBeInTheDocument();
+    expect(within(plantName.closest('.farm-zone-plant')).getAllByRole('button')).toHaveLength(1);
     expect(within(greenhouse).queryByText('В этой теплице')).not.toBeInTheDocument();
     expect(within(greenhouse).queryByRole('checkbox', { name: 'Томат' })).not.toBeInTheDocument();
     expect(within(greenhouse).queryByLabelText('Температура воздуха')).not.toBeInTheDocument();
@@ -109,6 +118,9 @@ describe('FarmConstructor', () => {
     expect(within(greenhouse).getByLabelText('Запрос охлаждения выше, °C')).toBeInTheDocument();
     expect(within(greenhouse).getByLabelText('Снять запрос ниже, °C')).toBeInTheDocument();
     expect(within(greenhouse).queryByLabelText('Минимум, °C')).not.toBeInTheDocument();
+    expect(within(greenhouse).queryByLabelText('Задержка выключения, мин')).not.toBeInTheDocument();
+    expect(within(greenhouse).queryByLabelText('Защита от частых переключений, мин'))
+      .not.toBeInTheDocument();
     expect(within(greenhouse).queryByText('Настройки кондиционера')).not.toBeInTheDocument();
 
     fireEvent.change(within(greenhouse).getByLabelText('Тип нового слота'), {
@@ -121,7 +133,6 @@ describe('FarmConstructor', () => {
     expect(replaceGreenhouseSlots).not.toHaveBeenCalled();
     expect(updateGreenhousePlantWateringRate).not.toHaveBeenCalled();
     expect(replaceGreenhouseScenarios).not.toHaveBeenCalled();
-    expect(replaceUserFarmScenarios).not.toHaveBeenCalled();
   });
 
   it('pokazyvaet aktualnyj status svjazi dlya svezhego binding', async () => {
@@ -183,9 +194,76 @@ describe('FarmConstructor', () => {
     fireEvent.blur(rate);
 
     await waitFor(() => expect(updateGreenhousePlantWateringRate).toHaveBeenCalledWith(2, 5, 140));
+    expect(await within(greenhouse).findByText('Сохранено')).toBeInTheDocument();
 
     fireEvent.click(within(greenhouse).getByRole('button', { name: 'Томат' }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(fetchPlant).toHaveBeenCalledWith(null, 5);
+  });
+
+  it('vosstanavlivaet servernuyu skorost pri oshibke', async () => {
+    updateGreenhousePlantWateringRate.mockRejectedValue(new Error('Сервер недоступен'));
+
+    render(
+      <MemoryRouter>
+        <FarmConstructor />
+      </MemoryRouter>,
+    );
+
+    const greenhouse = (await screen.findByRole('heading', { name: 'Северная' })).closest('article');
+    const rate = within(greenhouse).getByLabelText('Скорость полива для Томат, мл/ч');
+    fireEvent.change(rate, { target: { value: '150' } });
+    fireEvent.blur(rate);
+
+    await waitFor(() => expect(updateGreenhousePlantWateringRate).toHaveBeenCalledWith(2, 5, 150));
+    await waitFor(() => expect(rate).toHaveValue(120));
+    expect(within(greenhouse).getByText('Не сохранено')).toBeInTheDocument();
+  });
+
+  it('srazu perenosit kartochku posle sohraneniya obshchego dialoga', async () => {
+    const movedOverview = {
+      ...overview,
+      farms: [{
+        ...overview.farms[0],
+        greenhouses: overview.farms[0].greenhouses.map((greenhouse) => (
+          greenhouse.id === 2
+            ? { ...greenhouse, plants: [] }
+            : { ...greenhouse, plants: [{ id: 5, name: 'Томат', rate_ml_per_hour: 120 }] }
+        )),
+      }],
+    };
+    fetchFarmsOverview
+      .mockResolvedValueOnce(overview)
+      .mockResolvedValueOnce(movedOverview);
+    fetchPlant.mockResolvedValue({
+      id: 5,
+      name: 'Томат',
+      plant_type: 'tomato',
+      zone: { id: 2, name: 'Северная' },
+    });
+    updatePlant.mockResolvedValue({});
+
+    render(
+      <MemoryRouter>
+        <FarmConstructor />
+      </MemoryRouter>,
+    );
+
+    const north = (await screen.findByRole('heading', { name: 'Северная' })).closest('article');
+    fireEvent.click(within(north).getByRole('button', { name: 'Томат' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Теплица'), { target: { value: '3' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Сохранить' }));
+
+    await waitFor(() => expect(updatePlant).toHaveBeenCalledWith(
+      'test-token',
+      5,
+      expect.objectContaining({ zone_id: 3 }),
+    ));
+    await waitFor(() => {
+      const south = screen.getByRole('heading', { name: 'Южная' }).closest('article');
+      expect(within(south).getByRole('button', { name: 'Томат' })).toBeInTheDocument();
+      expect(within(north).queryByRole('button', { name: 'Томат' })).not.toBeInTheDocument();
+    });
   });
 });

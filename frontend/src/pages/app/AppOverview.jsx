@@ -199,8 +199,8 @@ function AppOverview() {
                   <span key={plant.id}>{plant.name || translateApp("Растение без названия")}</span>
                 ))}
               </div>
-              <Link className="gh-btn gh-btn--secondary gh-btn--md" to="/app/farm/">
-                {translateApp("Разместить в конструкторе")}
+              <Link className="gh-btn gh-btn--secondary gh-btn--md" to="/app/plants/">
+                {translateApp("Открыть растения")}
               </Link>
             </section>
           ) : null}

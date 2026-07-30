@@ -1,4 +1,11 @@
-﻿### fix(farm): klimat, rasteniya i preduprezhdeniya dashboard
+﻿### fix(climate): upravlenie bez skrytyh zaderzhek
+
+- fix(automation): obduv i zapros ohlazhdeniya zavisyat tolko ot chetyreh porogov, a kondicioner vykluchaetsya srazu posle snyatiya poslednego zaprosa.
+- feat(dashboard): runtime `ac_control` i dashboard pokazyvayut prichinu sostoyaniya kondicionera; tooltip ne dubliruet agregirovannye zaprosy i ignoriruet vykluchennye scenarii.
+- fix(plants): skorost poliva sohranyaetsya po Enter ili potere fokusa, pri oshibke vozvrashchaetsya servernoe znachenie.
+- migration: V20 udalyaet `min_c`, `off_delay_minutes` i `min_toggle_minutes` iz klimaticheskih konfiguracij.
+
+### fix(farm): klimat, rasteniya i preduprezhdeniya dashboard
 
 - fix(climate): konstruktor i avtomatizacii ispolzuyut odin redaktor chetyreh porogov, a zaderzhka i zashchita pereehali v blok naznachennogo kondicionera.
 - feat(climate): dashboard obyasnyaet obrabotku zaprosa, ozhidanie pereklucheniya, zaderzhku vyklucheniya, vneshnee vklyuchenie i nedostupnost kondicionera.

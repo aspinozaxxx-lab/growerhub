@@ -9,14 +9,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchFarmsOverview,
   replaceGreenhouseScenarios,
-  replaceUserFarmScenarios,
 } from '../../api/selfService';
 import AppAutomations from './AppAutomations';
 
 vi.mock('../../api/selfService', () => ({
   fetchFarmsOverview: vi.fn(),
   replaceGreenhouseScenarios: vi.fn(),
-  replaceUserFarmScenarios: vi.fn(),
 }));
 
 const scenarioConfig = {
@@ -24,8 +22,6 @@ const scenarioConfig = {
   exhaust_off_below_c: 27,
   ac_request_above_c: 29,
   ac_clear_below_c: 27,
-  off_delay_minutes: 5,
-  min_toggle_minutes: 5,
 };
 
 function overview(withAirConditioners = true) {
@@ -38,7 +34,7 @@ function overview(withAirConditioners = true) {
       scenarios: [{
         scenario_type: 'ROOM_CLIMATE',
         enabled: true,
-        config: { off_delay_minutes: 5, min_toggle_minutes: 5 },
+        config: {},
       }],
       greenhouses: [{
         id: 2,
@@ -63,7 +59,7 @@ describe('AppAutomations', () => {
     vi.clearAllMocks();
   });
 
-  it('pokazyvaet obshchie chetyre polya klimata i otdelnye nastrojki kondicionera', async () => {
+  it('pokazyvaet tolko obshchie chetyre polya klimata', async () => {
     fetchFarmsOverview.mockResolvedValue(overview(true));
     render(
       <MemoryRouter>
@@ -71,17 +67,16 @@ describe('AppAutomations', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByLabelText('Обдув включить выше, °C')).toBeInTheDocument();
-    expect(screen.getByLabelText('Обдув выключить ниже, °C')).toBeInTheDocument();
-    expect(screen.getByLabelText('Запрос охлаждения выше, °C')).toBeInTheDocument();
-    expect(screen.getByLabelText('Снять запрос ниже, °C')).toBeInTheDocument();
+    expect(await screen.findAllByLabelText('Обдув включить выше, °C')).toHaveLength(1);
+    expect(screen.getAllByLabelText('Обдув выключить ниже, °C')).toHaveLength(1);
+    expect(screen.getAllByLabelText('Запрос охлаждения выше, °C')).toHaveLength(1);
+    expect(screen.getAllByLabelText('Снять запрос ниже, °C')).toHaveLength(1);
     expect(screen.queryByLabelText('Минимум, °C')).not.toBeInTheDocument();
-    expect(screen.getAllByLabelText('Задержка выключения, мин')).toHaveLength(2);
-    expect(screen.getAllByLabelText('Защита от частых переключений, мин')).toHaveLength(2);
-    expect(screen.getByText('Общий кондиционер фермы')).toBeInTheDocument();
-    expect(screen.getByText('Настройки кондиционера')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Задержка выключения, мин')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Защита от частых переключений, мин')).not.toBeInTheDocument();
+    expect(screen.queryByText('Общий кондиционер фермы')).not.toBeInTheDocument();
+    expect(screen.queryByText('Настройки кондиционера')).not.toBeInTheDocument();
     expect(replaceGreenhouseScenarios).not.toHaveBeenCalled();
-    expect(replaceUserFarmScenarios).not.toHaveBeenCalled();
   });
 
   it('skryvaet nastrojki kondicionera bez sootvetstvuyushchego slota', async () => {

@@ -4,7 +4,6 @@ import {
   fetchFarmsOverview,
   replaceGreenhouseScenarios,
   replaceGreenhouseSlots,
-  replaceUserFarmScenarios,
   replaceUserFarmSlots,
   updateGreenhousePlantWateringRate,
 } from '../../api/selfService';
@@ -13,10 +12,7 @@ import PlantEditDialog from '../../components/plants/PlantEditDialog';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import Button from '../../components/ui/Button';
-import {
-  AirConditionerSettingsFields,
-  ClimateScenarioFields,
-} from './ClimateScenarioFields';
+import { ClimateScenarioFields } from './ClimateScenarioFields';
 import {
   bindingOptionValue,
   optionsForRole,
@@ -32,7 +28,6 @@ import {
   SCENARIO_LABELS,
   SLOT_ROLE_LABELS,
   buildSlotOccupancy,
-  createFarmClimateDraft,
   createScenarioDrafts,
   findSlotConflicts,
   listOrEmpty,
@@ -85,10 +80,7 @@ function initialGreenhouseDraft(greenhouse) {
 }
 
 function initialFarmDraft(farm) {
-  return {
-    ...initialSlotDraft(farm),
-    conditioner: createFarmClimateDraft(farm),
-  };
+  return initialSlotDraft(farm);
 }
 
 function formatSlotValue(value) {
@@ -259,6 +251,7 @@ function FarmConstructor() {
   const [plantDialogOpen, setPlantDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [busy, setBusy] = useState('');
+  const [rateStatuses, setRateStatuses] = useState({});
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -378,28 +371,41 @@ function FarmConstructor() {
     );
   };
 
-  const savePlantRate = (greenhouse, plant) => {
+  const savePlantRate = async (greenhouse, plant) => {
+    const key = actionKey(greenhouse.id, `plant:${plant.id}`);
     const value = greenhouseDrafts[greenhouse.id]?.plants?.[plant.id]?.rate_ml_per_hour ?? '';
     const rate = value === '' ? null : Number(value);
     if (rate !== null && (!Number.isInteger(rate) || rate <= 0)) {
+      patchGreenhouseDraft(greenhouse.id, {
+        plants: {
+          ...(greenhouseDrafts[greenhouse.id]?.plants || {}),
+          [plant.id]: { rate_ml_per_hour: plant.rate_ml_per_hour ?? '' },
+        },
+      });
+      setRateStatuses((current) => ({ ...current, [key]: 'error' }));
       setError(translateApp('Скорость полива должна быть положительным целым числом'));
       return;
     }
     if (rate === (plant.rate_ml_per_hour ?? null)) return;
-    runAction(
-      actionKey(greenhouse.id, `plant:${plant.id}`),
-      () => updateGreenhousePlantWateringRate(greenhouse.id, plant.id, rate),
-      translateApp('Скорость полива сохранена'),
-    );
-  };
-
-  const saveFarmConditioner = (farm) => {
-    const scenario = farmDrafts[farm.id]?.conditioner;
-    runAction(
-      actionKey(farm.id, 'ROOM:conditioner'),
-      () => replaceUserFarmScenarios(farm.id, [scenario]),
-      translateApp('Настройки кондиционера сохранены'),
-    );
+    setBusy(key);
+    setError('');
+    setNotice('');
+    setRateStatuses((current) => ({ ...current, [key]: 'saving' }));
+    try {
+      applyOverview(await updateGreenhousePlantWateringRate(greenhouse.id, plant.id, rate));
+      setRateStatuses((current) => ({ ...current, [key]: 'saved' }));
+    } catch (requestError) {
+      patchGreenhouseDraft(greenhouse.id, {
+        plants: {
+          ...(greenhouseDrafts[greenhouse.id]?.plants || {}),
+          [plant.id]: { rate_ml_per_hour: plant.rate_ml_per_hour ?? '' },
+        },
+      });
+      setRateStatuses((current) => ({ ...current, [key]: 'error' }));
+      setError(requestError?.message || translateApp('Не удалось сохранить скорость полива'));
+    } finally {
+      setBusy('');
+    }
   };
 
   const saveScenarios = (greenhouse) => {
@@ -526,32 +532,6 @@ function FarmConstructor() {
           )}
           isSaving={busy === actionKey(selectedFarm.id, 'ROOM:slots')}
         />
-        {slotForRole(selectedFarm, 'AC_SWITCH') ? (
-          <section className="farm-zone-editor__section">
-            <div className="farm-zone-editor__section-heading">
-              <h3>{translateApp('Настройки кондиционера')}</h3>
-              <Button
-                size="sm"
-                onClick={() => saveFarmConditioner(selectedFarm)}
-                isLoading={busy === actionKey(selectedFarm.id, 'ROOM:conditioner')}
-              >
-                {translateApp('Сохранить')}
-              </Button>
-            </div>
-            <AirConditionerSettingsFields
-              config={farmDraft.conditioner.config}
-              onChange={(field, value) => patchFarmDraft(selectedFarm.id, {
-                conditioner: {
-                  ...farmDraft.conditioner,
-                  config: {
-                    ...(farmDraft.conditioner.config || {}),
-                    [field]: value,
-                  },
-                },
-              })}
-            />
-          </section>
-        ) : null}
       </article>
 
       {greenhouses.length === 0 ? (
@@ -624,7 +604,9 @@ function FarmConstructor() {
                         const plantDraft = draft.plants[plant.id]
                           || { rate_ml_per_hour: plant.rate_ml_per_hour ?? '' };
                         const plantBusy = busy === actionKey(plant.id, 'plant:open');
-                        const rateBusy = busy === actionKey(greenhouse.id, `plant:${plant.id}`);
+                        const rateKey = actionKey(greenhouse.id, `plant:${plant.id}`);
+                        const rateBusy = busy === rateKey;
+                        const rateStatus = rateStatuses[rateKey];
                         return (
                           <div className="farm-zone-plant" key={plant.id}>
                             <button
@@ -645,15 +627,21 @@ function FarmConstructor() {
                                 })}
                                 disabled={rateBusy}
                                 value={plantDraft.rate_ml_per_hour}
-                                onChange={(event) => patchGreenhouseDraft(greenhouse.id, {
-                                  plants: {
-                                    ...draft.plants,
-                                    [plant.id]: {
-                                      ...plantDraft,
-                                      rate_ml_per_hour: event.target.value,
+                                onChange={(event) => {
+                                  setRateStatuses((current) => ({
+                                    ...current,
+                                    [rateKey]: '',
+                                  }));
+                                  patchGreenhouseDraft(greenhouse.id, {
+                                    plants: {
+                                      ...draft.plants,
+                                      [plant.id]: {
+                                        ...plantDraft,
+                                        rate_ml_per_hour: event.target.value,
+                                      },
                                     },
-                                  },
-                                })}
+                                  });
+                                }}
                                 onBlur={() => savePlantRate(greenhouse, plant)}
                                 onKeyDown={(event) => {
                                   if (event.key === 'Enter') event.currentTarget.blur();
@@ -661,6 +649,18 @@ function FarmConstructor() {
                               />
                               <span>{translateApp('мл/ч')}</span>
                             </label>
+                            {rateStatus ? (
+                              <span
+                                className={`farm-zone-plant__save-state is-${rateStatus}`}
+                                role="status"
+                              >
+                                {rateStatus === 'saving'
+                                  ? translateApp('Сохраняем...')
+                                  : (rateStatus === 'saved'
+                                    ? translateApp('Сохранено')
+                                    : translateApp('Не сохранено'))}
+                              </span>
+                            ) : null}
                           </div>
                         );
                       })}
@@ -765,36 +765,6 @@ function FarmConstructor() {
                     })}
                   </div>
                 </section>
-
-                {slotForRole(greenhouse, 'AC_SWITCH') ? (
-                  <section className="farm-zone-editor__section">
-                    <div className="farm-zone-editor__section-heading">
-                      <h3>{translateApp('Настройки кондиционера')}</h3>
-                      <Button
-                        size="sm"
-                        onClick={() => saveScenarios(greenhouse)}
-                        isLoading={busy === actionKey(greenhouse.id, 'scenarios')}
-                      >
-                        {translateApp('Сохранить')}
-                      </Button>
-                    </div>
-                    <AirConditionerSettingsFields
-                      config={draft.scenarios.BOX_CLIMATE.config}
-                      onChange={(field, value) => patchGreenhouseDraft(greenhouse.id, {
-                        scenarios: {
-                          ...draft.scenarios,
-                          BOX_CLIMATE: {
-                            ...draft.scenarios.BOX_CLIMATE,
-                            config: {
-                              ...(draft.scenarios.BOX_CLIMATE.config || {}),
-                              [field]: value,
-                            },
-                          },
-                        },
-                      })}
-                    />
-                  </section>
-                ) : null}
               </article>
             );
           })}

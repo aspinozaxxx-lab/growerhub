@@ -26,6 +26,7 @@ import {
   resourceBindingForRole,
   resourcePayload,
 } from '../../../features/farm/farmResourceOptions';
+import { ClimateScenarioFields } from '../../../features/farm/ClimateScenarioFields';
 import {
   buildPlantItemsPayload,
   createPlantDrafts,
@@ -70,18 +71,6 @@ const SCENARIO_LABELS = {
 };
 
 const SCENARIO_FIELDS = {
-  ROOM_CLIMATE: [
-    ['off_delay_minutes', 'Задержка выключения, мин', 'number'],
-    ['min_toggle_minutes', 'Защита от частых переключений, мин', 'number'],
-  ],
-  BOX_CLIMATE: [
-    ['max_c', 'Вкл. вытяжку выше, °C', 'number'],
-    ['exhaust_off_below_c', 'Вытяжку выкл. ниже, °C', 'number'],
-    ['ac_request_above_c', 'Кондиционер выше, °C', 'number'],
-    ['ac_clear_below_c', 'Снять запрос ниже, °C', 'number'],
-    ['off_delay_minutes', 'Задержка выключения, мин', 'number'],
-    ['min_toggle_minutes', 'Защита от частых переключений, мин', 'number'],
-  ],
   LIGHT_SCHEDULE: [
     ['start_time', 'Включить', 'time'],
     ['end_time', 'Выключить', 'time'],
@@ -427,7 +416,24 @@ function AdminAutomation() {
     if (scenarioType === 'WATERING') {
       return renderWateringFields(scopeType, scopeId, draft);
     }
+    if (scenarioType === 'BOX_CLIMATE') {
+      return (
+        <ClimateScenarioFields
+          config={draft.config}
+          onChange={(field, value) => updateScenarioConfig(
+            scopeType,
+            scopeId,
+            scenarioType,
+            field,
+            value,
+          )}
+        />
+      );
+    }
     const fields = SCENARIO_FIELDS[scenarioType] || [];
+    if (fields.length === 0) {
+      return null;
+    }
     return (
       <div className="admin-automation-grid">
         {fields.map(([field, label, type]) => (
