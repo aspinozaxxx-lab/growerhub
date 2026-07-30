@@ -603,4 +603,10 @@
   .farm-overview-unassigned {
     grid-template-columns: 1fr;
   }
+
+  .farm-warning-tooltip {
+    inset-inline-start: 0;
+    inset-inline-end: auto;
+    width: min(390px, calc(100vw - 56px));
+  }
 }
