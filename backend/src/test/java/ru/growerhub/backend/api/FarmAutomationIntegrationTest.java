@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -379,6 +380,8 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                           "enabled":true,
                           "config":{
                             "min_c":20,
+                            "off_delay_minutes":5,
+                            "min_toggle_minutes":5,
                             "ac_request_above_c":30,
                             "ac_clear_below_c":27
                           }
@@ -391,6 +394,12 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                 .body("farms[0].greenhouses[0].readiness.BOX_CLIMATE.ready", equalTo(true))
                 .body("farms[0].greenhouses[0].scenarios"
                                 + ".find { it.scenario_type == 'BOX_CLIMATE' }.config.min_c",
+                        nullValue())
+                .body("farms[0].greenhouses[0].scenarios"
+                                + ".find { it.scenario_type == 'BOX_CLIMATE' }.config.off_delay_minutes",
+                        nullValue())
+                .body("farms[0].greenhouses[0].scenarios"
+                                + ".find { it.scenario_type == 'BOX_CLIMATE' }.config.min_toggle_minutes",
                         nullValue());
 
         automationFacade.evaluateAll();
@@ -409,7 +418,7 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                         equalTo(true))
                 .body("farms.find { it.id == " + farmId
                                 + " }.greenhouses[0].states.find { it.scenario_type == 'BOX_CLIMATE' }"
-                                + ".ac_control_status",
+                                + ".runtime.ac_control.phase",
                         equalTo("unavailable"))
                 .body("farms.find { it.id == " + farmId
                                 + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
@@ -417,7 +426,7 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                         equalTo(true))
                 .body("farms.find { it.id == " + farmId
                                 + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
-                                + ".ac_control_status",
+                                + ".runtime.ac_control.phase",
                         equalTo("unavailable"))
                 .body("farms.find { it.id == " + farmId
                                 + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
@@ -525,8 +534,8 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                         equalTo(true))
                 .body("farms.find { it.id == " + localFarmId
                                 + " }.greenhouses[0].states.find { it.scenario_type == 'BOX_CLIMATE' }"
-                                + ".ac_control_status",
-                        equalTo("handling_request"))
+                                + ".runtime.ac_control.phase",
+                        equalTo("switching_on"))
                 .body("farms.find { it.id == " + localFarmId
                                 + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
                                 + ".runtime.pending_request_count",
@@ -545,13 +554,13 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                         equalTo(true))
                 .body("farms.find { it.id == " + sharedFarmId
                                 + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
-                                + ".ac_control_status",
-                        equalTo("handling_request"));
+                                + ".runtime.ac_control.phase",
+                        equalTo("switching_on"));
     }
 
     @Test
-    void farmAirConditionerStateExplainsDelayAndExternalActivation() {
-        UserEntity owner = createUser("farm-ac-delay@example.com", "user");
+    void farmAirConditionerSwitchesOffImmediatelyWhenRequestClears() {
+        UserEntity owner = createUser("farm-ac-immediate-off@example.com", "user");
         String token = buildToken(owner.getId());
         Integer farmId = createFarm(token, "Ферма");
         Integer greenhouseId = createGreenhouse(token, farmId, "Теплица");
@@ -570,28 +579,28 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
         enableGreenhouseClimate(token, greenhouseId);
         automationFacade.evaluateAll();
 
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".runtime.ac_control.phase",
+                        equalTo("cooling"))
+                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".runtime.ac_control.request_count",
+                        equalTo(1));
+
         addSensorReading(sensor, 20.0);
         automationFacade.evaluateAll();
 
-        given()
-                .header("Authorization", "Bearer " + token)
-                .when()
-                .get("/api/automation/farms")
-                .then()
-                .statusCode(200)
-                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
-                                + ".ac_control_status",
-                        equalTo("holding_after_request"))
-                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
-                                + ".ac_next_transition_at",
-                        org.hamcrest.Matchers.notNullValue());
-
-        jdbcTemplate.update("""
-                UPDATE automation_scenario_states
-                SET runtime_json='{}', last_action_at=NULL, ac_request_active=FALSE
-                WHERE scope_type='ROOM' AND scope_id=? AND scenario_type='ROOM_CLIMATE'
-                """, farmId);
-        automationFacade.evaluateAll();
+        verify(zigbeeFacade).setAutomationDeviceProperty(
+                coordinatorInternalId,
+                acIeee,
+                "state",
+                "OFF"
+        );
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -600,33 +609,118 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(200)
                 .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
-                                + ".ac_control_status",
-                        equalTo("on_outside_scenario"))
+                                + ".runtime.ac_control.phase",
+                        equalTo("switching_off"))
+                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".runtime.ac_control.desired_state",
+                        equalTo("OFF"))
+                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".runtime.ac_control.request_count",
+                        equalTo(0))
+                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".runtime.ac_control.last_command_at",
+                        org.hamcrest.Matchers.notNullValue())
                 .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
                                 + ".ac_next_transition_at",
                         nullValue());
     }
 
     @Test
-    void farmAirConditionerWaitsForToggleProtectionBeforeRepeatedStart() {
-        UserEntity owner = createUser("farm-ac-toggle@example.com", "user");
+    void localAirConditionerSwitchesOffImmediatelyWithoutRequest() {
+        UserEntity owner = createUser("greenhouse-ac-immediate-off@example.com", "user");
         String token = buildToken(owner.getId());
         Integer farmId = createFarm(token, "Ферма");
         Integer greenhouseId = createGreenhouse(token, farmId, "Теплица");
-        SensorEntity sensor = createSensor(owner, 32.0);
+        SensorEntity sensor = createSensor(owner, 20.0);
         UUID coordinatorId = UUID.randomUUID();
         int coordinatorInternalId = 43;
         String acIeee = "0x00124b0000000011";
         List<ZigbeeOwnedDeviceData> switches = List.of(
-                switchDevice(coordinatorInternalId, coordinatorId, acIeee, "Кондиционер", "OFF")
+                switchDevice(coordinatorInternalId, coordinatorId, acIeee, "Кондиционер", "ON")
         );
         when(zigbeeFacade.getDevicesForUser(any(AuthenticatedUser.class))).thenReturn(switches);
         when(zigbeeFacade.getDevicesForAutomation()).thenReturn(switches);
 
-        replaceGreenhouseClimateSlots(token, greenhouseId, sensor.getId(), null, null);
-        replaceFarmAirConditioner(token, farmId, coordinatorId, acIeee);
+        replaceGreenhouseClimateSlots(token, greenhouseId, sensor.getId(), coordinatorId, acIeee);
         enableGreenhouseClimate(token, greenhouseId);
         automationFacade.evaluateAll();
+
+        verify(zigbeeFacade).setAutomationDeviceProperty(
+                coordinatorInternalId,
+                acIeee,
+                "state",
+                "OFF"
+        );
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .body("farms[0].greenhouses[0].states"
+                                + ".find { it.scenario_type == 'BOX_CLIMATE' }.runtime.ac_control.phase",
+                        equalTo("switching_off"))
+                .body("farms[0].greenhouses[0].states"
+                                + ".find { it.scenario_type == 'BOX_CLIMATE' }"
+                                + ".runtime.ac_control.request_count",
+                        equalTo(0));
+    }
+
+    @Test
+    void disabledClimateDoesNotControlRunningAirConditioner() {
+        UserEntity owner = createUser("greenhouse-ac-disabled@example.com", "user");
+        String token = buildToken(owner.getId());
+        Integer farmId = createFarm(token, "Ферма");
+        Integer greenhouseId = createGreenhouse(token, farmId, "Теплица");
+        SensorEntity sensor = createSensor(owner, 20.0);
+        UUID coordinatorId = UUID.randomUUID();
+        int coordinatorInternalId = 44;
+        String acIeee = "0x00124b0000000012";
+        List<ZigbeeOwnedDeviceData> switches = List.of(
+                switchDevice(coordinatorInternalId, coordinatorId, acIeee, "Кондиционер", "ON")
+        );
+        when(zigbeeFacade.getDevicesForUser(any(AuthenticatedUser.class))).thenReturn(switches);
+        when(zigbeeFacade.getDevicesForAutomation()).thenReturn(switches);
+
+        replaceGreenhouseClimateSlots(token, greenhouseId, sensor.getId(), coordinatorId, acIeee);
+        automationFacade.evaluateAll();
+
+        verify(zigbeeFacade, never()).setAutomationDeviceProperty(
+                coordinatorInternalId,
+                acIeee,
+                "state",
+                "OFF"
+        );
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .body("farms[0].greenhouses[0].states"
+                                + ".find { it.scenario_type == 'BOX_CLIMATE' }.runtime.ac_control.phase",
+                        equalTo("disabled"));
+    }
+
+    @Test
+    void climateUsesOnlyExplicitThresholdsAndKeepsHysteresis() {
+        UserEntity owner = createUser("farm-climate-thresholds@example.com", "user");
+        String token = buildToken(owner.getId());
+        Integer farmId = createFarm(token, "Ферма");
+        Integer greenhouseId = createGreenhouse(token, farmId, "Теплица");
+        SensorEntity sensor = createSensor(owner, 27.0);
+        replaceGreenhouseClimateSlots(token, greenhouseId, sensor.getId(), null, null);
+        enableGreenhouseClimate(token, greenhouseId);
+        automationFacade.evaluateAll();
+
+        jdbcTemplate.update("""
+                UPDATE automation_scenario_states
+                SET runtime_json=?
+                WHERE scope_type='BOX' AND scope_id=? AND scenario_type='BOX_CLIMATE'
+                """, """
+                {"last_temperature":27.0,"last_temperature_at":"%s"}
+                """.formatted(LocalDateTime.now(ZoneOffset.UTC).minusMinutes(6)), greenhouseId);
+        addSensorReading(sensor, 29.0);
         automationFacade.evaluateAll();
 
         given()
@@ -635,12 +729,100 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                 .get("/api/automation/farms")
                 .then()
                 .statusCode(200)
-                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
-                                + ".ac_control_status",
-                        equalTo("waiting_to_start"))
-                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
-                                + ".ac_next_transition_at",
-                        org.hamcrest.Matchers.notNullValue());
+                .body("farms[0].greenhouses[0].states"
+                                + ".find { it.scenario_type == 'BOX_CLIMATE' }.ac_request_active",
+                        equalTo(false))
+                .body("farms[0].greenhouses[0].states"
+                                + ".find { it.scenario_type == 'BOX_CLIMATE' }.runtime.last_temperature",
+                        nullValue());
+
+        addSensorReading(sensor, 31.0);
+        automationFacade.evaluateAll();
+        addSensorReading(sensor, 29.0);
+        automationFacade.evaluateAll();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .body("farms[0].greenhouses[0].states"
+                                + ".find { it.scenario_type == 'BOX_CLIMATE' }.ac_request_active",
+                        equalTo(true));
+
+        addSensorReading(sensor, 27.0);
+        automationFacade.evaluateAll();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .body("farms[0].greenhouses[0].states"
+                                + ".find { it.scenario_type == 'BOX_CLIMATE' }.ac_request_active",
+                        equalTo(false));
+    }
+
+    @Test
+    void climateThresholdsMustBeNumericAndOrdered() {
+        UserEntity owner = createUser("farm-climate-validation@example.com", "user");
+        String token = buildToken(owner.getId());
+        Integer farmId = createFarm(token, "Ферма");
+        Integer greenhouseId = createGreenhouse(token, farmId, "Теплица");
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"scenarios":[{
+                          "scenario_type":"BOX_CLIMATE",
+                          "enabled":false,
+                          "config":{"max_c":25,"exhaust_off_below_c":25}
+                        }]}
+                        """)
+                .when()
+                .put("/api/automation/greenhouses/" + greenhouseId + "/scenarios")
+                .then()
+                .statusCode(400)
+                .body("detail", equalTo(
+                        "Порог выключения обдува должен быть ниже порога включения"
+                ));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"scenarios":[{
+                          "scenario_type":"BOX_CLIMATE",
+                          "enabled":false,
+                          "config":{"ac_request_above_c":27,"ac_clear_below_c":27}
+                        }]}
+                        """)
+                .when()
+                .put("/api/automation/greenhouses/" + greenhouseId + "/scenarios")
+                .then()
+                .statusCode(400)
+                .body("detail", equalTo(
+                        "Порог снятия запроса должен быть ниже порога его создания"
+                ));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"scenarios":[{
+                          "scenario_type":"BOX_CLIMATE",
+                          "enabled":false,
+                          "config":{"max_c":"тепло"}
+                        }]}
+                        """)
+                .when()
+                .put("/api/automation/greenhouses/" + greenhouseId + "/scenarios")
+                .then()
+                .statusCode(400)
+                .body("detail", equalTo("Поле max_c должно быть числом"));
     }
 
     @Test

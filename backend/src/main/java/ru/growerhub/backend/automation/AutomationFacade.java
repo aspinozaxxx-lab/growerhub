@@ -86,14 +86,16 @@ public class AutomationFacade {
     private static final String STOP_MODE_FIXED_DURATION = "fixed_duration";
     private static final String STOP_MODE_UNTIL_DRAIN = "until_drain";
     private static final String RUNTIME_WATERING_ACTIVE = "watering_session_active";
+    private static final String RUNTIME_AC_CONTROL = "ac_control";
     private static final String RUNTIME_AC_CONTROL_STATUS = "ac_control_status";
     private static final String RUNTIME_AC_NEXT_TRANSITION_AT = "ac_next_transition_at";
-    private static final String AC_STATUS_HANDLING_REQUEST = "handling_request";
-    private static final String AC_STATUS_WAITING_TO_START = "waiting_to_start";
-    private static final String AC_STATUS_HOLDING_AFTER_REQUEST = "holding_after_request";
-    private static final String AC_STATUS_ON_OUTSIDE_SCENARIO = "on_outside_scenario";
-    private static final String AC_STATUS_IDLE = "idle";
-    private static final String AC_STATUS_UNAVAILABLE = "unavailable";
+    private static final String AC_PHASE_IDLE = "idle";
+    private static final String AC_PHASE_COOLING = "cooling";
+    private static final String AC_PHASE_SWITCHING_ON = "switching_on";
+    private static final String AC_PHASE_SWITCHING_OFF = "switching_off";
+    private static final String AC_PHASE_DISABLED = "disabled";
+    private static final String AC_PHASE_UNAVAILABLE = "unavailable";
+    private static final String AC_PHASE_UNEXPECTED_ON = "unexpected_on";
     private static final List<String> LEGACY_WATERING_RUNTIME_KEYS = List.of(
             RUNTIME_WATERING_ACTIVE,
             "watering_phase",
@@ -1151,10 +1153,41 @@ public class AutomationFacade {
             boolean enabled,
             Map<String, Object> cfg
     ) {
+        if (AutomationData.SCENARIO_BOX_CLIMATE.equals(scenarioType)) {
+            validateBoxClimateConfig(cfg);
+            return;
+        }
         if (!AutomationData.SCENARIO_WATERING.equals(scenarioType)) {
             return;
         }
         validateWateringConfig(scopeType, scopeId, enabled, cfg);
+    }
+
+    private void validateBoxClimateConfig(Map<String, Object> cfg) {
+        double exhaustOnAbove = requiredFiniteNumber(cfg, "max_c");
+        double exhaustOffBelow = requiredFiniteNumber(cfg, "exhaust_off_below_c");
+        double requestAbove = requiredFiniteNumber(cfg, "ac_request_above_c");
+        double requestClearBelow = requiredFiniteNumber(cfg, "ac_clear_below_c");
+        if (exhaustOffBelow >= exhaustOnAbove) {
+            throw new DomainException(
+                    "bad_request",
+                    "Порог выключения обдува должен быть ниже порога включения"
+            );
+        }
+        if (requestClearBelow >= requestAbove) {
+            throw new DomainException(
+                    "bad_request",
+                    "Порог снятия запроса должен быть ниже порога его создания"
+            );
+        }
+    }
+
+    private double requiredFiniteNumber(Map<String, Object> cfg, String field) {
+        Double value = asDouble(cfg.get(field));
+        if (value == null || !Double.isFinite(value)) {
+            throw new DomainException("bad_request", "Поле " + field + " должно быть числом");
+        }
+        return value;
     }
 
     private void validateWateringConfig(
@@ -1229,19 +1262,25 @@ public class AutomationFacade {
         Map<String, Object> runtime = runtimeMap(state);
         AutomationData.Readiness readiness = boxClimateReadiness(box.getId(), catalog);
         if (!box.isEnabled() || room == null || !room.isEnabled()) {
-            updateAcControlRuntime(runtime, AC_STATUS_UNAVAILABLE, null);
+            updateAcControlRuntime(runtime, AC_PHASE_DISABLED, null, 0, null);
             state.setRuntimeJson(writeJson(runtime));
             markState(state, "disabled", "Теплица или ферма выключена", false, now);
             return;
         }
         if (config == null || !config.isEnabled()) {
-            updateAcControlRuntime(runtime, AC_STATUS_UNAVAILABLE, null);
+            updateAcControlRuntime(runtime, AC_PHASE_DISABLED, null, 0, null);
             state.setRuntimeJson(writeJson(runtime));
             markState(state, "disabled", "Сценарий выключен", false, now);
             return;
         }
         if (!readiness.ready()) {
-            updateAcControlRuntime(runtime, AC_STATUS_UNAVAILABLE, null);
+            updateAcControlRuntime(
+                    runtime,
+                    AC_PHASE_UNAVAILABLE,
+                    state.isAcRequestActive() ? "ON" : "OFF",
+                    state.isAcRequestActive() ? 1 : 0,
+                    null
+            );
             state.setRuntimeJson(writeJson(runtime));
             markState(state, "unready", readiness.reason(), state.isAcRequestActive(), now);
             return;
@@ -1251,7 +1290,13 @@ public class AutomationFacade {
         AutomationResourceBindingEntity exhaustBinding = resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_EXHAUST_SWITCH);
         SensorValue temperature = readSensorValue(tempBinding, catalog);
         if (temperature == null || temperature.value() == null || isStale(temperature.ts(), now)) {
-            updateAcControlRuntime(runtime, AC_STATUS_UNAVAILABLE, null);
+            updateAcControlRuntime(
+                    runtime,
+                    AC_PHASE_UNAVAILABLE,
+                    state.isAcRequestActive() ? "ON" : "OFF",
+                    state.isAcRequestActive() ? 1 : 0,
+                    null
+            );
             state.setRuntimeJson(writeJson(runtime));
             markState(state, "stale", "Нет актуальной температуры теплицы", state.isAcRequestActive(), now);
             return;
@@ -1263,13 +1308,8 @@ public class AutomationFacade {
         double exhaustOffBelow = number(cfg.get("exhaust_off_below_c"), 27.0);
         double acAbove = number(cfg.get("ac_request_above_c"), 29.0);
         double acClear = number(cfg.get("ac_clear_below_c"), 27.0);
-        Double previous = asDouble(runtime.get("last_temperature"));
-        LocalDateTime previousAt = parseDateTime(runtime.get("last_temperature_at"));
-        boolean risingForFiveMinutes = previous != null && previousAt != null
-                && !previousAt.isAfter(now.minusMinutes(5))
-                && value > previous;
 
-        boolean exhaustShouldBeOn = value > max || (previous != null && value >= max - 0.5 && value > previous);
+        boolean exhaustShouldBeOn = value > max;
         boolean exhaustShouldBeOff = value < exhaustOffBelow;
         if (exhaustShouldBeOn) {
             sendSwitchIfNeeded(exhaustBinding, true, catalog, AutomationData.SCENARIO_BOX_CLIMATE,
@@ -1282,7 +1322,7 @@ public class AutomationFacade {
         }
 
         boolean acRequest = state.isAcRequestActive();
-        if (value > acAbove || (value > max && risingForFiveMinutes)) {
+        if (value > acAbove) {
             acRequest = true;
         }
         if (value <= acClear) {
@@ -1292,82 +1332,23 @@ public class AutomationFacade {
         AutomationResourceBindingEntity localAc =
                 resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_AC_SWITCH);
         ResourceStatus localAcStatus = resolveResourceStatus(localAc, catalog);
-        if (localAcStatus.ready() && !localAcStatus.connectionWarning()) {
-            int offDelayMinutes = integer(cfg.get("off_delay_minutes"), 5);
-            int minToggleMinutes = integer(cfg.get("min_toggle_minutes"), 5);
-            LocalDateTime lastLocalActionAt = parseDateTime(runtime.get("last_local_ac_action_at"));
-            LocalDateTime nextToggleAt = lastLocalActionAt != null
-                    ? lastLocalActionAt.plusMinutes(minToggleMinutes)
-                    : null;
-            boolean localToggleAllowed = nextToggleAt == null || !nextToggleAt.isAfter(now);
-            boolean localAcOn = isSwitchOn(localAc, localAcStatus.value());
-            if (acRequest) {
-                runtime.put("last_local_ac_request_at", now.toString());
-                if (localAcOn) {
-                    updateAcControlRuntime(runtime, AC_STATUS_HANDLING_REQUEST, null);
-                } else if (localToggleAllowed) {
-                    boolean published = sendSwitchIfNeeded(
-                            localAc,
-                            true,
-                            catalog,
-                            AutomationData.SCENARIO_BOX_CLIMATE,
-                            AutomationData.SCOPE_BOX,
-                            box.getId(),
-                            "Теплице требуется охлаждение",
-                            now,
-                            null
-                    );
-                    if (published) {
-                        runtime.put("last_local_ac_action_at", now.toString());
-                    }
-                    updateAcControlRuntime(
-                            runtime,
-                            published ? AC_STATUS_HANDLING_REQUEST : AC_STATUS_UNAVAILABLE,
-                            null
-                    );
-                } else {
-                    updateAcControlRuntime(runtime, AC_STATUS_WAITING_TO_START, nextToggleAt);
-                }
-            } else {
-                LocalDateTime lastRequestAt = parseDateTime(runtime.get("last_local_ac_request_at"));
-                LocalDateTime nextOffAt = later(
-                        lastRequestAt != null ? lastRequestAt.plusMinutes(offDelayMinutes) : null,
-                        nextToggleAt
-                );
-                if (!localAcOn) {
-                    updateAcControlRuntime(runtime, AC_STATUS_IDLE, null);
-                } else if (lastRequestAt == null) {
-                    updateAcControlRuntime(runtime, AC_STATUS_ON_OUTSIDE_SCENARIO, null);
-                } else if (nextOffAt != null && nextOffAt.isAfter(now)) {
-                    updateAcControlRuntime(runtime, AC_STATUS_HOLDING_AFTER_REQUEST, nextOffAt);
-                } else {
-                    boolean published = sendSwitchIfNeeded(
-                            localAc,
-                            false,
-                            catalog,
-                            AutomationData.SCENARIO_BOX_CLIMATE,
-                            AutomationData.SCOPE_BOX,
-                            box.getId(),
-                            "Запрос теплицы на охлаждение снят",
-                            now,
-                            null
-                    );
-                    if (published) {
-                        runtime.put("last_local_ac_action_at", now.toString());
-                    }
-                    updateAcControlRuntime(
-                            runtime,
-                            published ? AC_STATUS_IDLE : AC_STATUS_UNAVAILABLE,
-                            null
-                    );
-                }
-            }
-        } else {
-            updateAcControlRuntime(runtime, AC_STATUS_UNAVAILABLE, null);
-        }
-
-        runtime.put("last_temperature", value);
-        runtime.put("last_temperature_at", now.toString());
+        controlAirConditioner(
+                localAc,
+                localAcStatus,
+                acRequest ? 1 : 0,
+                catalog,
+                AutomationData.SCENARIO_BOX_CLIMATE,
+                AutomationData.SCOPE_BOX,
+                box.getId(),
+                "Теплице требуется охлаждение",
+                "Запрос теплицы на охлаждение снят",
+                runtime,
+                now
+        );
+        runtime.remove("last_temperature");
+        runtime.remove("last_temperature_at");
+        runtime.remove("last_local_ac_request_at");
+        runtime.remove("last_local_ac_action_at");
         state.setRuntimeJson(writeJson(runtime));
         markState(state, "active", null, acRequest, now);
     }
@@ -1398,77 +1379,46 @@ public class AutomationFacade {
 
         AutomationData.Readiness readiness = roomClimateReadiness(room.getId(), allBoxes, catalog);
         if (!room.isEnabled()) {
-            updateAcControlRuntime(runtime, AC_STATUS_UNAVAILABLE, null);
+            updateAcControlRuntime(runtime, AC_PHASE_DISABLED, null, pendingRequests.size(), null);
             state.setRuntimeJson(writeJson(runtime));
             markState(state, "disabled", "Ферма выключена", hasRequest, now);
             return;
         }
         if (config == null || !config.isEnabled()) {
-            updateAcControlRuntime(runtime, AC_STATUS_UNAVAILABLE, null);
+            updateAcControlRuntime(runtime, AC_PHASE_DISABLED, null, pendingRequests.size(), null);
             state.setRuntimeJson(writeJson(runtime));
             markState(state, "disabled", "Сценарий выключен", hasRequest, now);
             return;
         }
         if (!readiness.ready()) {
-            updateAcControlRuntime(runtime, AC_STATUS_UNAVAILABLE, null);
+            updateAcControlRuntime(
+                    runtime,
+                    AC_PHASE_UNAVAILABLE,
+                    hasRequest ? "ON" : "OFF",
+                    pendingRequests.size(),
+                    null
+            );
             state.setRuntimeJson(writeJson(runtime));
             markState(state, "unready", readiness.reason(), hasRequest, now);
             return;
         }
 
-        Map<String, Object> cfg = configMap(config, AutomationData.SCENARIO_ROOM_CLIMATE);
-        int offDelayMinutes = integer(cfg.get("off_delay_minutes"), 5);
-        int minToggleMinutes = integer(cfg.get("min_toggle_minutes"), 5);
-        if (hasRequest) {
-            runtime.put("last_request_at", now.toString());
-        }
-        LocalDateTime lastAction = state.getLastActionAt();
-        LocalDateTime nextToggleAt = lastAction != null
-                ? lastAction.plusMinutes(minToggleMinutes)
-                : null;
-        boolean toggleAllowed = nextToggleAt == null || !nextToggleAt.isAfter(now);
-        LocalDateTime lastRequestAt = parseDateTime(runtime.get("last_request_at"));
         AutomationResourceBindingEntity acBinding = resource(AutomationData.SCOPE_ROOM, room.getId(), AutomationData.ROLE_AC_SWITCH);
         ResourceStatus acStatus = resolveResourceStatus(acBinding, catalog);
-        boolean acOn = isSwitchOn(acBinding, acStatus.value());
-
-        if (hasRequest) {
-            if (acOn) {
-                updateAcControlRuntime(runtime, AC_STATUS_HANDLING_REQUEST, null);
-            } else if (toggleAllowed) {
-                boolean published = sendSwitchIfNeeded(
-                        acBinding, true, catalog, AutomationData.SCENARIO_ROOM_CLIMATE,
-                        AutomationData.SCOPE_ROOM, room.getId(), "Есть запрос теплицы на охлаждение", now, null);
-                updateAcControlRuntime(
-                        runtime,
-                        published ? AC_STATUS_HANDLING_REQUEST : AC_STATUS_UNAVAILABLE,
-                        null
-                );
-            } else {
-                updateAcControlRuntime(runtime, AC_STATUS_WAITING_TO_START, nextToggleAt);
-            }
-        } else {
-            LocalDateTime nextOffAt = later(
-                    lastRequestAt != null ? lastRequestAt.plusMinutes(offDelayMinutes) : null,
-                    nextToggleAt
-            );
-            if (!acOn) {
-                updateAcControlRuntime(runtime, AC_STATUS_IDLE, null);
-            } else if (lastRequestAt == null) {
-                updateAcControlRuntime(runtime, AC_STATUS_ON_OUTSIDE_SCENARIO, null);
-            } else if (nextOffAt != null && nextOffAt.isAfter(now)) {
-                updateAcControlRuntime(runtime, AC_STATUS_HOLDING_AFTER_REQUEST, nextOffAt);
-            } else {
-                boolean published = sendSwitchIfNeeded(
-                        acBinding, false, catalog, AutomationData.SCENARIO_ROOM_CLIMATE,
-                        AutomationData.SCOPE_ROOM, room.getId(), "Запросов теплиц на охлаждение нет", now, null);
-                updateAcControlRuntime(
-                        runtime,
-                        published ? AC_STATUS_IDLE : AC_STATUS_UNAVAILABLE,
-                        null
-                );
-            }
-        }
+        controlAirConditioner(
+                acBinding,
+                acStatus,
+                pendingRequests.size(),
+                catalog,
+                AutomationData.SCENARIO_ROOM_CLIMATE,
+                AutomationData.SCOPE_ROOM,
+                room.getId(),
+                "Есть запрос теплицы на охлаждение",
+                "Запросов теплиц на охлаждение нет",
+                runtime,
+                now
+        );
+        runtime.remove("last_request_at");
         state.setRuntimeJson(writeJson(runtime));
         markState(state, "active", null, hasRequest, now);
     }
@@ -2393,21 +2343,6 @@ public class AutomationFacade {
                 GREENHOUSE_ROLES.indexOf(right.role())
         ));
 
-        List<AutomationData.ScenarioConfig> roomScenarios = scenarioData(
-                AutomationData.SCOPE_ROOM,
-                room.getId(),
-                ROOM_SCENARIOS,
-                configs.getOrDefault(key(AutomationData.SCOPE_ROOM, room.getId()), List.of()),
-                catalog,
-                room.getId()
-        );
-        Map<String, Object> roomClimateConfig = roomScenarios.isEmpty()
-                ? Map.of()
-                : roomScenarios.get(0).config();
-        List<AutomationData.ScenarioConfig> publicScenarios = boxData.scenarios().stream()
-                .map(scenario -> mergeRoomClimateConfig(scenario, roomClimateConfig))
-                .toList();
-
         List<AutomationData.ScenarioState> publicStates = new ArrayList<>(boxData.states());
         states.getOrDefault(key(AutomationData.SCOPE_ROOM, room.getId()), List.of()).stream()
                 .map(this::toStateData)
@@ -2431,35 +2366,12 @@ public class AutomationFacade {
                 box.isEnabled(),
                 boxData.plants(),
                 slots,
-                publicScenarios,
+                boxData.scenarios(),
                 publicStates,
                 boxData.readiness(),
                 actions,
                 box.getCreatedAt(),
                 box.getUpdatedAt()
-        );
-    }
-
-    private AutomationData.ScenarioConfig mergeRoomClimateConfig(
-            AutomationData.ScenarioConfig scenario,
-            Map<String, Object> roomClimateConfig
-    ) {
-        if (!AutomationData.SCENARIO_BOX_CLIMATE.equals(scenario.scenarioType())) {
-            return scenario;
-        }
-        Map<String, Object> merged = new LinkedHashMap<>(scenario.config());
-        copyIfPresent(roomClimateConfig, merged, "off_delay_minutes");
-        copyIfPresent(roomClimateConfig, merged, "min_toggle_minutes");
-        return new AutomationData.ScenarioConfig(
-                scenario.id(),
-                scenario.scopeType(),
-                scenario.scopeId(),
-                scenario.scenarioType(),
-                scenario.enabled(),
-                merged,
-                scenario.readiness(),
-                scenario.createdAt(),
-                scenario.updatedAt()
         );
     }
 
@@ -2831,12 +2743,6 @@ public class AutomationFacade {
         farmClimate.setEnabled(enabled);
         farmClimate.setUpdatedAt(now);
         configRepository.save(farmClimate);
-    }
-
-    private void copyIfPresent(Map<String, Object> source, Map<String, Object> target, String key) {
-        if (source != null && source.containsKey(key)) {
-            target.put(key, source.get(key));
-        }
     }
 
     private Catalog buildCatalog() {
@@ -3406,12 +3312,6 @@ public class AutomationFacade {
                 config.put("exhaust_off_below_c", 27.0);
                 config.put("ac_request_above_c", 29.0);
                 config.put("ac_clear_below_c", 27.0);
-                config.put("off_delay_minutes", 5);
-                config.put("min_toggle_minutes", 5);
-            }
-            case AutomationData.SCENARIO_ROOM_CLIMATE -> {
-                config.put("off_delay_minutes", 5);
-                config.put("min_toggle_minutes", 5);
             }
             case AutomationData.SCENARIO_LIGHT_SCHEDULE -> {
                 config.put("start_time", "06:00");
@@ -3441,8 +3341,11 @@ public class AutomationFacade {
         if (config != null) {
             merged.putAll(config);
         }
-        if (AutomationData.SCENARIO_BOX_CLIMATE.equals(scenarioType)) {
+        if (AutomationData.SCENARIO_BOX_CLIMATE.equals(scenarioType)
+                || AutomationData.SCENARIO_ROOM_CLIMATE.equals(scenarioType)) {
             merged.remove("min_c");
+            merged.remove("off_delay_minutes");
+            merged.remove("min_toggle_minutes");
         }
         return merged;
     }
@@ -3710,27 +3613,82 @@ public class AutomationFacade {
         return defaultOnValue(binding.getOnValue()).equalsIgnoreCase(String.valueOf(currentValue));
     }
 
-    private void updateAcControlRuntime(
+    private void controlAirConditioner(
+            AutomationResourceBindingEntity binding,
+            ResourceStatus resourceStatus,
+            int requestCount,
+            Catalog catalog,
+            String scenarioType,
+            String scopeType,
+            Integer scopeId,
+            String onReason,
+            String offReason,
             Map<String, Object> runtime,
-            String status,
-            LocalDateTime nextTransitionAt
+            LocalDateTime now
     ) {
-        runtime.put(RUNTIME_AC_CONTROL_STATUS, status);
-        if (nextTransitionAt == null) {
-            runtime.remove(RUNTIME_AC_NEXT_TRANSITION_AT);
-        } else {
-            runtime.put(RUNTIME_AC_NEXT_TRANSITION_AT, nextTransitionAt.toString());
+        boolean shouldBeOn = requestCount > 0;
+        String desiredState = shouldBeOn ? "ON" : "OFF";
+        if (binding == null || !resourceStatus.ready() || resourceStatus.connectionWarning()) {
+            updateAcControlRuntime(
+                    runtime,
+                    AC_PHASE_UNAVAILABLE,
+                    desiredState,
+                    requestCount,
+                    null
+            );
+            return;
         }
+
+        boolean isOn = isSwitchOn(binding, resourceStatus.value());
+        if (shouldBeOn && isOn) {
+            updateAcControlRuntime(runtime, AC_PHASE_COOLING, desiredState, requestCount, null);
+            return;
+        }
+        if (!shouldBeOn && !isOn) {
+            updateAcControlRuntime(runtime, AC_PHASE_IDLE, desiredState, requestCount, null);
+            return;
+        }
+
+        boolean published = sendSwitchIfNeeded(
+                binding,
+                shouldBeOn,
+                catalog,
+                scenarioType,
+                scopeType,
+                scopeId,
+                shouldBeOn ? onReason : offReason,
+                now,
+                null
+        );
+        String phase;
+        if (published) {
+            phase = shouldBeOn ? AC_PHASE_SWITCHING_ON : AC_PHASE_SWITCHING_OFF;
+        } else {
+            phase = shouldBeOn ? AC_PHASE_UNAVAILABLE : AC_PHASE_UNEXPECTED_ON;
+        }
+        updateAcControlRuntime(runtime, phase, desiredState, requestCount, published ? now : null);
     }
 
-    private LocalDateTime later(LocalDateTime first, LocalDateTime second) {
-        if (first == null) {
-            return second;
+    private void updateAcControlRuntime(
+            Map<String, Object> runtime,
+            String phase,
+            String desiredState,
+            int requestCount,
+            LocalDateTime commandAt
+    ) {
+        LocalDateTime lastCommandAt = commandAt;
+        Object current = runtime.get(RUNTIME_AC_CONTROL);
+        if (lastCommandAt == null && current instanceof Map<?, ?> currentMap) {
+            lastCommandAt = parseDateTime(currentMap.get("last_command_at"));
         }
-        if (second == null) {
-            return first;
-        }
-        return first.isAfter(second) ? first : second;
+        Map<String, Object> acControl = new LinkedHashMap<>();
+        acControl.put("phase", phase);
+        acControl.put("desired_state", desiredState);
+        acControl.put("request_count", requestCount);
+        acControl.put("last_command_at", lastCommandAt != null ? lastCommandAt.toString() : null);
+        runtime.put(RUNTIME_AC_CONTROL, acControl);
+        runtime.put(RUNTIME_AC_CONTROL_STATUS, phase);
+        runtime.remove(RUNTIME_AC_NEXT_TRANSITION_AT);
     }
 
     private LocalDateTime parseDateTime(Object value) {
