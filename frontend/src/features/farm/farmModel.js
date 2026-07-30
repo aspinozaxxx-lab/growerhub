@@ -41,7 +41,6 @@ export const SCENARIO_LABELS = {
 
 const SCENARIO_DEFAULTS = {
   BOX_CLIMATE: {
-    min_c: 24,
     max_c: 28,
     exhaust_off_below_c: 26,
     ac_request_above_c: 30,
@@ -61,6 +60,11 @@ const SCENARIO_DEFAULTS = {
     daily_max_seconds: 300,
     stop_mode: 'fixed_duration',
   },
+};
+
+const FARM_CLIMATE_DEFAULTS = {
+  off_delay_minutes: 5,
+  min_toggle_minutes: 5,
 };
 
 export const listOrEmpty = (value) => (Array.isArray(value) ? value : []);
@@ -91,6 +95,18 @@ export function createScenarioDrafts(zone) {
       },
     }];
   }));
+}
+
+export function createFarmClimateDraft(farm) {
+  const current = scenarioForType(farm, 'ROOM_CLIMATE');
+  return {
+    scenario_type: 'ROOM_CLIMATE',
+    enabled: Boolean(current?.enabled),
+    config: {
+      ...FARM_CLIMATE_DEFAULTS,
+      ...(current?.config || {}),
+    },
+  };
 }
 
 export function buildSlotOccupancy(scopes) {
@@ -160,29 +176,76 @@ export function findUnassignedFarmPlants(overview) {
     .filter((plant) => plant?.id != null && !assignedPlantIds.has(plant.id));
 }
 
-export function countFarmWarnings(overview) {
-  const farmWarnings = overviewFarms(overview).reduce((total, farm) => {
-    const farmOffline = listOrEmpty(farm.slots)
+export function listFarmWarnings(overview) {
+  const warnings = [];
+  overviewFarms(overview).forEach((farm) => {
+    listOrEmpty(farm.slots)
       .filter((slot) => slot.connection_status === 'warning' || slot.ready === false)
-      .length;
-    const farmRequests = listOrEmpty(farm.states)
+      .forEach((slot) => warnings.push({
+        id: `farm:${farm.id}:slot:${slot.id || slot.role}`,
+        scopeLabel: 'Ферма',
+        scopeName: farm.name,
+        label: slot.label
+          ? `${SLOT_ROLE_LABELS[slot.role] || slot.role}: ${slot.label}`
+          : (SLOT_ROLE_LABELS[slot.role] || slot.role),
+        message: slot.connection_message || slot.reason || 'Не готово',
+      }));
+    listOrEmpty(farm.states)
       .filter((state) => state.scenario_type === 'ROOM_CLIMATE' && state.ac_request_active)
-      .length;
-    return total + farmOffline + farmRequests;
-  }, 0);
-  const greenhouseWarnings = overviewGreenhouses(overview).reduce((total, greenhouse) => {
-    const offline = listOrEmpty(greenhouse.slots)
-      .filter((slot) => slot.connection_status === 'warning' || slot.ready === false)
-      .length;
-    const unavailable = Object.values(greenhouse.readiness || {})
-      .filter((readiness) => !readiness?.ready)
-      .length;
-    const coolingRequests = listOrEmpty(greenhouse.states)
-      .filter((state) => state.scenario_type === 'BOX_CLIMATE' && state.ac_request_active)
-      .length;
-    return total + offline + unavailable + coolingRequests;
-  }, 0);
-  return farmWarnings + greenhouseWarnings + findUnassignedFarmPlants(overview).length;
+      .forEach((state) => warnings.push({
+        id: `farm:${farm.id}:request:${state.id || 'room-climate'}`,
+        scopeLabel: 'Ферма',
+        scopeName: farm.name,
+        label: 'Климат фермы',
+        message: 'Есть запрос теплицы на охлаждение',
+      }));
+
+    listOrEmpty(farm.greenhouses).forEach((greenhouse) => {
+      const scopeName = `${farm.name} · ${greenhouse.name}`;
+      listOrEmpty(greenhouse.slots)
+        .filter((slot) => slot.connection_status === 'warning' || slot.ready === false)
+        .forEach((slot) => warnings.push({
+          id: `greenhouse:${greenhouse.id}:slot:${slot.id || slot.role}`,
+          scopeLabel: 'Теплица',
+          scopeName,
+          label: slot.label
+            ? `${SLOT_ROLE_LABELS[slot.role] || slot.role}: ${slot.label}`
+            : (SLOT_ROLE_LABELS[slot.role] || slot.role),
+          message: slot.connection_message || slot.reason || 'Не готово',
+        }));
+      Object.entries(greenhouse.readiness || {})
+        .filter(([, readiness]) => !readiness?.ready)
+        .forEach(([scenarioType, readiness]) => warnings.push({
+          id: `greenhouse:${greenhouse.id}:readiness:${scenarioType}`,
+          scopeLabel: 'Теплица',
+          scopeName,
+          label: SCENARIO_LABELS[scenarioType] || scenarioType,
+          message: readiness?.reason || 'Сценарий не готов',
+        }));
+      listOrEmpty(greenhouse.states)
+        .filter((state) => state.scenario_type === 'BOX_CLIMATE' && state.ac_request_active)
+        .forEach((state) => warnings.push({
+          id: `greenhouse:${greenhouse.id}:request:${state.id || 'box-climate'}`,
+          scopeLabel: 'Теплица',
+          scopeName,
+          label: 'Климат',
+          message: 'Требуется охлаждение',
+        }));
+    });
+  });
+
+  findUnassignedFarmPlants(overview).forEach((plant) => warnings.push({
+    id: `plant:${plant.id}:unassigned`,
+    scopeLabel: 'Растение',
+    scopeName: plant.name || 'Растение без названия',
+    label: 'Размещение',
+    message: 'Не выбрана теплица',
+  }));
+  return warnings;
+}
+
+export function countFarmWarnings(overview) {
+  return listFarmWarnings(overview).length;
 }
 
 export function assignmentsForZigbeeDevice(overview, device) {

@@ -3,6 +3,7 @@ import {
   RESOURCE_ROLES,
   RESOURCE_SOURCE_TYPES,
   SCENARIO_TYPES,
+  acControlStatusLabel,
   buildAcRequestBoxes,
   buildResourceStatsPayload,
   findResource,
@@ -51,6 +52,19 @@ describe('admin farm dashboard model', () => {
     };
 
     expect(buildAcRequestBoxes(room).map((box) => box.name)).toEqual(['Бокс 1']);
+  });
+
+  it('obyasnyaet zaderzhku i vnescenarnoe vklyuchenie kondicionera', () => {
+    expect(acControlStatusLabel({
+      ac_control_status: 'holding_after_request',
+      ac_next_transition_at: '2026-07-30T09:30:00',
+    })).toContain('Запрос снят, кондиционер выключится после');
+    expect(acControlStatusLabel({
+      ac_control_status: 'on_outside_scenario',
+    })).toBe('Кондиционер включён вне климатического сценария');
+    expect(acControlStatusLabel({
+      ac_control_status: 'handling_request',
+    })).toBe('Кондиционер обрабатывает запрос на охлаждение');
   });
 
   it('vozvraschaet russkie podpisi dlya rolej scenariev i statusov', () => {

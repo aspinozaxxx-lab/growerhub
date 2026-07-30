@@ -6,9 +6,9 @@ import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
 import {
-  countFarmWarnings,
   farmOverviewToDashboardRooms,
   findUnassignedFarmPlants,
+  listFarmWarnings,
   listOrEmpty,
   overviewFarms,
   overviewGreenhouses,
@@ -26,6 +26,7 @@ function AppOverview() {
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [warningTooltipOpen, setWarningTooltipOpen] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -68,7 +69,8 @@ function AppOverview() {
   const plantCount = plants.length;
   const deviceCount = listOrEmpty(catalog.native_devices).length
     + listOrEmpty(catalog.zigbee_devices).length;
-  const warningCount = countFarmWarnings(overview);
+  const warnings = listFarmWarnings(overview);
+  const warningCount = warnings.length;
   const updatedLabel = lastUpdatedAt
     ? formatDateTime(lastUpdatedAt.toISOString())
     : translateApp("Ожидает обновления");
@@ -123,10 +125,63 @@ function AppOverview() {
               <span>{translateApp("Устройства")}</span>
               <strong>{deviceCount}</strong>
             </article>
-            <article className={warningCount > 0 ? 'has-warning' : ''}>
+            <article
+              className={[
+                warningCount > 0 ? 'has-warning has-tooltip' : '',
+                warningTooltipOpen ? 'is-tooltip-open' : '',
+              ].filter(Boolean).join(' ')}
+              tabIndex={warningCount > 0 ? 0 : undefined}
+              aria-describedby={warningCount > 0 ? 'farm-warning-tooltip' : undefined}
+              aria-expanded={warningCount > 0 ? warningTooltipOpen : undefined}
+              role={warningCount > 0 ? 'button' : undefined}
+              onClick={warningCount > 0
+                ? () => setWarningTooltipOpen((current) => !current)
+                : undefined}
+              onKeyDown={warningCount > 0 ? (event) => {
+                if (event.key === 'Escape') {
+                  setWarningTooltipOpen(false);
+                } else if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  setWarningTooltipOpen((current) => !current);
+                }
+              } : undefined}
+              onBlur={warningCount > 0 ? (event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setWarningTooltipOpen(false);
+                }
+              } : undefined}
+            >
               <AlertTriangle size={20} aria-hidden="true" />
               <span>{translateApp("Предупреждения")}</span>
               <strong>{warningCount}</strong>
+              {warningCount > 0 ? (
+                <div
+                  id="farm-warning-tooltip"
+                  className="farm-warning-tooltip"
+                  role="tooltip"
+                >
+                  <div className="farm-warning-tooltip__title">
+                    {translateApp('Предупреждения: {{value1}}', { value1: warningCount })}
+                  </div>
+                  <ul>
+                    {warnings.map((warning) => (
+                      <li key={warning.id}>
+                        <span>
+                          {translateApp(warning.scopeLabel)}
+                          {' «'}
+                          {warning.scopeName || translateApp('Без названия')}
+                          {'»'}
+                        </span>
+                        <span>
+                          {translateApp(warning.label)}
+                          {' — '}
+                          {translateApp(warning.message)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </article>
           </div>
 

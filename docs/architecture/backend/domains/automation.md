@@ -21,6 +21,7 @@
 - `replaceUserFarmScenarios(AuthenticatedUser user, Integer farmId, SaveScenariosRequest request)`
 - `replaceGreenhouseSlots(AuthenticatedUser user, Integer greenhouseId, SaveZoneSlotsRequest request)`
 - `replaceGreenhousePlants(AuthenticatedUser user, Integer greenhouseId, SavePlantsRequest request)`
+- `updateGreenhousePlantWateringRate(AuthenticatedUser user, Integer greenhouseId, Integer plantId, UpdateWateringRateRequest request)`
 - `replaceGreenhouseScenarios(AuthenticatedUser user, Integer greenhouseId, SaveScenariosRequest request)`
 - `getPlantZones(AuthenticatedUser user, List<Integer> plantIds)`
 - `getPlantZone(AuthenticatedUser user, Integer plantId)`
@@ -69,17 +70,18 @@ bindings, scenario configs, scenario states и action log. Zigbee-привязк
 ## Алгоритм работы
 
 Self-service REST публикует `farms → greenhouses` и всегда фильтрует данные по
-владельцу. `zone_id` растения означает greenhouse id; изменение растения и
-размещения выполняется одной транзакцией. Слот занимает один физический канал,
-переназначение требует `reassign=true`. `BOX_CLIMATE` по температуре формирует
-запрос охлаждения независимо от кондиционеров и обдува. Локальный кондиционер
-теплицы обслуживает запрос сам; иначе `ROOM_CLIMATE` агрегирует запрос на ферме
-и использует её кондиционер. При отсутствии кондиционера запрос остаётся в
-state для дашборда. Свет и полив используют действующие сценарии. Readiness и
-связь вычисляет backend. MQTT-контракты не меняются. Расписание света и
-граница календарных суток для суточного лимита полива вычисляются в IANA
-timezone владельца фермы. Worker загружает часовые пояса владельцев одним
-набором перед обработкой боксов.
+владельцу. `zone_id` растения означает greenhouse id; размещение меняется
+только транзакционной операцией растения, а отдельный endpoint конструктора
+обновляет лишь `rate_ml_per_hour`. Слот занимает один физический канал,
+переназначение требует `reassign=true`. `BOX_CLIMATE` использует четыре порога:
+включение и выключение обдува, создание и снятие запроса охлаждения. Локальный
+кондиционер обслуживает запрос сам; иначе `ROOM_CLIMATE` агрегирует запрос на
+ферме. Задержка выключения и защита от частых переключений принадлежат
+назначенному кондиционеру. Backend публикует `ac_control_status` и время
+ожидаемого перехода; без кондиционера запрос сохраняется для дашборда. Свет и
+полив используют действующие сценарии. Readiness и связь вычисляет backend.
+MQTT-контракты не меняются. Расписание света и суточный лимит полива используют
+IANA timezone владельца; worker загружает часовые пояса одним набором.
 
 ## Ограничения
 

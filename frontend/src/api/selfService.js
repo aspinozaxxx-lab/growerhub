@@ -141,6 +141,15 @@ export const replaceGreenhousePlants = (greenhouseId, items) => requestJson(
   },
 );
 
+export const updateGreenhousePlantWateringRate = (greenhouseId, plantId, rateMlPerHour) => requestJson(
+  `/api/automation/greenhouses/${encodeURIComponent(greenhouseId)}`
+    + `/plants/${encodeURIComponent(plantId)}/watering-rate`,
+  {
+    method: 'PATCH',
+    body: JSON.stringify({ rate_ml_per_hour: rateMlPerHour }),
+  },
+);
+
 export const replaceGreenhouseScenarios = (greenhouseId, scenarios) => requestJson(
   `/api/automation/greenhouses/${encodeURIComponent(greenhouseId)}/scenarios`,
   {

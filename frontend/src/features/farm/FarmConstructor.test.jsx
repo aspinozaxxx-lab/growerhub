@@ -4,25 +4,40 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchFarmsOverview,
-  replaceGreenhousePlants,
   replaceGreenhouseScenarios,
   replaceGreenhouseSlots,
+  replaceUserFarmScenarios,
   replaceUserFarmSlots,
+  updateGreenhousePlantWateringRate,
 } from '../../api/selfService';
+import { fetchPlant, updatePlant } from '../../api/plants';
 import FarmConstructor from './FarmConstructor';
 
 vi.mock('../../api/selfService', () => ({
   fetchFarmsOverview: vi.fn(),
-  replaceGreenhousePlants: vi.fn(),
   replaceGreenhouseScenarios: vi.fn(),
   replaceGreenhouseSlots: vi.fn(),
+  replaceUserFarmScenarios: vi.fn(),
   replaceUserFarmSlots: vi.fn(),
+  updateGreenhousePlantWateringRate: vi.fn(),
+}));
+
+vi.mock('../../api/plants', () => ({
+  fetchPlant: vi.fn(),
+  updatePlant: vi.fn(),
+  createPlant: vi.fn(),
+  deletePlant: vi.fn(),
+}));
+
+vi.mock('../../features/auth/AuthContext', () => ({
+  useAuth: () => ({ token: 'test-token' }),
 }));
 
 const overview = {
@@ -79,7 +94,9 @@ describe('FarmConstructor', () => {
     const greenhouse = greenhouseTitle.closest('article');
 
     expect(within(greenhouse).getByText('Требуется охлаждение')).toBeInTheDocument();
-    expect(within(greenhouse).getByText('В этой теплице')).toBeInTheDocument();
+    expect(within(greenhouse).getByRole('button', { name: 'Томат' })).toBeInTheDocument();
+    expect(within(greenhouse).queryByText('В этой теплице')).not.toBeInTheDocument();
+    expect(within(greenhouse).queryByRole('checkbox', { name: 'Томат' })).not.toBeInTheDocument();
     expect(within(greenhouse).queryByLabelText('Температура воздуха')).not.toBeInTheDocument();
     expect(screen.queryByText('Слот свободен')).not.toBeInTheDocument();
     expect(screen.queryByText('ТЕПЛИЦА')).not.toBeInTheDocument();
@@ -87,6 +104,12 @@ describe('FarmConstructor', () => {
       .not.toBeInTheDocument();
     expect(screen.queryByText('Backend проверяет готовность по назначенным слотам до включения.'))
       .not.toBeInTheDocument();
+    expect(within(greenhouse).getByLabelText('Обдув включить выше, °C')).toBeInTheDocument();
+    expect(within(greenhouse).getByLabelText('Обдув выключить ниже, °C')).toBeInTheDocument();
+    expect(within(greenhouse).getByLabelText('Запрос охлаждения выше, °C')).toBeInTheDocument();
+    expect(within(greenhouse).getByLabelText('Снять запрос ниже, °C')).toBeInTheDocument();
+    expect(within(greenhouse).queryByLabelText('Минимум, °C')).not.toBeInTheDocument();
+    expect(within(greenhouse).queryByText('Настройки кондиционера')).not.toBeInTheDocument();
 
     fireEvent.change(within(greenhouse).getByLabelText('Тип нового слота'), {
       target: { value: 'AIR_TEMPERATURE_SENSOR' },
@@ -96,8 +119,9 @@ describe('FarmConstructor', () => {
     expect(within(greenhouse).getByLabelText('Температура воздуха')).toBeInTheDocument();
     expect(replaceUserFarmSlots).not.toHaveBeenCalled();
     expect(replaceGreenhouseSlots).not.toHaveBeenCalled();
-    expect(replaceGreenhousePlants).not.toHaveBeenCalled();
+    expect(updateGreenhousePlantWateringRate).not.toHaveBeenCalled();
     expect(replaceGreenhouseScenarios).not.toHaveBeenCalled();
+    expect(replaceUserFarmScenarios).not.toHaveBeenCalled();
   });
 
   it('pokazyvaet aktualnyj status svjazi dlya svezhego binding', async () => {
@@ -135,5 +159,33 @@ describe('FarmConstructor', () => {
       && element.textContent.includes('на связи')
     ))).toBeInTheDocument();
     expect(within(greenhouse).queryByText('статус неизвестен')).not.toBeInTheDocument();
+  });
+
+  it('sohranyaet tolko skorost poliva i otkryvaet obshchij dialog rastenija', async () => {
+    updateGreenhousePlantWateringRate.mockResolvedValue(overview);
+    fetchPlant.mockResolvedValue({
+      id: 5,
+      name: 'Томат',
+      plant_type: 'tomato',
+      zone: { id: 2, name: 'Северная' },
+    });
+    updatePlant.mockResolvedValue({});
+
+    render(
+      <MemoryRouter>
+        <FarmConstructor />
+      </MemoryRouter>,
+    );
+
+    const greenhouse = (await screen.findByRole('heading', { name: 'Северная' })).closest('article');
+    const rate = within(greenhouse).getByLabelText('Скорость полива для Томат, мл/ч');
+    fireEvent.change(rate, { target: { value: '140' } });
+    fireEvent.blur(rate);
+
+    await waitFor(() => expect(updateGreenhousePlantWateringRate).toHaveBeenCalledWith(2, 5, 140));
+
+    fireEvent.click(within(greenhouse).getByRole('button', { name: 'Томат' }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(fetchPlant).toHaveBeenCalledWith(null, 5);
   });
 });

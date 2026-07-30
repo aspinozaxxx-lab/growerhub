@@ -1,4 +1,12 @@
-﻿### fix(account): timezone, onboarding i Zigbee statistika
+﻿### fix(farm): klimat, rasteniya i preduprezhdeniya dashboard
+
+- fix(climate): konstruktor i avtomatizacii ispolzuyut odin redaktor chetyreh porogov, a zaderzhka i zashchita pereehali v blok naznachennogo kondicionera.
+- feat(climate): dashboard obyasnyaet obrabotku zaprosa, ozhidanie pereklucheniya, zaderzhku vyklucheniya, vneshnee vklyuchenie i nedostupnost kondicionera.
+- fix(plants): konstruktor pokazyvaet tolko naznachennye rasteniya, otkryvaet obshchuyu formu i otdelno sohranyaet skorost poliva.
+- feat(dashboard): schetchik preduprezhdenij postroen iz detalnogo tooltip, dostupnogo myshyu, klaviaturoj i kasaniem.
+- migration: V19 udalyaet neispolzuemyj `min_c` iz konfiguracij klimata.
+
+### fix(account): timezone, onboarding i Zigbee statistika
 
 - feat(profile): dobavlen vybor IANA timezone dlya vremeni v UI, raspisanij sveta i sutochnyh limitov poliva.
 - fix(onboarding): zavershenie pervichnoj nastrojki hranitsya postoyanno; CTA skryt posle zaversheniya i predlagaet prodolzhit nastrojku do nego.

@@ -69,6 +69,10 @@ public class AutomationBoxPlantEntity {
         return rateMlPerHour;
     }
 
+    public void setRateMlPerHour(Integer rateMlPerHour) {
+        this.rateMlPerHour = rateMlPerHour;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }

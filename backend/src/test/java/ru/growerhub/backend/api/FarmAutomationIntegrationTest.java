@@ -149,7 +149,9 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
     @Test
     void plantMovesBetweenGreenhousesAtomically() {
         UserEntity owner = createUser("farm-plants@example.com", "user");
+        UserEntity other = createUser("farm-plants-other@example.com", "user");
         String token = buildToken(owner.getId());
+        String otherToken = buildToken(other.getId());
         Integer farmId = createFarm(token, "Моя ферма");
         Integer firstGreenhouseId = createGreenhouse(token, farmId, "Теплица 1");
         Integer secondGreenhouseId = createGreenhouse(token, farmId, "Теплица 2");
@@ -177,6 +179,42 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                 "SELECT id FROM plants WHERE name='Томат'",
                 Integer.class
         );
+
+        given()
+                .header("Authorization", "Bearer " + otherToken)
+                .contentType("application/json")
+                .body("{\"rate_ml_per_hour\":120}")
+                .when()
+                .patch("/api/automation/greenhouses/" + firstGreenhouseId
+                        + "/plants/" + plantId + "/watering-rate")
+                .then()
+                .statusCode(404)
+                .body("detail", equalTo("Теплица не найдена"));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("{\"rate_ml_per_hour\":120}")
+                .when()
+                .patch("/api/automation/greenhouses/" + firstGreenhouseId
+                        + "/plants/" + plantId + "/watering-rate")
+                .then()
+                .statusCode(200)
+                .body("farms[0].greenhouses.find { it.id == " + firstGreenhouseId
+                                + " }.plants[0].rate_ml_per_hour",
+                        equalTo(120));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("{\"rate_ml_per_hour\":0}")
+                .when()
+                .patch("/api/automation/greenhouses/" + firstGreenhouseId
+                        + "/plants/" + plantId + "/watering-rate")
+                .then()
+                .statusCode(400)
+                .body("detail", equalTo("Поле rate_ml_per_hour должно быть больше нуля"));
+
         given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
@@ -187,6 +225,19 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                 .statusCode(200)
                 .body("zone.id", equalTo(secondGreenhouseId))
                 .body("zone.name", equalTo("Теплица 2"));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .body("farms[0].greenhouses.find { it.id == " + firstGreenhouseId
+                                + " }.plants",
+                        hasSize(0))
+                .body("farms[0].greenhouses.find { it.id == " + secondGreenhouseId
+                                + " }.plants[0].rate_ml_per_hour",
+                        equalTo(120));
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -327,6 +378,7 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                           "scenario_type":"BOX_CLIMATE",
                           "enabled":true,
                           "config":{
+                            "min_c":20,
                             "ac_request_above_c":30,
                             "ac_clear_below_c":27
                           }
@@ -336,7 +388,10 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                 .put("/api/automation/greenhouses/" + greenhouseId + "/scenarios")
                 .then()
                 .statusCode(200)
-                .body("farms[0].greenhouses[0].readiness.BOX_CLIMATE.ready", equalTo(true));
+                .body("farms[0].greenhouses[0].readiness.BOX_CLIMATE.ready", equalTo(true))
+                .body("farms[0].greenhouses[0].scenarios"
+                                + ".find { it.scenario_type == 'BOX_CLIMATE' }.config.min_c",
+                        nullValue());
 
         automationFacade.evaluateAll();
 
@@ -353,9 +408,17 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                                 + ".ac_request_active",
                         equalTo(true))
                 .body("farms.find { it.id == " + farmId
+                                + " }.greenhouses[0].states.find { it.scenario_type == 'BOX_CLIMATE' }"
+                                + ".ac_control_status",
+                        equalTo("unavailable"))
+                .body("farms.find { it.id == " + farmId
                                 + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
                                 + ".ac_request_active",
                         equalTo(true))
+                .body("farms.find { it.id == " + farmId
+                                + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".ac_control_status",
+                        equalTo("unavailable"))
                 .body("farms.find { it.id == " + farmId
                                 + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
                                 + ".runtime.pending_request_count",
@@ -461,6 +524,10 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                                 + ".ac_request_active",
                         equalTo(true))
                 .body("farms.find { it.id == " + localFarmId
+                                + " }.greenhouses[0].states.find { it.scenario_type == 'BOX_CLIMATE' }"
+                                + ".ac_control_status",
+                        equalTo("handling_request"))
+                .body("farms.find { it.id == " + localFarmId
                                 + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
                                 + ".runtime.pending_request_count",
                         equalTo(0))
@@ -475,7 +542,105 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                 .body("farms.find { it.id == " + sharedFarmId
                                 + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
                                 + ".ac_request_active",
-                        equalTo(true));
+                        equalTo(true))
+                .body("farms.find { it.id == " + sharedFarmId
+                                + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".ac_control_status",
+                        equalTo("handling_request"));
+    }
+
+    @Test
+    void farmAirConditionerStateExplainsDelayAndExternalActivation() {
+        UserEntity owner = createUser("farm-ac-delay@example.com", "user");
+        String token = buildToken(owner.getId());
+        Integer farmId = createFarm(token, "Ферма");
+        Integer greenhouseId = createGreenhouse(token, farmId, "Теплица");
+        SensorEntity sensor = createSensor(owner, 32.0);
+        UUID coordinatorId = UUID.randomUUID();
+        int coordinatorInternalId = 42;
+        String acIeee = "0x00124b0000000010";
+        List<ZigbeeOwnedDeviceData> switches = List.of(
+                switchDevice(coordinatorInternalId, coordinatorId, acIeee, "Кондиционер", "ON")
+        );
+        when(zigbeeFacade.getDevicesForUser(any(AuthenticatedUser.class))).thenReturn(switches);
+        when(zigbeeFacade.getDevicesForAutomation()).thenReturn(switches);
+
+        replaceGreenhouseClimateSlots(token, greenhouseId, sensor.getId(), null, null);
+        replaceFarmAirConditioner(token, farmId, coordinatorId, acIeee);
+        enableGreenhouseClimate(token, greenhouseId);
+        automationFacade.evaluateAll();
+
+        addSensorReading(sensor, 20.0);
+        automationFacade.evaluateAll();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".ac_control_status",
+                        equalTo("holding_after_request"))
+                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".ac_next_transition_at",
+                        org.hamcrest.Matchers.notNullValue());
+
+        jdbcTemplate.update("""
+                UPDATE automation_scenario_states
+                SET runtime_json='{}', last_action_at=NULL, ac_request_active=FALSE
+                WHERE scope_type='ROOM' AND scope_id=? AND scenario_type='ROOM_CLIMATE'
+                """, farmId);
+        automationFacade.evaluateAll();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".ac_control_status",
+                        equalTo("on_outside_scenario"))
+                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".ac_next_transition_at",
+                        nullValue());
+    }
+
+    @Test
+    void farmAirConditionerWaitsForToggleProtectionBeforeRepeatedStart() {
+        UserEntity owner = createUser("farm-ac-toggle@example.com", "user");
+        String token = buildToken(owner.getId());
+        Integer farmId = createFarm(token, "Ферма");
+        Integer greenhouseId = createGreenhouse(token, farmId, "Теплица");
+        SensorEntity sensor = createSensor(owner, 32.0);
+        UUID coordinatorId = UUID.randomUUID();
+        int coordinatorInternalId = 43;
+        String acIeee = "0x00124b0000000011";
+        List<ZigbeeOwnedDeviceData> switches = List.of(
+                switchDevice(coordinatorInternalId, coordinatorId, acIeee, "Кондиционер", "OFF")
+        );
+        when(zigbeeFacade.getDevicesForUser(any(AuthenticatedUser.class))).thenReturn(switches);
+        when(zigbeeFacade.getDevicesForAutomation()).thenReturn(switches);
+
+        replaceGreenhouseClimateSlots(token, greenhouseId, sensor.getId(), null, null);
+        replaceFarmAirConditioner(token, farmId, coordinatorId, acIeee);
+        enableGreenhouseClimate(token, greenhouseId);
+        automationFacade.evaluateAll();
+        automationFacade.evaluateAll();
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".ac_control_status",
+                        equalTo("waiting_to_start"))
+                .body("farms[0].states.find { it.scenario_type == 'ROOM_CLIMATE' }"
+                                + ".ac_next_transition_at",
+                        org.hamcrest.Matchers.notNullValue());
     }
 
     @Test
@@ -586,6 +751,16 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
             String ieeeAddress,
             String name
     ) {
+        return switchDevice(coordinatorInternalId, coordinatorId, ieeeAddress, name, "OFF");
+    }
+
+    private ZigbeeOwnedDeviceData switchDevice(
+            int coordinatorInternalId,
+            UUID coordinatorId,
+            String ieeeAddress,
+            String name,
+            String currentState
+    ) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         ZigbeeFeatureData state = new ZigbeeFeatureData(
                 "binary",
@@ -603,7 +778,7 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                 "OFF",
                 "TOGGLE",
                 null,
-                "OFF"
+                currentState
         );
         return new ZigbeeOwnedDeviceData(
                 coordinatorInternalId,
@@ -623,7 +798,7 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                         List.of(state),
                         List.of(),
                         List.of(state),
-                        Map.of("state", "OFF"),
+                        Map.of("state", currentState),
                         "online",
                         now,
                         now
@@ -687,6 +862,16 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
             sensorReadingRepository.save(reading);
         }
         return sensor;
+    }
+
+    private void addSensorReading(SensorEntity sensor, Double value) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        SensorReadingEntity reading = SensorReadingEntity.create();
+        reading.setSensor(sensor);
+        reading.setTs(now);
+        reading.setValueNumeric(value);
+        reading.setCreatedAt(now);
+        sensorReadingRepository.saveAndFlush(reading);
     }
 
     private UserEntity createUser(String email, String role) {

@@ -8,6 +8,7 @@ import {
   farmOverviewToDashboardRooms,
   findUnassignedFarmPlants,
   findSlotConflicts,
+  listFarmWarnings,
   priorityDeviceMetrics,
 } from './farmModel';
 import { optionValue } from './farmResourceOptions';
@@ -104,6 +105,53 @@ describe('farm model', () => {
 
     expect(findUnassignedFarmPlants(overview)).toEqual([{ id: 4, name: 'Розмарин' }]);
     expect(countFarmWarnings(overview)).toBe(1);
+  });
+
+  it('vozvrashchaet detalnyj spisok dlya kazhdogo preduprezhdeniya', () => {
+    const overview = {
+      farms: [{
+        id: 1,
+        name: 'Ферма',
+        slots: [{
+          id: 10,
+          role: 'AC_SWITCH',
+          ready: true,
+          connection_status: 'warning',
+          connection_message: 'нет связи',
+        }],
+        states: [{ id: 20, scenario_type: 'ROOM_CLIMATE', ac_request_active: true }],
+        greenhouses: [{
+          id: 2,
+          name: 'Теплица',
+          plants: [],
+          slots: [{
+            id: 11,
+            role: 'AIR_TEMPERATURE_SENSOR',
+            ready: false,
+            reason: 'Устройство Zigbee не найдено',
+          }],
+          readiness: {
+            LIGHT_SCHEDULE: { ready: false, reason: 'Нужен Zigbee-выключатель света' },
+          },
+          states: [{ id: 21, scenario_type: 'BOX_CLIMATE', ac_request_active: true }],
+        }],
+      }],
+      resource_catalog: {
+        plants: [{ id: 3, name: 'Томат' }],
+      },
+    };
+
+    const warnings = listFarmWarnings(overview);
+    expect(warnings).toHaveLength(6);
+    expect(countFarmWarnings(overview)).toBe(warnings.length);
+    expect(warnings.map((warning) => warning.message)).toEqual([
+      'нет связи',
+      'Есть запрос теплицы на охлаждение',
+      'Устройство Zigbee не найдено',
+      'Нужен Zigbee-выключатель света',
+      'Требуется охлаждение',
+      'Не выбрана теплица',
+    ]);
   });
 
   it('vozvrashchaet gotovye drafty scenariev i roli ustrojstva', () => {

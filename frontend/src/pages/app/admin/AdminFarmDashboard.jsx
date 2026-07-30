@@ -26,6 +26,7 @@ import { translateApp } from '../../../locales/i18n';
 import {
   RESOURCE_ROLES,
   SCENARIO_TYPES,
+  acControlStatusLabel,
   buildAcRequestBoxes,
   buildResourceStatsPayload,
   countPlantsInRoom,
@@ -54,6 +55,7 @@ const BOX_SCENARIOS = [
   SCENARIO_TYPES.WATERING,
 ];
 const BOX_EQUIPMENT_ROLES = [
+  RESOURCE_ROLES.AC_SWITCH,
   RESOURCE_ROLES.EXHAUST_SWITCH,
   RESOURCE_ROLES.LIGHT_SWITCH,
   RESOURCE_ROLES.WATER_PUMP,
@@ -228,6 +230,8 @@ function FarmBox({
     RESOURCE_ROLES.SOIL_MOISTURE_SENSOR,
   ].includes(resource?.role));
   const plants = listOrEmpty(box.plants);
+  const climateState = findState(box.states, SCENARIO_TYPES.BOX_CLIMATE);
+  const localAc = findResource(resources, RESOURCE_ROLES.AC_SWITCH);
   const statsSubtitle = statsSubtitleOverride || box.name || translateApp("Теплица без названия");
 
   return (
@@ -255,8 +259,20 @@ function FarmBox({
               key={role}
               role={role}
               resource={findResource(resources, role)}
-              icon={role === RESOURCE_ROLES.EXHAUST_SWITCH ? Fan : role === RESOURCE_ROLES.LIGHT_SWITCH ? Lightbulb : Droplets}
-              motion={role === RESOURCE_ROLES.EXHAUST_SWITCH ? 'spin' : role === RESOURCE_ROLES.LIGHT_SWITCH ? 'glow' : 'water'}
+              icon={role === RESOURCE_ROLES.AC_SWITCH
+                ? Snowflake
+                : role === RESOURCE_ROLES.EXHAUST_SWITCH
+                  ? Fan
+                  : role === RESOURCE_ROLES.LIGHT_SWITCH
+                    ? Lightbulb
+                    : Droplets}
+              motion={role === RESOURCE_ROLES.AC_SWITCH
+                ? 'cool'
+                : role === RESOURCE_ROLES.EXHAUST_SWITCH
+                  ? 'spin'
+                  : role === RESOURCE_ROLES.LIGHT_SWITCH
+                    ? 'glow'
+                    : 'water'}
               statsSubtitle={statsSubtitle}
               statsScope={{ boxId: box.id }}
               onOpenStats={onOpenStats}
@@ -264,6 +280,13 @@ function FarmBox({
           ))}
         </div>
       </div>
+
+      {localAc && acControlStatusLabel(climateState) ? (
+        <div className="farm-dashboard-ac-status">
+          <Snowflake size={15} aria-hidden="true" />
+          <span>{acControlStatusLabel(climateState)}</span>
+        </div>
+      ) : null}
 
       <div className="farm-dashboard-sensors">
         {sensors.length === 0 ? (
@@ -352,6 +375,9 @@ function FarmRoom({ room, zoneView = false, onOpenStats }) {
           <div>
             <h4>{translateApp("Запросы на кондиционер")}</h4>
             <span>{scenarioTypeLabel(SCENARIO_TYPES.ROOM_CLIMATE)}: {scenarioDisplayStatus(roomState, roomScenario)}</span>
+            {acControlStatusLabel(roomState) ? (
+              <small>{acControlStatusLabel(roomState)}</small>
+            ) : null}
           </div>
           <AcRequestList boxes={acRequests} />
         </div>

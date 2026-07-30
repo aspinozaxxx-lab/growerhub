@@ -3,6 +3,7 @@ package ru.growerhub.backend.api;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -115,6 +116,16 @@ public class AutomationController {
             @RequestBody AutomationData.SavePlantsRequest request
     ) {
         return automationFacade.replaceGreenhousePlants(user, greenhouseId, request);
+    }
+
+    @PatchMapping("/greenhouses/{greenhouse_id}/plants/{plant_id}/watering-rate")
+    public AutomationData.FarmsOverview updateGreenhousePlantWateringRate(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("greenhouse_id") Integer greenhouseId,
+            @PathVariable("plant_id") Integer plantId,
+            @RequestBody AutomationData.UpdateWateringRateRequest request
+    ) {
+        return automationFacade.updateGreenhousePlantWateringRate(user, greenhouseId, plantId, request);
     }
 
     @PutMapping("/greenhouses/{greenhouse_id}/scenarios")

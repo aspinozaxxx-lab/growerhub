@@ -43,6 +43,13 @@
   font-size: 13px;
 }
 
+.farm-dashboard-ac-requests small {
+  display: block;
+  margin-top: 5px;
+  color: #9edcf5;
+  font-size: 12px;
+}
+
 .farm-dashboard-room__badges,
 .farm-dashboard-scenarios {
   display: flex;
@@ -332,7 +339,7 @@ button.farm-dashboard-sensor:focus-visible {
 
 .farm-dashboard-box__equipment {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 8px;
 }
 
@@ -349,6 +356,18 @@ button.farm-dashboard-sensor:focus-visible {
 
 .farm-dashboard-box__equipment .farm-dashboard-resource__value {
   font-size: 16px;
+}
+
+.farm-dashboard-ac-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid rgba(76, 195, 255, 0.24);
+  border-radius: var(--radius-sm);
+  color: #9edcf5;
+  background: rgba(76, 195, 255, 0.07);
+  font-size: 12px;
 }
 
 .farm-dashboard-sensors {

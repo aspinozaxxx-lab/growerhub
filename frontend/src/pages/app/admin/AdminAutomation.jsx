@@ -41,6 +41,7 @@ const BOX_SCOPE = 'BOX';
 
 const ROOM_RESOURCE_ROLES = ['AC_SWITCH'];
 const BOX_RESOURCE_ROLES = [
+  'AC_SWITCH',
   'AIR_TEMPERATURE_SENSOR',
   'EXHAUST_SWITCH',
   'LIGHT_SWITCH',
@@ -71,14 +72,15 @@ const SCENARIO_LABELS = {
 const SCENARIO_FIELDS = {
   ROOM_CLIMATE: [
     ['off_delay_minutes', 'Задержка выключения, мин', 'number'],
-    ['min_toggle_minutes', 'Мин. интервал, мин', 'number'],
+    ['min_toggle_minutes', 'Защита от частых переключений, мин', 'number'],
   ],
   BOX_CLIMATE: [
-    ['min_c', 'Мин., °C', 'number'],
     ['max_c', 'Вкл. вытяжку выше, °C', 'number'],
     ['exhaust_off_below_c', 'Вытяжку выкл. ниже, °C', 'number'],
     ['ac_request_above_c', 'Кондиционер выше, °C', 'number'],
     ['ac_clear_below_c', 'Снять запрос ниже, °C', 'number'],
+    ['off_delay_minutes', 'Задержка выключения, мин', 'number'],
+    ['min_toggle_minutes', 'Защита от частых переключений, мин', 'number'],
   ],
   LIGHT_SCHEDULE: [
     ['start_time', 'Включить', 'time'],

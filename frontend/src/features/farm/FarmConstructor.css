@@ -175,8 +175,7 @@
 }
 
 .farm-zone-editor__toggle input,
-.farm-scenario__header input,
-.farm-zone-plant input[type="checkbox"] {
+.farm-scenario__header input {
   width: 17px;
   min-height: 17px;
   margin: 0;
@@ -279,31 +278,37 @@
   background: var(--surface-2);
 }
 
-.farm-zone-plant.is-selected {
-  border-color: rgba(95, 212, 145, 0.45);
-}
-
-.farm-zone-plant > label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.farm-zone-plant__name {
   min-width: 0;
+  padding: 0;
+  border: 0;
+  color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 
-.farm-zone-plant > label:last-child {
+.farm-zone-plant__name:hover {
+  text-decoration: underline;
+}
+
+.farm-zone-plant__name:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.farm-zone-plant__rate {
   display: grid;
-  gap: 4px;
+  grid-template-columns: minmax(70px, 1fr) auto;
+  align-items: center;
+  gap: 6px;
   color: var(--text-3);
   font-size: 11px;
 }
 
-.farm-zone-plant strong,
-.farm-zone-plant small {
-  display: block;
-  overflow-wrap: anywhere;
-}
-
-.farm-zone-plant small,
 .farm-zone-editor__empty {
   color: var(--text-3);
 }

@@ -215,6 +215,35 @@ export function buildAcRequestBoxes(room) {
   });
 }
 
+export function acControlStatusLabel(state) {
+  if (!state?.ac_control_status) {
+    return '';
+  }
+  const transitionAt = state.ac_next_transition_at
+    ? formatDateTime(state.ac_next_transition_at)
+    : '';
+  switch (state.ac_control_status) {
+    case 'handling_request':
+      return translateApp('Кондиционер обрабатывает запрос на охлаждение');
+    case 'waiting_to_start':
+      return transitionAt
+        ? translateApp('Включение ожидается после {{value1}}', { value1: transitionAt })
+        : translateApp('Включение ожидает защиты от частых переключений');
+    case 'holding_after_request':
+      return transitionAt
+        ? translateApp('Запрос снят, кондиционер выключится после {{value1}}', { value1: transitionAt })
+        : translateApp('Запрос снят, действует задержка выключения');
+    case 'on_outside_scenario':
+      return translateApp('Кондиционер включён вне климатического сценария');
+    case 'idle':
+      return translateApp('Запросов на охлаждение нет, кондиционер не требуется');
+    case 'unavailable':
+      return translateApp('Кондиционер недоступен для сценария');
+    default:
+      return '';
+  }
+}
+
 export function countPlantsInRoom(room) {
   return listOrEmpty(room?.boxes).reduce((total, box) => total + listOrEmpty(box?.plants).length, 0);
 }

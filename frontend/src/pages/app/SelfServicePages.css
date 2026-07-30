@@ -50,6 +50,7 @@
 }
 
 .farm-overview-summary article {
+  position: relative;
   grid-template-columns: auto 1fr;
   align-items: center;
 }
@@ -65,6 +66,79 @@
 .farm-overview-summary article.has-warning svg,
 .farm-overview-summary article.has-warning strong {
   color: #ffd48d;
+}
+
+.farm-overview-summary article.has-tooltip {
+  cursor: help;
+}
+
+.farm-overview-summary article.has-tooltip:focus-visible {
+  outline: 2px solid rgba(255, 212, 141, 0.7);
+  outline-offset: 3px;
+}
+
+.farm-warning-tooltip {
+  position: absolute;
+  z-index: 30;
+  inset-inline-end: 0;
+  top: calc(100% + 8px);
+  width: min(390px, calc(100vw - 32px));
+  max-height: min(420px, 70vh);
+  padding: 12px;
+  border: 1px solid rgba(255, 193, 92, 0.42);
+  border-radius: 12px;
+  color: var(--text-2);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-2);
+  overflow-y: auto;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 140ms ease, transform 140ms ease, visibility 140ms;
+  pointer-events: none;
+}
+
+.farm-overview-summary article.has-tooltip:hover .farm-warning-tooltip,
+.farm-overview-summary article.has-tooltip:focus .farm-warning-tooltip,
+.farm-overview-summary article.has-tooltip:focus-within .farm-warning-tooltip,
+.farm-overview-summary article.has-tooltip.is-tooltip-open .farm-warning-tooltip {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.farm-warning-tooltip__title {
+  color: #ffd48d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.farm-warning-tooltip ul {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.farm-warning-tooltip li {
+  display: grid;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-1);
+}
+
+.farm-warning-tooltip li > span:first-child {
+  color: var(--text-1);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.farm-warning-tooltip li > span:last-child {
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .farm-overview-unassigned {
@@ -286,6 +360,12 @@
 
 .automation-card > .gh-btn {
   width: fit-content;
+}
+
+.automation-card > .climate-settings-fields,
+.automation-card > .scenario-fields,
+.automation-card > .automation-note {
+  grid-column: 1 / -1;
 }
 
 .automation-readiness {

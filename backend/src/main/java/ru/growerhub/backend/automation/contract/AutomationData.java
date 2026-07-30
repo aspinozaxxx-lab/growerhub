@@ -235,6 +235,8 @@ public final class AutomationData {
             @JsonProperty("last_evaluated_at") LocalDateTime lastEvaluatedAt,
             @JsonProperty("last_action_at") LocalDateTime lastActionAt,
             @JsonProperty("ac_request_active") boolean acRequestActive,
+            @JsonProperty("ac_control_status") String acControlStatus,
+            @JsonProperty("ac_next_transition_at") LocalDateTime acNextTransitionAt,
             @JsonProperty("manual_pause_until") LocalDateTime manualPauseUntil,
             @JsonProperty("runtime") Map<String, Object> runtime,
             @JsonProperty("updated_at") LocalDateTime updatedAt
@@ -369,6 +371,11 @@ public final class AutomationData {
 
     public record BoxPlantRequest(
             @JsonProperty("plant_id") Integer plantId,
+            @JsonProperty("rate_ml_per_hour") Integer rateMlPerHour
+    ) {
+    }
+
+    public record UpdateWateringRateRequest(
             @JsonProperty("rate_ml_per_hour") Integer rateMlPerHour
     ) {
     }
