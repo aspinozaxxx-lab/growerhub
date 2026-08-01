@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  assignmentsForNativeDevice,
   assignmentsForZigbeeDevice,
   buildSlotOccupancy,
   createScenarioDrafts,
@@ -193,6 +194,50 @@ describe('farm model', () => {
       zoneName: 'Ферма · Теплица 2',
       role: 'LIGHT_SWITCH',
     }]);
+  });
+
+  it('vozvrashchaet roli native ustrojstva na urovne teplicy', () => {
+    const overview = {
+      farms: [{
+        id: 1,
+        name: 'Ферма',
+        slots: [],
+        greenhouses: [{
+          id: 2,
+          name: 'Теплица 2',
+          slots: [
+            {
+              role: 'SOIL_MOISTURE_SENSOR',
+              source_type: 'NATIVE_SENSOR',
+              native_sensor_id: 21,
+            },
+            {
+              role: 'WATER_PUMP',
+              source_type: 'NATIVE_PUMP',
+              native_pump_id: 31,
+            },
+          ],
+        }],
+      }],
+    };
+
+    expect(assignmentsForNativeDevice(overview, {
+      id: 10,
+      device_id: 'GROVIKA_040AB1',
+      sensors: [{ id: 21 }],
+      pumps: [{ id: 31 }],
+    })).toEqual([
+      {
+        zoneId: 2,
+        zoneName: 'Ферма · Теплица 2',
+        role: 'SOIL_MOISTURE_SENSOR',
+      },
+      {
+        zoneId: 2,
+        zoneName: 'Ферма · Теплица 2',
+        role: 'WATER_PUMP',
+      },
+    ]);
   });
 
   it('ogranichivaet kartochku ustrojstva prioritetnymi metrikami', () => {

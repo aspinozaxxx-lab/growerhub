@@ -1,13 +1,12 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DeviceCard from '../../components/devices/DeviceCard';
-import EditDeviceModal from '../../components/devices/EditDeviceModal';
 import {
   claimDevice,
   fetchDeviceFirmware,
   fetchMyDevices,
   triggerDeviceFirmwareUpdate,
 } from '../../api/devices';
-import { fetchPlants } from '../../api/plants';
+import { fetchFarmsOverview } from '../../api/selfService';
 import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
 import { useWateringSidebar } from '../../features/watering/WateringSidebarContext';
@@ -19,6 +18,7 @@ import FormField from '../../components/ui/FormField';
 import Surface from '../../components/ui/Surface';
 import { Text, Title } from '../../components/ui/Typography';
 import AppZigbeeDevices from './AppZigbeeDevices';
+import { assignmentsForNativeDevice } from '../../features/farm/farmModel';
 import './AppDevices.css';
 import { translateApp } from '../../locales/i18n';
 
@@ -32,10 +32,9 @@ function AppDevices() {
   const { token } = useAuth();
   const { refreshVersion } = useWateringSidebar();
   const [devices, setDevices] = useState([]);
-  const [plants, setPlants] = useState([]);
+  const [farmOverview, setFarmOverview] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [modalDevice, setModalDevice] = useState(null);
   const [claimId, setClaimId] = useState('');
   const [claimStatus, setClaimStatus] = useState(null);
   const [isClaiming, setIsClaiming] = useState(false);
@@ -57,13 +56,13 @@ function AppDevices() {
       setIsLoading(true);
       setError(null);
       try {
-        const [devs, plantsList] = await Promise.all([
+        const [devs, overview] = await Promise.all([
           fetchMyDevices(token),
-          fetchPlants(token),
+          fetchFarmsOverview(),
         ]);
         if (!cancelled) {
           setDevices(Array.isArray(devs) ? devs : []);
-          setPlants(Array.isArray(plantsList) ? plantsList : []);
+          setFarmOverview(overview || null);
         }
       } catch (err) {
         if (!cancelled) {
@@ -84,8 +83,12 @@ function AppDevices() {
 
   const refreshDevices = async () => {
     try {
-      const devs = await fetchMyDevices(token);
+      const [devs, overview] = await Promise.all([
+        fetchMyDevices(token),
+        fetchFarmsOverview(),
+      ]);
       setDevices(Array.isArray(devs) ? devs : []);
+      setFarmOverview(overview || null);
     } catch (err) {
       if (isSessionExpiredError(err)) return;
       setError(err?.message || translateApp("Не удалось обновить устройства"));
@@ -165,19 +168,6 @@ function AppDevices() {
     } finally {
       setUpdatingFirmware((current) => ({ ...current, [deviceId]: false }));
     }
-  };
-
-  const handleOpenModal = (device) => {
-    setModalDevice(device);
-  };
-
-  const handleCloseModal = () => {
-    setModalDevice(null);
-  };
-
-  const handleSaved = async () => {
-    await refreshDevices();
-    handleCloseModal();
   };
 
   const handleClaim = async (event) => {
@@ -291,23 +281,13 @@ function AppDevices() {
           <DeviceCard
             key={device.id}
             device={device}
-            onEdit={() => handleOpenModal(device)}
+            assignments={assignmentsForNativeDevice(farmOverview, device)}
             firmwareStatus={firmwareByDevice[device.device_id] || null}
             isFirmwareUpdating={Boolean(updatingFirmware[device.device_id])}
             onFirmwareUpdate={() => handleFirmwareUpdate(device)}
           />
         ))}
       </AppGrid>
-
-      {modalDevice && (
-        <EditDeviceModal
-          device={modalDevice}
-          plants={plants}
-          onClose={handleCloseModal}
-          onSaved={handleSaved}
-          token={token}
-        />
-      )}
       <AppZigbeeDevices embedded />
     </div>
   );

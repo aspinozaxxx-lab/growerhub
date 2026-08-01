@@ -1,5 +1,7 @@
 ﻿import React from 'react';
+import { Link } from 'react-router-dom';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
+import { SLOT_ROLE_LABELS } from '../../features/farm/farmModel';
 import { resolveDeviceAsset } from './assets';
 import SensorPill from '../ui/sensor-pill/SensorPill';
 import Button from '../ui/Button';
@@ -22,7 +24,7 @@ const SENSOR_TITLE_MAP = {
   AIR_HUMIDITY: translateApp("Влажность воздуха"),
 };
 
-// Translitem: DeviceCard - komponent otobrazheniya ustrojstva s fokusom na sensory/pumpy i privyazki.
+// Translitem: DeviceCard - komponent ustrojstva s telemetriej i rolyami v teplicah.
 function StatusBadge({ isOnline }) {
   return (
     <div className="device-card__status">
@@ -62,8 +64,6 @@ function DevicePumpRow({ pump, isOnline }) {
       : pump.is_running
         ? translateApp("Выполняется")
         : translateApp("Остановлен"));
-  const boundPlants = Array.isArray(pump.bound_plants) ? pump.bound_plants : [];
-
   return (
     <div className="device-card__item">
       <div className="device-card__item-main">
@@ -85,16 +85,6 @@ function DevicePumpRow({ pump, isOnline }) {
             statusLabel
           )}
         </div>
-      </div>
-      <div className="device-card__bindings">
-        {boundPlants.length === 0 && <span className="device-card__binding-empty">{translateApp("Нет привязок")}</span>}
-        {boundPlants.map((plant) => {
-          const rate = plant.rate_ml_per_hour;
-          const label = rate ? translateApp("{{value1}} · {{value2}} мл/ч", { value1: plant.name, value2: rate }) : plant.name;
-          return (
-            <span key={plant.id} className="device-card__plant-pill">{label}</span>
-          );
-        })}
       </div>
     </div>
   );
@@ -183,7 +173,7 @@ function FirmwarePanel({ device, firmwareStatus, isUpdating, onUpdate }) {
 
 function DeviceCard({
   device,
-  onEdit,
+  assignments = [],
   firmwareStatus = null,
   isFirmwareUpdating = false,
   onFirmwareUpdate,
@@ -195,12 +185,6 @@ function DeviceCard({
 
   const sensors = Array.isArray(device.sensors) ? device.sensors : [];
   const pumps = Array.isArray(device.pumps) ? device.pumps : [];
-
-  const handleEdit = () => {
-    if (onEdit) {
-      onEdit(device);
-    }
-  };
 
   const handleSensorStats = (sensor) => {
     const kind = SENSOR_KIND_MAP[sensor.type] || 'soil_moisture';
@@ -221,18 +205,6 @@ function DeviceCard({
           <Text tone="muted" className="device-card__subtitle">{device.device_id}</Text>
           <StatusBadge isOnline={device.is_online} />
         </div>
-        <Button type="button" variant="ghost" size="sm" className="device-card__edit" onClick={handleEdit} aria-label={translateApp("Редактировать")}>
-          <svg className="device-card__edit-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M4 20h4l10-10-4-4-10 10v4zM14 6l4 4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </Button>
       </div>
 
       <div className="device-card__body">
@@ -249,12 +221,30 @@ function DeviceCard({
         </div>
       </div>
 
+      <div className="device-card__roles">
+        <span>{translateApp("Роли в ферме")}</span>
+        {assignments.length > 0 ? (
+          <div>
+            {assignments.map((assignment) => (
+              <Link
+                key={`${assignment.zoneId}:${assignment.role}`}
+                to="/app/farm/"
+                title={translateApp("Изменить назначение в Конструкторе фермы")}
+              >
+                {assignment.zoneName} · {translateApp(SLOT_ROLE_LABELS[assignment.role] || assignment.role)}
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <Link to="/app/farm/">{translateApp("Не назначено — открыть конструктор")}</Link>
+        )}
+      </div>
+
       <div className="device-card__section">
         <div className="device-card__section-title">{translateApp("Датчики")}</div>
         {sensors.length === 0 && <div className="device-card__empty">{translateApp("Нет датчиков")}</div>}
         {sensors.map((sensor) => {
           const kind = SENSOR_KIND_MAP[sensor.type] || 'soil_moisture';
-          const boundPlants = Array.isArray(sensor.bound_plants) ? sensor.bound_plants : [];
           return (
             <div key={sensor.id} className="device-card__item">
               <div className="device-card__item-main">
@@ -266,12 +256,6 @@ function DeviceCard({
                   isOffline={!device.is_online}
                   onClick={() => handleSensorStats(sensor)}
                 />
-              </div>
-              <div className="device-card__bindings">
-                {boundPlants.length === 0 && <span className="device-card__binding-empty">{translateApp("Нет привязок")}</span>}
-                {boundPlants.map((plant) => (
-                  <span key={plant.id} className="device-card__plant-pill">{plant.name}</span>
-                ))}
               </div>
             </div>
           );

@@ -10,6 +10,11 @@
 - security(mqtt): vremennyj legacy broker i obshchij parol ustroystv udaleny, publichnyj 1883 ostaetsya zakrytym.
 - docs(arch): dobavlen ADR-005 i obnovleny kontrakty device, firmware, frontend i ansible.
 
+### fix(devices): roli Grovika na urovne teplicy
+
+- fix(front): kartochka Grovika pokazyvaet naznacheniya ferma-teplica-rol iz slotov avtomatizacii vmesto vnutrennih privyazok nasosa i datchikov k rasteniyam.
+- refactor(front): udalen staryj redaktor pryamoj privyazki native-datchikov k rasteniyam; izmenenie naznachenij vedet v Konstruktor fermy.
+
 ### feat(grovika): OTA obnovlenie iz kabineta
 
 - feat(front): kartochka Grovika pokazyvaet tekushchuyu i poslednyuyu versii, etap OTA, uspeshnuyu ustanovku ili oshibku s povtorom.

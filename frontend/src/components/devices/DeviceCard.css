@@ -89,6 +89,34 @@
   justify-self: start;
 }
 
+.device-card__roles {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+}
+
+.device-card__roles > span {
+  color: #c7d7ef;
+  font-weight: 600;
+}
+
+.device-card__roles > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.device-card__roles a {
+  width: fit-content;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.device-card__roles a:hover,
+.device-card__roles a:focus-visible {
+  text-decoration: underline;
+}
+
 .device-card__section {
   display: flex;
   flex-direction: column;
@@ -132,41 +160,9 @@
   font-size: 12px;
 }
 
-.device-card__bindings {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-end;
-  flex: 1;
-}
-
-.device-card__plant-pill {
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 999px;
-  padding: 4px 8px;
-  font-size: 12px;
-  color: #e5efff;
-  white-space: nowrap;
-}
-
-.device-card__binding-empty {
-  color: #8aa3c6;
-  font-size: 12px;
-}
-
-.device-card__edit-icon {
-  width: 18px;
-  height: 18px;
-}
-
 @media (max-width: 720px) {
   .device-card__item {
     flex-direction: column;
     align-items: stretch;
-  }
-
-  .device-card__bindings {
-    justify-content: flex-start;
   }
 }

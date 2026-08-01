@@ -13,6 +13,7 @@ import {
   fetchMyDevices,
   triggerDeviceFirmwareUpdate,
 } from '../../api/devices';
+import { fetchFarmsOverview } from '../../api/selfService';
 import AppDevices from './AppDevices';
 
 vi.mock('../../api/devices', () => ({
@@ -22,8 +23,8 @@ vi.mock('../../api/devices', () => ({
   triggerDeviceFirmwareUpdate: vi.fn(),
 }));
 
-vi.mock('../../api/plants', () => ({
-  fetchPlants: vi.fn().mockResolvedValue([]),
+vi.mock('../../api/selfService', () => ({
+  fetchFarmsOverview: vi.fn(),
 }));
 
 vi.mock('../../features/auth/AuthContext', () => ({
@@ -35,19 +36,20 @@ vi.mock('../../features/watering/WateringSidebarContext', () => ({
 }));
 
 vi.mock('../../components/devices/DeviceCard', () => ({
-  default: ({ device, firmwareStatus, onFirmwareUpdate }) => (
+  default: ({ device, assignments, firmwareStatus, onFirmwareUpdate }) => (
     <div data-testid="device-card">
       <span>{device.device_id}</span>
+      {assignments.map((assignment) => (
+        <span key={`${assignment.zoneId}:${assignment.role}`}>
+          {assignment.zoneName} · {assignment.role}
+        </span>
+      ))}
       <span>{firmwareStatus?.status || 'NO_STATUS'}</span>
       {firmwareStatus?.update_available ? (
         <button type="button" onClick={onFirmwareUpdate}>Обновить прошивку</button>
       ) : null}
     </div>
   ),
-}));
-
-vi.mock('../../components/devices/EditDeviceModal', () => ({
-  default: () => null,
 }));
 
 vi.mock('./AppZigbeeDevices', () => ({
@@ -69,8 +71,10 @@ describe('AppDevices', () => {
     claimDevice.mockReset();
     fetchDeviceFirmware.mockReset();
     fetchMyDevices.mockReset();
+    fetchFarmsOverview.mockReset();
     triggerDeviceFirmwareUpdate.mockReset();
     fetchMyDevices.mockResolvedValue([]);
+    fetchFarmsOverview.mockResolvedValue({ farms: [], resource_catalog: {} });
     fetchDeviceFirmware.mockResolvedValue({ update_available: false, status: 'IDLE' });
   });
 
@@ -167,5 +171,34 @@ describe('AppDevices', () => {
       expect(fetchDeviceFirmware).toHaveBeenCalledTimes(2);
     });
     expect(screen.getByTestId('device-card')).toHaveTextContent('QUEUED');
+  });
+
+  it('peredajot v kartochku roli Grovika iz slotov teplicy', async () => {
+    fetchMyDevices.mockResolvedValue([{
+      id: 7,
+      device_id: 'GROVIKA_040AB1',
+      sensors: [{ id: 21 }],
+      pumps: [{ id: 31 }],
+    }]);
+    fetchFarmsOverview.mockResolvedValue({
+      farms: [{
+        id: 1,
+        name: 'Ферма',
+        greenhouses: [{
+          id: 2,
+          name: 'Теплица',
+          slots: [{
+            role: 'WATER_PUMP',
+            source_type: 'NATIVE_PUMP',
+            native_pump_id: 31,
+          }],
+        }],
+      }],
+    });
+
+    render(<AppDevices />);
+
+    expect(await screen.findByTestId('device-card'))
+      .toHaveTextContent('Ферма · Теплица · WATER_PUMP');
   });
 });

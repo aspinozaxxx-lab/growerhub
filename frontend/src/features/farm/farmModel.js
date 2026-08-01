@@ -222,16 +222,20 @@ export function listFarmWarnings(overview) {
   return warnings;
 }
 
-export function assignmentsForZigbeeDevice(overview, device) {
-  if (!device) return [];
-  const ieee = String(device.ieee_address || '').toLowerCase();
-  const scopes = overviewFarms(overview).flatMap((farm) => [
+function assignmentScopes(overview) {
+  return overviewFarms(overview).flatMap((farm) => [
     { ...farm, assignmentName: farm.name },
     ...listOrEmpty(farm.greenhouses).map((greenhouse) => ({
       ...greenhouse,
       assignmentName: `${farm.name} · ${greenhouse.name}`,
     })),
   ]);
+}
+
+export function assignmentsForZigbeeDevice(overview, device) {
+  if (!device) return [];
+  const ieee = String(device.ieee_address || '').toLowerCase();
+  const scopes = assignmentScopes(overview);
   return scopes.flatMap((scope) => (
     listOrEmpty(scope.slots)
       .filter((slot) => (
@@ -240,6 +244,35 @@ export function assignmentsForZigbeeDevice(overview, device) {
         && (!slot.zigbee_coordinator_id
           || !device.coordinator_id
           || slot.zigbee_coordinator_id === device.coordinator_id)
+      ))
+      .map((slot) => ({
+        zoneId: scope.id,
+        zoneName: scope.assignmentName,
+        role: slot.role,
+      }))
+  ));
+}
+
+export function assignmentsForNativeDevice(overview, device) {
+  if (!device) return [];
+  const catalogDevice = listOrEmpty(overview?.resource_catalog?.native_devices)
+    .find((item) => item.id === device.id || item.device_id === device.device_id);
+  const sensorIds = new Set([
+    ...listOrEmpty(device.sensors),
+    ...listOrEmpty(catalogDevice?.sensors),
+  ].map((sensor) => String(sensor?.id ?? '')).filter(Boolean));
+  const pumpIds = new Set([
+    ...listOrEmpty(device.pumps),
+    ...listOrEmpty(catalogDevice?.pumps),
+  ].map((pump) => String(pump?.id ?? '')).filter(Boolean));
+
+  return assignmentScopes(overview).flatMap((scope) => (
+    listOrEmpty(scope.slots)
+      .filter((slot) => (
+        (slot.source_type === 'NATIVE_SENSOR'
+          && sensorIds.has(String(slot.native_sensor_id ?? '')))
+        || (slot.source_type === 'NATIVE_PUMP'
+          && pumpIds.has(String(slot.native_pump_id ?? '')))
       ))
       .map((slot) => ({
         zoneId: scope.id,
