@@ -34,7 +34,6 @@
 namespace Services {
 
 static const uint32_t kStaAttemptIntervalMs = 5000;
-static const char* kApSsidPrefix = "Grovika-";
 static const char* kApPassword = "grovika123";
 
 #if defined(ARDUINO) && defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
@@ -562,16 +561,15 @@ void WiFiService::StartAccessPoint() {
 #if defined(ARDUINO)
   WiFi.mode(WIFI_AP_STA);
 
-  char ap_ssid[64];
-  const char* device_id = device_id_ ? device_id_ : "device";
-  std::snprintf(ap_ssid, sizeof(ap_ssid), "%s%s", kApSsidPrefix, device_id);
+  const char* ap_ssid = device_id_ ? device_id_ : "GROVIKA_UNKNOWN";
 
   ap_started_ = WiFi.softAP(ap_ssid, kApPassword);
   char log_buf[128];
   std::snprintf(log_buf,
                 sizeof(log_buf),
-                "[WIFI] ap_start ssid=%s",
-                ap_ssid);
+                "[WIFI] ap_start ssid=%s ok=%s",
+                ap_ssid,
+                ap_started_ ? "true" : "false");
   Util::Logger::Info(log_buf);
   if (ap_started_ && event_queue_) {
     Core::Event event{};

@@ -11,6 +11,7 @@
 #include <string>
 
 #include "config/BuildFlags.h"
+#include "config/HardwareProfile.h"
 #include "core/Context.h"
 #include "modules/ActuatorModule.h"
 #include "modules/SensorHubModule.h"
@@ -77,6 +78,7 @@ void StateModule::PublishState(bool retained) {
   payload += "\"correlation_id\":" + (manual.active && has_correlation ? "\"" + std::string(manual.correlation_id) + "\"" : std::string("null"));
   payload += "},";
   payload += "\"fw_ver\":\"" + std::string(Config::kFwVer) + "\"";
+  payload += ",\"hw_profile\":\"" + std::string(Config::GetHardwareProfile().name) + "\"";
   payload += ",\"pump\":{\"status\":\"" + std::string(actuator_->IsPumpRunning() ? "on" : "off") + "\"}";
   payload += ",\"light\":{\"status\":\"" + std::string(actuator_->IsLightOn() ? "on" : "off") + "\"}";
 

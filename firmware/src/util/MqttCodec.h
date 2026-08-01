@@ -14,12 +14,16 @@ namespace Util {
 
 // Maksimalnaya dlina correlation_id.
 static const size_t kCorrelationIdMax = 64;
+static const size_t kOtaUrlMax = 192;
+static const size_t kFirmwareVersionMax = 101;
+static const size_t kSha256HexMax = 65;
 
 enum class CommandType : uint8_t {
   kUnknown = 0, // Neizvestnaya komanda.
   kPumpStart = 1, // Start nasosa.
   kPumpStop = 2, // Stop nasosa.
-  kReboot = 3 // Reboot ustroistva.
+  kReboot = 3, // Reboot ustroistva.
+  kOta = 4 // Obnovlenie proshivki.
 };
 
 enum class ParseError : uint8_t {
@@ -27,7 +31,8 @@ enum class ParseError : uint8_t {
   kInvalidJson = 1, // Nekorrektnyi JSON.
   kTypeMissing = 2, // Ne ukazan tip komandy.
   kDurationMissingOrInvalid = 3, // Net duration_s ili ona nekorrektna.
-  kUnsupportedCommand = 4 // Ne podderzhivaemaya komanda.
+  kUnsupportedCommand = 4, // Ne podderzhivaemaya komanda.
+  kOtaFieldsMissingOrInvalid = 5 // Nekorrektnye polya OTA.
 };
 
 struct Command {
@@ -37,6 +42,12 @@ struct Command {
   uint32_t duration_s;
   // Correlation ID komandy.
   char correlation_id[kCorrelationIdMax];
+  // HTTPS URL binarnika OTA.
+  char ota_url[kOtaUrlMax];
+  // Versiya ustanavlivaemoi proshivki.
+  char firmware_version[kFirmwareVersionMax];
+  // SHA-256 binarnika v hex.
+  char sha256[kSha256HexMax];
 };
 
 /**
@@ -70,5 +81,18 @@ bool BuildAckStatus(const char* correlation_id, const char* result, const char* 
  * @param out_size Razmer bufera v baytah.
  */
 bool BuildAckError(const char* correlation_id, const char* reason, char* out, size_t out_size);
+
+/**
+ * Stroit ACK dlya etapa OTA.
+ * @param correlation_id Correlation ID komandy.
+ * @param result Result status (accepted/error/declined).
+ * @param status Etap OTA.
+ * @param version Versiya proshivki.
+ * @param reason Kod oshibki ili nullptr.
+ * @param out Bufer dlya JSON stroki.
+ * @param out_size Razmer bufera v baytah.
+ */
+bool BuildOtaAck(const char* correlation_id, const char* result, const char* status,
+                 const char* version, const char* reason, char* out, size_t out_size);
 
 }

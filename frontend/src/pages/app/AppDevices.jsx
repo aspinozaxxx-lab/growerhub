@@ -1,7 +1,12 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DeviceCard from '../../components/devices/DeviceCard';
 import EditDeviceModal from '../../components/devices/EditDeviceModal';
-import { claimDevice, fetchMyDevices } from '../../api/devices';
+import {
+  claimDevice,
+  fetchDeviceFirmware,
+  fetchMyDevices,
+  triggerDeviceFirmwareUpdate,
+} from '../../api/devices';
 import { fetchPlants } from '../../api/plants';
 import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
@@ -17,6 +22,12 @@ import AppZigbeeDevices from './AppZigbeeDevices';
 import './AppDevices.css';
 import { translateApp } from '../../locales/i18n';
 
+const ACTIVE_FIRMWARE_STATES = new Set(['QUEUED', 'DOWNLOADING', 'RESTARTING']);
+
+function isGrovika(device) {
+  return /^GROVIKA_[0-9A-F]{6}$/i.test(device?.device_id || '');
+}
+
 function AppDevices() {
   const { token } = useAuth();
   const { refreshVersion } = useWateringSidebar();
@@ -29,6 +40,8 @@ function AppDevices() {
   const [claimStatus, setClaimStatus] = useState(null);
   const [isClaiming, setIsClaiming] = useState(false);
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
+  const [firmwareByDevice, setFirmwareByDevice] = useState({});
+  const [updatingFirmware, setUpdatingFirmware] = useState({});
 
   useEffect(() => {
     if (retryAfterSeconds <= 0) return undefined;
@@ -76,6 +89,81 @@ function AppDevices() {
     } catch (err) {
       if (isSessionExpiredError(err)) return;
       setError(err?.message || translateApp("Не удалось обновить устройства"));
+    }
+  };
+
+  const refreshFirmware = useCallback(async () => {
+    const grovikaDevices = devices.filter(isGrovika);
+    if (grovikaDevices.length === 0) return;
+    const results = await Promise.allSettled(
+      grovikaDevices.map((device) => fetchDeviceFirmware(device.device_id, token)),
+    );
+    setFirmwareByDevice((current) => {
+      const next = { ...current };
+      grovikaDevices.forEach((device, index) => {
+        const result = results[index];
+        if (result.status === 'fulfilled') {
+          next[device.device_id] = { ...result.value, load_error: null };
+        } else {
+          next[device.device_id] = {
+            ...next[device.device_id],
+            load_error: result.reason?.message || translateApp('Не удалось проверить прошивку'),
+          };
+        }
+      });
+      return next;
+    });
+  }, [devices, token]);
+
+  const hasActiveFirmwareUpdate = useMemo(
+    () => Object.values(firmwareByDevice).some((item) => ACTIVE_FIRMWARE_STATES.has(item?.status)),
+    [firmwareByDevice],
+  );
+
+  useEffect(() => {
+    refreshFirmware();
+  }, [refreshFirmware]);
+
+  useEffect(() => {
+    if (devices.filter(isGrovika).length === 0) return undefined;
+    const timer = window.setInterval(
+      refreshFirmware,
+      hasActiveFirmwareUpdate ? 3000 : 30000,
+    );
+    return () => window.clearInterval(timer);
+  }, [devices, hasActiveFirmwareUpdate, refreshFirmware]);
+
+  const handleFirmwareUpdate = async (device) => {
+    const deviceId = device?.device_id;
+    if (!deviceId || updatingFirmware[deviceId]) return;
+    setUpdatingFirmware((current) => ({ ...current, [deviceId]: true }));
+    setFirmwareByDevice((current) => ({
+      ...current,
+      [deviceId]: { ...current[deviceId], action_error: null },
+    }));
+    try {
+      const result = await triggerDeviceFirmwareUpdate(deviceId, token);
+      setFirmwareByDevice((current) => ({
+        ...current,
+        [deviceId]: {
+          ...current[deviceId],
+          status: 'QUEUED',
+          target_version: result?.version || current[deviceId]?.latest_version,
+          action_error: null,
+        },
+      }));
+      await refreshFirmware();
+    } catch (err) {
+      if (isSessionExpiredError(err)) return;
+      setFirmwareByDevice((current) => ({
+        ...current,
+        [deviceId]: {
+          ...current[deviceId],
+          action_error: err?.message || translateApp('Не удалось запустить обновление'),
+        },
+      }));
+    } finally {
+      setUpdatingFirmware((current) => ({ ...current, [deviceId]: false }));
     }
   };
 
@@ -204,6 +292,9 @@ function AppDevices() {
             key={device.id}
             device={device}
             onEdit={() => handleOpenModal(device)}
+            firmwareStatus={firmwareByDevice[device.device_id] || null}
+            isFirmwareUpdating={Boolean(updatingFirmware[device.device_id])}
+            onFirmwareUpdate={() => handleFirmwareUpdate(device)}
           />
         ))}
       </AppGrid>

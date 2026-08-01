@@ -44,8 +44,16 @@ public class FirmwareController {
         FirmwareCheckResult result = firmwareFacade.checkFirmwareUpdate(deviceId);
         return new FirmwareDtos.FirmwareCheckResponse(
                 result.updateAvailable(),
-                result.version(),
-                result.url()
+                result.currentVersion(),
+                result.hardwareProfile(),
+                result.latestVersion(),
+                result.targetVersion(),
+                result.url(),
+                result.state() != null ? result.state().name() : null,
+                result.error(),
+                result.requestedAt(),
+                result.completedAt(),
+                result.online()
         );
     }
 
@@ -53,10 +61,11 @@ public class FirmwareController {
     public ResponseEntity<FirmwareDtos.UploadFirmwareResponse> uploadFirmware(
             @RequestParam("file") MultipartFile file,
             @RequestParam("version") String version,
+            @RequestParam(value = "hardware_profile", defaultValue = "esp32dev") String hardwareProfile,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         requireAdmin(user);
-        FirmwareUploadResult result = firmwareFacade.uploadFirmware(file, version);
+        FirmwareUploadResult result = firmwareFacade.uploadFirmware(file, version, hardwareProfile);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new FirmwareDtos.UploadFirmwareResponse(
                         result.status(),
@@ -79,7 +88,25 @@ public class FirmwareController {
                         result.status(),
                         result.version(),
                         result.url(),
-                        result.sha256()
+                        result.sha256(),
+                        result.correlationId()
+                ));
+    }
+
+    @PostMapping("/api/device/{device_id}/firmware/update")
+    public ResponseEntity<FirmwareDtos.TriggerFirmwareUpdateResponse> triggerLatestUpdate(
+            @PathVariable("device_id") String deviceId,
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
+        requireUserDeviceAccess(deviceId, user);
+        FirmwareTriggerResult result = firmwareFacade.triggerLatestUpdate(deviceId);
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .body(new FirmwareDtos.TriggerFirmwareUpdateResponse(
+                        result.status(),
+                        result.version(),
+                        result.url(),
+                        result.sha256(),
+                        result.correlationId()
                 ));
     }
 
@@ -102,6 +129,7 @@ public class FirmwareController {
                 .format(info.mtime().atOffset(java.time.ZoneOffset.UTC));
         return new FirmwareDtos.FirmwareVersionResponse(
                 info.version(),
+                info.hardwareProfile(),
                 info.size(),
                 info.sha256(),
                 mtime

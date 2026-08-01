@@ -7,6 +7,13 @@
 - safety: pump.start zavershaetsya po monotonnomu millis-tajmeru i apparatnomu limitu bez zavisimosti ot UTC ili seti.
 - test: provereny mqtt.json, TLS/time gate, izolirovannyj topic i otsutstvie sekreta v logah; native testy i sborki ESP32/ESP32-C3 prohodyat.
 
+- feat(ota): dobavlena ustanovka binarnika tolko s growerhub.ru po HTTPS s proverkoj ISRG Root X1 i SHA-256.
+- feat(ota): ustrojstvo publikuet downloading/restarting ili kod oshibki, otklonyaet obnovlenie pri rabotayushchem nasose i podtverzhdaet boot posle MQTTS.
+- ci: odna versiya reliza sobiraetsya i publikuetsya otdelno dlya esp32dev i esp32c3_supermini.
+- safety(ota): state peredaet hw_profile, ustanovshchik prinimaet tolko binarnik tekushchego apparatnogo profilya.
+- test: pokryty parsing OTA, ACK, uspeshnaya ustanovka, oshibka, zanyatyj nasos i zapret chuzhogo URL.
+- fix(wifi): SSID lokalnoj tochki dostupa raven device_id vida GROVIKA_XXXXXX bez dubliruyushchego prefiksa.
+
 ## 2026-01-24
 - test: vklyuchen UNITY 64-bit support dlya native test env.
 - ci: CI pereshel na env test.

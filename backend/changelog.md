@@ -1,6 +1,12 @@
 # Changelog
 
 ## 2026-08-01
+- Firmware: dobavlen poslednij CI/CD reliz, polzovatelskij zapusk OTA i statusy QUEUED/DOWNLOADING/RESTARTING/SUCCESS/ERROR.
+- Firmware: binarniki esp32dev i esp32c3_supermini s razdelnymi SHA-256 vstraivayutsya v backend jar, atomarno publikuyutsya pri starte i proveryayutsya posle deploy.
+- Firmware: poslednij reliz vybiraetsya tolko po hw_profile ustrojstva; legacy binarniki bez profilya ne uchastvuyut v OTA.
+- Device: status OTA hranit correlation_id, oshibku i vremya; uspeshnaya ustanovka podtverzhdaetsya novym fw_ver, zavisshee obnovlenie zavershaetsya timeout.
+- DB: migraciya V22 dobavlyaet ustojchivoe sostoyanie OTA.
+- Testy: pokryty dostupnost reliza, etapa ACK, oshibka, uspeshnyj state i polzovatelskij trigger poslednej versii.
 - MQTT: wildcard podpiski Dynamic Security perevedeny na subscribePattern/unsubscribePattern; rotaciya Grovika odnovremenno vosstanavlivaet ACL roli.
 - Device: dobavleny admin provisioning, rotaciya i otzyv individualnyh MQTTS credentials cherez Dynamic Security.
 - Device: dobavlena privyazka po pechatnomu device_id s atomarnym vladeniem i ustojchivym rate limit.
@@ -83,8 +89,6 @@
 - Dobavleny domeny firmware i history s polnym sovmestimost'yu FastAPI i staticheskoy vydachey firmware.
 - Dobavleny integracionnye testy dlya firmware i history, vklyuchaya multipart upload i fil'try istorii.
 - Dobavlen domen plants (gruppy, privyazki, zhurnal, export, foto) s integracionnymi testami.
-
-
 
 
 

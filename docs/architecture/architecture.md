@@ -37,6 +37,18 @@ MQTT-топики:
 
 Серийная Grovika подключается только к MQTTS `growerhub.ru:8883` с фиксированными username и client ID, равными напечатанному `device_id`. У каждого устройства собственный 256-битный пароль и отдельный ACL только на `gh/dev/<device_id>/#`: публикации проверяются по topic wildcard, подписки — через `subscribePattern`/`unsubscribePattern`. Открытый пароль существует только в Dynamic Security Mosquitto и LittleFS устройства; backend хранит SHA-256 и время подготовки. Публичный MQTT `1883` и общий пароль устройств запрещены.
 
+OTA-команда передаётся в `cmd` с полями `type=ota`, `url`, `version`, `sha256`
+и `correlation_id`. State устройства содержит `hw_profile` со значением
+`esp32dev` или `esp32c3_supermini`. Backend выбирает только соответствующий ему
+бинарник, а URL обязан указывать на
+`https://growerhub.ru/firmware/<version>.<hw_profile>.bin`. SHA-256 относится к
+точному содержимому выбранного бинарника. Устройство дополнительно отклоняет URL
+чужого аппаратного профиля и отвечает в `state/ack` тем же
+`correlation_id`: этапы `downloading` и `restarting` передаются в `status`, а
+ошибка — как `result=error|declined`, `status=failed` и машинный код `reason`.
+Успешное завершение подтверждается только новым state, в котором `fw_ver`
+равен целевой версии.
+
 ## Общие принципы
 
 - REST и MQTT являются тонкими адаптерами.

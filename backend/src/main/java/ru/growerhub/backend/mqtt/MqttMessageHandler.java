@@ -358,6 +358,7 @@ public class MqttMessageHandler {
         return new DeviceShadowState(
                 manual,
                 state.fwVer(),
+                state.hardwareProfile(),
                 state.soilMoisture(),
                 state.airTemperature(),
                 state.airHumidity(),

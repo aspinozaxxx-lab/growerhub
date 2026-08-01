@@ -40,6 +40,40 @@ void test_parse_reboot() {
   TEST_ASSERT_EQUAL_STRING("r1", command.correlation_id);
 }
 
+void test_parse_ota() {
+  Util::Command command{};
+  Util::ParseError error = Util::ParseError::kNone;
+  const bool ok = Util::ParseCommand(
+      "{\"type\":\"ota\",\"url\":\"https://growerhub.ru/firmware/grovika-1.esp32dev.bin\","
+      "\"version\":\"grovika-1\","
+      "\"sha256\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\","
+      "\"correlation_id\":\"ota-1\"}",
+      command,
+      error);
+
+  TEST_ASSERT_TRUE(ok);
+  TEST_ASSERT_EQUAL_INT(static_cast<int>(Util::CommandType::kOta), static_cast<int>(command.type));
+  TEST_ASSERT_EQUAL_STRING("grovika-1", command.firmware_version);
+  TEST_ASSERT_EQUAL_STRING("ota-1", command.correlation_id);
+}
+
+void test_parse_ota_rejects_external_url() {
+  Util::Command command{};
+  Util::ParseError error = Util::ParseError::kNone;
+  const bool ok = Util::ParseCommand(
+      "{\"type\":\"ota\",\"url\":\"https://example.com/firmware.bin\","
+      "\"version\":\"grovika-1\","
+      "\"sha256\":\"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\","
+      "\"correlation_id\":\"ota-2\"}",
+      command,
+      error);
+
+  TEST_ASSERT_FALSE(ok);
+  TEST_ASSERT_EQUAL_INT(
+      static_cast<int>(Util::ParseError::kOtaFieldsMissingOrInvalid),
+      static_cast<int>(error));
+}
+
 void test_parse_invalid_json() {
   Util::Command command{};
   Util::ParseError error = Util::ParseError::kNone;
@@ -80,4 +114,13 @@ void test_ack_payloads() {
   TEST_ASSERT_EQUAL_STRING(
       "{\"correlation_id\":\"c4\",\"result\":\"error\",\"reason\":\"bad command format: duration_s missing or invalid\"}",
       payload);
+
+  char ota_payload[320];
+  TEST_ASSERT_TRUE(Util::BuildOtaAck(
+      "ota-3", "error", "failed", "grovika-1", "firmware_sha256_mismatch",
+      ota_payload, sizeof(ota_payload)));
+  TEST_ASSERT_EQUAL_STRING(
+      "{\"correlation_id\":\"ota-3\",\"result\":\"error\",\"status\":\"failed\","
+      "\"version\":\"grovika-1\",\"reason\":\"firmware_sha256_mismatch\"}",
+      ota_payload);
 }

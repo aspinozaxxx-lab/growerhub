@@ -10,6 +10,15 @@
 - security(mqtt): vremennyj legacy broker i obshchij parol ustroystv udaleny, publichnyj 1883 ostaetsya zakrytym.
 - docs(arch): dobavlen ADR-005 i obnovleny kontrakty device, firmware, frontend i ansible.
 
+### feat(grovika): OTA obnovlenie iz kabineta
+
+- feat(front): kartochka Grovika pokazyvaet tekushchuyu i poslednyuyu versii, etap OTA, uspeshnuyu ustanovku ili oshibku s povtorom.
+- feat(backend): dobavlen zapusk poslednego reliza, ustojchivyj status QUEUED/DOWNLOADING/RESTARTING/SUCCESS/ERROR i timeout podtverzhdeniya.
+- feat(firmware): dobavlen HTTPS OTA s allowlist growerhub.ru, proverkoj TLS i SHA-256, ACK etapov i rollback posle neudachnogo boot.
+- feat(ci): firmware dlya esp32dev i esp32c3_supermini sobiraetsya i publikuetsya vmeste s backend relizom; posle deploy proveryayutsya oba binarnika i ih SHA-256.
+- safety(ota): backend vybiraet reliz po hw_profile, a ustrojstvo otklonyaet binarnik chuzhogo apparatnogo profilya.
+- fix(firmware): SSID lokalnoj tochki dostupa sokrashchen do tochnogo device_id GROVIKA_XXXXXX.
+
 ### fix(front): timezone statistiki i admin-vhod
 
 - fix(sensors): vremya na osyah i v tooltip statistiki beretsya iz ishodnogo timestamp tochki i formatiruetsya v vybrannom timezone polzovatelya.

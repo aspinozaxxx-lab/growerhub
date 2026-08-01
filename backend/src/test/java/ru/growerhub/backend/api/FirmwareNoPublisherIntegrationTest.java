@@ -71,10 +71,15 @@ class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
     @Test
     void triggerUpdateReturns503WhenPublisherMissing() throws Exception {
         String version = "1.0.0";
-        Files.write(firmwareDir.resolve(version + ".bin"), "fw".getBytes(StandardCharsets.UTF_8));
+        Files.write(
+                firmwareDir.resolve(version + ".esp32dev.bin"),
+                "fw".getBytes(StandardCharsets.UTF_8)
+        );
 
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId("fw-no-pub");
+        device.setFirmwareHardwareProfile("esp32dev");
+        device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         deviceRepository.save(device);
         String adminToken = createAdminToken();
 
@@ -119,6 +124,7 @@ class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM plant_journal_entries");
         jdbcTemplate.update("DELETE FROM plant_journal_photos");
         jdbcTemplate.update("DELETE FROM plants");
+        jdbcTemplate.update("DELETE FROM mqtt_ack");
         jdbcTemplate.update("DELETE FROM device_state_last");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM user_auth_identities");

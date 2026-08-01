@@ -10,6 +10,7 @@ import ru.growerhub.backend.sensor.contract.SensorStatus;
 public record DeviceShadowState(
         @JsonProperty("manual_watering") ManualWateringState manualWatering,
         @JsonProperty("fw_ver") String fwVer,
+        @JsonProperty("hw_profile") String hardwareProfile,
         @JsonProperty("soil_moisture") Double soilMoisture,
         @JsonProperty("air_temperature") Double airTemperature,
         @JsonProperty("air_humidity") Double airHumidity,
@@ -19,6 +20,33 @@ public record DeviceShadowState(
         @JsonProperty("pump") RelayState pump,
         @JsonProperty("scenarios") ScenariosState scenarios
 ) {
+    public DeviceShadowState(
+            ManualWateringState manualWatering,
+            String fwVer,
+            Double soilMoisture,
+            Double airTemperature,
+            Double airHumidity,
+            AirState air,
+            SoilState soil,
+            RelayState light,
+            RelayState pump,
+            ScenariosState scenarios
+    ) {
+        this(
+                manualWatering,
+                fwVer,
+                null,
+                soilMoisture,
+                airTemperature,
+                airHumidity,
+                air,
+                soil,
+                light,
+                pump,
+                scenarios
+        );
+    }
+
     public record ManualWateringState(
             @JsonProperty("status") String status,
             @JsonProperty("duration_s") Integer durationS,

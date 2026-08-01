@@ -1,4 +1,5 @@
 ﻿import os
+import re
 import subprocess
 
 from SCons.Script import Import
@@ -9,7 +10,10 @@ Import("env")
 FALLBACK_VERSION = "grovika-unknown-0"
 
 # Konstanta s argumentami git dlya polucheniya daty HEAD v formate YYYY-MM-DD.
-GIT_HEAD_DATE_ARGS = ["show", "-s", "--format=%cs", "HEAD"]
+GIT_HEAD_DATE_ARGS = ["log", "-1", "--format=%cs", "--", "firmware"]
+
+# Pattern razreshennoi versii, sovmestimyi s imenem firmware faila na backend.
+VERSION_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$")
 
 # Funkciya ishchet kornevuyu papku git, podnimayas ot start_dir vverh po derevu.
 def _find_git_root(start_dir):
@@ -70,11 +74,18 @@ def _get_daily_commit_count(git_root, date_str):
         f"--since={date_str} 00:00:00",
         f"--until={date_str} 23:59:59",
         "HEAD",
+        "--",
+        "firmware",
     ]
     return _run_git(args, git_root)
 
 # Funkciya sobiraet stroku versii v formate grovika-<date>-<N> ili fallback.
 def _build_version(project_dir):
+    requested_version = os.environ.get("GH_FW_VERSION", "").strip()
+    if requested_version:
+        if not VERSION_PATTERN.fullmatch(requested_version):
+            raise ValueError("GH_FW_VERSION has invalid format")
+        return requested_version
     git_root = _find_git_root(project_dir)
     print(f"git_root={git_root}")
     if not git_root:
@@ -113,9 +124,18 @@ def _apply_define(version_str):
     print(f"define_value_GH_FW_VER={gh_fw_ver}")
     print(f"env_cppdefines={env.get('CPPDEFINES')}")
 
+# Funkciya sohranyaet versiyu ryadom s binarnikom dlya CI/CD publikacii.
+def _write_version_file(version_str):
+    build_dir = env.subst("$BUILD_DIR")
+    os.makedirs(build_dir, exist_ok=True)
+    version_path = os.path.join(build_dir, "firmware.version")
+    with open(version_path, "w", encoding="utf-8", newline="\n") as output:
+        output.write(version_str + "\n")
+    print(f"version_file={version_path}")
+
 project_dir = env.subst("$PROJECT_DIR")
 version = _build_version(project_dir)
 _apply_define(version)
-
+_write_version_file(version)
 
 

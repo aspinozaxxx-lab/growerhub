@@ -497,9 +497,8 @@ void WebConfigService::Init(Core::Context& ctx) {
     const bool sta_connected = WiFi.status() == WL_CONNECTED;
     String sta_ip = WiFi.localIP().toString();
     String ap_ip = WiFi.softAPIP().toString();
-    const char* device_id = device_id_ ? device_id_ : "device";
-    char ap_ssid[64];
-    std::snprintf(ap_ssid, sizeof(ap_ssid), "Grovika-%s", device_id);
+    const char* device_id = device_id_ ? device_id_ : "GROVIKA_UNKNOWN";
+    const char* ap_ssid = device_id;
     std::snprintf(payload,
                   sizeof(payload),
                   "{\"device_id\":\"%s\",\"sta_connected\":%s,\"sta_ip\":\"%s\","

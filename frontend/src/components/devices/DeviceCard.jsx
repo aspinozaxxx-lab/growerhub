@@ -100,9 +100,95 @@ function DevicePumpRow({ pump, isOnline }) {
   );
 }
 
-function DeviceCard({ device, onEdit }) {
+const FIRMWARE_PROGRESS_LABELS = {
+  QUEUED: 'Команда обновления отправлена',
+  DOWNLOADING: 'Загрузка новой прошивки…',
+  RESTARTING: 'Прошивка установлена, устройство перезапускается…',
+};
+
+const FIRMWARE_ERROR_LABELS = {
+  hardware_profile_unknown: 'Аппаратная версия устройства не определена; требуется первичное обновление по USB',
+  pump_running: 'Обновление нельзя выполнить, пока работает насос',
+  invalid_ota_request: 'Устройство отклонило параметры обновления',
+  tls_or_network_failed: 'Не удалось установить защищённое соединение для загрузки',
+  firmware_http_failed: 'Сервер не отдал файл прошивки',
+  ota_begin_failed: 'Недостаточно места для установки прошивки',
+  firmware_download_failed: 'Загрузка прошивки прервалась',
+  firmware_write_failed: 'Не удалось записать прошивку',
+  firmware_sha256_mismatch: 'Контрольная сумма прошивки не совпала',
+  ota_finalize_failed: 'Не удалось завершить установку прошивки',
+  ota_unavailable: 'OTA недоступно на устройстве',
+  device_update_timeout: 'Устройство не подтвердило обновление вовремя',
+};
+
+function resolveFirmwareError(status) {
+  const error = status?.action_error || status?.error || status?.load_error;
+  if (!error) return null;
+  return translateApp(FIRMWARE_ERROR_LABELS[error] || error);
+}
+
+function FirmwarePanel({ device, firmwareStatus, isUpdating, onUpdate }) {
+  const currentVersion = firmwareStatus?.current_version
+    || device.firmware_version
+    || device.current_version
+    || translateApp('Не определена');
+  const latestVersion = firmwareStatus?.latest_version || null;
+  const updateState = firmwareStatus?.status || 'IDLE';
+  const isActive = ['QUEUED', 'DOWNLOADING', 'RESTARTING'].includes(updateState);
+  const updateAvailable = firmwareStatus?.update_available === true;
+  const isUpToDate = Boolean(latestVersion && currentVersion === latestVersion && !updateAvailable);
+  const error = resolveFirmwareError(firmwareStatus);
+  const showUpdateButton = updateAvailable && !isActive;
+
+  return (
+    <div className="device-card__firmware" aria-live="polite">
+      <div className="device-card__firmware-version">
+        <span>{translateApp('Прошивка')}</span>
+        <strong>{currentVersion}</strong>
+      </div>
+      {updateAvailable ? (
+        <div className="device-card__firmware-update">
+          {translateApp('Доступна новая версия: {{value1}}', { value1: latestVersion })}
+        </div>
+      ) : null}
+      {isUpToDate ? (
+        <div className="device-card__firmware-success">
+          {translateApp('Установлена последняя версия')}
+        </div>
+      ) : null}
+      {isActive ? (
+        <div className="device-card__firmware-progress" role="status">
+          {translateApp(FIRMWARE_PROGRESS_LABELS[updateState])}
+        </div>
+      ) : null}
+      {error ? <div className="device-card__firmware-error" role="alert">{error}</div> : null}
+      {showUpdateButton ? (
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          onClick={onUpdate}
+          isLoading={isUpdating}
+          disabled={!device.is_online}
+          title={!device.is_online ? translateApp('Подключите устройство к сети для обновления') : undefined}
+        >
+          {updateState === 'ERROR' || firmwareStatus?.action_error
+            ? translateApp('Повторить обновление')
+            : translateApp('Обновить прошивку')}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function DeviceCard({
+  device,
+  onEdit,
+  firmwareStatus = null,
+  isFirmwareUpdating = false,
+  onFirmwareUpdate,
+}) {
   const { openSensorStats } = useSensorStatsContext();
-  const firmware = device.firmware_version || device.current_version || 'n/a';
   const avatarKey = 'grovika_mini';
   const avatarSrc = resolveDeviceAsset(avatarKey);
   const displayName = device.name || translateApp("Устройство");
@@ -154,7 +240,12 @@ function DeviceCard({ device, onEdit }) {
           <img src={avatarSrc} alt="device avatar" />
         </div>
         <div className="device-card__info">
-          <Text tone="muted" className="device-card__fw">{translateApp("Прошивка:")}{firmware}</Text>
+          <FirmwarePanel
+            device={device}
+            firmwareStatus={firmwareStatus}
+            isUpdating={isFirmwareUpdating}
+            onUpdate={onFirmwareUpdate}
+          />
         </div>
       </div>
 

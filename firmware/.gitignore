@@ -4,4 +4,5 @@
 .vscode/launch.json
 .vscode/ipch
 test_storage*/
+test/tmp/
 /data/cfg/mqtt.json

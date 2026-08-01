@@ -7,12 +7,19 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { claimDevice, fetchMyDevices } from '../../api/devices';
+import {
+  claimDevice,
+  fetchDeviceFirmware,
+  fetchMyDevices,
+  triggerDeviceFirmwareUpdate,
+} from '../../api/devices';
 import AppDevices from './AppDevices';
 
 vi.mock('../../api/devices', () => ({
   claimDevice: vi.fn(),
+  fetchDeviceFirmware: vi.fn(),
   fetchMyDevices: vi.fn(),
+  triggerDeviceFirmwareUpdate: vi.fn(),
 }));
 
 vi.mock('../../api/plants', () => ({
@@ -28,7 +35,15 @@ vi.mock('../../features/watering/WateringSidebarContext', () => ({
 }));
 
 vi.mock('../../components/devices/DeviceCard', () => ({
-  default: ({ device }) => <div data-testid="device-card">{device.device_id}</div>,
+  default: ({ device, firmwareStatus, onFirmwareUpdate }) => (
+    <div data-testid="device-card">
+      <span>{device.device_id}</span>
+      <span>{firmwareStatus?.status || 'NO_STATUS'}</span>
+      {firmwareStatus?.update_available ? (
+        <button type="button" onClick={onFirmwareUpdate}>Обновить прошивку</button>
+      ) : null}
+    </div>
+  ),
 }));
 
 vi.mock('../../components/devices/EditDeviceModal', () => ({
@@ -52,8 +67,11 @@ describe('AppDevices', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     claimDevice.mockReset();
+    fetchDeviceFirmware.mockReset();
     fetchMyDevices.mockReset();
+    triggerDeviceFirmwareUpdate.mockReset();
     fetchMyDevices.mockResolvedValue([]);
+    fetchDeviceFirmware.mockResolvedValue({ update_available: false, status: 'IDLE' });
   });
 
   afterEach(() => {
@@ -114,5 +132,40 @@ describe('AppDevices', () => {
     expect(screen.getByText('Повторить через 60 мин.')).toBeInTheDocument();
     expect(input).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Добавить устройство' })).toBeDisabled();
+  });
+
+  it('pokazyvaet novuyu proshivku i zapuskaet OTA', async () => {
+    fetchMyDevices.mockResolvedValue([{
+      id: 7,
+      device_id: 'GROVIKA_040AB1',
+      is_online: true,
+    }]);
+    fetchDeviceFirmware
+      .mockResolvedValueOnce({
+        update_available: true,
+        current_version: 'grovika-1',
+        latest_version: 'grovika-2',
+        status: 'IDLE',
+      })
+      .mockResolvedValue({
+        update_available: true,
+        current_version: 'grovika-1',
+        latest_version: 'grovika-2',
+        target_version: 'grovika-2',
+        status: 'QUEUED',
+      });
+    triggerDeviceFirmwareUpdate.mockResolvedValue({
+      result: 'accepted',
+      version: 'grovika-2',
+    });
+
+    render(<AppDevices />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Обновить прошивку' }));
+    await waitFor(() => {
+      expect(triggerDeviceFirmwareUpdate).toHaveBeenCalledWith('GROVIKA_040AB1', 'test-token');
+      expect(fetchDeviceFirmware).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.getByTestId('device-card')).toHaveTextContent('QUEUED');
   });
 });

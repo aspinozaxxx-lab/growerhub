@@ -86,6 +86,7 @@ void AppRuntime::Init() {
   context_.actuator = &actuator_module_;
   context_.sensor_hub = &sensor_hub_module_;
   context_.state = &state_module_;
+  context_.ota = &ota_module_;
   context_.hardware = &Config::GetHardwareProfile();
   
 #if defined(ARDUINO)

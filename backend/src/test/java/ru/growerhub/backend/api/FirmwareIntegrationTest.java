@@ -40,6 +40,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceCredential;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.mqtt.MqttPublisher;
@@ -102,10 +103,19 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
 
     @Test
     void checkFirmwareReturnsUpdateWhenAvailable() {
+        try {
+            Files.write(
+                    firmwareDir.resolve("2.0.1.esp32dev.bin"),
+                    "latest".getBytes(StandardCharsets.UTF_8)
+            );
+        } catch (Exception ex) {
+            throw new IllegalStateException(ex);
+        }
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId("fw-check-1");
-        device.setUpdateAvailable(true);
-        device.setLatestVersion("2.0.1");
+        device.setCurrentVersion("1.0.0");
+        device.setFirmwareHardwareProfile("esp32dev");
+        device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         deviceRepository.save(device);
         String deviceToken = createDeviceCredential(device);
 
@@ -115,10 +125,13 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
                 .get("/api/device/fw-check-1/firmware")
                 .then()
                 .statusCode(200)
-                .body("$", aMapWithSize(3))
                 .body("update_available", equalTo(true))
+                .body("current_version", equalTo("1.0.0"))
+                .body("hardware_profile", equalTo("esp32dev"))
                 .body("latest_version", equalTo("2.0.1"))
-                .body("firmware_url", equalTo("http://192.168.0.11/firmware/2.0.1.bin"));
+                .body("firmware_url", equalTo("https://example.com/firmware/2.0.1.esp32dev.bin"))
+                .body("status", equalTo("IDLE"))
+                .body("online", equalTo(true));
     }
 
     @Test
@@ -129,6 +142,33 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(401)
                 .body("detail", equalTo("Not authenticated"));
+    }
+
+    @Test
+    void firmwareUpdateRequiresKnownHardwareProfile() {
+        DeviceEntity device = DeviceEntity.create();
+        device.setDeviceId("fw-profile-missing");
+        device.setCurrentVersion("grovika-old");
+        device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
+        deviceRepository.save(device);
+        String adminToken = createAdminToken("firmware-profile-admin@example.com");
+
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/api/device/fw-profile-missing/firmware")
+                .then()
+                .statusCode(200)
+                .body("update_available", equalTo(false))
+                .body("error", equalTo("hardware_profile_unknown"));
+
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .post("/api/device/fw-profile-missing/firmware/update")
+                .then()
+                .statusCode(409)
+                .body("detail", equalTo("Профиль устройства не определён"));
     }
 
     @Test
@@ -149,12 +189,15 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
                 .body("result", equalTo("created"))
                 .body("version", equalTo(version));
 
-        Path stored = firmwareDir.resolve(version + ".bin");
+        Path stored = firmwareDir.resolve(version + ".esp32dev.bin");
         Assertions.assertTrue(Files.exists(stored));
         Assertions.assertArrayEquals(data, Files.readAllBytes(stored));
 
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId("fw-dev-1");
+        device.setCurrentVersion("1.0.0");
+        device.setFirmwareHardwareProfile("esp32dev");
+        device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         deviceRepository.save(device);
 
         String expectedSha = sha256Hex(data);
@@ -167,10 +210,10 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
                 .post("/api/device/fw-dev-1/trigger-update")
                 .then()
                 .statusCode(202)
-                .body("$", aMapWithSize(4))
+                .body("$", aMapWithSize(5))
                 .body("result", equalTo("accepted"))
                 .body("version", equalTo(version))
-                .body("url", equalTo("https://example.com/firmware/" + version + ".bin"))
+                .body("url", equalTo("https://example.com/firmware/" + version + ".esp32dev.bin"))
                 .body("sha256", equalTo(expectedSha));
 
         Assertions.assertEquals(1, testPublisher.getPublished().size());
@@ -180,22 +223,132 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         CmdOta cmd = (CmdOta) published.cmd();
         Assertions.assertEquals("ota", cmd.type());
         Assertions.assertEquals(expectedSha, cmd.sha256());
+        Assertions.assertNotNull(cmd.correlationId());
 
         DeviceEntity storedDevice = deviceRepository.findByDeviceId("fw-dev-1").orElse(null);
         Assertions.assertNotNull(storedDevice);
         Assertions.assertEquals(version, storedDevice.getLatestVersion());
-        Assertions.assertEquals("https://example.com/firmware/" + version + ".bin", storedDevice.getFirmwareUrl());
+        Assertions.assertEquals(
+                "https://example.com/firmware/" + version + ".esp32dev.bin",
+                storedDevice.getFirmwareUrl()
+        );
         Assertions.assertEquals(true, storedDevice.getUpdateAvailable());
+        Assertions.assertEquals("QUEUED", storedDevice.getFirmwareUpdateStatus());
+        Assertions.assertEquals(cmd.correlationId(), storedDevice.getFirmwareUpdateCorrelationId());
+
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/api/device/fw-dev-1/firmware")
+                .then()
+                .statusCode(200)
+                .body("status", equalTo("QUEUED"))
+                .body("target_version", equalTo(version));
+
+        LocalDateTime ackAt = LocalDateTime.now(ZoneOffset.UTC);
+        deviceFacade.handleAck(
+                "fw-dev-1",
+                cmd.correlationId(),
+                "accepted",
+                "downloading",
+                Map.of(
+                        "correlation_id", cmd.correlationId(),
+                        "result", "accepted",
+                        "status", "downloading",
+                        "version", version
+                ),
+                ackAt,
+                ackAt.plusMinutes(3)
+        );
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/api/device/fw-dev-1/firmware")
+                .then()
+                .statusCode(200)
+                .body("status", equalTo("DOWNLOADING"));
+
+        deviceFacade.handleAck(
+                "fw-dev-1",
+                cmd.correlationId(),
+                "error",
+                "failed",
+                Map.of(
+                        "correlation_id", cmd.correlationId(),
+                        "result", "error",
+                        "status", "failed",
+                        "reason", "firmware_sha256_mismatch"
+                ),
+                ackAt.plusSeconds(5),
+                ackAt.plusMinutes(3)
+        );
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/api/device/fw-dev-1/firmware")
+                .then()
+                .statusCode(200)
+                .body("status", equalTo("ERROR"))
+                .body("error", equalTo("firmware_sha256_mismatch"));
+
+        deviceFacade.handleState(
+                "fw-dev-1",
+                new DeviceShadowState(null, version, null, null, null, null, null, null, null, null),
+                ackAt.plusSeconds(10)
+        );
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .get("/api/device/fw-dev-1/firmware")
+                .then()
+                .statusCode(200)
+                .body("update_available", equalTo(false))
+                .body("current_version", equalTo(version))
+                .body("status", equalTo("SUCCESS"));
 
         Response download = given()
                 .when()
-                .get("/firmware/" + version + ".bin")
+                .get("/firmware/" + version + ".esp32dev.bin")
                 .then()
                 .statusCode(200)
                 .contentType("application/octet-stream")
                 .extract()
                 .response();
         Assertions.assertArrayEquals(data, download.asByteArray());
+    }
+
+    @Test
+    void triggerLatestFirmwareWithoutVersionInRequest() throws Exception {
+        String version = "grovika-latest";
+        Files.write(
+                firmwareDir.resolve(version + ".esp32c3_supermini.bin"),
+                "latest-firmware".getBytes(StandardCharsets.UTF_8)
+        );
+        DeviceEntity device = DeviceEntity.create();
+        device.setDeviceId("fw-latest");
+        device.setCurrentVersion("grovika-old");
+        device.setFirmwareHardwareProfile("esp32c3_supermini");
+        device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
+        deviceRepository.save(device);
+        String adminToken = createAdminToken("firmware-latest-admin@example.com");
+
+        given()
+                .header("Authorization", "Bearer " + adminToken)
+                .when()
+                .post("/api/device/fw-latest/firmware/update")
+                .then()
+                .statusCode(202)
+                .body("version", equalTo(version))
+                .body("correlation_id", not(equalTo(null)));
+
+        Assertions.assertEquals(1, testPublisher.getPublished().size());
+        CmdOta cmd = (CmdOta) testPublisher.getPublished().get(0).cmd();
+        Assertions.assertEquals(version, cmd.version());
+        Assertions.assertEquals(
+                "https://example.com/firmware/" + version + ".esp32c3_supermini.bin",
+                cmd.url()
+        );
+        Assertions.assertNotNull(cmd.correlationId());
     }
 
     @Test
@@ -254,6 +407,8 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
     void triggerUpdateMissingFileReturns404() {
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId("fw-missing-file");
+        device.setFirmwareHardwareProfile("esp32dev");
+        device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         deviceRepository.save(device);
         String adminToken = createAdminToken("firmware-trigger-file-admin@example.com");
 
@@ -272,6 +427,7 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
     void triggerUpdateValidationMissingVersionReturns422() {
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId("fw-validate");
+        device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         deviceRepository.save(device);
         String adminToken = createAdminToken("firmware-validate-admin@example.com");
 
@@ -292,10 +448,12 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
     void triggerUpdatePublishFailureReturns503() throws Exception {
         String version = "3.0.0";
         byte[] data = "firmware".getBytes(StandardCharsets.UTF_8);
-        Files.write(firmwareDir.resolve(version + ".bin"), data);
+        Files.write(firmwareDir.resolve(version + ".esp32dev.bin"), data);
 
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId("fw-fail");
+        device.setFirmwareHardwareProfile("esp32dev");
+        device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         deviceRepository.save(device);
         String adminToken = createAdminToken("firmware-publish-admin@example.com");
 
@@ -315,12 +473,14 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
     @Test
     void listFirmwareVersionsSortedAndMetadata() throws Exception {
         String adminToken = createAdminToken("firmware-list-admin@example.com");
-        Path newer = firmwareDir.resolve("2.3.4.bin");
-        Path older = firmwareDir.resolve("1.0.0.bin");
+        Path newer = firmwareDir.resolve("2.3.4.esp32dev.bin");
+        Path older = firmwareDir.resolve("1.0.0.esp32c3_supermini.bin");
+        Path legacyWithoutProfile = firmwareDir.resolve("9.9.9.bin");
         byte[] newBytes = "newer".getBytes(StandardCharsets.UTF_8);
         byte[] oldBytes = "older".getBytes(StandardCharsets.UTF_8);
         Files.write(newer, newBytes);
         Files.write(older, oldBytes);
+        Files.write(legacyWithoutProfile, "unknown-hardware".getBytes(StandardCharsets.UTF_8));
         Files.setLastModifiedTime(newer, FileTime.from(Instant.now()));
         Files.setLastModifiedTime(older, FileTime.from(Instant.now().minusSeconds(86400)));
 
@@ -335,11 +495,14 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
                 .response();
 
         List<Map<String, Object>> payload = response.jsonPath().getList("$");
+        Assertions.assertEquals(2, payload.size());
         Assertions.assertEquals("2.3.4", payload.get(0).get("version"));
         Assertions.assertEquals("1.0.0", payload.get(1).get("version"));
+        Assertions.assertEquals("esp32dev", payload.get(0).get("hardware_profile"));
+        Assertions.assertEquals("esp32c3_supermini", payload.get(1).get("hardware_profile"));
         Assertions.assertEquals(sha256Hex(newBytes), payload.get(0).get("sha256"));
         Assertions.assertTrue(payload.get(0).get("mtime").toString().endsWith("Z"));
-        Assertions.assertEquals(4, payload.get(0).size());
+        Assertions.assertEquals(5, payload.get(0).size());
     }
 
     @Test
@@ -388,6 +551,7 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM plant_journal_entries");
         jdbcTemplate.update("DELETE FROM plant_journal_photos");
         jdbcTemplate.update("DELETE FROM plants");
+        jdbcTemplate.update("DELETE FROM mqtt_ack");
         jdbcTemplate.update("DELETE FROM device_state_last");
         jdbcTemplate.update("DELETE FROM devices");
         jdbcTemplate.update("DELETE FROM user_auth_identities");

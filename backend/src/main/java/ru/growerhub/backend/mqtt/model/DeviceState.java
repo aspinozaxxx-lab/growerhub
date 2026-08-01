@@ -7,6 +7,7 @@ import ru.growerhub.backend.sensor.contract.SensorStatus;
 public record DeviceState(
         @JsonProperty("manual_watering") ManualWateringState manualWatering,
         @JsonProperty("fw_ver") String fwVer,
+        @JsonProperty("hw_profile") String hardwareProfile,
         @JsonProperty("soil_moisture") Double soilMoisture,
         @JsonProperty("air_temperature") Double airTemperature,
         @JsonProperty("air_humidity") Double airHumidity,

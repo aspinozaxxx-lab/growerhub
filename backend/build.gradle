@@ -17,6 +17,12 @@ repositories {
     mavenCentral()
 }
 
+sourceSets {
+    main {
+        resources.srcDir layout.buildDirectory.dir('generated-firmware')
+    }
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'

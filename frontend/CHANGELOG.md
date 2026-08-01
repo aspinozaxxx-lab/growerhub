@@ -1,6 +1,10 @@
 # Changelog
 
 ## 2026-08-01
+- Devices: kartochka Grovika pokazyvaet tekushchuyu i poslednyuyu versii proshivki, knopku obnovleniya i hod OTA.
+- Devices: uspeshnyj fw_ver, oshibka, timeout i povtornyj zapusk otobrazhayutsya bez perezagruzki stranicy.
+- Devices: pri neizvestnom apparatnom profile OTA ne predlagaetsya i pokazyvaetsya trebovanie pervichnoj proshivki po USB.
+- Tests: pokryty novaya versiya, zapusk, uspeshnoe zavershenie i oshibka OTA.
 - Devices: dobavlena privyazka seriynoj Grovika po pechatnomu device_id.
 - Devices: forma i native-kartochki podklyucheny k fakticheskomu marshrutu nastroek vmeste s Zigbee-kartochkami.
 - Devices: dobavleny soobshcheniya 404/409/429, obratnyj otschet Retry-After i obnovlenie spiska posle uspeha.

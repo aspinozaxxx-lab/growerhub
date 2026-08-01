@@ -22,6 +22,7 @@ namespace Modules {
 class ActuatorModule;
 class SensorHubModule;
 class StateModule;
+class OtaModule;
 }
 
 namespace Config {
@@ -51,6 +52,8 @@ struct Context {
   const Config::HardwareProfile* hardware;
   // Identifikator ustroistva.
   const char* device_id;
+  // Ukazatel na modul OTA.
+  Modules::OtaModule* ota;
 };
 
 }

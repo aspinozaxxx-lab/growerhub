@@ -279,6 +279,7 @@ public class DeviceShadowStore {
         return new DeviceShadowState(
                 mergedManual,
                 next.fwVer(),
+                next.hardwareProfile(),
                 next.soilMoisture(),
                 next.airTemperature(),
                 next.airHumidity(),

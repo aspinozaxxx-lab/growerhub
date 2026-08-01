@@ -70,6 +70,8 @@ security:
 firmware:
   # Katalog binarnikov firmware.
   binariesDir: "firmware_binaries"
+  # Timeout podtverzhdenija OTA ustrojstvom (sek).
+  updateTimeoutSeconds: 300
 
 server:
   # Public base URL.

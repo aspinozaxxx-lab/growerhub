@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - "backend/**"
+      - "firmware/**"
       - "ansible/**"
       - ".github/workflows/ci-cd-backend.yml"
   push:
     branches: [ "main" ]
     paths:
       - "backend/**"
+      - "firmware/**"
       - "ansible/**"
       - ".github/workflows/ci-cd-backend.yml"
   workflow_dispatch:
@@ -34,9 +36,55 @@ jobs:
   ci:
     name: CI (java backend)
     runs-on: ubuntu-latest
+    outputs:
+      firmware_version: ${{ steps.firmware_release.outputs.version }}
+      firmware_esp32dev_sha256: ${{ steps.firmware_release.outputs.esp32dev_sha256 }}
+      firmware_esp32c3_sha256: ${{ steps.firmware_release.outputs.esp32c3_supermini_sha256 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Build Grovika firmware release
+        working-directory: firmware
+        run: pio run -e esp32dev -e esp32c3_supermini
+
+      - name: Package Grovika firmware into backend release
+        id: firmware_release
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '\r\n' < firmware/.pio/build/esp32dev/firmware.version)"
+          c3_version="$(tr -d '\r\n' < firmware/.pio/build/esp32c3_supermini/firmware.version)"
+          if [[ ! "$version" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$ ]]; then
+            echo "Invalid firmware version: $version" >&2
+            exit 1
+          fi
+          if [ "$version" != "$c3_version" ]; then
+            echo "Firmware versions differ: esp32dev=$version esp32c3_supermini=$c3_version" >&2
+            exit 1
+          fi
+          release_dir="backend/build/generated-firmware/firmware-release"
+          install -d "$release_dir"
+          printf 'version=%s\n' "$version" > "$release_dir/manifest.properties"
+          for profile in esp32dev esp32c3_supermini; do
+            binary="firmware/.pio/build/$profile/firmware.bin"
+            test -s "$binary"
+            sha256="$(sha256sum "$binary" | awk '{print $1}')"
+            install -m 0644 "$binary" "$release_dir/$profile.bin"
+            printf '%s.sha256=%s\n' "$profile" "$sha256" >> "$release_dir/manifest.properties"
+            echo "${profile}_sha256=$sha256" >> "$GITHUB_OUTPUT"
+          done
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Setup Java 21
         uses: actions/setup-java@v4
@@ -168,6 +216,30 @@ jobs:
           curl --fail --silent --show-error \
             --retry 5 --retry-delay 2 --retry-all-errors \
             https://growerhub.ru/health >/dev/null
+
+      - name: Verify published Grovika firmware
+        shell: bash
+        env:
+          FIRMWARE_VERSION: ${{ needs.ci.outputs.firmware_version }}
+          ESP32DEV_SHA256: ${{ needs.ci.outputs.firmware_esp32dev_sha256 }}
+          ESP32C3_SHA256: ${{ needs.ci.outputs.firmware_esp32c3_sha256 }}
+        run: |
+          set -euo pipefail
+          work_dir="$(mktemp -d)"
+          trap 'rm -rf "$work_dir"' EXIT
+          for profile in esp32dev esp32c3_supermini; do
+            binary="$work_dir/$profile.bin"
+            curl --fail --silent --show-error \
+              --retry 5 --retry-delay 2 --retry-all-errors \
+              "https://growerhub.ru/firmware/$FIRMWARE_VERSION.$profile.bin" \
+              --output "$binary"
+            if [ "$profile" = "esp32dev" ]; then
+              expected="$ESP32DEV_SHA256"
+            else
+              expected="$ESP32C3_SHA256"
+            fi
+            echo "$expected  $binary" | sha256sum --check --strict
+          done
 
       - name: Remove stale backend releases
         shell: bash

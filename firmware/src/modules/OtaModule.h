@@ -8,6 +8,7 @@
 #pragma once
 
 #include "core/Module.h"
+#include "services/ota/OtaInstaller.h"
 #include "services/ota/OtaRollback.h"
 
 namespace Services {
@@ -15,9 +16,19 @@ class MqttService;
 }
 
 namespace Modules {
+class ActuatorModule;
+}
+
+namespace Modules {
 
 class OtaModule : public Core::Module {
  public:
+  class Rebooter {
+   public:
+    virtual ~Rebooter() {}
+    virtual void Restart() = 0;
+  };
+
   /**
    * Init modula OTA.
    * @param ctx Kontekst s servisami i hranilishchem.
@@ -41,13 +52,36 @@ class OtaModule : public Core::Module {
    */
   void MarkPending(uint32_t now_ms);
 
+  /**
+   * Zagruzhaet i ustanavlivaet OTA po proverennoy komande.
+   */
+  bool StartUpdate(const char* url, const char* version, const char* sha256,
+                   const char* correlation_id);
+
+  void SetInstaller(Services::OtaInstaller* installer);
+  void SetRebooter(Rebooter* rebooter);
+
  private:
-  static const uint32_t kConfirmDelayMs = 30000;
+  void SendAck(const char* correlation_id, const char* result, const char* status,
+               const char* version, const char* reason);
 
   Services::MqttService* mqtt_ = nullptr;
+  Modules::ActuatorModule* actuator_ = nullptr;
+  const char* device_id_ = nullptr;
   Services::OtaRollback rollback_{};
+  Services::PlatformOtaInstaller default_installer_{};
+  Services::OtaInstaller* installer_ = nullptr;
+  Rebooter* rebooter_ = nullptr;
   bool boot_checked_ = false;
-  uint32_t boot_ms_ = 0;
+
+#if defined(ARDUINO)
+  class EspRebooter : public Rebooter {
+   public:
+    void Restart() override;
+  };
+
+  EspRebooter default_rebooter_{};
+#endif
 };
 
 }

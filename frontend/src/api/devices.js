@@ -52,3 +52,25 @@ export async function claimDevice(deviceId, token) {
   }
   return response.json();
 }
+
+export async function fetchDeviceFirmware(deviceId, token) {
+  void token;
+  const response = await apiFetch(`/api/device/${encodeURIComponent(deviceId)}/firmware`);
+  if (!response.ok) {
+    throw new Error(await readApiErrorMessage(response, 'Не удалось проверить прошивку'));
+  }
+  return response.json();
+}
+
+export async function triggerDeviceFirmwareUpdate(deviceId, token) {
+  void token;
+  const response = await apiFetch(`/api/device/${encodeURIComponent(deviceId)}/firmware/update`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const error = new Error(await readApiErrorMessage(response, 'Не удалось запустить обновление'));
+    error.status = response.status;
+    throw error;
+  }
+  return response.json();
+}

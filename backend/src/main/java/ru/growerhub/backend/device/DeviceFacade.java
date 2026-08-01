@@ -23,6 +23,7 @@ import ru.growerhub.backend.device.contract.DeviceBrokerCredentialGateway;
 import ru.growerhub.backend.device.contract.DeviceClaimRateLimitException;
 import ru.growerhub.backend.device.contract.DeviceClaimRejectedException;
 import ru.growerhub.backend.device.contract.DeviceFirmwareStatus;
+import ru.growerhub.backend.device.contract.DeviceFirmwareUpdateState;
 import ru.growerhub.backend.device.contract.DeviceCredential;
 import ru.growerhub.backend.device.contract.DeviceMqttCredential;
 import ru.growerhub.backend.device.contract.DeviceServiceEventData;
@@ -219,11 +220,38 @@ public class DeviceFacade {
         if (device == null) {
             return null;
         }
-        return new DeviceFirmwareStatus(device.getUpdateAvailable(), device.getLatestVersion(), device.getFirmwareUrl());
+        DeviceShadowState state = shadowStore.getLastState(deviceId);
+        String currentVersion = state != null && state.fwVer() != null && !state.fwVer().isBlank()
+                ? state.fwVer()
+                : device.getCurrentVersion();
+        String hardwareProfile = state != null
+                && state.hardwareProfile() != null
+                && !state.hardwareProfile().isBlank()
+                ? state.hardwareProfile()
+                : device.getFirmwareHardwareProfile();
+        DeviceSummary summary = deviceQueryService.buildDeviceSummary(device);
+        return new DeviceFirmwareStatus(
+                currentVersion,
+                hardwareProfile,
+                device.getLatestVersion(),
+                device.getFirmwareUrl(),
+                parseFirmwareUpdateState(device.getFirmwareUpdateStatus()),
+                device.getFirmwareUpdateError(),
+                device.getFirmwareUpdateCorrelationId(),
+                device.getFirmwareUpdateRequestedAt(),
+                device.getFirmwareUpdateCompletedAt(),
+                Boolean.TRUE.equals(summary.isOnline())
+        );
     }
 
     @Transactional
-    public void markFirmwareUpdate(String deviceId, String version, String firmwareUrl) {
+    public void markFirmwareUpdate(
+            String deviceId,
+            String version,
+            String firmwareUrl,
+            String correlationId,
+            LocalDateTime requestedAt
+    ) {
         DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
         if (device == null) {
             throw new DomainException("not_found", "Device not found");
@@ -231,12 +259,36 @@ public class DeviceFacade {
         device.setUpdateAvailable(true);
         device.setLatestVersion(version);
         device.setFirmwareUrl(firmwareUrl);
+        device.setFirmwareUpdateStatus(DeviceFirmwareUpdateState.QUEUED.name());
+        device.setFirmwareUpdateError(null);
+        device.setFirmwareUpdateCorrelationId(correlationId);
+        device.setFirmwareUpdateRequestedAt(requestedAt);
+        device.setFirmwareUpdateCompletedAt(null);
+        deviceRepository.save(device);
+    }
+
+    @Transactional
+    public void markFirmwareUpdateFailed(
+            String deviceId,
+            String correlationId,
+            String error,
+            LocalDateTime completedAt
+    ) {
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        if (device == null || correlationId == null
+                || !correlationId.equals(device.getFirmwareUpdateCorrelationId())) {
+            return;
+        }
+        device.setFirmwareUpdateStatus(DeviceFirmwareUpdateState.ERROR.name());
+        device.setFirmwareUpdateError(limitFirmwareError(error));
+        device.setFirmwareUpdateCompletedAt(completedAt);
         deviceRepository.save(device);
     }
 
     @Transactional
     public void handleState(String deviceId, DeviceShadowState state, LocalDateTime now) {
         List<SensorMeasurement> measurements = deviceIngestionService.handleState(deviceId, state, now);
+        updateFirmwareFromState(deviceId, state, now);
         // Translitem: pri auto-provision garantiruem default pump dlya novogo device.
         Integer devicePk = findDeviceId(deviceId);
         if (devicePk != null) {
@@ -259,6 +311,7 @@ public class DeviceFacade {
             LocalDateTime expiresAt
     ) {
         ackService.upsertAck(deviceId, correlationId, result, status, payloadMap, receivedAt, expiresAt);
+        updateFirmwareFromAck(deviceId, correlationId, result, status, payloadMap, receivedAt);
         touchLastSeen(deviceId, receivedAt);
     }
 
@@ -587,6 +640,86 @@ public class DeviceFacade {
     private long retryAfterSeconds(LocalDateTime now, LocalDateTime retryAt) {
         long millis = Duration.between(now, retryAt).toMillis();
         return Math.max(1, (millis + 999) / 1000);
+    }
+
+    private void updateFirmwareFromState(String deviceId, DeviceShadowState state, LocalDateTime receivedAt) {
+        if (state == null) {
+            return;
+        }
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        if (device == null) {
+            return;
+        }
+        if (state.hardwareProfile() != null && !state.hardwareProfile().isBlank()) {
+            String hardwareProfile = state.hardwareProfile().trim();
+            device.setFirmwareHardwareProfile(
+                    hardwareProfile.length() <= 64 ? hardwareProfile : hardwareProfile.substring(0, 64));
+        }
+        if (state.fwVer() == null || state.fwVer().isBlank()) {
+            deviceRepository.save(device);
+            return;
+        }
+        String currentVersion = state.fwVer().trim();
+        device.setCurrentVersion(currentVersion);
+        String targetVersion = device.getLatestVersion();
+        if (targetVersion != null && !targetVersion.isBlank()) {
+            boolean installed = targetVersion.equals(currentVersion);
+            device.setUpdateAvailable(!installed);
+            if (installed && device.getFirmwareUpdateCorrelationId() != null) {
+                device.setFirmwareUpdateStatus(DeviceFirmwareUpdateState.SUCCESS.name());
+                device.setFirmwareUpdateError(null);
+                device.setFirmwareUpdateCompletedAt(receivedAt);
+            }
+        }
+        deviceRepository.save(device);
+    }
+
+    private void updateFirmwareFromAck(
+            String deviceId,
+            String correlationId,
+            String result,
+            String status,
+            Map<String, Object> payloadMap,
+            LocalDateTime receivedAt
+    ) {
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
+        if (device == null || correlationId == null
+                || !correlationId.equals(device.getFirmwareUpdateCorrelationId())) {
+            return;
+        }
+        String normalizedResult = result != null ? result.trim().toLowerCase(Locale.ROOT) : "";
+        String normalizedStatus = status != null ? status.trim().toLowerCase(Locale.ROOT) : "";
+        if ("error".equals(normalizedResult) || "declined".equals(normalizedResult)
+                || "failed".equals(normalizedStatus)) {
+            Object reason = payloadMap != null ? payloadMap.get("reason") : null;
+            device.setFirmwareUpdateStatus(DeviceFirmwareUpdateState.ERROR.name());
+            device.setFirmwareUpdateError(limitFirmwareError(
+                    reason != null ? reason.toString() : "device rejected firmware update"));
+            device.setFirmwareUpdateCompletedAt(receivedAt);
+        } else if ("downloading".equals(normalizedStatus)) {
+            device.setFirmwareUpdateStatus(DeviceFirmwareUpdateState.DOWNLOADING.name());
+        } else if ("restarting".equals(normalizedStatus)) {
+            device.setFirmwareUpdateStatus(DeviceFirmwareUpdateState.RESTARTING.name());
+        } else {
+            return;
+        }
+        deviceRepository.save(device);
+    }
+
+    private DeviceFirmwareUpdateState parseFirmwareUpdateState(String rawState) {
+        if (rawState == null || rawState.isBlank()) {
+            return DeviceFirmwareUpdateState.IDLE;
+        }
+        try {
+            return DeviceFirmwareUpdateState.valueOf(rawState.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return DeviceFirmwareUpdateState.IDLE;
+        }
+    }
+
+    private String limitFirmwareError(String error) {
+        String value = error == null || error.isBlank() ? "firmware update failed" : error.trim();
+        return value.length() <= 512 ? value : value.substring(0, 512);
     }
 
     private Double defaultDouble(Double value, double fallback) {

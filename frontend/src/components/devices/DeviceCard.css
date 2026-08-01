@@ -53,9 +53,40 @@
   gap: 8px;
 }
 
-.device-card__fw {
-  color: #c7d7ef;
+.device-card__firmware {
+  display: grid;
+  gap: 7px;
   font-size: 13px;
+}
+
+.device-card__firmware-version {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: #c7d7ef;
+}
+
+.device-card__firmware-version strong {
+  color: #eef3fb;
+  font-weight: 600;
+}
+
+.device-card__firmware-update,
+.device-card__firmware-progress {
+  color: #f4c46b;
+}
+
+.device-card__firmware-success {
+  color: var(--accent);
+}
+
+.device-card__firmware-error {
+  color: var(--danger);
+  line-height: 1.35;
+}
+
+.device-card__firmware .gh-btn {
+  justify-self: start;
 }
 
 .device-card__section {

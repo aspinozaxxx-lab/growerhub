@@ -17,6 +17,7 @@ class MqttService;
 namespace Modules {
 class ActuatorModule;
 class StateModule;
+class OtaModule;
 }
 
 namespace Modules {
@@ -69,6 +70,7 @@ class CommandRouterModule : public Core::Module {
   Services::MqttService* mqtt_ = nullptr;
   Modules::ActuatorModule* actuator_ = nullptr;
   Modules::StateModule* state_ = nullptr;
+  Modules::OtaModule* ota_ = nullptr;
   const char* device_id_ = nullptr;
   Rebooter* rebooter_ = nullptr;
 

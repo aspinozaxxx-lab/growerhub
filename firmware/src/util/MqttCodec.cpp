@@ -55,7 +55,7 @@ static bool ExtractStringField(const char* json, const char* key, char* out, siz
   }
   size_t len = static_cast<size_t>(end - value);
   if (len >= out_size) {
-    len = out_size - 1;
+    return false;
   }
   std::memcpy(out, value, len);
   out[len] = '\0';
@@ -93,6 +93,9 @@ bool ParseCommand(const char* json, Command& out, ParseError& error) {
   out.type = CommandType::kUnknown;
   out.duration_s = 0;
   out.correlation_id[0] = '\0';
+  out.ota_url[0] = '\0';
+  out.firmware_version[0] = '\0';
+  out.sha256[0] = '\0';
   error = ParseError::kNone;
 
   if (!HasJsonBraces(json)) {
@@ -129,6 +132,31 @@ bool ParseCommand(const char* json, Command& out, ParseError& error) {
     return true;
   }
 
+  if (std::strcmp(type_buf, "ota") == 0) {
+    out.type = CommandType::kOta;
+    const bool has_url = ExtractStringField(json, "url", out.ota_url, sizeof(out.ota_url));
+    const bool has_version = ExtractStringField(
+        json, "version", out.firmware_version, sizeof(out.firmware_version));
+    const bool has_sha = ExtractStringField(json, "sha256", out.sha256, sizeof(out.sha256));
+    if (!has_url || !has_version || !has_sha || out.correlation_id[0] == '\0') {
+      error = ParseError::kOtaFieldsMissingOrInvalid;
+      return false;
+    }
+    const char* allowed_prefix = "https://growerhub.ru/firmware/";
+    if (std::strncmp(out.ota_url, allowed_prefix, std::strlen(allowed_prefix)) != 0 ||
+        std::strlen(out.sha256) != 64) {
+      error = ParseError::kOtaFieldsMissingOrInvalid;
+      return false;
+    }
+    for (size_t i = 0; i < 64; ++i) {
+      if (!std::isxdigit(static_cast<unsigned char>(out.sha256[i]))) {
+        error = ParseError::kOtaFieldsMissingOrInvalid;
+        return false;
+      }
+    }
+    return true;
+  }
+
   error = ParseError::kUnsupportedCommand;
   return false;
 }
@@ -143,6 +171,8 @@ const char* ParseErrorReason(ParseError error) {
       return "bad command format: duration_s missing or invalid";
     case ParseError::kUnsupportedCommand:
       return "unsupported command type";
+    case ParseError::kOtaFieldsMissingOrInvalid:
+      return "bad command format: invalid ota fields";
     case ParseError::kNone:
     default:
       return "unknown";
@@ -172,6 +202,39 @@ bool BuildAckError(const char* correlation_id, const char* reason, char* out, si
   const int written = std::snprintf(out, out_size,
                                    "{\"correlation_id\":\"%s\",\"result\":\"error\",\"reason\":\"%s\"}",
                                    corr, why);
+  return written > 0 && static_cast<size_t>(written) < out_size;
+}
+
+bool BuildOtaAck(const char* correlation_id, const char* result, const char* status,
+                 const char* version, const char* reason, char* out, size_t out_size) {
+  if (!out || out_size == 0) {
+    return false;
+  }
+  const char* corr = correlation_id ? correlation_id : "";
+  const char* res = result ? result : "";
+  const char* stat = status ? status : "";
+  const char* ver = version ? version : "";
+  int written = 0;
+  if (reason && reason[0] != '\0') {
+    written = std::snprintf(
+        out,
+        out_size,
+        "{\"correlation_id\":\"%s\",\"result\":\"%s\",\"status\":\"%s\",\"version\":\"%s\",\"reason\":\"%s\"}",
+        corr,
+        res,
+        stat,
+        ver,
+        reason);
+  } else {
+    written = std::snprintf(
+        out,
+        out_size,
+        "{\"correlation_id\":\"%s\",\"result\":\"%s\",\"status\":\"%s\",\"version\":\"%s\"}",
+        corr,
+        res,
+        stat,
+        ver);
+  }
   return written > 0 && static_cast<size_t>(written) < out_size;
 }
 

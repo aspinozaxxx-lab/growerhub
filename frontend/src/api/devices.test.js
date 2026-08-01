@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiFetch, readApiErrorMessage } from './client';
-import { claimDevice } from './devices';
+import {
+  claimDevice,
+  fetchDeviceFirmware,
+  triggerDeviceFirmwareUpdate,
+} from './devices';
 
 vi.mock('./client', () => ({
   apiFetch: vi.fn(),
@@ -42,5 +46,33 @@ describe('claimDevice', () => {
       status: 429,
       retryAfterSeconds: 3599,
     });
+  });
+
+  it('proveryaet i zapuskaet poslednyuyu proshivku', async () => {
+    apiFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ latest_version: 'grovika-2' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ result: 'accepted' }),
+      });
+
+    await expect(fetchDeviceFirmware('GROVIKA_040AB1')).resolves.toEqual({
+      latest_version: 'grovika-2',
+    });
+    await expect(triggerDeviceFirmwareUpdate('GROVIKA_040AB1')).resolves.toEqual({
+      result: 'accepted',
+    });
+    expect(apiFetch).toHaveBeenNthCalledWith(
+      1,
+      '/api/device/GROVIKA_040AB1/firmware',
+    );
+    expect(apiFetch).toHaveBeenNthCalledWith(
+      2,
+      '/api/device/GROVIKA_040AB1/firmware/update',
+      { method: 'POST' },
+    );
   });
 });

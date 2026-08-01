@@ -15,12 +15,18 @@ public class MqttFirmwareUpdateGateway implements FirmwareUpdateGateway {
     }
 
     @Override
-    public void publishOta(String deviceId, String firmwareUrl, String version, String sha256) {
+    public void publishOta(
+            String deviceId,
+            String firmwareUrl,
+            String version,
+            String sha256,
+            String correlationId
+    ) {
         MqttPublisher publisher = publisherProvider.getIfAvailable();
         if (publisher == null) {
             throw new DomainException("unavailable", "MQTT publisher unavailable");
         }
-        CmdOta cmd = new CmdOta("ota", firmwareUrl, version, sha256);
+        CmdOta cmd = new CmdOta("ota", firmwareUrl, version, sha256, correlationId);
         try {
             publisher.publishCmd(deviceId, cmd);
         } catch (DomainException ex) {

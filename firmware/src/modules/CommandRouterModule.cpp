@@ -16,6 +16,7 @@
 
 #include "core/Context.h"
 #include "modules/ActuatorModule.h"
+#include "modules/OtaModule.h"
 #include "modules/StateModule.h"
 #include "services/MqttService.h"
 #include "services/Topics.h"
@@ -32,6 +33,8 @@ static const char* CommandTypeToString(Util::CommandType type) {
       return "pump.stop";
     case Util::CommandType::kReboot:
       return "reboot";
+    case Util::CommandType::kOta:
+      return "ota";
     case Util::CommandType::kUnknown:
     default:
       return "unknown";
@@ -57,6 +60,7 @@ void CommandRouterModule::Init(Core::Context& ctx) {
   mqtt_ = ctx.mqtt;
   actuator_ = ctx.actuator;
   state_ = ctx.state;
+  ota_ = ctx.ota;
   device_id_ = ctx.device_id;
 #if defined(ARDUINO)
   rebooter_ = &default_rebooter_;
@@ -139,6 +143,21 @@ void CommandRouterModule::HandleCommand(const char* topic, const char* payload) 
       SendAckError("", "bad-correlation-id");
     } else {
       RebootIfSafe(command.correlation_id);
+    }
+    return;
+  }
+
+  if (command.type == Util::CommandType::kOta) {
+    if (command.correlation_id[0] == '\0') {
+      SendAckError("", "bad-correlation-id");
+    } else if (!ota_) {
+      SendAckError(command.correlation_id, "ota_unavailable");
+    } else {
+      ota_->StartUpdate(
+          command.ota_url,
+          command.firmware_version,
+          command.sha256,
+          command.correlation_id);
     }
     return;
   }

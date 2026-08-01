@@ -6,6 +6,7 @@ public record CmdOta(
         @JsonProperty("type") String type,
         @JsonProperty("url") String url,
         @JsonProperty("version") String version,
-        @JsonProperty("sha256") String sha256
+        @JsonProperty("sha256") String sha256,
+        @JsonProperty("correlation_id") String correlationId
 ) {
 }

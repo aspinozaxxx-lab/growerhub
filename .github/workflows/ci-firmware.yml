@@ -5,10 +5,12 @@ on:
     branches: [ "main" ]
     paths:
       - "firmware/**"
+      - ".github/workflows/ci-firmware.yml"
   pull_request:
     branches: [ "main" ]
     paths:
       - "firmware/**"
+      - ".github/workflows/ci-firmware.yml"
   workflow_dispatch:
 
 jobs:
@@ -16,10 +18,12 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        working-directory: firmware   # <— важное: запускаем из папки с platformio.ini
+        working-directory: firmware
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -34,3 +38,36 @@ jobs:
 
       - name: Run tests
         run: pio test -e test -v
+
+      - name: Build Grovika firmware
+        run: pio run -e esp32dev -e esp32c3_supermini
+
+      - name: Validate firmware release metadata
+        shell: pwsh
+        run: |
+          $version = (Get-Content .pio/build/esp32dev/firmware.version -Raw).Trim()
+          if ($version -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$') {
+            throw "Invalid firmware version: $version"
+          }
+          $c3Version = (Get-Content .pio/build/esp32c3_supermini/firmware.version -Raw).Trim()
+          if ($version -ne $c3Version) {
+            throw "Firmware versions differ: esp32dev=$version esp32c3_supermini=$c3Version"
+          }
+          foreach ($profile in @('esp32dev', 'esp32c3_supermini')) {
+            $binary = ".pio/build/$profile/firmware.bin"
+            if (-not (Test-Path $binary) -or (Get-Item $binary).Length -le 0) {
+              throw "Firmware binary is missing or empty: $profile"
+            }
+            Get-FileHash $binary -Algorithm SHA256
+          }
+
+      - name: Upload Grovika firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: grovika-firmware-${{ github.sha }}
+          path: |
+            firmware/.pio/build/esp32dev/firmware.bin
+            firmware/.pio/build/esp32dev/firmware.version
+            firmware/.pio/build/esp32c3_supermini/firmware.bin
+            firmware/.pio/build/esp32c3_supermini/firmware.version
+          if-no-files-found: error

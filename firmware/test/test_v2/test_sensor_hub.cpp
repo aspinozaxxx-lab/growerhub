@@ -155,6 +155,7 @@ void test_state_soil_serialization() {
   state.PublishState(true);
   TEST_ASSERT_EQUAL_STRING("gh/dev/grovika_040AB1/state", g_last_topic);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"soil\"") != nullptr);
+  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"hw_profile\":\"esp32dev\"") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"port\":0") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"port\":1") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"detected\":true") != nullptr);

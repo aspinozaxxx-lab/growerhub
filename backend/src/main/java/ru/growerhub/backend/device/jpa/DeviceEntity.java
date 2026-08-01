@@ -57,6 +57,9 @@ public class DeviceEntity {
     @Column(name = "current_version", nullable = true)
     private String currentVersion;
 
+    @Column(name = "firmware_hardware_profile", length = 64)
+    private String firmwareHardwareProfile;
+
     @Column(name = "latest_version", nullable = true)
     private String latestVersion;
 
@@ -65,6 +68,21 @@ public class DeviceEntity {
 
     @Column(name = "firmware_url", nullable = true)
     private String firmwareUrl;
+
+    @Column(name = "firmware_update_status", length = 32)
+    private String firmwareUpdateStatus;
+
+    @Column(name = "firmware_update_error", length = 512)
+    private String firmwareUpdateError;
+
+    @Column(name = "firmware_update_correlation_id", length = 64)
+    private String firmwareUpdateCorrelationId;
+
+    @Column(name = "firmware_update_requested_at")
+    private LocalDateTime firmwareUpdateRequestedAt;
+
+    @Column(name = "firmware_update_completed_at")
+    private LocalDateTime firmwareUpdateCompletedAt;
 
     @Column(name = "device_token_hash", length = 64)
     private String deviceTokenHash;
@@ -174,6 +192,14 @@ public class DeviceEntity {
         this.currentVersion = currentVersion;
     }
 
+    public String getFirmwareHardwareProfile() {
+        return firmwareHardwareProfile;
+    }
+
+    public void setFirmwareHardwareProfile(String firmwareHardwareProfile) {
+        this.firmwareHardwareProfile = firmwareHardwareProfile;
+    }
+
     public String getLatestVersion() {
         return latestVersion;
     }
@@ -196,6 +222,46 @@ public class DeviceEntity {
 
     public void setFirmwareUrl(String firmwareUrl) {
         this.firmwareUrl = firmwareUrl;
+    }
+
+    public String getFirmwareUpdateStatus() {
+        return firmwareUpdateStatus;
+    }
+
+    public void setFirmwareUpdateStatus(String firmwareUpdateStatus) {
+        this.firmwareUpdateStatus = firmwareUpdateStatus;
+    }
+
+    public String getFirmwareUpdateError() {
+        return firmwareUpdateError;
+    }
+
+    public void setFirmwareUpdateError(String firmwareUpdateError) {
+        this.firmwareUpdateError = firmwareUpdateError;
+    }
+
+    public String getFirmwareUpdateCorrelationId() {
+        return firmwareUpdateCorrelationId;
+    }
+
+    public void setFirmwareUpdateCorrelationId(String firmwareUpdateCorrelationId) {
+        this.firmwareUpdateCorrelationId = firmwareUpdateCorrelationId;
+    }
+
+    public LocalDateTime getFirmwareUpdateRequestedAt() {
+        return firmwareUpdateRequestedAt;
+    }
+
+    public void setFirmwareUpdateRequestedAt(LocalDateTime firmwareUpdateRequestedAt) {
+        this.firmwareUpdateRequestedAt = firmwareUpdateRequestedAt;
+    }
+
+    public LocalDateTime getFirmwareUpdateCompletedAt() {
+        return firmwareUpdateCompletedAt;
+    }
+
+    public void setFirmwareUpdateCompletedAt(LocalDateTime firmwareUpdateCompletedAt) {
+        this.firmwareUpdateCompletedAt = firmwareUpdateCompletedAt;
     }
 
     public String getDeviceTokenHash() {
