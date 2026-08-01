@@ -260,10 +260,6 @@ export function acControlStatusLabel(state) {
   }
 }
 
-export function countPlantsInRoom(room) {
-  return listOrEmpty(room?.boxes).reduce((total, box) => total + listOrEmpty(box?.plants).length, 0);
-}
-
 export function resourceStatsProperty(resource, role) {
   if (!resource) {
     return null;

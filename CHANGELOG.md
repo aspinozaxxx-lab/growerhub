@@ -1,4 +1,10 @@
-﻿### fix(climate): upravlenie bez skrytyh zaderzhek
+﻿### fix(front): kompaktnye kartochki teplic
+
+- fix(dashboard): v polzovatelskom i admin dashboard ubrany rasteniya, lokalnyj kondicioner, aktivnyj status i neprivyazannye resursy teplic; otklyuchennoe sostoyanie sohraneno.
+- fix(profile): timezone select priveden k stilyu konstruktora, knopka administrirovaniya vedet na admin dashboard.
+- docs(arch): opisanie dashboard sinhronizirovano s kompaktnym predstavleniem teplic.
+
+### fix(climate): upravlenie bez skrytyh zaderzhek
 
 - fix(automation): obduv i zapros ohlazhdeniya zavisyat tolko ot chetyreh porogov, a kondicioner vykluchaetsya srazu posle snyatiya poslednego zaprosa.
 - feat(dashboard): runtime `ac_control` i dashboard pokazyvayut prichinu sostoyaniya kondicionera; tooltip ne dubliruet agregirovannye zaprosy i ignoriruet vykluchennye scenarii.

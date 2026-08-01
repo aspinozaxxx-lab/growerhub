@@ -221,7 +221,7 @@ function AppProfile() {
           <Button
             type="button"
             variant="secondary"
-            onClick={() => navigate('/app/admin/devices/')}
+            onClick={() => navigate('/app/admin/dashboard/')}
           >{translateApp("Администрирование")}</Button>
         ) : null}
       />
@@ -260,6 +260,7 @@ function AppProfile() {
           <FormField label={translateApp("Часовой пояс")} htmlFor="profile-timezone">
             <select
               id="profile-timezone"
+              className="profile-timezone-select"
               value={timezone}
               onChange={(event) => {
                 setTimezone(event.target.value);

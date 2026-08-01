@@ -94,4 +94,106 @@ describe('AppOverview warnings', () => {
     fireEvent.keyDown(tile, { key: 'Escape' });
     expect(tile).toHaveAttribute('aria-expanded', 'false');
   });
+
+  it('pokazyvaet v teplicah tolko privyazannye resursy bez rasteniy i aktivnogo statusa', async () => {
+    fetchFarmsOverview.mockResolvedValue({
+      farms: [{
+        id: 1,
+        name: 'Ферма',
+        enabled: true,
+        slots: [{
+          id: 10,
+          role: 'AC_SWITCH',
+          ready: true,
+          current_value: 'OFF',
+        }],
+        scenarios: [],
+        states: [],
+        greenhouses: [{
+          id: 2,
+          name: 'Активная теплица',
+          enabled: true,
+          plants: [{ id: 30, name: 'Базилик' }],
+          slots: [
+            {
+              id: 11,
+              role: 'AC_SWITCH',
+              ready: true,
+              current_value: 'ON',
+            },
+            {
+              id: 12,
+              role: 'EXHAUST_SWITCH',
+              ready: true,
+              current_value: 'OFF',
+            },
+            {
+              id: 13,
+              role: 'AIR_TEMPERATURE_SENSOR',
+              ready: true,
+              current_value: 24.5,
+            },
+          ],
+          scenarios: [],
+          readiness: {},
+          states: [{
+            scenario_type: 'BOX_CLIMATE',
+            runtime: { ac_control: { phase: 'handling_request' } },
+          }],
+          last_actions: [],
+        }, {
+          id: 3,
+          name: 'Выключенная теплица',
+          enabled: false,
+          plants: [],
+          slots: [],
+          scenarios: [],
+          readiness: {},
+          states: [],
+          last_actions: [],
+        }],
+        last_actions: [],
+      }],
+      resource_catalog: {
+        plants: [
+          { id: 30, name: 'Базилик' },
+          { id: 31, name: 'Томат' },
+        ],
+        native_devices: [],
+        zigbee_devices: [],
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <AppOverview />
+      </MemoryRouter>,
+    );
+
+    const activeHeading = await screen.findByRole('heading', { name: 'Активная теплица' });
+    const activeGreenhouse = activeHeading.closest('.farm-dashboard-box');
+    const farmCard = activeHeading.closest('.farm-dashboard-room');
+    const equipment = activeGreenhouse.querySelector('.farm-dashboard-box__equipment');
+
+    expect(within(equipment).getByText('Обдув')).toBeInTheDocument();
+    expect(within(equipment).queryByText('Кондиционер')).not.toBeInTheDocument();
+    expect(within(equipment).queryByText('Свет')).not.toBeInTheDocument();
+    expect(within(equipment).queryByText('Полив')).not.toBeInTheDocument();
+    expect(within(activeGreenhouse).getByText('Температура воздуха')).toBeInTheDocument();
+    expect(within(activeGreenhouse).queryByText('Не привязано')).not.toBeInTheDocument();
+    expect(within(activeGreenhouse).queryByText('Активен')).not.toBeInTheDocument();
+    expect(within(activeGreenhouse).queryByText(/Кондиционер обрабатывает/u)).not.toBeInTheDocument();
+    expect(screen.queryByText('Базилик')).not.toBeInTheDocument();
+    expect(within(farmCard).queryByText('Растения')).not.toBeInTheDocument();
+
+    const plantSummary = screen.getByText('Растения').closest('article');
+    expect(within(plantSummary).getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('Томат')).toBeInTheDocument();
+
+    const disabledHeading = screen.getByRole('heading', { name: 'Выключенная теплица' });
+    const disabledGreenhouse = disabledHeading.closest('.farm-dashboard-box');
+    expect(within(disabledGreenhouse).getByText('Выключен')).toBeInTheDocument();
+    expect(disabledGreenhouse.querySelector('.farm-dashboard-box__equipment')).toBeNull();
+    expect(disabledGreenhouse.querySelector('.farm-dashboard-sensors')).toBeNull();
+  });
 });

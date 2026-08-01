@@ -6,11 +6,9 @@ import {
   Droplets,
   Fan,
   Gauge,
-  Leaf,
   Lightbulb,
   RefreshCw,
   Snowflake,
-  Sprout,
   Thermometer,
   Wind,
 } from 'lucide-react';
@@ -29,7 +27,6 @@ import {
   acControlStatusLabel,
   buildAcRequestBoxes,
   buildResourceStatsPayload,
-  countPlantsInRoom,
   findResource,
   findScenario,
   findState,
@@ -55,7 +52,6 @@ const BOX_SCENARIOS = [
   SCENARIO_TYPES.WATERING,
 ];
 const BOX_EQUIPMENT_ROLES = [
-  RESOURCE_ROLES.AC_SWITCH,
   RESOURCE_ROLES.EXHAUST_SWITCH,
   RESOURCE_ROLES.LIGHT_SWITCH,
   RESOURCE_ROLES.WATER_PUMP,
@@ -201,21 +197,6 @@ function AcRequestList({ boxes }) {
   );
 }
 
-function PlantList({ plants }) {
-  const items = listOrEmpty(plants);
-  if (items.length === 0) {
-    return <span className="farm-dashboard-plants__empty">{translateApp("Растения не привязаны")}</span>;
-  }
-
-  return (
-    <div className="farm-dashboard-plants__chips">
-      {items.map((plant) => (
-        <span key={plant.id || plant.name}>{plant.name || translateApp("Растение без названия")}</span>
-      ))}
-    </div>
-  );
-}
-
 function FarmBox({
   box,
   hideHeader = false,
@@ -229,9 +210,9 @@ function FarmBox({
     RESOURCE_ROLES.LEAK_SENSOR,
     RESOURCE_ROLES.SOIL_MOISTURE_SENSOR,
   ].includes(resource?.role));
-  const plants = listOrEmpty(box.plants);
-  const climateState = findState(box.states, SCENARIO_TYPES.BOX_CLIMATE);
-  const localAc = findResource(resources, RESOURCE_ROLES.AC_SWITCH);
+  const equipment = BOX_EQUIPMENT_ROLES
+    .map((role) => ({ role, resource: findResource(resources, role) }))
+    .filter(({ resource }) => Boolean(resource));
   const statsSubtitle = statsSubtitleOverride || box.name || translateApp("Теплица без названия");
 
   return (
@@ -240,66 +221,50 @@ function FarmBox({
         <header className="farm-dashboard-box__header">
           <div>
             <h4>{box.name || translateApp("Теплица без названия")}</h4>
-            <span>{translateApp("{{value1}} растений", { value1: plants.length })}</span>
           </div>
-          <StatusBadge tone={box.enabled ? 'success' : 'muted'}>
-            {box.enabled ? translateApp("Активен") : translateApp("Выключен")}
-          </StatusBadge>
+          {!box.enabled ? (
+            <StatusBadge tone="muted">{translateApp("Выключен")}</StatusBadge>
+          ) : null}
         </header>
       ) : null}
 
-      <div className="farm-dashboard-box__scene">
-        <div className="farm-dashboard-box__plants">
-          <Sprout size={28} aria-hidden="true" />
-          <PlantList plants={plants} />
-        </div>
+      {equipment.length > 0 ? (
         <div className="farm-dashboard-box__equipment">
-          {BOX_EQUIPMENT_ROLES.map((role) => (
+          {equipment.map(({ role, resource }) => (
             <ResourceTile
               key={role}
               role={role}
-              resource={findResource(resources, role)}
-              icon={role === RESOURCE_ROLES.AC_SWITCH
-                ? Snowflake
-                : role === RESOURCE_ROLES.EXHAUST_SWITCH
-                  ? Fan
-                  : role === RESOURCE_ROLES.LIGHT_SWITCH
-                    ? Lightbulb
-                    : Droplets}
-              motion={role === RESOURCE_ROLES.AC_SWITCH
-                ? 'cool'
-                : role === RESOURCE_ROLES.EXHAUST_SWITCH
-                  ? 'spin'
-                  : role === RESOURCE_ROLES.LIGHT_SWITCH
-                    ? 'glow'
-                    : 'water'}
+              resource={resource}
+              icon={role === RESOURCE_ROLES.EXHAUST_SWITCH
+                ? Fan
+                : role === RESOURCE_ROLES.LIGHT_SWITCH
+                  ? Lightbulb
+                  : Droplets}
+              motion={role === RESOURCE_ROLES.EXHAUST_SWITCH
+                ? 'spin'
+                : role === RESOURCE_ROLES.LIGHT_SWITCH
+                  ? 'glow'
+                  : 'water'}
               statsSubtitle={statsSubtitle}
               statsScope={{ boxId: box.id }}
               onOpenStats={onOpenStats}
             />
           ))}
         </div>
-      </div>
-
-      {localAc && acControlStatusLabel(climateState) ? (
-        <div className="farm-dashboard-ac-status">
-          <Snowflake size={15} aria-hidden="true" />
-          <span>{acControlStatusLabel(climateState)}</span>
-        </div>
       ) : null}
 
-      <div className="farm-dashboard-sensors">
-        {sensors.length === 0 ? (
-          <div className="farm-dashboard-empty-line">{translateApp("Датчики не привязаны")}</div>
-        ) : sensors.map((sensor) => (
-          <SensorTile
-            key={sensor.id || sensor.role}
-            resource={sensor}
-            statsSubtitle={statsSubtitle}
-            onOpenStats={onOpenStats}
-          />
-        ))}
-      </div>
+      {sensors.length > 0 ? (
+        <div className="farm-dashboard-sensors">
+          {sensors.map((sensor) => (
+            <SensorTile
+              key={sensor.id || sensor.role}
+              resource={sensor}
+              statsSubtitle={statsSubtitle}
+              onOpenStats={onOpenStats}
+            />
+          ))}
+        </div>
+      ) : null}
 
       <div className="farm-dashboard-scenarios">
         {BOX_SCENARIOS.map((scenarioType) => (
@@ -321,7 +286,6 @@ function FarmRoom({ room, zoneView = false, onOpenStats }) {
   const acRequests = buildAcRequestBoxes(room);
   const roomScenario = findScenario(room.scenarios, SCENARIO_TYPES.ROOM_CLIMATE);
   const roomState = findState(room.states, SCENARIO_TYPES.ROOM_CLIMATE);
-  const plantCount = countPlantsInRoom(room);
 
   return (
     <Surface variant="card" padding="md" className="farm-dashboard-room">
@@ -350,11 +314,6 @@ function FarmRoom({ room, zoneView = false, onOpenStats }) {
             <strong>{boxes.length}</strong>
           </div>
         ) : null}
-        <div className="farm-dashboard-summary-tile">
-          <Leaf size={20} aria-hidden="true" />
-          <span>{translateApp("Растения")}</span>
-          <strong>{plantCount}</strong>
-        </div>
         <div className="farm-dashboard-summary-tile">
           <Activity size={20} aria-hidden="true" />
           <span>{translateApp("Запросы кондиционера")}</span>

@@ -8,6 +8,20 @@
   gap: 10px;
 }
 
+.profile-timezone-select {
+  min-height: 40px;
+  padding: 8px 10px;
+  border-color: var(--border-1);
+  border-radius: 9px;
+  color: var(--text-1);
+  background: var(--surface-2);
+}
+
+.profile-timezone-select option {
+  color: var(--text-1);
+  background: var(--surface-1);
+}
+
 .profile-row {
   display: flex;
   justify-content: space-between;
