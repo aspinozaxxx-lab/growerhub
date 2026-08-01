@@ -10,7 +10,6 @@ import {
 } from '../../api/auth';
 import { isSessionExpiredError } from '../../api/client';
 import { useAuth } from '../../features/auth/AuthContext';
-import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppGrid from '../../components/layout/AppGrid';
 import FormField from '../../components/ui/FormField';
 import Button from '../../components/ui/Button';
@@ -215,16 +214,6 @@ function AppProfile() {
 
   return (
     <div className="app-profile">
-      <AppPageHeader
-        title={translateApp("Профиль")}
-        right={user && user.role === 'admin' ? (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => navigate('/app/admin/dashboard/')}
-          >{translateApp("Администрирование")}</Button>
-        ) : null}
-      />
       <AppGrid min={320}>
         <Surface variant="card" padding="md" className="profile-card">
           <div className="profile-row">
@@ -248,6 +237,13 @@ function AppProfile() {
             <span>{user.is_active ? translateApp("Активен") : translateApp("Заблокирован")}</span>
           </div>
           <div className="profile-actions">
+            {user.role === 'admin' ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => navigate('/app/admin/dashboard/')}
+              >{translateApp("Администрирование")}</Button>
+            ) : null}
             <Button type="button" variant="secondary" onClick={handleLogout}>{translateApp("Выйти")}</Button>
           </div>
         </Surface>

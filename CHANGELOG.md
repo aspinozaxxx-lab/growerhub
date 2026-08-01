@@ -1,4 +1,9 @@
-﻿### fix(front): kompaktnye kartochki teplic
+﻿### fix(front): timezone statistiki i admin-vhod
+
+- fix(sensors): vremya na osyah i v tooltip statistiki beretsya iz ishodnogo timestamp tochki i formatiruetsya v vybrannom timezone polzovatelya.
+- fix(profile): admin-knopka perenesena iz skryvaemogo zagolovka nastroek v vidimye dejstviya kartochki profilya.
+
+### fix(front): kompaktnye kartochki teplic
 
 - fix(dashboard): v polzovatelskom i admin dashboard ubrany rasteniya, lokalnyj kondicioner, aktivnyj status i neprivyazannye resursy teplic; otklyuchennoe sostoyanie sohraneno.
 - fix(profile): timezone select priveden k stilyu konstruktora, knopka administrirovaniya vedet na admin dashboard.

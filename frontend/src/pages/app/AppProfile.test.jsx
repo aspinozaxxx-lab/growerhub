@@ -4,6 +4,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from '@testing-library/react';
 import {
   MemoryRouter,
@@ -81,7 +82,11 @@ describe('AppProfile', () => {
     const timezoneSelect = await screen.findByRole('combobox', { name: 'Часовой пояс' });
     expect(timezoneSelect).toHaveClass('profile-timezone-select', 'gh-control');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Администрирование' }));
+    const profileCard = screen.getByText('Роль').closest('.profile-card');
+    const adminButton = within(profileCard).getByRole('button', { name: 'Администрирование' });
+    expect(adminButton.closest('.app-page-header')).toBeNull();
+
+    fireEvent.click(adminButton);
     expect(screen.getByText('Admin dashboard target')).toBeInTheDocument();
   });
 

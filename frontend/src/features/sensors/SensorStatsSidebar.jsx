@@ -57,6 +57,11 @@ function formatDurationMs(durationMs) {
   return translateApp("0 мин");
 }
 
+function formatTooltipTimestamp(payload, fallbackLabel) {
+  const timestamp = payload?.[0]?.payload?.timestamp ?? fallbackLabel;
+  return formatTimestampLabel(timestamp);
+}
+
 function WateringTooltip({ active, payload, label }) {
   if (!active || !payload || payload.length === 0) {
     return null;
@@ -67,7 +72,7 @@ function WateringTooltip({ active, payload, label }) {
 
   return (
     <div className="recharts-default-tooltip">
-      <p className="recharts-tooltip-label">{formatTimestampLabel(label)}</p>
+      <p className="recharts-tooltip-label">{formatTooltipTimestamp(payload, label)}</p>
       {volume !== undefined && volume !== null && (
         <p className="recharts-tooltip-item">{translateApp("Объём: {{value1}} л", { value1: formatSensorValue(volume) })}</p>
       )}
@@ -86,7 +91,7 @@ function BinaryTooltip({ active, payload, label, onLabel, offLabel, valueLabel }
 
   return (
     <div className="recharts-default-tooltip">
-      <p className="recharts-tooltip-label">{formatTimestampLabel(label)}</p>
+      <p className="recharts-tooltip-label">{formatTooltipTimestamp(payload, label)}</p>
       <p className="recharts-tooltip-item">{`${valueLabel}: ${labelText}`}</p>
       {data.rawValue && <p className="recharts-tooltip-item">{translateApp("Исходное значение: {{value1}}", { value1: data.rawValue })}</p>}
     </div>
@@ -230,7 +235,7 @@ function SensorChart({
         <YAxis tick={{ fill: '#c7d7ef', fontSize: 12 }} />
         <Tooltip
           formatter={(value) => [formatSensorValue(value), valueLabel || METRIC_LABELS[metric] || metric]}
-          labelFormatter={(value) => formatTimestampLabel(value)}
+          labelFormatter={(value, payload) => formatTooltipTimestamp(payload, value)}
           contentStyle={{ fontSize: '0.9rem' }}
           labelStyle={{ color: '#0f172a', fontWeight: 600 }}
         />
