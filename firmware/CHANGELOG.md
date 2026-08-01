@@ -1,4 +1,12 @@
-﻿## 2026-01-24
+﻿## 2026-08-01
+- feat(mqtt): perehod na growerhub.ru:8883 s WiFiClientSecure, ISRG Root X1 i individualnym /cfg/mqtt.json.
+- feat(factory): dobavlen skript chteniya MAC, admin provisioning, MQTTS/ACL smoke i proshivki firmware + unikalnogo LittleFS bez logirovaniya parolya ili hraneniya obraza s sekretom.
+- web: pokazyvayutsya polnyj device_id, MQTTS endpoint i diagnosticheskie sostoyaniya bez sekreta.
+- refactor(runtime): udaleny DS3231/RTC, ConfigSyncModule, AutomationModule i lokalnye raspisaniya.
+- safety: pump.start zavershaetsya po monotonnomu millis-tajmeru i apparatnomu limitu bez zavisimosti ot UTC ili seti.
+- test: provereny mqtt.json, TLS/time gate, izolirovannyj topic i otsutstvie sekreta v logah; native testy i sborki ESP32/ESP32-C3 prohodyat.
+
+## 2026-01-24
 - test: vklyuchen UNITY 64-bit support dlya native test env.
 - ci: CI pereshel na env test.
 - refactor: udalena legacy src/test, v2 pereexal v src/test, obnovlen platformio.ini i puti test storage.

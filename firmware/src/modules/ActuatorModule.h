@@ -97,6 +97,7 @@ class ActuatorModule : public Core::Module {
   bool manual_active_ = false;
   uint32_t manual_duration_s_ = 0;
   uint32_t manual_start_ms_ = 0;
+  bool manual_timer_started_ = false;
   uint32_t max_runtime_ms_ = 0;
 
   char manual_correlation_id_[64];

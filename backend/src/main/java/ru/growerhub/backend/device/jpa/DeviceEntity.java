@@ -72,6 +72,9 @@ public class DeviceEntity {
     @Column(name = "device_token_issued_at")
     private LocalDateTime deviceTokenIssuedAt;
 
+    @Column(name = "mqtt_provisioned_at")
+    private LocalDateTime mqttProvisionedAt;
+
     protected DeviceEntity() {
     }
 
@@ -210,5 +213,12 @@ public class DeviceEntity {
     public void setDeviceTokenIssuedAt(LocalDateTime deviceTokenIssuedAt) {
         this.deviceTokenIssuedAt = deviceTokenIssuedAt;
     }
-}
 
+    public LocalDateTime getMqttProvisionedAt() {
+        return mqttProvisionedAt;
+    }
+
+    public void setMqttProvisionedAt(LocalDateTime mqttProvisionedAt) {
+        this.mqttProvisionedAt = mqttProvisionedAt;
+    }
+}

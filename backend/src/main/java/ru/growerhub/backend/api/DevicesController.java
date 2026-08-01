@@ -26,6 +26,7 @@ import ru.growerhub.backend.common.contract.AuthenticatedDevice;
 import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceAggregate;
 import ru.growerhub.backend.device.contract.DeviceCredential;
+import ru.growerhub.backend.device.contract.DeviceMqttCredential;
 import ru.growerhub.backend.device.contract.DeviceServiceEventView;
 import ru.growerhub.backend.device.contract.DeviceSettingsData;
 import ru.growerhub.backend.device.contract.DeviceSettingsUpdate;
@@ -184,16 +185,41 @@ public class DevicesController {
         return responses;
     }
 
-    @PostMapping("/api/devices/assign-to-me")
-    public DeviceDtos.DeviceResponse assignToMe(
-            @Valid @RequestBody DeviceDtos.AssignToMeRequest request,
+    @PostMapping("/api/devices/claim")
+    public DeviceDtos.DeviceResponse claimDevice(
+            @Valid @RequestBody DeviceDtos.ClaimDeviceRequest request,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        DeviceAggregate aggregate = deviceFacade.assignToUserAggregate(
+        DeviceAggregate aggregate = deviceFacade.claimDevice(
                 request.deviceId(),
                 user != null ? user.id() : null
         );
         return toDeviceResponse(aggregate);
+    }
+
+    @PostMapping("/api/admin/devices/provision")
+    public ResponseEntity<DeviceDtos.DeviceMqttCredentialResponse> provisionDevice(
+            @Valid @RequestBody DeviceDtos.ProvisionDeviceRequest request,
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
+        requireAdmin(user);
+        DeviceMqttCredential credential = deviceFacade.provisionMqttDevice(
+                request.deviceId(),
+                Boolean.TRUE.equals(request.rotate())
+        );
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .header("Pragma", "no-cache")
+                .body(new DeviceDtos.DeviceMqttCredentialResponse(
+                        credential.deviceId(),
+                        credential.host(),
+                        credential.port(),
+                        credential.tls(),
+                        credential.username(),
+                        credential.password(),
+                        credential.clientId(),
+                        credential.provisionedAt()
+                ));
     }
 
     @PostMapping("/api/devices/{device_id}/unassign")
@@ -313,6 +339,7 @@ public class DevicesController {
             @PathVariable("device_id") Integer deviceId,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
+        requireAdmin(user);
         DeviceCredential credential = deviceFacade.rotateDeviceCredential(
                 deviceId,
                 user != null ? user.id() : null,

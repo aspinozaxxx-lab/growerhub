@@ -16,8 +16,6 @@ namespace Topics {
 
 // Suffiks topika komand.
 static constexpr const char* kCmdSuffix = "cmd";
-// Suffiks topika konfiguracii.
-static constexpr const char* kCfgSuffix = "cfg";
 // Suffiks topika sostoyaniya.
 static constexpr const char* kStateSuffix = "state";
 // Suffiks topika ack.
@@ -48,16 +46,6 @@ inline bool BuildDeviceTopic(char* out, size_t out_size, const char* device_id, 
  */
 inline bool BuildCmdTopic(char* out, size_t out_size, const char* device_id) {
   return BuildDeviceTopic(out, out_size, device_id, kCmdSuffix);
-}
-
-/**
- * Stroit topik konfiguracii.
- * @param out Vyhodnoy bufer dlya topika.
- * @param out_size Razmer bufera v baytah.
- * @param device_id Identifikator ustroistva.
- */
-inline bool BuildCfgTopic(char* out, size_t out_size, const char* device_id) {
-  return BuildDeviceTopic(out, out_size, device_id, kCfgSuffix);
 }
 
 /**
@@ -98,19 +86,6 @@ inline bool BuildEventsTopic(char* out, size_t out_size, const char* device_id) 
 inline bool IsCmdTopic(const char* topic, const char* device_id) {
   char expected[128];
   if (!BuildCmdTopic(expected, sizeof(expected), device_id)) {
-    return false;
-  }
-  return std::strcmp(topic, expected) == 0;
-}
-
-/**
- * Proveryaet, yavlyaetsya li topik konfiguracionnym.
- * @param topic Vhodnoy topik dlya proverki.
- * @param device_id Identifikator ustroistva.
- */
-inline bool IsCfgTopic(const char* topic, const char* device_id) {
-  char expected[128];
-  if (!BuildCfgTopic(expected, sizeof(expected), device_id)) {
     return false;
   }
   return std::strcmp(topic, expected) == 0;

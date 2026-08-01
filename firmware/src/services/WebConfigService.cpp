@@ -34,6 +34,8 @@ static const char* kWifiConfigPath = "/cfg/wifi.json";
 #if defined(ARDUINO)
 // Shablon dlya podstanovki statusa Wi-Fi na servere.
 static const char kWifiStatusPlaceholder[] = "{{WIFI_STATUS_LINE}}";
+// Shablon dlya podstanovki polnogo ID ustrojstva.
+static const char kDeviceIdPlaceholder[] = "{{DEVICE_ID_LINE}}";
 // Shablon dlya podstanovki statusa MQTT na servere.
 static const char kMqttStatusPlaceholder[] = "{{MQTT_STATUS_LINE}}";
 
@@ -301,17 +303,27 @@ void WebConfigService::Init(Core::Context& ctx) {
     }
     wifi_line += ")";
 
-    bool mqtt_connected = false;
-    if (mqtt_) {
-      mqtt_connected = mqtt_->IsConnected();
-    } else {
-      // Esli mqtt_ == nullptr, schitaem MQTT otklyuchennym.
-    }
+    String device_line = "Device ID: ";
+    device_line += device_id_ ? device_id_ : "unknown";
     String mqtt_line = "MQTT: ";
-    mqtt_line += mqtt_connected ? "CONNECTED" : "DISCONNECTED";
+    mqtt_line += mqtt_ ? mqtt_->GetStatusName() : "NOT_CONFIGURED";
+    mqtt_line += " (host=";
+    mqtt_line += mqtt_ ? mqtt_->GetHost() : "growerhub.ru";
+    mqtt_line += " port=";
+    mqtt_line += mqtt_ ? String(mqtt_->GetPort()) : String(8883);
+    mqtt_line += " tls=true reason=";
+    mqtt_line += mqtt_ ? mqtt_->GetStatusReason() : "mqtt service unavailable";
+    mqtt_line += ")";
 
     const char* html = Website::Html();
-    const char* wifi_pos = std::strstr(html, kWifiStatusPlaceholder);
+    const char* device_pos = std::strstr(html, kDeviceIdPlaceholder);
+    if (!device_pos) {
+      server_->send(200, "text/html", html);
+      LogHeap("web_after_send");
+      return;
+    }
+    const char* after_device = device_pos + std::strlen(kDeviceIdPlaceholder);
+    const char* wifi_pos = std::strstr(after_device, kWifiStatusPlaceholder);
     if (!wifi_pos) {
       server_->send(200, "text/html", html);
       LogHeap("web_after_send");
@@ -328,7 +340,9 @@ void WebConfigService::Init(Core::Context& ctx) {
 
     server_->setContentLength(CONTENT_LENGTH_UNKNOWN);
     server_->send(200, "text/html", "");
-    SendContentSpan(server_, html, static_cast<size_t>(wifi_pos - html));
+    SendContentSpan(server_, html, static_cast<size_t>(device_pos - html));
+    server_->sendContent(device_line);
+    SendContentSpan(server_, after_device, static_cast<size_t>(wifi_pos - after_device));
     server_->sendContent(wifi_line);
     SendContentSpan(server_, after_wifi, static_cast<size_t>(mqtt_pos - after_wifi));
     server_->sendContent(mqtt_line);
@@ -479,7 +493,7 @@ void WebConfigService::Init(Core::Context& ctx) {
   });
 
   server_->on("/status", HTTP_GET, [this]() {
-    char payload[256];
+    char payload[512];
     const bool sta_connected = WiFi.status() == WL_CONNECTED;
     String sta_ip = WiFi.localIP().toString();
     String ap_ip = WiFi.softAPIP().toString();
@@ -488,11 +502,18 @@ void WebConfigService::Init(Core::Context& ctx) {
     std::snprintf(ap_ssid, sizeof(ap_ssid), "Grovika-%s", device_id);
     std::snprintf(payload,
                   sizeof(payload),
-                  "{\"sta_connected\":%s,\"sta_ip\":\"%s\",\"ap_ssid\":\"%s\",\"ap_ip\":\"%s\"}",
+                  "{\"device_id\":\"%s\",\"sta_connected\":%s,\"sta_ip\":\"%s\","
+                  "\"ap_ssid\":\"%s\",\"ap_ip\":\"%s\",\"mqtt\":{\"status\":\"%s\","
+                  "\"reason\":\"%s\",\"host\":\"%s\",\"port\":%u,\"tls\":true}}",
+                  device_id,
                   sta_connected ? "true" : "false",
                   sta_ip.c_str(),
                   ap_ssid,
-                  ap_ip.c_str());
+                  ap_ip.c_str(),
+                  mqtt_ ? mqtt_->GetStatusName() : "NOT_CONFIGURED",
+                  mqtt_ ? mqtt_->GetStatusReason() : "mqtt service unavailable",
+                  mqtt_ ? mqtt_->GetHost() : "growerhub.ru",
+                  static_cast<unsigned int>(mqtt_ ? mqtt_->GetPort() : 8883));
     server_->send(200, "application/json", payload);
   });
 

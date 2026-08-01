@@ -20,7 +20,7 @@ GrowerHub состоит из backend, frontend, firmware, zigbee_coordinator, a
 - Frontend обращается к backend через REST.
 - Backend обращается к устройствам через MQTT.
 - Backend хранит устойчивые данные в БД.
-- Firmware публикует состояние устройства и принимает команды через MQTT.
+- Firmware публикует состояние и телеметрию, принимает команды через MQTT и обеспечивает локальные аппаратные ограничения. Расписания и решения автоматизации выполняет backend.
 - Zigbee coordinator подключает Zigbee-устройства к MQTT через Zigbee2MQTT и не хранит бизнес-истину GrowerHub.
 - Админка Zigbee получает данные только через backend REST; backend читает и отправляет Zigbee2MQTT сообщения через MQTT.
 - Backend строит Zigbee metadata для админки из `bridge/devices[].definition.exposes`: `STATE=1` отображается как метрика, `SET=2` как управляемое свойство, `GET=4` как доступное для запроса значение.
@@ -28,11 +28,14 @@ GrowerHub состоит из backend, frontend, firmware, zigbee_coordinator, a
 
 MQTT-топики:
 
+- `gh/dev/<device_id>/cmd` - команды исполнительному устройству.
 - `gh/dev/<device_id>/state` - текущее состояние устройства.
 - `gh/dev/<device_id>/state/ack` - подтверждения команд.
 - `gh/dev/<device_id>/events` - служебные события устройства.
 - `zigbee2growerhub/bridge/*` - состояние и request/response API Zigbee2MQTT.
 - `zigbee2growerhub/<friendly_name>` и `zigbee2growerhub/<friendly_name>/set` - состояние и команды Zigbee-устройства.
+
+Серийная Grovika подключается только к MQTTS `growerhub.ru:8883` с фиксированными username и client ID, равными напечатанному `device_id`. У каждого устройства собственный 256-битный пароль и буквальный ACL только на `gh/dev/<device_id>/#`. Открытый пароль существует только в Dynamic Security Mosquitto и LittleFS устройства; backend хранит SHA-256 и время подготовки. Публичный MQTT `1883` и общий пароль устройств запрещены.
 
 ## Общие принципы
 

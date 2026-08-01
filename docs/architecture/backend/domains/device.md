@@ -12,6 +12,8 @@
 - `authenticateDevice(String deviceId, String rawToken)`
 - `canUserAccessDevice(String deviceId, Integer userId, boolean admin)`
 - `rotateDeviceCredential(Integer devicePk, Integer userId, boolean admin)`
+- `provisionMqttDevice(String requestedDeviceId, boolean rotate)`
+- `claimDevice(String requestedDeviceId, Integer userId)`
 - `getDeviceSummary(Integer deviceId)`
 - `getFirmwareStatus(String deviceId)`
 - `markFirmwareUpdate(String deviceId, String version, String firmwareUrl)`
@@ -29,9 +31,7 @@
 - `listMyDevices(Integer userId)`
 - `listAdminDevices()`
 - `listRecentServiceEventsByDeviceIds(List<Integer> deviceIds, int limitPerDevice)`
-- `assignToUser(Integer deviceId, Integer userId)`
 - `unassignForUser(Integer deviceId, Integer userId, boolean isAdmin)`
-- `assignToUserAggregate(Integer deviceId, Integer userId)`
 - `unassignForUserAggregate(Integer deviceId, Integer userId, boolean isAdmin)`
 - `adminAssign(Integer deviceId, Integer userId)`
 - `adminUnassign(Integer deviceId)`
@@ -44,6 +44,8 @@
 - `DeviceAggregate`
 - `DeviceFirmwareStatus`
 - `DeviceCredential`
+- `DeviceMqttCredential`
+- `DeviceBrokerCredentialGateway`
 - `DeviceServiceEventData`
 - `DeviceServiceEventType`
 - `DeviceServiceEventView`
@@ -55,7 +57,7 @@
 
 ## Владение данными
 
-Домен владеет устройствами, последним state, ACK и service events. Датчики, насосы и растения не являются его данными; при обработке state домен делегирует запись показаний, историю растений и полив соответствующим доменам.
+Домен владеет устройствами, хешем device token, временем MQTT-подготовки, состоянием ограничений привязки, последним state, ACK и service events. Датчики, насосы и растения не являются его данными; при обработке state домен делегирует запись показаний, историю растений и полив соответствующим доменам.
 
 ## Используемые домены
 
@@ -71,8 +73,10 @@
 
 ## Алгоритм работы
 
-Facade принимает state, ack и events от адаптеров, обновляет device records и shadow, вызывает нужные домены для насосов, датчиков и растений. Для REST отдает summary, агрегаты, настройки и admin views. Удаление устройства очищает связанные данные через публичные Facade других доменов. HTTP-вызовы самого устройства используют отдельный непрозрачный токен: в БД хранится только SHA-256, исходное значение выдаётся один раз при ротации.
+Facade принимает state, ack и events от адаптеров, обновляет device records и shadow, вызывает нужные домены для насосов, датчиков и растений. Административная подготовка атомарно создаёт непривязанное устройство, через broker gateway создаёт отдельный Dynamic Security client с фиксированным client ID и буквальным ACL, сохраняет только SHA-256 и один раз возвращает открытый пароль. Повторная подготовка требует явной ротации; удаление устройства отзывает broker credentials.
+
+Пользовательская привязка принимает только печатный `device_id`. Свободное устройство назначается текущему пользователю в транзакции; собственное возвращается идемпотентно; занятое другим пользователем возвращает явный конфликт. Неудачные корректно сформированные ID учитываются отдельно по аккаунту: десятая ошибка включает блокировку на 60 минут, затем действует ограничение две попытки в скользящий час до успешной привязки ранее свободного устройства. Блокировки пользователя и устройства не допускают конкурентного захвата.
 
 ## Ограничения
 
-Device не должен напрямую владеть JPA других доменов. MQTT parsing остается в adapter. Формат shadow является контрактом. Настройки устройства и интервалы online должны приходить из конфигурации. Пользовательские операции требуют JWT и владения; HTTP status и чтение device settings/firmware разрешены только самому устройству либо владельцу там, где это явно предусмотрено REST-контрактом.
+Device не должен напрямую владеть JPA других доменов. MQTT parsing и Dynamic Security transport остаются в adapter. Формат shadow является контрактом. Настройки устройства и интервалы online должны приходить из конфигурации. Пользовательские операции требуют JWT и владения; provisioning и выдача нового device token доступны только администратору. Открытый MQTT-пароль не хранится и не возвращается повторно.

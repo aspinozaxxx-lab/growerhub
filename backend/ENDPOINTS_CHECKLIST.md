@@ -40,7 +40,8 @@ Legend: DONE = implemented, TODO = stub (501 Not Implemented)
 | GET | /api/devices | DONE |
 | GET | /api/devices/my | DONE |
 | GET | /api/admin/devices | DONE |
-| POST | /api/devices/assign-to-me | DONE |
+| POST | /api/devices/claim | DONE |
+| POST | /api/admin/devices/provision | DONE |
 | POST | /api/devices/{device_id}/unassign | DONE |
 | POST | /api/admin/devices/{device_id}/assign | DONE |
 | POST | /api/admin/devices/{device_id}/unassign | DONE |

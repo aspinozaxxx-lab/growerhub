@@ -6,9 +6,6 @@ void test_pump_start_ack();
 void test_pump_stop_ack();
 void test_reboot_declined_when_pump_running();
 void test_reboot_accepted_when_idle();
-void test_config_codec_valid();
-void test_config_codec_invalid();
-void test_config_codec_migrate();
 void test_event_queue_order();
 void test_parse_pump_start();
 void test_parse_pump_stop();
@@ -18,7 +15,6 @@ void test_parse_missing_type();
 void test_parse_invalid_duration();
 void test_ack_payloads();
 void test_scheduler_periodic();
-void test_config_sync_apply_retained();
 void test_wifi_defaults_builtin();
 void test_wifi_defaults_user_override();
 void test_wifi_config_codec_storage();
@@ -34,11 +30,6 @@ void test_state_started_at_null_without_time();
 void test_dht_error_event_without_reboot();
 void test_dht_read_failed_reports_error();
 void test_dht_startup_grace_delays_disconnected();
-void test_auto_moisture_port0();
-void test_auto_moisture_port1();
-void test_auto_min_time_between();
-void test_auto_schedule_trigger_once();
-void test_light_schedule_overnight();
 void test_ota_pending_confirm();
 void test_ota_boot_failures_trigger();
 void test_ota_timeout_trigger();
@@ -50,8 +41,9 @@ void test_logger_prefix_no_watch();
 void test_logger_prefix_synced();
 void test_time_service_retry_schedule_on_fail();
 void test_time_service_resync_schedule_on_success();
-void test_rtc_bcd_encode_decode();
-void test_rtc_weekday_calc();
+void test_mqtt_config_missing_and_invalid();
+void test_mqtt_config_tls_time_gate_and_secret_free_log();
+void test_mqtt_config_rejects_other_device_and_state_topic_is_scoped();
 
 void setUp() {}
 void tearDown() {}
@@ -66,9 +58,6 @@ int main(int argc, char** argv) {
   RUN_TEST(test_pump_stop_ack);
   RUN_TEST(test_reboot_declined_when_pump_running);
   RUN_TEST(test_reboot_accepted_when_idle);
-  RUN_TEST(test_config_codec_valid);
-  RUN_TEST(test_config_codec_invalid);
-  RUN_TEST(test_config_codec_migrate);
   RUN_TEST(test_event_queue_order);
   RUN_TEST(test_parse_pump_start);
   RUN_TEST(test_parse_pump_stop);
@@ -78,7 +67,6 @@ int main(int argc, char** argv) {
   RUN_TEST(test_parse_invalid_duration);
   RUN_TEST(test_ack_payloads);
   RUN_TEST(test_scheduler_periodic);
-  RUN_TEST(test_config_sync_apply_retained);
   RUN_TEST(test_wifi_defaults_builtin);
   RUN_TEST(test_wifi_defaults_user_override);
   RUN_TEST(test_wifi_config_codec_storage);
@@ -94,11 +82,6 @@ int main(int argc, char** argv) {
   RUN_TEST(test_dht_error_event_without_reboot);
   RUN_TEST(test_dht_read_failed_reports_error);
   RUN_TEST(test_dht_startup_grace_delays_disconnected);
-  RUN_TEST(test_auto_moisture_port0);
-  RUN_TEST(test_auto_moisture_port1);
-  RUN_TEST(test_auto_min_time_between);
-  RUN_TEST(test_auto_schedule_trigger_once);
-  RUN_TEST(test_light_schedule_overnight);
   RUN_TEST(test_ota_pending_confirm);
   RUN_TEST(test_ota_boot_failures_trigger);
   RUN_TEST(test_ota_timeout_trigger);
@@ -110,7 +93,8 @@ int main(int argc, char** argv) {
   RUN_TEST(test_logger_prefix_synced);
   RUN_TEST(test_time_service_retry_schedule_on_fail);
   RUN_TEST(test_time_service_resync_schedule_on_success);
-  RUN_TEST(test_rtc_bcd_encode_decode);
-  RUN_TEST(test_rtc_weekday_calc);
+  RUN_TEST(test_mqtt_config_missing_and_invalid);
+  RUN_TEST(test_mqtt_config_tls_time_gate_and_secret_free_log);
+  RUN_TEST(test_mqtt_config_rejects_other_device_and_state_topic_is_scoped);
   return UNITY_END();
 }

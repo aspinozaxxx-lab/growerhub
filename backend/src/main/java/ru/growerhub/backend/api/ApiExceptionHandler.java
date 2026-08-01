@@ -6,6 +6,7 @@ import jakarta.validation.ConstraintViolationException;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -17,6 +18,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import ru.growerhub.backend.common.contract.ApiError;
 import ru.growerhub.backend.common.contract.DomainException;
+import ru.growerhub.backend.device.contract.DeviceClaimRateLimitException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -35,6 +37,13 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiError> handleDomainException(DomainException ex) {
         HttpStatus status = resolveDomainStatus(ex.getCode());
         return ResponseEntity.status(status).body(new ApiError(ex.getMessage()));
+    }
+
+    @ExceptionHandler(DeviceClaimRateLimitException.class)
+    public ResponseEntity<ApiError> handleDeviceClaimRateLimit(DeviceClaimRateLimitException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, Long.toString(ex.getRetryAfterSeconds()))
+                .body(new ApiError(ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

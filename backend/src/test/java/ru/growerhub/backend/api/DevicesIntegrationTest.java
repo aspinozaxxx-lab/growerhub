@@ -3,6 +3,9 @@
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
@@ -16,6 +19,12 @@ import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceCredential;
@@ -32,6 +42,8 @@ import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.jpa.DeviceServiceEventEntity;
 import ru.growerhub.backend.device.jpa.DeviceServiceEventRepository;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceClaimLimitEntity;
+import ru.growerhub.backend.device.jpa.DeviceClaimLimitRepository;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
 import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
@@ -39,6 +51,7 @@ import ru.growerhub.backend.device.jpa.MqttAckEntity;
 import ru.growerhub.backend.device.jpa.MqttAckRepository;
 import ru.growerhub.backend.mqtt.MqttMessageHandler;
 import ru.growerhub.backend.mqtt.AckStore;
+import ru.growerhub.backend.mqtt.PahoDynSecCredentialGateway;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
 import ru.growerhub.backend.plant.jpa.PlantEntity;
 import ru.growerhub.backend.plant.jpa.PlantMetricSampleEntity;
@@ -69,6 +82,9 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private DeviceRepository deviceRepository;
+
+    @Autowired
+    private DeviceClaimLimitRepository deviceClaimLimitRepository;
 
     @Autowired
     private DeviceFacade deviceFacade;
@@ -114,6 +130,9 @@ class DevicesIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private MqttMessageHandler mqttMessageHandler;
+
+    @MockBean
+    private PahoDynSecCredentialGateway brokerCredentialGateway;
 
     @BeforeEach
     void setUp() {
@@ -674,19 +693,19 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     @Test
     void assignToMeSozdaetDefaultPump() {
         UserEntity user = createUser("assign-pump@example.com", "user");
-        DeviceEntity device = createDevice("dev-assign-pump", null);
+        DeviceEntity device = createDevice("GROVIKA_000001", null);
         long before = pumpRepository.count();
         String token = buildToken(user.getId());
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", device.getId());
+        payload.put("device_id", device.getDeviceId());
 
         given()
                 .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .body(payload)
                 .when()
-                .post("/api/devices/assign-to-me")
+                .post("/api/devices/claim")
                 .then()
                 .statusCode(200)
                 .body("user_id", equalTo(user.getId()));
@@ -700,19 +719,19 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     void assignToMeHandlesConflict() {
         UserEntity first = createUser("first@example.com", "user");
         UserEntity second = createUser("second@example.com", "user");
-        DeviceEntity device = createDevice("dev-9", null);
+        DeviceEntity device = createDevice("GROVIKA_000002", null);
         String tokenFirst = buildToken(first.getId());
         String tokenSecond = buildToken(second.getId());
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("device_id", device.getId());
+        payload.put("device_id", device.getDeviceId());
 
         given()
                 .header("Authorization", "Bearer " + tokenFirst)
                 .contentType("application/json")
                 .body(payload)
                 .when()
-                .post("/api/devices/assign-to-me")
+                .post("/api/devices/claim")
                 .then()
                 .statusCode(200)
                 .body("user_id", equalTo(first.getId()));
@@ -722,10 +741,256 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .contentType("application/json")
                 .body(payload)
                 .when()
-                .post("/api/devices/assign-to-me")
+                .post("/api/devices/claim")
                 .then()
-                .statusCode(400)
-                .body("detail", equalTo("ustrojstvo uzhe privyazano k drugomu polzovatelju"));
+                .statusCode(409)
+                .body("detail", equalTo("Устройство уже используется другим пользователем — обратитесь к администратору"));
+    }
+
+    @Test
+    void adminProvisioningCreatesAndRotatesPerDeviceCredential() {
+        UserEntity admin = createUser("factory-admin@example.com", "admin");
+        String token = buildToken(admin.getId());
+        Map<String, Object> payload = Map.of("device_id", "GROVIKA_040AB1");
+
+        Response response = given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .post("/api/admin/devices/provision");
+
+        response.then()
+                .statusCode(200)
+                .header("Cache-Control", "no-store")
+                .body("device_id", equalTo("GROVIKA_040AB1"))
+                .body("host", equalTo("growerhub.ru"))
+                .body("port", equalTo(8883))
+                .body("tls", equalTo(true))
+                .body("username", equalTo("GROVIKA_040AB1"))
+                .body("client_id", equalTo("GROVIKA_040AB1"))
+                .body("password", notNullValue());
+
+        String password = response.jsonPath().getString("password");
+        Assertions.assertEquals(43, password.length());
+        DeviceEntity device = deviceRepository.findByDeviceId("GROVIKA_040AB1").orElseThrow();
+        Assertions.assertNull(device.getUserId());
+        Assertions.assertNull(device.getLastSeen());
+        Assertions.assertNotEquals(password, device.getDeviceTokenHash());
+        Assertions.assertEquals(64, device.getDeviceTokenHash().length());
+        Assertions.assertNotNull(device.getMqttProvisionedAt());
+        verify(brokerCredentialGateway).provisionDevice(
+                eq("GROVIKA_040AB1"),
+                anyString(),
+                eq("native-device")
+        );
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(payload)
+                .when()
+                .post("/api/admin/devices/provision")
+                .then()
+                .statusCode(409);
+
+        device.setDeviceTokenIssuedAt(LocalDateTime.now(ZoneOffset.UTC).minusMinutes(1));
+        deviceRepository.save(device);
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(Map.of("device_id", "GROVIKA_040AB1", "rotate", true))
+                .when()
+                .post("/api/admin/devices/provision")
+                .then()
+                .statusCode(200)
+                .body("password", notNullValue());
+        verify(brokerCredentialGateway).rotateDevice(eq("GROVIKA_040AB1"), anyString());
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .delete("/api/admin/devices/" + device.getId())
+                .then()
+                .statusCode(200);
+        verify(brokerCredentialGateway).revokeDevice("GROVIKA_040AB1", "native-device");
+    }
+
+    @Test
+    void provisioningRequiresAdmin() {
+        UserEntity user = createUser("factory-user@example.com", "user");
+        DeviceEntity ownedDevice = createDevice("GROVIKA_040AB3", user);
+
+        given()
+                .header("Authorization", "Bearer " + buildToken(user.getId()))
+                .contentType("application/json")
+                .body(Map.of("device_id", "GROVIKA_040AB2"))
+                .when()
+                .post("/api/admin/devices/provision")
+                .then()
+                .statusCode(403);
+
+        given()
+                .header("Authorization", "Bearer " + buildToken(user.getId()))
+                .when()
+                .post("/api/devices/" + ownedDevice.getId() + "/credentials/rotate")
+                .then()
+                .statusCode(403);
+
+        Assertions.assertTrue(deviceRepository.findByDeviceId("GROVIKA_040AB2").isEmpty());
+    }
+
+    @Test
+    void claimRateLimitFollowsTenBlockAndTwoAttemptsSequence() {
+        UserEntity user = createUser("claim-limit@example.com", "user");
+        String token = buildToken(user.getId());
+        Map<String, Object> missing = Map.of("device_id", "GROVIKA_FFFFFF");
+
+        for (int attempt = 0; attempt < 10; attempt++) {
+            given()
+                    .header("Authorization", "Bearer " + token)
+                    .contentType("application/json")
+                    .body(missing)
+                    .when()
+                    .post("/api/devices/claim")
+                    .then()
+                    .statusCode(404);
+        }
+
+        Response blocked = given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(missing)
+                .when()
+                .post("/api/devices/claim");
+        blocked.then().statusCode(429).header("Retry-After", notNullValue());
+        Assertions.assertTrue(Integer.parseInt(blocked.header("Retry-After")) <= 3600);
+
+        DeviceClaimLimitEntity limit = deviceClaimLimitRepository.findById(user.getId()).orElseThrow();
+        limit.setBlockedUntil(LocalDateTime.now(ZoneOffset.UTC).minusSeconds(1));
+        deviceClaimLimitRepository.save(limit);
+
+        for (int attempt = 0; attempt < 2; attempt++) {
+            given()
+                    .header("Authorization", "Bearer " + token)
+                    .contentType("application/json")
+                    .body(missing)
+                    .when()
+                    .post("/api/devices/claim")
+                    .then()
+                    .statusCode(404);
+        }
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(missing)
+                .when()
+                .post("/api/devices/claim")
+                .then()
+                .statusCode(429)
+                .header("Retry-After", notNullValue());
+
+        limit = deviceClaimLimitRepository.findById(user.getId()).orElseThrow();
+        LocalDateTime secondAttemptAt = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(30);
+        limit.setWindowStartedAt(LocalDateTime.now(ZoneOffset.UTC).minusMinutes(61));
+        limit.setUpdatedAt(secondAttemptAt);
+        limit.setWindowAttempts(2);
+        deviceClaimLimitRepository.save(limit);
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(missing)
+                .when()
+                .post("/api/devices/claim")
+                .then()
+                .statusCode(404);
+        Response slidingWindowBlocked = given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(missing)
+                .when()
+                .post("/api/devices/claim");
+        slidingWindowBlocked.then().statusCode(429).header("Retry-After", notNullValue());
+        Assertions.assertTrue(Integer.parseInt(slidingWindowBlocked.header("Retry-After")) >= 1700);
+
+        limit = deviceClaimLimitRepository.findById(user.getId()).orElseThrow();
+        limit.setWindowStartedAt(LocalDateTime.now(ZoneOffset.UTC).minusHours(2));
+        limit.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC).minusHours(2));
+        deviceClaimLimitRepository.save(limit);
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(missing)
+                .when()
+                .post("/api/devices/claim")
+                .then()
+                .statusCode(404);
+
+        createDevice("GROVIKA_000003", null);
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(Map.of("device_id", "GROVIKA_000003"))
+                .when()
+                .post("/api/devices/claim")
+                .then()
+                .statusCode(200)
+                .body("user_id", equalTo(user.getId()));
+
+        Assertions.assertTrue(deviceClaimLimitRepository.findById(user.getId()).isEmpty());
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(missing)
+                .when()
+                .post("/api/devices/claim")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void invalidClaimFormatDoesNotSpendAttempts() {
+        UserEntity user = createUser("claim-format@example.com", "user");
+        String token = buildToken(user.getId());
+
+        for (int attempt = 0; attempt < 12; attempt++) {
+            given()
+                    .header("Authorization", "Bearer " + token)
+                    .contentType("application/json")
+                    .body(Map.of("device_id", "not-a-serial"))
+                    .when()
+                    .post("/api/devices/claim")
+                    .then()
+                    .statusCode(422);
+        }
+
+        Assertions.assertTrue(deviceClaimLimitRepository.findById(user.getId()).isEmpty());
+    }
+
+    @Test
+    void concurrentClaimAssignsDeviceToOnlyOneUser() throws Exception {
+        UserEntity first = createUser("claim-concurrent-1@example.com", "user");
+        UserEntity second = createUser("claim-concurrent-2@example.com", "user");
+        DeviceEntity device = createDevice("GROVIKA_000004", null);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<Integer> firstStatus = executor.submit(() -> claimStatus(first, device, ready, start));
+            Future<Integer> secondStatus = executor.submit(() -> claimStatus(second, device, ready, start));
+            Assertions.assertTrue(ready.await(5, TimeUnit.SECONDS));
+            start.countDown();
+
+            Assertions.assertEquals(Set.of(200, 409), Set.of(
+                    firstStatus.get(10, TimeUnit.SECONDS),
+                    secondStatus.get(10, TimeUnit.SECONDS)
+            ));
+        } finally {
+            executor.shutdownNow();
+        }
+
+        Integer ownerId = deviceRepository.findById(device.getId()).orElseThrow().getUserId();
+        Assertions.assertTrue(ownerId.equals(first.getId()) || ownerId.equals(second.getId()));
     }
 
     @Test
@@ -918,7 +1183,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .contentType("application/json")
                 .body(assignPayload)
                 .when()
-                .post("/api/devices/assign-to-me")
+                .post("/api/devices/claim")
                 .then()
                 .statusCode(422);
 
@@ -979,6 +1244,23 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         return plantRepository.save(plant);
     }
 
+    private int claimStatus(
+            UserEntity user,
+            DeviceEntity device,
+            CountDownLatch ready,
+            CountDownLatch start
+    ) throws InterruptedException {
+        ready.countDown();
+        start.await(5, TimeUnit.SECONDS);
+        return given()
+                .header("Authorization", "Bearer " + buildToken(user.getId()))
+                .contentType("application/json")
+                .body(Map.of("device_id", device.getDeviceId()))
+                .when()
+                .post("/api/devices/claim")
+                .statusCode();
+    }
+
     private String buildToken(int userId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("user_id", userId);
@@ -990,6 +1272,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     }
 
     private void clearDatabase() {
+        jdbcTemplate.update("DELETE FROM device_claim_limits");
         jdbcTemplate.update("DELETE FROM plant_metric_samples");
         jdbcTemplate.update("DELETE FROM sensor_plant_bindings");
         jdbcTemplate.update("DELETE FROM sensor_readings");
@@ -1009,9 +1292,3 @@ class DevicesIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
-
-
-
-
-
-

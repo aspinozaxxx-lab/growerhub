@@ -3,3 +3,47 @@
   flex-direction: column;
   gap: 14px;
 }
+
+.device-claim-card {
+  display: grid;
+  gap: 14px;
+}
+
+.device-claim-card__intro {
+  display: grid;
+  gap: 6px;
+}
+
+.device-claim-form {
+  display: grid;
+  grid-template-columns: minmax(220px, 420px) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.device-claim-form .gh-btn {
+  min-height: 42px;
+}
+
+.device-claim-message,
+.device-claim-retry {
+  margin: 0;
+}
+
+.device-claim-message--success {
+  color: var(--accent);
+}
+
+.device-claim-message--error {
+  color: var(--danger);
+}
+
+.device-claim-retry {
+  color: var(--text-2);
+}
+
+@media (max-width: 640px) {
+  .device-claim-form {
+    grid-template-columns: 1fr;
+  }
+}

@@ -18,6 +18,7 @@ static const char kWebHtml[] =
     "<h1>Wi-Fi setup</h1>"
     "<div class=\"status-block\">"
     "<div class=\"status-title\">Status</div>"
+    "<div class=\"status-line\">{{DEVICE_ID_LINE}}</div>"
     "<div class=\"status-line\">{{WIFI_STATUS_LINE}}</div>"
     "<div class=\"status-line\">{{MQTT_STATUS_LINE}}</div>"
     "</div>"

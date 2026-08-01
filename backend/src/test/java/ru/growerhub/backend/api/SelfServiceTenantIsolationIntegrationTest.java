@@ -24,6 +24,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
+import ru.growerhub.backend.device.contract.DeviceBrokerCredentialGateway;
 import ru.growerhub.backend.mqtt.MqttMessageHandler;
 import ru.growerhub.backend.user.jpa.UserEntity;
 import ru.growerhub.backend.user.jpa.UserRepository;
@@ -56,6 +57,9 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
 
     @MockBean
     private ZigbeeBrokerCredentialGateway credentialGateway;
+
+    @MockBean
+    private DeviceBrokerCredentialGateway deviceCredentialGateway;
 
     @MockBean
     private ZigbeeCommandGateway commandGateway;

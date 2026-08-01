@@ -9,9 +9,13 @@
 
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 #include <string>
 
+#include "config/MqttTlsTrust.h"
 #include "core/EventQueue.h"
+#include "services/StorageService.h"
+#include "services/TimeService.h"
 #include "services/Topics.h"
 #include "util/Logger.h"
 
@@ -22,18 +26,8 @@
 namespace Services {
 
 namespace {
-struct MqttDefaults {
-  const char* host;
-  uint16_t port;
-  const char* user;
-  const char* pass;
-};
-
-static const MqttDefaults kMqttDefaults = {
-    "growerhub.ru",
-    1883,
-    "mosquitto-admin",
-    "qazwsxedc"};
+static const char* kMqttHost = "growerhub.ru";
+static const uint16_t kMqttPort = 8883;
 
 static const uint32_t kReconnectIntervalMs = 5000;
 #if defined(DEBUG_MQTT_DIAG)
@@ -67,6 +61,27 @@ static const char* MqttRcToString(int rc) {
       return "unknown";
   }
 }
+
+static const char* MqttStatusToString(MqttConnectionStatus status) {
+  switch (status) {
+    case MqttConnectionStatus::kNotConfigured:
+      return "NOT_CONFIGURED";
+    case MqttConnectionStatus::kWaitingWifi:
+      return "WAITING_WIFI";
+    case MqttConnectionStatus::kWaitingTime:
+      return "WAITING_TIME";
+    case MqttConnectionStatus::kConnecting:
+      return "CONNECTING";
+    case MqttConnectionStatus::kConnected:
+      return "CONNECTED";
+    case MqttConnectionStatus::kAuthFailed:
+      return "AUTH_FAILED";
+    case MqttConnectionStatus::kTlsFailed:
+      return "TLS_FAILED";
+    default:
+      return "NOT_CONFIGURED";
+  }
+}
 }
 
 #if defined(ARDUINO)
@@ -81,27 +96,43 @@ MqttService::MqttService()
 
 void MqttService::Init(Core::Context& ctx) {
   event_queue_ = ctx.event_queue;
+  storage_ = ctx.storage;
+  time_service_ = ctx.time;
   device_id_ = ctx.device_id;
   last_attempt_ms_ = 0;
   last_connected_ = false;
   wifi_ready_ = false;
   last_skip_log_ms_ = 0;
+  status_ = MqttConnectionStatus::kNotConfigured;
+  status_reason_ = "mqtt.json missing";
+  config_ready_ = false;
+  credential_ = MqttCredentialConfig{};
   Util::Logger::Info("[MQTT] init");
+
+  const MqttCredentialLoadResult load_result =
+      MqttCredentialConfigStore::Load(storage_, device_id_, &credential_);
+  if (load_result == MqttCredentialLoadResult::kOk) {
+    config_ready_ = true;
+    status_ = MqttConnectionStatus::kWaitingWifi;
+    status_reason_ = "waiting for Wi-Fi";
+    Util::Logger::Info("[MQTT] credential config loaded");
+  } else {
+    status_reason_ = MqttCredentialConfigStore::Reason(load_result);
+    char log_buf[160];
+    std::snprintf(log_buf, sizeof(log_buf), "[MQTT] disabled reason=%s", status_reason_);
+    Util::Logger::Info(log_buf);
+  }
 #if defined(ARDUINO)
   active_instance_ = this;
   mqtt_client_.setCallback(MqttService::OnMessageThunk);
-  mqtt_host_ = kMqttDefaults.host;
-  mqtt_port_ = kMqttDefaults.port;
-  mqtt_user_ = kMqttDefaults.user;
-  mqtt_pass_ = kMqttDefaults.pass;
-
-  mqtt_client_.setServer(mqtt_host_, mqtt_port_);
+  wifi_client_.setCACert(Config::kIsrgRootX1);
+  mqtt_client_.setServer(kMqttHost, kMqttPort);
   char log_buf[192];
   std::snprintf(log_buf,
                 sizeof(log_buf),
-                "[MQTT] set_server host=%s port=%u",
-                mqtt_host_,
-                static_cast<unsigned int>(mqtt_port_));
+                "[MQTT] set_server host=%s port=%u tls=true",
+                kMqttHost,
+                static_cast<unsigned int>(kMqttPort));
   Util::Logger::Info(log_buf);
 #endif
 }
@@ -124,15 +155,14 @@ bool MqttService::Publish(const char* topic, const char* payload, bool retain, i
   const size_t max_packet_size = 0;
 #endif
   const char* client_id = device_id_ ? device_id_ : "device";
-  const char* user = mqtt_user_ ? mqtt_user_ : "";
   char log_buf[192];
   std::snprintf(log_buf,
                 sizeof(log_buf),
                 "[MQTT] publish host=%s port=%u client_id=%s user=%s",
-                mqtt_host_ ? mqtt_host_ : "",
-                static_cast<unsigned int>(mqtt_port_),
+                kMqttHost,
+                static_cast<unsigned int>(kMqttPort),
                 client_id,
-                user);
+                client_id);
   Util::Logger::Info(log_buf);
   std::snprintf(log_buf,
                 sizeof(log_buf),
@@ -216,10 +246,40 @@ bool MqttService::IsConnected() {
 #endif
 }
 
+MqttConnectionStatus MqttService::GetStatus() const {
+  return status_;
+}
+
+const char* MqttService::GetStatusName() const {
+  return MqttStatusToString(status_);
+}
+
+const char* MqttService::GetStatusReason() const {
+  return status_reason_ ? status_reason_ : "";
+}
+
+const char* MqttService::GetHost() const {
+  return kMqttHost;
+}
+
+uint16_t MqttService::GetPort() const {
+  return kMqttPort;
+}
+
+bool MqttService::IsTls() const {
+  return true;
+}
+
 void MqttService::Loop() {
 #if defined(ARDUINO)
   const uint32_t now_ms = millis();
+  if (!config_ready_) {
+    status_ = MqttConnectionStatus::kNotConfigured;
+    return;
+  }
   if (!wifi_ready_) {
+    status_ = MqttConnectionStatus::kWaitingWifi;
+    status_reason_ = "waiting for Wi-Fi";
     if (last_skip_log_ms_ == 0 ||
         static_cast<int32_t>(now_ms - last_skip_log_ms_) >= static_cast<int32_t>(kReconnectIntervalMs)) {
       Util::Logger::Info("[NET] wifi not ready -> skip mqtt");
@@ -227,9 +287,21 @@ void MqttService::Loop() {
     }
     return;
   }
+  if (!HasValidTlsTime()) {
+    status_ = MqttConnectionStatus::kWaitingTime;
+    status_reason_ = "waiting for valid system time";
+    if (last_skip_log_ms_ == 0 ||
+        static_cast<int32_t>(now_ms - last_skip_log_ms_) >= static_cast<int32_t>(kReconnectIntervalMs)) {
+      Util::Logger::Info("[MQTT] valid system time required for TLS");
+      last_skip_log_ms_ = now_ms;
+    }
+    return;
+  }
   last_skip_log_ms_ = 0;
   const bool connected = mqtt_client_.connected();
   if (connected) {
+    status_ = MqttConnectionStatus::kConnected;
+    status_reason_ = "connected";
     mqtt_client_.loop();
   }
   if (!connected && last_connected_) {
@@ -241,6 +313,8 @@ void MqttService::Loop() {
                   rc,
                   MqttRcToString(rc));
     Util::Logger::Info(log_buf);
+    status_ = MqttConnectionStatus::kTlsFailed;
+    status_reason_ = "connection lost";
   }
   if (!connected) {
     if (now_ms - last_attempt_ms_ >= kReconnectIntervalMs) {
@@ -249,7 +323,7 @@ void MqttService::Loop() {
   }
   last_connected_ = mqtt_client_.connected();
 #if defined(DEBUG_MQTT_DIAG)
-  if (connected) {
+  if (mqtt_client_.connected()) {
     const uint32_t now_ms = millis();
     if (diag_next_ms_ == 0 || static_cast<int32_t>(now_ms - diag_next_ms_) >= 0) {
       diag_next_ms_ = now_ms + kDiagIntervalMs;
@@ -272,15 +346,22 @@ void MqttService::Loop() {
 
 void MqttService::SetWifiReady(bool ready) {
   if (ready == wifi_ready_) {
+    UpdateWaitingStatus();
     return;
   }
   wifi_ready_ = ready;
+  UpdateWaitingStatus();
 #if defined(ARDUINO)
   if (wifi_ready_) {
     Util::Logger::Info("[NET] wifi ready -> start mqtt");
     const uint32_t now_ms = millis();
+    if (time_service_) {
+      time_service_->RequestSyncNow(now_ms);
+    }
     last_attempt_ms_ = 0;
-    TryConnect(now_ms);
+    if (config_ready_ && HasValidTlsTime()) {
+      TryConnect(now_ms);
+    }
   } else {
     Util::Logger::Info("[NET] wifi lost -> stop mqtt");
     if (mqtt_client_.connected()) {
@@ -294,9 +375,53 @@ void MqttService::SetWifiReady(bool ready) {
 #endif
 }
 
+bool MqttService::HasValidTlsTime() const {
+#if defined(UNIT_TEST)
+  return time_service_ && time_service_->HasValidTime();
+#elif defined(ARDUINO)
+  const std::time_t now = std::time(nullptr);
+  if (now <= 0) {
+    return false;
+  }
+  std::tm utc{};
+  gmtime_r(&now, &utc);
+  const int year = utc.tm_year + 1900;
+  return year >= 2025 && year <= 2040;
+#else
+  return false;
+#endif
+}
+
+void MqttService::UpdateWaitingStatus() {
+  if (!config_ready_) {
+    status_ = MqttConnectionStatus::kNotConfigured;
+    return;
+  }
+  if (!wifi_ready_) {
+    status_ = MqttConnectionStatus::kWaitingWifi;
+    status_reason_ = "waiting for Wi-Fi";
+    return;
+  }
+  if (!HasValidTlsTime()) {
+    status_ = MqttConnectionStatus::kWaitingTime;
+    status_reason_ = "waiting for valid system time";
+    return;
+  }
+  if (status_ != MqttConnectionStatus::kConnected
+      && status_ != MqttConnectionStatus::kAuthFailed
+      && status_ != MqttConnectionStatus::kTlsFailed) {
+    status_ = MqttConnectionStatus::kConnecting;
+    status_reason_ = "ready for TLS connection";
+  }
+}
+
 #if defined(UNIT_TEST)
 void MqttService::SetConnectedForTests(bool connected) {
   connected_ = connected;
+  if (connected) {
+    status_ = MqttConnectionStatus::kConnected;
+    status_reason_ = "connected";
+  }
 }
 
 void MqttService::SetPublishHook(PublishHook hook) {
@@ -305,6 +430,10 @@ void MqttService::SetPublishHook(PublishHook hook) {
 
 void MqttService::InjectMessage(const char* topic, const char* payload) {
   PushEvent(topic, payload);
+}
+
+bool MqttService::IsConfiguredForTests() const {
+  return config_ready_;
 }
 #endif
 
@@ -327,43 +456,60 @@ void MqttService::PushEvent(const char* topic, const char* payload) {
 
 #if defined(ARDUINO)
 bool MqttService::TryConnect(uint32_t now_ms) {
-  if (!mqtt_host_ || mqtt_port_ == 0) {
-    Util::Logger::Info("[MQTT] connect skip: no host");
+  if (!config_ready_ || !device_id_ || device_id_[0] == '\0') {
+    status_ = MqttConnectionStatus::kNotConfigured;
+    status_reason_ = "mqtt.json invalid";
+    last_attempt_ms_ = now_ms;
+    return false;
+  }
+  if (!wifi_ready_) {
+    status_ = MqttConnectionStatus::kWaitingWifi;
+    status_reason_ = "waiting for Wi-Fi";
+    last_attempt_ms_ = now_ms;
+    return false;
+  }
+  if (!HasValidTlsTime()) {
+    status_ = MqttConnectionStatus::kWaitingTime;
+    status_reason_ = "waiting for valid system time";
     last_attempt_ms_ = now_ms;
     return false;
   }
 
-  const char* client_id = device_id_ ? device_id_ : "device";
-  const bool has_user = mqtt_user_ && mqtt_user_[0] != '\0';
-  const bool has_pass = mqtt_pass_ && mqtt_pass_[0] != '\0';
+  const char* client_id = device_id_;
 
   char log_buf[192];
   std::snprintf(log_buf,
                 sizeof(log_buf),
-                "[MQTT] connect attempt client_id=%s user=%s",
-                client_id,
-                has_user ? "present" : "absent");
+                "[MQTT] connect attempt host=%s port=%u client_id=%s tls=true",
+                kMqttHost,
+                static_cast<unsigned int>(kMqttPort),
+                client_id);
   Util::Logger::Info(log_buf);
 
-  bool connected = false;
-  if (has_user || has_pass) {
-    const char* user = has_user ? mqtt_user_ : "";
-    const char* pass = has_pass ? mqtt_pass_ : "";
-    connected = mqtt_client_.connect(client_id, user, pass);
-  } else {
-    connected = mqtt_client_.connect(client_id);
-  }
+  status_ = MqttConnectionStatus::kConnecting;
+  status_reason_ = "TLS connection in progress";
+  const bool connected = mqtt_client_.connect(client_id, device_id_, credential_.password);
 
   if (connected) {
     Util::Logger::Info("[MQTT] connected");
+    status_ = MqttConnectionStatus::kConnected;
+    status_reason_ = "connected";
     SubscribePending();
   } else {
     const int rc = mqtt_client_.state();
+    if (rc == 4 || rc == 5) {
+      status_ = MqttConnectionStatus::kAuthFailed;
+      status_reason_ = "broker rejected credentials";
+    } else {
+      status_ = MqttConnectionStatus::kTlsFailed;
+      status_reason_ = "TLS connection failed";
+    }
     std::snprintf(log_buf,
                   sizeof(log_buf),
-                  "[MQTT] connect failed rc=%d reason=%s",
+                  "[MQTT] connect failed rc=%d reason=%s status=%s",
                   rc,
-                  MqttRcToString(rc));
+                  MqttRcToString(rc),
+                  GetStatusName());
     Util::Logger::Info(log_buf);
   }
 

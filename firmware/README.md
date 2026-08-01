@@ -1,88 +1,38 @@
-# Firmware: встроенные настройки сети, Multi-WiFi и TLS
+# Firmware Grovika
 
-Прошивка больше не зависит от `config.ini` и SPIFFS. Все значения по умолчанию (список точек доступа, URL сервера и корневой сертификат) зашиты в код и доступны через структуру `BUILTIN_NETWORK_DEFAULTS` в `src/System/SettingsManager.h`.
+Прошивка ESP32/ESP32-C3 работает как исполнительное устройство GrowerHub: читает датчики, публикует состояние и выполняет MQTT-команды насоса и перезагрузки. Календарные сценарии выполняет backend; RTC и локальных расписаний в устройстве нет.
 
-## Основные возможности
-- **Встроенные дефолты**: SSID, пароли, URL сервера и CA-сертификат загружаются напрямую из констант при старте.
-- **Multi-WiFi**: устройство хранит пользовательские сети в EEPROM и дополняет их встроенным списком, выбирая точку доступа с лучшим сигналом.
-- **HTTPS/TLS**: встроенный сертификат используется автоматически; если в настройках сохранён пользовательский CA, он подставляется вместо стандартного.
-
-## Где заданы дефолты
-
-```cpp
-constexpr DefaultNetworkProfile BUILTIN_NETWORK_DEFAULTS = {
-    3,
-    {
-        {"JR", "qazwsxedc"},
-        {"AKADO-E84E", "90838985"},
-        {"TP-LINK_446C", "70863765"},
-        {"", ""}, {"", ""}, {"", ""}, {"", ""}, {"", ""}, {"", ""}, {"", ""}
-    },
-    "https://growerhub.ru",
-    R"(-----BEGIN CERTIFICATE-----
-MIIEVzCCAj+gAwIBAgIRAKp18eYrjwoiCWbTi7/UuqEwDQYJKoZIhvcNAQELBQAw
-TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh
-cmNoIEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDEwHhcNMjQwMzEzMDAwMDAw
-WhcNMjcwMzEyMjM1OTU5WjAyMQswCQYDVQQGEwJVUzEWMBQGA1UEChMNTGV0J3Mg
-RW5jcnlwdDELMAkGA1UEAxMCRTcwdjAQBgcqhkjOPQIBBgUrgQQAIgNiAARB6AST
-CFh/vjcwDMCgQer+VtqEkz7JANurZxLP+U9TCeioL6sp5Z8VRvRbYk4P1INBmbef
-QHJFHCxcSjKmwtvGBWpl/9ra8HW0QDsUaJW2qOJqceJ0ZVFT3hbUHifBM/2jgfgw
-gfUwDgYDVR0PAQH/BAQDAgGGMB0GA1UdJQQWMBQGCCsGAQUFBwMCBggrBgEFBQcD
-ATASBgNVHRMBAf8ECDAGAQH/AgEAMB0GA1UdDgQWBBSuSJ7chx1EoG/aouVgdAR4
-wpwAgDAfBgNVHSMEGDAWgBR5tFnme7bl5AFzgAiIyBpY9umbbjAyBggrBgEFBQcB
-AQQmMCQwIgYIKwYBBQUHMAKGFmh0dHA6Ly94MS5pLmxlbmNyLm9yZy8wEwYDVR0g
-BAwwCjAIBgZngQwBAgEwJwYDVR0fBCAwHjAcoBqgGIYWaHR0cDovL3gxLmMubGVu
-Y3Iub3JnLzANBgkqhkiG9w0BAQsFAAOCAgEAjx66fDdLk5ywFn3CzA1w1qfylHUD
-aEf0QZpXcJseddJGSfbUUOvbNR9N/QQ16K1lXl4VFyhmGXDT5Kdfcr0RvIIVrNxF
-h4lqHtRRCP6RBRstqbZ2zURgqakn/Xip0iaQL0IdfHBZr396FgknniRYFckKORPG
-yM3QKnd66gtMst8I5nkRQlAg/Jb+Gc3egIvuGKWboE1G89NTsN9LTDD3PLj0dUMr
-OIuqVjLB8pEC6yk9enrlrqjXQgkLEYhXzq7dLafv5Vkig6Gl0nuuqjqfp0Q1bi1o
-yVNAlXe6aUXw92CcghC9bNsKEO1+M52YY5+ofIXlS/SEQbvVYYBLZ5yeiglV6t3S
-M6H+vTG0aP9YHzLn/KVOHzGQfXDP7qM5tkf+7diZe7o2fw6O7IvN6fsQXEQQj8TJ
-UXJxv2/uJhcuy/tSDgXwHM8Uk34WNbRT7zGTGkQRX0gsbjAea/jYAoWv0ZvQRwpq
-Pe79D/i7Cep8qWnA+7AE/3B3S/3dEEYmc0lpe1366A/6GEgk3ktr9PEoQrLChs6I
-tu3wnNLB2euC8IKGLQFpGtOO/2/hiAKjyajaBP25w1jF0Wl8Bbqne3uZ2q1GyPFJ
-yRmT7/OXpmOH/FVLtwS+8ng1cAmpCujPwteJZNcDG0sF2n/sc0+SQf49fdyUK0ty
-+VUwFj9tmWxyR/M=
------END CERTIFICATE-----)"
-};
-```
-
-### Как изменить дефолты
-- Отредактируйте структуру `BUILTIN_NETWORK_DEFAULTS` и пересоберите проект.
-- Перепрошивка SPIFFS больше не требуется: достаточно `pio run -t upload`.
-
-## Сборка и прошивка (PlatformIO)
-```bash
-pio run -e <env>
-pio run -t upload -e <env>
-```
-
-## Тесты
-- Требования: установлен Python 3.11+ и PlatformIO (`pip install platformio`).
-- Проверка версии и запуск базового набора:
+## Сборка и тесты
 
 ```bash
-pio --version
-pio test -e wifi_service_test
+python -m platformio test -e test
+python -m platformio run -e esp32dev
+python -m platformio run -e esp32c3_supermini
 ```
 
-- Дополнительно можно ограничить тесты и включить подробный вывод:
+- `esp32dev` — обычная ESP32 с USB-UART.
+- `esp32c3_supermini` — ESP32-C3 SuperMini.
+- LittleFS используется в обоих окружениях.
 
-```bash
-pio test -e wifi_service_test -f wifi_service_basic -v
+## Серийная подготовка
+
+Фабричный скрипт сам определяет поддерживаемый чип, читает eFuse MAC, получает одноразовый MQTT-пароль из административного API и записывает общую прошивку вместе с уникальным LittleFS:
+
+```powershell
+python -m pip install -r requirements-factory.txt
+$env:GH_FACTORY_ADMIN_TOKEN = '<admin-access-token>'
+python scripts/provision_device.py --port COM10
+Remove-Item Env:GH_FACTORY_ADMIN_TOKEN
 ```
 
-## Поведение Wi-Fi
-- WiFiMulti регистрирует все пользовательские сети и встроенные дефолты.
-- Асинхронное сканирование каждые ~20 секунд ищет более сильные точки доступа.
-- Если в EEPROM есть пользовательские записи, они имеют приоритет над встроенными.
+Повторная подготовка уже зарегистрированной платы разрешена только с `--rotate`. До прошивки скрипт проверяет MQTTS, отклонение неверного пароля и ACL собственного/чужого namespace. Скрипт не принимает пароль устройства в командной строке, не выводит его и в `finally` удаляет локальные `/data/cfg/mqtt.json` и образ LittleFS. В стандартный вывод попадает только `device_id`, который нужно напечатать на коробке.
 
-## Поведение TLS
-- `HTTPClient` использует `WiFiClientSecure` со встроенным CA.
-- Сохранённый пользователем сертификат заменяет стандартный без перепрошивки.
+## MQTT и время
 
-## EEPROM и сохранность настроек
-- EEPROM объёмом 1024 байта позволяет хранить до 10 пользовательских сетей и прочие параметры.
-- `factory reset` очищает пользовательские сети и пересобирает `deviceID` на основе MAC-адреса.
-- `serverURL` всегда берётся из встроенных значений и не хранится в EEPROM.
+Устройство подключается к `growerhub.ru:8883` через TLS. Username и фиксированный client ID равны `device_id`; пароль читается из `/cfg/mqtt.json`. Без корректного файла MQTT не запускается, а локальный web UI показывает причину.
+
+Сетевое UTC синхронизируется по NTP только для проверки TLS-сертификата и меток телеметрии. Команда `pump.start` завершается по монотонному `millis()`-таймеру и аппаратному максимальному времени, поэтому не зависит от NTP или доступности сети.
+
+## Настройка Wi-Fi
+
+При отсутствии подходящей сети Grovika поднимает локальную точку доступа и web-интерфейс настройки. В нём показываются полный `device_id`, MQTTS endpoint и состояние подключения, но MQTT-пароль никогда не возвращается.

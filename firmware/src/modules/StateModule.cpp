@@ -13,7 +13,6 @@
 #include "config/BuildFlags.h"
 #include "core/Context.h"
 #include "modules/ActuatorModule.h"
-#include "modules/ConfigSyncModule.h"
 #include "modules/SensorHubModule.h"
 #include "services/MqttService.h"
 #include "services/Topics.h"
@@ -24,7 +23,6 @@ namespace Modules {
 void StateModule::Init(Core::Context& ctx) {
   mqtt_ = ctx.mqtt;
   actuator_ = ctx.actuator;
-  config_sync_ = ctx.config_sync;
   sensor_hub_ = ctx.sensor_hub;
   device_id_ = ctx.device_id;
   last_publish_ms_ = 0;
@@ -81,21 +79,6 @@ void StateModule::PublishState(bool retained) {
   payload += "\"fw_ver\":\"" + std::string(Config::kFwVer) + "\"";
   payload += ",\"pump\":{\"status\":\"" + std::string(actuator_->IsPumpRunning() ? "on" : "off") + "\"}";
   payload += ",\"light\":{\"status\":\"" + std::string(actuator_->IsLightOn() ? "on" : "off") + "\"}";
-
-  bool water_time = false;
-  bool water_moisture = false;
-  bool light_schedule = false;
-  if (config_sync_) {
-    const Util::ScenariosConfig& cfg = config_sync_->GetConfig();
-    water_time = cfg.water_schedule.enabled;
-    water_moisture = cfg.water_moisture.enabled;
-    light_schedule = cfg.light_schedule.enabled;
-  }
-  payload += ",\"scenarios\":{";
-  payload += "\"water_time\":{\"enabled\":" + std::string(water_time ? "true" : "false") + "},";
-  payload += "\"water_moisture\":{\"enabled\":" + std::string(water_moisture ? "true" : "false") + "},";
-  payload += "\"light_schedule\":{\"enabled\":" + std::string(light_schedule ? "true" : "false") + "}";
-  payload += "}";
 
   Modules::SensorHubModule::DhtReading dht{};
   const bool has_dht = sensor_hub_ && sensor_hub_->GetDhtReading(&dht);

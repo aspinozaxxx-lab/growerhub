@@ -47,8 +47,9 @@ void ActuatorModule::OnTick(Core::Context& ctx, uint32_t now_ms) {
     return;
   }
 
-  if (manual_start_ms_ == 0) {
+  if (!manual_timer_started_) {
     manual_start_ms_ = now_ms;
+    manual_timer_started_ = true;
   }
 
   const uint64_t elapsed = static_cast<uint64_t>(now_ms - manual_start_ms_);
@@ -72,6 +73,7 @@ bool ActuatorModule::StartPump(uint32_t duration_s, const char* correlation_id) 
   manual_active_ = true;
   manual_duration_s_ = duration_s;
   manual_start_ms_ = 0;
+  manual_timer_started_ = false;
 
   if (correlation_id) {
     std::strncpy(manual_correlation_id_, correlation_id, sizeof(manual_correlation_id_) - 1);
@@ -136,6 +138,7 @@ void ActuatorModule::ResetManualState() {
   manual_active_ = false;
   manual_duration_s_ = 0;
   manual_start_ms_ = 0;
+  manual_timer_started_ = false;
   manual_correlation_id_[0] = '\0';
   manual_started_at_[0] = '\0';
   pump_relay_.Set(false);
@@ -148,6 +151,7 @@ void ActuatorModule::StopPumpInternal() {
   manual_active_ = false;
   manual_duration_s_ = 0;
   manual_start_ms_ = 0;
+  manual_timer_started_ = false;
   manual_correlation_id_[0] = '\0';
   manual_started_at_[0] = '\0';
 

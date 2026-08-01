@@ -4,19 +4,27 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.growerhub.backend.common.config.device.DeviceClaimSettings;
+import ru.growerhub.backend.common.config.device.DeviceMqttSettings;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.contract.DeviceAggregate;
 import ru.growerhub.backend.device.contract.DeviceAckStore;
+import ru.growerhub.backend.device.contract.DeviceBrokerCredentialGateway;
+import ru.growerhub.backend.device.contract.DeviceClaimRateLimitException;
+import ru.growerhub.backend.device.contract.DeviceClaimRejectedException;
 import ru.growerhub.backend.device.contract.DeviceFirmwareStatus;
 import ru.growerhub.backend.device.contract.DeviceCredential;
+import ru.growerhub.backend.device.contract.DeviceMqttCredential;
 import ru.growerhub.backend.device.contract.DeviceServiceEventData;
 import ru.growerhub.backend.device.contract.DeviceServiceEventView;
 import ru.growerhub.backend.device.contract.DeviceSettingsData;
@@ -30,6 +38,8 @@ import ru.growerhub.backend.device.engine.DeviceQueryService;
 import ru.growerhub.backend.device.engine.DeviceServiceEventService;
 import ru.growerhub.backend.device.engine.DeviceShadowStore;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
+import ru.growerhub.backend.device.jpa.DeviceClaimLimitEntity;
+import ru.growerhub.backend.device.jpa.DeviceClaimLimitRepository;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.device.jpa.DeviceStateLastEntity;
 import ru.growerhub.backend.device.jpa.DeviceStateLastRepository;
@@ -44,7 +54,9 @@ import ru.growerhub.backend.sensor.contract.SensorView;
 
 @Service
 public class DeviceFacade {
+    private static final int DEVICE_CREDENTIAL_BYTES = 32;
     private final DeviceRepository deviceRepository;
+    private final DeviceClaimLimitRepository deviceClaimLimitRepository;
     private final DeviceStateLastRepository deviceStateLastRepository;
     private final DeviceIngestionService deviceIngestionService;
     private final DeviceQueryService deviceQueryService;
@@ -57,10 +69,14 @@ public class DeviceFacade {
     private final SensorFacade sensorFacade;
     private final PlantFacade plantFacade;
     private final PumpFacade pumpFacade;
+    private final DeviceBrokerCredentialGateway brokerCredentialGateway;
+    private final DeviceMqttSettings mqttSettings;
+    private final DeviceClaimSettings claimSettings;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public DeviceFacade(
             DeviceRepository deviceRepository,
+            DeviceClaimLimitRepository deviceClaimLimitRepository,
             DeviceStateLastRepository deviceStateLastRepository,
             DeviceIngestionService deviceIngestionService,
             DeviceQueryService deviceQueryService,
@@ -72,9 +88,13 @@ public class DeviceFacade {
             DeviceServiceEventService deviceServiceEventService,
             SensorFacade sensorFacade,
             PlantFacade plantFacade,
-            @Lazy PumpFacade pumpFacade
+            @Lazy PumpFacade pumpFacade,
+            DeviceBrokerCredentialGateway brokerCredentialGateway,
+            DeviceMqttSettings mqttSettings,
+            DeviceClaimSettings claimSettings
     ) {
         this.deviceRepository = deviceRepository;
+        this.deviceClaimLimitRepository = deviceClaimLimitRepository;
         this.deviceStateLastRepository = deviceStateLastRepository;
         this.deviceIngestionService = deviceIngestionService;
         this.deviceQueryService = deviceQueryService;
@@ -87,6 +107,9 @@ public class DeviceFacade {
         this.sensorFacade = sensorFacade;
         this.plantFacade = plantFacade;
         this.pumpFacade = pumpFacade;
+        this.brokerCredentialGateway = brokerCredentialGateway;
+        this.mqttSettings = mqttSettings;
+        this.claimSettings = claimSettings;
     }
 
     public Integer findDeviceId(String deviceId) {
@@ -125,16 +148,59 @@ public class DeviceFacade {
         }
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         if (device.getDeviceTokenIssuedAt() != null
-                && device.getDeviceTokenIssuedAt().plusSeconds(30).isAfter(now)) {
+                && device.getDeviceTokenIssuedAt().plusSeconds(mqttSettings.getCredentialCooldownSeconds()).isAfter(now)) {
             throw new DomainException("too_many_requests", "Povtorite vydachu device token pozhe");
         }
-        byte[] randomBytes = new byte[32];
-        secureRandom.nextBytes(randomBytes);
-        String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+        String rawToken = generateCredential();
+        if (device.getMqttProvisionedAt() != null) {
+            brokerCredentialGateway.rotateDevice(device.getDeviceId(), rawToken);
+            device.setMqttProvisionedAt(now);
+        }
         device.setDeviceTokenHash(hashDeviceToken(rawToken));
         device.setDeviceTokenIssuedAt(now);
         deviceRepository.save(device);
         return new DeviceCredential(device.getDeviceId(), rawToken, now);
+    }
+
+    @Transactional
+    public DeviceMqttCredential provisionMqttDevice(String requestedDeviceId, boolean rotate) {
+        String deviceId = normalizeDeviceId(requestedDeviceId);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        DeviceEntity device = deviceRepository.findByDeviceIdForUpdate(deviceId).orElse(null);
+        if (device == null) {
+            device = DeviceEntity.create();
+            device.setDeviceId(deviceId);
+            deviceIngestionService.applyDefaults(device, deviceId);
+            device = deviceRepository.saveAndFlush(device);
+        } else if (device.getMqttProvisionedAt() != null && !rotate) {
+            throw new DomainException("conflict", "Устройство уже подготовлено; для перевыпуска укажите rotate=true");
+        }
+
+        if (device.getDeviceTokenIssuedAt() != null
+                && device.getDeviceTokenIssuedAt().plusSeconds(mqttSettings.getCredentialCooldownSeconds()).isAfter(now)) {
+            throw new DomainException("too_many_requests", "Повторите подготовку устройства позже");
+        }
+
+        String password = generateCredential();
+        if (device.getMqttProvisionedAt() == null) {
+            brokerCredentialGateway.provisionDevice(deviceId, password, mqttSettings.getBrokerRole());
+        } else {
+            brokerCredentialGateway.rotateDevice(deviceId, password);
+        }
+        device.setDeviceTokenHash(hashDeviceToken(password));
+        device.setDeviceTokenIssuedAt(now);
+        device.setMqttProvisionedAt(now);
+        deviceRepository.save(device);
+        return new DeviceMqttCredential(
+                deviceId,
+                mqttSettings.getPublicHost(),
+                mqttSettings.getPublicPort(),
+                mqttSettings.isTls(),
+                deviceId,
+                password,
+                deviceId,
+                now
+        );
     }
 
     @Transactional(readOnly = true)
@@ -311,17 +377,43 @@ public class DeviceFacade {
         return deviceServiceEventService.listRecentByDeviceIds(deviceIds, limitPerDevice);
     }
 
-    @Transactional
-    public DeviceSummary assignToUser(Integer deviceId, Integer userId) {
-        DeviceEntity device = requireDevice(deviceId);
-        Integer ownerId = device.getUserId();
-        if (ownerId == null) {
-            device.setUserId(userId);
-        } else if (!ownerId.equals(userId)) {
-            throw new DomainException("bad_request", "ustrojstvo uzhe privyazano k drugomu polzovatelju");
+    @Transactional(noRollbackFor = DeviceClaimRejectedException.class)
+    public DeviceAggregate claimDevice(String requestedDeviceId, Integer userId) {
+        if (userId == null) {
+            throw new DomainException("unauthorized", "Требуется авторизация");
         }
+        String deviceId = normalizeDeviceId(requestedDeviceId);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        deviceRepository.lockUserForDeviceClaim(userId);
+        DeviceClaimLimitEntity limit = deviceClaimLimitRepository.findById(userId).orElse(null);
+        if (limit != null && limit.isRestricted()) {
+            consumeRestrictedAttempt(limit, now);
+        }
+
+        DeviceEntity device = deviceRepository.findByDeviceIdForUpdate(deviceId).orElse(null);
+        if (device == null) {
+            recordFailedClaim(limit, userId, now);
+            throw new DeviceClaimRejectedException("not_found", "Устройство не найдено");
+        }
+
+        Integer ownerId = device.getUserId();
+        if (ownerId != null && !ownerId.equals(userId)) {
+            recordFailedClaim(limit, userId, now);
+            throw new DeviceClaimRejectedException(
+                    "conflict",
+                    "Устройство уже используется другим пользователем — обратитесь к администратору"
+            );
+        }
+        if (ownerId != null) {
+            return buildAggregate(deviceQueryService.buildDeviceSummary(device));
+        }
+
+        device.setUserId(userId);
         deviceRepository.save(device);
-        return deviceQueryService.buildDeviceSummary(device);
+        deviceClaimLimitRepository.deleteById(userId);
+        DeviceSummary summary = deviceQueryService.buildDeviceSummary(device);
+        pumpFacade.ensureDefaultPump(summary.id());
+        return buildAggregate(summary);
     }
 
     @Transactional
@@ -336,15 +428,6 @@ public class DeviceFacade {
         device.setUserId(null);
         deviceRepository.save(device);
         return deviceQueryService.buildDeviceSummary(device);
-    }
-
-    @Transactional
-    public DeviceAggregate assignToUserAggregate(Integer deviceId, Integer userId) {
-        DeviceSummary summary = assignToUser(deviceId, userId);
-        if (summary != null) {
-            pumpFacade.ensureDefaultPump(summary.id());
-        }
-        return buildAggregate(summary);
     }
 
     @Transactional
@@ -377,6 +460,9 @@ public class DeviceFacade {
         DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
         if (device == null) {
             throw new DomainException("not_found", "Device not found");
+        }
+        if (device.getMqttProvisionedAt() != null) {
+            brokerCredentialGateway.revokeDevice(deviceId, mqttSettings.getBrokerRole());
         }
         Integer id = device.getId();
         if (id != null) {
@@ -419,6 +505,84 @@ public class DeviceFacade {
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 unavailable", ex);
         }
+    }
+
+    private String generateCredential() {
+        byte[] randomBytes = new byte[DEVICE_CREDENTIAL_BYTES];
+        secureRandom.nextBytes(randomBytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+    }
+
+    private String normalizeDeviceId(String requestedDeviceId) {
+        return requestedDeviceId != null ? requestedDeviceId.trim().toUpperCase(Locale.ROOT) : "";
+    }
+
+    private void consumeRestrictedAttempt(DeviceClaimLimitEntity limit, LocalDateTime now) {
+        LocalDateTime blockedUntil = limit.getBlockedUntil();
+        if (blockedUntil != null && blockedUntil.isAfter(now)) {
+            throw new DeviceClaimRateLimitException(retryAfterSeconds(now, blockedUntil));
+        }
+        limit.setBlockedUntil(null);
+
+        int attempts = limit.getWindowAttempts();
+        LocalDateTime windowStartedAt = limit.getWindowStartedAt();
+        if (attempts <= 0 || windowStartedAt == null) {
+            limit.setWindowStartedAt(now);
+            limit.setWindowAttempts(1);
+            limit.setUpdatedAt(now);
+            deviceClaimLimitRepository.save(limit);
+            return;
+        }
+
+        if (attempts == 1) {
+            if (!windowStartedAt.plusSeconds(claimSettings.getRestrictedWindowSeconds()).isAfter(now)) {
+                limit.setWindowStartedAt(now);
+                limit.setWindowAttempts(1);
+            } else {
+                limit.setWindowAttempts(2);
+            }
+            limit.setUpdatedAt(now);
+            deviceClaimLimitRepository.save(limit);
+            return;
+        }
+
+        if (windowStartedAt.plusSeconds(claimSettings.getRestrictedWindowSeconds()).isAfter(now)) {
+            LocalDateTime retryAt = windowStartedAt.plusSeconds(claimSettings.getRestrictedWindowSeconds());
+            throw new DeviceClaimRateLimitException(retryAfterSeconds(now, retryAt));
+        }
+
+        LocalDateTime newestAttemptAt = limit.getUpdatedAt();
+        if (newestAttemptAt != null
+                && newestAttemptAt.plusSeconds(claimSettings.getRestrictedWindowSeconds()).isAfter(now)) {
+            limit.setWindowStartedAt(newestAttemptAt);
+            limit.setWindowAttempts(2);
+        } else {
+            limit.setWindowStartedAt(now);
+            limit.setWindowAttempts(1);
+        }
+        limit.setUpdatedAt(now);
+        deviceClaimLimitRepository.save(limit);
+    }
+
+    private void recordFailedClaim(DeviceClaimLimitEntity limit, Integer userId, LocalDateTime now) {
+        DeviceClaimLimitEntity current = limit != null ? limit : DeviceClaimLimitEntity.create(userId, now);
+        if (!current.isRestricted()) {
+            int failures = current.getFailedAttempts() + 1;
+            current.setFailedAttempts(failures);
+            if (failures >= claimSettings.getInitialFailureLimit()) {
+                current.setRestricted(true);
+                current.setBlockedUntil(now.plusSeconds(claimSettings.getBlockSeconds()));
+                current.setWindowStartedAt(null);
+                current.setWindowAttempts(0);
+            }
+        }
+        current.setUpdatedAt(now);
+        deviceClaimLimitRepository.save(current);
+    }
+
+    private long retryAfterSeconds(LocalDateTime now, LocalDateTime retryAt) {
+        long millis = Duration.between(now, retryAt).toMillis();
+        return Math.max(1, (millis + 999) / 1000);
     }
 
     private Double defaultDouble(Double value, double fallback) {

@@ -9,17 +9,16 @@
 - [x] Web config portal (wifi setup)
 - [x] MQTT service + topics
 - [x] Command router + ACK
-- [x] Retained cfg sync (server -> device)
 - [x] Sensors: RJ9 auto-detect soil moisture
 - [x] Sensors: DHT22 optional
 - [x] Actuators: pump relay
 - [x] Actuators: light relay
-- [x] Automations: water by time
-- [x] Automations: water by moisture
-- [x] Per-sensor moisture settings
-- [x] Automations: light schedule
+- [x] Backend-owned automations; firmware executes commands only
 - [x] State retained publishing
 - [x] MQTT QoS1 events for journal
 - [x] OTA pull + rollback
 - [x] Remove legacy REST telemetry usage in v2
 - [x] Test suite for v2 (native)
+- [x] Per-device MQTTS credentials in LittleFS
+- [x] RTC and local schedules removed
+- [x] Monotonic pump command timer

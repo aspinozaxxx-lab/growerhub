@@ -19,10 +19,11 @@ import org.springframework.stereotype.Component;
 import ru.growerhub.backend.common.config.mqtt.MqttProvisioningSettings;
 import ru.growerhub.backend.common.config.mqtt.MqttTopicSettings;
 import ru.growerhub.backend.common.contract.DomainException;
+import ru.growerhub.backend.device.contract.DeviceBrokerCredentialGateway;
 import ru.growerhub.backend.zigbee.contract.ZigbeeBrokerCredentialGateway;
 
 @Component
-public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGateway {
+public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGateway, DeviceBrokerCredentialGateway {
     private static final String COMMAND_TOPIC = "$CONTROL/dynamic-security/v1";
     private static final String RESPONSE_TOPIC = "$CONTROL/dynamic-security/v1/response";
 
@@ -42,15 +43,62 @@ public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGatewa
 
     @Override
     public void provision(String username, String password, String clientId, String roleName) {
-        String scopedRoleName = scopedRoleName(roleName, username);
         String topicFilter = topicSettings.getZigbeeUserPrefix() + "/" + username + "/#";
+        provisionScoped(username, password, clientId, roleName, topicFilter);
+    }
+
+    @Override
+    public void provisionDevice(String deviceId, String password, String roleName) {
+        provisionScoped(deviceId, password, deviceId, roleName, nativeDeviceTopicFilter(deviceId));
+    }
+
+    @Override
+    public void rotateDevice(String deviceId, String password) {
+        rotate(deviceId, password);
+    }
+
+    @Override
+    public void revokeDevice(String deviceId, String roleName) {
+        revoke(deviceId, roleName);
+    }
+
+    private void provisionScoped(
+            String username,
+            String password,
+            String clientId,
+            String roleName,
+            String topicFilter
+    ) {
+        String scopedRoleName = scopedRoleName(roleName, username);
+        List<Map<String, Object>> commands = buildProvisionCommands(
+                username,
+                password,
+                clientId,
+                scopedRoleName,
+                topicFilter
+        );
+        try {
+            execute(commands);
+        } catch (DomainException ex) {
+            cleanupPartialProvisioning(username, scopedRoleName);
+            throw ex;
+        }
+    }
+
+    List<Map<String, Object>> buildProvisionCommands(
+            String username,
+            String password,
+            String clientId,
+            String scopedRoleName,
+            String topicFilter
+    ) {
         List<Map<String, Object>> commands = new ArrayList<>();
         commands.add(Map.of("command", "createRole", "rolename", scopedRoleName));
         for (String aclType : List.of(
                 "publishClientSend",
                 "publishClientReceive",
-                "subscribePattern",
-                "unsubscribePattern"
+                "subscribeLiteral",
+                "unsubscribeLiteral"
         )) {
             commands.add(Map.of(
                     "command", "addRoleACL",
@@ -68,12 +116,7 @@ public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGatewa
                 "clientid", clientId,
                 "roles", List.of(Map.of("rolename", scopedRoleName, "priority", -1))
         ));
-        try {
-            execute(commands);
-        } catch (DomainException ex) {
-            cleanupPartialProvisioning(username, scopedRoleName);
-            throw ex;
-        }
+        return commands;
     }
 
     @Override
@@ -206,6 +249,13 @@ public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGatewa
             throw new DomainException("unavailable", "Настройка MQTT не подготовлена");
         }
         return roleName + "--" + username;
+    }
+
+    private String nativeDeviceTopicFilter(String deviceId) {
+        if (deviceId == null || deviceId.isBlank()) {
+            throw new DomainException("unavailable", "Настройка MQTT не подготовлена");
+        }
+        return "gh/dev/" + deviceId + "/#";
     }
 
     private void cleanupPartialProvisioning(String username, String scopedRoleName) {

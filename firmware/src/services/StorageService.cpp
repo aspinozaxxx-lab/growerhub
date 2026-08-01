@@ -10,7 +10,6 @@
 #include <cstdio>
 #include <cstring>
 
-#include "util/JsonUtil.h"
 #include "util/Logger.h"
 
 #if defined(ARDUINO)
@@ -48,7 +47,6 @@ static bool MakeDir(const char* path) {
 
 #if defined(ARDUINO)
 static const char* kCfgDir = "/cfg"; // katalog dlya cfg
-static const char* kScenariosPath = "/cfg/scenarios.json"; // defolt scenarii v2
 static const char* kDevicePath = "/cfg/device.json"; // sostoyanie OTA
 
 static bool EnsureCfgDir(bool storage_mounted) {
@@ -60,23 +58,6 @@ static bool EnsureCfgDir(bool storage_mounted) {
     return true;
   }
   return LittleFS.mkdir(kCfgDir);
-}
-
-static bool EnsureDefaultScenarios(StorageService& storage) {
-  // sozdanie defoltnogo scenarios.json pri otsutstvii
-  if (storage.Exists(kScenariosPath)) {
-    return true;
-  }
-  Util::ScenariosConfig config = Util::DefaultScenariosConfig();
-  char payload[768];
-  if (!Util::EncodeScenariosConfig(config, payload, sizeof(payload))) {
-    return false;
-  }
-  if (!storage.WriteFileAtomic(kScenariosPath, payload)) {
-    return false;
-  }
-  Util::Logger::Info("[CFG] default scenarios.json created");
-  return true;
 }
 
 static bool EnsureDefaultDevice(StorageService& storage) {
@@ -127,9 +108,6 @@ void StorageService::Init(Core::Context& ctx) {
   if (storage_mounted_) {
     if (!EnsureCfgDir(storage_mounted_)) {
       Util::Logger::Info("[CFG] littlefs mkdir /cfg fail");
-    }
-    if (!EnsureDefaultScenarios(*this)) {
-      Util::Logger::Info("[CFG] littlefs default scenarios fail");
     }
     if (!EnsureDefaultDevice(*this)) {
       Util::Logger::Info("[CFG] littlefs default device fail");

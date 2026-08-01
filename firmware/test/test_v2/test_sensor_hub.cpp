@@ -76,7 +76,7 @@ void test_sensor_hub_pump_block() {
   hw.has_dht22 = false;
   hw.dht_auto_reboot_on_fail = false;
 
-  Core::Context ctx{&scheduler, &queue, nullptr, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw, kDeviceId};
+  Core::Context ctx{&scheduler, &queue, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw, kDeviceId};
   hub.Init(ctx);
   Drivers::Rj9PortScanner* scanner = hub.GetScanner();
   scanner->SetAdcReader(&FakeAdcHub);
@@ -121,7 +121,7 @@ void test_state_soil_serialization() {
   Config::HardwareProfile hw = Config::GetHardwareProfile();
   hw.has_dht22 = true;
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &time_service, &actuator, nullptr, &hub, &state, &hw, kDeviceId};
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &time_service, &actuator, &hub, &state, &hw, kDeviceId};
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);
   mqtt.SetPublishHook(&PublishHook);
@@ -153,6 +153,7 @@ void test_state_soil_serialization() {
 
   g_state_payload[0] = '\0';
   state.PublishState(true);
+  TEST_ASSERT_EQUAL_STRING("gh/dev/grovika_040AB1/state", g_last_topic);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"soil\"") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"port\":0") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"port\":1") != nullptr);
@@ -179,7 +180,7 @@ void test_dht_error_event_without_reboot() {
   hw.has_dht22 = true;
   hw.dht_auto_reboot_on_fail = false;
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw, kDeviceId};
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, nullptr, &hub, nullptr, &hw, kDeviceId};
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);
   mqtt.SetPublishHook(&PublishHook);
@@ -219,7 +220,7 @@ void test_dht_read_failed_reports_error() {
   hw.has_dht22 = true;
   hw.dht_auto_reboot_on_fail = false;
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw, kDeviceId};
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, nullptr, &hub, nullptr, &hw, kDeviceId};
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);
   mqtt.SetPublishHook(&PublishHook);
@@ -257,7 +258,7 @@ void test_dht_startup_grace_delays_disconnected() {
   hw.has_dht22 = true;
   hw.dht_auto_reboot_on_fail = true;
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw, kDeviceId};
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, nullptr, &hub, nullptr, &hw, kDeviceId};
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);
   mqtt.SetPublishHook(&PublishHook);
@@ -309,7 +310,7 @@ void test_state_pump_status_and_started_at() {
   Modules::StateModule state;
   Config::HardwareProfile hw = Config::GetHardwareProfile();
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &time_service, &actuator, nullptr, nullptr, &state, &hw, kDeviceId};
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &time_service, &actuator, nullptr, &state, &hw, kDeviceId};
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);
   mqtt.SetPublishHook(&PublishHook);
@@ -342,7 +343,7 @@ void test_state_started_at_null_without_time() {
   Modules::StateModule state;
   Config::HardwareProfile hw = Config::GetHardwareProfile();
 
-  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &time_service, &actuator, nullptr, nullptr, &state, &hw, kDeviceId};
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, &time_service, &actuator, nullptr, &state, &hw, kDeviceId};
   mqtt.Init(ctx);
   mqtt.SetConnectedForTests(true);
   mqtt.SetPublishHook(&PublishHook);

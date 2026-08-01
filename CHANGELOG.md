@@ -1,4 +1,14 @@
-﻿### fix(front): timezone statistiki i admin-vhod
+﻿### feat(grovika): seriynoe podklyuchenie i ispolnitelnyj runtime
+
+- feat(backend): dobavleny admin provisioning per-device MQTTS credentials, literalnyj ACL, rotaciya/otzyv i hranenie tolko SHA-256.
+- feat(devices): polzovatel privyazyvaet Grovika po pechatnomu device_id; dobavleny atomarnaya zashchita ot pereprivyazki i limit 10 oshibok -> 60 minut -> 2 popytki v chas.
+- feat(front): vo vkladke ustroystv dobavlena forma privyazki s obrabotkoj 404/409/429 i Retry-After.
+- feat(firmware): Grovika perevedena na MQTTS 8883 s individualnym mqtt.json; device_id i sostoyanie soedineniya pokazany v lokalnom web UI bez sekreta.
+- refactor(firmware): udaleny RTC/DS3231, lokalnye scenarii i raspisaniya; nasos ispolnyaet komandu po monotonnomu tajmeru s apparatnym limitom.
+- security(mqtt): vremennyj legacy broker i obshchij parol ustroystv udaleny, publichnyj 1883 ostaetsya zakrytym.
+- docs(arch): dobavlen ADR-005 i obnovleny kontrakty device, firmware, frontend i ansible.
+
+### fix(front): timezone statistiki i admin-vhod
 
 - fix(sensors): vremya na osyah i v tooltip statistiki beretsya iz ishodnogo timestamp tochki i formatiruetsya v vybrannom timezone polzovatelya.
 - fix(profile): admin-knopka perenesena iz skryvaemogo zagolovka nastroek v vidimye dejstviya kartochki profilya.

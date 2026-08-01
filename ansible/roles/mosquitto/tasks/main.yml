@@ -223,77 +223,45 @@
   when: not mosquitto_bootstrap.stat.exists
   no_log: true
 
-- name: Check legacy device password file
+- name: Check retired legacy device broker unit
   ansible.builtin.stat:
-    path: "{{ mosquitto_legacy_device_password_file }}"
-  register: mosquitto_legacy_device_password
-  when: mosquitto_legacy_device_enabled
+    path: /etc/systemd/system/growerhub-mosquitto-legacy-device.service
+  register: mosquitto_retired_legacy_unit
 
-- name: Validate legacy device password file
-  ansible.builtin.assert:
-    that:
-      - mosquitto_legacy_device_password.stat.exists
-    fail_msg: >-
-      Pered vklyucheniem legacy device broker podgotov'te otdel'nyj password_file
-      dlja {{ mosquitto_legacy_device_username }}.
-  when: mosquitto_legacy_device_enabled
+- name: Stop retired legacy device broker
+  ansible.builtin.systemd:
+    name: growerhub-mosquitto-legacy-device.service
+    enabled: false
+    state: stopped
+  when: mosquitto_retired_legacy_unit.stat.exists
 
-- name: Install legacy device ACL
-  ansible.builtin.template:
-    src: legacy-device.acl.j2
-    dest: "{{ mosquitto_legacy_device_acl_file }}"
-    owner: root
-    group: mosquitto
-    mode: "0640"
-  notify: Restart legacy device Mosquitto
-  when: mosquitto_legacy_device_enabled
+- name: Remove retired legacy device broker files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/systemd/system/growerhub-mosquitto-legacy-device.service
+    - /etc/mosquitto/growerhub-legacy-device.conf
+    - /etc/mosquitto/growerhub-legacy-device.acl
+    - /etc/mosquitto/growerhub-legacy-device.passwd
 
-- name: Install legacy device broker configuration
-  ansible.builtin.template:
-    src: legacy-device.conf.j2
-    dest: "{{ mosquitto_legacy_device_config }}"
-    owner: root
-    group: mosquitto
-    mode: "0640"
-  notify: Restart legacy device Mosquitto
-  no_log: true
-  when: mosquitto_legacy_device_enabled
-
-- name: Install legacy device broker service
-  ansible.builtin.template:
-    src: legacy-device.service.j2
-    dest: "/etc/systemd/system/{{ mosquitto_legacy_device_service }}"
-    owner: root
-    group: root
-    mode: "0644"
-  register: mosquitto_legacy_device_unit
-  notify: Restart legacy device Mosquitto
-  when: mosquitto_legacy_device_enabled
-
-- name: Reload systemd for legacy device broker
+- name: Reload systemd after legacy device broker removal
   ansible.builtin.systemd:
     daemon_reload: true
-  when:
-    - mosquitto_legacy_device_enabled
-    - mosquitto_legacy_device_unit.changed
+  when: mosquitto_retired_legacy_unit.stat.exists
 
-- name: Ensure legacy device broker is enabled and running
-  ansible.builtin.systemd:
-    name: "{{ mosquitto_legacy_device_service }}"
-    enabled: true
-    state: started
-  when: mosquitto_legacy_device_enabled
-
-- name: Allow legacy device MQTT from trusted LAN in UFW
-  ansible.builtin.command: >-
-    ufw allow from {{ mosquitto_legacy_device_allowed_cidr }}
-    to {{ mosquitto_legacy_device_bind_address }}
-    port {{ mosquitto_legacy_device_port }} proto tcp
-  register: mosquitto_ufw_legacy_lan
-  changed_when: "'Rule added' in mosquitto_ufw_legacy_lan.stdout"
+- name: Remove retired legacy device firewall rule
+  community.general.ufw:
+    rule: allow
+    delete: true
+    from_ip: "{{ mosquitto_retired_device_allowed_cidr }}"
+    to_ip: "{{ mosquitto_retired_device_bind_address }}"
+    port: "1883"
+    proto: tcp
   when:
     - mosquitto_manage_firewall
-    - mosquitto_legacy_device_enabled
+    - mosquitto_retired_device_allowed_cidr | length > 0
+    - mosquitto_retired_device_bind_address | length > 0
 
 - name: Allow public MQTTS port in UFW
   ansible.builtin.command: "ufw allow {{ mosquitto_tls_port }}/tcp"

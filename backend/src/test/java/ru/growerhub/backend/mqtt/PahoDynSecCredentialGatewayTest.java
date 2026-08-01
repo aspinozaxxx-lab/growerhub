@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import ru.growerhub.backend.common.config.mqtt.MqttProvisioningSettings;
@@ -54,5 +56,38 @@ class PahoDynSecCredentialGatewayTest {
                 """);
 
         Assertions.assertFalse(gateway.matchesResponse(unrelated, "not-returned", commands));
+    }
+
+    @Test
+    void nativeDeviceCommandsUseOnlyOwnNamespaceAndFixedClientId() {
+        List<Map<String, Object>> commands = gateway.buildProvisionCommands(
+                "GROVIKA_040AB1",
+                "secret",
+                "GROVIKA_040AB1",
+                "native-device--GROVIKA_040AB1",
+                "gh/dev/GROVIKA_040AB1/#"
+        );
+
+        List<Map<String, Object>> aclCommands = commands.stream()
+                .filter(command -> "addRoleACL".equals(command.get("command")))
+                .toList();
+        Assertions.assertEquals(4, aclCommands.size());
+        Assertions.assertEquals(
+                Set.of(
+                        "publishClientSend",
+                        "publishClientReceive",
+                        "subscribeLiteral",
+                        "unsubscribeLiteral"
+                ),
+                aclCommands.stream().map(command -> command.get("acltype").toString()).collect(Collectors.toSet())
+        );
+        Assertions.assertTrue(aclCommands.stream().allMatch(command ->
+                "gh/dev/GROVIKA_040AB1/#".equals(command.get("topic"))
+        ));
+
+        Map<String, Object> createClient = commands.get(commands.size() - 1);
+        Assertions.assertEquals("GROVIKA_040AB1", createClient.get("username"));
+        Assertions.assertEquals("GROVIKA_040AB1", createClient.get("clientid"));
+        Assertions.assertFalse(commands.toString().contains("GROVIKA_OTHER"));
     }
 }

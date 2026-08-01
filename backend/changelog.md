@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-01
+- Device: dobavleny admin provisioning, rotaciya i otzyv individualnyh MQTTS credentials cherez Dynamic Security.
+- Device: dobavlena privyazka po pechatnomu device_id s atomarnym vladeniem i ustojchivym rate limit.
+- DB: migraciya V21 dobavlyaet mqtt_provisioned_at i sostoyanie ogranichenij claim.
+- Testy: pokryty provisioning/ACL, 404/409/429, posledovatelnost blokirovki i konkurentnyj claim.
+
 ## 2026-01-14
 - Advisor: dobavlen domen advisor dlya rekomendacij poliva s keshom i LLM gateway.
 - Plant history: dobavlena bucket-istorija po metrikam dlya 2h shagov.
@@ -76,7 +82,6 @@
 - Dobavleny domeny firmware i history s polnym sovmestimost'yu FastAPI i staticheskoy vydachey firmware.
 - Dobavleny integracionnye testy dlya firmware i history, vklyuchaya multipart upload i fil'try istorii.
 - Dobavlen domen plants (gruppy, privyazki, zhurnal, export, foto) s integracionnymi testami.
-
 
 
 

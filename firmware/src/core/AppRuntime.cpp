@@ -84,7 +84,6 @@ void AppRuntime::Init() {
   context_.storage = &storage_service_;
   context_.time = &time_service_;
   context_.actuator = &actuator_module_;
-  context_.config_sync = &config_sync_module_;
   context_.sensor_hub = &sensor_hub_module_;
   context_.state = &state_module_;
   context_.hardware = &Config::GetHardwareProfile();
@@ -142,8 +141,6 @@ void AppRuntime::Tick() {
 
 void AppRuntime::InitServices() {
   storage_service_.Init(context_);
-  rtc_provider_.Init();
-  time_service_.SetRtcProvider(&rtc_provider_);
   time_service_.Init(context_);
   wifi_service_.Init(context_);
   web_config_service_.Init(context_);
@@ -152,10 +149,8 @@ void AppRuntime::InitServices() {
 
 void AppRuntime::InitModules() {
   modules_ = {{&command_router_module_,
-               &config_sync_module_,
                &sensor_hub_module_,
                &actuator_module_,
-               &automation_module_,
                &state_module_,
                &ota_module_}};
 
@@ -183,4 +178,3 @@ void AppRuntime::HeartbeatTask(Context& ctx, uint32_t now_ms) {
 }
 
 }
-

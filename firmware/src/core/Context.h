@@ -20,7 +20,6 @@ class TimeService;
 
 namespace Modules {
 class ActuatorModule;
-class ConfigSyncModule;
 class SensorHubModule;
 class StateModule;
 }
@@ -44,8 +43,6 @@ struct Context {
   Services::TimeService* time;
   // Ukazatel na modul aktuatorov.
   Modules::ActuatorModule* actuator;
-  // Ukazatel na modul sinhronizacii konfiguracii.
-  Modules::ConfigSyncModule* config_sync;
   // Ukazatel na modul datchikov.
   Modules::SensorHubModule* sensor_hub;
   // Ukazatel na modul sostoyaniya.

@@ -1,7 +1,9 @@
 ﻿package ru.growerhub.backend.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -157,9 +159,18 @@ public final class DeviceDtos {
     ) {
     }
 
-    public record AssignToMeRequest(
-            @NotNull
-            @JsonProperty("device_id") Integer deviceId
+    public record ClaimDeviceRequest(
+            @NotBlank
+            @Pattern(regexp = "(?i)^GROVIKA_[0-9A-F]{6}$", message = "Invalid device_id")
+            @JsonProperty("device_id") String deviceId
+    ) {
+    }
+
+    public record ProvisionDeviceRequest(
+            @NotBlank
+            @Pattern(regexp = "(?i)^GROVIKA_[0-9A-F]{6}$", message = "Invalid device_id")
+            @JsonProperty("device_id") String deviceId,
+            @JsonProperty("rotate") Boolean rotate
     ) {
     }
 
@@ -173,6 +184,18 @@ public final class DeviceDtos {
             @JsonProperty("device_id") String deviceId,
             @JsonProperty("token") String token,
             @JsonProperty("issued_at") LocalDateTime issuedAt
+    ) {
+    }
+
+    public record DeviceMqttCredentialResponse(
+            @JsonProperty("device_id") String deviceId,
+            @JsonProperty("host") String host,
+            @JsonProperty("port") int port,
+            @JsonProperty("tls") boolean tls,
+            @JsonProperty("username") String username,
+            @JsonProperty("password") String password,
+            @JsonProperty("client_id") String clientId,
+            @JsonProperty("provisioned_at") LocalDateTime provisionedAt
     ) {
     }
 }

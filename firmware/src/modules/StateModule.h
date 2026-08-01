@@ -16,7 +16,6 @@ class MqttService;
 
 namespace Modules {
 class ActuatorModule;
-class ConfigSyncModule;
 class SensorHubModule;
 }
 
@@ -53,7 +52,6 @@ class StateModule : public Core::Module {
 
   Services::MqttService* mqtt_ = nullptr;
   Modules::ActuatorModule* actuator_ = nullptr;
-  Modules::ConfigSyncModule* config_sync_ = nullptr;
   Modules::SensorHubModule* sensor_hub_ = nullptr;
   const char* device_id_ = nullptr;
 

@@ -15,9 +15,7 @@
 #include "core/Module.h"
 #include "core/Scheduler.h"
 #include "modules/ActuatorModule.h"
-#include "modules/AutomationModule.h"
 #include "modules/CommandRouterModule.h"
-#include "modules/ConfigSyncModule.h"
 #include "modules/OtaModule.h"
 #include "modules/SensorHubModule.h"
 #include "modules/StateModule.h"
@@ -25,7 +23,6 @@
 #include "services/MqttService.h"
 #include "services/StorageService.h"
 #include "services/TimeService.h"
-#include "services/time/Ds3231RtcProvider.h"
 #include "services/WebConfigService.h"
 #include "services/WiFiService.h"
 
@@ -49,21 +46,18 @@ class AppRuntime {
 
   Services::StorageService storage_service_;
   Services::TimeService time_service_;
-  Services::Ds3231RtcProvider rtc_provider_;
   Services::WiFiService wifi_service_;
   Services::WebConfigService web_config_service_;
   Services::MqttService mqtt_service_;
   Services::DeviceIdentity device_identity_;
 
   Modules::CommandRouterModule command_router_module_;
-  Modules::ConfigSyncModule config_sync_module_;
   Modules::SensorHubModule sensor_hub_module_;
   Modules::ActuatorModule actuator_module_;
-  Modules::AutomationModule automation_module_;
   Modules::StateModule state_module_;
   Modules::OtaModule ota_module_;
 
-  std::array<Module*, 7> modules_;
+  std::array<Module*, 5> modules_;
 
   void InitServices();
   void InitModules();

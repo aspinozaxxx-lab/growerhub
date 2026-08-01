@@ -19,8 +19,7 @@ enum class CommandType : uint8_t {
   kUnknown = 0, // Neizvestnaya komanda.
   kPumpStart = 1, // Start nasosa.
   kPumpStop = 2, // Stop nasosa.
-  kReboot = 3, // Reboot ustroistva.
-  kCfgSync = 4 // Zapros sinhronizacii konfiguracii.
+  kReboot = 3 // Reboot ustroistva.
 };
 
 enum class ParseError : uint8_t {

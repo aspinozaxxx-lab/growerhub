@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-01
+- Devices: dobavlena privyazka seriynoj Grovika po pechatnomu device_id.
+- Devices: dobavleny soobshcheniya 404/409/429, obratnyj otschet Retry-After i obnovlenie spiska posle uspeha.
+- Tests: pokryty uspeshnyj claim, zanyatoe/neizvestnoe ustrojstvo i vremennaya blokirovka.
+
 ## 2026-04-05
 - Watering UI: plashka tekuschego poliva teper' poyavlyaetsya bez reload posle starta iz sidebar.
 - Watering UI: timer peresinhroniziruetsya s serverom na focus/visibilitychange i pri dostizhenii nulya.

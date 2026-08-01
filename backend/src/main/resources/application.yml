@@ -29,6 +29,22 @@ device:
   firmware:
     # Versija po umolchaniju.
     defaultVersion: "old"
+  mqtt:
+    # Publichnoe MQTTS podkljuchenie seriynyh ustrojstv.
+    publicHost: "growerhub.ru"
+    publicPort: 8883
+    tls: true
+    # Rol' ustrojstva v Mosquitto Dynamic Security.
+    brokerRole: "native-device"
+    # Tehnicheskaja zashchita ot chastogo perevypuska credentials.
+    credentialCooldownSeconds: 30
+  claim:
+    # Kolichestvo oshibok do pervoj blokirovki.
+    initialFailureLimit: 10
+    # Dlitel'nost' pervoj blokirovki (sek).
+    blockSeconds: 3600
+    # Skol'zjashchee okno ogranichennogo rezhima (sek).
+    restrictedWindowSeconds: 3600
 
 auth:
   sso:
