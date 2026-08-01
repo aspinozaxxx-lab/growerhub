@@ -109,6 +109,52 @@ void test_pump_stop_ack() {
                            g_capture.payload);
 }
 
+void test_pump_stop_command_after_start() {
+  ResetCapture();
+  Core::Scheduler scheduler;
+  Core::EventQueue queue;
+  Services::MqttService mqtt;
+  Modules::ActuatorModule actuator;
+  Modules::CommandRouterModule router;
+  const Config::HardwareProfile& hw = Config::GetHardwareProfile();
+
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, &actuator, nullptr, nullptr, &hw, kDeviceId};
+  mqtt.Init(ctx);
+  mqtt.SetConnectedForTests(true);
+  mqtt.SetPublishHook(CapturePublish);
+  actuator.Init(ctx);
+  router.Init(ctx);
+
+  char cmd_topic[128];
+  Services::Topics::BuildCmdTopic(cmd_topic, sizeof(cmd_topic), kDeviceId);
+
+  Core::Event start{};
+  start.type = Core::EventType::kMqttMessage;
+  std::strncpy(start.mqtt.topic, cmd_topic, sizeof(start.mqtt.topic) - 1);
+  std::strncpy(start.mqtt.payload,
+               R"({"type":"pump.start","duration_s":60,"correlation_id":"run"})",
+               sizeof(start.mqtt.payload) - 1);
+  router.OnEvent(ctx, start);
+  TEST_ASSERT_TRUE(actuator.IsPumpRunning());
+  TEST_ASSERT_EQUAL_INT(1, g_capture.count);
+
+  actuator.OnTick(ctx, 30000);
+  TEST_ASSERT_TRUE(actuator.IsPumpRunning());
+
+  Core::Event stop{};
+  stop.type = Core::EventType::kMqttMessage;
+  std::strncpy(stop.mqtt.topic, cmd_topic, sizeof(stop.mqtt.topic) - 1);
+  std::strncpy(stop.mqtt.payload,
+               R"({"type":"pump.stop","correlation_id":"stop"})",
+               sizeof(stop.mqtt.payload) - 1);
+  router.OnEvent(ctx, stop);
+
+  TEST_ASSERT_FALSE(actuator.IsPumpRunning());
+  TEST_ASSERT_EQUAL_INT(2, g_capture.count);
+  TEST_ASSERT_EQUAL_STRING(R"({"correlation_id":"stop","result":"accepted","status":"idle"})",
+                           g_capture.payload);
+}
+
 void test_reboot_declined_when_pump_running() {
   ResetCapture();
   Core::Scheduler scheduler;

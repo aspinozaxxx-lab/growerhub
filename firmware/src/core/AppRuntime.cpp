@@ -138,6 +138,9 @@ void AppRuntime::Tick() {
       modules_[i]->OnTick(context_, now_ms);
     }
   }
+
+  // Povtornyi loop ne daet obrabotke modulei otlozhit vhodjashchuyu stop-komandu.
+  mqtt_service_.Loop();
 }
 
 void AppRuntime::InitServices() {

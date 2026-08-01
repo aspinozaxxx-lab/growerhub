@@ -18,6 +18,8 @@ static size_t g_index_hub[2];
 // Buffer payload state dlya proverok.
 static char g_last_topic[128];
 static char g_state_payload[512];
+static int g_publish_count = 0;
+static int g_dht_read_count = 0;
 // ID ustroystva dlya testov.
 static const char* kDeviceId = "grovika_040AB1";
 
@@ -44,6 +46,7 @@ static void PublishHook(const char* topic, const char* payload, bool retain, int
   (void)topic;
   (void)retain;
   (void)qos;
+  ++g_publish_count;
   if (topic) {
     std::strncpy(g_last_topic, topic, sizeof(g_last_topic) - 1);
     g_last_topic[sizeof(g_last_topic) - 1] = '\0';
@@ -56,6 +59,17 @@ static void PublishHook(const char* topic, const char* payload, bool retain, int
   }
   std::strncpy(g_state_payload, payload, sizeof(g_state_payload) - 1);
   g_state_payload[sizeof(g_state_payload) - 1] = '\0';
+}
+
+// Feykovoe uspeshnoe chtenie DHT so schetchikom vyzovov.
+static bool CountedDhtRead(float* out_temp_c, float* out_humidity) {
+  ++g_dht_read_count;
+  if (!out_temp_c || !out_humidity) {
+    return false;
+  }
+  *out_temp_c = 23.0f;
+  *out_humidity = 55.0f;
+  return true;
 }
 
 // Zapusk odnogo tikа skanera s obnovleniem datchikov.
@@ -107,6 +121,39 @@ void test_sensor_hub_pump_block() {
   RunTick(scheduler, hub, ctx, 40000);
   RunTick(scheduler, hub, ctx, 45000);
   TEST_ASSERT_FALSE(scanner->IsDetected(0));
+}
+
+// Proverka ostanovki aktivnogo oprosa DHT pri rabote nasosa.
+void test_sensor_hub_pauses_dht_while_pump_runs() {
+  Core::Scheduler scheduler;
+  Core::EventQueue queue;
+  Modules::SensorHubModule hub;
+  Config::HardwareProfile hw = Config::GetHardwareProfile();
+  hw.has_dht22 = true;
+  hw.dht_auto_reboot_on_fail = false;
+
+  Core::Context ctx{&scheduler, &queue, nullptr, nullptr, nullptr, nullptr, &hub, nullptr, &hw, kDeviceId};
+  hub.Init(ctx);
+  Drivers::Dht22Sensor* dht = hub.GetDhtSensor();
+  TEST_ASSERT_NOT_NULL(dht);
+  g_dht_read_count = 0;
+  dht->SetReadHook(&CountedDhtRead);
+
+  hub.OnTick(ctx, 1000);
+  TEST_ASSERT_EQUAL_INT(1, g_dht_read_count);
+
+  Core::Event pump_start{};
+  pump_start.type = Core::EventType::kPumpStarted;
+  hub.OnEvent(ctx, pump_start);
+  hub.OnTick(ctx, 6000);
+  hub.OnTick(ctx, 11000);
+  TEST_ASSERT_EQUAL_INT(1, g_dht_read_count);
+
+  Core::Event pump_stop{};
+  pump_stop.type = Core::EventType::kPumpStopped;
+  hub.OnEvent(ctx, pump_stop);
+  hub.OnTick(ctx, 11001);
+  TEST_ASSERT_EQUAL_INT(2, g_dht_read_count);
 }
 
 // Proverka state payload dlya soil i DHT.
@@ -332,6 +379,46 @@ void test_state_pump_status_and_started_at() {
   g_state_payload[0] = '\0';
   state.PublishState(true);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"pump\":{\"status\":\"off\"") != nullptr);
+}
+
+// Proverka nemedlennoj publikacii state pri perehode nasosa.
+void test_state_publishes_on_pump_transition() {
+  Core::Scheduler scheduler;
+  Core::EventQueue queue;
+  Services::MqttService mqtt;
+  Modules::ActuatorModule actuator;
+  Modules::StateModule state;
+  Config::HardwareProfile hw = Config::GetHardwareProfile();
+
+  Core::Context ctx{&scheduler, &queue, &mqtt, nullptr, nullptr, &actuator, nullptr, &state, &hw, kDeviceId};
+  mqtt.Init(ctx);
+  mqtt.SetConnectedForTests(true);
+  mqtt.SetPublishHook(&PublishHook);
+  actuator.Init(ctx);
+  state.Init(ctx);
+
+  g_publish_count = 0;
+  state.OnTick(ctx, 1000);
+  TEST_ASSERT_EQUAL_INT(1, g_publish_count);
+
+  TEST_ASSERT_TRUE(actuator.StartPump(30, "transition"));
+  Core::Event pump_start{};
+  pump_start.type = Core::EventType::kPumpStarted;
+  state.OnEvent(ctx, pump_start);
+  state.OnTick(ctx, 1001);
+  TEST_ASSERT_EQUAL_INT(2, g_publish_count);
+  TEST_ASSERT_NOT_NULL(std::strstr(g_state_payload, "\"pump\":{\"status\":\"on\""));
+
+  state.OnTick(ctx, 1002);
+  TEST_ASSERT_EQUAL_INT(2, g_publish_count);
+
+  actuator.StopPump("transition");
+  Core::Event pump_stop{};
+  pump_stop.type = Core::EventType::kPumpStopped;
+  state.OnEvent(ctx, pump_stop);
+  state.OnTick(ctx, 1003);
+  TEST_ASSERT_EQUAL_INT(3, g_publish_count);
+  TEST_ASSERT_NOT_NULL(std::strstr(g_state_payload, "\"pump\":{\"status\":\"off\""));
 }
 
 // Proverka null started_at pri otsutstvii vremeni.

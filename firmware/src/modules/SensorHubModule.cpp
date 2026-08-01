@@ -73,7 +73,7 @@ void SensorHubModule::OnEvent(Core::Context& ctx, const Core::Event& event) {
 
 void SensorHubModule::OnTick(Core::Context& ctx, uint32_t now_ms) {
   (void)ctx;
-  if (dht_enabled_) {
+  if (dht_enabled_ && !pump_blocked_) {
     if (last_dht_read_ms_ == 0 || now_ms - last_dht_read_ms_ >= kDhtReadIntervalMs) {
       ReadDht(now_ms);
       last_dht_read_ms_ = now_ms;

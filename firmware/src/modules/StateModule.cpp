@@ -27,12 +27,17 @@ void StateModule::Init(Core::Context& ctx) {
   sensor_hub_ = ctx.sensor_hub;
   device_id_ = ctx.device_id;
   last_publish_ms_ = 0;
+  last_publish_failure_ms_ = 0;
+  publish_requested_ = false;
   Util::Logger::Info("[STATE] init");
 }
 
 void StateModule::OnEvent(Core::Context& ctx, const Core::Event& event) {
   (void)ctx;
-  (void)event;
+  if (event.type == Core::EventType::kPumpStarted ||
+      event.type == Core::EventType::kPumpStopped) {
+    publish_requested_ = true;
+  }
 }
 
 void StateModule::OnTick(Core::Context& ctx, uint32_t now_ms) {
@@ -41,29 +46,41 @@ void StateModule::OnTick(Core::Context& ctx, uint32_t now_ms) {
     return;
   }
 
-  if (last_publish_ms_ == 0 || now_ms - last_publish_ms_ >= kHeartbeatIntervalMs) {
-    PublishState(true);
+  const bool publish_due = publish_requested_ || last_publish_ms_ == 0 ||
+      now_ms - last_publish_ms_ >= kHeartbeatIntervalMs;
+  if (!publish_due) {
+    return;
+  }
+  if (last_publish_failure_ms_ != 0 &&
+      now_ms - last_publish_failure_ms_ < kPublishRetryIntervalMs) {
+    return;
+  }
+  if (PublishState(true)) {
     last_publish_ms_ = now_ms;
+    last_publish_failure_ms_ = 0;
+    publish_requested_ = false;
+  } else {
+    last_publish_failure_ms_ = now_ms;
   }
 }
 
-void StateModule::PublishState(bool retained) {
+bool StateModule::PublishState(bool retained) {
   if (!mqtt_) {
     Util::Logger::Info("[STATE] publish skip: mqtt null");
-    return;
+    return false;
   }
   if (!actuator_) {
     Util::Logger::Info("[STATE] publish skip: actuator null");
-    return;
+    return false;
   }
   if (!mqtt_->IsConnected()) {
     Util::Logger::Info("[STATE] publish skip: mqtt disconnected");
-    return;
+    return false;
   }
 
   if (!device_id_) {
     Util::Logger::Info("[STATE] publish skip: device_id null");
-    return;
+    return false;
   }
   const ManualWateringState manual = actuator_->GetManualWateringState();
   const char* status = manual.active ? "running" : "idle";
@@ -125,7 +142,7 @@ void StateModule::PublishState(bool retained) {
   char topic[128];
   if (!Services::Topics::BuildStateTopic(topic, sizeof(topic), device_id_)) {
     Util::Logger::Info("[STATE] publish skip: bad topic");
-    return;
+    return false;
   }
 
   std::string log_line = "[STATE] publish topic=";
@@ -146,7 +163,7 @@ void StateModule::PublishState(bool retained) {
     Util::Logger::Info(chunk_line.c_str());
   }
 
-  mqtt_->Publish(topic, payload.c_str(), retained, 0);
+  return mqtt_->Publish(topic, payload.c_str(), retained, 0);
 }
 
 }

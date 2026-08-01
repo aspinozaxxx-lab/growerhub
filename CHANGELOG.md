@@ -1,4 +1,11 @@
-﻿### feat(grovika): seriynoe podklyuchenie i ispolnitelnyj runtime
+﻿### fix(grovika): stabilnaya svyaz vo vremya poliva
+
+- fix(runtime): MQTTS obsluzhivaetsya do i posle modulej, a komanda pump.stop prinimaetsya pri rabotayushchem nasose.
+- fix(state): perehody nasosa srazu publikuyut retained state i povtoryayutsya posle vremennogo sboya publish.
+- fix(power): pri polive priostanovlen aktivnyj opros datchikov i snizhena pikovaya moshchnost Wi-Fi TX dlya oboih profilej.
+- docs(firmware): zafiksirovany trebovaniya k otdelnomu pitaniyu nasosa i zashchite ot pomeh.
+
+### feat(grovika): seriynoe podklyuchenie i ispolnitelnyj runtime
 
 - fix(mqtt): wildcard podpiski per-device i Zigbee rolej perevedeny na subscribePattern/unsubscribePattern; rotaciya Grovika vosstanavlivaet ACL roli, factory smoke proveryaet sobstvennyj cmd topic.
 - feat(backend): dobavleny admin provisioning per-device MQTTS credentials, izolirovannyj ACL, rotaciya/otzyv i hranenie tolko SHA-256.

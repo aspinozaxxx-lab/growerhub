@@ -44,11 +44,13 @@ class StateModule : public Core::Module {
   /**
    * Publikuet sostoyanie ustroistva v MQTT.
    * @param retained Flag retained dlya soobshcheniya.
+   * @return true, esli broker prinyal publish.
    */
-  void PublishState(bool retained);
+  bool PublishState(bool retained);
 
  private:
   static const uint32_t kHeartbeatIntervalMs = 20000;
+  static const uint32_t kPublishRetryIntervalMs = 1000;
 
   Services::MqttService* mqtt_ = nullptr;
   Modules::ActuatorModule* actuator_ = nullptr;
@@ -56,6 +58,8 @@ class StateModule : public Core::Module {
   const char* device_id_ = nullptr;
 
   uint32_t last_publish_ms_ = 0;
+  uint32_t last_publish_failure_ms_ = 0;
+  bool publish_requested_ = false;
 };
 
 }

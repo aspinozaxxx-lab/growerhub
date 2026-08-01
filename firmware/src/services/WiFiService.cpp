@@ -24,9 +24,9 @@
 #include <WiFi.h>
 #if defined(ESP32)
 #include <esp_heap_caps.h>
+#include "esp_wifi.h"
 #endif
 #if defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
-#include "esp_wifi.h"
 #include "esp_wifi_types.h"
 #endif
 #endif
@@ -335,10 +335,10 @@ void WiFiService::Init(Core::Context& ctx) {
   Util::Logger::Info("[WIFI] init");
 
   StartAccessPoint();
-#if defined(ARDUINO) && defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
-  // primenyaem tx power do pervogo STA connect
+#if defined(ARDUINO) && defined(ESP32)
+  // Primenyaem limit TX do pervogo STA connect, chtoby snizit pik toka.
   const Config::HardwareProfile& hw = ctx.hardware ? *ctx.hardware : Config::GetHardwareProfile();
-  if (std::strcmp(hw.name, "esp32c3_supermini") == 0 && hw.wifi_tx_power_qdbm > 0) {
+  if (hw.wifi_tx_power_qdbm > 0) {
     esp_wifi_set_max_tx_power(hw.wifi_tx_power_qdbm);
     const float dbm = static_cast<float>(hw.wifi_tx_power_qdbm) / 4.0f;
     char log_buf[96];
