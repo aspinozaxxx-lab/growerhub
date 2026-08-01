@@ -3,6 +3,7 @@
 - feat(backend): dobavleny admin provisioning per-device MQTTS credentials, literalnyj ACL, rotaciya/otzyv i hranenie tolko SHA-256.
 - feat(devices): polzovatel privyazyvaet Grovika po pechatnomu device_id; dobavleny atomarnaya zashchita ot pereprivyazki i limit 10 oshibok -> 60 minut -> 2 popytki v chas.
 - feat(front): vo vkladke ustroystv dobavlena forma privyazki s obrabotkoj 404/409/429 i Retry-After.
+- fix(front): forma Grovika podklyuchena k fakticheskomu marshrutu nastroek vmeste s tekushchim spiskom Zigbee-ustrojstv.
 - feat(firmware): Grovika perevedena na MQTTS 8883 s individualnym mqtt.json; device_id i sostoyanie soedineniya pokazany v lokalnom web UI bez sekreta.
 - refactor(firmware): udaleny RTC/DS3231, lokalnye scenarii i raspisaniya; nasos ispolnyaet komandu po monotonnomu tajmeru s apparatnym limitom.
 - security(mqtt): vremennyj legacy broker i obshchij parol ustroystv udaleny, publichnyj 1883 ostaetsya zakrytym.

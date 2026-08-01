@@ -8,6 +8,7 @@
   "MQTT-сервер": "MQTT-server",
   "URL фото (пока только ссылка)": "Photo URL (only a link for now)",
   "Zigbee-устройства пока не найдены": "Zigbee devices have not been found yet",
+  "Zigbee-устройства": "Zigbee devices",
   "Zigbee2MQTT подключится к GrowerHub напрямую.": "Zigbee2MQTT connects directly to GrowerHub.",
   "pH (опционально)": "pH (optional)",
   "{{value1}} · {{value2}} мл/ч": "{{value1}} {{value2}} ml/h",

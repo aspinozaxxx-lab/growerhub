@@ -15,7 +15,7 @@ const SensorStatsSidebar = lazy(() => import('../../features/sensors/SensorStats
 const WateringSidebar = lazy(() => import('../../features/watering/WateringSidebar'));
 const AppOnboarding = lazy(() => import('./AppOnboarding'));
 const AppConnections = lazy(() => import('./AppConnections'));
-const AppZigbeeDevices = lazy(() => import('./AppZigbeeDevices'));
+const AppDevices = lazy(() => import('./AppDevices'));
 const AppAutomations = lazy(() => import('./AppAutomations'));
 const AppPlants = lazy(() => import('./AppPlants'));
 const AppPlantJournal = lazy(() => import('./AppPlantJournal'));
@@ -64,7 +64,7 @@ function AppSection() {
               <Route index element={<Navigate to="connections/" replace />} />
               <Route path="connections/" element={<AppConnections />} />
               <Route path="zones/" element={<FarmZonesSettings />} />
-              <Route path="devices/" element={<AppZigbeeDevices />} />
+              <Route path="devices/" element={<AppDevices />} />
               <Route path="profile/" element={<AppProfile />} />
             </Route>
             {Object.entries(LEGACY_APP_REDIRECTS).map(([source, target]) => (

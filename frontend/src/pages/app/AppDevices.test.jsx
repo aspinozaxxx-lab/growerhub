@@ -35,6 +35,12 @@ vi.mock('../../components/devices/EditDeviceModal', () => ({
   default: () => null,
 }));
 
+vi.mock('./AppZigbeeDevices', () => ({
+  default: ({ embedded }) => (
+    <div data-testid="zigbee-devices-section" data-embedded={String(embedded)} />
+  ),
+}));
+
 function rejectedClaim(status, message, retryAfterSeconds = null) {
   const error = new Error(message);
   error.status = status;
@@ -72,6 +78,7 @@ describe('AppDevices', () => {
     });
     expect(await screen.findByText('Устройство GROVIKA_040AB1 добавлено')).toBeInTheDocument();
     expect(screen.getByTestId('device-card')).toHaveTextContent('GROVIKA_040AB1');
+    expect(screen.getByTestId('zigbee-devices-section')).toHaveAttribute('data-embedded', 'true');
   });
 
   it('pokazyvaet otdelnye sostoyaniya 404 i 409', async () => {

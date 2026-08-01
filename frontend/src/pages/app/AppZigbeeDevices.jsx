@@ -33,7 +33,7 @@ function deviceModel(device) {
   return [definition.vendor, definition.model].filter(Boolean).join(' · ');
 }
 
-function AppZigbeeDevices() {
+function AppZigbeeDevices({ embedded = false }) {
   const [overview, setOverview] = useState(null);
   const [busy, setBusy] = useState('loading');
   const [error, setError] = useState('');
@@ -89,7 +89,7 @@ function AppZigbeeDevices() {
   return (
     <div className="self-service-page farm-devices-page">
       <AppPageHeader
-        title={translateApp("Устройства")}
+        title={translateApp(embedded ? "Zigbee-устройства" : "Устройства")}
         subtitle={translateApp("Состояние, ключевые показатели и роли устройств в ферме")}
         right={(
           <Link className="gh-btn gh-btn--secondary gh-btn--md" to="/app/farm/">

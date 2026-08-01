@@ -2,6 +2,7 @@
 
 ## 2026-08-01
 - Devices: dobavlena privyazka seriynoj Grovika po pechatnomu device_id.
+- Devices: forma i native-kartochki podklyucheny k fakticheskomu marshrutu nastroek vmeste s Zigbee-kartochkami.
 - Devices: dobavleny soobshcheniya 404/409/429, obratnyj otschet Retry-After i obnovlenie spiska posle uspeha.
 - Tests: pokryty uspeshnyj claim, zanyatoe/neizvestnoe ustrojstvo i vremennaya blokirovka.
 

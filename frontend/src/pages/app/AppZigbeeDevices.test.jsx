@@ -89,11 +89,12 @@ describe('AppZigbeeDevices', () => {
   it('pokazyvaet kompaktnuyu kartochku, roli i upravlenie state', async () => {
     render(
       <MemoryRouter>
-        <AppZigbeeDevices />
+        <AppZigbeeDevices embedded />
       </MemoryRouter>,
     );
 
     const title = await screen.findByRole('heading', { name: 'Датчик климата' });
+    expect(screen.getByRole('heading', { name: 'Zigbee-устройства' })).toBeInTheDocument();
     const card = title.closest('article');
     expect(card).toHaveClass('farm-device-card');
     expect(card).toHaveTextContent('Основная ферма · Теплица 2 · Температура воздуха');

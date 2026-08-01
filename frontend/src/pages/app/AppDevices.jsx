@@ -13,6 +13,7 @@ import Button from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
 import Surface from '../../components/ui/Surface';
 import { Text, Title } from '../../components/ui/Typography';
+import AppZigbeeDevices from './AppZigbeeDevices';
 import './AppDevices.css';
 import { translateApp } from '../../locales/i18n';
 
@@ -216,6 +217,7 @@ function AppDevices() {
           token={token}
         />
       )}
+      <AppZigbeeDevices embedded />
     </div>
   );
 }
