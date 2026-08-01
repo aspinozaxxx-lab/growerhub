@@ -13,6 +13,7 @@
 - `canUserAccessDevice(String deviceId, Integer userId, boolean admin)`
 - `rotateDeviceCredential(Integer devicePk, Integer userId, boolean admin)`
 - `provisionMqttDevice(String requestedDeviceId, boolean rotate)`
+- `reconcileMqttBrokerAccess()`
 - `claimDevice(String requestedDeviceId, Integer userId)`
 - `getDeviceSummary(Integer deviceId)`
 - `getFirmwareStatus(String deviceId)`
@@ -74,7 +75,7 @@
 
 ## Алгоритм работы
 
-Facade принимает state, ack и events от адаптеров, обновляет device records и shadow, вызывает нужные домены для насосов, датчиков и растений. Для OTA он сохраняет сообщённый устройством `hw_profile`, целевую версию, URL, состояние, ошибку, correlation ID и время; ACK принимается только для текущего correlation ID, а успешная установка определяется по `fw_ver` нового state. Административная подготовка атомарно создаёт непривязанное устройство, через broker gateway создаёт отдельный Dynamic Security client с фиксированным client ID и изолированным namespace. Wildcard подписки разрешаются через `subscribePattern`/`unsubscribePattern`; ротация одновременно восстанавливает полный ACL роли. Backend сохраняет только SHA-256 и один раз возвращает открытый пароль. Повторная подготовка требует явной ротации; удаление устройства отзывает broker credentials.
+Facade принимает state, ack и events от адаптеров, обновляет device records и shadow, вызывает нужные домены для насосов, датчиков и растений. Для OTA он сохраняет сообщённый устройством `hw_profile`, целевую версию, URL, состояние, ошибку, correlation ID и время; ACK принимается только для текущего correlation ID, а успешная установка определяется по `fw_ver` нового state. Административная подготовка атомарно создаёт непривязанное устройство, через broker gateway создаёт отдельный Dynamic Security client с фиксированным client ID и изолированным namespace. Wildcard подписки разрешаются через `subscribePattern`/`unsubscribePattern`; ротация одновременно восстанавливает полный ACL роли. При старте backend сверяет ACL всех ранее подготовленных устройств через `modifyRole` без чтения или смены их паролей. Backend сохраняет только SHA-256 и один раз возвращает открытый пароль. Повторная подготовка требует явной ротации; удаление устройства отзывает broker credentials.
 
 Пользовательская привязка принимает только печатный `device_id`. Свободное устройство назначается текущему пользователю в транзакции; собственное возвращается идемпотентно; занятое другим пользователем возвращает явный конфликт. Неудачные корректно сформированные ID учитываются отдельно по аккаунту: десятая ошибка включает блокировку на 60 минут, затем действует ограничение две попытки в скользящий час до успешной привязки ранее свободного устройства. Блокировки пользователя и устройства не допускают конкурентного захвата.
 

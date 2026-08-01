@@ -4,6 +4,7 @@
 - fix(state): perehody nasosa srazu publikuyut retained state i povtoryayutsya posle vremennogo sboya publish.
 - fix(power): pri polive priostanovlen aktivnyj opros datchikov i snizhena pikovaya moshchnost Wi-Fi TX dlya oboih profilej.
 - docs(firmware): zafiksirovany trebovaniya k otdelnomu pitaniyu nasosa i zashchite ot pomeh.
+- fix(mqtt): backend bez smeny parolya vosstanavlivaet ACL uzhe vypushchennyh Grovika, firmware povtoryaet cmd-podpisku.
 
 ### feat(grovika): seriynoe podklyuchenie i ispolnitelnyj runtime
 

@@ -123,7 +123,7 @@ class MqttService {
 #if defined(ARDUINO)
   bool TryConnect(uint32_t now_ms);
   bool StorePendingSub(const char* topic, int qos);
-  void SubscribePending();
+  void SubscribePending(uint32_t now_ms);
   void HandleMessage(char* topic, uint8_t* payload, unsigned int length);
   static void OnMessageThunk(char* topic, uint8_t* payload, unsigned int length);
 #endif
@@ -140,6 +140,7 @@ class MqttService {
   bool connected_ = false;
   bool wifi_ready_ = false;
   uint32_t last_skip_log_ms_ = 0;
+  uint32_t last_subscribe_attempt_ms_ = 0;
   MqttConnectionStatus status_ = MqttConnectionStatus::kNotConfigured;
   const char* status_reason_ = "mqtt.json missing";
   bool config_ready_ = false;

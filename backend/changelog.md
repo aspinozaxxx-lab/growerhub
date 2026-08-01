@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-08-01
+- MQTT: pri starte backend vosstanavlivaet ACL vseh podgotovlennyh Grovika bez rotacii ili chteniya parolya.
+- Testy: provereno, chto ACL reconcile ispolzuet tolko modifyRole i ne menyaet credential.
 - Firmware: dobavlen poslednij CI/CD reliz, polzovatelskij zapusk OTA i statusy QUEUED/DOWNLOADING/RESTARTING/SUCCESS/ERROR.
 - Firmware: binarniki esp32dev i esp32c3_supermini s razdelnymi SHA-256 vstraivayutsya v backend jar, atomarno publikuyutsya pri starte i proveryayutsya posle deploy.
 - Firmware: poslednij reliz vybiraetsya tolko po hw_profile ustrojstva; legacy binarniki bez profilya ne uchastvuyut v OTA.
@@ -89,7 +91,6 @@
 - Dobavleny domeny firmware i history s polnym sovmestimost'yu FastAPI i staticheskoy vydachey firmware.
 - Dobavleny integracionnye testy dlya firmware i history, vklyuchaya multipart upload i fil'try istorii.
 - Dobavlen domen plants (gruppy, privyazki, zhurnal, export, foto) s integracionnymi testami.
-
 
 
 

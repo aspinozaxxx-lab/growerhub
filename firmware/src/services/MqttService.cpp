@@ -30,6 +30,7 @@ static const char* kMqttHost = "growerhub.ru";
 static const uint16_t kMqttPort = 8883;
 
 static const uint32_t kReconnectIntervalMs = 5000;
+static const uint32_t kSubscribeRefreshIntervalMs = 30000;
 #if defined(DEBUG_MQTT_DIAG)
 // Interval publikacii diagnosticheskih soobshcheniy.
 static const uint32_t kDiagIntervalMs = 10000;
@@ -103,6 +104,7 @@ void MqttService::Init(Core::Context& ctx) {
   last_connected_ = false;
   wifi_ready_ = false;
   last_skip_log_ms_ = 0;
+  last_subscribe_attempt_ms_ = 0;
   status_ = MqttConnectionStatus::kNotConfigured;
   status_reason_ = "mqtt.json missing";
   config_ready_ = false;
@@ -303,6 +305,10 @@ void MqttService::Loop() {
     status_ = MqttConnectionStatus::kConnected;
     status_reason_ = "connected";
     mqtt_client_.loop();
+    if (last_subscribe_attempt_ms_ == 0 ||
+        now_ms - last_subscribe_attempt_ms_ >= kSubscribeRefreshIntervalMs) {
+      SubscribePending(now_ms);
+    }
   }
   if (!connected && last_connected_) {
     const int rc = mqtt_client_.state();
@@ -369,6 +375,7 @@ void MqttService::SetWifiReady(bool ready) {
     }
     last_connected_ = false;
     last_attempt_ms_ = 0;
+    last_subscribe_attempt_ms_ = 0;
   }
 #else
   Util::Logger::Info(ready ? "[NET] wifi ready -> start mqtt" : "[NET] wifi lost -> stop mqtt");
@@ -494,7 +501,7 @@ bool MqttService::TryConnect(uint32_t now_ms) {
     Util::Logger::Info("[MQTT] connected");
     status_ = MqttConnectionStatus::kConnected;
     status_reason_ = "connected";
-    SubscribePending();
+    SubscribePending(now_ms);
   } else {
     const int rc = mqtt_client_.state();
     if (rc == 4 || rc == 5) {
@@ -541,12 +548,21 @@ bool MqttService::StorePendingSub(const char* topic, int qos) {
   return false;
 }
 
-void MqttService::SubscribePending() {
+void MqttService::SubscribePending(uint32_t now_ms) {
+  last_subscribe_attempt_ms_ = now_ms;
   for (size_t i = 0; i < kMaxPendingSubs; ++i) {
     if (!pending_subs_[i].used) {
       continue;
     }
-    mqtt_client_.subscribe(pending_subs_[i].topic, pending_subs_[i].qos);
+    const bool ok = mqtt_client_.subscribe(pending_subs_[i].topic, pending_subs_[i].qos);
+    char log_buf[192];
+    std::snprintf(log_buf,
+                  sizeof(log_buf),
+                  "[MQTT] subscribe topic=%s qos=%d ok=%s",
+                  pending_subs_[i].topic,
+                  pending_subs_[i].qos,
+                  ok ? "true" : "false");
+    Util::Logger::Info(log_buf);
   }
 }
 

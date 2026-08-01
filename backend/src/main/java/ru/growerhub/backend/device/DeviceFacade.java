@@ -11,7 +11,11 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.config.device.DeviceClaimSettings;
@@ -55,6 +59,7 @@ import ru.growerhub.backend.sensor.contract.SensorView;
 
 @Service
 public class DeviceFacade {
+    private static final Logger logger = LoggerFactory.getLogger(DeviceFacade.class);
     private static final int DEVICE_CREDENTIAL_BYTES = 32;
     private final DeviceRepository deviceRepository;
     private final DeviceClaimLimitRepository deviceClaimLimitRepository;
@@ -116,6 +121,21 @@ public class DeviceFacade {
     public Integer findDeviceId(String deviceId) {
         DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
         return device != null ? device.getId() : null;
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void reconcileMqttBrokerAccess() {
+        List<String> deviceIds = deviceRepository.findMqttProvisionedDeviceIds();
+        int repaired = 0;
+        for (String deviceId : deviceIds) {
+            try {
+                brokerCredentialGateway.reconcileDeviceAccess(deviceId, mqttSettings.getBrokerRole());
+                repaired++;
+            } catch (DomainException ex) {
+                logger.warn("Ne udalos vosstanovit MQTT ACL device_id={} code={}", deviceId, ex.getCode());
+            }
+        }
+        logger.info("MQTT ACL provereny devices={} repaired={}", deviceIds.size(), repaired);
     }
 
     @Transactional(readOnly = true)

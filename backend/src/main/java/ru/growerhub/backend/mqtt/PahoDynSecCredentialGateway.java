@@ -59,6 +59,12 @@ public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGatewa
     }
 
     @Override
+    public void reconcileDeviceAccess(String deviceId, String roleName) {
+        String topicFilter = nativeDeviceTopicFilter(deviceId);
+        execute(buildDeviceAccessCommands(deviceId, roleName, topicFilter));
+    }
+
+    @Override
     public void revokeDevice(String deviceId, String roleName) {
         revoke(deviceId, roleName);
     }
@@ -126,24 +132,33 @@ public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGatewa
             String roleName,
             String topicFilter
     ) {
+        List<Map<String, Object>> commands = new ArrayList<>(
+                buildDeviceAccessCommands(deviceId, roleName, topicFilter)
+        );
+        commands.add(Map.of(
+                        "command", "setClientPassword",
+                        "username", deviceId,
+                        "password", password
+                ));
+        return commands;
+    }
+
+    List<Map<String, Object>> buildDeviceAccessCommands(
+            String deviceId,
+            String roleName,
+            String topicFilter
+    ) {
         List<Map<String, Object>> acls = List.of(
                 roleAcl("publishClientSend", topicFilter),
                 roleAcl("publishClientReceive", topicFilter),
                 roleAcl("subscribePattern", topicFilter),
                 roleAcl("unsubscribePattern", topicFilter)
         );
-        return List.of(
-                Map.of(
-                        "command", "modifyRole",
-                        "rolename", scopedRoleName(roleName, deviceId),
-                        "acls", acls
-                ),
-                Map.of(
-                        "command", "setClientPassword",
-                        "username", deviceId,
-                        "password", password
-                )
-        );
+        return List.of(Map.of(
+                "command", "modifyRole",
+                "rolename", scopedRoleName(roleName, deviceId),
+                "acls", acls
+        ));
     }
 
     private Map<String, Object> roleAcl(String aclType, String topicFilter) {

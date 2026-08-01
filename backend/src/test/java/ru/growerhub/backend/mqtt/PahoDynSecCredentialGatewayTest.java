@@ -121,4 +121,30 @@ class PahoDynSecCredentialGatewayTest {
         Assertions.assertEquals("setClientPassword", commands.get(1).get("command"));
         Assertions.assertEquals("GROVIKA_040AB1", commands.get(1).get("username"));
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void nativeDeviceAccessReconcileDoesNotChangePassword() {
+        List<Map<String, Object>> commands = gateway.buildDeviceAccessCommands(
+                "GROVIKA_040AB1",
+                "native-device",
+                "gh/dev/GROVIKA_040AB1/#"
+        );
+
+        Assertions.assertEquals(1, commands.size());
+        Map<String, Object> modifyRole = commands.get(0);
+        Assertions.assertEquals("modifyRole", modifyRole.get("command"));
+        Assertions.assertEquals("native-device--GROVIKA_040AB1", modifyRole.get("rolename"));
+        List<Map<String, Object>> acls = (List<Map<String, Object>>) modifyRole.get("acls");
+        Assertions.assertEquals(
+                Set.of(
+                        "publishClientSend",
+                        "publishClientReceive",
+                        "subscribePattern",
+                        "unsubscribePattern"
+                ),
+                acls.stream().map(acl -> acl.get("acltype").toString()).collect(Collectors.toSet())
+        );
+        Assertions.assertFalse(commands.toString().contains("password"));
+    }
 }

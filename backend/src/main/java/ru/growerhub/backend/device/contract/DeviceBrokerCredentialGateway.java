@@ -5,5 +5,7 @@ public interface DeviceBrokerCredentialGateway {
 
     void rotateDevice(String deviceId, String password, String roleName);
 
+    void reconcileDeviceAccess(String deviceId, String roleName);
+
     void revokeDevice(String deviceId, String roleName);
 }

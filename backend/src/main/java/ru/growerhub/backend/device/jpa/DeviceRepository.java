@@ -19,4 +19,7 @@ public interface DeviceRepository extends JpaRepository<DeviceEntity, Integer> {
     Integer lockUserForDeviceClaim(@Param("userId") Integer userId);
 
     List<DeviceEntity> findAllByUserId(Integer userId);
+
+    @Query("select device.deviceId from DeviceEntity device where device.mqttProvisionedAt is not null")
+    List<String> findMqttProvisionedDeviceIds();
 }
