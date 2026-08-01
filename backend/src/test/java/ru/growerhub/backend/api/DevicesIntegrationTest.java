@@ -805,7 +805,11 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(200)
                 .body("password", notNullValue());
-        verify(brokerCredentialGateway).rotateDevice(eq("GROVIKA_040AB1"), anyString());
+        verify(brokerCredentialGateway).rotateDevice(
+                eq("GROVIKA_040AB1"),
+                anyString(),
+                eq("native-device")
+        );
 
         given()
                 .header("Authorization", "Bearer " + token)

@@ -53,8 +53,9 @@ public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGatewa
     }
 
     @Override
-    public void rotateDevice(String deviceId, String password) {
-        rotate(deviceId, password);
+    public void rotateDevice(String deviceId, String password, String roleName) {
+        String topicFilter = nativeDeviceTopicFilter(deviceId);
+        execute(buildDeviceRotationCommands(deviceId, password, roleName, topicFilter));
     }
 
     @Override
@@ -97,8 +98,8 @@ public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGatewa
         for (String aclType : List.of(
                 "publishClientSend",
                 "publishClientReceive",
-                "subscribeLiteral",
-                "unsubscribeLiteral"
+                "subscribePattern",
+                "unsubscribePattern"
         )) {
             commands.add(Map.of(
                     "command", "addRoleACL",
@@ -117,6 +118,41 @@ public class PahoDynSecCredentialGateway implements ZigbeeBrokerCredentialGatewa
                 "roles", List.of(Map.of("rolename", scopedRoleName, "priority", -1))
         ));
         return commands;
+    }
+
+    List<Map<String, Object>> buildDeviceRotationCommands(
+            String deviceId,
+            String password,
+            String roleName,
+            String topicFilter
+    ) {
+        List<Map<String, Object>> acls = List.of(
+                roleAcl("publishClientSend", topicFilter),
+                roleAcl("publishClientReceive", topicFilter),
+                roleAcl("subscribePattern", topicFilter),
+                roleAcl("unsubscribePattern", topicFilter)
+        );
+        return List.of(
+                Map.of(
+                        "command", "modifyRole",
+                        "rolename", scopedRoleName(roleName, deviceId),
+                        "acls", acls
+                ),
+                Map.of(
+                        "command", "setClientPassword",
+                        "username", deviceId,
+                        "password", password
+                )
+        );
+    }
+
+    private Map<String, Object> roleAcl(String aclType, String topicFilter) {
+        return Map.of(
+                "acltype", aclType,
+                "topic", topicFilter,
+                "allow", true,
+                "priority", 0
+        );
     }
 
     @Override

@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-08-01
+- MQTT: wildcard podpiski Dynamic Security perevedeny na subscribePattern/unsubscribePattern; rotaciya Grovika odnovremenno vosstanavlivaet ACL roli.
 - Device: dobavleny admin provisioning, rotaciya i otzyv individualnyh MQTTS credentials cherez Dynamic Security.
 - Device: dobavlena privyazka po pechatnomu device_id s atomarnym vladeniem i ustojchivym rate limit.
 - DB: migraciya V21 dobavlyaet mqtt_provisioned_at i sostoyanie ogranichenij claim.
@@ -82,7 +83,6 @@
 - Dobavleny domeny firmware i history s polnym sovmestimost'yu FastAPI i staticheskoy vydachey firmware.
 - Dobavleny integracionnye testy dlya firmware i history, vklyuchaya multipart upload i fil'try istorii.
 - Dobavlen domen plants (gruppy, privyazki, zhurnal, export, foto) s integracionnymi testami.
-
 
 
 

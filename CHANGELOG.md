@@ -1,6 +1,7 @@
 ﻿### feat(grovika): seriynoe podklyuchenie i ispolnitelnyj runtime
 
-- feat(backend): dobavleny admin provisioning per-device MQTTS credentials, literalnyj ACL, rotaciya/otzyv i hranenie tolko SHA-256.
+- fix(mqtt): wildcard podpiski per-device i Zigbee rolej perevedeny na subscribePattern/unsubscribePattern; rotaciya Grovika vosstanavlivaet ACL roli, factory smoke proveryaet sobstvennyj cmd topic.
+- feat(backend): dobavleny admin provisioning per-device MQTTS credentials, izolirovannyj ACL, rotaciya/otzyv i hranenie tolko SHA-256.
 - feat(devices): polzovatel privyazyvaet Grovika po pechatnomu device_id; dobavleny atomarnaya zashchita ot pereprivyazki i limit 10 oshibok -> 60 minut -> 2 popytki v chas.
 - feat(front): vo vkladke ustroystv dobavlena forma privyazki s obrabotkoj 404/409/429 i Retry-After.
 - fix(front): forma Grovika podklyuchena k fakticheskomu marshrutu nastroek vmeste s tekushchim spiskom Zigbee-ustrojstv.

@@ -236,6 +236,18 @@ def broker_smoke(host: str, port: int, device_id: str, password: str) -> None:
 
     subscribe_client.on_subscribe = on_subscribe
     try:
+        own_subscribe_rc, own_subscribe_mid = subscribe_client.subscribe(
+            f"gh/dev/{device_id}/cmd",
+            qos=1,
+        )
+        if own_subscribe_rc != mqtt.MQTT_ERR_SUCCESS or own_subscribe_mid is None or not subscribe_event.wait(15):
+            raise RuntimeError("MQTTS smoke ne podtverdil podpisku na svoi cmd topic")
+        if not subscribe_results[own_subscribe_mid] or any(
+            reason.is_failure for reason in subscribe_results[own_subscribe_mid]
+        ):
+            raise RuntimeError("MQTTS zapretil podpisku na svoi cmd topic")
+
+        subscribe_event.clear()
         subscribe_rc, subscribe_mid = subscribe_client.subscribe(f"gh/dev/{foreign_device_id}/#", qos=1)
         if subscribe_rc != mqtt.MQTT_ERR_SUCCESS or subscribe_mid is None or not subscribe_event.wait(15):
             raise RuntimeError("MQTTS smoke ne podtverdil ACL otvet na chuzhuyu podpisku")

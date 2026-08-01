@@ -15,7 +15,7 @@ Ansible описывает серверную инфраструктуру Growe
 ## Роли
 
 - `java_backend` - backend-сервис systemd из собранного jar.
-- `mosquitto` — MQTT broker с TLS listener `8883`, локальным backend listener и Dynamic Security.
+- `mosquitto` — MQTT broker с TLS listener `8883`, локальным backend listener и Dynamic Security; wildcard namespaces пользовательских клиентов используют pattern ACL для subscribe/unsubscribe.
 - `nginx` - reverse proxy и раздача frontend dist.
 - `gh_db_postgresql` - PostgreSQL.
 - `pgadmin` - администрирование БД.

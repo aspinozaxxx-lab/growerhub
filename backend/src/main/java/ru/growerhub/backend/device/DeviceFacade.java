@@ -153,7 +153,11 @@ public class DeviceFacade {
         }
         String rawToken = generateCredential();
         if (device.getMqttProvisionedAt() != null) {
-            brokerCredentialGateway.rotateDevice(device.getDeviceId(), rawToken);
+            brokerCredentialGateway.rotateDevice(
+                    device.getDeviceId(),
+                    rawToken,
+                    mqttSettings.getBrokerRole()
+            );
             device.setMqttProvisionedAt(now);
         }
         device.setDeviceTokenHash(hashDeviceToken(rawToken));
@@ -185,7 +189,7 @@ public class DeviceFacade {
         if (device.getMqttProvisionedAt() == null) {
             brokerCredentialGateway.provisionDevice(deviceId, password, mqttSettings.getBrokerRole());
         } else {
-            brokerCredentialGateway.rotateDevice(deviceId, password);
+            brokerCredentialGateway.rotateDevice(deviceId, password, mqttSettings.getBrokerRole());
         }
         device.setDeviceTokenHash(hashDeviceToken(password));
         device.setDeviceTokenIssuedAt(now);

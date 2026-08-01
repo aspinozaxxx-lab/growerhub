@@ -1,4 +1,5 @@
 ﻿## 2026-08-01
+- fix(factory): smoke proverjaet razreshenie podpiski Grovika na sobstvennyj cmd topic i zapret chuzhogo namespace.
 - feat(mqtt): perehod na growerhub.ru:8883 s WiFiClientSecure, ISRG Root X1 i individualnym /cfg/mqtt.json.
 - feat(factory): dobavlen skript chteniya MAC, admin provisioning, MQTTS/ACL smoke i proshivki firmware + unikalnogo LittleFS bez logirovaniya parolya ili hraneniya obraza s sekretom.
 - web: pokazyvayutsya polnyj device_id, MQTTS endpoint i diagnosticheskie sostoyaniya bez sekreta.

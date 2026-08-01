@@ -76,8 +76,8 @@ class PahoDynSecCredentialGatewayTest {
                 Set.of(
                         "publishClientSend",
                         "publishClientReceive",
-                        "subscribeLiteral",
-                        "unsubscribeLiteral"
+                        "subscribePattern",
+                        "unsubscribePattern"
                 ),
                 aclCommands.stream().map(command -> command.get("acltype").toString()).collect(Collectors.toSet())
         );
@@ -89,5 +89,36 @@ class PahoDynSecCredentialGatewayTest {
         Assertions.assertEquals("GROVIKA_040AB1", createClient.get("username"));
         Assertions.assertEquals("GROVIKA_040AB1", createClient.get("clientid"));
         Assertions.assertFalse(commands.toString().contains("GROVIKA_OTHER"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void nativeDeviceRotationRepairsWildcardSubscriptionAclBeforePasswordChange() {
+        List<Map<String, Object>> commands = gateway.buildDeviceRotationCommands(
+                "GROVIKA_040AB1",
+                "secret",
+                "native-device",
+                "gh/dev/GROVIKA_040AB1/#"
+        );
+
+        Assertions.assertEquals(2, commands.size());
+        Map<String, Object> modifyRole = commands.get(0);
+        Assertions.assertEquals("modifyRole", modifyRole.get("command"));
+        Assertions.assertEquals("native-device--GROVIKA_040AB1", modifyRole.get("rolename"));
+        List<Map<String, Object>> acls = (List<Map<String, Object>>) modifyRole.get("acls");
+        Assertions.assertEquals(
+                Set.of(
+                        "publishClientSend",
+                        "publishClientReceive",
+                        "subscribePattern",
+                        "unsubscribePattern"
+                ),
+                acls.stream().map(acl -> acl.get("acltype").toString()).collect(Collectors.toSet())
+        );
+        Assertions.assertTrue(acls.stream().allMatch(acl ->
+                "gh/dev/GROVIKA_040AB1/#".equals(acl.get("topic"))
+        ));
+        Assertions.assertEquals("setClientPassword", commands.get(1).get("command"));
+        Assertions.assertEquals("GROVIKA_040AB1", commands.get(1).get("username"));
     }
 }

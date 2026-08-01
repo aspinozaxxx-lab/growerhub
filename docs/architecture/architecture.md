@@ -35,7 +35,7 @@ MQTT-топики:
 - `zigbee2growerhub/bridge/*` - состояние и request/response API Zigbee2MQTT.
 - `zigbee2growerhub/<friendly_name>` и `zigbee2growerhub/<friendly_name>/set` - состояние и команды Zigbee-устройства.
 
-Серийная Grovika подключается только к MQTTS `growerhub.ru:8883` с фиксированными username и client ID, равными напечатанному `device_id`. У каждого устройства собственный 256-битный пароль и буквальный ACL только на `gh/dev/<device_id>/#`. Открытый пароль существует только в Dynamic Security Mosquitto и LittleFS устройства; backend хранит SHA-256 и время подготовки. Публичный MQTT `1883` и общий пароль устройств запрещены.
+Серийная Grovika подключается только к MQTTS `growerhub.ru:8883` с фиксированными username и client ID, равными напечатанному `device_id`. У каждого устройства собственный 256-битный пароль и отдельный ACL только на `gh/dev/<device_id>/#`: публикации проверяются по topic wildcard, подписки — через `subscribePattern`/`unsubscribePattern`. Открытый пароль существует только в Dynamic Security Mosquitto и LittleFS устройства; backend хранит SHA-256 и время подготовки. Публичный MQTT `1883` и общий пароль устройств запрещены.
 
 ## Общие принципы
 
