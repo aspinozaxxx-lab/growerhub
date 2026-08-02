@@ -16,6 +16,7 @@ namespace Services {
 class MqttService;
 class StorageService;
 class TimeService;
+class WiFiService;
 }
 
 namespace Modules {
@@ -54,6 +55,8 @@ struct Context {
   const char* device_id;
   // Ukazatel na modul OTA.
   Modules::OtaModule* ota;
+  // Ukazatel na servis Wi-Fi.
+  Services::WiFiService* wifi;
 };
 
 }

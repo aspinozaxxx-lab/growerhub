@@ -40,10 +40,18 @@ class WebConfigService {
    * @param out_size Razmer bufera v baytah.
    */
  static bool BuildWifiConfigJson(const char* ssid, const char* password, char* out, size_t out_size);
+#if defined(UNIT_TEST)
+  /**
+   * Vozvrashaet spisok setei, kotoryj pokazyvaet web-interfeis.
+   */
+  WiFiNetworkList GetNetworksForTests();
+#endif
 
  private:
+ WiFiNetworkList GetNetworksForDisplay();
  static const size_t kWifiJsonBufferSize = 2048;
  StorageService* storage_ = nullptr;
+ WiFiService* wifi_ = nullptr;
  Core::EventQueue* event_queue_ = nullptr;
  const char* device_id_ = nullptr;
  // Ukazatel na MQTT servis.

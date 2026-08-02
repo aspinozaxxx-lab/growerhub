@@ -24,6 +24,7 @@ void test_wifi_config_codec_storage();
 void test_wifi_config_codec_invalid();
 void test_wifi_config_encode_decode_list();
 void test_webconfig_build_json();
+void test_webconfig_shows_builtin_networks_without_user_config();
 void test_soil_scanner_detected();
 void test_soil_scanner_hysteresis();
 void test_sensor_hub_pump_block();
@@ -86,6 +87,7 @@ int main(int argc, char** argv) {
   RUN_TEST(test_wifi_config_codec_invalid);
   RUN_TEST(test_wifi_config_encode_decode_list);
   RUN_TEST(test_webconfig_build_json);
+  RUN_TEST(test_webconfig_shows_builtin_networks_without_user_config);
   RUN_TEST(test_soil_scanner_detected);
   RUN_TEST(test_soil_scanner_hysteresis);
   RUN_TEST(test_sensor_hub_pump_block);

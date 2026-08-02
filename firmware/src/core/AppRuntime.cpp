@@ -87,6 +87,7 @@ void AppRuntime::Init() {
   context_.sensor_hub = &sensor_hub_module_;
   context_.state = &state_module_;
   context_.ota = &ota_module_;
+  context_.wifi = &wifi_service_;
   context_.hardware = &Config::GetHardwareProfile();
   
 #if defined(ARDUINO)

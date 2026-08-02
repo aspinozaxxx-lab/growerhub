@@ -1,4 +1,8 @@
-﻿## 2026-08-01
+﻿## 2026-08-02
+- fix(web): spisok Wi-Fi pokazyvaet fakticheski ispolzuemye vstroennye seti, esli wifi.json eshche ne sozdan.
+- test(web): dobavlena regressiya dlya podklyucheniya po vstroennoj seti bez polzovatelskoj konfiguracii.
+
+## 2026-08-01
 - fix(runtime): MQTTS loop vypolnyaetsya do i posle modulej, pump.stop obrabatyvaetsya pri aktivnom polive.
 - fix(state): start i stop nasosa nemedlenno publikuyut retained state, neuspeshnaya publikaciya povtoryaetsya s ogranicheniem chastoty.
 - fix(power): aktivnyj opros soil/DHT pri polive priostanovlen, Wi-Fi TX oboih profilej ogranichen 15 dBm dlya snizheniya pikov toka.

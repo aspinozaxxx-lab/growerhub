@@ -70,3 +70,23 @@ void test_webconfig_build_json() {
       "{\"schema_version\":1,\"networks\":[{\"ssid\":\"Net\",\"password\":\"secret\"}]}",
       json);
 }
+
+void test_webconfig_shows_builtin_networks_without_user_config() {
+  CleanupWifiConfigStorage();
+
+  Core::Context ctx{};
+  Services::StorageService storage;
+  Services::WiFiService wifi;
+  Services::WebConfigService web_config;
+  ctx.storage = &storage;
+  ctx.wifi = &wifi;
+
+  storage.SetRootForTests("test/tmp/test_storage_wifi_config");
+  storage.Init(ctx);
+  wifi.Init(ctx);
+  web_config.Init(ctx);
+
+  const Services::WiFiNetworkList networks = web_config.GetNetworksForTests();
+  TEST_ASSERT_EQUAL_UINT(5, static_cast<unsigned int>(networks.count));
+  TEST_ASSERT_EQUAL_STRING("JR", networks.entries[0].ssid);
+}

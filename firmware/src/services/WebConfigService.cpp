@@ -274,8 +274,25 @@ bool WebConfigService::BuildWifiConfigJson(const char* ssid,
   return Util::EncodeWifiConfig(ssids, passwords, 1, out, out_size);
 }
 
+WiFiNetworkList WebConfigService::GetNetworksForDisplay() {
+  if (wifi_) {
+    return wifi_->GetPreferredNetworks();
+  }
+
+  WiFiNetworkList networks{};
+  LoadNetworksFromStorage(storage_, networks, wifi_json_buf_, sizeof(wifi_json_buf_));
+  return networks;
+}
+
+#if defined(UNIT_TEST)
+WiFiNetworkList WebConfigService::GetNetworksForTests() {
+  return GetNetworksForDisplay();
+}
+#endif
+
 void WebConfigService::Init(Core::Context& ctx) {
   storage_ = ctx.storage;
+  wifi_ = ctx.wifi;
   event_queue_ = ctx.event_queue;
   device_id_ = ctx.device_id;
   mqtt_ = ctx.mqtt;
@@ -359,9 +376,8 @@ void WebConfigService::Init(Core::Context& ctx) {
   });
 
   server_->on("/api/networks", HTTP_GET, [this]() {
-    wifi_list_.count = 0;
-    if (LoadNetworksFromStorage(storage_, wifi_list_, wifi_json_buf_, sizeof(wifi_json_buf_)) &&
-        wifi_list_.count > 0) {
+    wifi_list_ = GetNetworksForDisplay();
+    if (wifi_list_.count > 0) {
       const BuildJsonResult result = BuildNetworksJson(wifi_list_, wifi_json_buf_, sizeof(wifi_json_buf_));
       if (result == BuildJsonResult::kTooLarge) {
         if (WriteTooLargeError(wifi_json_buf_, sizeof(wifi_json_buf_))) {

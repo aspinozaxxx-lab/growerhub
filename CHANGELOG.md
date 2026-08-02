@@ -6,6 +6,7 @@
 - docs(firmware): zafiksirovany trebovaniya k otdelnomu pitaniyu nasosa i zashchite ot pomeh.
 - fix(mqtt): backend bez smeny parolya vosstanavlivaet ACL uzhe vypushchennyh Grovika, firmware povtoryaet cmd-podpisku.
 - fix(ota): pered HTTPS-zagruzkoj firmware osvobozhdaet MQTTS TLS-transport i dostavlyaet finalnyj ACK posle reconnect.
+- fix(web): lokalnyj interfejs Grovika pokazyvaet vstroennye Wi-Fi seti, kogda polzovatelskij wifi.json eshche ne sozdan.
 
 ### feat(grovika): seriynoe podklyuchenie i ispolnitelnyj runtime
 
