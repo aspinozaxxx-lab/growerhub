@@ -117,7 +117,7 @@ bool StateModule::PublishState(bool retained) {
 
   if (sensor_hub_ && sensor_hub_->GetScanner()) {
     const Drivers::Rj9PortScanner* scanner = sensor_hub_->GetScanner();
-    const size_t port_count = Drivers::Rj9PortScanner::kMaxPorts;
+    const size_t port_count = scanner->GetPortCount();
     payload += ",\"soil\":{\"ports\":[";
     for (size_t i = 0; i < port_count; ++i) {
       const bool detected = scanner->IsDetected(static_cast<uint8_t>(i));

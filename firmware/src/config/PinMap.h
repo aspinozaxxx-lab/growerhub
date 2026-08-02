@@ -20,8 +20,8 @@ struct PinMap {
   uint8_t light_relay_pin;
   // Flag invertirovaniya rele sveta.
   bool light_relay_inverted;
-  // Piny ADC dlya pochvennyh datchikov.
-  uint8_t soil_adc_pins[2];
+  // Pin ADC dlya pochvennogo datchika.
+  uint8_t soil_adc_pins[1];
   // Pin datchika DHT22.
   uint8_t dht_pin;
 };

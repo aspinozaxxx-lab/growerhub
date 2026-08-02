@@ -87,6 +87,26 @@ class DeviceIngestionServiceIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void handleStateIgnoresLegacySecondGrovikaSoilPort() {
+        LocalDateTime now = LocalDateTime.of(2026, 8, 2, 12, 0);
+        DeviceShadowState.SoilPort port0 = new DeviceShadowState.SoilPort(0, true, 40, SensorStatus.OK);
+        DeviceShadowState.SoilPort port1 = new DeviceShadowState.SoilPort(1, false, null, SensorStatus.DISCONNECTED);
+        DeviceShadowState.SoilState soil = new DeviceShadowState.SoilState(List.of(port0, port1));
+        DeviceShadowState state = new DeviceShadowState(null, null, null, null, null, null, soil, null, null, null);
+
+        sensorFacade.recordMeasurements(
+                "GROVIKA_A1B2C3",
+                deviceIngestionService.handleState("GROVIKA_A1B2C3", state, now),
+                now
+        );
+
+        List<SensorEntity> sensors = sensorRepository.findAll();
+        Assertions.assertEquals(1, sensors.size());
+        Assertions.assertEquals(SensorType.SOIL_MOISTURE, sensors.get(0).getType());
+        Assertions.assertEquals(0, sensors.get(0).getChannel());
+    }
+
+    @Test
     void handleStateStoresStatusesWithoutNumericValues() {
         LocalDateTime now = LocalDateTime.of(2025, 1, 1, 13, 0);
         DeviceShadowState.AirState air = new DeviceShadowState.AirState(false, null, null, SensorStatus.ERROR);

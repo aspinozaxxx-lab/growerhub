@@ -11,10 +11,10 @@
 #include "services/MqttService.h"
 #include "services/TimeService.h"
 
-// Bufers dlya feykovyh ADC vyborok pochvy.
-static uint16_t g_samples_hub[2][9];
-// Indeksy vyborok dlya feykovogo ADC.
-static size_t g_index_hub[2];
+// Bufer dlya feykovyh ADC vyborok pochvy.
+static uint16_t g_samples_hub[9];
+// Indeks vyborok dlya feykovogo ADC.
+static size_t g_index_hub;
 // Buffer payload state dlya proverok.
 static char g_last_topic[128];
 static char g_state_payload[512];
@@ -23,21 +23,19 @@ static int g_dht_read_count = 0;
 // ID ustroystva dlya testov.
 static const char* kDeviceId = "grovika_040AB1";
 
-// Zapolnyaet bufer vyborok dlya 2 portov.
-static void FillSamplesHub(uint16_t port0, uint16_t port1) {
+// Zapolnyaet bufer vyborok pochvennogo datchika.
+static void FillSamplesHub(uint16_t value) {
   for (size_t i = 0; i < 9; ++i) {
-    g_samples_hub[0][i] = port0;
-    g_samples_hub[1][i] = port1;
+    g_samples_hub[i] = value;
   }
-  g_index_hub[0] = 0;
-  g_index_hub[1] = 0;
+  g_index_hub = 0;
 }
 
 // Feykovyi ADC dlya pochvennyh datchikov.
 static uint16_t FakeAdcHub(uint8_t pin) {
-  size_t port = pin == 35 ? 1 : 0;
-  uint16_t value = g_samples_hub[port][g_index_hub[port] % 9];
-  g_index_hub[port]++;
+  (void)pin;
+  uint16_t value = g_samples_hub[g_index_hub % 9];
+  g_index_hub++;
   return value;
 }
 
@@ -95,7 +93,7 @@ void test_sensor_hub_pump_block() {
   Drivers::Rj9PortScanner* scanner = hub.GetScanner();
   scanner->SetAdcReader(&FakeAdcHub);
 
-  FillSamplesHub(2000, 4095);
+  FillSamplesHub(2000);
   RunTick(scheduler, hub, ctx, 5000);
   RunTick(scheduler, hub, ctx, 10000);
   RunTick(scheduler, hub, ctx, 15000);
@@ -106,7 +104,7 @@ void test_sensor_hub_pump_block() {
   pump_start.value = 16000;
   hub.OnEvent(ctx, pump_start);
 
-  FillSamplesHub(4095, 4095);
+  FillSamplesHub(4095);
   RunTick(scheduler, hub, ctx, 20000);
   RunTick(scheduler, hub, ctx, 25000);
   RunTick(scheduler, hub, ctx, 30000);
@@ -193,7 +191,7 @@ void test_state_soil_serialization() {
       return true;
     });
   }
-  FillSamplesHub(2000, 4095);
+  FillSamplesHub(2000);
   RunTick(scheduler, hub, ctx, 5000);
   RunTick(scheduler, hub, ctx, 10000);
   RunTick(scheduler, hub, ctx, 15000);
@@ -204,18 +202,24 @@ void test_state_soil_serialization() {
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"soil\"") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"hw_profile\":\"esp32dev\"") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"port\":0") != nullptr);
-  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"port\":1") != nullptr);
+  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"port\":1") == nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"detected\":true") != nullptr);
-  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"detected\":false") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"percent\":") != nullptr);
-  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"port\":1,\"detected\":false,\"percent\"") == nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"light\"") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"status\":\"off\"") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"air\"") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"available\":true") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"air\":{\"available\":true,\"status\":\"OK\"") != nullptr);
-  TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"status\":\"DISCONNECTED\"") != nullptr);
   TEST_ASSERT_TRUE(std::strstr(g_state_payload, "\"status\":\"OK\"") != nullptr);
+}
+
+// Proverka edinogo soil-datchika i DHT pinov osnovnogo profilya.
+void test_hardware_profile_sensor_pins() {
+  const Config::HardwareProfile& profile = Config::GetHardwareProfile();
+  TEST_ASSERT_EQUAL_UINT8(1, profile.soil_port_count);
+  TEST_ASSERT_EQUAL_UINT8(34, profile.pins.soil_adc_pins[0]);
+  TEST_ASSERT_TRUE(profile.has_dht22);
+  TEST_ASSERT_EQUAL_UINT8(15, profile.pins.dht_pin);
 }
 
 // Proverka service events i statusa ERROR pri oshibke air-datchika bez reboota.

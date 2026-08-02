@@ -1,6 +1,9 @@
 ﻿## 2026-08-02
 - fix(web): spisok Wi-Fi pokazyvaet fakticheski ispolzuemye vstroennye seti, esli wifi.json eshche ne sozdan.
 - test(web): dobavlena regressiya dlya podklyucheniya po vstroennoj seti bez polzovatelskoj konfiguracii.
+- refactor(sensors): ostavlen odin soil-datchik na GPIO34 i DHT22 na GPIO15; GPIO35 i soil channel 1 udaleny iz profilya i state.
+- fix(web): lokalnyj interfejs Grovika polnostyu pereveden na russkij yazyk kirillicej.
+- test(sensors): zafiksirovany piny profilya, odin soil-port v state i russkij web-kontent.
 
 ## 2026-08-01
 - fix(runtime): MQTTS loop vypolnyaetsya do i posle modulej, pump.stop obrabatyvaetsya pri aktivnom polive.

@@ -1,10 +1,12 @@
 #include <cstdio>
+#include <cstring>
 #include <unity.h>
 
 #include "core/Context.h"
 #include "services/StorageService.h"
 #include "services/WiFiService.h"
 #include "services/WebConfigService.h"
+#include "services/website/WebsiteContent.h"
 #include "util/JsonUtil.h"
 
 static void CleanupWifiConfigStorage() {
@@ -89,4 +91,18 @@ void test_webconfig_shows_builtin_networks_without_user_config() {
   const Services::WiFiNetworkList networks = web_config.GetNetworksForTests();
   TEST_ASSERT_EQUAL_UINT(5, static_cast<unsigned int>(networks.count));
   TEST_ASSERT_EQUAL_STRING("JR", networks.entries[0].ssid);
+}
+
+void test_webconfig_content_is_russian() {
+  const char* html = Services::Website::Html();
+  const char* js = Services::Website::Js();
+
+  TEST_ASSERT_NOT_NULL(std::strstr(html, "Настройка Wi-Fi"));
+  TEST_ASSERT_NOT_NULL(std::strstr(html, "Состояние"));
+  TEST_ASSERT_NOT_NULL(std::strstr(html, "Пароль сети"));
+  TEST_ASSERT_NOT_NULL(std::strstr(html, "Сохранённые сети"));
+  TEST_ASSERT_NOT_NULL(std::strstr(js, "Сохранённых сетей нет"));
+  TEST_ASSERT_NOT_NULL(std::strstr(js, "Удалить"));
+  TEST_ASSERT_NULL(std::strstr(html, "Wi-Fi setup"));
+  TEST_ASSERT_NULL(std::strstr(js, "No networks"));
 }

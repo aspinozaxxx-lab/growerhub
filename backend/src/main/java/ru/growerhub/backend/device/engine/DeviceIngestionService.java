@@ -55,7 +55,7 @@ public class DeviceIngestionService {
         shadowStore.updateFromState(deviceId, state, now);
         DeviceShadowState merged = shadowStore.getLastState(deviceId);
         upsertDeviceState(deviceId, merged != null ? merged : state, now);
-        return extractMeasurements(state, now);
+        return extractMeasurements(deviceId, state, now);
     }
 
     public DeviceEntity ensureDeviceExists(String deviceId, LocalDateTime now) {
@@ -153,7 +153,11 @@ public class DeviceIngestionService {
         deviceStateLastRepository.save(record);
     }
 
-    private List<SensorMeasurement> extractMeasurements(DeviceShadowState state, LocalDateTime observedAt) {
+    private List<SensorMeasurement> extractMeasurements(
+            String deviceId,
+            DeviceShadowState state,
+            LocalDateTime observedAt
+    ) {
         List<SensorMeasurement> measurements = new ArrayList<>();
         if (state == null) {
             return measurements;
@@ -194,6 +198,9 @@ public class DeviceIngestionService {
                 if (port == null || port.port() == null) {
                     continue;
                 }
+                if (isGrovika(deviceId) && port.port() != 0) {
+                    continue;
+                }
                 boolean detected = Boolean.TRUE.equals(port.detected());
                 Double value = port.percent() != null ? port.percent().doubleValue() : null;
                 SensorStatus status = resolveSoilStatus(port);
@@ -201,6 +208,11 @@ public class DeviceIngestionService {
             }
         }
         return measurements;
+    }
+
+    private boolean isGrovika(String deviceId) {
+        return deviceId != null
+                && deviceId.regionMatches(true, 0, "GROVIKA_", 0, "GROVIKA_".length());
     }
 
     private SensorStatus resolveAirStatus(DeviceShadowState.AirState air) {

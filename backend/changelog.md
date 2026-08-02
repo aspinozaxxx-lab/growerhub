@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-02
+- Device: dlya Grovika prinimaetsya tolko soil channel 0, legacy channel 1 ignoriruetsya.
+- DB: migraciya V23 udalyaet vtoroj soil-sensor Grovika i ego ustarevshie automation bindings.
+- Testy: dobavlena regressiya dlya legacy state s dvumya soil-portami.
+
 ## 2026-08-01
 - MQTT: pri starte backend vosstanavlivaet ACL vseh podgotovlennyh Grovika bez rotacii ili chteniya parolya.
 - Testy: provereno, chto ACL reconcile ispolzuet tolko modifyRole i ne menyaet credential.
@@ -91,7 +96,6 @@
 - Dobavleny domeny firmware i history s polnym sovmestimost'yu FastAPI i staticheskoy vydachey firmware.
 - Dobavleny integracionnye testy dlya firmware i history, vklyuchaya multipart upload i fil'try istorii.
 - Dobavlen domen plants (gruppy, privyazki, zhurnal, export, foto) s integracionnymi testami.
-
 
 
 

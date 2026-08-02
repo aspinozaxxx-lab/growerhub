@@ -7,6 +7,8 @@
 - fix(mqtt): backend bez smeny parolya vosstanavlivaet ACL uzhe vypushchennyh Grovika, firmware povtoryaet cmd-podpisku.
 - fix(ota): pered HTTPS-zagruzkoj firmware osvobozhdaet MQTTS TLS-transport i dostavlyaet finalnyj ACK posle reconnect.
 - fix(web): lokalnyj interfejs Grovika pokazyvaet vstroennye Wi-Fi seti, kogda polzovatelskij wifi.json eshche ne sozdan.
+- refactor(sensors): Grovika ispolzuet tolko soil GPIO34/channel 0 i DHT22 GPIO15; vtoroj soil-kanal udalen iz firmware i backend.
+- fix(web): lokalnyj web-interfejs Grovika pereveden na russkij yazyk kirillicej.
 
 ### feat(grovika): seriynoe podklyuchenie i ispolnitelnyj runtime
 

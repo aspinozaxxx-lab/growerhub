@@ -15,7 +15,7 @@ namespace Drivers {
 class Rj9PortScanner {
  public:
   // Maksimalnoe kolichestvo portov.
-  static const size_t kMaxPorts = 2;
+  static const size_t kMaxPorts = 1;
   // Tip callback dlya chteniya ADC.
   using AdcReader = uint16_t (*)(uint8_t pin);
 

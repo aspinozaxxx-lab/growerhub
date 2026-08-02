@@ -39,6 +39,80 @@ static const char kDeviceIdPlaceholder[] = "{{DEVICE_ID_LINE}}";
 // Shablon dlya podstanovki statusa MQTT na servere.
 static const char kMqttStatusPlaceholder[] = "{{MQTT_STATUS_LINE}}";
 
+// Vozvrashaet russkoe nazvanie statusa MQTT dlya lokalnogo web UI.
+static const char* MqttStatusLabel(MqttConnectionStatus status) {
+  switch (status) {
+    case MqttConnectionStatus::kWaitingWifi:
+      return "ожидание Wi-Fi";
+    case MqttConnectionStatus::kWaitingTime:
+      return "ожидание точного времени";
+    case MqttConnectionStatus::kConnecting:
+      return "подключение";
+    case MqttConnectionStatus::kConnected:
+      return "подключено";
+    case MqttConnectionStatus::kAuthFailed:
+      return "ошибка авторизации";
+    case MqttConnectionStatus::kTlsFailed:
+      return "ошибка защищённого соединения";
+    case MqttConnectionStatus::kNotConfigured:
+    default:
+      return "не настроено";
+  }
+}
+
+// Vozvrashaet russkoe opisanie prichiny MQTT dlya lokalnogo web UI.
+static const char* MqttReasonLabel(const char* reason) {
+  if (!reason || reason[0] == '\0') {
+    return "причина не указана";
+  }
+  if (std::strcmp(reason, "configured") == 0) {
+    return "настроено";
+  }
+  if (std::strcmp(reason, "storage unavailable") == 0) {
+    return "хранилище недоступно";
+  }
+  if (std::strcmp(reason, "mqtt.json missing") == 0) {
+    return "файл mqtt.json отсутствует";
+  }
+  if (std::strcmp(reason, "mqtt.json read failed") == 0) {
+    return "не удалось прочитать mqtt.json";
+  }
+  if (std::strcmp(reason, "mqtt.json invalid") == 0) {
+    return "файл mqtt.json повреждён";
+  }
+  if (std::strcmp(reason, "mqtt.json device_id mismatch") == 0) {
+    return "device_id в mqtt.json не совпадает";
+  }
+  if (std::strcmp(reason, "waiting for Wi-Fi") == 0) {
+    return "ожидание Wi-Fi";
+  }
+  if (std::strcmp(reason, "waiting for valid system time") == 0) {
+    return "ожидание точного времени";
+  }
+  if (std::strcmp(reason, "ready for TLS connection") == 0) {
+    return "готово к защищённому соединению";
+  }
+  if (std::strcmp(reason, "TLS connection in progress") == 0) {
+    return "устанавливается защищённое соединение";
+  }
+  if (std::strcmp(reason, "connected") == 0) {
+    return "соединение установлено";
+  }
+  if (std::strcmp(reason, "connection lost") == 0) {
+    return "соединение потеряно";
+  }
+  if (std::strcmp(reason, "broker rejected credentials") == 0) {
+    return "сервер отклонил учётные данные";
+  }
+  if (std::strcmp(reason, "TLS connection failed") == 0) {
+    return "не удалось установить защищённое соединение";
+  }
+  if (std::strcmp(reason, "OTA HTTPS transport in progress") == 0) {
+    return "выполняется обновление прошивки";
+  }
+  return "неизвестная причина";
+}
+
 // Log heap dlya diagnostiki prosadok i fragmentacii pamyati.
 static void LogHeap(const char* tag) {
 #if defined(GH_DEBUG_WEB_HEAP)
@@ -311,8 +385,8 @@ void WebConfigService::Init(Core::Context& ctx) {
       ip = WiFi.localIP().toString();
     }
     String wifi_line = "Wi-Fi: ";
-    wifi_line += sta_connected ? "CONNECTED" : "DISCONNECTED";
-    wifi_line += " (ip=";
+    wifi_line += sta_connected ? "подключено" : "нет подключения";
+    wifi_line += " (IP=";
     if (sta_connected) {
       wifi_line += ip;
     } else {
@@ -320,16 +394,16 @@ void WebConfigService::Init(Core::Context& ctx) {
     }
     wifi_line += ")";
 
-    String device_line = "Device ID: ";
-    device_line += device_id_ ? device_id_ : "unknown";
+    String device_line = "ID устройства: ";
+    device_line += device_id_ ? device_id_ : "неизвестно";
     String mqtt_line = "MQTT: ";
-    mqtt_line += mqtt_ ? mqtt_->GetStatusName() : "NOT_CONFIGURED";
-    mqtt_line += " (host=";
+    mqtt_line += mqtt_ ? MqttStatusLabel(mqtt_->GetStatus()) : "не настроено";
+    mqtt_line += " (сервер=";
     mqtt_line += mqtt_ ? mqtt_->GetHost() : "growerhub.ru";
-    mqtt_line += " port=";
+    mqtt_line += " порт=";
     mqtt_line += mqtt_ ? String(mqtt_->GetPort()) : String(8883);
-    mqtt_line += " tls=true reason=";
-    mqtt_line += mqtt_ ? mqtt_->GetStatusReason() : "mqtt service unavailable";
+    mqtt_line += " TLS=включён причина=";
+    mqtt_line += mqtt_ ? MqttReasonLabel(mqtt_->GetStatusReason()) : "сервис MQTT недоступен";
     mqtt_line += ")";
 
     const char* html = Website::Html();
@@ -407,14 +481,14 @@ void WebConfigService::Init(Core::Context& ctx) {
 
   server_->on("/api/networks", HTTP_POST, [this]() {
     if (!storage_) {
-      server_->send(500, "text/plain", "Storage unavailable");
+      server_->send(500, "text/plain", "Хранилище недоступно");
       return;
     }
     const String body = server_->arg("plain");
     char ssid[kWifiSsidMaxLen + 1];
     char password[kWifiPasswordMaxLen + 1];
     if (!ExtractStringFieldJson(body.c_str(), "ssid", ssid, sizeof(ssid))) {
-      server_->send(400, "text/plain", "SSID required");
+      server_->send(400, "text/plain", "Укажите имя сети");
       return;
     }
     if (!ExtractStringFieldJson(body.c_str(), "password", password, sizeof(password))) {
@@ -424,7 +498,7 @@ void WebConfigService::Init(Core::Context& ctx) {
     wifi_list_.count = 0;
     LoadNetworksFromStorage(storage_, wifi_list_, wifi_json_buf_, sizeof(wifi_json_buf_));
     if (!UpsertNetwork(wifi_list_, ssid, password)) {
-      server_->send(400, "text/plain", "Too many networks");
+      server_->send(400, "text/plain", "Достигнут лимит сохранённых сетей");
       return;
     }
 
@@ -438,11 +512,11 @@ void WebConfigService::Init(Core::Context& ctx) {
       return;
     }
     if (result != BuildJsonResult::kOk) {
-      server_->send(400, "text/plain", "Invalid data");
+      server_->send(400, "text/plain", "Некорректные данные");
       return;
     }
     if (!storage_->WriteFileAtomic(kWifiConfigPath, wifi_json_buf_)) {
-      server_->send(500, "text/plain", "Write failed");
+      server_->send(500, "text/plain", "Не удалось сохранить сеть");
       return;
     }
     char log_buf[160];
@@ -461,26 +535,26 @@ void WebConfigService::Init(Core::Context& ctx) {
 
   server_->on("/api/networks", HTTP_DELETE, [this]() {
     if (!storage_) {
-      server_->send(500, "text/plain", "Storage unavailable");
+      server_->send(500, "text/plain", "Хранилище недоступно");
       return;
     }
     const String ssid = server_->arg("ssid");
     if (ssid.length() == 0) {
-      server_->send(400, "text/plain", "SSID required");
+      server_->send(400, "text/plain", "Укажите имя сети");
       return;
     }
     wifi_list_.count = 0;
     LoadNetworksFromStorage(storage_, wifi_list_, wifi_json_buf_, sizeof(wifi_json_buf_));
     if (wifi_list_.count == 0) {
-      server_->send(404, "text/plain", "Not found");
+      server_->send(404, "text/plain", "Сеть не найдена");
       return;
     }
     if (!RemoveNetwork(wifi_list_, ssid.c_str())) {
-      server_->send(404, "text/plain", "Not found");
+      server_->send(404, "text/plain", "Сеть не найдена");
       return;
     }
     if (wifi_list_.count == 0) {
-      server_->send(400, "text/plain", "No networks left");
+      server_->send(400, "text/plain", "Нельзя удалить последнюю сеть");
       return;
     }
     const BuildJsonResult result = BuildNetworksJson(wifi_list_, wifi_json_buf_, sizeof(wifi_json_buf_));
@@ -493,11 +567,11 @@ void WebConfigService::Init(Core::Context& ctx) {
       return;
     }
     if (result != BuildJsonResult::kOk) {
-      server_->send(400, "text/plain", "Invalid data");
+      server_->send(400, "text/plain", "Некорректные данные");
       return;
     }
     if (!storage_->WriteFileAtomic(kWifiConfigPath, wifi_json_buf_)) {
-      server_->send(500, "text/plain", "Write failed");
+      server_->send(500, "text/plain", "Не удалось сохранить сеть");
       return;
     }
     if (event_queue_) {

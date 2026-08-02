@@ -35,8 +35,8 @@ struct HardwareProfile {
 inline const HardwareProfile& GetHardwareProfile() {
   static const HardwareProfile default_profile = {
       "esp32dev",
-      {4, false, 5, false, {34, 35}, 15},
-      2,
+      {4, false, 5, false, {34}, 15},
+      1,
       true,
       true,
       3600000,
@@ -44,7 +44,7 @@ inline const HardwareProfile& GetHardwareProfile() {
 #if defined(GH_HW_PROFILE_ESP32C3_SUPERMINI)
   static const HardwareProfile esp32c3_supermini_profile = {
       "esp32c3_supermini",
-      {3, false, 11, false, {0, 0}, 1},
+      {3, false, 11, false, {0}, 1},
       1,
       true,
       false,

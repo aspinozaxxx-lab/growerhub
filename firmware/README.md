@@ -13,6 +13,7 @@ python -m platformio run -e esp32c3_supermini
 - `esp32dev` — обычная ESP32 с USB-UART.
 - `esp32c3_supermini` — ESP32-C3 SuperMini.
 - LittleFS используется в обоих окружениях.
+- В профиле `esp32dev` единственный датчик почвы подключён к GPIO34, DHT22 — к GPIO15; GPIO35 и второй soil-канал не используются и не публикуются.
 
 ## Серийная подготовка
 
