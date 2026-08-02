@@ -62,8 +62,18 @@ class OtaModule : public Core::Module {
   void SetRebooter(Rebooter* rebooter);
 
  private:
-  void SendAck(const char* correlation_id, const char* result, const char* status,
+  enum class PendingResult {
+    kNone = 0,
+    kFailure,
+    kRestart
+  };
+
+  bool SendAck(const char* correlation_id, const char* result, const char* status,
                const char* version, const char* reason);
+  void StorePendingResult(PendingResult result, const char* correlation_id,
+                          const char* version, const char* reason, uint32_t now_ms);
+  void ClearPendingResult();
+  void RestartUpdatedFirmware();
 
   Services::MqttService* mqtt_ = nullptr;
   Modules::ActuatorModule* actuator_ = nullptr;
@@ -73,6 +83,11 @@ class OtaModule : public Core::Module {
   Services::OtaInstaller* installer_ = nullptr;
   Rebooter* rebooter_ = nullptr;
   bool boot_checked_ = false;
+  PendingResult pending_result_ = PendingResult::kNone;
+  uint32_t pending_since_ms_ = 0;
+  char pending_correlation_id_[65]{};
+  char pending_version_[96]{};
+  char pending_reason_[96]{};
 
 #if defined(ARDUINO)
   class EspRebooter : public Rebooter {

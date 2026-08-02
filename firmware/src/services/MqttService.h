@@ -63,6 +63,10 @@ class MqttService {
    */
   bool IsConnected();
   /**
+   * Zakryvaet MQTTS transport pered HTTPS OTA, chtoby osvobodit TLS pamyat.
+   */
+  void DisconnectForOta();
+  /**
    * Obrabatyvaet MQTT loop (Arduino).
    */
   void Loop();

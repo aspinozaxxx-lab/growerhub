@@ -39,6 +39,7 @@ void test_ota_pending_confirm();
 void test_ota_boot_failures_trigger();
 void test_ota_timeout_trigger();
 void test_ota_install_success_ack_and_reboot();
+void test_ota_install_success_reboots_after_ack_timeout();
 void test_ota_install_error_ack();
 void test_ota_declined_while_pump_runs();
 void test_ota_installer_rejects_untrusted_url();
@@ -100,6 +101,7 @@ int main(int argc, char** argv) {
   RUN_TEST(test_ota_boot_failures_trigger);
   RUN_TEST(test_ota_timeout_trigger);
   RUN_TEST(test_ota_install_success_ack_and_reboot);
+  RUN_TEST(test_ota_install_success_reboots_after_ack_timeout);
   RUN_TEST(test_ota_install_error_ack);
   RUN_TEST(test_ota_declined_while_pump_runs);
   RUN_TEST(test_ota_installer_rejects_untrusted_url);

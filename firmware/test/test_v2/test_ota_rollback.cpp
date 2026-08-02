@@ -168,10 +168,36 @@ void test_ota_install_success_ack_and_reboot() {
 
   TEST_ASSERT_TRUE(fixture.ota.StartUpdate(kOtaUrl, "grovika-1", kOtaSha, "ota-ok"));
   TEST_ASSERT_EQUAL_INT(1, installer.calls);
+  TEST_ASSERT_FALSE(fixture.mqtt.IsConnected());
+  TEST_ASSERT_EQUAL_INT(0, rebooter.calls);
+  TEST_ASSERT_EQUAL_INT(1, g_ota_capture.count);
+  TEST_ASSERT_NOT_NULL(std::strstr(g_ota_capture.payloads[0], "\"status\":\"downloading\""));
+
+  fixture.mqtt.SetConnectedForTests(true);
+  fixture.ota.OnTick(fixture.context, 100);
+
   TEST_ASSERT_EQUAL_INT(1, rebooter.calls);
   TEST_ASSERT_EQUAL_INT(2, g_ota_capture.count);
-  TEST_ASSERT_NOT_NULL(std::strstr(g_ota_capture.payloads[0], "\"status\":\"downloading\""));
   TEST_ASSERT_NOT_NULL(std::strstr(g_ota_capture.payloads[1], "\"status\":\"restarting\""));
+}
+
+void test_ota_install_success_reboots_after_ack_timeout() {
+  OtaFixture fixture;
+  fixture.Init("test/tmp/test_ota_module_timeout");
+  TestOtaInstaller installer;
+  TestOtaRebooter rebooter;
+  fixture.ota.SetInstaller(&installer);
+  fixture.ota.SetRebooter(&rebooter);
+
+  TEST_ASSERT_TRUE(fixture.ota.StartUpdate(kOtaUrl, "grovika-1", kOtaSha, "ota-timeout"));
+  TEST_ASSERT_FALSE(fixture.mqtt.IsConnected());
+  fixture.ota.OnTick(fixture.context, 14999);
+  TEST_ASSERT_EQUAL_INT(0, rebooter.calls);
+
+  fixture.ota.OnTick(fixture.context, 15000);
+
+  TEST_ASSERT_EQUAL_INT(1, rebooter.calls);
+  TEST_ASSERT_EQUAL_INT(1, g_ota_capture.count);
 }
 
 void test_ota_install_error_ack() {
@@ -184,7 +210,13 @@ void test_ota_install_error_ack() {
   fixture.ota.SetRebooter(&rebooter);
 
   TEST_ASSERT_FALSE(fixture.ota.StartUpdate(kOtaUrl, "grovika-1", kOtaSha, "ota-error"));
+  TEST_ASSERT_FALSE(fixture.mqtt.IsConnected());
   TEST_ASSERT_EQUAL_INT(0, rebooter.calls);
+  TEST_ASSERT_EQUAL_INT(1, g_ota_capture.count);
+
+  fixture.mqtt.SetConnectedForTests(true);
+  fixture.ota.OnTick(fixture.context, 100);
+
   TEST_ASSERT_EQUAL_INT(2, g_ota_capture.count);
   TEST_ASSERT_NOT_NULL(std::strstr(g_ota_capture.payloads[1], "firmware_sha256_mismatch"));
 }

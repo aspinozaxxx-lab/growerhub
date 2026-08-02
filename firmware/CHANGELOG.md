@@ -4,6 +4,8 @@
 - fix(power): aktivnyj opros soil/DHT pri polive priostanovlen, Wi-Fi TX oboih profilej ogranichen 15 dBm dlya snizheniya pikov toka.
 - test: dobavleny regressii start -> rabota -> stop, state perehodov i pauza DHT pri polive.
 - fix(mqtt): podpiska na sobstvennyj cmd topic periodicheski povtoryaetsya posle reconnect ili vremennogo otkaza ACL.
+- fix(ota): MQTTS transport zakryvaetsya pered HTTPS-zagruzkoj dlya osvobozhdeniya pamyati, error/restarting ACK povtoryaetsya posle reconnect.
+- test(ota): provereny TLS handoff, otlozhennyj restarting i dostavka oshibki posle vosstanovleniya MQTT.
 - fix(factory): smoke proverjaet razreshenie podpiski Grovika na sobstvennyj cmd topic i zapret chuzhogo namespace.
 - feat(mqtt): perehod na growerhub.ru:8883 s WiFiClientSecure, ISRG Root X1 i individualnym /cfg/mqtt.json.
 - feat(factory): dobavlen skript chteniya MAC, admin provisioning, MQTTS/ACL smoke i proshivki firmware + unikalnogo LittleFS bez logirovaniya parolya ili hraneniya obraza s sekretom.

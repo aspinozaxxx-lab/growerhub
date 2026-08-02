@@ -248,6 +248,23 @@ bool MqttService::IsConnected() {
 #endif
 }
 
+void MqttService::DisconnectForOta() {
+#if defined(ARDUINO)
+  if (mqtt_client_.connected()) {
+    mqtt_client_.disconnect();
+  }
+  wifi_client_.stop();
+  last_connected_ = false;
+  last_attempt_ms_ = 0;
+  last_subscribe_attempt_ms_ = 0;
+  status_ = MqttConnectionStatus::kConnecting;
+  status_reason_ = "OTA HTTPS transport in progress";
+  Util::Logger::Info("[MQTT] disconnected for OTA HTTPS transport");
+#else
+  connected_ = false;
+#endif
+}
+
 MqttConnectionStatus MqttService::GetStatus() const {
   return status_;
 }
