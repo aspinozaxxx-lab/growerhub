@@ -38,12 +38,14 @@ void test_wifi_config_codec_storage() {
 }
 
 void test_wifi_config_codec_invalid() {
-  const char* bad_json = "{\"schema_version\":2,\"networks\":[{\"ssid\":\"\"}]}";
+  const char* bad_json = "{\"schema_version\":3,\"networks\":[{\"ssid\":\"\"}]}";
   TEST_ASSERT_FALSE(Util::ValidateWifiConfig(bad_json));
-  const char* empty_json = "{\"schema_version\":1,\"networks\":[{\"ssid\":\"\"}]}";
+  const char* empty_json = "{\"schema_version\":2,\"networks\":[{\"ssid\":\"\"}]}";
   TEST_ASSERT_FALSE(Util::ValidateWifiConfig(empty_json));
-  const char* valid_json = "{\"schema_version\":1,\"networks\":[{\"ssid\":\"\"},{\"ssid\":\"Ok\"}]}";
+  const char* valid_json = "{\"schema_version\":2,\"networks\":[{\"ssid\":\"\"},{\"ssid\":\"Ok\"}]}";
   TEST_ASSERT_TRUE(Util::ValidateWifiConfig(valid_json));
+  const char* legacy_json = "{\"schema_version\":1,\"networks\":[{\"ssid\":\"Legacy\"}]}";
+  TEST_ASSERT_TRUE(Util::ValidateWifiConfig(legacy_json));
   char json[64];
   TEST_ASSERT_FALSE(Util::EncodeWifiConfig("", "pass", json, sizeof(json)));
 }
@@ -65,11 +67,28 @@ void test_wifi_config_encode_decode_list() {
   TEST_ASSERT_EQUAL_STRING("pass3", list.entries[2].password);
 }
 
+void test_wifi_config_max_networks_fit_buffer() {
+  const char* ssids[Services::kWifiMaxNetworks];
+  const char* passwords[Services::kWifiMaxNetworks];
+  for (size_t i = 0; i < Services::kWifiMaxNetworks; ++i) {
+    ssids[i] = "12345678901234567890123456789012";
+    passwords[i] = "1234567890123456789012345678901234567890123456789012345678901234";
+  }
+  char json[2048];
+  TEST_ASSERT_TRUE(Util::EncodeWifiConfig(
+      ssids,
+      passwords,
+      Services::kWifiMaxNetworks,
+      json,
+      sizeof(json)));
+  TEST_ASSERT_TRUE(Util::ValidateWifiConfig(json));
+}
+
 void test_webconfig_build_json() {
   char json[256];
   TEST_ASSERT_TRUE(Services::WebConfigService::BuildWifiConfigJson("Net", "secret", json, sizeof(json)));
   TEST_ASSERT_EQUAL_STRING(
-      "{\"schema_version\":1,\"networks\":[{\"ssid\":\"Net\",\"password\":\"secret\"}]}",
+      "{\"schema_version\":2,\"networks\":[{\"ssid\":\"Net\",\"password\":\"secret\"}]}",
       json);
 }
 
@@ -91,6 +110,30 @@ void test_webconfig_shows_builtin_networks_without_user_config() {
   const Services::WiFiNetworkList networks = web_config.GetNetworksForTests();
   TEST_ASSERT_EQUAL_UINT(5, static_cast<unsigned int>(networks.count));
   TEST_ASSERT_EQUAL_STRING("JR", networks.entries[0].ssid);
+}
+
+void test_webconfig_merges_builtin_and_manual_networks() {
+  CleanupWifiConfigStorage();
+
+  Core::Context ctx{};
+  Services::StorageService storage;
+  Services::WiFiService wifi;
+  Services::WebConfigService web_config;
+  ctx.storage = &storage;
+  ctx.wifi = &wifi;
+
+  storage.SetRootForTests("test/tmp/test_storage_wifi_config");
+  storage.Init(ctx);
+  TEST_ASSERT_TRUE(storage.WriteFileAtomic(
+      "/cfg/wifi.json",
+      "{\"schema_version\":1,\"networks\":[{\"ssid\":\"ManualWiFi\",\"password\":\"manualpass\"}]}"));
+  wifi.Init(ctx);
+  web_config.Init(ctx);
+
+  const Services::WiFiNetworkList networks = web_config.GetNetworksForTests();
+  TEST_ASSERT_EQUAL_UINT(6, static_cast<unsigned int>(networks.count));
+  TEST_ASSERT_EQUAL_STRING("ManualWiFi", networks.entries[0].ssid);
+  TEST_ASSERT_EQUAL_STRING("JR", networks.entries[1].ssid);
 }
 
 void test_webconfig_content_is_russian() {

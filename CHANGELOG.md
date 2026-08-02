@@ -9,6 +9,8 @@
 - fix(web): lokalnyj interfejs Grovika pokazyvaet vstroennye Wi-Fi seti, kogda polzovatelskij wifi.json eshche ne sozdan.
 - refactor(sensors): Grovika ispolzuet tolko soil GPIO34/channel 0 i DHT22 GPIO15; vtoroj soil-kanal udalen iz firmware i backend.
 - fix(web): lokalnyj web-interfejs Grovika pereveden na russkij yazyk kirillicej.
+- fix(wifi): lokalnyj web-interfejs obedinyaet builtin i ruchnye seti; udalenie lyuboj seti sohranyaetsya v wifi.json v2.
+- fix(wifi): tochka dostupa Grovika ostaetsya vidimoj pri podklyuchenii STA i smene seti.
 
 ### feat(grovika): seriynoe podklyuchenie i ispolnitelnyj runtime
 

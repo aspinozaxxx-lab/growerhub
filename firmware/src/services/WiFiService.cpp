@@ -281,6 +281,31 @@ static void CopyField(const char* src, char* out, size_t out_size) {
   out[out_size - 1] = '\0';
 }
 
+static void AppendMissingBuiltinNetworks(WiFiNetworkList& list) {
+  for (size_t builtin_index = 0;
+       builtin_index < kBuiltinWifiDefaultsCount && list.count < kWifiMaxNetworks;
+       ++builtin_index) {
+    bool exists = false;
+    for (size_t configured_index = 0; configured_index < list.count; ++configured_index) {
+      if (std::strcmp(list.entries[configured_index].ssid,
+                      kBuiltinWifiDefaults[builtin_index].ssid) == 0) {
+        exists = true;
+        break;
+      }
+    }
+    if (exists) {
+      continue;
+    }
+    CopyField(kBuiltinWifiDefaults[builtin_index].ssid,
+              list.entries[list.count].ssid,
+              sizeof(list.entries[list.count].ssid));
+    CopyField(kBuiltinWifiDefaults[builtin_index].password,
+              list.entries[list.count].password,
+              sizeof(list.entries[list.count].password));
+    ++list.count;
+  }
+}
+
 bool WiFiService::ExtractStringField(const char* start,
                                      const char* limit,
                                      const char* key,
@@ -414,7 +439,8 @@ void WiFiService::OnEvent(Core::Context& ctx, const Core::Event& event) {
   last_attempt_ssid_[0] = '\0';
   last_status_ = -1;
 #if defined(ARDUINO)
-  WiFi.disconnect(true);
+  // Razryvaem tolko STA-soedinenie, ne otklyuchaya radio i lokalnuyu AP.
+  WiFi.disconnect(false);
   StartStaConnect(0);
 #endif
 }
@@ -422,14 +448,23 @@ void WiFiService::OnEvent(Core::Context& ctx, const Core::Event& event) {
 WiFiNetworkList WiFiService::GetPreferredNetworks() const {
   WiFiNetworkList list{};
   list.count = 0;
-  if (LoadUserNetworks(list)) {
+  uint32_t schema_version = 0;
+  if (LoadUserNetworks(list, schema_version)) {
+    if (schema_version == Util::kWifiSchemaVersion) {
+      return list;
+    }
+
+    AppendMissingBuiltinNetworks(list);
+    Util::Logger::Info("[WIFI] legacy cfg merged with builtin defaults");
     return list;
   }
-  return LoadBuiltinNetworks();
+  AppendMissingBuiltinNetworks(list);
+  return list;
 }
 
-bool WiFiService::LoadUserNetworks(WiFiNetworkList& out) const {
+bool WiFiService::LoadUserNetworks(WiFiNetworkList& out, uint32_t& schema_version) const {
   out.count = 0;
+  schema_version = 0;
   if (!storage_) {
     Util::Logger::Info("[WIFI] cfg file missing -> builtin defaults");
     return false;
@@ -438,12 +473,11 @@ bool WiFiService::LoadUserNetworks(WiFiNetworkList& out) const {
     Util::Logger::Info("[WIFI] cfg file missing -> builtin defaults");
     return false;
   }
-  char json[2048];
-  if (!storage_->ReadFile("/cfg/wifi.json", json, sizeof(json))) {
+  if (!storage_->ReadFile("/cfg/wifi.json", config_json_buf_, sizeof(config_json_buf_))) {
     Util::Logger::Info("[CFG] wifi.json read_fail");
     return false;
   }
-  if (!ParseWifiConfig(json, out)) {
+  if (!ParseWifiConfig(config_json_buf_, out, &schema_version)) {
     Util::Logger::Info("[CFG] wifi.json parse_fail");
     out.count = 0;
     return false;
@@ -455,18 +489,9 @@ bool WiFiService::LoadUserNetworks(WiFiNetworkList& out) const {
   return false;
 }
 
-WiFiNetworkList WiFiService::LoadBuiltinNetworks() {
-  WiFiNetworkList list{};
-  list.count = 0;
-  for (size_t i = 0; i < kBuiltinWifiDefaultsCount && i < kWifiMaxNetworks; ++i) {
-    CopyField(kBuiltinWifiDefaults[i].ssid, list.entries[i].ssid, sizeof(list.entries[i].ssid));
-    CopyField(kBuiltinWifiDefaults[i].password, list.entries[i].password, sizeof(list.entries[i].password));
-    list.count++;
-  }
-  return list;
-}
-
-bool WiFiService::ParseWifiConfig(const char* json, WiFiNetworkList& out) {
+bool WiFiService::ParseWifiConfig(const char* json,
+                                  WiFiNetworkList& out,
+                                  uint32_t* parsed_schema_version) {
   out.count = 0;
   if (!json || !HasJsonBraces(json)) {
     return false;
@@ -481,13 +506,17 @@ bool WiFiService::ParseWifiConfig(const char* json, WiFiNetworkList& out) {
                 "[CFG] wifi.json schema_version=%u",
                 static_cast<unsigned int>(schema_version));
   Util::Logger::Info(log_buf);
-  if (schema_version != Util::kWifiSchemaVersion) {
+  if (!Util::IsSupportedWifiSchemaVersion(schema_version)) {
     std::snprintf(log_buf,
                   sizeof(log_buf),
-                  "[CFG] wifi.json schema_mismatch expected=%u",
+                  "[CFG] wifi.json schema_mismatch supported=%u,%u",
+                  static_cast<unsigned int>(Util::kWifiLegacySchemaVersion),
                   static_cast<unsigned int>(Util::kWifiSchemaVersion));
     Util::Logger::Info(log_buf);
     return false;
+  }
+  if (parsed_schema_version) {
+    *parsed_schema_version = schema_version;
   }
   const char* networks_key = std::strstr(json, "\"networks\"");
   if (!networks_key) {
@@ -550,7 +579,8 @@ void WiFiService::StartStaConnect(uint32_t now_ms) {
   char log_buf[128];
   std::snprintf(log_buf, sizeof(log_buf), "[WIFI] sta_connect ssid=%s", last_attempt_ssid_);
   Util::Logger::Info(log_buf);
-  WiFi.disconnect(true);
+  // AP dolzhna ostavatsya dostupnoj vo vremya perebora STA-setej.
+  WiFi.disconnect(false);
   WiFi.begin(network.ssid, network.password);
 #endif
   last_attempt_ms_ = now_ms;

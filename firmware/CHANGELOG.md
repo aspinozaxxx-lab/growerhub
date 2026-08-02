@@ -4,6 +4,10 @@
 - refactor(sensors): ostavlen odin soil-datchik na GPIO34 i DHT22 na GPIO15; GPIO35 i soil channel 1 udaleny iz profilya i state.
 - fix(web): lokalnyj interfejs Grovika polnostyu pereveden na russkij yazyk kirillicej.
 - test(sensors): zafiksirovany piny profilya, odin soil-port v state i russkij web-kontent.
+- fix(wifi): builtin defaults obedineny s ruchnymi setyami bez dublikatov, ruchnye seti imeyut prioritet.
+- fix(wifi): wifi.json v1 sovmestimo migriruetsya, a dobavlenie ili udalenie sohranyaet yavnyj spisok v2.
+- fix(wifi): lokalnaya AP bolshe ne otklyuchaetsya pri perebore ili obnovlenii STA-setej.
+- test(wifi): provereny merge legacy-konfiguracii i sohranenie udaleniya builtin-seti.
 
 ## 2026-08-01
 - fix(runtime): MQTTS loop vypolnyaetsya do i posle modulej, pump.stop obrabatyvaetsya pri aktivnom polive.

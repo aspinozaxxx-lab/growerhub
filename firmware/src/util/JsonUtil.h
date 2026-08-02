@@ -12,8 +12,14 @@
 
 namespace Util {
 
-// Versiya JSON shemy Wi-Fi konfiguracii.
-static const uint32_t kWifiSchemaVersion = 1;
+// Legacy versiya, gde file s setyami polnostyu zamenyal builtin defaults.
+static const uint32_t kWifiLegacySchemaVersion = 1;
+// Tekushchaya versiya s yavnym itogovym spiskom setei.
+static const uint32_t kWifiSchemaVersion = 2;
+/**
+ * Proveryaet podderzhivaemuyu versiyu Wi-Fi konfiguracii.
+ */
+bool IsSupportedWifiSchemaVersion(uint32_t schema_version);
 /**
  * Kodiruet Wi-Fi konfiguraciyu v JSON.
  * @param ssid SSID seti dlya sohraneniya.

@@ -495,8 +495,7 @@ void WebConfigService::Init(Core::Context& ctx) {
       password[0] = '\0';
     }
 
-    wifi_list_.count = 0;
-    LoadNetworksFromStorage(storage_, wifi_list_, wifi_json_buf_, sizeof(wifi_json_buf_));
+    wifi_list_ = GetNetworksForDisplay();
     if (!UpsertNetwork(wifi_list_, ssid, password)) {
       server_->send(400, "text/plain", "Достигнут лимит сохранённых сетей");
       return;
@@ -543,8 +542,7 @@ void WebConfigService::Init(Core::Context& ctx) {
       server_->send(400, "text/plain", "Укажите имя сети");
       return;
     }
-    wifi_list_.count = 0;
-    LoadNetworksFromStorage(storage_, wifi_list_, wifi_json_buf_, sizeof(wifi_json_buf_));
+    wifi_list_ = GetNetworksForDisplay();
     if (wifi_list_.count == 0) {
       server_->send(404, "text/plain", "Сеть не найдена");
       return;
@@ -585,20 +583,25 @@ void WebConfigService::Init(Core::Context& ctx) {
   server_->on("/status", HTTP_GET, [this]() {
     char payload[512];
     const bool sta_connected = WiFi.status() == WL_CONNECTED;
+    const bool ap_active = (WiFi.getMode() & WIFI_AP) != 0;
     String sta_ip = WiFi.localIP().toString();
     String ap_ip = WiFi.softAPIP().toString();
+    String active_ap_ssid = ap_active ? WiFi.softAPSSID() : String();
     const char* device_id = device_id_ ? device_id_ : "GROVIKA_UNKNOWN";
-    const char* ap_ssid = device_id;
     std::snprintf(payload,
                   sizeof(payload),
                   "{\"device_id\":\"%s\",\"sta_connected\":%s,\"sta_ip\":\"%s\","
-                  "\"ap_ssid\":\"%s\",\"ap_ip\":\"%s\",\"mqtt\":{\"status\":\"%s\","
+                  "\"ap_active\":%s,\"ap_ssid\":\"%s\",\"ap_ip\":\"%s\","
+                  "\"ap_stations\":%u,\"wifi_channel\":%d,\"mqtt\":{\"status\":\"%s\","
                   "\"reason\":\"%s\",\"host\":\"%s\",\"port\":%u,\"tls\":true}}",
                   device_id,
                   sta_connected ? "true" : "false",
                   sta_ip.c_str(),
-                  ap_ssid,
+                  ap_active ? "true" : "false",
+                  active_ap_ssid.c_str(),
                   ap_ip.c_str(),
+                  static_cast<unsigned int>(WiFi.softAPgetStationNum()),
+                  WiFi.channel(),
                   mqtt_ ? mqtt_->GetStatusName() : "NOT_CONFIGURED",
                   mqtt_ ? mqtt_->GetStatusReason() : "mqtt service unavailable",
                   mqtt_ ? mqtt_->GetHost() : "growerhub.ru",

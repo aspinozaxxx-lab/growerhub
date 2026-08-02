@@ -8,14 +8,15 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 
 #include "core/Context.h"
 #include "core/EventQueue.h"
 
 namespace Services {
 
-// Maksimalnoe kolichestvo setei v spiske.
-static const size_t kWifiMaxNetworks = 10;
+// Maksimalnoe kolichestvo setei: do 10 ruchnyh i 5 builtin.
+static const size_t kWifiMaxNetworks = 15;
 // Maksimalnaya dlina SSID.
 static const size_t kWifiSsidMaxLen = 32;
 // Maksimalnaya dlina parolya.
@@ -61,7 +62,9 @@ class WiFiService {
   /**
    * Parsit wifi.json v spisok setei.
    */
-  static bool ParseWifiConfig(const char* json, WiFiNetworkList& out);
+  static bool ParseWifiConfig(const char* json,
+                              WiFiNetworkList& out,
+                              uint32_t* schema_version = nullptr);
 
  private:
   enum class StaState {
@@ -70,8 +73,7 @@ class WiFiService {
     kConnected,
   };
 
-  bool LoadUserNetworks(WiFiNetworkList& out) const;
-  static WiFiNetworkList LoadBuiltinNetworks();
+  bool LoadUserNetworks(WiFiNetworkList& out, uint32_t& schema_version) const;
   static bool ExtractStringField(const char* start,
                                  const char* limit,
                                  const char* key,
@@ -88,6 +90,8 @@ class WiFiService {
   uint32_t last_attempt_ms_ = 0;
   StaState sta_state_ = StaState::kIdle;
   char last_attempt_ssid_[kWifiSsidMaxLen + 1] = {};
+  // Bufer konfiguracii v staticheskoj pamyati, chtoby ne perepolnyat stack ESP32.
+  mutable char config_json_buf_[2048] = {};
   bool ap_started_ = false;
   int last_status_ = -1;
 };

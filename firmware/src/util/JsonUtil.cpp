@@ -132,6 +132,10 @@ bool IsSafeField(const char* value, bool allow_empty) {
 }
 } // namespace
 
+bool IsSupportedWifiSchemaVersion(uint32_t schema_version) {
+  return schema_version == kWifiLegacySchemaVersion || schema_version == kWifiSchemaVersion;
+}
+
 bool EncodeWifiConfig(const char* const* ssids,
                       const char* const* passwords,
                       size_t count,
@@ -191,7 +195,7 @@ bool ValidateWifiConfig(const char* json) {
   }
   uint32_t schema_version = 0;
   if (!ExtractUintField(json, "schema_version", schema_version) ||
-      schema_version != kWifiSchemaVersion) {
+      !IsSupportedWifiSchemaVersion(schema_version)) {
     return false;
   }
   const char* array_start = nullptr;
