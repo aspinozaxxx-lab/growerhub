@@ -77,7 +77,11 @@ function AppOverview() {
 
   const handleOpenStats = (payload) => {
     if (!payload || payload.mode === 'box-watering') return;
-    openSensorStats({ ...payload, zigbeeHistoryScope: 'self-service' });
+    openSensorStats({
+      ...payload,
+      zigbeeHistoryScope: 'self-service',
+      equipmentStatsScope: 'self-service',
+    });
   };
 
   if (isLoading && !overview) {

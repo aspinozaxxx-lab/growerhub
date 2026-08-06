@@ -94,6 +94,27 @@
   color: #c7d7ef;
 }
 
+.sensor-sidebar__daily-date {
+  flex: 0 0 48px;
+}
+
+.sensor-sidebar__daily-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(92px, 1fr));
+  gap: 8px 18px;
+  width: min(100%, 250px);
+}
+
+.sensor-sidebar__daily-values > span {
+  display: grid;
+  gap: 2px;
+}
+
+.sensor-sidebar__daily-values small {
+  color: #91a7c5;
+  font-size: 0.72rem;
+}
+
 .sensor-sidebar__daily-item strong {
   color: #6bdba8;
   font-weight: 700;
@@ -115,5 +136,14 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 2px;
+  }
+
+  .sensor-sidebar__daily-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sensor-sidebar__daily-values {
+    width: 100%;
   }
 }

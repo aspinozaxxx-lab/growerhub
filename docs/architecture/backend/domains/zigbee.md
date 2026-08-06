@@ -23,6 +23,7 @@
 - `getDevicesForAutomation()`
 - `getHistory(String ieeeAddress, String property, Integer hours)`
 - `getHistoryForAdmin(UUID coordinatorPublicId, String ieeeAddress, String property, Integer hours)`
+- `getPowerStatisticsForAutomation(Integer coordinatorId, String ieeeAddress, String stateProperty, String onValue, Integer hours, String timezone)`
 - `handleMqttSnapshot(ZigbeeMqttSnapshotMessage message)`
 - `permitJoin(Integer seconds)`
 - `setDeviceState(String ieeeAddress, String state)`
@@ -49,6 +50,7 @@
 - `ZigbeeMqttMessageType`
 - `ZigbeeMqttSnapshotMessage`
 - `ZigbeeOverviewData`
+- `ZigbeePowerStatistics`
 
 ## Владение данными
 
@@ -63,6 +65,7 @@
 - REST adapter `api`
 - MQTT adapter `mqtt`
 - домен `maintenance`
+- домен `automation`
 
 ## Алгоритм работы
 
@@ -80,7 +83,15 @@ Maintenance удаляет старые служебные значения, о�
 Пользовательская история всегда адресуется публичным UUID координатора и
 проверяет владельца. Admin-вариант с UUID предназначен для общей
 диагностической панели; legacy endpoint без UUID сохраняется для старого
-координатора.
+координатора. Составная статистика розетки определяет поддержку канонических
+`power` и `energy` по exposes, текущему snapshot или истории. Мощность
+прореживается действующим механизмом и приводится к ваттам; при её отсутствии
+возвращается бинарная история state. Для семи локальных дней Facade читает
+последнюю точку до начала окна и последующие сырые точки, делит интервалы state
+по IANA-границам с учётом DST и суммирует только положительные приращения
+накопительного energy. `Wh` приводится к `kWh`, `kW` — к `W`; неизвестная
+единица отключает метрику. Сброс счётчика не создаёт отрицательный расход, а
+недостаток двух показаний оставляет энергию неопределённой.
 
 ## Ограничения
 

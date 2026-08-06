@@ -57,6 +57,7 @@ import ru.growerhub.backend.zigbee.ZigbeeFacade;
 import ru.growerhub.backend.zigbee.contract.ZigbeeDeviceData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeFeatureData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeOwnedDeviceData;
+import ru.growerhub.backend.zigbee.contract.ZigbeePowerStatistics;
 import ru.growerhub.backend.user.UserFacade;
 
 @Service
@@ -83,6 +84,11 @@ public class AutomationFacade {
             AutomationData.ROLE_WATER_PUMP
     );
     private static final List<String> FARM_ROLES = List.of(AutomationData.ROLE_AC_SWITCH);
+    private static final Set<String> POWER_STATISTICS_ROLES = Set.of(
+            AutomationData.ROLE_AC_SWITCH,
+            AutomationData.ROLE_EXHAUST_SWITCH,
+            AutomationData.ROLE_LIGHT_SWITCH
+    );
     private static final String STOP_MODE_FIXED_DURATION = "fixed_duration";
     private static final String STOP_MODE_UNTIL_DRAIN = "until_drain";
     private static final String RUNTIME_WATERING_ACTIVE = "watering_session_active";
@@ -187,6 +193,58 @@ public class AutomationFacade {
                 usersWithAutomation,
                 boxes.size(),
                 enabled
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public AutomationData.ResourceStatistics getResourceStatistics(
+            AuthenticatedUser user,
+            Integer resourceId,
+            Integer hours
+    ) {
+        requireAuthenticated(user);
+        if (resourceId == null) {
+            throw new DomainException("bad_request", "Поле resource_id обязательно");
+        }
+        AutomationResourceBindingEntity binding = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new DomainException("not_found", "Ресурс не найден"));
+        Integer ownerId = resourceOwnerId(binding);
+        if (!user.isAdmin() && !Objects.equals(user.id(), ownerId)) {
+            throw new DomainException("not_found", "Ресурс не найден");
+        }
+        if (!POWER_STATISTICS_ROLES.contains(binding.getRole())
+                || !AutomationData.SOURCE_ZIGBEE_DEVICE.equals(binding.getSourceType())
+                || binding.getZigbeeCoordinatorId() == null
+                || blankToNull(binding.getZigbeeIeeeAddress()) == null) {
+            throw new DomainException("bad_request", "Статистика мощности недоступна для ресурса");
+        }
+        ZigbeePowerStatistics statistics = zigbeeFacade.getPowerStatisticsForAutomation(
+                binding.getZigbeeCoordinatorId(),
+                binding.getZigbeeIeeeAddress(),
+                defaultCommandProperty(binding.getRole(), binding.getCommandProperty()),
+                defaultOnValue(binding.getOnValue()),
+                hours,
+                userFacade.getTimezone(ownerId)
+        );
+        return new AutomationData.ResourceStatistics(
+                statistics.chartKind(),
+                statistics.chartUnit(),
+                statistics.points().stream()
+                        .map(point -> new AutomationData.ResourceStatisticsPoint(
+                                point.ts(),
+                                point.value(),
+                                point.rawValue()
+                        ))
+                        .toList(),
+                statistics.energySupported(),
+                statistics.daily().stream()
+                        .map(day -> new AutomationData.DailyResourceStatistics(
+                                day.date(),
+                                day.onDurationSeconds(),
+                                day.energyKwh(),
+                                day.partial()
+                        ))
+                        .toList()
         );
     }
 
@@ -2431,6 +2489,16 @@ public class AutomationFacade {
             throw new DomainException("not_found", "Зона не найдена");
         }
         return greenhouse;
+    }
+
+    private Integer resourceOwnerId(AutomationResourceBindingEntity binding) {
+        if (AutomationData.SCOPE_ROOM.equals(binding.getScopeType())) {
+            return requireRoom(binding.getScopeId()).getUserId();
+        }
+        if (AutomationData.SCOPE_BOX.equals(binding.getScopeType())) {
+            return requireBox(binding.getScopeId()).getRoom().getUserId();
+        }
+        throw new DomainException("not_found", "Ресурс не найден");
     }
 
     private void validateSlotRoles(

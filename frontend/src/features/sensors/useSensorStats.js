@@ -1,8 +1,12 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchSensorHistory } from '../../api/sensors';
 import { fetchPlantHistory } from '../../api/plants';
-import { fetchAdminPumpHistory, fetchAdminZigbeeHistory } from '../../api/admin';
-import { fetchZigbeeHistory } from '../../api/selfService';
+import {
+  fetchAdminPumpHistory,
+  fetchAdminResourceStatistics,
+  fetchAdminZigbeeHistory,
+} from '../../api/admin';
+import { fetchResourceStatistics, fetchZigbeeHistory } from '../../api/selfService';
 import { isSessionExpiredError } from '../../api/client';
 import {
   addUiCalendarDaysMs,
@@ -119,6 +123,11 @@ function buildDailyOnDurations(points, nowMs) {
     .map(({ dateKey, dateLabel, durationMs }) => ({ dateKey, dateLabel, durationMs }));
 }
 
+function localDateLabel(dateKey) {
+  const match = String(dateKey || '').match(/^\d{4}-(\d{2})-(\d{2})$/);
+  return match ? `${match[2]}.${match[1]}` : String(dateKey || '');
+}
+
 /**
  * Translitem: upravlyaet zagruzkoy istorii sensorov i metrik rastenij po diapazonam.
  */
@@ -128,6 +137,8 @@ export function useSensorStats({
   plantId,
   metric,
   pumpId,
+  equipmentResourceId,
+  equipmentStatsScope,
   zigbeeCoordinatorId,
   zigbeeIeeeAddress,
   zigbeeProperty,
@@ -156,6 +167,8 @@ export function useSensorStats({
     plantId,
     metric,
     pumpId,
+    equipmentResourceId,
+    equipmentStatsScope,
     zigbeeCoordinatorId,
     zigbeeIeeeAddress,
     zigbeeProperty,
@@ -171,12 +184,15 @@ export function useSensorStats({
       const hasPlantTarget = mode === 'plant' && plantId && metric;
       const hasZigbeeTarget = mode === 'zigbee' && zigbeeIeeeAddress && zigbeeProperty;
       const hasPumpTarget = mode === 'pump' && pumpId;
+      const hasEquipmentTarget = mode === 'equipment' && equipmentResourceId;
       const targetKey = [
         mode || '',
         sensorId || '',
         plantId || '',
         metric || '',
         pumpId || '',
+        equipmentResourceId || '',
+        equipmentStatsScope || '',
         zigbeeCoordinatorId || '',
         zigbeeIeeeAddress || '',
         zigbeeProperty || '',
@@ -184,7 +200,7 @@ export function useSensorStats({
         range,
       ].join(':');
       if (
-        (!hasSensorTarget && !hasPlantTarget && !hasZigbeeTarget && !hasPumpTarget)
+        (!hasSensorTarget && !hasPlantTarget && !hasZigbeeTarget && !hasPumpTarget && !hasEquipmentTarget)
         || dataByRange[range]
         || inFlightKeysRef.current.has(targetKey)
       ) {
@@ -251,6 +267,14 @@ export function useSensorStats({
             ...prev,
             [range]: { pumpHistory, loadedAtMs },
           }));
+        } else if (hasEquipmentTarget) {
+          const equipmentStatistics = equipmentStatsScope === 'self-service'
+            ? await fetchResourceStatistics(equipmentResourceId, hours)
+            : await fetchAdminResourceStatistics(equipmentResourceId, hours, token);
+          setDataByRange((prev) => ({
+            ...prev,
+            [range]: { equipmentStatistics, loadedAtMs },
+          }));
         }
       } catch (err) {
         if (isSessionExpiredError(err)) return;
@@ -269,6 +293,8 @@ export function useSensorStats({
     },
     [
       dataByRange,
+      equipmentResourceId,
+      equipmentStatsScope,
       metric,
       mode,
       plantId,
@@ -333,19 +359,46 @@ export function useSensorStats({
       )));
     }
 
+    if (mode === 'equipment') {
+      const statistics = rangeData.equipmentStatistics;
+      const history = Array.isArray(statistics?.points) ? statistics.points : [];
+      return sortChartPoints(history.map((point) => toChartPoint(
+        point,
+        point.value,
+        { rawValue: point.raw_value || point.rawValue },
+      )));
+    }
+
     return [];
   }, [metric, mode]);
 
   const chartData = useMemo(() => buildChartData(dataByRange[activeRange]), [activeRange, buildChartData, dataByRange]);
 
   const dailyOnDurations = useMemo(() => {
+    if (mode === 'equipment') {
+      const statistics = dataByRange[activeRange]?.equipmentStatistics;
+      const daily = Array.isArray(statistics?.daily) ? statistics.daily : [];
+      return daily.map((item) => ({
+        dateKey: item.date,
+        dateLabel: localDateLabel(item.date),
+        durationMs: item.on_duration_seconds === null || item.on_duration_seconds === undefined
+          ? null
+          : Number(item.on_duration_seconds) * 1000,
+        energyKwh: item.energy_kwh ?? null,
+        partial: Boolean(item.partial),
+      }));
+    }
     if (!needsDailyOnDurations) {
       return [];
     }
     const weekData = dataByRange.week;
     const points = buildChartData(weekData);
     return buildDailyOnDurations(points, weekData?.loadedAtMs);
-  }, [buildChartData, dataByRange.week, needsDailyOnDurations]);
+  }, [activeRange, buildChartData, dataByRange, mode, needsDailyOnDurations]);
+
+  const equipmentStatistics = mode === 'equipment'
+    ? dataByRange[activeRange]?.equipmentStatistics
+    : null;
 
   const setRange = useCallback((range) => {
     setActiveRange(range);
@@ -356,6 +409,9 @@ export function useSensorStats({
     setRange,
     chartData,
     dailyOnDurations,
+    responseChartKind: equipmentStatistics?.chart_kind || null,
+    chartUnit: equipmentStatistics?.chart_unit || null,
+    energySupported: Boolean(equipmentStatistics?.energy_supported),
     isLoading,
     isDailyLoading: isDailyLoading || (needsDailyOnDurations && activeRange === 'week' && isLoading),
     error,

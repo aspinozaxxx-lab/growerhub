@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.automation.AutomationFacade;
@@ -27,6 +28,15 @@ public class AutomationController {
     @GetMapping("/farms")
     public AutomationData.FarmsOverview farmsOverview(@AuthenticationPrincipal AuthenticatedUser user) {
         return automationFacade.getFarmsOverview(user);
+    }
+
+    @GetMapping("/resources/{resource_id}/statistics")
+    public AutomationData.ResourceStatistics resourceStatistics(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("resource_id") Integer resourceId,
+            @RequestParam(value = "hours", required = false) Integer hours
+    ) {
+        return automationFacade.getResourceStatistics(user, resourceId, hours);
     }
 
     @PostMapping("/farms")

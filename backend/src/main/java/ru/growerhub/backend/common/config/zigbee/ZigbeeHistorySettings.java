@@ -12,6 +12,7 @@ public class ZigbeeHistorySettings {
     private int maxPoints = 200;
     private int maxDiscretePoints = 5000;
     private int defaultHours = 24;
+    private int dailySummaryDays = 7;
     private long numericIntervalSeconds = 300;
     private long numericChangeMinIntervalSeconds = 60;
     private double numericChangeThreshold = 0.5;
@@ -42,6 +43,14 @@ public class ZigbeeHistorySettings {
 
     public void setDefaultHours(int defaultHours) {
         this.defaultHours = defaultHours;
+    }
+
+    public int getDailySummaryDays() {
+        return dailySummaryDays;
+    }
+
+    public void setDailySummaryDays(int dailySummaryDays) {
+        this.dailySummaryDays = dailySummaryDays;
     }
 
     public long getNumericIntervalSeconds() {

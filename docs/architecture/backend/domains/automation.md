@@ -23,6 +23,7 @@
 - `replaceGreenhousePlants(AuthenticatedUser user, Integer greenhouseId, SavePlantsRequest request)`
 - `updateGreenhousePlantWateringRate(AuthenticatedUser user, Integer greenhouseId, Integer plantId, UpdateWateringRateRequest request)`
 - `replaceGreenhouseScenarios(AuthenticatedUser user, Integer greenhouseId, SaveScenariosRequest request)`
+- `getResourceStatistics(AuthenticatedUser user, Integer resourceId, Integer hours)`
 - `getPlantZones(AuthenticatedUser user, List<Integer> plantIds)`
 - `getPlantZone(AuthenticatedUser user, Integer plantId)`
 - `createPlantWithPlacement(AuthenticatedUser user, PlantCreateCommand command, Integer zoneId)`
@@ -85,6 +86,10 @@ Self-service REST публикует `farms → greenhouses` и всегда ф�
 используют действующие сценарии. Readiness и связь вычисляет backend.
 MQTT-контракты не меняются. Расписание света и суточный лимит полива используют
 IANA timezone владельца; worker загружает часовые пояса одним набором.
+Статистика розеточного ресурса доступна по id привязки: Facade проверяет
+владельца и роль, получает его timezone и запрашивает у `zigbee` единый ответ с
+графиком мощности или бинарным fallback, временем включения и энергией за семь
+локальных календарных дней.
 
 ## Ограничения
 
@@ -93,4 +98,7 @@ IANA timezone владельца; worker загружает часовые по�
 Физический канал занимает один слот. Чужой id выглядит отсутствующим даже для
 администратора в обычном кабинете. `WATER_PUMP` принимает native pump,
 switch-роли — Zigbee writable state, `LEAK_SENSOR` — readable property.
-Frontend не вычисляет readiness. Automation не пишет журнал растений.
+Статистика оборудования разрешена только Zigbee-ролям `LIGHT_SWITCH`,
+`EXHAUST_SWITCH` и `AC_SWITCH`; admin может читать чужую привязку только через
+admin endpoint. Frontend не вычисляет readiness. Automation не пишет журнал
+растений.

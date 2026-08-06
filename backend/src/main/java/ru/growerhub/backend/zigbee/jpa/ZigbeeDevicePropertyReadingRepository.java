@@ -9,6 +9,34 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ZigbeeDevicePropertyReadingRepository extends JpaRepository<ZigbeeDevicePropertyReadingEntity, Integer> {
+    ZigbeeDevicePropertyReadingEntity
+            findFirstByCoordinatorIdAndIeeeAddressAndPropertyAndTsLessThanEqualOrderByTsDescIdDesc(
+                    Integer coordinatorId,
+                    String ieeeAddress,
+                    String property,
+                    LocalDateTime at
+    );
+
+    @Query(
+            """
+                    SELECT reading
+                    FROM ZigbeeDevicePropertyReadingEntity reading
+                    WHERE reading.coordinatorId = :coordinatorId
+                      AND reading.ieeeAddress = :ieeeAddress
+                      AND reading.property = :property
+                      AND reading.ts > :fromTs
+                      AND reading.ts <= :toTs
+                    ORDER BY reading.ts, reading.id
+                    """
+    )
+    List<ZigbeeDevicePropertyReadingEntity> findHistoryAfterUntil(
+            @Param("coordinatorId") Integer coordinatorId,
+            @Param("ieeeAddress") String ieeeAddress,
+            @Param("property") String property,
+            @Param("fromTs") LocalDateTime fromTs,
+            @Param("toTs") LocalDateTime toTs
+    );
+
     @Query(
             value = """
                     SELECT id, state_event_id, device_snapshot_id, coordinator_id, ieee_address,

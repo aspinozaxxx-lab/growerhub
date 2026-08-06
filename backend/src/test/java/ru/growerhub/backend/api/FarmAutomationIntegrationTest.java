@@ -46,6 +46,7 @@ import ru.growerhub.backend.zigbee.ZigbeeFacade;
 import ru.growerhub.backend.zigbee.contract.ZigbeeDeviceData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeFeatureData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeOwnedDeviceData;
+import ru.growerhub.backend.zigbee.contract.ZigbeePowerStatistics;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -145,6 +146,65 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(404)
                 .body("detail", equalTo("Теплица не найдена"));
+    }
+
+    @Test
+    void resourceStatisticsChecksOwnerAdminAndRole() {
+        UserEntity owner = createUser("statistics-owner@example.com", "user");
+        UserEntity other = createUser("statistics-other@example.com", "user");
+        UserEntity admin = createUser("statistics-admin@example.com", "admin");
+        String ownerToken = buildToken(owner.getId());
+        Integer farmId = createFarm(ownerToken, "Ферма со статистикой");
+        Integer resourceId = insertZigbeeResource(farmId, "AC_SWITCH");
+        Integer exhaustResourceId = insertZigbeeResource(farmId, "EXHAUST_SWITCH");
+        Integer lightResourceId = insertZigbeeResource(farmId, "LIGHT_SWITCH");
+        Integer unsupportedResourceId = insertZigbeeResource(farmId, "AIR_TEMPERATURE_SENSOR");
+        when(zigbeeFacade.getPowerStatisticsForAutomation(any(), any(), any(), any(), any(), any()))
+                .thenReturn(new ZigbeePowerStatistics("power", "W", List.of(), true, List.of()));
+
+        given()
+                .header("Authorization", "Bearer " + ownerToken)
+                .when()
+                .get("/api/automation/resources/" + resourceId + "/statistics?hours=24")
+                .then()
+                .statusCode(200)
+                .body("chart_kind", equalTo("power"))
+                .body("chart_unit", equalTo("W"))
+                .body("energy_supported", equalTo(true));
+
+        for (Integer allowedResourceId : List.of(exhaustResourceId, lightResourceId)) {
+            given()
+                    .header("Authorization", "Bearer " + ownerToken)
+                    .when()
+                    .get("/api/automation/resources/" + allowedResourceId + "/statistics?hours=24")
+                    .then()
+                    .statusCode(200)
+                    .body("chart_kind", equalTo("power"));
+        }
+
+        given()
+                .header("Authorization", "Bearer " + buildToken(other.getId()))
+                .when()
+                .get("/api/automation/resources/" + resourceId + "/statistics?hours=24")
+                .then()
+                .statusCode(404)
+                .body("detail", equalTo("Ресурс не найден"));
+
+        given()
+                .header("Authorization", "Bearer " + buildToken(admin.getId()))
+                .when()
+                .get("/api/admin/automation/resources/" + resourceId + "/statistics?hours=24")
+                .then()
+                .statusCode(200)
+                .body("chart_kind", equalTo("power"));
+
+        given()
+                .header("Authorization", "Bearer " + ownerToken)
+                .when()
+                .get("/api/automation/resources/" + unsupportedResourceId + "/statistics?hours=24")
+                .then()
+                .statusCode(400)
+                .body("detail", equalTo("Статистика мощности недоступна для ресурса"));
     }
 
     @Test
@@ -1059,6 +1119,35 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
     private UserEntity createUser(String email, String role) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         return userRepository.save(UserEntity.create(email, null, role, true, now, now));
+    }
+
+    private Integer insertZigbeeResource(Integer scopeId, String role) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        jdbcTemplate.update(
+                """
+                        INSERT INTO automation_resource_bindings(
+                            scope_type, scope_id, role, source_type, zigbee_coordinator_id,
+                            zigbee_ieee_address, zigbee_property, command_property,
+                            on_value, off_value, created_at, updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                "ROOM",
+                scopeId,
+                role,
+                "ZIGBEE_DEVICE",
+                1,
+                "0xstatistics-" + role,
+                "state",
+                "state",
+                "ON",
+                "OFF",
+                now,
+                now
+        );
+        return jdbcTemplate.queryForObject(
+                "SELECT MAX(id) FROM automation_resource_bindings",
+                Integer.class
+        );
     }
 
     private String buildToken(int userId) {

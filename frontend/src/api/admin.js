@@ -227,6 +227,24 @@ export async function fetchAdminPumpHistory(pumpId, hours, token) {
   return response.json();
 }
 
+// Translitem: zagruzka statistiki moshchnosti i energii resursa avtomatizacii.
+export async function fetchAdminResourceStatistics(resourceId, hours, token) {
+  const params = new URLSearchParams();
+  if (hours !== null && hours !== undefined) {
+    params.set('hours', hours);
+  }
+  const query = params.toString();
+  const response = await apiFetch(
+    `/api/admin/automation/resources/${encodeURIComponent(resourceId)}/statistics${query ? `?${query}` : ''}`,
+    token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
+  );
+  if (!response.ok) {
+    const message = await readErrorDetail(response, 'Не удалось загрузить статистику оборудования');
+    throw new Error(message || DEFAULT_ERROR_MESSAGE);
+  }
+  return response.json();
+}
+
 // Translitem: otkryvaem Zigbee pairing cherez backend MQTT publish.
 export async function adminZigbeePermitJoin(seconds, token) {
   const body = seconds !== null && seconds !== undefined ? { seconds } : {};

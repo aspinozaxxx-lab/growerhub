@@ -92,14 +92,15 @@ class HistoryCompactionIntegrationTest extends IntegrationTestBase {
         HistoryRetentionResult result = maintenanceFacade.compactNextDay();
 
         Assertions.assertEquals(fromTs.toLocalDate(), result.day());
-        Assertions.assertEquals(16, result.totalRowsDeleted());
+        Assertions.assertEquals(18, result.totalRowsDeleted());
         Assertions.assertEquals(1, sensorReadingRepository.count());
         Assertions.assertEquals(3, plantMetricSampleRepository.count());
         Assertions.assertEquals(3, pumpStateReadingRepository.count());
-        Assertions.assertEquals(5, zigbeePropertyRepository.count());
-        Assertions.assertEquals(5, zigbeeEventRepository.count());
+        Assertions.assertEquals(6, zigbeePropertyRepository.count());
+        Assertions.assertEquals(6, zigbeeEventRepository.count());
         Assertions.assertEquals(2, countZigbeeProperty("action"));
         Assertions.assertEquals(0, countZigbeeProperty("countdown"));
+        Assertions.assertEquals(1, countZigbeeProperty("energy"));
     }
 
     private void seedSensor(LocalDateTime hour) {
@@ -192,6 +193,8 @@ class HistoryCompactionIntegrationTest extends IntegrationTestBase {
         zigbeeReading(device, hour.plusMinutes(8), "action", null, "single", null);
         zigbeeReading(device, hour.plusMinutes(9), "action", null, "single", null);
         zigbeeReading(device, hour.plusMinutes(10), "countdown", 0.0, null, null);
+        zigbeeReading(device, hour.plusMinutes(11), "energy", 1.0, null, null);
+        zigbeeReading(device, hour.plusMinutes(12), "energy", 1.2, null, null);
     }
 
     private void zigbeeReading(

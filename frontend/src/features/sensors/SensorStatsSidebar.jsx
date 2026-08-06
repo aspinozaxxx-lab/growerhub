@@ -15,7 +15,7 @@ import { useSensorStatsContext } from './SensorStatsContext';
 import { formatDateDDMM, formatSensorValue, formatTimeHHMM, formatTimestampLabel } from '../../utils/formatters';
 import SidePanel from '../../components/ui/SidePanel';
 import './SensorStatsSidebar.css';
-import { translateApp } from '../../locales/i18n';
+import { getIntlLocale, translateApp } from '../../locales/i18n';
 
 const RANGE_OPTIONS = [
   { key: 'hour', label: translateApp("За час") },
@@ -31,6 +31,7 @@ const METRIC_LABELS = {
   watering: translateApp("Поливы"),
   device_state: translateApp("Состояние устройства"),
   pump: translateApp("Состояние полива"),
+  power_consumption: translateApp("Потребляемая мощность"),
 };
 
 function formatAxisLabel(timestamp, range) {
@@ -41,6 +42,9 @@ function formatAxisLabel(timestamp, range) {
 }
 
 function formatDurationMs(durationMs) {
+  if (durationMs === null || durationMs === undefined) {
+    return translateApp("Нет данных");
+  }
   const totalMinutes = Math.floor(Math.max(0, durationMs) / 60000);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -55,6 +59,16 @@ function formatDurationMs(durationMs) {
     return translateApp("{{value1}} мин", { value1: minutes });
   }
   return translateApp("0 мин");
+}
+
+function formatEnergyKwh(value) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+    return translateApp("Нет данных");
+  }
+  return `${new Intl.NumberFormat(getIntlLocale(), {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  }).format(Number(value))} ${translateApp("кВт·ч")}`;
 }
 
 function formatTooltipTimestamp(payload, fallbackLabel) {
@@ -98,11 +112,11 @@ function BinaryTooltip({ active, payload, label, onLabel, offLabel, valueLabel }
   );
 }
 
-function DailyOnSummary({ items, isLoading }) {
+function DailyOnSummary({ items, isLoading, showEnergy = false }) {
   return (
-    <section className="sensor-sidebar__daily" aria-label={translateApp("Включено по дням")}>
+    <section className="sensor-sidebar__daily" aria-label={translateApp(showEnergy ? "По дням" : "Включено по дням")}>
       <div className="sensor-sidebar__daily-header">
-        <h3>{translateApp("Включено по дням")}</h3>
+        <h3>{translateApp(showEnergy ? "По дням" : "Включено по дням")}</h3>
         <span>{translateApp("Последние 7 дней")}</span>
       </div>
       {isLoading ? (
@@ -113,8 +127,19 @@ function DailyOnSummary({ items, isLoading }) {
         <ul className="sensor-sidebar__daily-list">
           {items.map((item) => (
             <li key={item.dateKey} className="sensor-sidebar__daily-item">
-              <span>{item.dateLabel}</span>
-              <strong>{formatDurationMs(item.durationMs)}</strong>
+              <span className="sensor-sidebar__daily-date">{item.dateLabel}</span>
+              <div className="sensor-sidebar__daily-values">
+                <span>
+                  <small>{translateApp("Включено")}</small>
+                  <strong>{formatDurationMs(item.durationMs)}</strong>
+                </span>
+                {showEnergy ? (
+                  <span>
+                    <small>{translateApp("Энергия")}</small>
+                    <strong>{formatEnergyKwh(item.energyKwh)}</strong>
+                  </span>
+                ) : null}
+              </div>
             </li>
           ))}
         </ul>
@@ -128,10 +153,12 @@ function SensorChart({
   range,
   data,
   chartKind = 'numeric',
+  chartUnit,
   valueLabel,
   binaryOnLabel = translateApp("Включено"),
   binaryOffLabel = translateApp("Выключено"),
 }) {
+  const displayChartUnit = chartUnit === 'W' ? translateApp("Вт") : chartUnit;
   const preparedData = Array.isArray(data)
     ? data.filter((item) => (
       item?.timestamp
@@ -220,6 +247,9 @@ function SensorChart({
     );
   }
 
+  const isPower = chartKind === 'power';
+  const numericLabel = valueLabel || METRIC_LABELS[metric] || metric;
+
   return (
     <ResponsiveContainer width="100%" height={260}>
       <LineChart data={preparedData} margin={{ top: 8, right: 8, left: -12, bottom: 8 }}>
@@ -232,15 +262,28 @@ function SensorChart({
           tickFormatter={(value) => formatAxisLabel(value, range)}
           tick={{ fill: '#c7d7ef', fontSize: 12 }}
         />
-        <YAxis tick={{ fill: '#c7d7ef', fontSize: 12 }} />
+        <YAxis
+          domain={isPower ? [0, 'auto'] : undefined}
+          tick={{ fill: '#c7d7ef', fontSize: 12 }}
+          label={isPower ? {
+            value: translateApp("Мощность (Вт)"),
+            angle: -90,
+            position: 'insideLeft',
+            fill: '#c7d7ef',
+            fontSize: 12,
+          } : undefined}
+        />
         <Tooltip
-          formatter={(value) => [formatSensorValue(value), valueLabel || METRIC_LABELS[metric] || metric]}
+          formatter={(value) => [
+            `${formatSensorValue(value)}${displayChartUnit ? ` ${displayChartUnit}` : ''}`,
+            numericLabel,
+          ]}
           labelFormatter={(value, payload) => formatTooltipTimestamp(payload, value)}
           contentStyle={{ fontSize: '0.9rem' }}
           labelStyle={{ color: '#0f172a', fontWeight: 600 }}
         />
         <Line
-          type="monotone"
+          type={isPower ? 'stepAfter' : 'monotone'}
           dataKey="value"
           stroke="#6bdba8"
           strokeWidth={2}
@@ -258,6 +301,8 @@ function SensorStatsSidebar() {
     sensorId,
     plantId,
     pumpId,
+    equipmentResourceId,
+    equipmentStatsScope,
     zigbeeCoordinatorId,
     zigbeeIeeeAddress,
     zigbeeProperty,
@@ -277,13 +322,16 @@ function SensorStatsSidebar() {
     || (mode === 'plant' && plantId && metric)
     || (mode === 'zigbee' && zigbeeIeeeAddress && zigbeeProperty)
     || (mode === 'pump' && pumpId)
+    || (mode === 'equipment' && equipmentResourceId)
   );
-  const resolvedChartKind = chartKind || (mode === 'pump' ? 'binary' : 'numeric');
+  const requestedChartKind = chartKind || (mode === 'pump' ? 'binary' : 'numeric');
   const {
     activeRange,
     setRange,
     chartData,
     dailyOnDurations,
+    responseChartKind,
+    chartUnit,
     isLoading,
     isDailyLoading,
     error,
@@ -292,14 +340,17 @@ function SensorStatsSidebar() {
     sensorId: shouldLoad ? sensorId : null,
     plantId: shouldLoad ? plantId : null,
     pumpId: shouldLoad ? pumpId : null,
+    equipmentResourceId: shouldLoad ? equipmentResourceId : null,
+    equipmentStatsScope: shouldLoad ? equipmentStatsScope : null,
     zigbeeCoordinatorId: shouldLoad ? zigbeeCoordinatorId : null,
     zigbeeIeeeAddress: shouldLoad ? zigbeeIeeeAddress : null,
     zigbeeProperty: shouldLoad ? zigbeeProperty : null,
     zigbeeHistoryScope: shouldLoad ? zigbeeHistoryScope : null,
     metric: shouldLoad ? metric : null,
-    chartKind: shouldLoad ? resolvedChartKind : null,
+    chartKind: shouldLoad ? requestedChartKind : null,
   });
-  const showDailyOnSummary = resolvedChartKind === 'binary' || mode === 'pump';
+  const resolvedChartKind = responseChartKind || requestedChartKind;
+  const showDailyOnSummary = resolvedChartKind === 'binary' || mode === 'pump' || mode === 'equipment';
 
   const fallbackTitle = useMemo(() => {
     const metricLabel = metric ? METRIC_LABELS[metric] || metric : translateApp("История");
@@ -341,6 +392,7 @@ function SensorStatsSidebar() {
             range={activeRange}
             data={chartData}
             chartKind={resolvedChartKind}
+            chartUnit={chartUnit}
             valueLabel={valueLabel}
             binaryOnLabel={binaryOnLabel || translateApp("Включено")}
             binaryOffLabel={binaryOffLabel || translateApp("Выключено")}
@@ -349,7 +401,11 @@ function SensorStatsSidebar() {
       </div>
 
       {showDailyOnSummary && (
-        <DailyOnSummary items={dailyOnDurations} isLoading={isDailyLoading} />
+        <DailyOnSummary
+          items={dailyOnDurations}
+          isLoading={isDailyLoading}
+          showEnergy={mode === 'equipment'}
+        />
       )}
     </SidePanel>
   );

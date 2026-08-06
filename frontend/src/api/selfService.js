@@ -79,6 +79,11 @@ export const fetchFarmOverview = () => requestJson('/api/automation/farm');
 
 export const fetchFarmsOverview = () => requestJson('/api/automation/farms');
 
+export const fetchResourceStatistics = (resourceId, hours = 24) => requestJson(
+  `/api/automation/resources/${encodeURIComponent(resourceId)}/statistics`
+    + `?hours=${encodeURIComponent(hours)}`,
+);
+
 export const createUserFarm = (payload) => requestJson('/api/automation/farms', {
   method: 'POST',
   body: JSON.stringify(payload),

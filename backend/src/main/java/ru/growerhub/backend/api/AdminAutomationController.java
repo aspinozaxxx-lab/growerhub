@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.CommonDtos;
 import ru.growerhub.backend.automation.AutomationFacade;
@@ -28,6 +29,16 @@ public class AdminAutomationController {
     public AutomationData.Overview getOverview(@AuthenticationPrincipal AuthenticatedUser user) {
         requireAdmin(user);
         return automationFacade.getOverview(user);
+    }
+
+    @GetMapping("/api/admin/automation/resources/{resource_id}/statistics")
+    public AutomationData.ResourceStatistics resourceStatistics(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("resource_id") Integer resourceId,
+            @RequestParam(value = "hours", required = false) Integer hours
+    ) {
+        requireAdmin(user);
+        return automationFacade.getResourceStatistics(user, resourceId, hours);
     }
 
     @PostMapping("/api/admin/automation/rooms")

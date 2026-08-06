@@ -1,10 +1,14 @@
 import React from 'react';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchAdminPumpHistory, fetchAdminZigbeeHistory } from '../../api/admin';
+import {
+  fetchAdminPumpHistory,
+  fetchAdminResourceStatistics,
+  fetchAdminZigbeeHistory,
+} from '../../api/admin';
 import { fetchPlantHistory } from '../../api/plants';
 import { fetchSensorHistory } from '../../api/sensors';
-import { fetchZigbeeHistory } from '../../api/selfService';
+import { fetchResourceStatistics, fetchZigbeeHistory } from '../../api/selfService';
 import { useSensorStats } from './useSensorStats';
 
 vi.mock('../auth/AuthContext', () => ({
@@ -13,6 +17,7 @@ vi.mock('../auth/AuthContext', () => ({
 
 vi.mock('../../api/admin', () => ({
   fetchAdminPumpHistory: vi.fn(),
+  fetchAdminResourceStatistics: vi.fn(),
   fetchAdminZigbeeHistory: vi.fn(),
 }));
 
@@ -25,11 +30,21 @@ vi.mock('../../api/sensors', () => ({
 }));
 
 vi.mock('../../api/selfService', () => ({
+  fetchResourceStatistics: vi.fn(),
   fetchZigbeeHistory: vi.fn(),
 }));
 
 function Probe(props) {
-  const { chartData, dailyOnDurations, isLoading, isDailyLoading, error } = useSensorStats(props);
+  const {
+    chartData,
+    dailyOnDurations,
+    responseChartKind,
+    chartUnit,
+    energySupported,
+    isLoading,
+    isDailyLoading,
+    error,
+  } = useSensorStats(props);
   return (
     <div>
       <div data-testid="loading">{String(isLoading)}</div>
@@ -37,6 +52,7 @@ function Probe(props) {
       <div data-testid="error">{error || ''}</div>
       <pre data-testid="data">{JSON.stringify(chartData)}</pre>
       <pre data-testid="daily">{JSON.stringify(dailyOnDurations)}</pre>
+      <pre data-testid="metadata">{JSON.stringify({ responseChartKind, chartUnit, energySupported })}</pre>
     </div>
   );
 }
@@ -44,9 +60,11 @@ function Probe(props) {
 describe('useSensorStats', () => {
   beforeEach(() => {
     fetchAdminPumpHistory.mockReset();
+    fetchAdminResourceStatistics.mockReset();
     fetchAdminZigbeeHistory.mockReset();
     fetchPlantHistory.mockReset();
     fetchSensorHistory.mockReset();
+    fetchResourceStatistics.mockReset();
     fetchZigbeeHistory.mockReset();
   });
 
@@ -189,5 +207,51 @@ describe('useSensorStats', () => {
     await waitFor(() => expect(fetchAdminPumpHistory).toHaveBeenCalledWith(9, 24, 'token-1'));
     await waitFor(() => expect(screen.getByTestId('data')).toHaveTextContent('running'));
     expect(screen.getByTestId('data')).toHaveTextContent('"value":1');
+  });
+
+  it('zagruzhaet moshchnost i sutochnuyu energiyu rozetki po resource ID', async () => {
+    fetchResourceStatistics.mockResolvedValueOnce({
+      chart_kind: 'power',
+      chart_unit: 'W',
+      energy_supported: true,
+      points: [
+        { ts: '2026-01-08T08:00:00Z', value: 0 },
+        { ts: '2026-01-08T09:00:00Z', value: 100 },
+        { ts: '2026-01-08T10:00:00Z', value: 250 },
+      ],
+      daily: [{
+        date: '2026-01-08',
+        on_duration_seconds: 3600,
+        energy_kwh: 0.35,
+        partial: true,
+      }],
+    });
+
+    render(
+      <Probe
+        mode="equipment"
+        equipmentResourceId={42}
+        equipmentStatsScope="self-service"
+        metric="power_consumption"
+        chartKind="power"
+      />,
+    );
+
+    await waitFor(() => expect(fetchResourceStatistics).toHaveBeenCalledWith(42, 24));
+    await waitFor(() => {
+      const data = JSON.parse(screen.getByTestId('data').textContent);
+      expect(data.map((point) => point.value)).toEqual([0, 100, 250]);
+      expect(JSON.parse(screen.getByTestId('daily').textContent)).toEqual([{
+        dateKey: '2026-01-08',
+        dateLabel: '08.01',
+        durationMs: 3600000,
+        energyKwh: 0.35,
+        partial: true,
+      }]);
+      expect(screen.getByTestId('metadata')).toHaveTextContent('"responseChartKind":"power"');
+      expect(screen.getByTestId('metadata')).toHaveTextContent('"chartUnit":"W"');
+      expect(screen.getByTestId('metadata')).toHaveTextContent('"energySupported":true');
+    });
+    expect(fetchAdminResourceStatistics).not.toHaveBeenCalled();
   });
 });

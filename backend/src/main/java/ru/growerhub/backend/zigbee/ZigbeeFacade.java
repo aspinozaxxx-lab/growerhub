@@ -5,7 +5,12 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.ArrayList;
@@ -42,6 +47,7 @@ import ru.growerhub.backend.zigbee.contract.ZigbeeHistoryPoint;
 import ru.growerhub.backend.zigbee.contract.ZigbeeMqttSnapshotMessage;
 import ru.growerhub.backend.zigbee.contract.ZigbeeOverviewData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeOwnedDeviceData;
+import ru.growerhub.backend.zigbee.contract.ZigbeePowerStatistics;
 import ru.growerhub.backend.zigbee.contract.ZigbeeProductAnalytics;
 import ru.growerhub.backend.zigbee.jpa.ZigbeeBridgeSnapshotEntity;
 import ru.growerhub.backend.zigbee.jpa.ZigbeeBridgeSnapshotRepository;
@@ -65,6 +71,7 @@ public class ZigbeeFacade {
     private static final UUID LEGACY_COORDINATOR_PUBLIC_ID = UUID.fromString(
             "00000000-0000-0000-0000-000000000001"
     );
+    private static final Set<Integer> POWER_STATISTICS_HOURS = Set.of(1, 24, 168, 720);
 
     private final ZigbeeBridgeSnapshotRepository bridgeRepository;
     private final ZigbeeDeviceSnapshotRepository deviceRepository;
@@ -442,7 +449,7 @@ public class ZigbeeFacade {
             throw new DomainException("not_found", "Устройство Zigbee не найдено");
         }
         int resolvedHours = hours != null ? hours : historySettings.getDefaultHours();
-        LocalDateTime since = LocalDateTime.now(java.time.ZoneOffset.UTC).minusHours(resolvedHours);
+        LocalDateTime since = utcDateTime(clock.instant()).minusHours(resolvedHours);
         int maxPoints = Math.max(1, historySettings.getMaxPoints());
         int maxDiscretePoints = Math.max(maxPoints, historySettings.getMaxDiscretePoints());
         ZigbeeDevicePropertyReadingEntity latest = propertyReadingRepository.findLatestHistoryPoint(
@@ -495,6 +502,281 @@ public class ZigbeeFacade {
             ));
         }
         return payload;
+    }
+
+    @Transactional(readOnly = true)
+    public ZigbeePowerStatistics getPowerStatisticsForAutomation(
+            Integer coordinatorId,
+            String ieeeAddress,
+            String stateProperty,
+            String onValue,
+            Integer hours,
+            String timezone
+    ) {
+        if (coordinatorId == null || ieeeAddress == null || ieeeAddress.isBlank()) {
+            throw new DomainException("not_found", "Устройство Zigbee не найдено");
+        }
+        int resolvedHours = hours != null ? hours : historySettings.getDefaultHours();
+        if (!POWER_STATISTICS_HOURS.contains(resolvedHours)) {
+            throw new DomainException("bad_request", "Параметр hours должен быть одним из: 1, 24, 168, 720");
+        }
+        ZoneId zone;
+        try {
+            zone = ZoneId.of(timezone);
+        } catch (RuntimeException error) {
+            throw new DomainException("bad_request", "Некорректный часовой пояс");
+        }
+        ZigbeeDeviceSnapshotEntity device = deviceRepository
+                .findByCoordinatorIdAndIeeeAddress(coordinatorId, ieeeAddress)
+                .orElseThrow(() -> new DomainException("not_found", "Устройство Zigbee не найдено"));
+        String normalizedStateProperty = normalizeProperty(stateProperty);
+        String normalizedOnValue = onValue == null || onValue.isBlank() ? "ON" : onValue.trim();
+        UnitConversion powerConversion = propertyConversion(device, "power", UnitKind.POWER);
+        UnitConversion energyConversion = propertyConversion(device, "energy", UnitKind.ENERGY);
+        boolean powerSupported = powerConversion != null && propertyIsAvailable(device, "power");
+        boolean energySupported = energyConversion != null && propertyIsAvailable(device, "energy");
+
+        List<ZigbeeHistoryPoint> chartPoints;
+        String chartKind;
+        String chartUnit;
+        if (powerSupported) {
+            chartKind = "power";
+            chartUnit = "W";
+            chartPoints = getHistory(coordinatorId, ieeeAddress, "power", resolvedHours).stream()
+                    .map(point -> convertHistoryPoint(point, powerConversion.factor(), "power"))
+                    .toList();
+        } else {
+            chartKind = "binary";
+            chartUnit = null;
+            chartPoints = getHistory(coordinatorId, ieeeAddress, normalizedStateProperty, resolvedHours);
+        }
+
+        Instant now = clock.instant();
+        int dayCount = Math.max(1, historySettings.getDailySummaryDays());
+        LocalDate today = now.atZone(zone).toLocalDate();
+        LocalDate firstDay = today.minusDays(dayCount - 1L);
+        LocalDateTime windowStart = utcDateTime(firstDay.atStartOfDay(zone).toInstant());
+        LocalDateTime windowEnd = utcDateTime(now);
+        List<ZigbeeDevicePropertyReadingEntity> stateReadings = historyWithBaseline(
+                coordinatorId,
+                device.getIeeeAddress(),
+                normalizedStateProperty,
+                windowStart,
+                windowEnd
+        );
+        List<ZigbeeDevicePropertyReadingEntity> energyReadings = energySupported
+                ? historyWithBaseline(
+                        coordinatorId,
+                        device.getIeeeAddress(),
+                        "energy",
+                        windowStart,
+                        windowEnd
+                )
+                : List.of();
+        List<ZigbeePowerStatistics.DailyUsage> daily = new ArrayList<>();
+        for (int offset = 0; offset < dayCount; offset++) {
+            LocalDate date = firstDay.plusDays(offset);
+            Instant dayStart = date.atStartOfDay(zone).toInstant();
+            Instant nextDayStart = date.plusDays(1).atStartOfDay(zone).toInstant();
+            Instant dayEnd = nextDayStart.isAfter(now) ? now : nextDayStart;
+            daily.add(new ZigbeePowerStatistics.DailyUsage(
+                    date,
+                    calculateOnDurationSeconds(
+                            stateReadings,
+                            dayStart,
+                            dayEnd,
+                            normalizedOnValue
+                    ),
+                    energySupported
+                            ? calculateEnergyKwh(
+                                    energyReadings,
+                                    dayStart,
+                                    dayEnd,
+                                    energyConversion.factor()
+                            )
+                            : null,
+                    date.equals(today)
+            ));
+        }
+        return new ZigbeePowerStatistics(
+                chartKind,
+                chartUnit,
+                chartPoints,
+                energySupported,
+                daily.stream().sorted((left, right) -> right.date().compareTo(left.date())).toList()
+        );
+    }
+
+    private List<ZigbeeDevicePropertyReadingEntity> historyWithBaseline(
+            Integer coordinatorId,
+            String ieeeAddress,
+            String property,
+            LocalDateTime fromTs,
+            LocalDateTime toTs
+    ) {
+        List<ZigbeeDevicePropertyReadingEntity> result = new ArrayList<>();
+        ZigbeeDevicePropertyReadingEntity baseline = propertyReadingRepository
+                .findFirstByCoordinatorIdAndIeeeAddressAndPropertyAndTsLessThanEqualOrderByTsDescIdDesc(
+                        coordinatorId,
+                        ieeeAddress,
+                        property,
+                        fromTs
+                );
+        if (baseline != null) {
+            result.add(baseline);
+        }
+        result.addAll(propertyReadingRepository.findHistoryAfterUntil(
+                coordinatorId,
+                ieeeAddress,
+                property,
+                fromTs,
+                toTs
+        ));
+        return result;
+    }
+
+    private Long calculateOnDurationSeconds(
+            List<ZigbeeDevicePropertyReadingEntity> readings,
+            Instant dayStart,
+            Instant dayEnd,
+            String onValue
+    ) {
+        ZigbeeDevicePropertyReadingEntity baseline = latestAtOrBefore(readings, dayStart);
+        if (baseline == null) {
+            return null;
+        }
+        boolean on = historyValueIsOn(baseline, onValue);
+        Instant cursor = dayStart;
+        long seconds = 0;
+        for (ZigbeeDevicePropertyReadingEntity reading : readings) {
+            Instant timestamp = readingInstant(reading);
+            if (!timestamp.isAfter(dayStart) || timestamp.isAfter(dayEnd)) {
+                continue;
+            }
+            if (on) {
+                seconds += Duration.between(cursor, timestamp).getSeconds();
+            }
+            cursor = timestamp;
+            on = historyValueIsOn(reading, onValue);
+        }
+        if (on && cursor.isBefore(dayEnd)) {
+            seconds += Duration.between(cursor, dayEnd).getSeconds();
+        }
+        return Math.max(0L, seconds);
+    }
+
+    private Double calculateEnergyKwh(
+            List<ZigbeeDevicePropertyReadingEntity> readings,
+            Instant dayStart,
+            Instant dayEnd,
+            double factor
+    ) {
+        ZigbeeDevicePropertyReadingEntity baseline = latestAtOrBefore(readings, dayStart);
+        if (baseline == null || baseline.getValueNumeric() == null) {
+            return null;
+        }
+        double previous = baseline.getValueNumeric();
+        double consumed = 0.0;
+        boolean hasReading = false;
+        for (ZigbeeDevicePropertyReadingEntity reading : readings) {
+            Instant timestamp = readingInstant(reading);
+            if (!timestamp.isAfter(dayStart) || timestamp.isAfter(dayEnd) || reading.getValueNumeric() == null) {
+                continue;
+            }
+            double current = reading.getValueNumeric();
+            double delta = current - previous;
+            if (delta > 0.0) {
+                consumed += delta;
+            }
+            previous = current;
+            hasReading = true;
+        }
+        return hasReading ? consumed * factor : null;
+    }
+
+    private ZigbeeDevicePropertyReadingEntity latestAtOrBefore(
+            List<ZigbeeDevicePropertyReadingEntity> readings,
+            Instant boundary
+    ) {
+        ZigbeeDevicePropertyReadingEntity latest = null;
+        for (ZigbeeDevicePropertyReadingEntity reading : readings) {
+            if (readingInstant(reading).isAfter(boundary)) {
+                break;
+            }
+            latest = reading;
+        }
+        return latest;
+    }
+
+    private boolean historyValueIsOn(ZigbeeDevicePropertyReadingEntity reading, String onValue) {
+        if (reading.getValueText() != null && onValue.equalsIgnoreCase(reading.getValueText().trim())) {
+            return true;
+        }
+        Double value = normalizedHistoryValue(reading);
+        return value != null && value >= 0.5;
+    }
+
+    private UnitConversion propertyConversion(
+            ZigbeeDeviceSnapshotEntity device,
+            String property,
+            UnitKind kind
+    ) {
+        ZigbeeFeatureData feature = toDeviceData(device).metrics().stream()
+                .filter(item -> property.equalsIgnoreCase(item.property()))
+                .findFirst()
+                .orElse(null);
+        String unit = feature != null ? feature.unit() : null;
+        if (unit == null || unit.isBlank()) {
+            return new UnitConversion(kind == UnitKind.POWER ? "W" : "kWh", 1.0);
+        }
+        String normalized = unit.trim().toLowerCase(Locale.ROOT);
+        if (kind == UnitKind.POWER) {
+            return switch (normalized) {
+                case "w" -> new UnitConversion("W", 1.0);
+                case "kw" -> new UnitConversion("W", 1000.0);
+                case "mw" -> new UnitConversion("W", 0.001);
+                default -> null;
+            };
+        }
+        return switch (normalized) {
+            case "kwh" -> new UnitConversion("kWh", 1.0);
+            case "wh" -> new UnitConversion("kWh", 0.001);
+            default -> null;
+        };
+    }
+
+    private boolean propertyIsAvailable(ZigbeeDeviceSnapshotEntity device, String property) {
+        ZigbeeDeviceData data = toDeviceData(device);
+        boolean exposed = data.metrics().stream()
+                .anyMatch(feature -> property.equalsIgnoreCase(feature.property()));
+        if (exposed) {
+            return true;
+        }
+        Object state = data.state();
+        return state instanceof Map<?, ?> map && map.get(property) instanceof Number;
+    }
+
+    private ZigbeeHistoryPoint convertHistoryPoint(
+            ZigbeeHistoryPoint point,
+            double factor,
+            String property
+    ) {
+        return new ZigbeeHistoryPoint(
+                point.ts(),
+                property,
+                point.value() != null ? point.value() * factor : null,
+                point.rawValue(),
+                point.valueText(),
+                point.valueBoolean()
+        );
+    }
+
+    private Instant readingInstant(ZigbeeDevicePropertyReadingEntity reading) {
+        return reading.getTs().toInstant(ZoneOffset.UTC);
+    }
+
+    private LocalDateTime utcDateTime(Instant instant) {
+        return LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 
     @Transactional(readOnly = true)
@@ -1560,5 +1842,13 @@ public class ZigbeeFacade {
     }
 
     private record NumericHistoryCheckpoint(LocalDateTime ts, Double value) {
+    }
+
+    private enum UnitKind {
+        POWER,
+        ENERGY
+    }
+
+    private record UnitConversion(String unit, double factor) {
     }
 }

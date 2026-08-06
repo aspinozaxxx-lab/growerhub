@@ -156,19 +156,18 @@ describe('admin farm dashboard model', () => {
     });
   });
 
-  it('stroitr payload statistiki dlya Zigbee svojstva', () => {
+  it('stroitr payload statistiki oborudovaniya dlya Zigbee rozetki', () => {
     expect(buildResourceStatsPayload({
+      id: 42,
       source_type: RESOURCE_SOURCE_TYPES.ZIGBEE_DEVICE,
       zigbee_coordinator_id: '7b17f42e-28ad-48a0-9f61-f9f3fe160a85',
       zigbee_ieee_address: '0xabc',
       zigbee_property: 'state',
     }, RESOURCE_ROLES.LIGHT_SWITCH, 'Бокс 2')).toMatchObject({
-      mode: 'zigbee',
-      zigbeeCoordinatorId: '7b17f42e-28ad-48a0-9f61-f9f3fe160a85',
-      zigbeeIeeeAddress: '0xabc',
-      zigbeeProperty: 'state',
-      metric: 'device_state',
-      chartKind: 'binary',
+      mode: 'equipment',
+      equipmentResourceId: 42,
+      metric: 'power_consumption',
+      chartKind: 'power',
       title: 'Свет',
       subtitle: 'Бокс 2',
     });

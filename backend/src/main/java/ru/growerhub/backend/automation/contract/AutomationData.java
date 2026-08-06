@@ -1,6 +1,7 @@
 package ru.growerhub.backend.automation.contract;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -209,6 +210,30 @@ public final class AutomationData {
             @JsonProperty("label") String label,
             @JsonProperty("ready") boolean ready,
             @JsonProperty("reason") String reason
+    ) {
+    }
+
+    public record ResourceStatistics(
+            @JsonProperty("chart_kind") String chartKind,
+            @JsonProperty("chart_unit") String chartUnit,
+            @JsonProperty("points") List<ResourceStatisticsPoint> points,
+            @JsonProperty("energy_supported") boolean energySupported,
+            @JsonProperty("daily") List<DailyResourceStatistics> daily
+    ) {
+    }
+
+    public record ResourceStatisticsPoint(
+            @JsonProperty("ts") LocalDateTime ts,
+            @JsonProperty("value") Double value,
+            @JsonProperty("raw_value") String rawValue
+    ) {
+    }
+
+    public record DailyResourceStatistics(
+            @JsonProperty("date") LocalDate date,
+            @JsonProperty("on_duration_seconds") Long onDurationSeconds,
+            @JsonProperty("energy_kwh") Double energyKwh,
+            @JsonProperty("partial") boolean partial
     ) {
     }
 

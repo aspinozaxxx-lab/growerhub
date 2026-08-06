@@ -67,6 +67,12 @@ const SENSOR_METRICS = {
   [RESOURCE_ROLES.SOIL_MOISTURE_SENSOR]: 'soil_moisture',
 };
 
+const POWER_STATISTICS_ROLES = new Set([
+  RESOURCE_ROLES.AC_SWITCH,
+  RESOURCE_ROLES.EXHAUST_SWITCH,
+  RESOURCE_ROLES.LIGHT_SWITCH,
+]);
+
 export function listOrEmpty(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -311,6 +317,19 @@ export function buildResourceStatsPayload(resource, role, subtitle, scope = {}) 
     };
   }
   if (resource.source_type === RESOURCE_SOURCE_TYPES.ZIGBEE_DEVICE && resource.zigbee_ieee_address) {
+    if (POWER_STATISTICS_ROLES.has(role) && resource.id) {
+      return {
+        mode: 'equipment',
+        equipmentResourceId: resource.id,
+        metric: 'power_consumption',
+        chartKind: 'power',
+        title,
+        subtitle: resolvedSubtitle,
+        valueLabel: translateApp("Потребляемая мощность"),
+        binaryOnLabel: translateApp("Включено"),
+        binaryOffLabel: translateApp("Выключено"),
+      };
+    }
     const property = resourceStatsProperty(resource, role);
     if (!property) {
       return null;
