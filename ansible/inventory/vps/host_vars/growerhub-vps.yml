@@ -14,7 +14,7 @@ ansible_ssh_retries: 3
 
 server_timezone: "Europe/Moscow"
 
-postgresql_version: 14
+postgresql_version: 16
 postgresql_conf_dir: "/etc/postgresql/{{ postgresql_version }}/main"
 postgresql_conf_path: "{{ postgresql_conf_dir }}/postgresql.conf"
 pg_hba_conf_path: "{{ postgresql_conf_dir }}/pg_hba.conf"

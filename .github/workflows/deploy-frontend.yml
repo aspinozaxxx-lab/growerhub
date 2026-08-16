@@ -69,10 +69,10 @@ jobs:
       name: production
       url: https://growerhub.ru/
     env:
-      SSH_HOST: ${{ secrets.IP_VPS_HOST }}
+      SSH_HOST: ${{ secrets.IP_VPS_SELECT }}
       SSH_PORT: "22"
       SSH_USER: growerhub-deploy
-      SSH_HOST_ED25519_FINGERPRINT: "SHA256:HVqlFDK4gfDJ8KnRBE3nApvW3YZA3N4ActMDm/lFTPM"
+      SSH_HOST_ED25519_FINGERPRINT: "SHA256:1YnA3HtWolchPXtYujdEGaVM/gZeXMrHjaBG7sdJ3dA"
       RELEASES_DIR: /opt/growerhub/releases/frontend
       CURRENT_LINK: /opt/growerhub/current/frontend
     steps:
