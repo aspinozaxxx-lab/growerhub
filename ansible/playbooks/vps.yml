@@ -208,19 +208,30 @@
         - users
         - ssh
 
+    - name: Remove superseded SSH drop-in
+      ansible.builtin.file:
+        path: "/etc/ssh/sshd_config.d/60-growerhub.conf"
+        state: absent
+      register: growerhub_legacy_sshd_dropin
+      tags:
+        - ssh
+
     - name: Install hardened SSH drop-in
       ansible.builtin.copy:
-        dest: "/etc/ssh/sshd_config.d/60-growerhub.conf"
+        dest: "/etc/ssh/sshd_config.d/00-growerhub.conf"
         owner: root
         group: root
         mode: "0644"
         content: |-
+          AuthenticationMethods publickey
           PasswordAuthentication no
           KbdInteractiveAuthentication no
           PubkeyAuthentication yes
           PermitRootLogin prohibit-password
           X11Forwarding no
+          LoginGraceTime 30
           MaxAuthTries 4
+          PerSourceMaxStartups 3
       register: growerhub_sshd_dropin
       tags:
         - ssh
@@ -231,12 +242,34 @@
       tags:
         - ssh
 
+    - name: Read effective SSH configuration
+      ansible.builtin.command: /usr/sbin/sshd -T
+      register: growerhub_sshd_effective
+      changed_when: false
+      tags:
+        - ssh
+
+    - name: Validate effective SSH hardening
+      ansible.builtin.assert:
+        that:
+          - "'authenticationmethods publickey' in growerhub_sshd_effective.stdout_lines"
+          - "'passwordauthentication no' in growerhub_sshd_effective.stdout_lines"
+          - "'kbdinteractiveauthentication no' in growerhub_sshd_effective.stdout_lines"
+          - "'pubkeyauthentication yes' in growerhub_sshd_effective.stdout_lines"
+          - "'permitrootlogin without-password' in growerhub_sshd_effective.stdout_lines"
+          - "'logingracetime 30' in growerhub_sshd_effective.stdout_lines"
+          - "'maxauthtries 4' in growerhub_sshd_effective.stdout_lines"
+          - "'persourcemaxstartups 3' in growerhub_sshd_effective.stdout_lines"
+        fail_msg: "Effektivnaya SSH-konfiguraciya ne sootvetstvuet hardening profilyu."
+      tags:
+        - ssh
+
     - name: Reload SSH after validated change
       ansible.builtin.service:
         name: ssh
         state: reloaded
       when:
-        - growerhub_sshd_dropin.changed
+        - growerhub_sshd_dropin.changed or growerhub_legacy_sshd_dropin.changed
         - not ansible_check_mode
       tags:
         - ssh
