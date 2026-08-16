@@ -3,7 +3,7 @@ slug: "home-assistant-dlya-rasteniy"
 title: "Автополив растений в Home Assistant: безопасная схема по шагам"
 summary: "Как собрать автополив в Home Assistant: датчики, ручная проверка, триггер, условия, лимит работы насоса, защита от протечки и история."
 created_at: "2026-06-29"
-updated_at: "2026-07-23"
+updated_at: "2026-08-16"
 cluster: "home-assistant-i-diy"
 tags:
   - "GrowerHub"
@@ -14,10 +14,10 @@ keywords:
   - "Home Assistant растения"
   - "полив растений Home Assistant"
 related:
+  - "zigbee-klapan-poliva-home-assistant"
   - "dashboard-rasteniy-v-home-assistant"
   - "mqtt-avtopoliv-kakie-topiki-nuzhny"
   - "esp32-datchik-vlazhnosti-home-assistant"
-  - "growerhub-i-home-assistant-cherez-mqtt"
 hero_image: "/content/articles/illustrations/home-assistant-dlya-rasteniy.webp"
 hero_alt: "Автополив растений в Home Assistant с датчиками и защитными условиями"
 ---
@@ -84,6 +84,12 @@ Home Assistant сначала получает триггер, затем про
 На первом экране достаточно зоны, текущей влажности и времени обновления, состояния насоса, протечки, последнего полива и причины блокировки. График нужен ниже — для анализа динамики. Не заставляйте оператора открывать пять карточек, чтобы понять, течёт ли сейчас вода.
 
 GrowerHub может взять на себя модель зон, историю и управление оборудованием, сохранив MQTT и Zigbee2MQTT как слой интеграции. Три рабочих представления показаны на странице [автоматизации мини-фермы](/avtomatizatsiya-mini-fermy/#demo-ekrany).
+
+## Насос, розетка или Zigbee-клапан
+
+Home Assistant может управлять исполнительным устройством как `switch` или `valve`; тип зависит от интеграции и конкретной модели. Для насоса через розетку проверяют допустимую пусковую нагрузку и состояние после возврата питания. Для клапана — направление потока, рабочее давление, полное закрытие и ручное перекрытие воды.
+
+Логика ограничений остаётся одинаковой: команда разрешена только при свежих данных, один запуск ограничен по времени, а протечка немедленно закрывает воду. Подробная проверка модели и сущности есть в инструкции [по Zigbee-клапану в Home Assistant и GrowerHub](/articles/zigbee-klapan-poliva-home-assistant/).
 
 ## Ограничения
 

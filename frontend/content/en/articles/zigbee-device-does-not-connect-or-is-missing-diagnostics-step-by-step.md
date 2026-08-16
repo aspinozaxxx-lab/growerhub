@@ -1,102 +1,110 @@
 ---
-translation_of: pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya
-slug: zigbee-device-does-not-connect-or-is-missing-diagnostics-step-by-step
-title: 'Zigbee device does not connect or is missing: diagnostics step by step'
-summary: >-
-  What to check if the Zigbee device is not found, has disappeared from the
-  network or does not connect after removal: reset, permit join, power, logs,
-  availability and coverage.
-created_at: '2026-07-23'
-updated_at: '2026-07-23'
-cluster: zigbee-hub-i-ustroystva
+translation_of: "pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya"
+slug: "zigbee-device-does-not-connect-or-is-missing-diagnostics-step-by-step"
+title: "Zigbee device will not pair or has disappeared: step-by-step diagnostics"
+summary: "What to check when a Zigbee device is not found, disappears, or stops pairing after removal: reset, permit join, power, logs, availability, and mesh coverage."
+created_at: "2026-07-23"
+updated_at: "2026-08-16"
+cluster: "zigbee-hub-i-ustroystva"
 tags:
-  - GrowerHub
-  - Zigbee
-  - pairing
+  - "GrowerHub"
+  - "Zigbee"
+  - "pairing"
 keywords:
-  - Zigbee device does not connect
-  - Zigbee device disappeared
-  - pairing Zigbee
-  - Zigbee2MQTT
+  - "Zigbee device not pairing"
+  - "Zigbee device disappeared"
+  - "Zigbee2MQTT pairing"
+  - "Zigbee devices missing after power outage"
 related:
-  - podklyuchit-zigbee-datchik-temperatury-vlazhnosti
-  - sovmestimost-zigbee2mqtt-exposes-availability
-  - roli-zigbee-ustroystv-v-growerhub
-  - zigbee2mqtt-prostymi-slovami
-hero_image: >-
-  /content/articles/illustrations/pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya.webp
-hero_alt: Diagnostics of a Zigbee device that does not connect to the coordinator
+  - "podklyuchit-zigbee-datchik-temperatury-vlazhnosti"
+  - "sovmestimost-zigbee2mqtt-exposes-availability"
+  - "roli-zigbee-ustroystv-v-growerhub"
+  - "zigbee2mqtt-prostymi-slovami"
+hero_image: "/content/articles/illustrations/pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya.webp"
+hero_alt: "Diagnostics for a Zigbee device that will not connect to its coordinator"
 ---
-![Diagnostics of a Zigbee device that does not connect to the coordinator](/content/articles/illustrations/pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya.webp)
 
-If a Zigbee device is not connecting, first identify the scenario: it **never appeared on the network**, **used to work and disappeared**, or **stopped connecting after being removed**. These cases require different actions. Repeatedly pressing a button and repeatedly deleting an entry usually only erases useful features.
+![Diagnostics for a Zigbee device that will not connect to its coordinator](/content/articles/illustrations/pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya.webp)
+
+First identify the situation: the Zigbee device **has never joined**, **used to work and disappeared**, or **will not join after removal**. Each case needs a different response. Repeated button presses and premature deletion usually erase useful diagnostic clues.
 
 ## Quick diagnostic table
 
-| Symptom | Probable Cause | First check |
+| Symptom | Likely cause | First check |
 |---|---|---|
-| There is no response to reset in the log | the device has not entered pairing mode, the battery is low | instructions for the exact model, new battery, try next to the coordinator |
-| An interview started in the log, then an error | weak connection, device has fallen asleep, model is partially supported | wake up the battery device, bring it closer, check the model page |
-| The device is connected, but the required field is missing | another revision or incomplete support | `model`, `manufacturer`, list `exposes` |
-| It worked and became `offline` | power, coverage, network router or radio interference | last message, battery, neighboring routers, coordinator position |
-| Can't be found after deletion | the device remembers the old network | factory reset, then new permit join |
+| no response to reset in the log | the device did not enter pairing mode or its battery is low | exact-model instructions, a known-good battery, and a test near the coordinator |
+| interview starts and then fails | weak link, sleeping battery device, or partial model support | wake the device during interview, move it closer, and check its model page |
+| device joins but a required property is missing | a different revision or incomplete converter support | `model`, `manufacturer`, and the actual `exposes` list |
+| a working device becomes `offline` | power, coverage, powered-router failure, or radio interference | last message, battery, nearby routers, and coordinator placement |
+| device will not return after removal | it still remembers the old network | factory reset, then a new permit join window |
 
-## If the device has never been connected before
+## If the device has never joined
 
-1. Write down the exact model from the case and check it in [official device list Zigbee2MQTT](https://www.zigbee2mqtt.io/supported-devices/). A similar store name does not guarantee the same electronics.
-2. Install a known-good battery or check the power of the network device.
-3. Bring the device 0.5–1 meter closer to the coordinator. The first connection at a workplace in a distant greenhouse complicates the diagnosis.
-4. Open permit join for a limited time. In interface Zigbee2MQTT the network opens for 254 seconds; you can choose to connect through a specific router.
-5. Perform a factory reset strictly according to the model instructions. The sign of pairing is usually a separate flashing sequence, rather than just an LED turning on.
-6. See log. A successful join must reach a completed interview, after which the model and available properties appear.
+1. Read the exact model from the enclosure and check it in the [official Zigbee2MQTT device catalog](https://www.zigbee2mqtt.io/supported-devices/). A similar shop name does not guarantee the same electronics.
+2. Install a known-good battery or verify mains power.
+3. Bring the device within 0.5–1 metre of the coordinator. First pairing at its final location in a distant greenhouse makes diagnosis harder.
+4. Enable permit join for a limited time. Zigbee2MQTT can also target a specific router for joining.
+5. Factory-reset the exact model according to its instructions. Pairing mode usually has a distinct flash pattern, not merely a lit LED.
+6. Read the log. A successful join reaches a completed interview, after which the model and capabilities appear.
 
-The official procedure is described in the instructions [Allowing devices to join](https://www.zigbee2mqtt.io/guide/usage/pairing_devices.html). If the interview has started, but the battery sensor has fallen asleep, briefly activate it with the button during the interview without performing a new reset.
+The official sequence is documented under [Allowing devices to join](https://www.zigbee2mqtt.io/guide/usage/pairing_devices.html). If a battery device falls asleep during interview, wake it briefly with its normal button instead of factory-resetting it again.
 
-## If the device was working and disappeared
+## If a working device disappeared
 
-Don't delete it right away. First save friendly name, model, last message time and power status. Then check in order:
+Do not delete it immediately. Preserve its friendly name, exact model, last message time, and power state, then check in order:
 
-1. does Zigbee2MQTT itself work and does the coordinator see other devices;
-2. does the missing device have power or a fresh battery;
-3. whether the network router through which the route went was turned off;
-4. whether there is a Wi‑Fi router, SSD, USB 3.0 or other 2.4 GHz interference source nearby;
-5. Whether the device returns after being activated by a button or briefly removing the power.
+1. Zigbee2MQTT itself is running and the coordinator still sees other devices;
+2. the missing device has power or a fresh battery;
+3. no powered smart plug or relay that routed its traffic was switched off;
+4. no Wi-Fi access point, SSD, USB 3.0 device, or other 2.4 GHz interference source was moved nearby;
+5. the device returns after one button wake-up or a brief power cycle.
 
-`linkquality` is useful as a comparative indicator, but one number does not prove the quality of the route. Much more important is the repetition of messages in the workplace. Zigbee2MQTT recommends removing the USB coordinator from the computer with a shielded extension cord and, if necessary, adding high-quality network routers: [improving range and stability](https://www.zigbee2mqtt.io/advanced/zigbee/02_improve_network_range_and_stability.html).
+`linkquality` is useful for comparison, but one number does not prove route quality. Repeatable messages at the final location matter more. Zigbee2MQTT recommends moving the USB coordinator away from the computer with a shielded extension cable and adding suitable powered routers where needed: [improving range and stability](https://www.zigbee2mqtt.io/advanced/zigbee/02_improve_network_range_and_stability.html).
 
-## How to read availability correctly
+## If devices disappeared after a power outage
 
-When the Zigbee2MQTT function is enabled, publishes `online` or `offline` to the device availability topic. Active network devices and sleeping battery sensors are checked differently: the battery sensor is not required to send data every ten minutes. Therefore, a user timeout that is too short creates false alarms.
+Separate a coordinator problem from powered-router and battery-device problems:
 
-Check the settings and default behavior in the [Device Availability](https://www.zigbee2mqtt.io/guide/configuration/device-availability.html) documentation. For the watering scenario, additionally set your own acceptable freshness of a specific measurement: the old humidity value cannot be considered normal just because the device is not yet marked with `offline`.
+1. confirm that Zigbee2MQTT started with the original `data` directory and network database;
+2. verify that the coordinator uses the expected USB port and `bridge/state` is `online`;
+3. restore power to smart plugs and relays that previously acted as mesh routers;
+4. allow routes to recover, then wake a battery sensor once with its normal button;
+5. compare `last_seen` across several devices — a whole branch disappearing together often points to one powered router;
+6. consider re-pairing only after power and logs have been checked.
 
-## After being removed from the network
+Do not create a new Zigbee network or delete the `data` directory as a quick test. A changed network key can require every device to be paired again. On Windows, also check whether the COM port changed after reboot.
 
-Deleting an entry in Zigbee2MQTT does not always reset the device itself. It may continue to remember the old network. The sequence is:
+## Reading availability correctly
 
-1. close the old permit join;
-2. perform a factory reset of the device;
-3. open a new permit join;
-4. keep the device near the coordinator until the interview is completed;
-5. check the real values and only then transfer it to the work area.
+When availability is enabled, Zigbee2MQTT publishes `online` or `offline` to the device availability topic. Powered devices and sleeping battery sensors use different timeouts: a battery sensor is not expected to report every ten minutes. An overly short custom timeout therefore creates false alarms.
 
-After the migration, wait for a few normal update cycles. If the sensor disappears again only in the greenhouse, the pairing is OK - the problem is the coating or interference.
+Check the default behavior in the [Device Availability documentation](https://www.zigbee2mqtt.io/guide/configuration/device-availability.html). For irrigation, also apply a separate freshness limit to the actual measurement. An old soil-moisture value is unsafe even if the device has not yet been marked `offline`.
 
-## When a device cannot be included in automation
+## After removing a device from the network
 
-Do not associate it with a pump, light or ventilation if the interview does not complete, the required property is sometimes missing, data is jumping for no physical reason, or availability is not checked. First achieve stable monitoring. An example of how GrowerHub shows zones and data freshness is on the [mini-farm automation](/avtomatizatsiya-mini-fermy/#demo-ekrany) page.
+Deleting an entity in Zigbee2MQTT does not always reset the physical device. It may still remember the old network. Use this sequence:
+
+1. close the previous permit join window;
+2. factory-reset the device;
+3. open a new permit join window;
+4. keep the device near the coordinator until interview completes;
+5. verify real readings before moving it to the final location.
+
+After moving it, wait for several normal report cycles. If the sensor disappears again only at its final location, pairing works and the likely problem is coverage or interference.
+
+## When not to use the device in an automation
+
+Do not connect it to a pump, lighting, or ventilation rule if interview does not complete, a required property disappears, readings jump without a physical reason, or freshness is unknown. Establish stable monitoring first. The [farm automation page](/avtomatizatsiya-mini-fermy/#demo-ekrany) shows how GrowerHub presents zones and stale data.
 
 ## Final checklist
 
-- exact model supported;
-- food is correct;
-- reset was performed according to the instructions;
-- permit join is open for the duration of the connection;
+- the exact model is supported;
+- power or battery is healthy;
+- factory reset followed the model instructions;
+- permit join was open only during connection;
 - interview completed;
-- real `exposes` verified;
-- after the transfer, messages arrive steadily;
-- old data blocks dangerous scripts.
+- actual `exposes` were verified;
+- messages remain stable at the final location;
+- stale data blocks dangerous automations.
 
-If you go through the points in this order, it becomes clear what exactly is broken: the connection, model support, or the working Zigbee network.
-
-For a new circuit, start with [soft recommendations on coordinators](/oborudovanie/zigbee-koordinator/) and [sensors](/oborudovanie/datchiki/). After logging in, GrowerHub will open permit join for three minutes and automatically show devices that have completed the interview.
+Following this order reveals whether the failure is pairing, model support, or the working mesh. For a new network, start with the [coordinator guide](/oborudovanie/zigbee-koordinator/) and [sensor examples](/oborudovanie/datchiki/). GrowerHub can enable joining for three minutes and automatically shows devices that complete the interview.

@@ -89,6 +89,15 @@ const localeForUrl = (value) => {
 };
 const localeMatches = (value) => locale === 'all' || localeForUrl(value) === locale;
 
+const searchConsoleLocaleFilter = locale === 'all' ? undefined : [{
+  groupType: 'and',
+  filters: [{
+    dimension: 'page',
+    operator: locale === 'en' ? 'contains' : 'notContains',
+    expression: '/en/',
+  }],
+}];
+
 const searchConsoleRequest = (body) => requestJson(
   `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(SEARCH_CONSOLE_SITE)}/searchAnalytics/query`,
   {
@@ -100,18 +109,45 @@ const searchConsoleRequest = (body) => requestJson(
       dataState: 'all',
       rowLimit: 25000,
       type: 'web',
+      ...(searchConsoleLocaleFilter
+        ? { dimensionFilterGroups: searchConsoleLocaleFilter }
+        : {}),
       ...body,
     }),
   },
 );
 
-const searchRows = (response, keyName) => (response.rows || []).map((row) => ({
-  [keyName]: row.keys?.[0] || '',
-  Клики: Number(row.clicks || 0),
-  Показы: Number(row.impressions || 0),
-  CTR: `${(Number(row.ctr || 0) * 100).toFixed(1)}%`,
-  Позиция: Number(row.position || 0).toFixed(1),
-}));
+const aggregateSearchRows = (
+  response,
+  keyName,
+  { keyIndex = 0, pageIndex = null } = {},
+) => {
+  const aggregated = new Map();
+  for (const row of response.rows || []) {
+    if (pageIndex !== null && !localeMatches(row.keys?.[pageIndex] || '')) continue;
+    const key = row.keys?.[keyIndex] || '';
+    const current = aggregated.get(key) || {
+      clicks: 0,
+      impressions: 0,
+      weightedPosition: 0,
+    };
+    const impressions = Number(row.impressions || 0);
+    current.clicks += Number(row.clicks || 0);
+    current.impressions += impressions;
+    current.weightedPosition += Number(row.position || 0) * impressions;
+    aggregated.set(key, current);
+  }
+
+  return [...aggregated.entries()]
+    .map(([key, values]) => ({
+      [keyName]: key,
+      Клики: values.clicks,
+      Показы: values.impressions,
+      CTR: `${(values.impressions ? values.clicks / values.impressions * 100 : 0).toFixed(1)}%`,
+      Позиция: (values.impressions ? values.weightedPosition / values.impressions : 0).toFixed(1),
+    }))
+    .sort((left, right) => right.Показы - left.Показы || right.Клики - left.Клики);
+};
 
 const gaLocaleFilter = (fieldName) => {
   if (locale === 'all') return undefined;
@@ -163,21 +199,33 @@ const sitemapRows = (sitemapResponse.sitemap || []).map((item) => ({
 }));
 printRows(sitemapRows, ['Sitemap', 'Отправлен', 'Загружен', 'Ошибки', 'Предупреждения']);
 
-const [queriesResponse, pagesResponse, countriesResponse] = await Promise.all([
+const [queriesResponse, pagesResponse, countriesResponse, devicesResponse] = await Promise.all([
   searchConsoleRequest({ dimensions: ['query'] }),
   searchConsoleRequest({ dimensions: ['page'] }),
   searchConsoleRequest({ dimensions: ['country'] }),
+  searchConsoleRequest({ dimensions: ['device'] }),
 ]);
 
 console.log('\nПоисковые запросы Google');
-printRows(searchRows(queriesResponse, 'Запрос'), ['Запрос', 'Показы', 'Клики', 'CTR', 'Позиция']);
+printRows(
+  aggregateSearchRows(queriesResponse, 'Запрос'),
+  ['Запрос', 'Показы', 'Клики', 'CTR', 'Позиция'],
+);
 console.log('\nСтраницы Google');
 printRows(
-  searchRows(pagesResponse, 'Страница').filter((row) => localeMatches(row.Страница)),
+  aggregateSearchRows(pagesResponse, 'Страница').filter((row) => localeMatches(row.Страница)),
   ['Страница', 'Показы', 'Клики', 'CTR', 'Позиция'],
 );
 console.log('\nСтраны Google Search');
-printRows(searchRows(countriesResponse, 'Страна'), ['Страна', 'Показы', 'Клики', 'CTR', 'Позиция']);
+printRows(
+  aggregateSearchRows(countriesResponse, 'Страна'),
+  ['Страна', 'Показы', 'Клики', 'CTR', 'Позиция'],
+);
+console.log('\nУстройства Google Search');
+printRows(
+  aggregateSearchRows(devicesResponse, 'Устройство'),
+  ['Устройство', 'Показы', 'Клики', 'CTR', 'Позиция'],
+);
 
 console.log('\nGoogle Analytics 4');
 const landingFilter = gaLocaleFilter('landingPagePlusQueryString');
@@ -203,9 +251,53 @@ const landingRows = (landingResponse.rows || []).map((row) => ({
   Пользователи: Number(row.metricValues?.[1]?.value || 0),
   Просмотры: Number(row.metricValues?.[2]?.value || 0),
 }));
+console.log('\nВсе landing pages GA4, включая кабинет');
 printRows(
   landingRows,
   ['Страница', 'Канал', 'Страна', 'Сессии', 'Пользователи', 'Просмотры'],
+);
+
+const publicOrganicExpressions = [
+  {
+    filter: {
+      fieldName: 'sessionDefaultChannelGroup',
+      stringFilter: { matchType: 'EXACT', value: 'Organic Search', caseSensitive: false },
+    },
+  },
+  {
+    notExpression: {
+      filter: {
+        fieldName: 'landingPagePlusQueryString',
+        stringFilter: { matchType: 'BEGINS_WITH', value: '/app', caseSensitive: false },
+      },
+    },
+  },
+];
+if (landingFilter) publicOrganicExpressions.push(landingFilter);
+const publicOrganicResponse = await gaRequest({
+  dimensions: [
+    { name: 'landingPagePlusQueryString' },
+    { name: 'country' },
+  ],
+  metrics: [
+    { name: 'sessions' },
+    { name: 'activeUsers' },
+    { name: 'screenPageViews' },
+  ],
+  dimensionFilter: { andGroup: { expressions: publicOrganicExpressions } },
+  orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+});
+const publicOrganicRows = (publicOrganicResponse.rows || []).map((row) => ({
+  Страница: row.dimensionValues?.[0]?.value || '—',
+  Страна: row.dimensionValues?.[1]?.value || '—',
+  Сессии: Number(row.metricValues?.[0]?.value || 0),
+  Пользователи: Number(row.metricValues?.[1]?.value || 0),
+  Просмотры: Number(row.metricValues?.[2]?.value || 0),
+}));
+console.log('\nПубличные organic landing pages GA4 без /app');
+printRows(
+  publicOrganicRows,
+  ['Страница', 'Страна', 'Сессии', 'Пользователи', 'Просмотры'],
 );
 
 const eventExpressions = [

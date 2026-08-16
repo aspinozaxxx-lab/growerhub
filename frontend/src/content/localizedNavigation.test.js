@@ -38,11 +38,11 @@ describe('localized navigation', () => {
     }
   });
 
-  it('svyazyvaet 54 pary statej', () => {
+  it('svyazyvaet 56 par statej', () => {
     const ruArticles = getArticles('ru');
     const enArticles = getArticles('en');
-    expect(ruArticles).toHaveLength(54);
-    expect(enArticles).toHaveLength(54);
+    expect(ruArticles).toHaveLength(56);
+    expect(enArticles).toHaveLength(56);
 
     for (const article of ruArticles) {
       const translation = getArticleTranslation(article, 'en');

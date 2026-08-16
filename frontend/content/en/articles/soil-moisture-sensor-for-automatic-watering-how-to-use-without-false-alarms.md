@@ -1,57 +1,92 @@
 ---
-translation_of: datchik-vlazhnosti-pochvy-dlya-avtopoliva
-slug: soil-moisture-sensor-for-automatic-watering-how-to-use-without-false-alarms
-title: 'Soil moisture sensor for automatic watering: how to use without false alarms'
-summary: >-
-  Where to install a humidity sensor, why readings can be deceiving and how to
-  turn measurements into a safe rule for automatic watering.
-created_at: '2026-07-23'
-updated_at: '2026-07-23'
-cluster: avtopoliv-i-kontroller-vyrashchivaniya
+translation_of: "datchik-vlazhnosti-pochvy-dlya-avtopoliva"
+slug: "soil-moisture-sensor-for-automatic-watering-how-to-use-without-false-alarms"
+title: "Soil moisture sensor for automatic watering: how to avoid false triggers"
+summary: "Where to install a soil moisture sensor, how to calibrate it in the actual substrate, recognize faulty data, and build a safer watering rule."
+created_at: "2026-07-23"
+updated_at: "2026-08-16"
+cluster: "avtopoliv-i-kontroller-vyrashchivaniya"
 tags:
-  - GrowerHub
-  - humidity sensor
-  - automatic watering
+  - "GrowerHub"
+  - "soil moisture sensor"
+  - "automatic watering"
 keywords:
-  - soil moisture sensor
-  - humidity sensor for irrigation
-  - watering by humidity sensor
+  - "soil moisture sensor"
+  - "soil moisture sensor for irrigation"
+  - "sensor based plant watering"
 related:
-  - avtopoliv-dlya-rasteniy-kak-vybrat
-  - poliv-po-datchikam-ili-po-raspisaniyu
-  - pereliv-ili-nedoliv-po-dannym-datchika
-  - servisnyy-rezhim-zamena-datchika
-hero_image: /content/articles/illustrations/datchik-vlazhnosti-pochvy-dlya-avtopoliva.webp
-hero_alt: 'Illustration GrowerHub: plant pot, moisture sensor and soil graph'
+  - "avtopoliv-dlya-rasteniy-kak-vybrat"
+  - "poliv-po-datchikam-ili-po-raspisaniyu"
+  - "pereliv-ili-nedoliv-po-dannym-datchika"
+  - "servisnyy-rezhim-zamena-datchika"
+hero_image: "/content/articles/illustrations/datchik-vlazhnosti-pochvy-dlya-avtopoliva.webp"
+hero_alt: "Plant pot with a soil moisture sensor and a moisture trend"
 ---
-![Illustration GrowerHub: plant pot, moisture sensor and soil graph](/content/articles/illustrations/datchik-vlazhnosti-pochvy-dlya-avtopoliva.webp)
 
-A soil moisture gauge is not useful because it shows the "true moisture" of the entire pot. It shows the status of a small area around the probe. If you understand this limitation, the sensor helps you notice drying out in time, check the operation of the dripper and stop unnecessary watering. If you don’t understand, it turns automatic watering into a lottery: the system reacts to one point, and the plant lives in the volume of the substrate.
+![Plant pot with a soil moisture sensor and a moisture trend](/content/articles/illustrations/datchik-vlazhnosti-pochvy-dlya-avtopoliva.webp)
 
-Before automation, it is worth using the sensor for several days only for observation. Water the plant manually, see how quickly the readings grow, where the peak is and how many hours it takes for the graph to return to normal levels. This way you will see not only the number, but also the nature of the zone: a light substrate dries out faster, a dense one retains moisture longer, a large pot changes more slowly than a small one.
+A soil moisture sensor does not measure the “true moisture” of an entire pot. It describes a small area around its probe. Used with that limitation in mind, it can reveal drying, confirm that a dripper worked, and prevent an unnecessary watering cycle. Used as an absolute judge, it turns irrigation into a lottery: the rule reacts to one point while roots occupy a volume.
 
-## Where to put the sensor
+Use a new sensor for observation only during the first several days. Water manually, note how fast its value rises, where it peaks, and how long it takes to return to the usual range. This shows the behavior of the zone rather than one number: a light substrate dries quickly, a dense mix holds water longer, and a large pot changes more slowly than a small one.
 
-The sensor is not placed directly under the IV. At this point, it receives water first and quickly tells the controller that everything is already wet. The rest of the pot may remain dry. It is also undesirable to place the probe near the wall: there the temperature and evaporation differ from the central zone. It is usually best to choose a point between the drip line and the root zone, at a depth where the substrate reflects the condition of the plant and not just the top dry layer.
+## Where to place the sensor
 
-For a long bed, one sensor rarely describes the whole picture. This can be used as a reference point, but the irrigation lines still need to be checked visually. If one dropper is clogged, the common sensor may not notice it. Therefore, in a greenhouse, it is useful to combine humidity sensors with a watering log and periodic inspection.
+Do not place the sensor directly under a dripper. It will get wet first and tell the controller that watering is complete while the rest of the pot may still be dry. Avoid the wall as well, where temperature and evaporation differ from the central root zone. A useful position is usually between the dripper and the roots, deep enough to describe the substrate rather than its dry surface.
 
-## Why the readings float
+One sensor rarely describes a long bed. Treat it as a reference point and continue to inspect individual irrigation lines: one blocked dripper may not affect the shared sensor. In a greenhouse, combine moisture readings with a watering log and periodic visual checks.
 
-Indications depend on the type of substrate, salts, temperature, planting density and quality of contact. After transplantation, the sensor may show differently because air voids have appeared around it. After feeding, the value sometimes changes not because of the water, but because of the composition of the solution. Cheap resistive sensors also degrade in the soil faster than capacitive ones.
+## Why readings drift or jump
 
-Therefore, you should not transfer the threshold from someone else’s instructions without checking. For one user, 35 percent may mean comfortable humidity, for another - an already dry pot. It is more practical to find your range: mark the value before manual watering, then the value an hour after watering and select thresholds with a margin. How to distinguish overfilling from underfilling based on the shape of the graph is described in the article [overfilling or underfilling according to sensor data](/articles/pereliv-ili-nedoliv-po-dannym-datchika).
+Readings depend on substrate, salts, temperature, compaction, and contact around the probe. Repotting can introduce air gaps. Feeding can shift a reading because conductivity changed rather than water content. Inexpensive resistive probes also degrade in soil faster than capacitive designs.
 
-## How to make a watering rule
+Do not copy a threshold from somebody else's setup. A displayed 35% can mean a comfortable root zone in one substrate and a dry pot in another. Find your own range by recording the value before manual watering and again after the water has distributed. The guide to [overwatering and underwatering patterns](/articles/pereliv-ili-nedoliv-po-dannym-datchika/) explains how to read the shape of the trend.
 
-The most dangerous rule looks like this: “if the humidity is below the threshold, turn on the pump.” In a real system, restrictions are needed. Add a minimum pause between starts, a maximum duration of one start and a daily water limit. If the sensor has not been updated, the controller should not water blindly, but go into safe mode and send a notification.
+## Choosing a sensor type
 
-A good starting scenario: the sensor is below the threshold several times in a row, a specified pause has passed since the last watering, there is no leakage, the tank is not empty, the service mode is turned off. The pump is turned on briefly, then the system waits until the water is distributed over the substrate. Without such a delay, the controller may make several extra starts in a row because the sensor has not yet had time to react.
+| Type | Strength | Limitation |
+|---|---|---|
+| resistive probe | inexpensive way to test an idea | exposed electrodes corrode and respond strongly to salts |
+| capacitive analog sensor | no exposed galvanic electrode pair | needs ADC calibration, protected electronics, and stable power |
+| ready-made Zigbee soil sensor | battery operation and automatic Zigbee2MQTT discovery | exact `exposes` depend on model ID and hardware revision |
+| pot load cell | tracks the change in water stored across the whole pot | more mechanical work and compensation for plant and equipment mass |
+
+A supported Zigbee model is convenient for monitoring. A capacitive sensor and ESP32 suit DIY experiments. In either case, the number becomes useful only after verification in the actual substrate.
+
+## Calibrate without pretending one percentage is universal
+
+Collect at least three repeatable reference cycles:
+
+1. install the probe in a permanent position and let it stabilize;
+2. record the value when your normal checks indicate that watering is due;
+3. add a measured volume of water;
+4. record the value after distribution, for example 30–60 minutes later;
+5. repeat at least three manual watering cycles;
+6. choose a threshold inside the stable range and add hysteresis.
+
+Hysteresis uses different boundaries for entering and leaving a “dry” state. It prevents a noisy value near one threshold from rapidly toggling a rule. Recalibrate after repotting, changing substrate, feeding, or moving the probe.
+
+## Build a safer watering rule
+
+The most dangerous rule is “if moisture is below the threshold, start the pump.” A real system needs a minimum interval between runs, a maximum duration, and a daily water limit. If the reading is stale, the controller must block watering instead of acting on the last known value.
+
+A sensible starting rule requires several consecutive low readings, enough time since the previous watering, no leak alarm, a non-empty tank, and maintenance mode disabled. Run the pump briefly and then wait for water to distribute. Without that soak time, the controller may start again before the probe can respond.
+
+## Signs of a sensor fault, not dry soil
+
+| Trend or state | Possible cause | Automation response |
+|---|---|---|
+| the value instantly falls to its minimum | wiring, power, or a changed ADC scale | block watering and report a sensor fault |
+| a perfectly flat line for hours | updates stopped or the probe lost contact | check `last_seen` and availability |
+| sharp jumps without watering | contact, power, radio, or analog-input noise | reject an isolated spike as a trigger |
+| no expected rise after watering | water missed the probe, the placement is wrong, or the sensor failed | block repeat cycles and inspect the line |
+| the baseline drifts over weeks | salts, corrosion, compaction, or root-zone change | run a manual reference cycle and recalibrate |
 
 ## Maintenance and replacement
 
-Any sensor must be checked periodically. Inspect the cable, housing, substrate entry point, and graph stability. If the line does not change after watering, the sensor may have lost contact or failed. If the graph becomes noisy, check your connection and power. During replacement, it is better to turn on the service mode so that the automation does not mistake the missing sensor for dry soil. There is a separate article for this procedure [service mode and sensor replacement](/articles/servisnyy-rezhim-zamena-datchika).
+Inspect the cable, enclosure, probe position, and trend stability periodically. A line that no longer responds to watering may indicate lost contact or failure; a suddenly noisy trace points to power or connectivity. Enable maintenance mode before replacement so that a missing sensor cannot be interpreted as dry soil. See [service mode and sensor replacement](/articles/servisnyy-rezhim-zamena-datchika/) for the sequence.
 
 ## Conclusion
 
-The humidity sensor is an observation tool, not an absolute judge. It helps automatic watering only when installed at a meaningful point, tested on a specific substrate and associated with safe limits. In GrowerHub it is better to use it first for graphs and notifications, and enable automatic launch after the behavior of the zone has become clear.
+A soil moisture sensor is an observation tool, not an absolute judge. It supports irrigation only when installed in a meaningful location, verified in the actual substrate, and combined with safe limits. In GrowerHub, use it for charts and alerts first; enable automatic action after the zone's behavior is understood.
+
+See the [Zigbee sensor examples](/oborudovanie/datchiki/) and the [self-service connection path](/kak-nachat/) for a first setup. The model choice remains open, but checking the exact model ID and exposed fields in Zigbee2MQTT before purchase avoids surprises.

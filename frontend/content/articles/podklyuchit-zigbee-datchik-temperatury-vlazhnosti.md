@@ -3,7 +3,7 @@ slug: "podklyuchit-zigbee-datchik-temperatury-vlazhnosti"
 title: "Как подключить Zigbee-датчик температуры и влажности: пошаговая проверка"
 summary: "Подключение Zigbee-датчика температуры и влажности к Zigbee2MQTT: выбор модели, pairing, exposes, availability, место установки и проверка данных."
 created_at: "2026-06-29"
-updated_at: "2026-07-23"
+updated_at: "2026-08-16"
 cluster: "zigbee-hub-i-ustroystva"
 tags:
   - "GrowerHub"
@@ -14,10 +14,10 @@ keywords:
   - "Zigbee датчик температуры влажности"
   - "Zigbee2MQTT датчик"
 related:
+  - "ustanovka-zigbee2mqtt-na-windows"
   - "pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya"
   - "zigbee-dlya-teplitsy-kakie-ustroystva-polezny"
   - "sovmestimost-zigbee2mqtt-exposes-availability"
-  - "kontrol-mikroklimata-v-teplitse"
 hero_image: "/content/articles/illustrations/podklyuchit-zigbee-datchik-temperatury-vlazhnosti.webp"
 hero_alt: "Подключение Zigbee-датчика температуры и влажности к Zigbee2MQTT"
 ---
@@ -84,6 +84,18 @@ USB-координатор лучше вынести от компьютера, 
 Zigbee2MQTT различает активные и пассивные устройства: спящий батарейный датчик нельзя опрашивать как розетку. Официальное поведение и таймауты описаны в [Device Availability](https://www.zigbee2mqtt.io/guide/configuration/device-availability.html).
 
 Для управления задайте ещё и допустимый возраст измерения. Например, сценарий вентиляции может требовать более свежих данных, чем недельный отчёт. При устаревшем значении безопаснее показать предупреждение и не запускать новое действие.
+
+## Если датчик подключился, но данные неправильные
+
+| Симптом | Что проверить |
+|---|---|
+| температура или влажность равны нулю | сырой payload, страницу точной модели и завершение configure/interview |
+| значения есть один раз и больше не меняются | батарею, `last_seen`, availability и обычный интервал отчётов модели |
+| влажность выглядит как температура или наоборот | фактические названия properties в `exposes`, а не подпись из старой карточки |
+| после переименования появилась вторая сущность | стабильность friendly name и идентификаторов discovery до удаления старого объекта |
+| на месте установки идут регулярные пропуски | питание ближайших Zigbee-роутеров, помехи 2,4 ГГц и положение координатора |
+
+Сначала подтвердите корректный payload в Zigbee2MQTT, затем проверяйте GrowerHub или Home Assistant. Это быстро отделяет проблему самого устройства от отображения в приложении.
 
 ## Ограничения
 

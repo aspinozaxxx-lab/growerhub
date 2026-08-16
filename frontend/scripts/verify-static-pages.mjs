@@ -70,9 +70,9 @@ const lastmods = [...sitemap.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((matc
 const urlSet = new Set(urls);
 const ruUrls = urls.filter((url) => !new URL(url).pathname.startsWith('/en/'));
 const enUrls = urls.filter((url) => new URL(url).pathname.startsWith('/en/'));
-assert(urls.length === 138, `Sitemap: expected 138 URLs, got ${urls.length}`);
-assert(ruUrls.length === 69, `Sitemap: expected 69 RU URLs, got ${ruUrls.length}`);
-assert(enUrls.length === 69, `Sitemap: expected 69 EN URLs, got ${enUrls.length}`);
+assert(urls.length === 142, `Sitemap: expected 142 URLs, got ${urls.length}`);
+assert(ruUrls.length === 71, `Sitemap: expected 71 RU URLs, got ${ruUrls.length}`);
+assert(enUrls.length === 71, `Sitemap: expected 71 EN URLs, got ${enUrls.length}`);
 assert(urlSet.size === urls.length, 'Sitemap: duplicate URLs found');
 assert(lastmods.length === urls.length, 'Sitemap: every URL must have lastmod');
 assert(
@@ -302,7 +302,7 @@ if (initialScript) {
 const articleUrls = urls.filter((url) => (
   new URL(url).pathname.match(/^\/(?:en\/)?articles\/[^/]+\/$/)
 ));
-assert(articleUrls.length === 108, `Expected 108 article pages, got ${articleUrls.length}`);
+assert(articleUrls.length === 112, `Expected 112 article pages, got ${articleUrls.length}`);
 for (const url of articleUrls) {
   const html = read(urlToFile(url));
   assert(

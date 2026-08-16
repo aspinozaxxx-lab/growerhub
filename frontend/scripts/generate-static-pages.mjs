@@ -340,6 +340,38 @@ const renderArticleCard = (article) => `
             <p>${htmlEscape(article.summary)}</p>
           </article>`;
 
+const renderClusterGuide = (cluster, articles, locale = 'ru') => {
+  const en = locale === 'en';
+  const articlesById = new Map(articles.map((article) => [article.id, article]));
+  const guide = cluster.guide;
+
+  return `
+          <section class="cluster-block cluster-guide">
+            <h2>${en ? 'Where to start' : 'С чего начать'}</h2>
+            <p>${htmlEscape(guide.intro)}</p>
+            <div class="cluster-path-grid">
+${guide.steps.map((step) => {
+    const article = articlesById.get(step.articleId);
+    const title = article
+      ? `<a href="${htmlEscape(getArticlePath(article, locale))}">${htmlEscape(step.title)}</a>`
+      : `<strong>${htmlEscape(step.title)}</strong>`;
+    return `              <article class="article-card">${title}<p>${htmlEscape(step.text)}</p></article>`;
+  }).join('\n')}
+            </div>
+          </section>
+          <section class="cluster-block">
+            <h2>${en ? 'Choose your first step' : 'Выберите первый шаг'}</h2>
+            <div class="cluster-table-wrap">
+              <table class="cluster-decision-table">
+                <thead><tr><th>${en ? 'Situation' : 'Ситуация'}</th><th>${en ? 'Where to start' : 'С чего начать'}</th><th>${en ? 'Why' : 'Почему'}</th></tr></thead>
+                <tbody>
+${guide.decisions.map((decision) => `                  <tr><td>${htmlEscape(decision.situation)}</td><td>${htmlEscape(decision.start)}</td><td>${htmlEscape(decision.reason)}</td></tr>`).join('\n')}
+                </tbody>
+              </table>
+            </div>
+          </section>`;
+};
+
 const breadcrumbLd = (items) => ({
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
@@ -415,7 +447,11 @@ const renderArticlePage = (template, assets, article, articlesBySlug, clustersBy
           <div class="article-body">
 ${article.bodyHtml}
           </div>
-          ${leadCta('article_bottom', 'Подключите устройство к GrowerHub', 'Войдите, настройте Zigbee2MQTT и увидьте метрики в кабинете. Если потребуется помощь, Telegram доступен на каждом шаге.')}
+          ${leadCta(
+    'article_bottom',
+    cluster?.guide.cta.title || 'Подключите устройство к GrowerHub',
+    cluster?.guide.cta.text || 'Войдите, настройте Zigbee2MQTT и увидьте метрики в кабинете. Если потребуется помощь, Telegram доступен на каждом шаге.',
+  )}
           ${related.length ? `
           <section class="related-articles">
             <h2>Читайте также</h2>
@@ -493,16 +529,14 @@ const renderClusterPage = (template, assets, cluster, articles, otherClusters) =
             <div><strong>Подходит, если</strong><p>${htmlEscape(cluster.fit)}</p></div>
             <div><strong>Задачи, которые разбираем</strong><p>${htmlEscape(cluster.tasks)}</p></div>
           </div>
-          <div class="keyword-list">
-${cluster.keywords.map((keyword) => `            <span>${htmlEscape(keyword)}</span>`).join('\n')}
-          </div>
+          ${renderClusterGuide(cluster, articles)}
           <section class="cluster-block">
             <h2>Статьи раздела</h2>
             <div class="articles-list">
 ${articles.map(renderArticleCard).join('\n')}
             </div>
           </section>
-          ${leadCta('cluster_bottom')}
+          ${leadCta('cluster_bottom', cluster.guide.cta.title, cluster.guide.cta.text)}
           <section class="cluster-block">
             <h2>Другие разделы</h2>
             <div class="cluster-nav-grid">
@@ -1027,8 +1061,8 @@ ${article.bodyHtml}
           </div>
           ${leadCta(
     'article_bottom',
-    'Connect a device to GrowerHub',
-    'Sign in, connect Zigbee2MQTT, and see device metrics in one dashboard. If you need help, message us in Telegram in Russian or English.',
+    cluster?.guide.cta.title || 'Connect a device to GrowerHub',
+    cluster?.guide.cta.text || 'Sign in, connect Zigbee2MQTT, and see device metrics in one dashboard. If you need help, message us in Telegram in Russian or English.',
     'en',
   )}
           ${related.length ? `
@@ -1120,9 +1154,7 @@ const renderEnglishClusterPage = (template, assets, cluster, articles, otherClus
             <div><strong>A good fit if</strong><p>${htmlEscape(cluster.fit)}</p></div>
             <div><strong>Topics covered</strong><p>${htmlEscape(cluster.tasks)}</p></div>
           </div>
-          <div class="keyword-list">
-${cluster.keywords.map((keyword) => `            <span>${htmlEscape(keyword)}</span>`).join('\n')}
-          </div>
+          ${renderClusterGuide(cluster, articles, 'en')}
           <section class="cluster-block">
             <h2>Guides in this section</h2>
             <div class="articles-list">
@@ -1131,8 +1163,8 @@ ${articles.map(renderEnglishArticleCard).join('\n')}
           </section>
           ${leadCta(
     'cluster_bottom',
-    'Start with your first device',
-    'Connect Zigbee2MQTT, discover your devices, and create the first zone. We can help in Telegram in Russian or English.',
+    cluster.guide.cta.title,
+    cluster.guide.cta.text,
     'en',
   )}
           <section class="cluster-block">
@@ -1647,16 +1679,16 @@ const buildSitemapEntries = ({
     })),
   ];
 
-  if (entries.length !== 69) {
-    throw new Error(`Expected 69 ${locale} sitemap URLs, got ${entries.length}`);
+  if (entries.length !== 71) {
+    throw new Error(`Expected 71 ${locale} sitemap URLs, got ${entries.length}`);
   }
 
   return entries;
 };
 
 const writeSitemap = (entries) => {
-  if (entries.length !== 138) {
-    throw new Error(`Expected 138 public sitemap URLs, got ${entries.length}`);
+  if (entries.length !== 142) {
+    throw new Error(`Expected 142 public sitemap URLs, got ${entries.length}`);
   }
   const uniqueLocations = new Set(entries.map((entry) => entry.loc));
   if (uniqueLocations.size !== entries.length) {
@@ -1753,8 +1785,8 @@ const main = () => {
     }
   }
 
-  if (articles.length !== 54 || enArticles.length !== 54) {
-    throw new Error(`Expected 54 articles per locale, got ru=${articles.length}, en=${enArticles.length}`);
+  if (articles.length !== 56 || enArticles.length !== 56) {
+    throw new Error(`Expected 56 articles per locale, got ru=${articles.length}, en=${enArticles.length}`);
   }
 
   const articlesBySlug = new Map(articles.map((article) => [article.slug, article]));
@@ -1978,7 +2010,7 @@ const main = () => {
   writeRobots();
   console.log(
     `Generated static pages: ${articles.length + enArticles.length} articles, `
-    + `${articleClusters.length + enClusters.length} clusters, 138 sitemap URLs`,
+    + `${articleClusters.length + enClusters.length} clusters, 142 sitemap URLs`,
   );
 };
 

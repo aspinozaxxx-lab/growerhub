@@ -23,13 +23,13 @@ const sitemap = await sitemapResponse.text();
 const urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
 const lastmods = [...sitemap.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((match) => match[1]);
 const urlSet = new Set(urls);
-assert(urls.length === 138, `Live sitemap: expected 138 URLs, got ${urls.length}`);
+assert(urls.length === 142, `Live sitemap: expected 142 URLs, got ${urls.length}`);
 assert(urlSet.size === urls.length, 'Live sitemap contains duplicate URLs');
 assert(lastmods.length === urls.length, 'Live sitemap: every URL must have lastmod');
 assert(!/hreflang|xhtml:link/i.test(sitemap), 'Live sitemap must keep hreflang in HTML only');
 assert(
-  urls.filter((url) => new URL(url).pathname.startsWith('/en/')).length === 69,
-  'Live sitemap does not contain 69 English URLs',
+  urls.filter((url) => new URL(url).pathname.startsWith('/en/')).length === 71,
+  'Live sitemap does not contain 71 English URLs',
 );
 
 const internalUrls = new Set();

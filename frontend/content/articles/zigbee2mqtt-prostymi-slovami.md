@@ -3,7 +3,7 @@ slug: "zigbee2mqtt-prostymi-slovami"
 title: "Zigbee2MQTT простыми словами: как связаны датчик, координатор и MQTT"
 summary: "Понятная схема Zigbee2MQTT: что делают координатор, роутеры, MQTT-брокер, топики, exposes и availability и как это применяет GrowerHub."
 created_at: "2026-06-29"
-updated_at: "2026-07-23"
+updated_at: "2026-08-16"
 cluster: "zigbee-hub-i-ustroystva"
 tags:
   - "GrowerHub"
@@ -14,10 +14,10 @@ keywords:
   - "что такое Zigbee2MQTT"
   - "Zigbee Hub"
 related:
+  - "ustanovka-zigbee2mqtt-na-windows"
   - "roli-zigbee-ustroystv-v-growerhub"
   - "sovmestimost-zigbee2mqtt-exposes-availability"
   - "growerhub-i-home-assistant-cherez-mqtt"
-  - "mqtt-avtopoliv-kakie-topiki-nuzhny"
 hero_image: "/content/articles/illustrations/zigbee2mqtt-prostymi-slovami.webp"
 hero_alt: "Схема Zigbee2MQTT: устройство, координатор, MQTT-брокер и GrowerHub"
 ---
@@ -37,6 +37,15 @@ Zigbee2MQTT — это программа-посредник между Zigbee-�
 | приложение | показывает данные и применяет правила | GrowerHub или Home Assistant |
 
 Если пропал датчик, неисправность может быть на любом слое. Поэтому фраза «не работает Zigbee2MQTT» слишком общая: сначала нужно понять, видит ли адаптер сеть, завершён ли pairing, опубликовано ли MQTT-сообщение и прочитал ли его потребитель.
+
+## Что Zigbee2MQTT не заменяет
+
+- **Координатор** — это физический радиомодуль, а Zigbee2MQTT работает с ним как программа.
+- **MQTT-брокер** принимает и доставляет сообщения; Zigbee2MQTT подключается к нему как клиент.
+- **Home Assistant или GrowerHub** показывают данные и применяют пользовательские правила.
+- **Интернет** не нужен самой локальной Zigbee-сети. Он нужен, если MQTT-брокер или интерфейс находятся вне вашего компьютера, как при прямом подключении к GrowerHub.
+
+Поэтому установка обычно состоит минимум из USB-координатора, Zigbee2MQTT, MQTT-брокера и приложения. В GrowerHub MQTT-брокер и кабинет уже доступны: пользователь настраивает координатор и Zigbee2MQTT.
 
 ## Координатор, роутер и конечное устройство
 
@@ -99,3 +108,5 @@ GrowerHub получает через MQTT состояния и команды,
 Так Zigbee2MQTT становится не «ещё одним хабом», а понятным транспортным слоем между устройствами и системой управления.
 
 GrowerHub выдаёт изолированное пространство MQTT и готовую конфигурацию после входа. Выберите [координатор](/oborudovanie/zigbee-koordinator/), затем пройдите [короткое подключение](/kak-nachat/); существующий локальный MQTT можно сохранить через локальный мост.
+
+Для первого стенда на обычном компьютере используйте отдельную инструкцию [по установке Zigbee2MQTT на Windows](/articles/ustanovka-zigbee2mqtt-na-windows/).

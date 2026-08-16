@@ -7,7 +7,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RU_DIR = path.join(ROOT, 'content', 'articles');
 const EN_DIR = path.join(ROOT, 'content', 'en', 'articles');
 const OUTPUT_PATH = path.join(ROOT, 'src', 'content', 'articleMetadata.generated.json');
-const EXPECTED_ARTICLES = 54;
+const EXPECTED_ARTICLES = 56;
 
 const normalizeArray = (value) => {
   if (Array.isArray(value)) return value.map(String).map((item) => item.trim()).filter(Boolean);

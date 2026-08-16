@@ -1,110 +1,117 @@
 ---
-translation_of: podklyuchit-zigbee-datchik-temperatury-vlazhnosti
-slug: how-to-connect-a-zigbee-temperature-and-humidity-sensor-step-by-step-check
-title: 'How to connect a Zigbee temperature and humidity sensor: step-by-step check'
-summary: >-
-  Connecting a Zigbee temperature and humidity sensor to Zigbee2MQTT: model
-  selection, pairing, exposes, availability, installation location and data
-  verification.
-created_at: '2026-07-23'
-updated_at: '2026-07-23'
-cluster: zigbee-hub-i-ustroystva
+translation_of: "podklyuchit-zigbee-datchik-temperatury-vlazhnosti"
+slug: "how-to-connect-a-zigbee-temperature-and-humidity-sensor-step-by-step-check"
+title: "Pair a Zigbee temperature and humidity sensor with Zigbee2MQTT"
+summary: "A step-by-step Zigbee sensor setup: exact model, pairing and interview, temperature and humidity exposes, availability, placement, and data verification."
+created_at: "2026-07-23"
+updated_at: "2026-08-16"
+cluster: "zigbee-hub-i-ustroystva"
 tags:
-  - GrowerHub
-  - Zigbee
-  - sensor
+  - "GrowerHub"
+  - "Zigbee"
+  - "sensor"
 keywords:
-  - connect Zigbee sensor
-  - Zigbee temperature humidity sensor
-  - Zigbee2MQTT sensor
+  - "pair Zigbee temperature humidity sensor"
+  - "Zigbee2MQTT temperature humidity sensor"
+  - "connect Zigbee sensor"
 related:
-  - pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya
-  - zigbee-dlya-teplitsy-kakie-ustroystva-polezny
-  - sovmestimost-zigbee2mqtt-exposes-availability
-  - kontrol-mikroklimata-v-teplitse
-hero_image: >-
-  /content/articles/illustrations/podklyuchit-zigbee-datchik-temperatury-vlazhnosti.webp
-hero_alt: Connecting the Zigbee temperature and humidity sensor to the Zigbee2MQTT
+  - "ustanovka-zigbee2mqtt-na-windows"
+  - "pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya"
+  - "zigbee-dlya-teplitsy-kakie-ustroystva-polezny"
+  - "sovmestimost-zigbee2mqtt-exposes-availability"
+hero_image: "/content/articles/illustrations/podklyuchit-zigbee-datchik-temperatury-vlazhnosti.webp"
+hero_alt: "Pairing a Zigbee temperature and humidity sensor with Zigbee2MQTT"
 ---
-![Connecting the Zigbee temperature and humidity sensor to Zigbee2MQTT](/content/articles/illustrations/podklyuchit-zigbee-datchik-temperatury-vlazhnosti.webp)
 
-Connecting a Zigbee sensor means not only seeing its name in the interface. The work area requires reliable temperature and humidity, a clear update frequency, accessibility control, and the correct installation location. Below is the sequence from choosing a model to binding to GrowerHub.
+![Pairing a Zigbee temperature and humidity sensor with Zigbee2MQTT](/content/articles/illustrations/podklyuchit-zigbee-datchik-temperatury-vlazhnosti.webp)
 
-## What to check before purchasing
+A sensor is not fully connected just because its name appears in a dashboard. A working zone needs plausible temperature and humidity, a known reporting pattern, availability, and sensible placement. This sequence starts with the exact model and ends with verified data in GrowerHub.
 
-| Parameter | Why is it needed |
+## What to check before buying
+
+| Detail | Why it matters |
 |---|---|
-| exact model and manufacturer | the same body can hide different revisions |
-| `temperature` and `humidity` in exposes | confirms what data a particular model provides |
-| power and battery type | affects maintenance and operation in the cold |
-| reporting frequency | too sparse data is inconvenient for quick ventilation control |
-| operating conditions | household case does not become waterproof due to Zigbee |
+| exact model and manufacturer | identical enclosures can contain different hardware revisions |
+| `temperature` and `humidity` in `exposes` | confirms the values provided by that converter |
+| battery type and power requirements | affects maintenance and cold-weather behavior |
+| normal reporting pattern | a slow battery sensor is unsuitable for fast ventilation control |
+| environmental rating | Zigbee does not make a consumer enclosure waterproof |
 
-Find the model in the [official catalog Zigbee2MQTT](https://www.zigbee2mqtt.io/supported-devices/) and open its page. Look at the available properties and pairing instructions, and not just the “supported” mark.
+Find the exact model in the [official Zigbee2MQTT device catalog](https://www.zigbee2mqtt.io/supported-devices/) and open its page. Read the capabilities and pairing instructions rather than relying on the “supported” label alone.
 
 ## Step 1: Prepare the network
 
-Make sure the coordinator is working and other devices are transmitting data. For the first connection, place the sensor next to the coordinator. If the work area is far away, add a network-powered Zigbee router in advance; battery sensors usually do not relay messages.
+Confirm that Zigbee2MQTT is running and other devices still report. Pair the sensor close to the coordinator first. If its final location is distant, add a suitable mains-powered Zigbee router; sleeping battery sensors normally do not forward messages.
 
-It is better to remove the USB coordinator from the computer, SSD and Wi-Fi equipment with an extension cable. Detailed recommendations are collected in the Zigbee2MQTT documentation on [network range and stability](https://www.zigbee2mqtt.io/advanced/zigbee/02_improve_network_range_and_stability.html).
+Move a USB coordinator away from the computer chassis, SSDs, and Wi-Fi equipment with an extension cable. Zigbee2MQTT documents the main sources of interference in its [range and stability guide](https://www.zigbee2mqtt.io/advanced/zigbee/02_improve_network_range_and_stability.html).
 
-## Step 2. Perform pairing
+## Step 2: Pair and complete interview
 
-1. Install a fresh battery;
+1. install a known-good battery;
 2. enable permit join for a limited time;
-3. Reset according to the instructions of the exact model;
-4. keep the sensor nearby until the interview is completed;
-5. For a sleeping device, if necessary, briefly press the button to prevent it from falling asleep during polling;
-6. Close permit join after connecting.
+3. factory-reset the exact model according to its instructions;
+4. keep it nearby until interview completes;
+5. if a battery sensor falls asleep, wake it briefly with its normal button during interview;
+6. close permit join after connection.
 
-Official connection options via the interface and MQTT are described in [Allowing devices to join](https://www.zigbee2mqtt.io/guide/usage/pairing_devices.html). If the process does not complete, use a separate [checklist for a missing or non-connecting Zigbee device](/articles/pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya/).
+The official interface and MQTT methods are documented under [Allowing devices to join](https://www.zigbee2mqtt.io/guide/usage/pairing_devices.html). If the process stops, use the [missing-device diagnostic checklist](/articles/pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya/) instead of repeatedly deleting the entity.
 
-## Step 3: Check fields and units
+## Step 3: Verify fields and units
 
-After the interview, wait for several messages and compare the readings with a working control device. Check:
+Wait for several messages after interview and compare them with a reliable reference instrument. Check:
 
 - `temperature` in degrees Celsius;
-- `humidity` in percent relative humidity;
-- `battery` or `voltage`, if the model transmits them;
-- time of last message;
+- `humidity` as relative humidity in percent;
+- `battery` or `voltage`, if exposed by the model;
+- time of the last message;
 - availability and diagnostic `linkquality`.
 
-Do not build automation based on the first package. The sensor needs to equalize the temperature after the street or warm hands. A small constant error can be taken into account by the correction, but jumps and stuck values first require diagnostics.
+Do not automate from the first packet. A sensor needs time to equalize after being outdoors or held in warm hands. A small consistent offset can be calibrated, while jumps and frozen values require diagnosis first.
 
-## Step 4: Give it a meaningful name
+## Step 4: Give the device a durable name
 
-The name must survive the reshuffling of equipment. `sensor_01` and “sensor on the left” quickly become meaningless. A practical option is the zone and role: “Seedling · air” or `seedlings_air`. The hardware address is stored separately and is not needed on public screens.
+Names should survive equipment moves. `sensor_01` and “left sensor” quickly lose meaning. Combine zone and role, for example “Seedlings · air” or `seedlings_air`. Keep the IEEE address as a technical identifier rather than exposing it in normal dashboards.
 
-In GrowerHub, the sensor is tied to a specific room or box. This way the value appears next to the equipment in that zone and is not mixed with the average for the entire farm.
+GrowerHub assigns the sensor to a room, greenhouse, or grow box so its reading appears with the equipment in that zone instead of being mixed into a farm-wide average.
 
-## Step 5. Select installation location
+## Step 5: Choose the installation location
 
-For plants, the sensor is usually placed at leaf level, in the shade, away from the direct flow of a fan, lamp, humidifier or wet tray. In a long greenhouse, one sensor does not describe both ends. First compare the zones, then decide whether they can be combined.
+For plants, place the sensor around leaf height, in shade, away from a fan jet, lamp, humidifier, or wet tray. One sensor rarely describes both ends of a long greenhouse. Compare locations before treating them as one zone.
 
-Leave the sensor for 24-48 hours and match the schedule with turning on the lights, ventilation and watering. A sharp step without a physical event, a long straight line or regular skips is a reason to check the network and device.
+Observe the sensor for 24–48 hours and compare its trend with lighting, ventilation, and watering events. A sharp step with no physical cause, a perfectly flat line, or regular gaps should be investigated.
 
-## Step 6. Set up accessibility
+## Step 6: Configure availability and freshness
 
-Zigbee2MQTT distinguishes between active and passive devices: a sleeping battery sensor cannot be interrogated like a socket. The official behavior and timeouts are described in [Device Availability](https://www.zigbee2mqtt.io/guide/configuration/device-availability.html).
+Zigbee2MQTT treats powered and sleeping devices differently. A battery sensor cannot be polled like a smart plug. The standard behavior and timeouts are documented under [Device Availability](https://www.zigbee2mqtt.io/guide/configuration/device-availability.html).
 
-For control, also set the permissible measurement age. For example, a ventilation scenario may require more recent data than a weekly report. If the value is deprecated, it is safer to show a warning and not trigger a new action.
+For control, also define a maximum age for the actual measurement. A ventilation rule may require fresher temperature data than a weekly report. When a value is stale, report the problem and block the new action.
 
-## Restrictions
+## If the sensor joined but data is wrong
 
-A household Zigbee sensor is not an industrial measuring device and often does not have condensation protection. Do not place it where the body gets exposed to water. For critical ventilation, use independent limits and check the actual result, not just the relay command.
+| Symptom | Check |
+|---|---|
+| temperature or humidity is always zero | raw payload, exact-model page, and whether configure/interview completed |
+| values appeared once and never changed | battery, `last_seen`, availability, and the model's normal reporting interval |
+| humidity looks like temperature, or vice versa | actual property names in `exposes`, not an old dashboard label |
+| a second entity appeared after renaming | friendly-name and discovery identifier stability before deleting the old entity |
+| regular gaps occur only at the final location | powered Zigbee routers, 2.4 GHz interference, and coordinator placement |
 
-An example of how multiple zones and data freshness are collected in GrowerHub is shown on the [mini-farm automation](/avtomatizatsiya-mini-fermy/#demo-ekrany) page.
+Verify the raw Zigbee2MQTT payload first, then inspect GrowerHub or Home Assistant. This separates a device problem from an application-mapping problem.
 
-## Done if
+## Limitations
 
-- exact model and exposes verified;
-- pairing completed without errors interview;
+A consumer Zigbee sensor is not an industrial instrument and often lacks condensation protection. Do not place it where water reaches the enclosure. Critical ventilation requires independent limits and confirmation of the physical result, not only a relay command.
+
+The [farm automation page](/avtomatizatsiya-mini-fermy/#demo-ekrany) shows how GrowerHub keeps zone readings and freshness visible.
+
+## The sensor is ready when
+
+- the exact model and `exposes` are verified;
+- pairing and interview completed without errors;
 - temperature and humidity are plausible;
-- the name indicates the zone and role;
-- after the transfer the connection is stable;
-- availability and age of data are taken into account;
-- the sensor is not installed near a source of heat, water or direct air flow.
+- the name identifies zone and role;
+- reports remain stable after moving the device;
+- availability and data age are part of control rules;
+- the enclosure is away from direct heat, water, and airflow.
 
-Only after this check should the data be used in the GrowerHub, Home Assistant or other automation rules.
-
-If the sensor has not yet been selected, look at [multiple compatible examples](/oborudovanie/datchiki/) and be sure to check the exact model ID against Zigbee2MQTT. The GrowerHub connection itself begins without a questionnaire about plants: [seven steps from the entrance to the zone](/kak-nachat/).
+Only then should the reading participate in GrowerHub, Home Assistant, or another automation. If you are still choosing hardware, see the [sensor examples](/oborudovanie/datchiki/) and verify the exact model ID. A first GrowerHub setup follows the [short connection path](/kak-nachat/) without a crop questionnaire.

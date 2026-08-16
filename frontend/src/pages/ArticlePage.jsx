@@ -148,8 +148,8 @@ function ArticlePage() {
       )}
       <LeadCta
         placement="article_bottom"
-        title={translatePublic('Подключите устройство к GrowerHub')}
-        text={translatePublic('Войдите, настройте Zigbee2MQTT и увидьте метрики в кабинете. Если потребуется помощь, напишите нам в Telegram на русском или английском.')}
+        title={cluster?.guide.cta.title || translatePublic('Подключите устройство к GrowerHub')}
+        text={cluster?.guide.cta.text || translatePublic('Войдите, настройте Zigbee2MQTT и увидьте метрики в кабинете. Если потребуется помощь, напишите нам в Telegram на русском или английском.')}
       />
       {relatedArticles.length > 0 && (
         <section className="related-articles">

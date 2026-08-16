@@ -1,108 +1,113 @@
 ---
-translation_of: home-assistant-dlya-rasteniy
-slug: home-assistant-plant-watering-safe-step-by-step-setup
-title: 'Plant watering in Home Assistant: a safe step-by-step setup'
-summary: >-
-  How to set up automated watering in Home Assistant with sensors, a manual
-  check, conditions, pump runtime limits, leak protection and history.
-created_at: '2026-07-23'
-updated_at: '2026-07-23'
-cluster: home-assistant-i-diy
+translation_of: "home-assistant-dlya-rasteniy"
+slug: "home-assistant-plant-watering-safe-step-by-step-setup"
+title: "Plant watering in Home Assistant: a safe step-by-step setup"
+summary: "How to set up plant watering in Home Assistant with a calibrated sensor, explicit conditions, pump runtime limits, leak protection, and useful history."
+created_at: "2026-07-23"
+updated_at: "2026-08-16"
+cluster: "home-assistant-i-diy"
 tags:
-  - GrowerHub
-  - Home Assistant
-  - automatic watering
+  - "GrowerHub"
+  - "Home Assistant"
+  - "automatic watering"
 keywords:
-  - Home Assistant automatic watering
-  - Home Assistant plants
-  - watering plants Home Assistant
+  - "Home Assistant plant watering"
+  - "Home Assistant irrigation automation"
+  - "Home Assistant soil moisture watering"
 related:
-  - dashboard-rasteniy-v-home-assistant
-  - mqtt-avtopoliv-kakie-topiki-nuzhny
-  - esp32-datchik-vlazhnosti-home-assistant
-  - growerhub-i-home-assistant-cherez-mqtt
-hero_image: /content/articles/illustrations/home-assistant-dlya-rasteniy.webp
-hero_alt: >-
-  Automatic watering of plants in Home Assistant with sensors and protective
-  conditions
+  - "zigbee-klapan-poliva-home-assistant"
+  - "dashboard-rasteniy-v-home-assistant"
+  - "mqtt-avtopoliv-kakie-topiki-nuzhny"
+  - "esp32-datchik-vlazhnosti-home-assistant"
+hero_image: "/content/articles/illustrations/home-assistant-dlya-rasteniy.webp"
+hero_alt: "Home Assistant plant watering with a moisture sensor and safety conditions"
 ---
-![Automatic watering of plants in Home Assistant with sensors and protective conditions](/content/articles/illustrations/home-assistant-dlya-rasteniy.webp)
 
-Home Assistant can link humidity sensor, pump relay, leakage and schedule. But the rule “humidity below 40% - turn on the pump” is not yet safe automatic watering. We need data freshness checks, time limits, pauses between cycles, and clear failure behavior.
+![Home Assistant plant watering with a moisture sensor and safety conditions](/content/articles/illustrations/home-assistant-dlya-rasteniy.webp)
 
-Start not with automation, but with observation. Water by hand for a few days, watch the graph and record the actual volume. This way you will know the operating range of your particular sensor, substrate and pot.
+Home Assistant can connect a soil-moisture sensor, a pump relay, leak detection, and a schedule. But “moisture below 40% — start the pump” is not yet a safe watering system. It needs a freshness check, bounded runtime, a recovery interval, and defined behavior after a fault.
 
-## Minimal scheme
+Begin with observation rather than automation. Water manually for several days, review the trend, and record the delivered volume. This establishes the operating range of your sensor, substrate, and pot instead of borrowing somebody else's threshold.
 
-| Entity | What is it for | What to check |
+## Minimum setup
+
+| Entity or function | Purpose | Verify |
 |---|---|---|
-| soil moisture sensor | feedback | calibration, installation location, last update time |
-| pump switch or relay | water supply | load, state after restart, manual shutdown |
-| leak sensor | emergency stop | physical water test and accessibility |
-| assistant “automatic watering allowed” | service mode | must be turned off before servicing |
-| magazine or history | analysis of the result | start, stop, reason and duration of each cycle |
+| soil-moisture sensor | feedback from the root zone | calibration, placement, and last update time |
+| pump relay, smart plug, or valve | water delivery | electrical or hydraulic load, restart state, and manual shutdown |
+| leak sensor | emergency input | a physical wet test and reliable availability |
+| “automatic watering allowed” helper | maintenance lockout | it is disabled before servicing the line |
+| log or history | result analysis | start, stop, reason, and duration for every cycle |
 
-Air temperature and light schedule may be additional conditions, but do not replace basic water protection.
+Air temperature and lighting can be additional conditions, but they do not replace the basic water safeguards.
 
-## Step 1: Test the sensor manually
+## Step 1: Verify the sensor manually
 
-Install the sensor in the root zone, but not directly at the drip line. Note the value before hand watering and after the water has been distributed over the substrate. Repeat several cycles. Choose the threshold with a margin of normal noise, and not according to someone else’s percentage table.
+Place the probe in the root zone but not directly under a dripper. Record its value before manual watering and after water has distributed through the substrate. Repeat for several cycles. Choose a threshold with enough margin for normal noise rather than using a universal percentage.
 
-If an entity becomes `unknown` or `unavailable`, the automation should not use the last old number. For MQTT sensors, configure availability; The official Home Assistant section explains [MQTT discovery and accessibility topics](https://www.home-assistant.io/integrations/mqtt/).
+If an entity becomes `unknown` or `unavailable`, the automation must not reuse its last number. For MQTT sensors, configure availability; the official [Home Assistant MQTT integration](https://www.home-assistant.io/integrations/mqtt/) explains discovery and availability topics.
 
-## Step 2: Measure the water supply
+## Step 2: Measure actual delivery
 
-Run the pump manually for a known time and measure the volume. Repeat three times. If the result is noticeably different, first correct the feeding, tubes, and IVs. Running time without measured flow does not tell how much water the pot received.
+Run the pump or open the valve manually for a known time and measure the volume. Repeat at least three times. If the results differ noticeably, fix power, pressure, tubing, or drippers before writing a rule. Runtime alone does not tell you how much water reached a pot unless delivery is repeatable.
 
-Create separate zones for multiple crops. One pump channel is only suitable for plants with comparable pots, substrate and consumption.
+Separate crops or containers with materially different substrate, size, or demand into different zones. One channel is suitable only for outlets that behave similarly.
 
-## Step 3: Separate trigger, conditions and actions
+## Step 3: Separate trigger, conditions, and actions
 
-Home Assistant first receives a trigger, then checks conditions and performs actions - this is reflected in the official documentation for [triggers](https://www.home-assistant.io/docs/automation/trigger/) and [conditions](https://www.home-assistant.io/docs/automation/condition/).
+Home Assistant evaluates a trigger, checks conditions, and then runs actions. The official documentation covers [automation triggers](https://www.home-assistant.io/docs/automation/trigger/) and [conditions](https://www.home-assistant.io/docs/automation/condition/).
 
-The practical logic for a zone looks like this:
+A practical zone rule looks like this:
 
-1. humidity remains below the verified threshold for a specified time;
-2. automatic watering is allowed, sensors are available, there are no leaks;
-3. there has been a minimal pause since the last cycle;
-4. the daily water limit has not been exhausted;
-5. the pump is turned on for a maximum of the tested time;
-6. Shutdown and the result are recorded in a log.
+1. moisture remains below a verified threshold for a defined time;
+2. watering is allowed, required sensors are available, and no leak is present;
+3. the minimum interval since the previous cycle has passed;
+4. the daily water or runtime budget is not exhausted;
+5. the actuator runs for no longer than its tested maximum;
+6. shutdown and the reason are written to history.
 
-The script execution mode must exclude parallel runs. Even so, the software `delay` does not replace independent protection: after a restart, a communication failure or a stuck relay, the pump must have a safe limitation at the controller or power level.
+Choose an execution mode that prevents parallel runs for one zone. Even then, a software `delay` is not independent protection. A restart, lost connection, or stuck relay must still lead to a safe state at the controller, valve, or power level.
 
-## Step 4. Check emergency scenarios
+## Step 4: Test failure paths
 
-Look beyond the "Run" button. Run tests:
+Do more than press “Run.” During short supervised tests:
 
-- disconnect the humidity sensor and make sure that the pump does not start;
-- wet the leakage sensor and check for immediate shutdown;
-- restart Home Assistant during the test cycle;
-- temporarily lose MQTT connection;
-- click manual block and check all related rules.
+- disconnect the moisture sensor and confirm that watering cannot start;
+- wet the leak sensor and verify immediate shutdown;
+- restart Home Assistant during a test cycle;
+- temporarily interrupt MQTT;
+- enable the maintenance lock and check every related rule;
+- restore power and verify the actuator's default state.
 
-If the result cannot be clearly seen in the interface and history, it is too early to leave the system unobserved.
+If the outcome is not obvious in the interface and history, the system is not ready to operate unattended.
 
-## What to show on the dashboard
+## What belongs on the dashboard
 
-The first screen contains just the zone, current humidity and update time, pump status, leakage, last watering and reason for blockage. The graph is needed below to analyze the dynamics. Don't force the operator to open five cards to see if water is flowing.
+The first screen needs the zone, current moisture and update time, actuator state, leak state, last watering, and any blocking reason. Put the trend below those operational facts. An operator should not need five cards to answer “is water flowing now?”
 
-GrowerHub can take over the zone model, history and equipment management, while keeping MQTT and Zigbee2MQTT as an integration layer. Three operational views are shown on the [small farm Automation](/avtomatizatsiya-mini-fermy/#demo-ekrany) page.
+GrowerHub can provide the zone model, history, and equipment controls while MQTT and Zigbee2MQTT remain the integration layer. The [farm automation page](/avtomatizatsiya-mini-fermy/#demo-ekrany) shows the zone overview, history, connection state, and automation separately.
 
-## Restrictions
+## Pump, smart plug, or Zigbee valve
 
-Home Assistant does not check the quality of installation, the tightness of the tubes and the permissible load of the relay. Mains voltage and equipment near water require qualified installation. A new automatic watering system should not be turned on for the first time before leaving: let it go through several cycles under supervision.
+Home Assistant may expose an actuator as a `switch` or `valve`, depending on its integration and model. A pump connected through a smart plug requires verification of starting load and the state after power returns. A valve requires correct flow direction, working pressure, complete closure, and a manual way to stop water.
+
+The safeguards stay the same: commands require fresh data, every run is bounded, and leak detection closes water immediately. The [Zigbee irrigation valve guide](/articles/zigbee-klapan-poliva-home-assistant/) covers model capabilities and entity checks in detail.
+
+## Limitations
+
+Home Assistant cannot inspect plumbing, tube connections, or relay load ratings. Mains electricity and equipment near water require appropriate installation. Do not enable a new watering system for the first time just before leaving; observe several complete cycles after every sensor, tube, threshold, or firmware change.
 
 ## Checklist before automatic mode
 
-- the sensor is calibrated in a real substrate;
-- old data becomes inaccessible;
-- water consumption is measured;
-- there is a limit of one launch, a pause and a daily limit;
-- leakage stops the pump;
-- manual locking works;
-- every start and stop is visible in the history.
+- the sensor is calibrated in the actual substrate;
+- stale readings become unavailable or block the rule;
+- delivered water has been measured;
+- per-run, recovery, and daily limits are active;
+- leak detection stops the actuator;
+- manual lockout works;
+- every start and stop appears in history;
+- power and communication failures were tested under supervision.
 
-This sequence gives fewer spectacular rules, but turns Home Assistant into a controlled system, and not into a timer with a beautiful graph.
+This approach produces fewer flashy rules but turns Home Assistant into an observable control system rather than a timer with a chart.
 
-If you want to keep the local Home Assistant, connect it to the GrowerHub via a directed local bridge: [self-launch path](/kak-nachat/). For the first stand, you can separately look at [sensors](/oborudovanie/datchiki/) and [Zigbee-sockets](/oborudovanie/zigbee-rozetki/) - these are examples, not a required set.
+If you want to keep an existing Home Assistant installation, use the [GrowerHub connection path](/kak-nachat/) and select the existing-system connector. For a first hardware setup, see the [sensor examples](/oborudovanie/datchiki/) and [Zigbee smart plugs](/oborudovanie/zigbee-rozetki/); these are options, not a mandatory kit.

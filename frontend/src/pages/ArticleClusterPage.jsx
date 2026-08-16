@@ -1,11 +1,11 @@
 import { Link, useParams } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
 import {
-  articleClusters,
   getArticleClusterById,
   getArticleClusterBySlug,
+  getArticleClusters,
 } from '../content/articleClusters';
-import { getArticlesByCluster } from '../content/articles';
+import { getArticleById, getArticlesByCluster } from '../content/articles';
 import {
   getArticlePath,
   getClusterPath,
@@ -39,7 +39,11 @@ function ArticleClusterPage() {
   }
 
   const clusterArticles = getArticlesByCluster(cluster.id, locale);
-  const otherClusters = articleClusters.filter((item) => item.slug !== cluster.slug);
+  const otherClusters = getArticleClusters(locale).filter((item) => item.slug !== cluster.slug);
+  const guideSteps = cluster.guide.steps.map((step) => ({
+    ...step,
+    article: getArticleById(step.articleId, locale),
+  }));
 
   return (
     <div className="section">
@@ -58,11 +62,46 @@ function ArticleClusterPage() {
         </div>
       </div>
 
-      <div className="keyword-list">
-        {cluster.keywords.map((keyword) => (
-          <span key={keyword}>{keyword}</span>
-        ))}
-      </div>
+      <section className="cluster-block cluster-guide">
+        <h2>{translatePublic('С чего начать')}</h2>
+        <p>{cluster.guide.intro}</p>
+        <div className="cluster-path-grid">
+          {guideSteps.map((step) => (
+            <article className="article-card" key={step.articleId}>
+              {step.article ? (
+                <Link to={getArticlePath(step.article, locale)}>{step.title}</Link>
+              ) : (
+                <strong>{step.title}</strong>
+              )}
+              <p>{step.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="cluster-block">
+        <h2>{translatePublic('Выберите первый шаг')}</h2>
+        <div className="cluster-table-wrap">
+          <table className="cluster-decision-table">
+            <thead>
+              <tr>
+                <th>{translatePublic('Ситуация')}</th>
+                <th>{translatePublic('С чего начать')}</th>
+                <th>{translatePublic('Почему')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cluster.guide.decisions.map((decision) => (
+                <tr key={decision.situation}>
+                  <td>{decision.situation}</td>
+                  <td>{decision.start}</td>
+                  <td>{decision.reason}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section className="cluster-block">
         <h2>{translatePublic('Статьи раздела')}</h2>
@@ -79,7 +118,11 @@ function ArticleClusterPage() {
         </div>
       </section>
 
-      <LeadCta placement="cluster_bottom" />
+      <LeadCta
+        placement="cluster_bottom"
+        title={cluster.guide.cta.title}
+        text={cluster.guide.cta.text}
+      />
 
       <section className="cluster-block">
         <h2>{translatePublic('Другие разделы')}</h2>

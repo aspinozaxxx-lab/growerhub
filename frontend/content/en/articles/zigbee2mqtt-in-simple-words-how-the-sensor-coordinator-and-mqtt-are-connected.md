@@ -1,105 +1,111 @@
 ---
-translation_of: zigbee2mqtt-prostymi-slovami
-slug: zigbee2mqtt-in-simple-words-how-the-sensor-coordinator-and-mqtt-are-connected
-title: >-
-  Zigbee2MQTT in simple words: how the sensor, coordinator and MQTT are
-  connected
-summary: >-
-  A clear diagram of Zigbee2MQTT: what the coordinator, routers, MQTT broker,
-  topics, exposes and availability do and how GrowerHub applies it.
-created_at: '2026-07-23'
-updated_at: '2026-07-23'
-cluster: zigbee-hub-i-ustroystva
+translation_of: "zigbee2mqtt-prostymi-slovami"
+slug: "zigbee2mqtt-in-simple-words-how-the-sensor-coordinator-and-mqtt-are-connected"
+title: "What is Zigbee2MQTT? Sensors, coordinator, and MQTT explained"
+summary: "A plain-language Zigbee2MQTT diagram: what the coordinator, routers, MQTT broker, topics, exposes, and availability do, and how GrowerHub uses them."
+created_at: "2026-07-23"
+updated_at: "2026-08-16"
+cluster: "zigbee-hub-i-ustroystva"
 tags:
-  - GrowerHub
-  - Zigbee2MQTT
-  - MQTT
+  - "GrowerHub"
+  - "Zigbee2MQTT"
+  - "MQTT"
 keywords:
-  - Zigbee2MQTT in simple words
-  - what is Zigbee2MQTT
-  - Zigbee Hub
+  - "what is Zigbee2MQTT"
+  - "Zigbee2MQTT explained"
+  - "Zigbee coordinator MQTT"
 related:
-  - roli-zigbee-ustroystv-v-growerhub
-  - sovmestimost-zigbee2mqtt-exposes-availability
-  - growerhub-i-home-assistant-cherez-mqtt
-  - mqtt-avtopoliv-kakie-topiki-nuzhny
-hero_image: /content/articles/illustrations/zigbee2mqtt-prostymi-slovami.webp
-hero_alt: 'Schema Zigbee2MQTT: device, coordinator, MQTT broker and GrowerHub'
+  - "ustanovka-zigbee2mqtt-na-windows"
+  - "roli-zigbee-ustroystv-v-growerhub"
+  - "sovmestimost-zigbee2mqtt-exposes-availability"
+  - "growerhub-i-home-assistant-cherez-mqtt"
+hero_image: "/content/articles/illustrations/zigbee2mqtt-prostymi-slovami.webp"
+hero_alt: "Zigbee2MQTT data path from a device through a coordinator and MQTT to GrowerHub"
 ---
-![Scheme Zigbee2MQTT: device, coordinator, MQTT broker and GrowerHub](/content/articles/illustrations/zigbee2mqtt-prostymi-slovami.webp)
 
-Zigbee2MQTT is an intermediary program between the Zigbee network and MQTT. The sensor talks via Zigbee to the coordinator, Zigbee2MQTT translates its message into understandable data, and the MQTT broker delivers it to GrowerHub, Home Assistant or another service. In the opposite direction, the relay command follows the same path.
+![Zigbee2MQTT data path from a device through a coordinator and MQTT to GrowerHub](/content/articles/illustrations/zigbee2mqtt-prostymi-slovami.webp)
 
-## System by layers
+Zigbee2MQTT is software that connects a Zigbee network to MQTT. A sensor talks over Zigbee to the coordinator, Zigbee2MQTT converts its message into structured data, and an MQTT broker delivers that data to GrowerHub, Home Assistant, or another application. A relay command follows the same path in reverse.
 
-| Layer | What does | Example |
+## The system in five layers
+
+| Layer | What it does | Example |
 |---|---|---|
-| Zigbee-device | measures or executes a command | temperature sensor, socket, relay |
-| coordinator | creates one Zigbee-network | USB adapter with supported firmware |
-| Zigbee2MQTT | polls devices and converts messages | temperature turns into JSON-field |
-| MQTT-broker | delivers messages to subscribers | Mosquito |
-| application | shows data and applies rules | GrowerHub or Home Assistant |
+| Zigbee device | measures a value or performs a command | temperature sensor, smart plug, relay |
+| coordinator | creates and manages one Zigbee network | USB adapter with supported coordinator firmware |
+| Zigbee2MQTT | translates Zigbee messages and device commands | a temperature report becomes a JSON property |
+| MQTT broker | routes messages between clients | Mosquitto or the GrowerHub broker |
+| application | presents data and applies rules | GrowerHub or Home Assistant |
 
-If the sensor is missing, the fault can be on any layer. Therefore, the phrase “Zigbee2MQTT does not work” is too general: first you need to understand whether the adapter sees the network, whether pairing is completed, whether the MQTT message is published and whether the consumer has read it.
+When a sensor disappears, the fault can be at any layer. “Zigbee2MQTT is broken” is too broad: determine whether the adapter opened the network, pairing completed, an MQTT message was published, and the application received it.
 
-## Coordinator, router and end device
+## What Zigbee2MQTT does not replace
 
-There is only one coordinator in the network. Network-powered devices often act as routers and forward messages. Battery sensors usually sleep and are end devices. They save power, but do not strengthen the network.
+- The **coordinator** is the physical radio adapter; Zigbee2MQTT is the software using it.
+- The **MQTT broker** receives and routes messages; Zigbee2MQTT connects to it as a client.
+- **Home Assistant or GrowerHub** provides dashboards and user-facing automation.
+- The local **Zigbee network does not require internet**. Internet is required when the broker or dashboard is remote, as with a direct GrowerHub connection.
 
-For a greenhouse, this means that the long-range battery sensor cannot be “amplified” by a second battery sensor. You need a suitable router between it and the coordinator. Metal, wet structures, and 2.4 GHz equipment further impact communications. Practical recommendations can be found in the official instructions [Improve network range and stability](https://www.zigbee2mqtt.io/advanced/zigbee/02_improve_network_range_and_stability.html).
+A typical installation therefore has a USB coordinator, Zigbee2MQTT, an MQTT broker, and an application. GrowerHub already provides the broker and dashboard, leaving the user to set up the coordinator and Zigbee2MQTT.
 
-## What happens when you connect
+## Coordinator, router, and end device
 
-1. Zigbee2MQTT temporarily allows new devices to enter the network.
-2. The device is put into pairing or a factory reset is performed.
-3. It joins the network and passes the interview.
-4. Zigbee2MQTT defines the model and its capabilities.
-5. States begin to be published in MQTT.
+One coordinator creates the network. Many mains-powered Zigbee devices also act as routers and forward messages. Battery sensors usually sleep and operate as end devices; they conserve energy but do not extend the mesh.
 
-The official process and connection through a specific router is described in [Allowing devices to join](https://www.zigbee2mqtt.io/guide/usage/pairing_devices.html). If the interview does not end, proceed to the step-by-step [diagnostics of the Zigbee device](/articles/pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya/).
+In a greenhouse, a distant battery sensor cannot be “boosted” by placing another battery sensor nearby. Add a suitable powered router between it and the coordinator. Metal, wet structures, and other 2.4 GHz equipment also affect the link. See the official [range and stability guide](https://www.zigbee2mqtt.io/advanced/zigbee/02_improve_network_range_and_stability.html).
 
-## Topics without unnecessary theory
+## What happens during pairing
 
-MQTT-topic is similar to the address of the message. The device publishes its state to a topic with a friendly name, and the command is usually sent to the associated topic `/set`. Service operations go through `bridge/request` and `bridge/response`.
+1. Zigbee2MQTT temporarily allows new devices to join.
+2. The device enters pairing mode or is factory-reset.
+3. It joins the network and completes an interview.
+4. Zigbee2MQTT identifies the model and converter capabilities.
+5. Device states begin to appear in MQTT.
 
-The exact names depend on the configured base topic. Don't tie business logic to a random name like `0xa4...`: give the device a stable friendly name, and store the hardware address as a technical attribute.
+The official sequence and joining through a specific router are documented under [Allowing devices to join](https://www.zigbee2mqtt.io/guide/usage/pairing_devices.html). If interview does not complete, use the [step-by-step pairing diagnostics](/articles/pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya/).
 
-## What is exposes
+## MQTT topics without unnecessary theory
 
-`Exposes` - a list of properties and actions that Zigbee2MQTT knows for a specific model: temperature, humidity, charge, relay state, brightness and other capabilities. The presence of the Zigbee logo does not guarantee the required field. Please check the [Supported Devices Catalog](https://www.zigbee2mqtt.io/supported-devices/) for the exact model before purchasing.
+An MQTT topic is an address for a message. A device normally publishes state under a topic containing its friendly name, and a command goes to the corresponding `/set` topic. Service requests and responses use `bridge/request` and `bridge/response`.
 
-For GrowerHub, the direction of the property is also important: one value can only be read, the other can be manipulated. A pump or light command should only be sent for an explicitly supported managed property.
+Exact names depend on the configured base topic. Do not tie rules to a temporary hardware-looking name such as `0xa4...`. Give devices stable friendly names and keep the IEEE address as a technical identifier.
+
+## What `exposes` means
+
+`Exposes` is the list of properties and actions that Zigbee2MQTT knows for an exact model: temperature, humidity, battery, relay state, brightness, and other capabilities. A Zigbee logo does not guarantee a particular field. Check the exact model in the [supported-device catalog](https://www.zigbee2mqtt.io/supported-devices/) before buying.
+
+Direction matters as well. Some properties are read-only; others accept a command. GrowerHub sends a light, valve, or pump command only when Zigbee2MQTT marks that capability writable.
 
 ## Availability and data freshness
 
-Availability indicates whether Zigbee2MQTT considers the device accessible. Active and sleeping devices are checked with different timeouts. Details and the MQTT topic are described in [Device Availability](https://www.zigbee2mqtt.io/guide/configuration/device-availability.html).
+Availability indicates whether Zigbee2MQTT considers a device reachable. Powered devices and sleeping battery sensors use different timeouts; the behavior is documented under [Device Availability](https://www.zigbee2mqtt.io/guide/configuration/device-availability.html).
 
-However, `online` does not mean that a particular dimension is fresh. For control, store the time of the last value. If soil moisture has not been updated for longer than the permissible interval, new watering should be blocked or switched to manual checking.
+An `online` device can still have a stale individual measurement. A control rule should track the time of the last relevant value. If soil moisture is older than the accepted interval, a new watering action should be blocked or require manual verification.
 
-## How GrowerHub uses this layer
+## How GrowerHub uses Zigbee2MQTT
 
-GrowerHub receives states and commands through MQTT, associates the device with the zone and displays it next to the box, plants and scenario. The user does not need to work with technical topics every day, but during diagnostics the message path remains transparent.
+GrowerHub receives states and commands through MQTT, associates devices with zones, and presents them beside the relevant equipment and scenarios. Users do not need to work with technical topics every day, but the message path remains clear during diagnosis.
 
-An example of such a view is on the page [mini-farm automation](/avtomatizatsiya-mini-fermy/#demo-ekrany): the zone, freshness of readings and control conditions are separately visible.
+The [farm automation page](/avtomatizatsiya-mini-fermy/#demo-ekrany) shows zones, reading freshness, and control conditions as separate pieces of information.
 
-## Restrictions
+## Important limitations
 
-- Zigbee2MQTT does not make the household sensor waterproof.
-- The supported model may have a different hardware revision.
-- A good `linkquality` at one moment does not guarantee stability over the course of a day.
-- MQTT delivers the command, but does not confirm the physical result of the pump or fan without feedback.
-- Hazardous loads require independent limitations and safe installation.
+- Zigbee2MQTT does not make a consumer sensor waterproof.
+- A supported product name may hide another hardware revision.
+- One good `linkquality` value does not prove day-long stability.
+- MQTT confirms message delivery, not the physical result of a pump or fan without feedback.
+- Water and hazardous electrical loads require independent limits and safe installation.
 
-## What to check after installation
+## Installation checklist
 
-- the coordinator is located away from sources of interference;
-- the network has powered routers;
-- pairing is completed and the model is recognized;
-- the necessary exposes are actually updated;
-- availability is included deliberately;
-- friendly names are clear;
-- GrowerHub blocks action based on outdated data.
+- place the coordinator away from strong interference;
+- add powered routers where the mesh needs them;
+- complete pairing and verify the exact model;
+- confirm that required `exposes` really update;
+- configure availability deliberately;
+- use meaningful friendly names;
+- block control when relevant data is stale.
 
-So Zigbee2MQTT becomes not “another hub”, but a clear transport layer between devices and the control system.
+With those boundaries, Zigbee2MQTT is not “another proprietary hub.” It is a transparent transport layer between devices and a control system.
 
-GrowerHub provides an isolated MQTT space and a ready-made configuration after login. Select [coordinator](/oborudovanie/zigbee-koordinator/), then go through [short connection](/kak-nachat/); an existing local MQTT can be saved via a local bridge.
+GrowerHub provides an isolated MQTT namespace and ready-to-download configuration after sign-in. Choose a [coordinator](/oborudovanie/zigbee-koordinator/), follow the [short setup path](/kak-nachat/), or keep an existing local broker through the directed connector. For a first PC setup, see [installing Zigbee2MQTT on Windows](/articles/ustanovka-zigbee2mqtt-na-windows/).

@@ -170,6 +170,39 @@ main {
   color: #f6fbff;
 }
 
+.cluster-guide > p {
+  max-width: 860px;
+}
+
+.cluster-path-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.cluster-table-wrap {
+  overflow-x: auto;
+}
+
+.cluster-decision-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+}
+
+.cluster-decision-table th,
+.cluster-decision-table td {
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left;
+  vertical-align: top;
+}
+
+.cluster-decision-table th {
+  color: #f6fbff;
+  background: rgba(95, 212, 145, 0.09);
+}
+
 .secondary-link {
   display: inline-flex;
   align-items: center;
