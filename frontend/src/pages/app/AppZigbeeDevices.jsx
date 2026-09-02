@@ -11,7 +11,7 @@ import {
   filterZigbeeDevices,
   priorityDeviceMetrics,
 } from '../../features/farm/farmModel';
-import { formatDateTime } from './admin/adminFarmDashboardModel';
+import { formatDateTime } from '../../features/dashboard/dashboardModel';
 import { translateApp } from '../../locales/i18n';
 import './SelfServicePages.css';
 

@@ -7,7 +7,6 @@ import './AdminPages.css';
 
 // Translitem: punkty navigacii admin-razdela.
 const adminNavItems = [
-  { to: '/app/admin/dashboard/', label: 'Дашборд' },
   { to: '/app/admin/product-analytics/', label: 'Воронка' },
   { to: '/app/admin/users/', label: 'Пользователи' },
   { to: '/app/admin/devices/', label: 'Устройства' },
@@ -15,7 +14,6 @@ const adminNavItems = [
   { to: '/app/admin/mqtt/', label: 'MQTT' },
   { to: '/app/admin/zigbee/', label: 'Zigbee' },
   { to: '/app/admin/automation/', label: 'Автоматизация' },
-  { to: '/app/admin/manual-watering/', label: 'Ручной полив' },
 ];
 
 // Translitem: obshchiy layout dlya admin-stranic.

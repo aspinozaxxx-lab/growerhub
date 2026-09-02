@@ -1,5 +1,6 @@
 .farm-dashboard {
   gap: 14px;
+  min-width: 0;
 }
 
 .farm-dashboard-refresh {
@@ -480,4 +481,335 @@ button.farm-dashboard-sensor:focus-visible {
     font-size: 17px;
   }
 
+}
+
+@media (max-width: 680px) {
+  .farm-dashboard-rooms,
+  .farm-dashboard-room {
+    gap: 5px;
+  }
+
+  .farm-dashboard-room {
+    padding: 6px;
+    border-radius: 10px;
+    box-shadow: none;
+  }
+
+  .farm-dashboard-room__header {
+    display: flex;
+    min-height: 22px;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .farm-dashboard-room__header > div:first-child {
+    min-width: 0;
+  }
+
+  .farm-dashboard-room__header h3 {
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .farm-dashboard-room__header > div:first-child > span {
+    display: none;
+  }
+
+  .farm-dashboard-room__badges,
+  .farm-dashboard-scenarios {
+    flex-wrap: nowrap;
+    gap: 3px;
+  }
+
+  .farm-dashboard-room__badges {
+    min-width: 0;
+    justify-content: flex-end;
+  }
+
+  .farm-dashboard-badge {
+    min-width: 0;
+    min-height: 19px;
+    gap: 2px;
+    padding: 2px 4px;
+    border-radius: 6px;
+    font-size: 8px;
+    line-height: 1.05;
+  }
+
+  .farm-dashboard-badge svg {
+    width: 9px;
+    height: 9px;
+    flex: 0 0 auto;
+  }
+
+  .farm-dashboard-room__summary,
+  .farm-dashboard-room__climate {
+    gap: 4px;
+  }
+
+  .farm-dashboard-room__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .farm-dashboard-summary-tile {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    min-height: 26px;
+    gap: 2px 4px;
+    padding: 3px 5px;
+    border-radius: 7px;
+  }
+
+  .farm-dashboard-summary-tile svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .farm-dashboard-summary-tile span {
+    overflow: hidden;
+    font-size: 8px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .farm-dashboard-summary-tile strong {
+    grid-column: auto;
+    font-size: 11px;
+  }
+
+  .farm-dashboard-room__climate {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  .farm-dashboard-room__climate > .farm-dashboard-resource {
+    grid-template-columns: 20px minmax(0, 1fr);
+    min-height: 40px;
+    gap: 2px 4px;
+    padding: 4px;
+    border-radius: 7px;
+  }
+
+  .farm-dashboard-room__climate .farm-dashboard-resource__icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .farm-dashboard-room__climate .farm-dashboard-resource__icon svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .farm-dashboard-room__climate .farm-dashboard-resource__label {
+    font-size: 8px;
+  }
+
+  .farm-dashboard-room__climate .farm-dashboard-resource__value {
+    font-size: 10px;
+  }
+
+  .farm-dashboard-resource__footer {
+    display: none;
+  }
+
+  .farm-dashboard-ac-requests {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: 40px;
+    gap: 3px;
+    padding: 4px;
+    border-radius: 7px;
+  }
+
+  .farm-dashboard-ac-requests h4 {
+    font-size: 9px;
+    line-height: 1.05;
+  }
+
+  .farm-dashboard-ac-requests h4 + span {
+    display: block;
+    overflow: hidden;
+    font-size: 7px;
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .farm-dashboard-ac-requests small {
+    display: none;
+  }
+
+  .farm-dashboard-ac-requests__empty,
+  .farm-dashboard-ac-requests__list {
+    flex-wrap: nowrap;
+    gap: 2px;
+  }
+
+  .farm-dashboard-ac-requests__empty {
+    font-size: 8px;
+  }
+
+  .farm-dashboard-ac-requests__empty svg,
+  .farm-dashboard-request-chip svg {
+    width: 9px;
+    height: 9px;
+  }
+
+  .farm-dashboard-request-chip {
+    max-width: 62px;
+    gap: 2px;
+    padding: 2px 3px;
+    border-radius: 5px;
+    font-size: 7px;
+  }
+
+  .farm-dashboard-request-chip span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .farm-dashboard-boxes {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .farm-dashboard-box {
+    min-width: 0;
+    gap: 4px;
+    padding: 5px;
+    border-radius: 8px;
+  }
+
+  .farm-dashboard-box__header {
+    display: flex;
+    min-height: 19px;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .farm-dashboard-box__header > div {
+    min-width: 0;
+  }
+
+  .farm-dashboard-box__header h4 {
+    overflow: hidden;
+    font-size: 10px;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .farm-dashboard-box__equipment {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3px;
+  }
+
+  .farm-dashboard-box__equipment .farm-dashboard-resource {
+    display: flex;
+    min-width: 0;
+    min-height: 42px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding: 3px 2px;
+    border-radius: 6px;
+    text-align: center;
+  }
+
+  .farm-dashboard-box__equipment .farm-dashboard-resource__icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  .farm-dashboard-box__equipment .farm-dashboard-resource__icon svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .farm-dashboard-box__equipment .farm-dashboard-resource__body {
+    width: 100%;
+    gap: 0;
+  }
+
+  .farm-dashboard-box__equipment .farm-dashboard-resource__label,
+  .farm-dashboard-box__equipment .farm-dashboard-resource__value {
+    overflow: hidden;
+    font-size: 7px;
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .farm-dashboard-sensors {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3px;
+  }
+
+  .farm-dashboard-sensor {
+    grid-template-columns: 12px minmax(0, 1fr);
+    min-width: 0;
+    min-height: 31px;
+    gap: 3px;
+    padding: 3px 4px;
+    border-radius: 6px;
+  }
+
+  .farm-dashboard-sensor > svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .farm-dashboard-sensor > div {
+    min-width: 0;
+  }
+
+  .farm-dashboard-sensor__label,
+  .farm-dashboard-sensor__value {
+    overflow: hidden;
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .farm-dashboard-sensor__label {
+    font-size: 7px;
+  }
+
+  .farm-dashboard-sensor__value {
+    font-size: 9px;
+  }
+
+  .farm-dashboard-sensor > strong {
+    display: none;
+  }
+
+  .farm-dashboard-scenarios {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .farm-dashboard-scenarios .farm-dashboard-badge {
+    min-height: 28px;
+    justify-content: center;
+    padding-inline: 2px;
+    text-align: center;
+  }
+
+  .farm-dashboard-scenarios .farm-dashboard-badge span {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 7px;
+    line-height: 1.05;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+}
+
+@media (max-width: 359px) {
+  .farm-dashboard-boxes {
+    grid-template-columns: 1fr;
+  }
 }

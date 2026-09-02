@@ -25,7 +25,7 @@ function Layout({ children }) {
   const closeMenu = () => setMenuOpen(false);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${inApp ? 'app-shell--cabinet' : ''}`}>
       <header className="app-header">
         <div className="brand">
           <Link to={getPublicPath('home', publicLocale)} className="brand-link" onClick={closeMenu}>

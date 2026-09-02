@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, Clock3, Droplets, History, Pause, Play, Square, Waves } from 'lucide-react';
-import AppPageHeader from '../../../components/layout/AppPageHeader';
-import AppPageState from '../../../components/layout/AppPageState';
-import Button from '../../../components/ui/Button';
-import Modal from '../../../components/ui/Modal';
-import Surface from '../../../components/ui/Surface';
-import useAdminManualWatering from '../../../features/manual-watering/useAdminManualWatering';
+import AppPageHeader from '../../components/layout/AppPageHeader';
+import AppPageState from '../../components/layout/AppPageState';
+import Button from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
+import Surface from '../../components/ui/Surface';
+import useManualWatering from '../../features/manual-watering/useManualWatering';
 import {
   completionReasonLabel,
   formatDateTime,
@@ -24,8 +24,8 @@ import {
   sourceLabel,
   startBlockReasonLabel,
   wateringDefaultsReady,
-} from '../../../features/manual-watering/manualWateringModel';
-import './AdminManualWatering.css';
+} from '../../features/manual-watering/manualWateringModel';
+import './AppManualWatering.css';
 
 function pumpTitle(pump) {
   const base = pump?.label || `Насос ${pump?.id ?? ''}`.trim();
@@ -82,8 +82,8 @@ function WateringBox({ box }) {
     <section className={`manual-watering-box ${box.enabled === false ? 'is-disabled' : ''}`}>
       <header className="manual-watering-box__header">
         <div>
-          <h4>{box.name || 'Бокс без названия'}</h4>
-          <span>{box.room_name || 'Помещение не указано'}</span>
+          <h4>{box.name || 'Теплица без названия'}</h4>
+          <span>{box.room_name || 'Ферма не указана'}</span>
         </div>
         {box.enabled === false ? <span className="manual-watering-box__disabled">Выключен в автоматизации</span> : null}
       </header>
@@ -144,7 +144,7 @@ function ActiveSession({ pump, session, actionKey, onStop }) {
         isLoading={stopping}
       >
         <Square size={14} aria-hidden="true" />
-        Остановить все боксы
+        Остановить все теплицы
       </Button>
     </section>
   );
@@ -214,7 +214,7 @@ function PumpCard({
 
       <div className="manual-watering-pump__boxes">
         {listOrEmpty(pump.boxes).length === 0 ? (
-          <div className="manual-watering-state">Боксы не привязаны. Настройте иерархию в разделе «Автоматизация».</div>
+          <div className="manual-watering-state">Теплицы не привязаны. Назначьте насос в Конструкторе фермы.</div>
         ) : listOrEmpty(pump.boxes).map((box) => <WateringBox key={box.id} box={box} />)}
       </div>
 
@@ -335,7 +335,7 @@ function LaunchWateringModal({ pump, defaults, actionKey, actionError, onClose, 
       <form id={`manual-watering-form-${pump.id}`} className="manual-watering-form" onSubmit={submit}>
         <div className="manual-watering-form__warning">
           <Droplets size={18} aria-hidden="true" />
-          <span>Будут поливаться все привязанные боксы, включая выключенные в автоматизации.</span>
+          <span>Будут поливаться все привязанные теплицы, включая выключенные в автоматизации.</span>
         </div>
         <fieldset className="manual-watering-form__modes">
           <legend>Режим полива</legend>
@@ -394,7 +394,7 @@ function LaunchWateringModal({ pump, defaults, actionKey, actionError, onClose, 
   );
 }
 
-function AdminManualWatering() {
+function AppManualWatering() {
   const {
     overview,
     isLoading,
@@ -407,7 +407,7 @@ function AdminManualWatering() {
     startWatering,
     stopWatering,
     clearActionError,
-  } = useAdminManualWatering();
+  } = useManualWatering();
   const [launchPump, setLaunchPump] = useState(null);
   const [openHistories, setOpenHistories] = useState({});
   const pumps = useMemo(() => listOrEmpty(overview?.pumps), [overview]);
@@ -430,10 +430,10 @@ function AdminManualWatering() {
   };
 
   return (
-    <div className="admin-page manual-watering-page">
+    <div className="self-service-page manual-watering-page">
       <AppPageHeader
         title="Ручной полив"
-        subtitle="Насосы, привязанные боксы и единый журнал сессий"
+        subtitle="Насосы, привязанные теплицы и единый журнал сессий"
         right={(
           <span className="manual-watering-page__polling">
             <Clock3 size={14} aria-hidden="true" />
@@ -444,13 +444,17 @@ function AdminManualWatering() {
 
       {isLoading && !overview ? <AppPageState kind="loading" title="Загрузка ручного полива..." /> : null}
       {error ? <AppPageState kind="error" title={error} /> : null}
-      {actionError && !launchPump ? <div className="admin-error" role="alert">{actionError}</div> : null}
-      {notice ? <div className="admin-notice" role="status">{notice}</div> : null}
+      {actionError && !launchPump ? (
+        <div className="manual-watering-page__message is-error" role="alert">{actionError}</div>
+      ) : null}
+      {notice ? (
+        <div className="manual-watering-page__message is-notice" role="status">{notice}</div>
+      ) : null}
       {!isLoading && !error && pumps.length === 0 ? (
         <AppPageState
           kind="empty"
           title="Насосы для ручного полива не настроены"
-          hint="Привяжите насосы, боксы и растения в разделе автоматизации."
+          hint="Привяжите насосы, теплицы и растения в Конструкторе фермы."
         />
       ) : null}
 
@@ -486,4 +490,4 @@ function AdminManualWatering() {
   );
 }
 
-export default AdminManualWatering;
+export default AppManualWatering;

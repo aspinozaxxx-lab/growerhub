@@ -16,7 +16,7 @@ describe('app navigation', () => {
     ]);
   });
 
-  it('perenosit chetyre starye stranicy v nastrojki', () => {
+  it('perenosit starye stranicy na aktualnye marshruty', () => {
     expect(SETTINGS_TABS.map((item) => item.label)).toEqual([
       'Подключения',
       'Зоны',
@@ -28,6 +28,8 @@ describe('app navigation', () => {
       '/app/zones/': '/app/settings/zones/',
       '/app/devices/': '/app/settings/devices/',
       '/app/profile/': '/app/settings/profile/',
+      '/app/admin/dashboard/': '/app/',
+      '/app/admin/manual-watering/': '/app/manual-watering/',
     });
   });
 });

@@ -8,11 +8,16 @@ import {
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchFarmsOverview } from '../../api/selfService';
+import {
+  fetchFarmsOverview,
+  fetchManualWateringGreenhouseStatistics,
+} from '../../api/selfService';
 import AppOverview from './AppOverview';
 
 vi.mock('../../api/selfService', () => ({
   fetchFarmsOverview: vi.fn(),
+  fetchManualWateringGreenhouseStatistics: vi.fn(),
+  stopManualWatering: vi.fn(),
 }));
 
 vi.mock('../../features/sensors/SensorStatsContext', () => ({
@@ -195,5 +200,72 @@ describe('AppOverview warnings', () => {
     expect(within(disabledGreenhouse).getByText('Выключен')).toBeInTheDocument();
     expect(disabledGreenhouse.querySelector('.farm-dashboard-box__equipment')).toBeNull();
     expect(disabledGreenhouse.querySelector('.farm-dashboard-sensors')).toBeNull();
+  });
+
+  it('otkryvaet ruchnoy poliv i zhurnal nasosa iz plashki poliva', async () => {
+    fetchFarmsOverview.mockResolvedValue({
+      farms: [{
+        id: 1,
+        name: 'Ферма',
+        enabled: true,
+        slots: [],
+        scenarios: [],
+        states: [],
+        greenhouses: [{
+          id: 2,
+          name: 'Северная',
+          enabled: true,
+          plants: [],
+          slots: [{
+            id: 12,
+            role: 'WATER_PUMP',
+            source_type: 'NATIVE_PUMP',
+            native_pump_id: 51,
+            ready: true,
+            current_value: 'OFF',
+          }],
+          scenarios: [],
+          readiness: {},
+          states: [],
+          last_actions: [],
+        }],
+        last_actions: [],
+      }],
+      resource_catalog: {
+        plants: [],
+        native_devices: [],
+        zigbee_devices: [],
+      },
+    });
+    fetchManualWateringGreenhouseStatistics.mockResolvedValue({
+      session_count: 0,
+      active_duration_s: 0,
+      known_volume_l: 0,
+      mode_counts: {},
+      reason_counts: {},
+      sessions: [],
+      active_session: null,
+      next_before_id: null,
+    });
+
+    render(
+      <MemoryRouter>
+        <AppOverview />
+      </MemoryRouter>,
+    );
+
+    const manualWateringLink = await screen.findByRole('link', { name: 'Ручной полив' });
+    expect(manualWateringLink).toHaveAttribute('href', '/app/manual-watering/');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Открыть статистику: Полив' }));
+
+    expect(await screen.findByText('Журнал насоса')).toBeInTheDocument();
+    const pumpJournal = screen.getByRole('dialog', { name: 'Журнал насоса' });
+    expect(within(pumpJournal).getByText('Северная')).toBeInTheDocument();
+    expect(fetchManualWateringGreenhouseStatistics).toHaveBeenCalledWith(2, {
+      range: 'day',
+      limit: 10,
+      beforeId: null,
+    });
   });
 });

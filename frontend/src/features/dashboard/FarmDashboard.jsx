@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -7,20 +7,12 @@ import {
   Fan,
   Gauge,
   Lightbulb,
-  RefreshCw,
   Snowflake,
   Thermometer,
   Wind,
 } from 'lucide-react';
-import AppPageHeader from '../../../components/layout/AppPageHeader';
-import AppPageState from '../../../components/layout/AppPageState';
-import Surface from '../../../components/ui/Surface';
-import { useAuth } from '../../../features/auth/AuthContext';
-import { useSensorStatsContext } from '../../../features/sensors/SensorStatsContext';
-import { isSessionExpiredError } from '../../../api/client';
-import { fetchAdminAutomationOverview } from '../../../api/admin';
-import BoxWateringStatsPanel from '../../../features/manual-watering/BoxWateringStatsPanel';
-import { translateApp } from '../../../locales/i18n';
+import Surface from '../../components/ui/Surface';
+import { translateApp } from '../../locales/i18n';
 import {
   RESOURCE_ROLES,
   SCENARIO_TYPES,
@@ -30,7 +22,6 @@ import {
   findResource,
   findScenario,
   findState,
-  formatDateTime,
   formatResourceValue,
   hasCurrentValue,
   isEquipmentActive,
@@ -42,10 +33,8 @@ import {
   scenarioDisplayStatus,
   scenarioTone,
   scenarioTypeLabel,
-} from './adminFarmDashboardModel';
-import './AdminFarmDashboard.css';
-
-const REFRESH_INTERVAL_MS = 30000;
+} from './dashboardModel';
+import './FarmDashboard.css';
 const BOX_SCENARIOS = [
   SCENARIO_TYPES.BOX_CLIMATE,
   SCENARIO_TYPES.LIGHT_SCHEDULE,
@@ -368,107 +357,3 @@ export function FarmDashboardRooms({ rooms, zoneView = false, onOpenStats }) {
     </div>
   );
 }
-
-function AdminFarmDashboard() {
-  const { token } = useAuth();
-  const { openSensorStats } = useSensorStatsContext();
-  const [overview, setOverview] = useState(null);
-  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [wateringStatsTarget, setWateringStatsTarget] = useState(null);
-
-  useEffect(() => {
-    let isCancelled = false;
-
-    async function loadOverview(silent = false) {
-      if (!silent) {
-        setIsLoading(true);
-      }
-      setError('');
-      try {
-        const data = await fetchAdminAutomationOverview(token);
-        if (isCancelled) return;
-        setOverview(data && typeof data === 'object' ? data : { rooms: [] });
-        setLastUpdatedAt(new Date());
-      } catch (err) {
-        if (isCancelled || isSessionExpiredError(err)) return;
-        setError(err?.message || translateApp("Не удалось загрузить дашборд фермы"));
-      } finally {
-        if (!isCancelled && !silent) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadOverview(false);
-
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        loadOverview(true);
-      }
-    }, REFRESH_INTERVAL_MS);
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        loadOverview(true);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      isCancelled = true;
-      window.clearInterval(intervalId);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [token]);
-
-  const rooms = useMemo(() => listOrEmpty(overview?.rooms), [overview]);
-  const updatedLabel = lastUpdatedAt
-    ? formatDateTime(lastUpdatedAt.toISOString())
-    : translateApp("Ожидает обновления");
-  const handleOpenStats = (payload) => {
-    if (payload?.mode === 'box-watering') {
-      setWateringStatsTarget({ ...payload, title: payload.subtitle || payload.title });
-      return;
-    }
-    openSensorStats(payload);
-  };
-
-  return (
-    <div className="admin-page farm-dashboard">
-      <AppPageHeader
-        title={translateApp("Дашборд фермы")}
-        subtitle={translateApp("Текущее состояние теплиц и общих ресурсов")}
-        right={(
-          <div className="farm-dashboard-refresh">
-            <RefreshCw size={15} aria-hidden="true" />
-            <span>{translateApp("Обновлено: {{value1}}", { value1: updatedLabel })}</span>
-          </div>
-        )}
-      />
-
-      {isLoading && !overview && <AppPageState kind="loading" title={translateApp("Загрузка...")} />}
-      {error && <AppPageState kind="error" title={error} />}
-
-      {!isLoading && !error && rooms.length === 0 && (
-        <AppPageState
-          kind="empty"
-          title={translateApp("Ферма пока не настроена")}
-          hint={translateApp("Создайте теплицы и привязки в Конструкторе фермы.")}
-        />
-      )}
-
-      {rooms.length > 0 && (
-        <FarmDashboardRooms rooms={rooms} onOpenStats={handleOpenStats} />
-      )}
-
-      <BoxWateringStatsPanel
-        key={wateringStatsTarget?.boxId || 'closed'}
-        target={wateringStatsTarget}
-        onClose={() => setWateringStatsTarget(null)}
-      />
-    </div>
-  );
-}
-
-export default AdminFarmDashboard;

@@ -241,7 +241,7 @@ function AppProfile() {
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => navigate('/app/admin/dashboard/')}
+                onClick={() => navigate('/app/admin/')}
               >{translateApp("Администрирование")}</Button>
             ) : null}
             <Button type="button" variant="secondary" onClick={handleLogout}>{translateApp("Выйти")}</Button>

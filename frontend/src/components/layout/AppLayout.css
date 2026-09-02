@@ -194,3 +194,38 @@
     padding-bottom: 0;
   }
 }
+
+@media (max-width: 767px) {
+  .app-layout {
+    min-height: 100dvh;
+  }
+
+  .app-content {
+    min-width: 0;
+    padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-content__inner {
+    padding: calc(6px + env(safe-area-inset-top, 0px)) 6px 6px;
+  }
+
+  .app-nav-shell--bottom {
+    padding: 4px 7px;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-nav.app-nav--bottom {
+    height: 54px;
+    padding: 0 4px;
+  }
+
+  .app-nav--bottom .app-nav__item {
+    gap: 2px;
+    padding-block: 5px;
+    font-size: 10px;
+  }
+
+  .app-nav--bottom .app-nav__icon {
+    font-size: 16px;
+  }
+}

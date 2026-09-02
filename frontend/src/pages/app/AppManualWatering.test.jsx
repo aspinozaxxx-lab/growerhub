@@ -1,14 +1,14 @@
 import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import AdminManualWatering from './AdminManualWatering';
+import AppManualWatering from './AppManualWatering';
 
 const startWatering = vi.fn();
 const clearActionError = vi.fn();
 let actionError = '';
 let capabilityOverrides = {};
 
-vi.mock('../../../features/manual-watering/useAdminManualWatering', () => ({
+vi.mock('../../features/manual-watering/useManualWatering', () => ({
   default: () => ({
     overview: {
       defaults: {
@@ -59,7 +59,7 @@ vi.mock('../../../features/manual-watering/useAdminManualWatering', () => ({
   }),
 }));
 
-describe('AdminManualWatering', () => {
+describe('AppManualWatering', () => {
   afterEach(() => {
     cleanup();
     startWatering.mockReset();
@@ -70,7 +70,7 @@ describe('AdminManualWatering', () => {
 
   it('pokazyvaet ierarhiyu i preobrazuet minutnye defaults v sekundy API', async () => {
     startWatering.mockResolvedValue(true);
-    render(<AdminManualWatering />);
+    render(<AppManualWatering />);
 
     expect(screen.getByText('Бокс 2')).toBeInTheDocument();
     expect(screen.getByText('Томат')).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('AdminManualWatering', () => {
 
   it('blokiruet until leak po servernoj capability', () => {
     capabilityOverrides = { until_leak: false };
-    render(<AdminManualWatering />);
+    render(<AppManualWatering />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Начать полив' }));
     expect(screen.getByLabelText('До протечки')).toBeDisabled();
@@ -122,7 +122,7 @@ describe('AdminManualWatering', () => {
 
   it('pokazyvaet oshibku start vnutri otkrytogo modal', () => {
     actionError = 'Запуск запрещён сервером';
-    render(<AdminManualWatering />);
+    render(<AppManualWatering />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Начать полив' }));
     expect(within(screen.getByRole('dialog')).getByRole('alert')).toHaveTextContent('Запуск запрещён сервером');

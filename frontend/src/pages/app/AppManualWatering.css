@@ -1,5 +1,6 @@
 .manual-watering-page {
   gap: 14px;
+  min-width: 0;
 }
 
 .manual-watering-page__polling {
@@ -8,6 +9,25 @@
   gap: 6px;
   color: var(--text-3);
   font-size: 12px;
+}
+
+.manual-watering-page__message {
+  padding: 10px 12px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+}
+
+.manual-watering-page__message.is-error {
+  border-color: rgba(246, 120, 120, 0.45);
+  color: #ffb3b3;
+  background: rgba(246, 120, 120, 0.08);
+}
+
+.manual-watering-page__message.is-notice {
+  border-color: rgba(95, 212, 145, 0.4);
+  color: #a7e7c0;
+  background: rgba(95, 212, 145, 0.08);
 }
 
 .manual-watering-pumps,

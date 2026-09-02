@@ -1,22 +1,18 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import useAdminManualWatering from './useAdminManualWatering';
+import useManualWatering from './useManualWatering';
 
 const fetchOverview = vi.fn();
 const fetchSessions = vi.fn();
 const startWateringApi = vi.fn();
 const stopWateringApi = vi.fn();
 
-vi.mock('../../api/admin', () => ({
-  fetchAdminManualWateringOverview: (...args) => fetchOverview(...args),
-  fetchAdminManualWateringSessions: (...args) => fetchSessions(...args),
-  startAdminManualWatering: (...args) => startWateringApi(...args),
-  stopAdminManualWatering: (...args) => stopWateringApi(...args),
-}));
-
-vi.mock('../auth/AuthContext', () => ({
-  useAuth: () => ({ token: 'token' }),
+vi.mock('../../api/selfService', () => ({
+  fetchManualWateringOverview: (...args) => fetchOverview(...args),
+  fetchManualWateringSessions: (...args) => fetchSessions(...args),
+  startManualWatering: (...args) => startWateringApi(...args),
+  stopManualWatering: (...args) => stopWateringApi(...args),
 }));
 
 function Probe() {
@@ -27,7 +23,7 @@ function Probe() {
     loadSessions,
     startWatering,
     stopWatering,
-  } = useAdminManualWatering();
+  } = useManualWatering();
   return (
     <div>
       <div data-testid="count">{overview?.pumps?.length ?? 'loading'}</div>
@@ -43,7 +39,7 @@ function Probe() {
   );
 }
 
-describe('useAdminManualWatering', () => {
+describe('useManualWatering', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     fetchOverview.mockReset();

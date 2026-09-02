@@ -42,7 +42,7 @@ function renderProfile() {
     <MemoryRouter initialEntries={['/app/settings/profile/']}>
       <Routes>
         <Route path="/app/settings/profile/" element={<AppProfile />} />
-        <Route path="/app/admin/dashboard/" element={<div>Admin dashboard target</div>} />
+        <Route path="/app/admin/" element={<div>Admin section target</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -76,7 +76,7 @@ describe('AppProfile', () => {
     cleanup();
   });
 
-  it('otkryvaet admin dashboard i stilizuet timezone select', async () => {
+  it('otkryvaet admin razdel i stilizuet timezone select', async () => {
     renderProfile();
 
     const timezoneSelect = await screen.findByRole('combobox', { name: 'Часовой пояс' });
@@ -87,7 +87,7 @@ describe('AppProfile', () => {
     expect(adminButton.closest('.app-page-header')).toBeNull();
 
     fireEvent.click(adminButton);
-    expect(screen.getByText('Admin dashboard target')).toBeInTheDocument();
+    expect(screen.getByText('Admin section target')).toBeInTheDocument();
   });
 
   it('ne pokazyvaet knopku administrirovaniya obychnomu polzovatelyu', async () => {

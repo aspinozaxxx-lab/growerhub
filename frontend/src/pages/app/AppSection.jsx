@@ -16,6 +16,7 @@ const WateringSidebar = lazy(() => import('../../features/watering/WateringSideb
 const AppOnboarding = lazy(() => import('./AppOnboarding'));
 const AppConnections = lazy(() => import('./AppConnections'));
 const AppDevices = lazy(() => import('./AppDevices'));
+const AppManualWatering = lazy(() => import('./AppManualWatering'));
 const AppAutomations = lazy(() => import('./AppAutomations'));
 const AppPlants = lazy(() => import('./AppPlants'));
 const AppPlantJournal = lazy(() => import('./AppPlantJournal'));
@@ -25,9 +26,7 @@ const FarmConstructor = lazy(() => import('../../features/farm/FarmConstructor')
 const FarmZonesSettings = lazy(() => import('../../features/farm/FarmZonesSettings'));
 const AdminAutomation = lazy(() => import('./admin/AdminAutomation'));
 const AdminDevices = lazy(() => import('./admin/AdminDevices'));
-const AdminFarmDashboard = lazy(() => import('./admin/AdminFarmDashboard'));
 const AdminLayout = lazy(() => import('./admin/AdminLayout'));
-const AdminManualWatering = lazy(() => import('./admin/AdminManualWatering'));
 const AdminMqtt = lazy(() => import('./admin/AdminMqtt'));
 const AdminPlants = lazy(() => import('./admin/AdminPlants'));
 const AdminProductAnalytics = lazy(() => import('./admin/AdminProductAnalytics'));
@@ -57,6 +56,7 @@ function AppSection() {
             <Route index element={<AppOverview />} />
             <Route path="onboarding/" element={<AppOnboarding />} />
             <Route path="farm/" element={<FarmConstructor />} />
+            <Route path="manual-watering/" element={<AppManualWatering />} />
             <Route path="automations/" element={<AppAutomations />} />
             <Route path="plants/" element={<AppPlants />} />
             <Route path="plants/:plantId/journal/" element={<AppPlantJournal />} />
@@ -82,8 +82,7 @@ function AppSection() {
                 </RequireAdmin>
               )}
             >
-              <Route index element={<Navigate to="dashboard/" replace />} />
-              <Route path="dashboard/" element={<AdminFarmDashboard />} />
+              <Route index element={<Navigate to="product-analytics/" replace />} />
               <Route path="product-analytics/" element={<AdminProductAnalytics />} />
               <Route path="users/" element={<AdminUsers />} />
               <Route path="devices/" element={<AdminDevices />} />
@@ -91,7 +90,6 @@ function AppSection() {
               <Route path="mqtt/" element={<AdminMqtt />} />
               <Route path="zigbee/" element={<AdminZigbee />} />
               <Route path="automation/" element={<AdminAutomation />} />
-              <Route path="manual-watering/" element={<AdminManualWatering />} />
             </Route>
           </Route>
           <Route path="*" element={<NotFoundPage />} />

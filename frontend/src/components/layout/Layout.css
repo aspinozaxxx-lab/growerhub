@@ -126,6 +126,15 @@
 }
 
 @media (max-width: 820px) {
+  .app-shell--cabinet > .app-header,
+  .app-shell--cabinet > .app-footer {
+    display: none;
+  }
+
+  .app-shell--cabinet > .app-main {
+    padding: 0;
+  }
+
   .app-header {
     flex-wrap: wrap;
   }

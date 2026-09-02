@@ -34,11 +34,16 @@
   `createBox`, `updateBox`, `deleteBox`, `replace*Resources`,
   `replace*Scenarios` и `replaceBoxPlants`
 - `getManualWateringOverview()`
+- `getManualWateringOverview(AuthenticatedUser user)`
 - `startManualWatering(Integer pumpId, ManualWateringStartRequest request, AuthenticatedUser user)`
 - `startUserManualWatering(Integer pumpId, UserManualWateringStartRequest request, AuthenticatedUser user)`
+- `startUserManualWateringSession(Integer pumpId, ManualWateringStartRequest request, AuthenticatedUser user)`
 - `stopManualWatering(Integer pumpId, AuthenticatedUser user)`
+- `stopUserManualWatering(Integer pumpId, AuthenticatedUser user)`
 - `getManualWateringSessions(Integer pumpId, int limit, Long beforeId)`
+- `getUserManualWateringSessions(Integer pumpId, int limit, Long beforeId, AuthenticatedUser user)`
 - `getManualWateringBoxStatistics(Integer boxId, String range, int limit, Long beforeId)`
+- `getUserManualWateringBoxStatistics(Integer boxId, String range, int limit, Long beforeId, AuthenticatedUser user)`
 - `evaluateAll()`
 - `evaluateActiveWateringSessions()`
 
@@ -90,6 +95,11 @@ IANA timezone владельца; worker загружает часовые по�
 владельца и роль, получает его timezone и запрашивает у `zigbee` единый ответ с
 графиком мощности или бинарным fallback, временем включения и энергией за семь
 локальных календарных дней.
+Пользовательский ручной полив строит topology только из принадлежащих владельцу
+ферм, теплиц, насосов и растений. Overview, start, stop, список сессий и
+статистика теплицы до обращения к `pump` проверяют владельца; чужие идентификаторы
+возвращаются как отсутствующие. Диагностические admin-операции сохраняют полный
+межпользовательский обзор, но не публикуются в обычном кабинете.
 
 ## Ограничения
 

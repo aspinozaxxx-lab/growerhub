@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, Boxes, Cpu, Leaf, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Boxes, Cpu, Droplets, Leaf, RefreshCw } from 'lucide-react';
 import { fetchFarmsOverview } from '../../api/selfService';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
+import BoxWateringStatsPanel from '../../features/manual-watering/BoxWateringStatsPanel';
 import {
   farmOverviewToDashboardRooms,
   findUnassignedFarmPlants,
@@ -13,8 +14,8 @@ import {
   overviewFarms,
   overviewGreenhouses,
 } from '../../features/farm/farmModel';
-import { FarmDashboardRooms } from './admin/AdminFarmDashboard';
-import { formatDateTime } from './admin/adminFarmDashboardModel';
+import { FarmDashboardRooms } from '../../features/dashboard/FarmDashboard';
+import { formatDateTime } from '../../features/dashboard/dashboardModel';
 import { translateApp } from '../../locales/i18n';
 import './SelfServicePages.css';
 
@@ -27,6 +28,7 @@ function AppOverview() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [warningTooltipOpen, setWarningTooltipOpen] = useState(false);
+  const [wateringStatsTarget, setWateringStatsTarget] = useState(null);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -76,7 +78,11 @@ function AppOverview() {
     : translateApp("Ожидает обновления");
 
   const handleOpenStats = (payload) => {
-    if (!payload || payload.mode === 'box-watering') return;
+    if (!payload) return;
+    if (payload.mode === 'box-watering') {
+      setWateringStatsTarget({ ...payload, title: payload.subtitle || payload.title });
+      return;
+    }
     openSensorStats({
       ...payload,
       zigbeeHistoryScope: 'self-service',
@@ -94,9 +100,15 @@ function AppOverview() {
         title={translateApp("Обзор")}
         subtitle={translateApp("Состояние всех ферм обновляется каждые 30 секунд")}
         right={(
-          <div className="farm-dashboard-refresh">
-            <RefreshCw size={15} aria-hidden="true" />
-            <span>{translateApp("Обновлено: {{value1}}", { value1: updatedLabel })}</span>
+          <div className="farm-dashboard-header-actions">
+            <Link className="farm-dashboard-watering-link" to="/app/manual-watering/">
+              <Droplets size={16} aria-hidden="true" />
+              <span>{translateApp("Ручной полив")}</span>
+            </Link>
+            <div className="farm-dashboard-refresh">
+              <RefreshCw size={15} aria-hidden="true" />
+              <span>{translateApp("Обновлено: {{value1}}", { value1: updatedLabel })}</span>
+            </div>
           </div>
         )}
       />
@@ -220,6 +232,12 @@ function AppOverview() {
           )}
         </>
       ) : null}
+
+      <BoxWateringStatsPanel
+        key={wateringStatsTarget?.boxId || 'closed'}
+        target={wateringStatsTarget}
+        onClose={() => setWateringStatsTarget(null)}
+      />
     </div>
   );
 }

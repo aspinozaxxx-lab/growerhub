@@ -84,6 +84,46 @@ export const fetchResourceStatistics = (resourceId, hours = 24) => requestJson(
     + `?hours=${encodeURIComponent(hours)}`,
 );
 
+export const fetchManualWateringOverview = () => requestJson('/api/manual-watering');
+
+export const startManualWatering = (pumpId, payload) => requestJson(
+  `/api/manual-watering/pumps/${encodeURIComponent(pumpId)}/start`,
+  { method: 'POST', body: JSON.stringify(payload || {}) },
+);
+
+export const stopManualWatering = (pumpId) => requestJson(
+  `/api/manual-watering/pumps/${encodeURIComponent(pumpId)}/stop`,
+  { method: 'POST' },
+);
+
+export const fetchManualWateringSessions = (pumpId, options = {}) => {
+  const params = new URLSearchParams();
+  if (options.limit !== null && options.limit !== undefined) {
+    params.set('limit', options.limit);
+  }
+  if (options.beforeId !== null && options.beforeId !== undefined) {
+    params.set('before_id', options.beforeId);
+  }
+  const query = params.toString();
+  return requestJson(
+    `/api/manual-watering/pumps/${encodeURIComponent(pumpId)}/sessions${query ? `?${query}` : ''}`,
+  );
+};
+
+export const fetchManualWateringGreenhouseStatistics = (greenhouseId, options = {}) => {
+  const params = new URLSearchParams();
+  params.set('range', options.range || 'day');
+  if (options.limit !== null && options.limit !== undefined) {
+    params.set('limit', options.limit);
+  }
+  if (options.beforeId !== null && options.beforeId !== undefined) {
+    params.set('before_id', options.beforeId);
+  }
+  return requestJson(
+    `/api/manual-watering/greenhouses/${encodeURIComponent(greenhouseId)}/statistics?${params.toString()}`,
+  );
+};
+
 export const createUserFarm = (payload) => requestJson('/api/automation/farms', {
   method: 'POST',
   body: JSON.stringify(payload),

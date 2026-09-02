@@ -58,6 +58,7 @@ import ru.growerhub.backend.zigbee.jpa.ZigbeeCoordinatorRepository;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
                 "MQTT_HOST=",
+                "SELF_SERVICE_ENABLED=true",
                 "automation.workerPeriodMs=3600000",
                 "automation.wateringWorkerPeriodMs=3600000"
         }
@@ -829,16 +830,125 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void existingUserStartEndpointUsesAutomationBoxSnapshots() {
-        UserEntity owner = createUser("watering-owner@example.com", "user");
-        UserEntity admin = createUser("watering-config-admin@example.com", "admin");
-        String adminToken = buildToken(admin.getId());
-        Integer roomId = createRoom(adminToken, "Room User Start");
-        Integer boxId = createBox(adminToken, roomId, "Box User Start");
+    void userManualWateringEndpointsUseOnlyOwnedTopology() {
+        UserEntity owner = createUser("manual-watering-owner@example.com", "user");
+        UserEntity other = createUser("manual-watering-other@example.com", "user");
+        String ownerToken = buildToken(owner.getId());
+        String otherToken = buildToken(other.getId());
+        Integer farmId = createUserFarm(ownerToken, "Owned Farm");
+        Integer greenhouseId = createUserGreenhouse(ownerToken, farmId, "Owned Greenhouse");
         NativeWateringResources nativeResources = seedNativeWateringResources(owner.getId());
 
         given()
-                .header("Authorization", "Bearer " + adminToken)
+                .header("Authorization", "Bearer " + ownerToken)
+                .contentType("application/json")
+                .body("""
+                        {"items":[
+                          {"plant_id":%d,"rate_ml_per_hour":1600}
+                        ]}
+                        """.formatted(nativeResources.plantId()))
+                .when()
+                .put("/api/automation/greenhouses/" + greenhouseId + "/plants")
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", "Bearer " + ownerToken)
+                .contentType("application/json")
+                .body("""
+                        {"slots":[
+                          {"role":"WATER_PUMP","source_type":"NATIVE_PUMP","native_pump_id":%d}
+                        ]}
+                        """.formatted(nativeResources.pumpId()))
+                .when()
+                .put("/api/automation/greenhouses/" + greenhouseId + "/slots")
+                .then()
+                .statusCode(200);
+
+        given()
+                .header("Authorization", "Bearer " + ownerToken)
+                .when()
+                .get("/api/manual-watering")
+                .then()
+                .statusCode(200)
+                .body("pumps", hasSize(1))
+                .body("pumps[0].id", equalTo(nativeResources.pumpId()))
+                .body("pumps[0].boxes", hasSize(1))
+                .body("pumps[0].boxes[0].id", equalTo(greenhouseId))
+                .body("pumps[0].boxes[0].plants[0].rate_ml_per_hour", equalTo(1600));
+
+        given()
+                .header("Authorization", "Bearer " + otherToken)
+                .when()
+                .get("/api/manual-watering")
+                .then()
+                .statusCode(200)
+                .body("pumps", hasSize(0));
+
+        given()
+                .header("Authorization", "Bearer " + ownerToken)
+                .contentType("application/json")
+                .body("""
+                        {"mode":"timed","duration_s":20,"pulse_enabled":false}
+                        """)
+                .when()
+                .post("/api/manual-watering/pumps/" + nativeResources.pumpId() + "/start")
+                .then()
+                .statusCode(200)
+                .body("source", equalTo("user_manual"))
+                .body("boxes[0].box_id", equalTo(greenhouseId));
+
+        given()
+                .header("Authorization", "Bearer " + ownerToken)
+                .when()
+                .get("/api/manual-watering/pumps/" + nativeResources.pumpId() + "/sessions")
+                .then()
+                .statusCode(200)
+                .body("items", hasSize(1))
+                .body("items[0].source", equalTo("user_manual"));
+
+        given()
+                .header("Authorization", "Bearer " + ownerToken)
+                .queryParam("range", "day")
+                .when()
+                .get("/api/manual-watering/greenhouses/" + greenhouseId + "/statistics")
+                .then()
+                .statusCode(200)
+                .body("active_session.pump_id", equalTo(nativeResources.pumpId()));
+
+        given()
+                .header("Authorization", "Bearer " + otherToken)
+                .when()
+                .get("/api/manual-watering/pumps/" + nativeResources.pumpId() + "/sessions")
+                .then()
+                .statusCode(404);
+
+        given()
+                .header("Authorization", "Bearer " + otherToken)
+                .when()
+                .get("/api/manual-watering/greenhouses/" + greenhouseId + "/statistics")
+                .then()
+                .statusCode(404);
+
+        given()
+                .header("Authorization", "Bearer " + ownerToken)
+                .when()
+                .post("/api/manual-watering/pumps/" + nativeResources.pumpId() + "/stop")
+                .then()
+                .statusCode(200)
+                .body("source", equalTo("user_manual"));
+    }
+
+    @Test
+    void existingUserStartEndpointUsesAutomationBoxSnapshots() {
+        UserEntity owner = createUser("watering-owner@example.com", "user");
+        String ownerToken = buildToken(owner.getId());
+        Integer farmId = createUserFarm(ownerToken, "Farm User Start");
+        Integer boxId = createUserGreenhouse(ownerToken, farmId, "Greenhouse User Start");
+        NativeWateringResources nativeResources = seedNativeWateringResources(owner.getId());
+
+        given()
+                .header("Authorization", "Bearer " + ownerToken)
                 .contentType("application/json")
                 .body("""
                         {"items":[
@@ -846,12 +956,12 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                         ]}
                         """.formatted(nativeResources.plantId()))
                 .when()
-                .put("/api/admin/automation/boxes/" + boxId + "/plants")
+                .put("/api/automation/greenhouses/" + boxId + "/plants")
                 .then()
                 .statusCode(200);
 
         given()
-                .header("Authorization", "Bearer " + buildToken(owner.getId()))
+                .header("Authorization", "Bearer " + ownerToken)
                 .contentType("application/json")
                 .body("{}")
                 .when()
@@ -861,20 +971,20 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 .body("detail", equalTo("Укажите water_volume_l или duration_s для запуска полива"));
 
         given()
-                .header("Authorization", "Bearer " + adminToken)
+                .header("Authorization", "Bearer " + ownerToken)
                 .contentType("application/json")
                 .body("""
-                        {"resources":[
+                        {"slots":[
                           {"role":"WATER_PUMP","source_type":"NATIVE_PUMP","native_pump_id":%d}
                         ]}
                         """.formatted(nativeResources.pumpId()))
                 .when()
-                .put("/api/admin/automation/boxes/" + boxId + "/resources")
+                .put("/api/automation/greenhouses/" + boxId + "/slots")
                 .then()
                 .statusCode(200);
 
         given()
-                .header("Authorization", "Bearer " + buildToken(owner.getId()))
+                .header("Authorization", "Bearer " + ownerToken)
                 .contentType("application/json")
                 .body("{\"duration_s\":60,\"water_volume_l\":0.3}")
                 .when()
@@ -1066,6 +1176,33 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 .statusCode(200)
                 .extract()
                 .path("rooms[0].id");
+    }
+
+    private Integer createUserFarm(String token, String name) {
+        return given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("{\"name\":\"" + name + "\",\"enabled\":true}")
+                .when()
+                .post("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("farms.find { it.name == '" + name + "' }.id");
+    }
+
+    private Integer createUserGreenhouse(String token, Integer farmId, String name) {
+        return given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("{\"name\":\"" + name + "\",\"enabled\":true}")
+                .when()
+                .post("/api/automation/farms/" + farmId + "/greenhouses")
+                .then()
+                .statusCode(200)
+                .extract()
+                .path("farms.find { it.id == " + farmId
+                        + " }.greenhouses.find { it.name == '" + name + "' }.id");
     }
 
     private Integer createBox(String token, Integer roomId, String name) {

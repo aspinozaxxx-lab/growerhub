@@ -1,5 +1,5 @@
-import { getIntlLocale, translateApp } from '../../../locales/i18n';
-import { formatTimestampLabel } from '../../../utils/formatters';
+import { getIntlLocale, translateApp } from '../../locales/i18n';
+import { formatTimestampLabel } from '../../utils/formatters';
 
 export const RESOURCE_ROLES = {
   AC_SWITCH: 'AC_SWITCH',

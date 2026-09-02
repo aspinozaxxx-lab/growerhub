@@ -903,6 +903,21 @@ public class AutomationFacade {
     public AutomationData.ManualWateringOverview getManualWateringOverview() {
         Catalog catalog = buildCatalog();
         WateringTopology topology = buildWateringTopology(catalog);
+        return buildManualWateringOverview(catalog, topology);
+    }
+
+    @Transactional(readOnly = true)
+    public AutomationData.ManualWateringOverview getManualWateringOverview(AuthenticatedUser user) {
+        requireAuthenticated(user);
+        Catalog catalog = buildOwnedCatalog(user);
+        WateringTopology topology = buildOwnedWateringTopology(user, catalog);
+        return buildManualWateringOverview(catalog, topology);
+    }
+
+    private AutomationData.ManualWateringOverview buildManualWateringOverview(
+            Catalog catalog,
+            WateringTopology topology
+    ) {
         Map<Integer, PumpSessionData.View> sessionsByPump = new HashMap<>();
         for (Integer pumpId : catalog.pumpsById.keySet()) {
             PumpSessionData.View session = pumpFacade.currentSession(pumpId);
@@ -1024,12 +1039,57 @@ public class AutomationFacade {
         return new PumpStartResult(session.correlationId());
     }
 
+    @Transactional(noRollbackFor = RuntimeException.class)
+    public PumpSessionData.View startUserManualWateringSession(
+            Integer pumpId,
+            AutomationData.ManualWateringStartRequest request,
+            AuthenticatedUser user
+    ) {
+        Catalog catalog = buildOwnedCatalog(user);
+        requireOwnedPump(pumpId, catalog);
+        WateringTopology topology = buildOwnedWateringTopology(user, catalog);
+        AutomationData.ManualWateringStartRequest safeRequest = request != null
+                ? request
+                : new AutomationData.ManualWateringStartRequest(null, null, null, null, null, null);
+        return pumpFacade.startSession(new PumpSessionData.Start(
+                pumpId,
+                PumpSessionData.SOURCE_USER_MANUAL,
+                safeRequest.mode(),
+                safeRequest.durationS(),
+                safeRequest.maxActiveDurationS(),
+                safeRequest.pulseEnabled(),
+                safeRequest.pulseRunS(),
+                safeRequest.pulsePauseS(),
+                topology.targetsByPump.getOrDefault(pumpId, List.of()),
+                null,
+                null
+        ), user);
+    }
+
     public PumpSessionData.View stopManualWatering(Integer pumpId, AuthenticatedUser user) {
+        return pumpFacade.stopSession(pumpId, user);
+    }
+
+    public PumpSessionData.View stopUserManualWatering(Integer pumpId, AuthenticatedUser user) {
+        Catalog catalog = buildOwnedCatalog(user);
+        requireOwnedPump(pumpId, catalog);
         return pumpFacade.stopSession(pumpId, user);
     }
 
     @Transactional(readOnly = true)
     public PumpSessionData.Page getManualWateringSessions(Integer pumpId, int limit, Long beforeId) {
+        return pumpFacade.listSessions(pumpId, limit, beforeId);
+    }
+
+    @Transactional(readOnly = true)
+    public PumpSessionData.Page getUserManualWateringSessions(
+            Integer pumpId,
+            int limit,
+            Long beforeId,
+            AuthenticatedUser user
+    ) {
+        Catalog catalog = buildOwnedCatalog(user);
+        requireOwnedPump(pumpId, catalog);
         return pumpFacade.listSessions(pumpId, limit, beforeId);
     }
 
@@ -1042,6 +1102,24 @@ public class AutomationFacade {
     ) {
         requireBox(boxId);
         return pumpFacade.boxStatistics(boxId, range, limit, beforeId);
+    }
+
+    @Transactional(readOnly = true)
+    public PumpSessionData.BoxStatistics getUserManualWateringBoxStatistics(
+            Integer boxId,
+            String range,
+            int limit,
+            Long beforeId,
+            AuthenticatedUser user
+    ) {
+        requireOwnedGreenhouse(user, boxId);
+        return pumpFacade.boxStatistics(
+                boxId,
+                range,
+                limit,
+                beforeId,
+                userFacade.getTimezone(user.id())
+        );
     }
 
     public AutomationData.Overview replaceRoomScenarios(
@@ -3023,8 +3101,21 @@ public class AutomationFacade {
     }
 
     private WateringTopology buildWateringTopology(Catalog catalog) {
-        List<AutomationRoomEntity> rooms = roomRepository.findAllByOrderByNameAscIdAsc();
-        List<AutomationBoxEntity> boxes = boxRepository.findAllByOrderByNameAscIdAsc();
+        return buildWateringTopology(catalog, null);
+    }
+
+    private WateringTopology buildOwnedWateringTopology(AuthenticatedUser user, Catalog catalog) {
+        requireAuthenticated(user);
+        return buildWateringTopology(catalog, user.id());
+    }
+
+    private WateringTopology buildWateringTopology(Catalog catalog, Integer ownerId) {
+        List<AutomationRoomEntity> rooms = ownerId == null
+                ? roomRepository.findAllByOrderByNameAscIdAsc()
+                : roomRepository.findAllByUserIdOrderByNameAscIdAsc(ownerId);
+        List<AutomationBoxEntity> boxes = ownerId == null
+                ? boxRepository.findAllByOrderByNameAscIdAsc()
+                : boxRepository.findAllByRoom_UserIdOrderByNameAscIdAsc(ownerId);
         Map<Integer, AutomationRoomEntity> roomsById = rooms.stream()
                 .collect(Collectors.toMap(AutomationRoomEntity::getId, Function.identity()));
         Map<Integer, List<AutomationBoxPlantEntity>> plantsByBox = groupPlants(boxes);
@@ -3082,6 +3173,17 @@ public class AutomationFacade {
             targetsByPump.computeIfAbsent(pumpBinding.getNativePumpId(), ignored -> new ArrayList<>()).add(target);
         }
         return new WateringTopology(boxesByPump, targetsByPump);
+    }
+
+    private AutomationData.NativePump requireOwnedPump(Integer pumpId, Catalog catalog) {
+        if (pumpId == null) {
+            throw new DomainException("bad_request", "Поле pump_id обязательно");
+        }
+        AutomationData.NativePump pump = catalog.pumpsById.get(pumpId);
+        if (pump == null) {
+            throw new DomainException("not_found", "Насос не найден");
+        }
+        return pump;
     }
 
     private boolean hasConfiguredLeakSensorForPump(

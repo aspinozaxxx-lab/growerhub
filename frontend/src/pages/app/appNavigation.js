@@ -18,4 +18,6 @@ export const LEGACY_APP_REDIRECTS = {
   '/app/zones/': '/app/settings/zones/',
   '/app/devices/': '/app/settings/devices/',
   '/app/profile/': '/app/settings/profile/',
+  '/app/admin/dashboard/': '/app/',
+  '/app/admin/manual-watering/': '/app/manual-watering/',
 };

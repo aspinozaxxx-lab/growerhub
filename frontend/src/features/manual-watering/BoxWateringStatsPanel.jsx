@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, Droplets, Square } from 'lucide-react';
-import { fetchAdminBoxWateringStatistics, stopAdminManualWatering } from '../../api/admin';
+import {
+  fetchManualWateringGreenhouseStatistics,
+  stopManualWatering,
+} from '../../api/selfService';
 import { isSessionExpiredError } from '../../api/client';
 import SidePanel from '../../components/ui/SidePanel';
 import Button from '../../components/ui/Button';
-import { useAuth } from '../auth/AuthContext';
 import {
   completionReasonLabel,
   formatDateTime,
@@ -50,7 +52,6 @@ function StatisticsSession({ session }) {
 }
 
 function BoxWateringStatsPanel({ target, onClose }) {
-  const { token } = useAuth();
   const [range, setRange] = useState('day');
   const [statistics, setStatistics] = useState(null);
   const [nextBeforeId, setNextBeforeId] = useState(null);
@@ -70,11 +71,11 @@ function BoxWateringStatsPanel({ target, onClose }) {
       else setIsLoading(true);
     }
     try {
-      const data = await fetchAdminBoxWateringStatistics(target.boxId, {
+      const data = await fetchManualWateringGreenhouseStatistics(target.boxId, {
         range,
         limit: PAGE_SIZE,
         beforeId: append ? nextBeforeIdRef.current : null,
-      }, token);
+      });
       if (requestVersion !== requestVersionRef.current) return;
       setStatistics((previous) => ({
         ...(data || {}),
@@ -103,7 +104,7 @@ function BoxWateringStatsPanel({ target, onClose }) {
         setIsLoadingMore(false);
       }
     }
-  }, [range, target?.boxId, token]);
+  }, [range, target?.boxId]);
 
   useEffect(() => {
     if (target?.boxId) loadStatistics();
@@ -139,7 +140,7 @@ function BoxWateringStatsPanel({ target, onClose }) {
     setIsStopping(true);
     setError('');
     try {
-      await stopAdminManualWatering(pumpId, token);
+      await stopManualWatering(pumpId);
       await loadStatistics({ silent: true });
     } catch (err) {
       if (isSessionExpiredError(err)) return;
@@ -160,8 +161,8 @@ function BoxWateringStatsPanel({ target, onClose }) {
     <SidePanel
       isOpen
       onClose={onClose}
-      title={translateApp("Статистика полива")}
-      subtitle={target.title || translateApp("Бокс")}
+      title={translateApp("Журнал насоса")}
+      subtitle={target.title || translateApp("Теплица")}
       width="lg"
     >
       <div className="box-watering-stats__ranges" role="group" aria-label={translateApp("Период статистики")}>

@@ -6,13 +6,9 @@ import BoxWateringStatsPanel from './BoxWateringStatsPanel';
 const fetchStatistics = vi.fn();
 const stopWatering = vi.fn();
 
-vi.mock('../../api/admin', () => ({
-  fetchAdminBoxWateringStatistics: (...args) => fetchStatistics(...args),
-  stopAdminManualWatering: (...args) => stopWatering(...args),
-}));
-
-vi.mock('../auth/AuthContext', () => ({
-  useAuth: () => ({ token: 'token' }),
+vi.mock('../../api/selfService', () => ({
+  fetchManualWateringGreenhouseStatistics: (...args) => fetchStatistics(...args),
+  stopManualWatering: (...args) => stopWatering(...args),
 }));
 
 describe('BoxWateringStatsPanel', () => {
@@ -47,7 +43,7 @@ describe('BoxWateringStatsPanel', () => {
       range: 'day',
       limit: 10,
       beforeId: null,
-    }, 'token'));
+    }));
     expect(screen.getByText('7 мин')).toBeInTheDocument();
     expect(screen.getByText('0,35 л')).toBeInTheDocument();
     expect(screen.getByText('Есть растения без указанной скорости')).toBeInTheDocument();
@@ -57,7 +53,7 @@ describe('BoxWateringStatsPanel', () => {
       range: 'week',
       limit: 10,
       beforeId: null,
-    }, 'token'));
+    }));
   });
 
   it('preduprezhdaet ob ostanovke vseh boksov i ostanavlivaet aktivnyj nasos', async () => {
@@ -84,7 +80,7 @@ describe('BoxWateringStatsPanel', () => {
     const stopButton = await screen.findByRole('button', { name: 'Остановить' });
     fireEvent.click(stopButton);
 
-    await waitFor(() => expect(stopWatering).toHaveBeenCalledWith(7, 'token'));
+    await waitFor(() => expect(stopWatering).toHaveBeenCalledWith(7));
     expect(confirm).toHaveBeenCalledWith(expect.stringContaining('во всех привязанных'));
   });
 

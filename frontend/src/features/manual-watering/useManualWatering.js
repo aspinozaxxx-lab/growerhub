@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  fetchAdminManualWateringOverview,
-  fetchAdminManualWateringSessions,
-  startAdminManualWatering,
-  stopAdminManualWatering,
-} from '../../api/admin';
+  fetchManualWateringOverview,
+  fetchManualWateringSessions,
+  startManualWatering,
+  stopManualWatering,
+} from '../../api/selfService';
 import { isSessionExpiredError } from '../../api/client';
-import { useAuth } from '../auth/AuthContext';
 import {
   normalizeManualWateringOverview,
   normalizeSessionPage,
@@ -30,8 +29,7 @@ function emptyHistoryState() {
   };
 }
 
-export default function useAdminManualWatering() {
-  const { token } = useAuth();
+export default function useManualWatering() {
   const [overview, setOverview] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -48,7 +46,7 @@ export default function useAdminManualWatering() {
     overviewRequestIdRef.current = requestId;
     if (!silent) setIsLoading(true);
     try {
-      const data = await fetchAdminManualWateringOverview(token);
+      const data = await fetchManualWateringOverview();
       if (requestId !== overviewRequestIdRef.current) return null;
       setOverview(normalizeManualWateringOverview(data));
       setError('');
@@ -61,7 +59,7 @@ export default function useAdminManualWatering() {
     } finally {
       if (requestId === overviewRequestIdRef.current) setIsLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     loadOverview();
@@ -100,10 +98,10 @@ export default function useAdminManualWatering() {
       [pumpId]: { ...(prev[pumpId] || emptyHistoryState()), isLoading: true, error: '' },
     }));
     try {
-      const data = await fetchAdminManualWateringSessions(pumpId, {
+      const data = await fetchManualWateringSessions(pumpId, {
         limit: SESSION_PAGE_SIZE,
         beforeId: append ? current.nextBeforeId : null,
-      }, token);
+      });
       const page = normalizeSessionPage(data);
       setHistories((prev) => {
         const previous = prev[pumpId] || emptyHistoryState();
@@ -136,7 +134,7 @@ export default function useAdminManualWatering() {
         },
       }));
     }
-  }, [histories, token]);
+  }, [histories]);
 
   useEffect(() => {
     const nextActiveIds = new Set(
@@ -174,7 +172,7 @@ export default function useAdminManualWatering() {
     setActionError('');
     setNotice('');
     try {
-      await startAdminManualWatering(pumpId, payload, token);
+      await startManualWatering(pumpId, payload);
       await loadOverview({ silent: true });
       await refreshLoadedHistory(pumpId);
       setNotice(translateApp("Полив запущен"));
@@ -186,7 +184,7 @@ export default function useAdminManualWatering() {
     } finally {
       setActionKey('');
     }
-  }, [actionKey, loadOverview, refreshLoadedHistory, token]);
+  }, [actionKey, loadOverview, refreshLoadedHistory]);
 
   const stopWatering = useCallback(async (pumpId) => {
     if (actionKey) return false;
@@ -195,7 +193,7 @@ export default function useAdminManualWatering() {
     setActionError('');
     setNotice('');
     try {
-      await stopAdminManualWatering(pumpId, token);
+      await stopManualWatering(pumpId);
       await loadOverview({ silent: true });
       await refreshLoadedHistory(pumpId);
       setNotice(translateApp("Остановка полива запрошена"));
@@ -207,7 +205,7 @@ export default function useAdminManualWatering() {
     } finally {
       setActionKey('');
     }
-  }, [actionKey, loadOverview, refreshLoadedHistory, token]);
+  }, [actionKey, loadOverview, refreshLoadedHistory]);
 
   return {
     overview,

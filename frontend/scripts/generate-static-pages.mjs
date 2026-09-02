@@ -56,11 +56,12 @@ const APP_NO_INDEX_ROUTES = [
   { path: '/app/connections/', title: 'Подключения - GrowerHub', description: 'Приватный раздел координаторов GrowerHub.' },
   { path: '/app/zones/', title: 'Зоны - GrowerHub', description: 'Приватный раздел зон GrowerHub.' },
   { path: '/app/automations/', title: 'Автоматизации - GrowerHub', description: 'Приватный раздел автоматизаций GrowerHub.' },
+  { path: '/app/manual-watering/', title: 'Ручной полив - GrowerHub', description: 'Приватная страница ручного полива и журнала насосов GrowerHub.' },
   { path: '/app/plants/', title: 'Растения - GrowerHub', description: 'Приватный раздел GrowerHub со списком растений и журналом ухода.' },
   { path: '/app/devices/', title: 'Устройства - GrowerHub', description: 'Приватный раздел GrowerHub для просмотра устройств и датчиков.' },
   { path: '/app/profile/', title: 'Профиль - GrowerHub', description: 'Приватный раздел GrowerHub с настройками пользователя.' },
   { path: '/app/admin/', title: 'Администрирование - GrowerHub', description: 'Закрытый административный раздел GrowerHub.' },
-  { path: '/app/admin/dashboard/', title: 'Дашборд фермы - GrowerHub', description: 'Закрытый дашборд фермы GrowerHub.' },
+  { path: '/app/admin/dashboard/', title: 'Обзор - GrowerHub', description: 'Служебное перенаправление в пользовательский обзор GrowerHub.' },
   { path: '/app/admin/product-analytics/', title: 'Продуктовая воронка - GrowerHub', description: 'Закрытая агрегированная продуктовая аналитика GrowerHub.' },
   { path: '/app/admin/users/', title: 'Пользователи - GrowerHub', description: 'Закрытый раздел управления пользователями.' },
   { path: '/app/admin/devices/', title: 'Устройства администрирования - GrowerHub', description: 'Закрытый раздел управления устройствами.' },
@@ -68,7 +69,7 @@ const APP_NO_INDEX_ROUTES = [
   { path: '/app/admin/mqtt/', title: 'MQTT - GrowerHub', description: 'Закрытый раздел просмотра сообщений MQTT.' },
   { path: '/app/admin/zigbee/', title: 'Zigbee - GrowerHub', description: 'Закрытый раздел управления Zigbee-устройствами.' },
   { path: '/app/admin/automation/', title: 'Автоматизация - GrowerHub', description: 'Закрытый раздел настройки автоматизации.' },
-  { path: '/app/admin/manual-watering/', title: 'Ручной полив - GrowerHub', description: 'Закрытый раздел ручного управления поливом.' },
+  { path: '/app/admin/manual-watering/', title: 'Ручной полив - GrowerHub', description: 'Служебное перенаправление в пользовательский ручной полив GrowerHub.' },
 ];
 
 const htmlEscape = (value = '') => String(value)

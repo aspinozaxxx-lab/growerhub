@@ -289,7 +289,7 @@ if (initialScript) {
   assert(fs.statSync(bundlePath).size <= 500 * 1024, 'Public entry exceeds 500 KiB');
   for (const marker of [
     'AdminAutomation',
-    'AdminFarmDashboard',
+    'FarmDashboard',
     'AppOnboarding',
     'ResponsiveContainer',
     'SensorStatsSidebar',

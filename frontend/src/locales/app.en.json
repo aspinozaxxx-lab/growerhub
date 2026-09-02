@@ -726,5 +726,7 @@
   "Устройство не подтвердило обновление вовремя": "The device did not confirm the update in time",
   "Подключите устройство к сети для обновления": "Connect the device to the network to update it",
   "Повторить обновление": "Retry update",
-  "Обновить прошивку": "Update firmware"
+  "Обновить прошивку": "Update firmware",
+  "Журнал насоса": "Pump log",
+  "Ручной полив": "Manual watering"
 }

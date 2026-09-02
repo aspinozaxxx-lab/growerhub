@@ -17,9 +17,9 @@ import {
   scenarioStatusLabel,
   scenarioTypeLabel,
   switchStateLabel,
-} from './adminFarmDashboardModel';
+} from './dashboardModel';
 
-describe('admin farm dashboard model', () => {
+describe('farm dashboard model', () => {
   it('nahodit resurs po roli', () => {
     const resources = [
       { role: RESOURCE_ROLES.LIGHT_SWITCH, current_value: 'OFF' },
