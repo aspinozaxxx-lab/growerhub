@@ -680,7 +680,7 @@
   "Не удалось загрузить растение": "Failed to load plant",
   "Не удалось обновить конструктор": "Failed to refresh Farm Builder",
   "Кондиционер обрабатывает запрос на охлаждение": "The air conditioner is handling a cooling request",
-  "Кондиционер работает по запросам: {{value1}}": "The air conditioner is serving cooling requests: {{value1}}",
+  "Кондиционер работает по запросам: {{value1}}": "Serving cooling requests: {{value1}}",
   "Ожидается подтверждение включения, команда {{value1}}": "Waiting for switch-on confirmation; command sent at {{value1}}",
   "Ожидается подтверждение включения": "Waiting for switch-on confirmation",
   "Запросов нет, ожидается подтверждение выключения, команда {{value1}}": "No requests; waiting for switch-off confirmation; command sent at {{value1}}",
@@ -728,5 +728,16 @@
   "Повторить обновление": "Retry update",
   "Обновить прошивку": "Update firmware",
   "Журнал насоса": "Pump log",
-  "Ручной полив": "Manual watering"
+  "Ручной полив": "Manual watering",
+  "Сценарии": "Scenarios",
+  "Почва": "Soil",
+  "Вкл": "On",
+  "Выкл": "Off",
+  "Климат теплицы": "Greenhouse climate",
+  "Активно": "Active",
+  "Ограничено": "Limited",
+  "Ожидает оценки": "Pending evaluation",
+  "Нет актуальных данных": "No recent data",
+  "Недоступно": "Unavailable",
+  "Состояние неизвестно": "Unknown status"
 }

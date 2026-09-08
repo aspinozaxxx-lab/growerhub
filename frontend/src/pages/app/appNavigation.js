@@ -1,9 +1,11 @@
+import { House, PanelsTopLeft, Workflow, Sprout, Settings } from 'lucide-react';
+
 export const APP_NAV_ITEMS = [
-  { to: '/app/', label: 'Обзор', icon: '⌂', end: true },
-  { to: '/app/farm/', label: 'Конструктор фермы', icon: '▦' },
-  { to: '/app/automations/', label: 'Автоматизации', icon: '⚡' },
-  { to: '/app/plants/', label: 'Растения', icon: '♧' },
-  { to: '/app/settings/', label: 'Настройки', icon: '⚙' },
+  { to: '/app/', label: 'Обзор', icon: House, end: true },
+  { to: '/app/farm/', label: 'Конструктор фермы', shortLabel: 'Ферма', icon: PanelsTopLeft },
+  { to: '/app/automations/', label: 'Автоматизации', shortLabel: 'Сценарии', icon: Workflow },
+  { to: '/app/plants/', label: 'Растения', icon: Sprout },
+  { to: '/app/settings/', label: 'Настройки', icon: Settings },
 ];
 
 export const SETTINGS_TABS = [

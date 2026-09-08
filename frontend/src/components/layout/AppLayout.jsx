@@ -1,5 +1,7 @@
 import React, { useEffect } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Leaf } from 'lucide-react';
+import { getPublicPath } from '../../domain/localizedRoutes';
 import './AppLayout.css';
 import {
   getCurrentLocale,
@@ -10,21 +12,23 @@ import {
 import { translateCommon } from '../../locales/i18n';
 import { APP_NAV_ITEMS } from '../../pages/app/appNavigation';
 
-// Funkciya otobrazheniya punktov menyu, ispolzuetsya i v sidebar, i v nizhnej paneli
+// Edinoe menyu dlya verhnej, bokovoj i mobilnoj navigacii.
 const renderNavItems = () =>
   APP_NAV_ITEMS.map((item) => (
     <NavLink
       key={item.to}
       to={item.to}
       end={item.end}
+      aria-label={translateApp(item.label)}
       className={({ isActive }) => (isActive ? 'app-nav__item is-active' : 'app-nav__item')}
     >
-      <span className="app-nav__icon" aria-hidden="true">{item.icon}</span>
+      <span className="app-nav__icon" aria-hidden="true">{React.createElement(item.icon, { size: 19, strokeWidth: 1.7 })}</span>
       <span className="app-nav__label">{translateApp(item.label)}</span>
+      <span className="app-nav__short-label">{translateApp(item.shortLabel || item.label)}</span>
     </NavLink>
   ));
 
-// Layout dlya kabineta: mobilnaya nizhnyaya panel, na desktop - levaya kolonka
+// Kabinet ispolzuet verhnee menyu; admin sohranyaet bokovuyu navigaciyu.
 function AppLayout() {
   const location = useLocation();
   const adminRoute = location.pathname.startsWith('/app/admin/');
@@ -47,10 +51,13 @@ function AppLayout() {
   };
 
   return (
-    <div className="app-layout">
+    <div className={`app-layout ${adminRoute ? 'app-layout--admin' : 'app-layout--workspace'}`}>
       <aside className="app-sidebar">
         <div className="app-sidebar__inner">
-          <div className="app-sidebar__brand">GrowerHub</div>
+          <Link to={getPublicPath('home', currentLocale)} className="app-sidebar__brand">
+            <Leaf size={28} strokeWidth={1.6} aria-hidden="true" />
+            <span>GrowerHub</span>
+          </Link>
           {!adminRoute ? (
             <button
               type="button"
@@ -61,7 +68,7 @@ function AppLayout() {
               {currentLocale === 'ru' ? 'EN' : 'RU'}
             </button>
           ) : null}
-          <nav className="app-nav app-nav--sidebar">
+          <nav className="app-nav app-nav--sidebar" aria-label={translateApp("Навигация кабинета")}>
             {renderNavItems()}
           </nav>
         </div>

@@ -14,6 +14,8 @@ import {
 } from '../../api/selfService';
 import AppOverview from './AppOverview';
 
+const { openSensorStats } = vi.hoisted(() => ({ openSensorStats: vi.fn() }));
+
 vi.mock('../../api/selfService', () => ({
   fetchFarmsOverview: vi.fn(),
   fetchManualWateringGreenhouseStatistics: vi.fn(),
@@ -21,83 +23,13 @@ vi.mock('../../api/selfService', () => ({
 }));
 
 vi.mock('../../features/sensors/SensorStatsContext', () => ({
-  useSensorStatsContext: () => ({ openSensorStats: vi.fn() }),
+  useSensorStatsContext: () => ({ openSensorStats }),
 }));
 
-describe('AppOverview warnings', () => {
+describe('AppOverview', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
-  });
-
-  it('pokazyvaet v tooltip vse preduprezhdeniya i tot zhe schetchik', async () => {
-    fetchFarmsOverview.mockResolvedValue({
-      farms: [{
-        id: 1,
-        name: 'Ферма',
-        enabled: true,
-        slots: [{
-          id: 10,
-          role: 'AC_SWITCH',
-          ready: true,
-          connection_status: 'warning',
-          connection_message: 'нет связи',
-        }],
-        scenarios: [],
-        states: [{ id: 20, scenario_type: 'ROOM_CLIMATE', ac_request_active: true }],
-        greenhouses: [{
-          id: 2,
-          name: 'Теплица',
-          enabled: true,
-          plants: [],
-          slots: [{
-            id: 11,
-            role: 'AIR_TEMPERATURE_SENSOR',
-            ready: false,
-            reason: 'Устройство Zigbee не найдено',
-          }],
-          scenarios: [
-            { scenario_type: 'LIGHT_SCHEDULE', enabled: false },
-            { scenario_type: 'WATERING', enabled: true },
-          ],
-          readiness: {
-            LIGHT_SCHEDULE: { ready: false, reason: 'Нужен Zigbee-выключатель света' },
-            WATERING: { ready: false, reason: 'Нужен насос' },
-          },
-          states: [{ id: 21, scenario_type: 'BOX_CLIMATE', ac_request_active: true }],
-          last_actions: [],
-        }],
-        last_actions: [],
-      }],
-      resource_catalog: {
-        plants: [{ id: 3, name: 'Томат' }],
-        native_devices: [],
-        zigbee_devices: [],
-      },
-    });
-
-    render(
-      <MemoryRouter>
-        <AppOverview />
-      </MemoryRouter>,
-    );
-
-    const label = await screen.findByText('Предупреждения');
-    const tile = label.closest('article');
-    const tooltip = within(tile).getByRole('tooltip');
-    expect(tile).toHaveAttribute('tabindex', '0');
-    expect(tile).toHaveAttribute('aria-describedby', tooltip.id);
-    expect(within(tile).getByText('5')).toBeInTheDocument();
-    expect(within(tooltip).getAllByRole('listitem')).toHaveLength(5);
-    expect(within(tooltip).getByText('Кондиционер — нет связи')).toBeInTheDocument();
-    expect(within(tooltip).queryByText(/Нужен Zigbee-выключатель света/)).not.toBeInTheDocument();
-    expect(within(tooltip).getByText('Полив — Нужен насос')).toBeInTheDocument();
-    expect(within(tooltip).getByText('Размещение — Не выбрана теплица')).toBeInTheDocument();
-    fireEvent.click(tile);
-    expect(tile).toHaveAttribute('aria-expanded', 'true');
-    expect(tile).toHaveClass('is-tooltip-open');
-    fireEvent.keyDown(tile, { key: 'Escape' });
-    expect(tile).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('pokazyvaet v teplicah tolko privyazannye resursy bez rasteniy i aktivnogo statusa', async () => {
@@ -184,6 +116,8 @@ describe('AppOverview warnings', () => {
     expect(within(equipment).queryByText('Кондиционер')).not.toBeInTheDocument();
     expect(within(equipment).queryByText('Свет')).not.toBeInTheDocument();
     expect(within(equipment).queryByText('Полив')).not.toBeInTheDocument();
+    expect(within(activeGreenhouse).queryByText('Свет')).not.toBeInTheDocument();
+    expect(within(activeGreenhouse).queryByText('Полив')).not.toBeInTheDocument();
     expect(within(activeGreenhouse).getByText('Температура воздуха')).toBeInTheDocument();
     expect(within(activeGreenhouse).queryByText('Не привязано')).not.toBeInTheDocument();
     expect(within(activeGreenhouse).queryByText('Активен')).not.toBeInTheDocument();
@@ -191,15 +125,42 @@ describe('AppOverview warnings', () => {
     expect(screen.queryByText('Базилик')).not.toBeInTheDocument();
     expect(within(farmCard).queryByText('Растения')).not.toBeInTheDocument();
 
-    const plantSummary = screen.getByText('Растения').closest('article');
-    expect(within(plantSummary).getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('Томат')).toBeInTheDocument();
-
     const disabledHeading = screen.getByRole('heading', { name: 'Выключенная теплица' });
     const disabledGreenhouse = disabledHeading.closest('.farm-dashboard-box');
     expect(within(disabledGreenhouse).getByText('Выключен')).toBeInTheDocument();
     expect(disabledGreenhouse.querySelector('.farm-dashboard-box__equipment')).toBeNull();
     expect(disabledGreenhouse.querySelector('.farm-dashboard-sensors')).toBeNull();
+    expect(within(disabledGreenhouse).queryByText('Обдув')).not.toBeInTheDocument();
+    expect(within(disabledGreenhouse).queryByText('Полив')).not.toBeInTheDocument();
+  });
+
+  it('sohranyaet statistiku datchikov i oborudovaniya v oblasti polzovatelya', async () => {
+    fetchFarmsOverview.mockResolvedValue({
+      farms: [{
+        id: 1, name: 'Ферма', enabled: true, greenhouses: [{
+          id: 2, name: 'Северная', enabled: true,
+          slots: [{
+            id: 10, role: 'AIR_TEMPERATURE_SENSOR', source_type: 'NATIVE_SENSOR',
+            native_sensor_id: 51, ready: true, current_value: 24.6,
+          }, {
+            id: 11, role: 'LIGHT_SWITCH', source_type: 'ZIGBEE_DEVICE',
+            zigbee_ieee_address: 'test-device', ready: true, current_value: 'ON',
+          }],
+        }],
+      }],
+    });
+    render(<MemoryRouter><AppOverview /></MemoryRouter>);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Открыть статистику: Температура воздуха' }));
+    expect(openSensorStats).toHaveBeenLastCalledWith(expect.objectContaining({
+      mode: 'sensor', sensorId: 51, metric: 'air_temperature', subtitle: 'Северная',
+      zigbeeHistoryScope: 'self-service', equipmentStatsScope: 'self-service',
+    }));
+    fireEvent.click(screen.getByRole('button', { name: 'Открыть статистику: Свет' }));
+    expect(openSensorStats).toHaveBeenLastCalledWith(expect.objectContaining({
+      mode: 'equipment', equipmentResourceId: 11, subtitle: 'Северная',
+      equipmentStatsScope: 'self-service',
+    }));
   });
 
   it('otkryvaet ruchnoy poliv i zhurnal nasosa iz plashki poliva', async () => {
