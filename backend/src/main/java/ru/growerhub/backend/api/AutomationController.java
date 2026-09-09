@@ -30,6 +30,14 @@ public class AutomationController {
         return automationFacade.getFarmsOverview(user);
     }
 
+    @PutMapping("/scenarios/enabled")
+    public AutomationData.FarmsOverview setScenariosEnabled(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestBody AutomationData.SetScenariosEnabledRequest request
+    ) {
+        return automationFacade.setUserScenariosEnabled(user, request);
+    }
+
     @GetMapping("/resources/{resource_id}/statistics")
     public AutomationData.ResourceStatistics resourceStatistics(
             @AuthenticationPrincipal AuthenticatedUser user,

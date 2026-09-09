@@ -4,6 +4,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -909,6 +910,109 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(409)
                 .body("detail", equalTo("Нужен Zigbee-выключатель света"));
+    }
+
+    @Test
+    void bulkDisablePreservesEveryConfigAndDoesNotAffectOtherOwnersEvenForAdmin() {
+        UserEntity admin = createUser("bulk-admin@example.com", "admin");
+        UserEntity other = createUser("bulk-other@example.com", "user");
+        String token = buildToken(admin.getId());
+        Integer farmId = createFarm(token, "A");
+        Integer secondFarmId = createFarm(token, "B");
+        Integer firstId = createGreenhouse(token, farmId, "A");
+        Integer secondId = createGreenhouse(token, secondFarmId, "B");
+        String otherToken = buildToken(other.getId());
+        Integer otherId = createGreenhouse(otherToken, createFarm(otherToken, "Other"), "Other");
+        String lightConfig = "{\"start_time\":\"21:15\",\"end_time\":\"07:45\",\"extra\":42}";
+        for (Integer id : List.of(firstId, secondId, otherId)) {
+            insertScenario("BOX", id, "LIGHT_SCHEDULE", true, lightConfig);
+            insertScenario("BOX", id, "WATERING", true, "{\"run_seconds\":45,\"daily_max_seconds\":400}");
+            insertScenario("BOX", id, "BOX_CLIMATE", true, "{\"max_c\":28}");
+        }
+        insertScenario("ROOM", farmId, "ROOM_CLIMATE", true, "{\"custom\":true}");
+        List<Map<String, Object>> originalConfigs = jdbcTemplate.queryForList(
+                "SELECT id, config_json FROM automation_scenario_configs ORDER BY id");
+
+        given().header("Authorization", "Bearer " + token).contentType("application/json")
+                .body("{\"enabled\":false}").when().put("/api/automation/scenarios/enabled")
+                .then().statusCode(200).body("farms", hasSize(2));
+
+        assertEquals(originalConfigs, jdbcTemplate.queryForList(
+                "SELECT id, config_json FROM automation_scenario_configs ORDER BY id"));
+        assertEquals(3, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM automation_scenario_configs WHERE enabled=true", Integer.class));
+        assertEquals(3, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM automation_scenario_configs WHERE scope_type='BOX' AND scope_id=? AND enabled=true",
+                Integer.class, otherId));
+    }
+
+    @Test
+    void bulkEnableSkipsUnavailableAndInactiveScopesAndRestoresConfiguredValues() {
+        UserEntity owner = createUser("bulk-enable@example.com", "user");
+        String token = buildToken(owner.getId());
+        Integer farmId = createFarm(token, "A");
+        Integer greenhouseId = createGreenhouse(token, farmId, "A");
+        Integer unreadyId = createGreenhouse(token, farmId, "B");
+        Integer inactiveId = createGreenhouse(token, farmId, "C");
+        SensorEntity sensor = createSensor(owner, 26.0);
+        replaceGreenhouseClimateSlots(token, greenhouseId, sensor.getId(), null, null);
+        SensorEntity inactiveSensor = createSensor(owner, 26.0);
+        replaceGreenhouseClimateSlots(token, inactiveId, inactiveSensor.getId(), null, null);
+        jdbcTemplate.update("UPDATE automation_boxes SET enabled=false WHERE id=?", inactiveId);
+        String config = "{\"max_c\":31,\"exhaust_off_below_c\":28,\"ac_request_above_c\":33,\"ac_clear_below_c\":29}";
+        insertScenario("BOX", greenhouseId, "BOX_CLIMATE", false, config);
+
+        for (boolean enabled : List.of(true, false, true)) {
+            given().header("Authorization", "Bearer " + token).contentType("application/json")
+                    .body(Map.of("enabled", enabled)).when().put("/api/automation/scenarios/enabled")
+                    .then().statusCode(200)
+                    .body("farms[0].greenhouses.find { it.id == " + greenhouseId
+                            + " }.scenarios.find { it.scenario_type == 'BOX_CLIMATE' }.enabled", equalTo(enabled))
+                    .body("farms[0].scenarios.find { it.scenario_type == 'ROOM_CLIMATE' }.enabled", equalTo(enabled))
+                    .body("farms[0].greenhouses.find { it.id == " + unreadyId
+                            + " }.scenarios.findAll { it.enabled }", hasSize(0))
+                    .body("farms[0].greenhouses.find { it.id == " + inactiveId
+                            + " }.scenarios.findAll { it.enabled }", hasSize(0));
+            assertEquals(config, jdbcTemplate.queryForObject(
+                    "SELECT config_json FROM automation_scenario_configs WHERE scope_type='BOX' AND scope_id=? AND scenario_type='BOX_CLIMATE'",
+                    String.class, greenhouseId));
+        }
+    }
+
+    @Test
+    void bulkEnableRollsBackWhenLaterScenarioValidationFails() {
+        UserEntity owner = createUser("bulk-rollback@example.com", "user");
+        String token = buildToken(owner.getId());
+        Integer farmId = createFarm(token, "A");
+        Integer firstId = createGreenhouse(token, farmId, "A");
+        Integer secondId = createGreenhouse(token, farmId, "B");
+        for (Integer id : List.of(firstId, secondId)) {
+            SensorEntity sensor = createSensor(owner, 26.0);
+            replaceGreenhouseClimateSlots(token, id, sensor.getId(), null, null);
+        }
+        insertScenario("BOX", secondId, "BOX_CLIMATE", false,
+                "{\"max_c\":25,\"exhaust_off_below_c\":30}");
+        given().header("Authorization", "Bearer " + token).contentType("application/json")
+                .body("{\"enabled\":true}").when().put("/api/automation/scenarios/enabled")
+                .then().statusCode(400);
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM automation_scenario_configs WHERE enabled=true", Integer.class));
+    }
+
+    @Test
+    void bulkToggleRequiresExplicitBoolean() {
+        UserEntity owner = createUser("bulk-missing@example.com", "user");
+        given().header("Authorization", "Bearer " + buildToken(owner.getId())).contentType("application/json")
+                .body("{}").when().put("/api/automation/scenarios/enabled")
+                .then().statusCode(400).body("detail", equalTo("Поле enabled обязательно"));
+    }
+
+    private void insertScenario(String scope, Integer id, String type, boolean enabled, String config) {
+        jdbcTemplate.update("""
+                INSERT INTO automation_scenario_configs
+                (scope_type, scope_id, scenario_type, enabled, config_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """, scope, id, type, enabled, config);
     }
 
     private void replaceGreenhouseClimateSlots(

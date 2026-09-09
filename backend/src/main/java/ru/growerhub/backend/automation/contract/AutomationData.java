@@ -483,6 +483,9 @@ public final class AutomationData {
     public record SaveScenariosRequest(@JsonProperty("scenarios") List<ScenarioConfigRequest> scenarios) {
     }
 
+    public record SetScenariosEnabledRequest(@JsonProperty("enabled") Boolean enabled) {
+    }
+
     public record ScenarioConfigRequest(
             @JsonProperty("scenario_type") String scenarioType,
             @JsonProperty("enabled") Boolean enabled,

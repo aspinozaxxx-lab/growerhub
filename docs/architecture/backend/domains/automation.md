@@ -11,6 +11,7 @@
 `AutomationFacade`
 
 - `getFarmsOverview(AuthenticatedUser user)`
+- `setUserScenariosEnabled(AuthenticatedUser user, SetScenariosEnabledRequest request)`
 - `createUserFarm(AuthenticatedUser user, SaveRoomRequest request)`
 - `updateUserFarm(AuthenticatedUser user, Integer farmId, SaveRoomRequest request)`
 - `deleteUserFarm(AuthenticatedUser user, Integer farmId)`
@@ -50,6 +51,12 @@
 ## Публичные контракты
 
 - `AutomationData`
+- `PUT /api/automation/scenarios/enabled` принимает обязательный boolean
+  `enabled` и возвращает `FarmsOverview`. Одна транзакция выключает все сценарии
+  владельца либо включает готовые сценарии активных теплиц и ферм. Существующий
+  `config_json` сохраняется; климат фермы синхронизируется с дочерними сценариями.
+  Неготовые области пропускаются при включении, ошибки проверки конфигурации
+  откатывают всю операцию. Администратор в этом endpoint также ограничен своими фермами.
 
 ## Владение данными
 

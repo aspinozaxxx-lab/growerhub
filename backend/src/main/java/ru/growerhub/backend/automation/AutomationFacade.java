@@ -290,6 +290,50 @@ public class AutomationFacade {
         return buildFarmsOverview(user);
     }
 
+    public AutomationData.FarmsOverview setUserScenariosEnabled(
+            AuthenticatedUser user,
+            AutomationData.SetScenariosEnabledRequest request
+    ) {
+        requireAuthenticated(user);
+        if (request == null || request.enabled() == null) {
+            throw new DomainException("bad_request", "Поле enabled обязательно");
+        }
+        boolean enabled = request.enabled();
+        List<AutomationRoomEntity> farms = roomRepository.findAllByUserIdOrderByNameAscIdAsc(user.id());
+        List<AutomationBoxEntity> greenhouses = boxRepository.findAllByRoom_UserIdOrderByNameAscIdAsc(user.id());
+        Catalog catalog = enabled ? buildOwnedCatalog(user) : null;
+        LocalDateTime now = nowUtc();
+        for (AutomationBoxEntity greenhouse : greenhouses) {
+            for (String scenarioType : BOX_SCENARIOS) {
+                if (enabled && (!greenhouse.isEnabled() || !greenhouse.getRoom().isEnabled()
+                        || !readinessForScenario(AutomationData.SCOPE_BOX, greenhouse.getId(), scenarioType,
+                        greenhouse.getRoomId(), catalog).ready())) {
+                    continue;
+                }
+                AutomationScenarioConfigEntity config = configFor(
+                        AutomationData.SCOPE_BOX, greenhouse.getId(), scenarioType);
+                if (config == null && !enabled) {
+                    continue;
+                }
+                if (enabled) {
+                    validateScenarioConfig(AutomationData.SCOPE_BOX, greenhouse.getId(), scenarioType,
+                            true, config == null ? defaultConfig(scenarioType) : configMap(config, scenarioType));
+                }
+                if (config == null) {
+                    config = AutomationScenarioConfigEntity.create(
+                            AutomationData.SCOPE_BOX, greenhouse.getId(), scenarioType, now);
+                    config.setConfigJson(writeJson(defaultConfig(scenarioType)));
+                }
+                config.setEnabled(enabled);
+                config.setUpdatedAt(now);
+                configRepository.save(config);
+            }
+        }
+        configRepository.flush();
+        farms.forEach(this::synchronizeFarmClimateScenario);
+        return buildFarmsOverview(user);
+    }
+
     public AutomationData.FarmsOverview createUserFarm(
             AuthenticatedUser user,
             AutomationData.SaveRoomRequest request
