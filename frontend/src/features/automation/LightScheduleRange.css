@@ -1,0 +1,86 @@
+.light-range {
+  position: relative;
+  height: 60px;
+  min-width: 0;
+  isolation: isolate;
+}
+
+.light-range__grid {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.light-range__grid i {
+  border-left: 1px dashed var(--border-2);
+}
+
+.light-range__night,
+.light-range__interval {
+  position: absolute;
+  top: 16px;
+  height: 28px;
+  border: 0;
+  border-radius: 4px;
+}
+
+.light-range__night {
+  inset-inline: 0;
+  background: #dce3e6;
+}
+
+.light-range__interval {
+  padding: 0;
+  color: #163f26;
+  background: linear-gradient(90deg, #a9d6b0, #88bf91);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.light-range__interval:active { cursor: grabbing; }
+
+.light-range__grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 100%;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.light-range__handle {
+  position: absolute;
+  top: 16px;
+  z-index: 2;
+  width: 22px;
+  height: 28px;
+  padding: 0;
+  transform: translateX(-50%);
+  border: 2px solid #478658;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 2px 5px #26432d20;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+.light-range__handle::after {
+  content: '';
+  position: absolute;
+  inset: -9px -11px;
+}
+
+.light-range.is-all-day .light-range__handle--start { top: 2px; }
+.light-range.is-all-day .light-range__handle--end { top: 30px; }
+.light-range button:disabled { cursor: wait; opacity: .65; }
+
+@media (max-width: 680px) {
+  .light-range__grip { gap: 4px; font-size: 11px; }
+  .light-range__grip > svg:first-child { display: none; }
+}

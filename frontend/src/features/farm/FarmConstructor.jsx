@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   fetchFarmsOverview,
-  replaceGreenhouseScenarios,
   replaceGreenhouseSlots,
   replaceUserFarmSlots,
   updateGreenhousePlantWateringRate,
@@ -12,7 +11,6 @@ import PlantEditDialog from '../../components/plants/PlantEditDialog';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import Button from '../../components/ui/Button';
-import { ClimateScenarioFields } from './ClimateScenarioFields';
 import {
   bindingOptionValue,
   optionsForRole,
@@ -23,12 +21,9 @@ import {
 } from './farmResourceOptions';
 import {
   FARM_ROOM_SLOT_ROLES,
-  FARM_SCENARIO_TYPES,
   FARM_SLOT_ROLES,
-  SCENARIO_LABELS,
   SLOT_ROLE_LABELS,
   buildSlotOccupancy,
-  createScenarioDrafts,
   findSlotConflicts,
   listOrEmpty,
   overviewFarms,
@@ -36,20 +31,6 @@ import {
 } from './farmModel';
 import { translateApp } from '../../locales/i18n';
 import './FarmConstructor.css';
-
-const SCENARIO_FIELDS = {
-  LIGHT_SCHEDULE: [
-    ['start_time', 'Включить', 'time'],
-    ['end_time', 'Выключить', 'time'],
-  ],
-  WATERING: [
-    ['soil_threshold_percent', 'Порог почвы, %', 'number'],
-    ['min_interval_hours', 'Минимальная пауза, ч', 'number'],
-    ['max_interval_hours', 'Максимальная пауза, ч', 'number'],
-    ['run_seconds', 'Длительность, сек', 'number'],
-    ['daily_max_seconds', 'Лимит в сутки, сек', 'number'],
-  ],
-};
 
 const actionKey = (scopeId, section) => `${scopeId}:${section}`;
 
@@ -75,7 +56,6 @@ function initialGreenhouseDraft(greenhouse) {
   return {
     ...initialSlotDraft(greenhouse),
     plants,
-    scenarios: createScenarioDrafts(greenhouse),
   };
 }
 
@@ -91,12 +71,6 @@ function formatSlotValue(value) {
     return value ? translateApp('Да') : translateApp('Нет');
   }
   return String(value);
-}
-
-function readinessFor(greenhouse, scenarioType) {
-  return greenhouse?.readiness?.[scenarioType]
-    || greenhouse?.scenarios?.find((scenario) => scenario.scenario_type === scenarioType)?.readiness
-    || { ready: false, reason: translateApp('Назначьте необходимые слоты') };
 }
 
 function SlotEditor({
@@ -408,18 +382,6 @@ function FarmConstructor() {
     }
   };
 
-  const saveScenarios = (greenhouse) => {
-    const drafts = greenhouseDrafts[greenhouse.id]?.scenarios || {};
-    runAction(
-      actionKey(greenhouse.id, 'scenarios'),
-      () => replaceGreenhouseScenarios(
-        greenhouse.id,
-        FARM_SCENARIO_TYPES.map((scenarioType) => drafts[scenarioType]),
-      ),
-      translateApp('Сценарии сохранены'),
-    );
-  };
-
   const openPlantEditor = async (plant) => {
     const key = actionKey(plant.id, 'plant:open');
     setBusy(key);
@@ -487,7 +449,8 @@ function FarmConstructor() {
         )}
       />
       <p className="farm-constructor__intro">
-        {translateApp('Назначьте оборудование и настройте сценарии существующих теплиц.')}
+        {translateApp('Назначьте оборудование и разместите растения в теплицах.')} {' '}
+        <Link to="/app/automations/">{translateApp('Настроить автоматизации')}</Link>
       </p>
       {error ? <AppPageState kind="error" title={error} /> : null}
       {notice ? <div className="farm-constructor__notice" role="status">{notice}</div> : null}
@@ -668,103 +631,6 @@ function FarmConstructor() {
                   )}
                 </section>
 
-                <section className="farm-zone-editor__section">
-                  <div className="farm-zone-editor__section-heading">
-                    <h3>{translateApp('Доступные сценарии')}</h3>
-                    <Button
-                      size="sm"
-                      onClick={() => saveScenarios(greenhouse)}
-                      isLoading={busy === actionKey(greenhouse.id, 'scenarios')}
-                    >
-                      {translateApp('Сохранить сценарии')}
-                    </Button>
-                  </div>
-                  <div className="farm-scenarios">
-                    {FARM_SCENARIO_TYPES.map((scenarioType) => {
-                      const scenario = draft.scenarios[scenarioType];
-                      const readiness = readinessFor(greenhouse, scenarioType);
-                      const enableBlocked = !readiness.ready && !scenario.enabled;
-                      return (
-                        <div
-                          className={`farm-scenario ${readiness.ready ? 'is-ready' : 'is-unready'}`}
-                          key={scenarioType}
-                        >
-                          <div className="farm-scenario__header">
-                            <label>
-                              <input
-                                type="checkbox"
-                                checked={scenario.enabled}
-                                disabled={enableBlocked}
-                                onChange={(event) => patchGreenhouseDraft(greenhouse.id, {
-                                  scenarios: {
-                                    ...draft.scenarios,
-                                    [scenarioType]: {
-                                      ...scenario,
-                                      enabled: event.target.checked,
-                                    },
-                                  },
-                                })}
-                              />
-                              <strong>
-                                {translateApp(SCENARIO_LABELS[scenarioType] || scenarioType)}
-                              </strong>
-                            </label>
-                            <span>
-                              {readiness.ready ? translateApp('Готово') : readiness.reason}
-                            </span>
-                          </div>
-                          {scenarioType === 'BOX_CLIMATE' ? (
-                            <ClimateScenarioFields
-                              config={scenario.config}
-                              onChange={(field, value) => patchGreenhouseDraft(greenhouse.id, {
-                                scenarios: {
-                                  ...draft.scenarios,
-                                  [scenarioType]: {
-                                    ...scenario,
-                                    config: {
-                                      ...(scenario.config || {}),
-                                      [field]: value,
-                                    },
-                                  },
-                                },
-                              })}
-                            />
-                          ) : (
-                            <div className="farm-scenario__fields">
-                              {SCENARIO_FIELDS[scenarioType].map(([field, label, type]) => (
-                                <label key={field}>
-                                  <span>{translateApp(label)}</span>
-                                  <input
-                                    type={type}
-                                    step={type === 'number' ? '0.1' : undefined}
-                                    value={scenario.config?.[field] ?? ''}
-                                    onChange={(event) => {
-                                      const value = type === 'number'
-                                        ? (event.target.value === '' ? '' : Number(event.target.value))
-                                        : event.target.value;
-                                      patchGreenhouseDraft(greenhouse.id, {
-                                        scenarios: {
-                                          ...draft.scenarios,
-                                          [scenarioType]: {
-                                            ...scenario,
-                                            config: {
-                                              ...(scenario.config || {}),
-                                              [field]: value,
-                                            },
-                                          },
-                                        },
-                                      });
-                                    }}
-                                  />
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
               </article>
             );
           })}

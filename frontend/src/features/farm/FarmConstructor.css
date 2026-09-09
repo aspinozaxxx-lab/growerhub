@@ -174,8 +174,7 @@
   font-size: 13px;
 }
 
-.farm-zone-editor__toggle input,
-.farm-scenario__header input {
+.farm-zone-editor__toggle input {
   width: 17px;
   min-height: 17px;
   margin: 0;
@@ -327,61 +326,6 @@
   color: var(--text-3);
 }
 
-.farm-scenarios {
-  display: grid;
-  gap: 10px;
-}
-
-.farm-scenario {
-  display: grid;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--border-1);
-  border-radius: 12px;
-  background: var(--surface-2);
-}
-
-.farm-scenario.is-ready {
-  border-color: rgba(95, 212, 145, 0.28);
-}
-
-.farm-scenario__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.farm-scenario__header label {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.farm-scenario__header > span {
-  color: var(--text-3);
-  font-size: 12px;
-  text-align: right;
-}
-
-.farm-scenario.is-unready .farm-scenario__header > span {
-  color: #ffd48d;
-}
-
-.farm-scenario__fields {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 8px;
-}
-
-.farm-scenario__fields label {
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  color: var(--text-2);
-  font-size: 12px;
-}
-
 @media (max-width: 900px) {
   .farm-slots,
   .farm-zone-plants {
@@ -405,8 +349,7 @@
     padding: 14px;
   }
 
-  .farm-zone-editor__section-heading,
-  .farm-scenario__header {
+  .farm-zone-editor__section-heading {
     display: grid;
   }
 
@@ -420,9 +363,5 @@
 
   .farm-zone-plant__save-state {
     grid-column: 1;
-  }
-
-  .farm-scenario__header > span {
-    text-align: left;
   }
 }

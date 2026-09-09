@@ -79,6 +79,11 @@ export const fetchFarmOverview = () => requestJson('/api/automation/farm');
 
 export const fetchFarmsOverview = () => requestJson('/api/automation/farms');
 
+export const setScenariosEnabled = (enabled) => requestJson('/api/automation/scenarios/enabled', {
+  method: 'PUT',
+  body: JSON.stringify({ enabled }),
+});
+
 export const fetchResourceStatistics = (resourceId, hours = 24) => requestJson(
   `/api/automation/resources/${encodeURIComponent(resourceId)}/statistics`
     + `?hours=${encodeURIComponent(hours)}`,

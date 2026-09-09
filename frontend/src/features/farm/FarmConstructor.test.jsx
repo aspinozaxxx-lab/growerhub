@@ -100,6 +100,12 @@ describe('FarmConstructor', () => {
     const greenhouseTitle = await screen.findByRole('heading', { name: 'Северная' });
     const greenhouse = greenhouseTitle.closest('article');
 
+    expect(screen.getByRole('link', { name: 'Настроить автоматизации' })).toHaveAttribute('href', '/app/automations/');
+    expect(screen.queryByRole('button', { name: 'Сохранить сценарии' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: 'Климат' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Обдув включить выше, °C')).not.toBeInTheDocument();
+    expect(replaceGreenhouseScenarios).not.toHaveBeenCalled();
+
     expect(within(greenhouse).getByText('Требуется охлаждение')).toBeInTheDocument();
     const plantName = within(greenhouse).getByRole('button', { name: 'Томат' });
     expect(plantName).toBeInTheDocument();
@@ -113,10 +119,10 @@ describe('FarmConstructor', () => {
       .not.toBeInTheDocument();
     expect(screen.queryByText('Backend проверяет готовность по назначенным слотам до включения.'))
       .not.toBeInTheDocument();
-    expect(within(greenhouse).getByLabelText('Обдув включить выше, °C')).toBeInTheDocument();
-    expect(within(greenhouse).getByLabelText('Обдув выключить ниже, °C')).toBeInTheDocument();
-    expect(within(greenhouse).getByLabelText('Запрос охлаждения выше, °C')).toBeInTheDocument();
-    expect(within(greenhouse).getByLabelText('Снять запрос ниже, °C')).toBeInTheDocument();
+    expect(within(greenhouse).queryByLabelText('Обдув включить выше, °C')).not.toBeInTheDocument();
+    expect(within(greenhouse).queryByLabelText('Обдув выключить ниже, °C')).not.toBeInTheDocument();
+    expect(within(greenhouse).queryByLabelText('Запрос охлаждения выше, °C')).not.toBeInTheDocument();
+    expect(within(greenhouse).queryByLabelText('Снять запрос ниже, °C')).not.toBeInTheDocument();
     expect(within(greenhouse).queryByLabelText('Минимум, °C')).not.toBeInTheDocument();
     expect(within(greenhouse).queryByLabelText('Задержка выключения, мин')).not.toBeInTheDocument();
     expect(within(greenhouse).queryByLabelText('Защита от частых переключений, мин'))

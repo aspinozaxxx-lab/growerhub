@@ -1,245 +1,220 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowUpRight, Check, Clock3, Droplets, Info, Moon, Power, Sun, Thermometer } from 'lucide-react';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import Button from '../../components/ui/Button';
-import {
-  fetchFarmsOverview,
-  replaceGreenhouseScenarios,
-} from '../../api/selfService';
-import {
-  SCENARIO_LABELS,
-  createScenarioDrafts,
-  listOrEmpty,
-  overviewFarms,
-} from '../../features/farm/farmModel';
 import { ClimateScenarioFields } from '../../features/farm/ClimateScenarioFields';
-import { trackProductGoal } from '../../utils/analytics';
-import { translateApp } from '../../locales/i18n';
-import './SelfServicePages.css';
+import { FARM_SCENARIO_TYPES, SCENARIO_LABELS, listOrEmpty } from '../../features/farm/farmModel';
+import LightScheduleRange from '../../features/automation/LightScheduleRange';
+import useAutomations from '../../features/automation/useAutomations';
+import { lightDuration, timeToMinutes } from '../../features/automation/lightSchedule';
+import { getUiTimeZone } from '../../utils/formatters';
+import { translateApp as t } from '../../locales/i18n';
+import './AppAutomations.css';
 
-const toRequest = (scenarios, changedType, patch) => scenarios.map((scenario) => ({
-  scenario_type: scenario.scenario_type,
-  enabled: scenario.scenario_type === changedType
-    ? Boolean(patch.enabled ?? scenario.enabled)
-    : Boolean(scenario.enabled),
-  config: scenario.scenario_type === changedType
-    ? { ...(scenario.config || {}), ...(patch.config || {}) }
-    : (scenario.config || {}),
-}));
+const LIGHT = 'LIGHT_SCHEDULE';
+const CLIMATE = 'BOX_CLIMATE';
+const WATERING = 'WATERING';
+const WATERING_FIELDS = [
+  ['soil_threshold_percent', 'Порог почвы, %', 0, 100],
+  ['min_interval_hours', 'Минимальная пауза, ч', 0],
+  ['max_interval_hours', 'Максимальная пауза, ч', 0],
+  ['run_seconds', 'Длительность, сек', 1],
+  ['daily_max_seconds', 'Лимит в сутки, сек', 1],
+];
+
+function readinessFor(greenhouse, type) {
+  if (greenhouse.farmEnabled === false) return { ready: false, reason: t('Ферма выключена') };
+  if (greenhouse.enabled === false) return { ready: false, reason: t('Теплица выключена') };
+  return greenhouse.readiness?.[type]
+    || greenhouse.scenarios?.find((scenario) => scenario.scenario_type === type)?.readiness
+    || { ready: false, reason: t('Назначьте необходимые слоты') };
+}
+
+function ScenarioSwitch({ greenhouse, type, automation }) {
+  const scenario = automation.scenarioFor(greenhouse, type);
+  const readiness = readinessFor(greenhouse, type);
+  return (
+    <button type="button" role="switch" className="automation-switch"
+      aria-label={t('{{scenario}}: {{name}}', { scenario: t(SCENARIO_LABELS[type]), name: greenhouse.name })}
+      aria-checked={scenario.enabled}
+      disabled={Boolean(automation.busy) || (!scenario.enabled && !readiness.ready)}
+      title={!readiness.ready ? readiness.reason : (scenario.enabled ? t('Выключить') : t('Включить'))}
+      onClick={() => automation.toggleScenario(greenhouse, type)}>
+      <span aria-hidden="true" />
+    </button>
+  );
+}
+
+function SettingsState({ greenhouse, type, automation }) {
+  const readiness = readinessFor(greenhouse, type);
+  const dirty = automation.isDirty(greenhouse, type);
+  return (
+    <span className={`automation-settings-state ${dirty || !readiness.ready ? 'is-pending' : ''}`}>
+      {dirty || !readiness.ready ? <Info size={14} /> : <Check size={14} />}
+      {dirty ? t('Не сохранено') : (!readiness.ready ? readiness.reason : t('Настройки сохранены'))}
+    </span>
+  );
+}
+
+const durationLabel = (minutes) => (minutes % 60
+  ? t('{{hours}} ч {{minutes}} мин', { hours: Math.floor(minutes / 60), minutes: minutes % 60 })
+  : t('{{hours}} ч', { hours: minutes / 60 }));
 
 function AppAutomations() {
-  const [overview, setOverview] = useState(null);
-  const [greenhouseDrafts, setGreenhouseDrafts] = useState({});
-  const [busy, setBusy] = useState('loading');
-  const [error, setError] = useState('');
+  const automation = useAutomations();
+  const { overview, farms, greenhouses, busy, error, notice } = automation;
+  const [selectedId, setSelectedId] = useState(null);
+  const selected = greenhouses.find((greenhouse) => greenhouse.id === selectedId) || greenhouses[0];
+  const allScenarios = farms.flatMap((farm) => [
+    ...listOrEmpty(farm.scenarios),
+    ...listOrEmpty(farm.greenhouses).flatMap((greenhouse) => listOrEmpty(greenhouse.scenarios)),
+  ]);
+  const anyEnabled = allScenarios.some((scenario) => scenario.enabled);
+  const allEnabled = greenhouses.length > 0 && greenhouses.every((greenhouse) => (
+    FARM_SCENARIO_TYPES.every((type) => automation.scenarioFor(greenhouse, type).enabled)
+  ));
+  const anyReady = greenhouses.some((greenhouse) => FARM_SCENARIO_TYPES.some((type) => readinessFor(greenhouse, type).ready));
+  const canEnableMore = greenhouses.some((greenhouse) => FARM_SCENARIO_TYPES.some((type) => (
+    !automation.scenarioFor(greenhouse, type).enabled && readinessFor(greenhouse, type).ready
+  )));
+  const light = selected ? automation.configFor(selected, LIGHT) : {};
+  const start = timeToMinutes(light.start_time);
+  const end = timeToMinutes(light.end_time);
+  const duration = start !== null && end !== null ? lightDuration(start, end) : null;
 
-  const applyOverview = useCallback((payload) => {
-    const normalized = payload && typeof payload === 'object' ? payload : {};
-    const farms = overviewFarms(normalized);
-    setOverview(normalized);
-    setGreenhouseDrafts(Object.fromEntries(farms.flatMap((farm) => (
-      listOrEmpty(farm.greenhouses).map((greenhouse) => [
-        greenhouse.id,
-        createScenarioDrafts(greenhouse),
-      ])
-    ))));
-  }, []);
-
-  const load = useCallback(async () => {
-    try {
-      applyOverview(await fetchFarmsOverview());
-      setError('');
-    } catch (requestError) {
-      setError(requestError?.message || translateApp("Не удалось загрузить автоматизации"));
-    } finally {
-      setBusy('');
-    }
-  }, [applyOverview]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const saveScenario = async (greenhouse, scenario, patch) => {
-    if (
-      scenario.scenario_type === 'WATERING'
-      && patch.enabled
-      && !scenario.enabled
-      && !window.confirm(translateApp(
-        "Перед включением полива проверьте подачу воды, питание, аварийное отключение и безопасный лимит времени. Включить сценарий?",
-      ))
-    ) {
-      return;
-    }
-    const key = `${greenhouse.id}:${scenario.scenario_type}`;
-    setBusy(key);
-    setError('');
-    try {
-      const payload = await replaceGreenhouseScenarios(
-        greenhouse.id,
-        toRequest(listOrEmpty(greenhouse.scenarios), scenario.scenario_type, patch),
-      );
-      applyOverview(payload);
-      if (patch.enabled && !scenario.enabled) {
-        trackProductGoal('automation_enabled', {
-          placement: 'automations',
-          scenario_type: scenario.scenario_type,
-        });
-      }
-    } catch (requestError) {
-      setError(requestError?.message || translateApp("Не удалось сохранить сценарий"));
-    } finally {
-      setBusy('');
-    }
-  };
-
-  const patchGreenhouseScenario = (greenhouseId, scenarioType, field, value) => {
-    setGreenhouseDrafts((current) => {
-      const scenarios = current[greenhouseId] || {};
-      const scenario = scenarios[scenarioType] || {
-        scenario_type: scenarioType,
-        enabled: false,
-        config: {},
-      };
-      return {
-        ...current,
-        [greenhouseId]: {
-          ...scenarios,
-          [scenarioType]: {
-            ...scenario,
-            config: {
-              ...(scenario.config || {}),
-              [field]: value,
-            },
-          },
-        },
-      };
-    });
-  };
-
-  const saveGreenhouseSettings = async (greenhouse, scenarioType) => {
-    const scenario = greenhouseDrafts[greenhouse.id]?.[scenarioType];
-    if (!scenario) return;
-    await saveScenario(greenhouse, scenario, {
-      enabled: scenario.enabled,
-      config: scenario.config,
-    });
-  };
-
-  if (busy === 'loading') {
-    return <AppPageState kind="loading" title={translateApp("Загружаем автоматизации…")} />;
+  if (busy === 'loading' && !overview) {
+    return <div className="automations-page"><AppPageState kind="loading" title={t('Загружаем автоматизации…')} /></div>;
   }
 
-  const farms = overviewFarms(overview);
-  const greenhouses = farms.flatMap((farm) => listOrEmpty(farm.greenhouses)
-    .map((greenhouse) => ({ ...greenhouse, farmName: farm.name })));
   return (
-    <div className="self-service-page">
-      <AppPageHeader
-        title={translateApp("Автоматизации")}
-        right={<Link className="gh-btn gh-btn--secondary gh-btn--md" to="/app/farm/">{translateApp("Настроить слоты")}</Link>}
-      />
-      <p className="page-intro">
-        {translateApp("Сценарии становятся доступны после заполнения обязательных слотов в Конструкторе фермы.")}
-      </p>
-      {error ? <AppPageState kind="error" title={error} /> : null}
-      {farms.length === 0 ? (
-        <AppPageState kind="empty" title={translateApp("Сначала создайте ферму")} />
+    <div className="automations-page">
+      <AppPageHeader title={t('Автоматизации')}
+        right={<Link className="automations-equipment-link" to="/app/farm/">{t('Оборудование в Конструкторе')}<ArrowUpRight size={17} /></Link>} />
+      {error ? <AppPageState kind="error" title={error}>
+        {!overview ? <Button onClick={automation.load}>{t('Повторить')}</Button> : null}
+      </AppPageState> : null}
+      <section className="automations-master" aria-label={t('Все автоматизации')}>
+        <span className={`automations-master__icon ${anyEnabled ? 'is-on' : ''}`}><Power size={28} /></span>
+        <div className="automations-master__title"><h2>{t('Все автоматизации')}</h2><p>{t('Во всех фермах')}</p></div>
+        <span className={`automation-status ${anyEnabled ? 'is-on' : ''}`}>
+          <i />{anyEnabled ? (allEnabled ? t('Включены') : t('Частично включены')) : t('Выключены')}
+        </span>
+        <div className="automations-master__action">
+          <div className="automations-master__buttons">
+            {anyEnabled && canEnableMore ? (
+              <Button variant="primary" onClick={() => automation.toggleAll(true)} disabled={Boolean(busy)}>
+                <Power size={18} />{t('Включить всё')}
+              </Button>
+            ) : null}
+            <Button variant={anyEnabled ? 'secondary' : 'primary'} onClick={() => automation.toggleAll(!anyEnabled)}
+              disabled={Boolean(busy) || (!anyEnabled && !anyReady)} isLoading={busy === 'all'}>
+              <Power size={18} />{anyEnabled ? t('Выключить всё') : t('Включить всё')}
+            </Button>
+          </div>
+          <small>{t('Настройки сохраняются при выключении')}</small>
+        </div>
+      </section>
+      <div className="automations-feedback" role="status" aria-live="polite">{notice}</div>
+      {overview && greenhouses.length === 0 ? (
+        <AppPageState kind="empty" title={t(farms.length ? 'Сначала добавьте теплицу' : 'Сначала создайте ферму')}>
+          <Link to="/app/settings/zones/">{t('Открыть настройки зон')}</Link>
+        </AppPageState>
       ) : null}
-      {farms.length > 0 && greenhouses.length === 0 ? (
-        <AppPageState kind="empty" title={translateApp("Сначала добавьте теплицу")} />
-      ) : null}
-      <div className="automation-list">
-        {greenhouses.map((greenhouse) => (
-          <section className="self-service-section" key={greenhouse.id}>
-            <div className="section-heading">
-              <div>
-                <h2>{greenhouse.name}</h2>
-                <p>{greenhouse.farmName} · {translateApp("Сценарии этой теплицы")}</p>
-              </div>
-              <span className={greenhouse.enabled ? 'status-chip is-online' : 'status-chip'}>
-                {greenhouse.enabled ? translateApp("Активна") : translateApp("Выключена")}
-              </span>
+      {selected ? <>
+        <section className="automations-light-panel" aria-label={t('Расписание освещения')}>
+          <header className="automations-panel-heading">
+            <Sun className="automations-panel-icon" size={27} />
+            <div><h2>{t('Освещение')}</h2><p>{t('Расписание всех теплиц')}</p></div>
+            <span className="automations-timezone"><Clock3 size={15} />{getUiTimeZone()}</span>
+          </header>
+          <div className="automations-timeline">
+            <div className="automations-timeline__axis" aria-hidden="true">
+              <span>{t('Теплица')}</span>
+              <div>{['00:00', '06:00', '12:00', '18:00', '24:00'].map((time) => <span key={time}>{time}</span>)}</div>
+              <span>{t('Сценарий')}</span>
             </div>
-            {listOrEmpty(greenhouse.scenarios).map((scenario) => {
-              const scenarioDraft = greenhouseDrafts[greenhouse.id]?.[scenario.scenario_type]
-                || scenario;
-              const readiness = greenhouse.readiness?.[scenario.scenario_type] || scenario.readiness;
-              const blocked = !readiness?.ready && !scenario.enabled;
-              const key = `${greenhouse.id}:${scenario.scenario_type}`;
+            {greenhouses.map((greenhouse) => {
+              const config = automation.configFor(greenhouse, LIGHT);
+              const readiness = readinessFor(greenhouse, LIGHT);
               return (
-                <article className="automation-card" key={scenario.scenario_type}>
-                  <div>
-                    <h3>{translateApp(SCENARIO_LABELS[scenario.scenario_type] || scenario.scenario_type)}</h3>
-                    <p className={readiness?.ready ? 'automation-readiness is-ready' : 'automation-readiness'}>
-                      {readiness?.ready ? translateApp("Готово к запуску") : readiness?.reason}
-                    </p>
+                <div className={`automations-timeline__row ${selected.id === greenhouse.id ? 'is-selected' : ''}`} key={greenhouse.id}>
+                  <button type="button" className="automations-timeline__name" onClick={() => setSelectedId(greenhouse.id)}
+                    aria-pressed={selected.id === greenhouse.id}>
+                    <strong>{greenhouse.name}{automation.isDirty(greenhouse, LIGHT) ? <i aria-label={t('Не сохранено')} /> : null}</strong>
+                    <span>{greenhouse.farmName}</span>
+                    {!readiness.ready ? <small>{readiness.reason}</small> : null}
+                  </button>
+                  <div className="automations-timeline__range">
+                    <LightScheduleRange name={greenhouse.name} config={config} disabled={Boolean(busy)}
+                      onSelect={() => setSelectedId(greenhouse.id)}
+                      onChange={(patch) => automation.patchConfig(greenhouse, LIGHT, patch)} />
+                    <span className="automations-timeline__mobile-times">{config.start_time} — {config.end_time}</span>
                   </div>
-                  <Button
-                    variant={scenario.enabled ? 'danger' : 'primary'}
-                    onClick={() => saveScenario(greenhouse, scenario, { enabled: !scenario.enabled })}
-                    isLoading={busy === key}
-                    disabled={blocked}
-                  >
-                    {scenario.enabled ? translateApp("Выключить") : translateApp("Включить")}
-                  </Button>
-                  {scenario.scenario_type === 'LIGHT_SCHEDULE' ? (
-                    <div className="scenario-fields">
-                      <label>
-                        {translateApp("Включить")}
-                        <input
-                          type="time"
-                          defaultValue={scenario.config?.start_time || '06:00'}
-                          onBlur={(event) => saveScenario(greenhouse, scenario, {
-                            config: { start_time: event.target.value },
-                          })}
-                        />
-                      </label>
-                      <label>
-                        {translateApp("Выключить")}
-                        <input
-                          type="time"
-                          defaultValue={scenario.config?.end_time || '22:00'}
-                          onBlur={(event) => saveScenario(greenhouse, scenario, {
-                            config: { end_time: event.target.value },
-                          })}
-                        />
-                      </label>
-                    </div>
-                  ) : null}
-                  {scenario.scenario_type === 'BOX_CLIMATE' ? (
-                    <>
-                      <ClimateScenarioFields
-                        config={scenarioDraft.config}
-                        onChange={(field, value) => patchGreenhouseScenario(
-                          greenhouse.id,
-                          scenario.scenario_type,
-                          field,
-                          value,
-                        )}
-                      />
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => saveGreenhouseSettings(greenhouse, scenario.scenario_type)}
-                        isLoading={busy === key}
-                      >
-                        {translateApp('Сохранить настройки')}
-                      </Button>
-                    </>
-                  ) : null}
-                  {scenario.scenario_type === 'WATERING' ? (
-                    <p className="automation-note">
-                      {translateApp("Полив использует датчик влажности почвы, насос и ограничения длительности.")}
-                    </p>
-                  ) : null}
-                </article>
+                  <ScenarioSwitch greenhouse={greenhouse} type={LIGHT} automation={automation} />
+                </div>
               );
             })}
-          </section>
-        ))}
-      </div>
+          </div>
+          <form className="automations-light-editor" onSubmit={(event) => { event.preventDefault(); automation.saveSettings(selected, LIGHT); }}>
+            <div className="automations-light-editor__title">
+              <h3>{selected.name}<span>{t('Настройки освещения')}</span></h3>
+              <SettingsState greenhouse={selected} type={LIGHT} automation={automation} />
+            </div>
+            <label>{t('Начало')}<input type="time" required step="60" value={light.start_time} disabled={Boolean(busy)}
+              onChange={(event) => automation.patchConfig(selected, LIGHT, { start_time: event.target.value })} /></label>
+            <label>{t('Конец')}<input type="time" required step="60" value={light.end_time} disabled={Boolean(busy)}
+              onChange={(event) => automation.patchConfig(selected, LIGHT, { end_time: event.target.value })} /></label>
+            <div className="automations-light-editor__duration">
+              <span><Sun size={15} />{duration === null ? '—' : t('Свет: {{duration}}', { duration: durationLabel(duration) })}</span>
+              <span><Moon size={15} />{duration === null ? '—' : t('Темнота: {{duration}}', { duration: durationLabel(1440 - duration) })}</span>
+              {duration === 1440 ? <small>{t('Круглосуточно')}</small> : (start > end ? <small>{t('Через полночь')}</small> : null)}
+            </div>
+            <Button type="submit" variant="primary" disabled={Boolean(busy) || duration === null || !automation.isDirty(selected, LIGHT)}
+              isLoading={busy === `${selected.id}:${LIGHT}`}>{t('Сохранить')}</Button>
+            <p className="automations-light-editor__help"><Info size={14} />{t('Края — начало и конец. Середина — перенос интервала.')}</p>
+          </form>
+        </section>
+        <div className="automations-selection">
+          <label>{t('Настройки теплицы')}<select value={selected.id} onChange={(event) => setSelectedId(Number(event.target.value))}>
+            {greenhouses.map((greenhouse) => <option key={greenhouse.id} value={greenhouse.id}>{greenhouse.farmName} · {greenhouse.name}</option>)}
+          </select></label>
+          <span>{t('Включаются только готовые сценарии активных теплиц.')}</span>
+        </div>
+        <div className="automations-details">
+          <form className="automations-settings-panel" aria-label={t('Климат: {{name}}', { name: selected.name })}
+            onSubmit={(event) => { event.preventDefault(); automation.saveSettings(selected, CLIMATE); }}>
+            <header className="automations-panel-heading">
+              <Thermometer className="automations-panel-icon" size={25} />
+              <div><h2>{t('Климат')}<span> · {selected.name}</span></h2><SettingsState greenhouse={selected} type={CLIMATE} automation={automation} /></div>
+              <ScenarioSwitch greenhouse={selected} type={CLIMATE} automation={automation} />
+            </header>
+            <fieldset disabled={Boolean(busy)}>
+              <ClimateScenarioFields config={automation.configFor(selected, CLIMATE)}
+                onChange={(field, value) => automation.patchConfig(selected, CLIMATE, { [field]: value })} />
+            </fieldset>
+            <footer><Button type="submit" variant="secondary" size="sm" disabled={Boolean(busy) || !automation.isDirty(selected, CLIMATE)}
+              isLoading={busy === `${selected.id}:${CLIMATE}`}>{t('Сохранить климат')}</Button></footer>
+          </form>
+          <form className="automations-settings-panel" aria-label={t('Полив: {{name}}', { name: selected.name })}
+            onSubmit={(event) => { event.preventDefault(); automation.saveSettings(selected, WATERING); }}>
+            <header className="automations-panel-heading">
+              <Droplets className="automations-panel-icon" size={25} />
+              <div><h2>{t('Полив')}<span> · {selected.name}</span></h2><SettingsState greenhouse={selected} type={WATERING} automation={automation} /></div>
+              <ScenarioSwitch greenhouse={selected} type={WATERING} automation={automation} />
+            </header>
+            <fieldset className="automations-watering-fields" disabled={Boolean(busy)}>
+              {WATERING_FIELDS.map(([field, label, min, max]) => <label key={field}>{t(label)}
+                <input type="number" required min={min} max={max} step="any" value={automation.configFor(selected, WATERING)[field] ?? ''}
+                  onChange={(event) => automation.patchConfig(selected, WATERING, { [field]: event.target.value === '' ? '' : Number(event.target.value) })} />
+              </label>)}
+            </fieldset>
+            <footer><Button type="submit" variant="secondary" size="sm" disabled={Boolean(busy) || !automation.isDirty(selected, WATERING)}
+              isLoading={busy === `${selected.id}:${WATERING}`}>{t('Сохранить полив')}</Button></footer>
+          </form>
+        </div>
+      </> : null}
     </div>
   );
 }
