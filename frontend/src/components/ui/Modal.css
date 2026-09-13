@@ -79,3 +79,21 @@
   gap: var(--space-2);
   margin-top: var(--space-1);
 }
+
+@media (max-width: 680px) {
+  body:has(.gh-modal--sheet) { overflow: hidden; }
+  .gh-modal--sheet { align-items: flex-end; }
+  .gh-modal--sheet .gh-modal__panel {
+    width: 100%;
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 12px);
+    border-radius: 18px 18px 0 0;
+    padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+    gap: 10px;
+  }
+  .gh-modal--sheet .gh-modal__header { align-items: center; }
+  .gh-modal--sheet .gh-modal__title { font-size: 17px; overflow-wrap: anywhere; }
+  .gh-modal--sheet .gh-modal__close { min-width: 44px; min-height: 44px; }
+  .gh-modal--sheet .gh-modal__body { overscroll-behavior: contain; }
+  .gh-modal--sheet :is(input, select) { font-size: 16px; min-height: 44px; }
+  .gh-modal--sheet .gh-btn { min-height: 44px; }
+}

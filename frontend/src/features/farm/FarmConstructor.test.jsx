@@ -18,6 +18,7 @@ import {
 } from '../../api/selfService';
 import { fetchPlant, updatePlant } from '../../api/plants';
 import FarmConstructor from './FarmConstructor';
+import { optionValue } from './farmResourceOptions';
 
 vi.mock('../../api/selfService', () => ({
   fetchFarmsOverview: vi.fn(),
@@ -88,6 +89,8 @@ describe('FarmConstructor', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('dobavlyaet sloty vyborochno i pokazyvaet zapros na ohlazhdenie bez kondicionera', async () => {
@@ -271,5 +274,69 @@ describe('FarmConstructor', () => {
       expect(within(south).getByRole('button', { name: 'Томат' })).toBeInTheDocument();
       expect(within(north).queryByRole('button', { name: 'Томат' })).not.toBeInTheDocument();
     });
+  });
+
+  it('mobilnyj akkordeon sohranyaet vybor i zaprashivaet perenaznachenie zanyatogo kanala', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    const payload = structuredClone(overview);
+    const north = payload.farms[0].greenhouses[0];
+    const south = payload.farms[0].greenhouses[1];
+    north.slots = ['AIR_TEMPERATURE_SENSOR', 'AIR_HUMIDITY_SENSOR', 'SOIL_MOISTURE_SENSOR'].map((role, i) => ({
+      role, source_type: 'NATIVE_SENSOR', native_sensor_id: 101 + i, connection_status: 'ok',
+    }));
+    south.slots = [{ role: 'AIR_TEMPERATURE_SENSOR', source_type: 'NATIVE_SENSOR', native_sensor_id: 201 }];
+    payload.resource_catalog.native_devices = [{
+      id: 7, name: 'Grovika Север', sensors: ['AIR_TEMPERATURE', 'AIR_HUMIDITY', 'SOIL_MOISTURE'].map((type, i) => ({
+        id: 101 + i, device_id: 7, type,
+      })),
+    }, { id: 8, name: 'Grovika Юг', sensors: [{ id: 201, device_id: 8, type: 'AIR_TEMPERATURE' }] }];
+    fetchFarmsOverview.mockResolvedValue(payload);
+    replaceGreenhouseSlots.mockResolvedValue(payload);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    render(<MemoryRouter><FarmConstructor /></MemoryRouter>);
+    const northToggle = await screen.findByRole('button', { name: /^Северная/ });
+    expect(northToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: /^Южная/ })).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(screen.getByRole('button', { name: /Датчики Grovika Север/ }));
+    let dialog = screen.getByRole('dialog');
+    expect(within(dialog).getAllByRole('combobox')).toHaveLength(4);
+    fireEvent.change(within(dialog).getByLabelText('Температура воздуха'), {
+      target: { value: optionValue({ source_type: 'NATIVE_SENSOR', native_sensor_id: 201 }) },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Закрыть' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Южная/ }));
+    fireEvent.click(northToggle);
+    fireEvent.click(screen.getByRole('button', { name: /Температура воздуха Grovika Юг/ }));
+    dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByLabelText('Температура воздуха')).toHaveValue(optionValue({ source_type: 'NATIVE_SENSOR', native_sensor_id: 201 }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Сохранить слоты' }));
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(replaceGreenhouseSlots).not.toHaveBeenCalled();
+    confirm.mockReturnValue(true);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Сохранить слоты' }));
+    await waitFor(() => expect(replaceGreenhouseSlots).toHaveBeenCalledWith(2, expect.arrayContaining([
+      expect.objectContaining({ role: 'AIR_TEMPERATURE_SENSOR', native_sensor_id: 201 }),
+      expect.objectContaining({ role: 'AIR_HUMIDITY_SENSOR', native_sensor_id: 102 }),
+      expect.objectContaining({ role: 'SOIL_MOISTURE_SENSOR', native_sensor_id: 103 }),
+    ]), true));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('mobilnyj spisok rastenij ispolzuet prezhnee sohranenie skorosti i obshchij redaktor', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    updateGreenhousePlantWateringRate.mockResolvedValue(overview);
+    fetchPlant.mockResolvedValue({ id: 5, name: 'Томат', plant_type: 'tomato', zone: { id: 2, name: 'Северная' } });
+    render(<MemoryRouter><FarmConstructor /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button', { name: 'Томат', exact: true }));
+    const dialog = screen.getByRole('dialog');
+    const rate = within(dialog).getByLabelText('Скорость полива для Томат, мл/ч');
+    fireEvent.change(rate, { target: { value: '140' } });
+    fireEvent.blur(rate);
+    await waitFor(() => expect(updateGreenhousePlantWateringRate).toHaveBeenCalledExactlyOnceWith(2, 5, 140));
+    await within(dialog).findByText('Сохранено');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Томат' }));
+    await waitFor(() => expect(screen.getAllByRole('dialog')).toHaveLength(1));
+    expect(await screen.findByLabelText('Теплица')).toBeInTheDocument();
+    expect(fetchPlant).toHaveBeenCalledExactlyOnceWith(null, 5);
   });
 });

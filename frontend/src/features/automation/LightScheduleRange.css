@@ -80,6 +80,12 @@
 .light-range.is-all-day .light-range__handle--end { top: 30px; }
 .light-range button:disabled { cursor: wait; opacity: .65; }
 
+.light-range-preview { display: flex; align-items: center; width: 100%; height: 44px; min-width: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.light-range-preview__track { position: relative; display: block; width: 100%; height: 22px; border-radius: 4px; background: #dce3e6; overflow: hidden; }
+.light-range-preview__period { position: absolute; inset-block: 0; display: flex; align-items: center; justify-content: center; border-radius: 3px; color: #163f26; background: linear-gradient(90deg, #a9d6b0, #88bf91); }
+.light-range-preview__period > span { font-size: 11px; font-weight: 600; white-space: nowrap; }
+.light-range-preview:disabled { cursor: wait; opacity: .65; }
+
 @media (max-width: 680px) {
   .light-range__grip { gap: 4px; font-size: 11px; }
   .light-range__grip > svg:first-child { display: none; }

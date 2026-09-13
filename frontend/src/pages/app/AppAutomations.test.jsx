@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -62,6 +63,7 @@ describe('AppAutomations', () => {
     cleanup();
     vi.clearAllMocks();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('pokazyvaet tolko obshchie chetyre polya klimata', async () => {
@@ -179,6 +181,55 @@ describe('AppAutomations', () => {
     render(<MemoryRouter><AppAutomations /></MemoryRouter>);
     expect(await screen.findByRole('switch', { name: 'Освещение: Рассада' })).toBeDisabled();
     expect(screen.getByRole('slider', { name: 'Начало освещения: Рассада' })).toBeEnabled();
+  });
+
+  it('mobilnye paneli sohranyayut chernoviki pri zakrytii i vybere drugoj teplicy', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    const payload = multiOverview();
+    const saved = structuredClone(payload);
+    saved.farms[0].greenhouses[1].scenarios[0].config.max_c = 31;
+    fetchFarmsOverview.mockResolvedValue(payload);
+    replaceGreenhouseScenarios.mockResolvedValue(saved);
+    render(<MemoryRouter><AppAutomations /></MemoryRouter>);
+    await screen.findByRole('button', { name: 'Настроить климат: Рассада' });
+    expect(screen.queryByLabelText('Обдув включить выше, °C')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Настроить климат: Рассада' }));
+    let dialog = screen.getByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Обдув включить выше, °C'), { target: { value: '30' } });
+    fireEvent.keyDown(within(dialog).getByRole('button', { name: 'Закрыть' }), { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(replaceGreenhouseScenarios).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /Зелень 08:00/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Настроить климат: Зелень' }));
+    dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByLabelText('Обдув включить выше, °C')).toHaveValue(28);
+    fireEvent.change(within(dialog).getByLabelText('Обдув включить выше, °C'), { target: { value: '31' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Сохранить климат' }));
+    await waitFor(() => expect(replaceGreenhouseScenarios).toHaveBeenCalledExactlyOnceWith(3, [{
+      scenario_type: 'BOX_CLIMATE', enabled: true, config: { ...scenarioConfig, max_c: 31 },
+    }]));
+    await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Сохранить климат' })).toBeDisabled());
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Закрыть' }));
+    fireEvent.click(screen.getByRole('button', { name: /Рассада 06:00/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Настроить климат: Рассада' }));
+    expect(within(screen.getByRole('dialog')).getByLabelText('Обдув включить выше, °C')).toHaveValue(30);
+  });
+
+  it('mobilnaya shkala otkryvaet tochnye polya i pokazyvaet oshibku v paneli', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    fetchFarmsOverview.mockResolvedValue(multiOverview());
+    replaceGreenhouseScenarios.mockRejectedValue(new Error('Ошибка сохранения'));
+    render(<MemoryRouter><AppAutomations /></MemoryRouter>);
+    fireEvent.click(await screen.findByRole('button', { name: 'Расписание освещения: Рассада' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByRole('slider', { name: 'Начало освещения: Рассада' })).toBeEnabled();
+    fireEvent.change(within(dialog).getByLabelText('Начало'), { target: { value: '23:30' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Сохранить', exact: true }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Ошибка сохранения');
+    expect(within(dialog).getByLabelText('Начало')).toHaveValue('23:30');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Закрыть' }));
+    fireEvent.click(screen.getByRole('button', { name: /Все сценарии/ }));
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: 'Выключить всё' })).toBeEnabled();
   });
 });
 

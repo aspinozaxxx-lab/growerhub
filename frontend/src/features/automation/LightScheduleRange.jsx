@@ -4,7 +4,7 @@ import { translateApp as t } from '../../locales/i18n';
 import { lightDuration, MINUTES_PER_DAY, minutesToTime, moveLightInterval, timeToMinutes } from './lightSchedule';
 import './LightScheduleRange.css';
 
-export default function LightScheduleRange({ name, config, disabled, onChange, onSelect }) {
+export default function LightScheduleRange({ name, config, disabled, onChange, onSelect, compact = false, onEdit }) {
   const trackRef = useRef(null);
   const dragRef = useRef(null);
   const start = timeToMinutes(config.start_time) ?? 360;
@@ -84,6 +84,19 @@ export default function LightScheduleRange({ name, config, disabled, onChange, o
     onPointerDown: (event) => beginDrag(event, kind),
     onKeyDown: (event) => keyChange(event, kind),
   });
+
+  if (compact) return (
+    <button type="button" className="light-range-preview" onClick={onEdit} disabled={disabled}
+      aria-label={t('Расписание освещения: {{name}}', { name })}>
+      <span className="light-range-preview__track" aria-hidden="true">
+        {segments.filter(([from, to]) => to > from).map((segment) => <span
+          className="light-range-preview__period" key={segment[0]}
+          style={{ left: `${segment[0] / MINUTES_PER_DAY * 100}%`, width: `${(segment[1] - segment[0]) / MINUTES_PER_DAY * 100}%` }}>
+          {segment === largestSegment ? <span>{t('{{hours}} ч', { hours: Math.round(duration / 60 * 10) / 10 })}</span> : null}
+        </span>)}
+      </span>
+    </button>
+  );
 
   return (
     <div className={`light-range ${duration === MINUTES_PER_DAY ? 'is-all-day' : ''}`} ref={trackRef}

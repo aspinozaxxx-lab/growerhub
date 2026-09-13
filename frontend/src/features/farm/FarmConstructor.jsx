@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AirVent, ChevronDown, ChevronRight, Cpu, Droplets, Fan, Lightbulb, Plus, Sprout, Thermometer, Waves } from 'lucide-react';
 import {
   fetchFarmsOverview,
   replaceGreenhouseSlots,
@@ -11,6 +12,8 @@ import PlantEditDialog from '../../components/plants/PlantEditDialog';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import Button from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
+import useCompactLayout from '../../components/layout/useCompactLayout';
 import {
   bindingOptionValue,
   optionsForRole,
@@ -33,6 +36,50 @@ import { translateApp } from '../../locales/i18n';
 import './FarmConstructor.css';
 
 const actionKey = (scopeId, section) => `${scopeId}:${section}`;
+const SENSOR_ROLES = ['AIR_TEMPERATURE_SENSOR', 'AIR_HUMIDITY_SENSOR', 'SOIL_MOISTURE_SENSOR'];
+const SLOT_ICONS = {
+  AC_SWITCH: AirVent, AIR_TEMPERATURE_SENSOR: Thermometer, AIR_HUMIDITY_SENSOR: Waves,
+  SOIL_MOISTURE_SENSOR: Sprout, WATER_PUMP: Droplets, LIGHT_SWITCH: Lightbulb,
+  EXHAUST_SWITCH: Fan, LEAK_SENSOR: Waves,
+};
+const slotsChanged = (scope, draft) => (
+  JSON.stringify([...listOrEmpty(draft?.visibleRoles)].sort()) !== JSON.stringify(listOrEmpty(scope.slots).map((slot) => slot.role).sort())
+  || listOrEmpty(draft?.visibleRoles).some((role) => (draft.slots?.[role] || '') !== bindingOptionValue(slotForRole(scope, role)))
+);
+
+function compactSlotGroups(scope, draft, catalog) {
+  const groups = [];
+  listOrEmpty(draft?.visibleRoles).forEach((role) => {
+    const value = draft.slots?.[role] || '';
+    const binding = slotForRole(scope, role);
+    const parsed = parseOptionValue(value);
+    const native = listOrEmpty(catalog.native_devices).find((device) => (
+      parsed?.source_type === 'NATIVE_SENSOR'
+        ? listOrEmpty(device.sensors).some((sensor) => sensor.id === parsed.native_sensor_id)
+        : parsed?.source_type === 'NATIVE_PUMP'
+          && listOrEmpty(device.pumps).some((pump) => pump.id === parsed.native_pump_id)
+    ));
+    const zigbee = parsed?.source_type === 'ZIGBEE_DEVICE'
+      ? listOrEmpty(catalog.zigbee_devices).find((device) => (
+        device.coordinator_id === parsed.zigbee_coordinator_id
+        && device.ieee_address?.toLowerCase() === parsed.zigbee_ieee_address?.toLowerCase()
+      )) : null;
+    const deviceKey = native ? `native:${native.id}` : (zigbee ? `zigbee:${zigbee.coordinator_id}:${zigbee.ieee_address}` : null);
+    const isSaved = value === bindingOptionValue(binding);
+    const warning = isSaved && (binding?.connection_status === 'warning' || binding?.ready === false);
+    const label = value ? (native?.name || native?.device_id || zigbee?.friendly_name || binding?.label || translateApp('Устройство')) : translateApp('Не назначено');
+    const group = SENSOR_ROLES.includes(role) && deviceKey
+      ? groups.find((item) => item.deviceKey === deviceKey && SENSOR_ROLES.includes(item.roles[0])) : null;
+    if (group) {
+      group.roles.push(role);
+      group.warning ||= warning;
+      group.dirty ||= !isSaved;
+    } else {
+      groups.push({ roles: [role], label, deviceKey, warning, dirty: !isSaved });
+    }
+  });
+  return groups;
+}
 
 function initialSlotDraft(scope) {
   const assignedRoles = listOrEmpty(scope?.slots).map((slot) => slot.role);
@@ -83,9 +130,15 @@ function SlotEditor({
   onChange,
   onSave,
   isSaving,
+  compact = false,
+  error,
 }) {
+  const [editing, setEditing] = useState(null);
   const visibleRoles = listOrEmpty(draft?.visibleRoles);
   const availableRoles = roles.filter((role) => !visibleRoles.includes(role));
+  const editedRoles = compact && Array.isArray(editing)
+    ? visibleRoles.filter((role) => editing.includes(role)) : visibleRoles;
+  const dirty = slotsChanged(scope, draft);
 
   const addSlot = () => {
     if (!draft?.newSlotRole) return;
@@ -105,18 +158,18 @@ function SlotEditor({
     });
   };
 
-  return (
+  const editor = (
     <section className="farm-zone-editor__section">
       <div className="farm-zone-editor__section-heading">
         <h3>{translateApp('Слоты устройств')}</h3>
-        <Button size="sm" onClick={onSave} isLoading={isSaving}>
+        <Button size="sm" onClick={async () => { if (await onSave()) setEditing(null); }} isLoading={isSaving}>
           {translateApp('Сохранить слоты')}
         </Button>
       </div>
 
-      {visibleRoles.length > 0 ? (
+      {editedRoles.length > 0 ? (
         <div className="farm-slots">
-          {visibleRoles.map((role) => {
+          {editedRoles.map((role) => {
             const binding = slotForRole(scope, role);
             const options = optionsWithCurrentBinding(
               optionsForRole(role, catalog),
@@ -214,9 +267,39 @@ function SlotEditor({
       ) : null}
     </section>
   );
+
+  if (!compact) return editor;
+  return (
+    <div className={`farm-compact-slots ${scopeType === 'ROOM' ? 'farm-compact-slots--farm' : ''}`}>
+      {compactSlotGroups(scope, draft, catalog).map((group) => {
+        const Icon = group.roles.length > 1 ? Cpu : SLOT_ICONS[group.roles[0]] || Cpu;
+        return <button type="button" className={`farm-compact-slot ${group.warning ? 'is-warning' : ''}`}
+          key={group.roles[0]} onClick={() => setEditing(group.roles)}>
+          <Icon size={18} aria-hidden="true" />
+          <span><strong>{scopeType === 'ROOM' ? translateApp('Кондиционер фермы') : group.roles.length > 1 ? translateApp('Датчики') : translateApp(SLOT_ROLE_LABELS[group.roles[0]] || group.roles[0])}</strong>{' '}
+            <small>{group.label}{group.roles.length > 1 ? ` · ${group.roles.length}` : ''}</small></span>
+          {group.warning ? <span className="farm-compact-slot__state">{translateApp('Проверьте')}</span> : null}
+          {group.dirty ? <span className="farm-compact-slot__state">{translateApp('Не сохранено')}</span> : null}
+          <ChevronRight size={16} aria-hidden="true" />
+        </button>;
+      })}
+      {availableRoles.length > 0 ? <button type="button" className="farm-compact-add" onClick={() => setEditing('all')} aria-label={translateApp('Добавить слот')}>
+        <Plus size={18} aria-hidden="true" /><span>{translateApp('Добавить слот')}</span>
+      </button> : null}
+      {dirty ? <div className="farm-compact-slots__actions"><Button size="sm" onClick={onSave} isLoading={isSaving}>{translateApp('Сохранить слоты')}</Button></div> : null}
+      <Modal isOpen={editing !== null} title={`${scope.name} · ${translateApp('Слоты устройств')}`} presentation="sheet"
+        onClose={() => setEditing(null)}>
+        {error ? <p className="farm-slot-editor__error" role="alert">{error}</p> : null}
+        {editor}
+      </Modal>
+    </div>
+  );
 }
 
 function FarmConstructor() {
+  const compact = useCompactLayout();
+  const [expandedByFarm, setExpandedByFarm] = useState({});
+  const [plantListId, setPlantListId] = useState(null);
   const [overview, setOverview] = useState(null);
   const [selectedFarmId, setSelectedFarmId] = useState('');
   const [farmDrafts, setFarmDrafts] = useState({});
@@ -290,8 +373,10 @@ function FarmConstructor() {
     try {
       applyOverview(await action());
       setNotice(successMessage);
+      return true;
     } catch (requestError) {
       setError(requestError?.message || translateApp('Не удалось сохранить изменения'));
+      return false;
     } finally {
       setBusy('');
     }
@@ -338,7 +423,7 @@ function FarmConstructor() {
       ));
       if (!reassign) return;
     }
-    runAction(
+    return runAction(
       actionKey(scope.id, `${scopeType}:slots`),
       () => save(selected, reassign),
       translateApp('Слоты сохранены'),
@@ -388,6 +473,7 @@ function FarmConstructor() {
     setError('');
     try {
       setSelectedPlant(await fetchPlant(null, plant.id));
+      setPlantListId(null);
       setPlantDialogOpen(true);
     } catch (requestError) {
       setError(requestError?.message || translateApp('Не удалось загрузить растение'));
@@ -441,10 +527,10 @@ function FarmConstructor() {
   return (
     <div className="farm-constructor">
       <AppPageHeader
-        title={translateApp('Конструктор фермы')}
+        title={translateApp(compact ? 'Ферма' : 'Конструктор фермы')}
         right={(
-          <Link className="gh-btn gh-btn--secondary gh-btn--md" to="/app/settings/devices/">
-            {translateApp('Все устройства')}
+          <Link className="gh-btn gh-btn--secondary gh-btn--md" to={compact ? '/app/settings/zones/' : '/app/settings/devices/'}>
+            {translateApp(compact ? 'Структура' : 'Все устройства')}
           </Link>
         )}
       />
@@ -459,6 +545,7 @@ function FarmConstructor() {
         <label>
           <span>{translateApp('Ферма')}</span>
           <select
+            aria-label={translateApp('Ферма')}
             value={selectedFarmId}
             onChange={(event) => setSelectedFarmId(event.target.value)}
           >
@@ -466,6 +553,7 @@ function FarmConstructor() {
               <option key={farm.id} value={farm.id}>{farm.name}</option>
             ))}
           </select>
+          {compact && selectedFarm.enabled === false ? <small className="farm-constructor__farm-disabled">{translateApp('Ферма выключена')}</small> : null}
         </label>
         <Link className="gh-btn gh-btn--secondary gh-btn--md" to="/app/settings/zones/">
           {translateApp('Изменить структуру')}
@@ -480,6 +568,9 @@ function FarmConstructor() {
           </span>
         </header>
         <SlotEditor
+          key={selectedFarm.id}
+          compact={compact}
+          error={error}
           scope={selectedFarm}
           scopeType="ROOM"
           roles={FARM_ROOM_SLOT_ROLES}
@@ -511,48 +602,13 @@ function FarmConstructor() {
         <div className="farm-constructor__zones">
           {greenhouses.map((greenhouse) => {
             const draft = greenhouseDrafts[greenhouse.id] || initialGreenhouseDraft(greenhouse);
+            const expandedId = Object.hasOwn(expandedByFarm, selectedFarm.id)
+              ? expandedByFarm[selectedFarm.id] : greenhouses[0]?.id;
+            const expanded = !compact || expandedId === greenhouse.id;
+            const assignedCount = listOrEmpty(draft.visibleRoles).filter((role) => draft.slots?.[role]).length;
             const coolingRequested = listOrEmpty(greenhouse.states)
               .some((state) => state.scenario_type === 'BOX_CLIMATE' && state.ac_request_active);
-            return (
-              <article
-                className={`farm-zone-editor ${greenhouse.enabled ? '' : 'is-disabled'}`}
-                key={greenhouse.id}
-              >
-                <header className="farm-zone-editor__header">
-                  <h2>{greenhouse.name}</h2>
-                  <div className="farm-zone-editor__status">
-                    {coolingRequested ? (
-                      <span className="status-chip is-warning">
-                        {translateApp('Требуется охлаждение')}
-                      </span>
-                    ) : null}
-                    <span className={greenhouse.enabled ? 'status-chip is-online' : 'status-chip'}>
-                      {greenhouse.enabled ? translateApp('Активна') : translateApp('Выключена')}
-                    </span>
-                  </div>
-                </header>
-
-                <SlotEditor
-                  scope={greenhouse}
-                  scopeType="BOX"
-                  roles={FARM_SLOT_ROLES}
-                  draft={draft}
-                  catalog={catalog}
-                  occupancy={occupancy}
-                  onChange={(patch) => patchGreenhouseDraft(greenhouse.id, patch)}
-                  onSave={() => saveSlots(
-                    greenhouse,
-                    'BOX',
-                    draft,
-                    (slots, reassign) => replaceGreenhouseSlots(
-                      greenhouse.id,
-                      slots,
-                      reassign,
-                    ),
-                  )}
-                  isSaving={busy === actionKey(greenhouse.id, 'BOX:slots')}
-                />
-
+            const plantsEditor = (
                 <section className="farm-zone-editor__section">
                   <div className="farm-zone-editor__section-heading">
                     <h3>{translateApp('Растения')}</h3>
@@ -630,6 +686,72 @@ function FarmConstructor() {
                     </div>
                   )}
                 </section>
+            );
+            return (
+              <article
+                className={`farm-zone-editor ${greenhouse.enabled ? '' : 'is-disabled'} ${draft.visibleRoles.length < FARM_SLOT_ROLES.length ? 'has-available-slots' : ''}`}
+                key={greenhouse.id}
+              >
+                {compact ? <header className="farm-zone-editor__compact-header">
+                  <h2><button type="button" aria-expanded={expanded} aria-controls={`farm-greenhouse-${greenhouse.id}`}
+                    onClick={() => setExpandedByFarm((current) => ({ ...current, [selectedFarm.id]: expanded ? null : greenhouse.id }))}>
+                    <span>{greenhouse.name}{' '}{!expanded ? <small>{slotsChanged(greenhouse, draft) ? `${translateApp('Не сохранено')} · ` : ''}{assignedCount} / {draft.visibleRoles.length} · {translateApp('Растения')}: {listOrEmpty(greenhouse.plants).length}</small> : null}</span>
+                    {expanded ? <small>{assignedCount} / {draft.visibleRoles.length}</small> : null}
+                    <ChevronDown size={18} aria-hidden="true" />
+                  </button></h2>
+                  {!greenhouse.enabled || coolingRequested ? <div className="farm-zone-editor__compact-status">
+                    {!greenhouse.enabled ? <span>{translateApp('Выключена')}</span> : null}
+                    {coolingRequested ? <span>{translateApp('Требуется охлаждение')}</span> : null}
+                  </div> : null}
+                </header> : <header className="farm-zone-editor__header">
+                  <h2>{greenhouse.name}</h2>
+                  <div className="farm-zone-editor__status">
+                    {coolingRequested ? (
+                      <span className="status-chip is-warning">
+                        {translateApp('Требуется охлаждение')}
+                      </span>
+                    ) : null}
+                    <span className={greenhouse.enabled ? 'status-chip is-online' : 'status-chip'}>
+                      {greenhouse.enabled ? translateApp('Активна') : translateApp('Выключена')}
+                    </span>
+                  </div>
+                </header>}
+
+                <div className="farm-zone-editor__body" id={`farm-greenhouse-${greenhouse.id}`} hidden={!expanded}>
+                <SlotEditor
+                  compact={compact}
+                  error={error}
+                  scope={greenhouse}
+                  scopeType="BOX"
+                  roles={FARM_SLOT_ROLES}
+                  draft={draft}
+                  catalog={catalog}
+                  occupancy={occupancy}
+                  onChange={(patch) => patchGreenhouseDraft(greenhouse.id, patch)}
+                  onSave={() => saveSlots(
+                    greenhouse,
+                    'BOX',
+                    draft,
+                    (slots, reassign) => replaceGreenhouseSlots(
+                      greenhouse.id,
+                      slots,
+                      reassign,
+                    ),
+                  )}
+                  isSaving={busy === actionKey(greenhouse.id, 'BOX:slots')}
+                />
+
+                {compact ? <>
+                  <button type="button" className="farm-zone-plants-summary" onClick={() => setPlantListId(greenhouse.id)}>
+                    <Sprout size={18} aria-hidden="true" /><span>{listOrEmpty(greenhouse.plants).map((plant) => plant.name).join(' · ') || translateApp('Растения не привязаны')}</span><ChevronRight size={16} aria-hidden="true" />
+                  </button>
+                  <Modal isOpen={plantListId === greenhouse.id} presentation="sheet" title={`${greenhouse.name} · ${translateApp('Растения')}`} onClose={() => setPlantListId(null)}>
+                    {error ? <p role="alert" className="farm-slot-editor__error">{error}</p> : null}
+                    {plantsEditor}
+                    <Link to="/app/plants/">{translateApp('Растения')}</Link>
+                  </Modal>
+                </> : plantsEditor}
+                </div>
 
               </article>
             );

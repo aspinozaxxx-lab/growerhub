@@ -38,3 +38,15 @@
 .demo-welcome a { color: #245c3c; }
 
 .demo-tools > .demo-actions .demo-link { color: #dbeab7; }
+
+@media (max-width: 680px) {
+  .demo-banner { margin-bottom: 8px; padding: 0; border-radius: 10px; }
+  .demo-banner__compact { display: flex; align-items: center; width: 100%; min-height: 44px; gap: 7px; padding: 6px 10px; color: inherit; font: inherit; font-size: 12px; border: 0; background: transparent; cursor: pointer; text-align: left; }
+  .demo-banner__compact span { min-width: 0; font-size: 11px; }
+  .demo-banner__compact svg { flex: none; }
+  .demo-banner__compact svg:last-child { margin-left: auto; }
+  .demo-banner .gh-modal__panel { --text-1: #1b4930; --text-2: #37644b; --surface-1: #edf7f0; --border-1: #bddbc7; --border-2: #bddbc7; }
+  .demo-banner .demo-actions { display: grid; gap: 4px; }
+  .demo-banner .demo-link { min-height: 44px; }
+  .demo-banner .demo-reset { margin-left: 0; }
+}

@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FlaskConical, RotateCcw } from 'lucide-react';
+import { ChevronDown, FlaskConical, RotateCcw } from 'lucide-react';
+import Modal from '../../components/ui/Modal';
+import useCompactLayout from '../../components/layout/useCompactLayout';
 import { useAuth } from './AuthContext';
 import { translateApp as t } from '../../locales/i18n';
 import { trackProductGoal } from '../../utils/analytics';
 import '../../pages/app/AppDemo.css';
 
 export default function DemoBanner() {
+  const compact = useCompactLayout();
+  const [expanded, setExpanded] = useState(false);
   const { demoActive, demoSession, accountUser, leaveDemo, resetDemo } = useAuth();
   const navigate = useNavigate();
   const [confirmReset, setConfirmReset] = useState(false);
@@ -23,8 +27,7 @@ export default function DemoBanner() {
     catch { setError(t('Не удалось восстановить демоферму')); }
     finally { setBusy(false); setConfirmReset(false); }
   };
-  return (
-    <aside className="demo-banner" aria-label={t('Демонстрационный режим')}>
+  const content = <>
       <div className="demo-banner__intro">
         <FlaskConical size={23} aria-hidden="true" />
         <div><strong>{t('Демо · виртуальные устройства')}</strong>
@@ -44,6 +47,17 @@ export default function DemoBanner() {
         <button className="gh-btn gh-btn--outline gh-btn--sm" disabled={busy} onClick={() => setConfirmReset(false)}>{t('Отмена')}</button>
       </div> : null}
       {error ? <p role="alert">{error}</p> : null}
-    </aside>
-  );
+  </>;
+  return <aside className="demo-banner" aria-label={t('Демонстрационный режим')}>
+    {compact ? <>
+      <button type="button" className="demo-banner__compact" onClick={() => setExpanded(true)} aria-expanded={expanded}>
+        <FlaskConical size={17} aria-hidden="true" /><strong>{t('Демо')}</strong>
+        <span>{demoSession?.saved ? t('Сохранено в аккаунте') : t('Изменения доступны 24 ч')}</span>
+        <ChevronDown size={16} aria-hidden="true" />
+      </button>
+      <Modal isOpen={expanded} title={t('Демонстрационный режим')} presentation="sheet" onClose={() => { if (!busy) setExpanded(false); }}>
+        {content}
+      </Modal>
+    </> : content}
+  </aside>;
 }
