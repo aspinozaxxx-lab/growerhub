@@ -272,6 +272,7 @@ public class DemoFacade {
         List<DemoDeviceEntity> all = devices.findBySpaceId(id);
         boolean telemetry = all.stream().anyMatch(device -> device.updatedAt.isBefore(now.minusSeconds(settings.telemetryPeriodSeconds())));
         Map<UUID, double[]> effects = telemetry ? climateEffects(space, all) : Map.of();
+        ZoneId zone = ZoneId.of(users.getTimezone(space.dataUserId));
         for (DemoDeviceEntity candidate : all) {
             DemoDeviceEntity device = devices.lockByTargetId(candidate.targetId).orElseThrow();
             Map<String, Object> state = state(device);
@@ -281,14 +282,21 @@ public class DemoFacade {
             DemoTemplate.Profile profile = profile(device.profileKey);
             if (telemetry && Set.of("native", "air", "soil").contains(profile.kind())) {
                 double[] effect = effects.getOrDefault(device.id, new double[2]);
-                double target = profile.temperature() + template.physics().dailyTemperatureDelta() * Math.sin(now.getHour() * Math.PI / 12) + effect[0];
-                double temperature = number(state, "temperature") + (target - number(state, "temperature"))
-                        * Math.min(1, seconds / 60 * template.physics().temperatureResponsePerMinute());
-                state.put("temperature", temperature);
+                DemoTemplate.Environment environment = environment(state);
+                double response = Math.min(1, seconds / 60 * template.physics().temperatureResponsePerMinute());
+                double target = environment == null
+                        ? profile.temperature() + template.physics().dailyTemperatureDelta() * Math.sin(now.getHour() * Math.PI / 12)
+                        : environment.temperature() + environment.dailyTemperatureDelta() * dailyWave(environment, now, zone);
+                state.put("temperature", number(state, "temperature") + (target + effect[0] - number(state, "temperature")) * response);
+                if (environment != null) {
+                    double humidity = environment.humidity() - environment.dailyHumidityDelta() * dailyWave(environment, now, zone);
+                    state.put("humidity", Math.max(0, Math.min(100, number(state, "humidity") + (humidity - number(state, "humidity")) * response)));
+                }
+                double drying = environment == null ? template.physics().dryingPerHour() : environment.dryingPerHour();
                 double pumpSeconds = Boolean.TRUE.equals(state.get("pump_running")) ? seconds : effect[1] * seconds;
                 if (device.stopAt != null && device.stopAt.isBefore(now)) pumpSeconds = Math.max(0, seconds - Duration.between(device.stopAt, now).toSeconds());
                 state.put("moisture", Math.max(0, Math.min(100, number(state, "moisture")
-                        + pumpSeconds * template.physics().pumpMoisturePerSecond() - seconds / 3600 * template.physics().dryingPerHour())));
+                        + pumpSeconds * template.physics().pumpMoisturePerSecond() - seconds / 3600 * drying)));
             }
             integrateEnergy(device, state, now);
             if (deadline) { state.put("pump_running", false); device.stopAt = null; }
@@ -356,6 +364,14 @@ public class DemoFacade {
                     .stream().filter(value -> value.id().equals(farmId)).findFirst().orElseThrow();
             Integer greenhouseId = farm.greenhouses().stream().filter(value -> value.name().equals(name)).findFirst().orElseThrow().id();
             DemoDeviceEntity controller = add(space, profile("controller"), name + " · Grovika", now);
+            if (item.environment() != null) {
+                Map<String, Object> initial = state(controller);
+                initial.put("environment", item.environment());
+                initial.put("temperature", item.environment().temperature());
+                initial.put("humidity", item.environment().humidity());
+                initial.put("moisture", item.environment().moisture());
+                persist(controller, initial, now);
+            }
             controllers.put(greenhouseId, controller);
             List<DemoDeviceEntity> switches = new ArrayList<>();
             for (String key : List.of("light", "fan", "leak")) {
@@ -418,9 +434,13 @@ public class DemoFacade {
             var targets = greenhouse.plants().stream().map(plant -> new PumpSessionData.PlantTarget(
                     plant.id(), plant.name(), plant.rateMlPerHour(), space.dataUserId)).toList();
             var box = new PumpSessionData.BoxTarget(greenhouse.id(), greenhouse.name(), farm.id(), farm.name(), targets, List.of());
+            DemoTemplate.Environment environment = environment(state(controller));
+            int wateringSeconds = environment == null ? template.physics().historyWateringSeconds() : environment.historyWateringSeconds();
             var start = new PumpSessionData.Start(pump.id(), PumpSessionData.SOURCE_AUTOMATION, PumpSessionData.MODE_TIMED,
-                    template.physics().historyWateringSeconds(), template.physics().historyWateringSeconds(), false, null, null, List.of(box), null, null);
-            for (int day = settings.historyDays(); day > 0; day--) pumps.seedSimulatedHistory(start, user, now.minusHours(day * 24L - 6));
+                    wateringSeconds, wateringSeconds, false, null, null, List.of(box), null, null);
+            for (LocalDateTime at : historyWaterings(environment, now, ZoneId.of(users.getTimezone(space.dataUserId)))) {
+                pumps.seedSimulatedHistory(start, user, at);
+            }
         }
         for (DemoDeviceEntity device : devices.findBySpaceId(space.id)) publish(device, state(device), now);
         space.lastTickAt = now; spaces.save(space);
@@ -521,13 +541,31 @@ public class DemoFacade {
         List<DemoDeviceEntity> all = devices.findBySpaceId(space.id);
         LocalDateTime start = now.minusDays(settings.historyDays());
         ZoneId zone = ZoneId.of(users.getTimezone(space.dataUserId));
+        Map<UUID, List<LocalDateTime>> waterings = new HashMap<>();
+        for (DemoDeviceEntity device : all) waterings.put(device.id, historyWaterings(environment(state(device)), now, zone));
         for (LocalDateTime at = start; !at.isAfter(now); at = at.plusMinutes(settings.historyStepMinutes())) {
             double hours = Duration.between(start, at).toMinutes() / 60.0;
             for (DemoDeviceEntity device : all) {
                 Map<String, Object> state = state(device); DemoTemplate.Profile profile = profile(device.profileKey);
-                state.put("temperature", rounded(profile.temperature() + template.physics().dailyTemperatureDelta() * Math.sin(at.getHour() * Math.PI / 12)));
-                state.put("humidity", rounded(profile.humidity() - template.physics().dailyTemperatureDelta() * Math.sin(at.getHour() * Math.PI / 12)));
-                state.put("moisture", rounded(profile.moisture() + Math.cos(hours * Math.PI / 12) * template.physics().dryingPerHour() * 12));
+                DemoTemplate.Environment environment = environment(state);
+                if (environment == null) {
+                    state.put("temperature", rounded(profile.temperature() + template.physics().dailyTemperatureDelta() * Math.sin(at.getHour() * Math.PI / 12)));
+                    state.put("humidity", rounded(profile.humidity() - template.physics().dailyTemperatureDelta() * Math.sin(at.getHour() * Math.PI / 12)));
+                    state.put("moisture", rounded(profile.moisture() + Math.cos(hours * Math.PI / 12) * template.physics().dryingPerHour() * 12));
+                } else {
+                    double wave = dailyWave(environment, at, zone);
+                    state.put("temperature", rounded(environment.temperature() + environment.dailyTemperatureDelta() * wave));
+                    state.put("humidity", rounded(environment.humidity() - environment.dailyHumidityDelta() * wave));
+                    double pumpedSeconds = 0;
+                    for (LocalDateTime watering : waterings.get(device.id)) {
+                        LocalDateTime from = watering.isAfter(start) ? watering : start;
+                        LocalDateTime finish = watering.plusSeconds(environment.historyWateringSeconds());
+                        LocalDateTime until = finish.isBefore(at) ? finish : at;
+                        pumpedSeconds += Math.max(0, Duration.between(from, until).toMillis() / 1000.0);
+                    }
+                    state.put("moisture", rounded(Math.max(0, Math.min(100, environment.moisture()
+                            + pumpedSeconds * template.physics().pumpMoisturePerSecond() - hours * environment.dryingPerHour()))));
+                }
                 if ("switch".equals(profile.kind())) {
                     int localHour = at.atOffset(ZoneOffset.UTC).atZoneSameInstant(zone).getHour();
                     boolean on = "light".equals(profile.key()) && localHour >= 6 && localHour < 22;
@@ -539,6 +577,31 @@ public class DemoFacade {
             entityManager.flush();
             entityManager.clear();
         }
+    }
+
+    private DemoTemplate.Environment environment(Map<String, Object> state) {
+        return state.get("environment") == null ? null : mapper.convertValue(state.get("environment"), DemoTemplate.Environment.class);
+    }
+
+    private double dailyWave(DemoTemplate.Environment environment, LocalDateTime at, ZoneId zone) {
+        LocalTime local = at.atOffset(ZoneOffset.UTC).atZoneSameInstant(zone).toLocalTime();
+        double hour = local.toSecondOfDay() / 3600.0;
+        return Math.cos((hour - environment.temperaturePeakHour()) * Math.PI / 12);
+    }
+
+    private List<LocalDateTime> historyWaterings(DemoTemplate.Environment environment, LocalDateTime now, ZoneId zone) {
+        List<LocalDateTime> result = new ArrayList<>();
+        if (environment == null) {
+            for (int day = settings.historyDays(); day > 0; day--) result.add(now.minusHours(day * 24L - 6));
+        } else {
+            ZonedDateTime last = now.atOffset(ZoneOffset.UTC).atZoneSameInstant(zone).toLocalDate()
+                    .atTime(LocalTime.parse(environment.historyWateringTime())).atZone(zone);
+            if (last.plusSeconds(environment.historyWateringSeconds()).toInstant().isAfter(now.toInstant(ZoneOffset.UTC))) last = last.minusDays(1);
+            for (int day = settings.historyDays() - 1; day >= 0; day--) {
+                result.add(LocalDateTime.ofInstant(last.minusDays(day).toInstant(), ZoneOffset.UTC));
+            }
+        }
+        return result;
     }
 
     private Map<UUID, double[]> climateEffects(DemoSpaceEntity space, List<DemoDeviceEntity> all) {

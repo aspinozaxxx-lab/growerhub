@@ -340,4 +340,4 @@ demo:
   # Translitem: tolko eti reverse proxy mogut peredat adres posetitelja v X-Real-IP.
   trusted-proxy-addresses: ${DEMO_TRUSTED_PROXY_ADDRESSES:127.0.0.1,::1,0:0:0:0:0:0:0:1}
   # Translitem: versionirovannyj shablon demonstracionnoj fermy.
-  template-path: classpath:demo/farm-v1.json
+  template-path: classpath:demo/farm-v2.json

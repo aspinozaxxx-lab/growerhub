@@ -286,6 +286,106 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         verifyNoInteractions(publisher);
     }
 
+    @Test
+    void greenhouseMicroclimatesHaveDistinctHistoriesAndSurviveSimulationTicks() throws Exception {
+        Response session = start();
+        String token = session.path("access_token");
+        UUID id = UUID.fromString(session.path("space.id"));
+        var space = spaces.findById(id).orElseThrow();
+        assertThat(space.templateVersion).isEqualTo(2);
+        List<Map<String, Object>> controllers = request(token).get("/api/demo/status")
+                .jsonPath().getList("devices.findAll { it.profile == 'controller' }");
+        assertThat(controllers).hasSize(4);
+        for (String metric : List.of("temperature", "humidity", "moisture")) {
+            assertThat(controllers.stream().map(device -> ((Map<?, ?>) device.get("state")).get(metric)))
+                    .doesNotHaveDuplicates();
+        }
+        List<Integer> nativeIds = jdbc.queryForList("select native_device_id from demo_devices where space_id = ? and native_device_id is not null", Integer.class, id);
+        for (String type : List.of("AIR_TEMPERATURE", "AIR_HUMIDITY", "SOIL_MOISTURE")) {
+            Set<List<Double>> histories = new HashSet<>();
+            for (int nativeId : nativeIds) {
+                List<Double> readings = jdbc.queryForList("select r.value_numeric from sensor_readings r join sensors s on s.id = r.sensor_id where s.device_id = ? and s.type = ? order by r.ts, r.id", Double.class, nativeId, type);
+                assertThat(readings).hasSizeGreaterThan(20).allMatch(value -> Double.isFinite(value) && value >= 0 && value <= 100);
+                assertThat(new HashSet<>(readings)).hasSizeGreaterThan(1);
+                histories.add(readings);
+            }
+            assertThat(histories).hasSize(4);
+        }
+        for (int nativeId : nativeIds) {
+            var readings = new TreeMap<LocalDateTime, Double>();
+            jdbc.query("select r.ts, r.value_numeric from sensor_readings r join sensors s on s.id = r.sensor_id where s.device_id = ? and s.type = 'SOIL_MOISTURE' order by r.ts, r.id",
+                    (org.springframework.jdbc.core.RowCallbackHandler) row -> readings.put(row.getTimestamp(1).toLocalDateTime(), row.getDouble(2)), nativeId);
+            List<LocalDateTime> waterings = jdbc.query("select started_at from pump_watering_sessions where device_id = ? order by started_at",
+                    (row, index) -> row.getTimestamp(1).toLocalDateTime(), nativeId);
+            assertThat(waterings).hasSize(7);
+            int rises = 0;
+            Map.Entry<LocalDateTime, Double> previous = null;
+            for (var reading : readings.entrySet()) {
+                if (previous != null && reading.getValue() > previous.getValue()) {
+                    LocalDateTime from = previous.getKey();
+                    assertThat(waterings).anyMatch(at -> at.isAfter(from.minusSeconds(36)) && !at.isAfter(reading.getKey()));
+                    rises++;
+                }
+                previous = reading;
+            }
+            assertThat(rises).isGreaterThanOrEqualTo(6);
+        }
+        assertThat(jdbc.queryForList("select distinct planned_duration_s from pump_watering_sessions where user_id = ?", Integer.class, space.dataUserId))
+                .hasSize(4);
+        assertThat(jdbc.query("select max(started_at) from pump_watering_sessions where user_id = ? group by device_id",
+                (row, index) -> row.getTimestamp(1).toLocalDateTime().getHour(), space.dataUserId)).doesNotHaveDuplicates();
+        var profiles = new HashMap<UUID, Object>();
+        for (var controller : controllers) {
+            UUID deviceId = UUID.fromString(controller.get("id").toString());
+            Map<String, Object> state = mapper.convertValue(controller.get("state"), new com.fasterxml.jackson.core.type.TypeReference<>() {});
+            profiles.put(deviceId, state.get("environment"));
+            state.put("temperature", 24); state.put("humidity", 60);
+            jdbc.update("update demo_devices set state_json = ?, updated_at = ? where id = ?", mapper.writeValueAsString(state),
+                    LocalDateTime.now(ZoneOffset.UTC).minusMinutes(10), deviceId);
+        }
+        assertThat(demo.tick(id).telemetry()).isTrue();
+        List<Map<String, Object>> after = request(token).get("/api/demo/status").jsonPath().getList("devices.findAll { it.profile == 'controller' }");
+        for (String metric : List.of("temperature", "humidity", "moisture")) {
+            assertThat(after.stream().map(device -> ((Map<?, ?>) device.get("state")).get(metric))).doesNotHaveDuplicates();
+        }
+        for (var controller : after) {
+            assertThat(((Map<?, ?>) controller.get("state")).get("environment"))
+                    .isEqualTo(profiles.get(UUID.fromString(controller.get("id").toString())));
+        }
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
+    void previousTemplateKeepsStoredReadingsUntilExplicitReset() throws Exception {
+        Response session = start();
+        String token = session.path("access_token");
+        UUID id = UUID.fromString(session.path("space.id"));
+        Map<String, Object> controller = request(token).get("/api/demo/status").path("devices.find { it.profile == 'controller' }");
+        UUID deviceId = UUID.fromString(controller.get("id").toString());
+        Map<String, Object> state = mapper.convertValue(controller.get("state"), new com.fasterxml.jackson.core.type.TypeReference<>() {});
+        state.remove("environment"); state.put("temperature", 17); state.put("humidity", 83); state.put("moisture", 92);
+        jdbc.update("update demo_devices set state_json = ? where id = ?", mapper.writeValueAsString(state), deviceId);
+        jdbc.update("update demo_spaces set template_version = 1 where id = ?", id);
+        long readings = jdbc.queryForObject("select count(*) from sensor_readings", Long.class);
+        Response resumed = request(null).cookie("gh_demo_refresh", session.cookie("gh_demo_refresh")).post("/api/demo/refresh");
+        resumed.then().statusCode(200);
+        assertThat(spaces.findById(id).orElseThrow().templateVersion).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from sensor_readings", Long.class)).isEqualTo(readings);
+        assertThat(jdbc.queryForObject("select state_json from demo_devices where id = ?", String.class, deviceId)).isEqualTo(mapper.writeValueAsString(state));
+        jdbc.update("update demo_devices set updated_at = ? where id = ?", LocalDateTime.now(ZoneOffset.UTC).minusMinutes(1), deviceId);
+        demo.tick(id);
+        Map<String, Object> legacy = mapper.readValue(jdbc.queryForObject("select state_json from demo_devices where id = ?", String.class, deviceId), new com.fasterxml.jackson.core.type.TypeReference<>() {});
+        assertThat(((Number) legacy.get("temperature")).doubleValue()).isBetween(17.0, 30.0);
+        assertThat(((Number) legacy.get("humidity")).doubleValue()).isEqualTo(83);
+        assertThat(legacy).doesNotContainKey("environment");
+        Response reset = request(resumed.path("access_token")).cookie("gh_demo_refresh", session.cookie("gh_demo_refresh")).post("/api/demo/reset");
+        reset.then().statusCode(200);
+        assertThat(spaces.findById(id).orElseThrow().templateVersion).isEqualTo(2);
+        request(reset.path("access_token")).get("/api/demo/status").then().statusCode(200)
+                .body("devices.findAll { it.profile == 'controller' && it.state.environment != null }.size()", equalTo(4));
+        verifyNoInteractions(publisher);
+    }
+
     private Response start() {
         Response response = request(null).body(Map.of("locale", "ru", "timezone", "Europe/Moscow")).post("/api/demo/start");
         response.then().log().ifError().statusCode(200).body("space.saved", equalTo(false));

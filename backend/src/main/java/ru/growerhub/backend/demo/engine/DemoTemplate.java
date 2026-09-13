@@ -10,5 +10,8 @@ public record DemoTemplate(int version, Map<String, String> farmName, List<Profi
             int wateringRateMlPerHour, int historyWateringSeconds) {}
     public record Profile(String key, String kind, Map<String, String> name, Map<String, String> description,
             double powerWatts, double temperature, double humidity, double moisture) {}
-    public record Greenhouse(Map<String, String> name, List<Map<String, String>> plants) {}
+    public record Environment(double temperature, double humidity, double moisture, double dailyTemperatureDelta,
+            double dailyHumidityDelta, double temperaturePeakHour, double dryingPerHour,
+            String historyWateringTime, int historyWateringSeconds) {}
+    public record Greenhouse(Map<String, String> name, List<Map<String, String>> plants, Environment environment) {}
 }

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "farmName": {
     "ru": "Демоферма · Зелёный дом",
     "en": "Demo farm · Green house"
@@ -133,7 +133,18 @@
           "ru": "Перец · рассада",
           "en": "Pepper seedlings"
         }
-      ]
+      ],
+      "environment": {
+        "temperature": 25,
+        "humidity": 74,
+        "moisture": 76,
+        "dailyTemperatureDelta": 1.4,
+        "dailyHumidityDelta": 4,
+        "temperaturePeakHour": 14,
+        "dryingPerHour": 0.21,
+        "historyWateringTime": "07:00",
+        "historyWateringSeconds": 20
+      }
     },
     {
       "name": {
@@ -149,7 +160,18 @@
           "ru": "Мята",
           "en": "Mint"
         }
-      ]
+      ],
+      "environment": {
+        "temperature": 22.5,
+        "humidity": 58,
+        "moisture": 60,
+        "dailyTemperatureDelta": 2,
+        "dailyHumidityDelta": 6,
+        "temperaturePeakHour": 16,
+        "dryingPerHour": 0.29,
+        "historyWateringTime": "10:00",
+        "historyWateringSeconds": 28
+      }
     },
     {
       "name": {
@@ -161,7 +183,18 @@
           "ru": "Томат черри",
           "en": "Cherry tomato"
         }
-      ]
+      ],
+      "environment": {
+        "temperature": 28,
+        "humidity": 63,
+        "moisture": 50,
+        "dailyTemperatureDelta": 3,
+        "dailyHumidityDelta": 5,
+        "temperaturePeakHour": 13,
+        "dryingPerHour": 0.375,
+        "historyWateringTime": "06:00",
+        "historyWateringSeconds": 36
+      }
     },
     {
       "name": {
@@ -173,7 +206,18 @@
           "ru": "Клубника",
           "en": "Strawberry"
         }
-      ]
+      ],
+      "environment": {
+        "temperature": 20.5,
+        "humidity": 68,
+        "moisture": 68,
+        "dailyTemperatureDelta": 1.8,
+        "dailyHumidityDelta": 3,
+        "temperaturePeakHour": 15,
+        "dryingPerHour": 0.25,
+        "historyWateringTime": "18:00",
+        "historyWateringSeconds": 24
+      }
     }
   ],
   "scenarios": {
