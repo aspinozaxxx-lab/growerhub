@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.diagnostics.PlantTiming;
 import ru.growerhub.backend.common.config.plant.PlantHistorySettings;
+import ru.growerhub.backend.common.config.DemoSettings;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.journal.JournalFacade;
@@ -40,6 +41,7 @@ public class PlantFacade {
     private final JournalFacade journalFacade;
     private final UserFacade userFacade;
     private final PlantHistorySettings historySettings;
+    private final DemoSettings demoSettings;
 
     public PlantFacade(
             PlantRepository plantRepository,
@@ -47,7 +49,8 @@ public class PlantFacade {
             PlantHistoryService plantHistoryService,
             JournalFacade journalFacade,
             @Lazy UserFacade userFacade,
-            PlantHistorySettings historySettings
+            PlantHistorySettings historySettings,
+            DemoSettings demoSettings
     ) {
         this.plantRepository = plantRepository;
         this.plantMetricSampleRepository = plantMetricSampleRepository;
@@ -55,6 +58,7 @@ public class PlantFacade {
         this.journalFacade = journalFacade;
         this.userFacade = userFacade;
         this.historySettings = historySettings;
+        this.demoSettings = demoSettings;
     }
 
     @Transactional(readOnly = true)
@@ -74,6 +78,12 @@ public class PlantFacade {
 
     @Transactional
     public PlantInfo createPlant(PlantCreateCommand command, AuthenticatedUser user) {
+        if (user != null && user.isDemo()) {
+            userFacade.lockDemoOwner(user.id());
+            if (plantRepository.findAllByUserId(user.id()).size() >= demoSettings.maxPlants()) {
+                throw new DomainException("conflict", "Demo plant limit reached");
+            }
+        }
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         LocalDateTime plantedAt = command.plantedAt() != null ? command.plantedAt() : now;
         PlantEntity plant = PlantEntity.create();

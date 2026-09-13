@@ -16,10 +16,12 @@ import { formatDateTime } from '../../features/dashboard/dashboardModel';
 import { formatTimeHHMM } from '../../utils/formatters';
 import { translateApp } from '../../locales/i18n';
 import './SelfServicePages.css';
+import { useAuth } from '../../features/auth/AuthContext';
 
 const REFRESH_INTERVAL_MS = 30000;
 
 function AppOverview() {
+  const { demoActive } = useAuth();
   const { openSensorStats } = useSensorStatsContext();
   const [overview, setOverview] = useState(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
@@ -102,6 +104,14 @@ function AppOverview() {
         )}
       />
 
+      {demoActive ? <details className="demo-welcome">
+        <summary>{translateApp("Что попробовать за две минуты")}</summary>
+        <ol>
+          <li>{translateApp("Откройте график температуры или влажности в карточке теплицы — история уже есть.")}</li>
+          <li><Link to="/app/manual-watering/">{translateApp("Запустите короткий полив")}</Link> — {translateApp("результат появится в статистике и журнале растений.")}</li>
+          <li><Link to="/app/demo-tools/">{translateApp("Повысьте температуру или включите протечку")}</Link> — {translateApp("проверьте реакцию сценариев.")}</li>
+        </ol>
+      </details> : null}
       {error ? <AppPageState kind="error" title={error} /> : null}
 
       {!error && farms.length === 0 ? (

@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
 import PlatformStartLink from '../components/PlatformStartLink';
 import TelegramContactLink from '../components/TelegramContactLink';
@@ -8,79 +8,12 @@ import { SELF_SERVICE_PUBLIC_ENABLED, SITE_URL } from '../domain/siteConfig';
 import { getCurrentLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 
-function ZonesDemo() {
-  return (
-    <div className="product-demo" role="img" aria-label={translatePublic('Синтетический обзор двух зон GrowerHub')}>
-      <div className="product-demo__bar"><span /> GrowerHub · {translatePublic('зоны')}</div>
-      <div className="product-demo__zones">
-        <div><strong>{translatePublic('Стеллаж «Зелень»')}</strong><span className="status-ok">{translatePublic('В сети')}</span><p>{translatePublic('23,4 °C · 61% · свет включён')}</p></div>
-        <div><strong>{translatePublic('Бокс «Рассада»')}</strong><span className="status-warn">{translatePublic('Проверить')}</span><p>{translatePublic('24,1 °C · 57% · данные 12 мин назад')}</p></div>
-      </div>
-    </div>
-  );
-}
-
-function HistoryDemo() {
-  return (
-    <div className="product-demo" role="img" aria-label={translatePublic('Синтетическая история датчиков GrowerHub')}>
-      <div className="product-demo__bar"><span /> {translatePublic('История · последние 24 часа')}</div>
-      <svg className="demo-chart" viewBox="0 0 520 180" aria-hidden="true">
-        <path className="demo-chart__grid" d="M20 30H500M20 75H500M20 120H500M20 165H500" />
-        <path className="demo-chart__temperature" d="M20 102 C70 88 92 96 136 72 S220 92 268 62 S350 76 400 52 S456 70 500 42" />
-        <path className="demo-chart__humidity" d="M20 55 C68 68 100 52 142 78 S222 70 270 98 S354 82 402 112 S466 98 500 124" />
-      </svg>
-      <div className="product-demo__legend"><span>{translatePublic('Температура')}</span><span>{translatePublic('Влажность воздуха')}</span></div>
-    </div>
-  );
-}
-
-function ConnectionDemo() {
-  return (
-    <div className="product-demo" role="img" aria-label={translatePublic('Синтетический экран подключения GrowerHub')}>
-      <div className="product-demo__bar"><span /> {translatePublic('Подключения')}</div>
-      <div className="product-demo__connection">
-        <div><strong>{translatePublic('Координатор «Теплица»')}</strong><span className="status-ok">{translatePublic('В сети')}</span></div>
-        <p>{translatePublic('3 устройства обнаружены автоматически')}</p>
-        <ul><li>{translatePublic('Датчик микроклимата')}</li><li>{translatePublic('Розетка освещения')}</li><li>{translatePublic('Датчик протечки')}</li></ul>
-      </div>
-    </div>
-  );
-}
-
-function AutomationDemo() {
-  return (
-    <div className="product-demo" role="img" aria-label={translatePublic('Синтетический экран автоматизации GrowerHub')}>
-      <div className="product-demo__bar"><span /> {translatePublic('Автоматизации · зона «Рассада»')}</div>
-      <dl className="product-demo__rules">
-        <div><dt>{translatePublic('Освещение')}</dt><dd>{translatePublic('06:00–22:00 · готово')}</dd></div>
-        <div><dt>{translatePublic('Климат')}</dt><dd>{translatePublic('24–28 °C · гистерезис включён')}</dd></div>
-        <div><dt>{translatePublic('Полив')}</dt><dd>{translatePublic('готов к настройке после назначения датчика и насоса')}</dd></div>
-      </dl>
-      <span className="status-ok">{translatePublic('1 сценарий активен')}</span>
-    </div>
-  );
-}
-
-const demoViews = [
-  <ZonesDemo key="zones" />,
-  <HistoryDemo key="history" />,
-  <ConnectionDemo key="connection" />,
-  <AutomationDemo key="automation" />,
-];
-
 function MiniFarmPage() {
-  const location = useLocation();
   const locale = getCurrentLocale();
   const path = getPublicPath('farmAutomation', locale);
   const data = miniFarmContent;
   const screenshotPrefix = locale === 'en' ? '/screenshots/en' : '/screenshots';
-  const screenshotImages = [
-    { src: `${screenshotPrefix}/zones.png`, alt: translatePublic('Обзор двух зон GrowerHub на синтетических данных') },
-    { src: `${screenshotPrefix}/history.png`, alt: translatePublic('История температуры и влажности GrowerHub на синтетических данных') },
-    { src: `${screenshotPrefix}/connection.png`, alt: translatePublic('Подключение Zigbee-координатора GrowerHub на синтетических данных') },
-    { src: `${screenshotPrefix}/automation.png`, alt: translatePublic('Автоматизации GrowerHub на синтетических данных') },
-  ];
-  const captureMode = new URLSearchParams(location.search).get('capture') === 'screenshots';
+  const screenshotNames = ['zones', 'history', 'connection', 'automation'];
   const jsonLd = [{
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -140,21 +73,20 @@ function MiniFarmPage() {
       </section>
 
       <section className="content-section" id="demo-ekrany">
-        <h2>{translatePublic('Интерфейс на синтетических данных')}</h2>
-        <p>{translatePublic('Все названия и значения вымышлены. На экранах нет реальных адресов, IEEE, логинов или данных доступа.')}</p>
+        <h2>{translatePublic('Настоящее приложение с виртуальной фермой')}</h2>
+        <p>{translatePublic('Эти экраны сняты в демоферме GrowerHub. Устройства и показания симулируются, а разделы управления, графики и сценарии — те же, что в вашей ферме.')}</p>
         <div className="demo-grid demo-grid--four">
           {data.screens.map((screen, index) => (
             <figure className="demo-card" key={screen.title}>
-              {captureMode ? demoViews[index] : (
+
                 <img
                   className="product-screenshot"
-                  src={screenshotImages[index].src}
-                  alt={screenshotImages[index].alt}
-                  width="1010"
-                  height="520"
+                  src={`${screenshotPrefix}/${screenshotNames[index]}.webp`}
+                  alt={screen.text}
+                  width="1280"
+                  height="720"
                   loading={index === 0 ? 'eager' : 'lazy'}
                 />
-              )}
               <figcaption><strong>{screen.title}</strong><span>{screen.text}</span></figcaption>
             </figure>
           ))}

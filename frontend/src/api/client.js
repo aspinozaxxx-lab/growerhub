@@ -2,7 +2,6 @@
 
 // Translitem: edinyj wrapper dlya fetch s avtomaticheskim refresh i retry pri 401.
 
-const ACCESS_TOKEN_STORAGE_KEY = 'gh_access_token';
 const SESSION_EXPIRED_CODE = 'SESSION_EXPIRED';
 const CYRILLIC_PATTERN = /[А-Яа-яЁё]/;
 
@@ -71,131 +70,80 @@ class SessionExpiredError extends Error {
   }
 }
 
-let logoutHandler = null;
-let tokenGetter = null;
-let refreshPromise = null;
+let handlers = {};
+let requestGeneration = 0;
+let sessionController = new AbortController();
+const refreshPromises = new Map();
 
-export function registerAuthHandlers({ logout, getToken } = {}) {
-  // Translitem: logout - callback iz AuthContext; getToken - opcionalno dlya chteniya tokina iz state.
-  logoutHandler = typeof logout === 'function' ? logout : null;
-  tokenGetter = typeof getToken === 'function' ? getToken : null;
+export function registerAuthHandlers(next = {}) {
+  handlers = next;
+}
+
+export function getAuthMode() {
+  return handlers.getMode?.() || 'account';
+}
+
+export function resetApiSession() {
+  requestGeneration += 1;
+  sessionController.abort();
+  sessionController = new AbortController();
+  refreshPromises.clear();
 }
 
 export function isSessionExpiredError(err) {
-  return (
-    err?.code === SESSION_EXPIRED_CODE ||
-    err?.message === SESSION_EXPIRED_CODE ||
-    err === SESSION_EXPIRED_CODE
-  );
+  return err?.code === SESSION_EXPIRED_CODE || err?.message === SESSION_EXPIRED_CODE || err === SESSION_EXPIRED_CODE;
 }
 
-function getAccessToken() {
-  try {
-    const fromStorage = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
-    if (fromStorage) return fromStorage;
-  } catch {
-    // ignore
-  }
-  const fromHandler = tokenGetter ? tokenGetter() : null;
-  return fromHandler || null;
+function requestScope(url, explicitScope) {
+  if (explicitScope) return explicitScope;
+  if (/^\/api\/auth\//u.test(url) || /^\/api\/demo\/(start|refresh|save|logout)$/u.test(url)) return 'account';
+  return getAuthMode();
 }
 
-function setAccessToken(token) {
-  try {
-    if (!token) {
-      localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
-      return;
-    }
-    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
-  } catch {
-    // ignore
-  }
-}
-
-async function triggerLogout() {
-  // Translitem: v ideal'e logout iz AuthContext; fallback - ochistka localStorage.
-  if (logoutHandler) {
-    logoutHandler();
-    return;
-  }
-  setAccessToken(null);
-}
-
-async function doRefreshAccessToken() {
-  const response = await fetch('/api/auth/refresh', {
-    method: 'POST',
-    credentials: 'same-origin',
-    headers: { Accept: 'application/json' },
-  });
-
-  if (!response.ok) {
-    throw new SessionExpiredError();
-  }
-
-  const payload = await response.json().catch(() => ({}));
-  const accessToken = payload?.access_token;
-  if (!accessToken) {
-    throw new SessionExpiredError();
-  }
-  setAccessToken(accessToken);
-  return accessToken;
-}
-
-async function ensureRefreshed() {
-  if (!refreshPromise) {
-    refreshPromise = doRefreshAccessToken().finally(() => {
-      refreshPromise = null;
+async function refreshed(scope) {
+  if (!refreshPromises.has(scope)) {
+    const pending = Promise.resolve().then(() => handlers.refresh?.(scope)).then((token) => {
+      if (!token) throw new SessionExpiredError();
+      return token;
+    }).finally(() => {
+      if (refreshPromises.get(scope) === pending) refreshPromises.delete(scope);
     });
+    refreshPromises.set(scope, pending);
   }
-  return refreshPromise;
-}
-
-function shouldSkipAutoRefresh(url) {
-  if (typeof url !== 'string') return false;
-  return url === '/api/auth/refresh' || url === '/api/auth/logout';
+  return refreshPromises.get(scope);
 }
 
 export async function apiFetch(url, init = {}) {
-  const headers = new Headers(init.headers || {});
-  const token = getAccessToken();
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-
-  const requestInit = {
-    ...init,
-    headers,
-    credentials: init.credentials ?? 'same-origin',
+  const { authScope, ...fetchInit } = init;
+  const scope = requestScope(url, authScope);
+  const generation = requestGeneration;
+  const signal = init.signal ? AbortSignal.any([init.signal, sessionController.signal]) : sessionController.signal;
+  const requireCurrent = () => {
+    if (generation !== requestGeneration || signal.aborted) throw new DOMException('Session changed', 'AbortError');
   };
-
-  const response = await fetch(url, requestInit);
-  if (response.status !== 401 || shouldSkipAutoRefresh(url)) {
+  const send = async (token) => {
+    requireCurrent();
+    const headers = new Headers(init.headers || {});
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    const response = await fetch(url, { ...fetchInit, headers, signal, credentials: init.credentials ?? 'same-origin' });
+    requireCurrent();
     return response;
+  };
+  let response = await send(handlers.getToken?.(scope));
+  if (response.status === 401 && !/\/(?:auth|demo)\/(?:refresh|logout)$/u.test(url)) {
+    try {
+      const token = await refreshed(scope);
+      requireCurrent();
+      response = await send(token);
+      if (response.status === 401) throw new SessionExpiredError();
+    } catch (error) {
+      requireCurrent();
+      handlers.expire?.(scope);
+      throw isSessionExpiredError(error) ? error : new SessionExpiredError();
+    }
   }
-
-  try {
-    await ensureRefreshed();
-  } catch (err) {
-    await triggerLogout();
-    throw isSessionExpiredError(err) ? err : new SessionExpiredError();
+  if (scope === 'demo' && response.ok && !['GET', 'HEAD'].includes((init.method || 'GET').toUpperCase())) {
+    handlers.onDemoAction?.(url, init.method);
   }
-
-  const retryHeaders = new Headers(init.headers || {});
-  const refreshedToken = getAccessToken();
-  if (refreshedToken && !retryHeaders.has('Authorization')) {
-    retryHeaders.set('Authorization', `Bearer ${refreshedToken}`);
-  }
-
-  const retryResponse = await fetch(url, {
-    ...init,
-    headers: retryHeaders,
-    credentials: requestInit.credentials,
-  });
-
-  if (retryResponse.status === 401) {
-    await triggerLogout();
-    throw new SessionExpiredError();
-  }
-
-  return retryResponse;
+  return response;
 }

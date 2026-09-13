@@ -15,6 +15,7 @@ import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.common.component.PasswordHasher;
 import ru.growerhub.backend.common.config.UserSettings;
 import ru.growerhub.backend.device.DeviceFacade;
+import ru.growerhub.backend.demo.DemoFacade;
 import ru.growerhub.backend.user.contract.AuthUser;
 import ru.growerhub.backend.user.contract.ProductAnalyticsSnapshot;
 import ru.growerhub.backend.user.contract.UserProfile;
@@ -27,6 +28,7 @@ public class UserFacade {
     private final PasswordHasher passwordHasher;
     private final AuthFacade authFacade;
     private final DeviceFacade deviceFacade;
+    private final DemoFacade demoFacade;
     private final UserSettings settings;
 
     public UserFacade(
@@ -34,18 +36,21 @@ public class UserFacade {
             PasswordHasher passwordHasher,
             @Lazy AuthFacade authFacade,
             @Lazy DeviceFacade deviceFacade,
+            @Lazy DemoFacade demoFacade,
             UserSettings settings
     ) {
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
         this.authFacade = authFacade;
         this.deviceFacade = deviceFacade;
+        this.demoFacade = demoFacade;
         this.settings = settings;
     }
 
     @Transactional(readOnly = true)
     public List<UserProfile> listUsers() {
         return userRepository.findAll().stream()
+                .filter(user -> !user.isDemo())
                 .map(this::toProfile)
                 .toList();
     }
@@ -53,7 +58,7 @@ public class UserFacade {
     @Transactional(readOnly = true)
     public ProductAnalyticsSnapshot getProductAnalytics() {
         Set<Integer> registeredUserIds = userRepository.findAll().stream()
-                .filter(user -> !"admin".equalsIgnoreCase(user.getRole()))
+                .filter(user -> !user.isDemo() && !"admin".equalsIgnoreCase(user.getRole()))
                 .map(UserEntity::getId)
                 .collect(Collectors.toUnmodifiableSet());
         return new ProductAnalyticsSnapshot(registeredUserIds);
@@ -65,7 +70,7 @@ public class UserFacade {
             return null;
         }
         UserEntity user = userRepository.findById(userId).orElse(null);
-        return user != null ? toProfile(user) : null;
+        return user != null && !user.isDemo() ? toProfile(user) : null;
     }
 
     @Transactional(readOnly = true)
@@ -83,7 +88,7 @@ public class UserFacade {
             return null;
         }
         UserEntity user = userRepository.findById(userId).orElse(null);
-        if (user == null) {
+        if (user == null || user.isDemo()) {
             return null;
         }
         return new AuthUser(user.getId(), user.getRole(), user.isActive());
@@ -97,6 +102,7 @@ public class UserFacade {
         }
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         String resolvedRole = role == null || role.isBlank() ? "user" : role;
+        if ("demo".equalsIgnoreCase(resolvedRole)) throw new DomainException("bad_request", "Zarezervirovannaja rol");
         UserEntity created = UserEntity.create(
                 email,
                 username,
@@ -140,12 +146,14 @@ public class UserFacade {
         if (target == null) {
             return null;
         }
+        if (target.isDemo()) throw new DomainException("forbidden", "Demo has no account profile");
         boolean changed = false;
         if (username != null) {
             target.setUsername(username);
             changed = true;
         }
         if (role != null) {
+            if ("demo".equalsIgnoreCase(role)) throw new DomainException("bad_request", "Zarezervirovannaja rol");
             target.setRole(role);
             changed = true;
         }
@@ -166,6 +174,7 @@ public class UserFacade {
         if (user == null) {
             return null;
         }
+        if (user.isDemo()) throw new DomainException("forbidden", "Demo has no account profile");
         boolean changed = false;
         if (email != null) {
             UserEntity existing = userRepository.findByEmail(email).orElse(null);
@@ -230,10 +239,51 @@ public class UserFacade {
         if (target == null) {
             return false;
         }
+        if (target.isDemo()) throw new DomainException("forbidden", "Demo owner lifecycle is managed by demo");
+        demoFacade.deleteForAccount(userId);
         deviceFacade.unassignDevicesForUser(userId);
         authFacade.deleteIdentities(userId);
         userRepository.delete(target);
         return true;
+    }
+
+    @Transactional
+    public Integer createDemoOwner(String name, String timezone) {
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        return userRepository.save(UserEntity.createDemo(name, normalizeTimezone(timezone), now)).getId();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isDemoOwner(Integer userId) {
+        return userId != null && userRepository.findById(userId).map(UserEntity::isDemo).orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public void requireDemoOwner(Integer userId) {
+        if (!isDemoOwner(userId)) throw new DomainException("forbidden", "Trebuetsja vladelec demo");
+    }
+
+    @Transactional(readOnly = true)
+    public Set<Integer> getDemoOwnerIds() {
+        return userRepository.findByAccountKind("DEMO").stream().map(UserEntity::getId).collect(Collectors.toSet());
+    }
+
+    @Transactional
+    public void lockDemoOwner(Integer userId) {
+        UserEntity user = userRepository.lockById(userId).orElseThrow(() -> new DomainException("forbidden", "Demo owner required"));
+        if (!user.isDemo()) throw new DomainException("forbidden", "Demo owner required");
+    }
+
+    @Transactional
+    public void lockAccount(Integer userId) {
+        UserEntity user = userRepository.lockById(userId).orElseThrow(() -> new DomainException("unauthorized", "Account required"));
+        if (user.isDemo() || !user.isActive()) throw new DomainException("unauthorized", "Account required");
+    }
+
+    @Transactional
+    public void deleteDemoOwner(Integer userId) {
+        requireDemoOwner(userId);
+        userRepository.deleteById(userId);
     }
 
     private UserProfile toProfile(UserEntity user) {

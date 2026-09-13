@@ -30,7 +30,10 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/refresh",
                                 "/api/auth/logout",
-                                "/api/auth/sso/**"
+                                "/api/auth/sso/**",
+                                "/api/demo/start",
+                                "/api/demo/refresh",
+                                "/api/demo/logout"
                         ).permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll()

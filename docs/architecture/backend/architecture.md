@@ -10,7 +10,7 @@ Backend построен вокруг доменов. Адаптеры REST и M
 - `config` - общая конфигурация приложения.
 - `diagnostics` - техническая диагностика.
 - `llm` - внешний шлюз для advisor.
-- доменные пакеты - `advisor`, `auth`, `automation`, `device`, `firmware`, `journal`, `maintenance`, `onboarding`, `plant`, `pump`, `sensor`, `user`, `zigbee`.
+- доменные пакеты - `advisor`, `auth`, `automation`, `demo`, `device`, `firmware`, `journal`, `maintenance`, `onboarding`, `plant`, `pump`, `sensor`, `user`, `zigbee`.
 
 ## Домены
 
@@ -20,6 +20,7 @@ Backend построен вокруг доменов. Адаптеры REST и M
 - `auth` - аутентификация, токены, методы входа и SSO.
 - `automation` - помещения, боксы, привязки ресурсов и сценарии автоматизации.
 - `device` - устройства, shadow, ACK и service events.
+- `demo` - изолированные песочницы, начальное наполнение и симуляция оборудования по ADR-006.
 - `firmware` - хранение и запуск обновлений прошивки.
 - `journal` - журнал растений и детали полива.
 - `maintenance` - технические фоновые сценарии обслуживания исторических данных.

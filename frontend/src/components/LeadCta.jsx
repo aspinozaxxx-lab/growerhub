@@ -1,4 +1,5 @@
 import PlatformStartLink from './PlatformStartLink';
+import DemoStartLink from './DemoStartLink';
 import TelegramContactLink from './TelegramContactLink';
 import { translatePublic } from '../locales/i18n';
 
@@ -18,9 +19,10 @@ function LeadCta({
         <p>{localizedText}</p>
       </div>
       <div className="cta-row">
+        <DemoStartLink placement={placement + '_demo'} />
         <PlatformStartLink placement={placement} />
         <TelegramContactLink placement={`${placement}_help`} className="secondary-link">
-          {translatePublic('Помощь в Telegram')}
+          {translatePublic('Поможем подключить первый датчик')}
         </TelegramContactLink>
       </div>
     </section>

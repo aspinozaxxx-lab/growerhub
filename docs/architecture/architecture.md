@@ -83,6 +83,7 @@ Grovika публикует единственный датчик почвы ка
 - `docs/architecture/backend/domains/auth.md`
 - `docs/architecture/backend/domains/automation.md`
 - `docs/architecture/backend/domains/device.md`
+- `docs/architecture/backend/domains/demo.md`
 - `docs/architecture/backend/domains/firmware.md`
 - `docs/architecture/backend/domains/journal.md`
 - `docs/architecture/backend/domains/maintenance.md`

@@ -12,6 +12,15 @@ const PRODUCT_EVENTS = [
   'zone_created',
   'automation_enabled',
   'telegram_contact',
+  'login_view',
+  'sso_start',
+  'demo_open',
+  'demo_ready',
+  'demo_action',
+  'demo_save',
+  'demo_reset',
+  'demo_exit',
+  'demo_real_setup_start',
 ];
 
 const readArgument = (name, fallback) => {

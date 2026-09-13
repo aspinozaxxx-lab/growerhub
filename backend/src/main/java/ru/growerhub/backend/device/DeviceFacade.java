@@ -78,6 +78,7 @@ public class DeviceFacade {
     private final DeviceBrokerCredentialGateway brokerCredentialGateway;
     private final DeviceMqttSettings mqttSettings;
     private final DeviceClaimSettings claimSettings;
+    private final ru.growerhub.backend.user.UserFacade userFacade;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public DeviceFacade(
@@ -97,7 +98,8 @@ public class DeviceFacade {
             @Lazy PumpFacade pumpFacade,
             DeviceBrokerCredentialGateway brokerCredentialGateway,
             DeviceMqttSettings mqttSettings,
-            DeviceClaimSettings claimSettings
+            DeviceClaimSettings claimSettings,
+            @Lazy ru.growerhub.backend.user.UserFacade userFacade
     ) {
         this.deviceRepository = deviceRepository;
         this.deviceClaimLimitRepository = deviceClaimLimitRepository;
@@ -116,6 +118,52 @@ public class DeviceFacade {
         this.brokerCredentialGateway = brokerCredentialGateway;
         this.mqttSettings = mqttSettings;
         this.claimSettings = claimSettings;
+        this.userFacade = userFacade;
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isSimulatedDevice(String deviceId) {
+        return deviceRepository.findByDeviceId(deviceId).map(DeviceEntity::isSimulated).orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public void requirePhysicalTarget(String deviceId) {
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId)
+                .orElseThrow(() -> new DomainException("not_found", "Ustrojstvo ne najdeno"));
+        if (device.isSimulated() || userFacade.isDemoOwner(device.getUserId())) {
+            throw new DomainException("forbidden", "Demo ne imeet dostupa k MQTT");
+        }
+    }
+
+    @Transactional
+    public DeviceSummary createSimulatedDevice(Integer ownerId, String name) {
+        userFacade.requireDemoOwner(ownerId);
+        DeviceEntity device = DeviceEntity.create();
+        device.initializeSimulation();
+        device.setDeviceId("DEMO_" + java.util.UUID.randomUUID().toString().replace("-", ""));
+        device.setName(name);
+        device.setUserId(ownerId);
+        deviceRepository.saveAndFlush(device);
+        pumpFacade.ensureDefaultPump(device.getId());
+        return deviceQueryService.buildDeviceSummary(device);
+    }
+
+    @Transactional
+    public void handleSimulatedState(String deviceId, DeviceShadowState state, LocalDateTime now) {
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId)
+                .orElseThrow(() -> new DomainException("not_found", "Demo ustrojstvo ne najdeno"));
+        if (!device.isSimulated()) throw new DomainException("forbidden", "Fizicheskoe ustrojstvo");
+        userFacade.requireDemoOwner(device.getUserId());
+        ingestState(deviceId, state, now);
+    }
+
+    @Transactional
+    public void deleteSimulatedDevices(Integer ownerId) {
+        userFacade.requireDemoOwner(ownerId);
+        for (DeviceEntity device : deviceRepository.findAllByUserId(ownerId)) {
+            if (!device.isSimulated()) throw new DomainException("forbidden", "Fizicheskoe ustrojstvo");
+            deleteDevice(device.getDeviceId());
+        }
     }
 
     public Integer findDeviceId(String deviceId) {
@@ -144,7 +192,7 @@ public class DeviceFacade {
             return false;
         }
         DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
-        if (device == null || device.getDeviceTokenHash() == null) {
+        if (device == null || device.isSimulated() || device.getDeviceTokenHash() == null) {
             return false;
         }
         byte[] expected = device.getDeviceTokenHash().getBytes(StandardCharsets.US_ASCII);
@@ -164,6 +212,7 @@ public class DeviceFacade {
     @Transactional
     public DeviceCredential rotateDeviceCredential(Integer devicePk, Integer userId, boolean admin) {
         DeviceEntity device = requireDevice(devicePk);
+        requirePhysicalTarget(device.getDeviceId());
         if (!admin && (userId == null || !userId.equals(device.getUserId()))) {
             throw new DomainException("not_found", "Ustrojstvo ne naideno");
         }
@@ -192,6 +241,7 @@ public class DeviceFacade {
         String deviceId = normalizeDeviceId(requestedDeviceId);
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         DeviceEntity device = deviceRepository.findByDeviceIdForUpdate(deviceId).orElse(null);
+        if (device != null && device.isSimulated()) throw new DomainException("forbidden", "Demo has no broker credentials");
         if (device == null) {
             device = DeviceEntity.create();
             device.setDeviceId(deviceId);
@@ -307,6 +357,11 @@ public class DeviceFacade {
 
     @Transactional
     public void handleState(String deviceId, DeviceShadowState state, LocalDateTime now) {
+        if (isSimulatedDevice(deviceId)) throw new DomainException("forbidden", "MQTT ne menjaet demo");
+        ingestState(deviceId, state, now);
+    }
+
+    private void ingestState(String deviceId, DeviceShadowState state, LocalDateTime now) {
         List<SensorMeasurement> measurements = deviceIngestionService.handleState(deviceId, state, now);
         updateFirmwareFromState(deviceId, state, now);
         // Translitem: pri auto-provision garantiruem default pump dlya novogo device.
@@ -330,6 +385,7 @@ public class DeviceFacade {
             LocalDateTime receivedAt,
             LocalDateTime expiresAt
     ) {
+        if (isSimulatedDevice(deviceId)) throw new DomainException("forbidden", "MQTT ne menjaet demo");
         ackService.upsertAck(deviceId, correlationId, result, status, payloadMap, receivedAt, expiresAt);
         updateFirmwareFromAck(deviceId, correlationId, result, status, payloadMap, receivedAt);
         touchLastSeen(deviceId, receivedAt);
@@ -337,6 +393,7 @@ public class DeviceFacade {
 
     @Transactional
     public void handleServiceEvent(String deviceId, DeviceServiceEventData event, LocalDateTime receivedAt) {
+        if (isSimulatedDevice(deviceId)) throw new DomainException("forbidden", "MQTT ne menjaet demo");
         deviceServiceEventService.recordEvent(deviceId, event, receivedAt);
     }
 
@@ -348,6 +405,7 @@ public class DeviceFacade {
 
     @Transactional
     public void touchLastSeen(String deviceId, LocalDateTime now) {
+        if (isSimulatedDevice(deviceId)) throw new DomainException("forbidden", "MQTT cannot update demo");
         DeviceStateLastEntity record = deviceStateLastRepository.findByDeviceId(deviceId).orElse(null);
         if (record == null) {
             record = DeviceStateLastEntity.create();
@@ -459,6 +517,7 @@ public class DeviceFacade {
         if (userId == null) {
             throw new DomainException("unauthorized", "Требуется авторизация");
         }
+        if (userFacade.isDemoOwner(userId)) throw new DomainException("forbidden", "Demo cannot claim devices");
         String deviceId = normalizeDeviceId(requestedDeviceId);
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         deviceRepository.lockUserForDeviceClaim(userId);
@@ -473,6 +532,7 @@ public class DeviceFacade {
             throw new DeviceClaimRejectedException("not_found", "Устройство не найдено");
         }
 
+        if (device.isSimulated()) throw new DomainException("forbidden", "Demo device cannot be claimed");
         Integer ownerId = device.getUserId();
         if (ownerId != null && !ownerId.equals(userId)) {
             recordFailedClaim(limit, userId, now);
@@ -496,6 +556,7 @@ public class DeviceFacade {
     @Transactional
     public DeviceSummary unassignForUser(Integer deviceId, Integer userId, boolean isAdmin) {
         DeviceEntity device = requireDevice(deviceId);
+        requirePhysicalTarget(device.getDeviceId());
         if (!isAdmin) {
             Integer ownerId = device.getUserId();
             if (ownerId == null || !ownerId.equals(userId)) {
@@ -519,6 +580,8 @@ public class DeviceFacade {
     @Transactional
     public DeviceSummary adminAssign(Integer deviceId, Integer userId) {
         DeviceEntity device = requireDevice(deviceId);
+        requirePhysicalTarget(device.getDeviceId());
+        if (userFacade.isDemoOwner(userId)) throw new DomainException("forbidden", "Physical device cannot belong to demo");
         device.setUserId(userId);
         deviceRepository.save(device);
         return deviceQueryService.buildDeviceSummary(device);
@@ -527,6 +590,7 @@ public class DeviceFacade {
     @Transactional
     public DeviceSummary adminUnassign(Integer deviceId) {
         DeviceEntity device = requireDevice(deviceId);
+        requirePhysicalTarget(device.getDeviceId());
         device.setUserId(null);
         deviceRepository.save(device);
         return deviceQueryService.buildDeviceSummary(device);
@@ -556,6 +620,7 @@ public class DeviceFacade {
 
     @Transactional
     public void unassignDevicesForUser(Integer userId) {
+        if (userFacade.isDemoOwner(userId)) throw new DomainException("forbidden", "Demo lifecycle is managed separately");
         if (userId == null) {
             return;
         }

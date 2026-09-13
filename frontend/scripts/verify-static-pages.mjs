@@ -271,7 +271,7 @@ for (const pathname of [
 }
 
 const equipmentImages = [...ruLandingHtml.matchAll(/<img[^>]+src="([^"]+)"/gi)];
-assert(equipmentImages.length >= 4, 'RU landing has fewer than four synthetic screenshots');
+assert(equipmentImages.length >= 4, 'RU landing has fewer than four demo screenshots');
 for (const pathname of ['/404.html', '/en/404.html']) {
   const html = read(path.join(DIST_DIR, ...pathname.split('/').filter(Boolean)));
   assert(html.includes('noindex,nofollow'), `${pathname} is not noindex,nofollow`);

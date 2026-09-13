@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://growerhub.ru/</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/about/</loc>
@@ -10,15 +10,15 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-08-16</lastmod>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/avtomatizatsiya-mini-fermy/</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/kak-nachat/</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/oborudovanie/</loc>
@@ -50,7 +50,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zigbee-hub-i-ustroystva/</loc>
-    <lastmod>2026-08-16</lastmod>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/mini-ferma-i-neskolko-boksov/</loc>
@@ -58,14 +58,30 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
-    <lastmod>2026-08-16</lastmod>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/articles/datchik-vlazhnosti-pochvy-dlya-avtopoliva/</loc>
-    <lastmod>2026-08-16</lastmod>
+    <loc>https://growerhub.ru/articles/esp32-datchik-vlazhnosti-home-assistant/</loc>
+    <lastmod>2026-09-13</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/growerhub-i-home-assistant-cherez-mqtt/</loc>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/home-assistant-dlya-rasteniy/</loc>
+    <lastmod>2026-09-13</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/ustanovka-zigbee2mqtt-na-windows/</loc>
+    <lastmod>2026-09-13</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/zigbee-klapan-poliva-home-assistant/</loc>
+    <lastmod>2026-09-13</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/datchik-vlazhnosti-pochvy-dlya-avtopoliva/</loc>
     <lastmod>2026-08-16</lastmod>
   </url>
   <url>
@@ -77,20 +93,8 @@
     <lastmod>2026-08-16</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/articles/ustanovka-zigbee2mqtt-na-windows/</loc>
-    <lastmod>2026-08-16</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/zigbee-klapan-poliva-home-assistant/</loc>
-    <lastmod>2026-08-16</lastmod>
-  </url>
-  <url>
     <loc>https://growerhub.ru/articles/zigbee2mqtt-prostymi-slovami/</loc>
     <lastmod>2026-08-16</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/esp32-datchik-vlazhnosti-home-assistant/</loc>
-    <lastmod>2026-07-23</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/oshibki-avtopoliva-kotorye-ubivayut-rasteniya/</loc>
@@ -142,10 +146,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/gotovyy-zigbee-hub-dlya-growerhub/</loc>
-    <lastmod>2026-06-30</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/growerhub-i-home-assistant-cherez-mqtt/</loc>
     <lastmod>2026-06-30</lastmod>
   </url>
   <url>
@@ -286,7 +286,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/about/</loc>
@@ -294,15 +294,15 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-08-16</lastmod>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/farm-automation/</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/getting-started/</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/equipment/</loc>
@@ -334,7 +334,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/zigbee-hubs-and-devices/</loc>
-    <lastmod>2026-08-16</lastmod>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/small-farms-and-multiple-grow-boxes/</loc>
@@ -342,18 +342,30 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/home-assistant-and-diy/</loc>
-    <lastmod>2026-08-16</lastmod>
+    <lastmod>2026-09-13</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/</loc>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/home-assistant-plant-watering-safe-step-by-step-setup/</loc>
-    <lastmod>2026-08-16</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/how-to-connect-a-zigbee-temperature-and-humidity-sensor-step-by-step-check/</loc>
-    <lastmod>2026-08-16</lastmod>
+    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/install-zigbee2mqtt-on-windows-usb-coordinator/</loc>
+    <lastmod>2026-09-13</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/soil-moisture-sensor-on-esp32-connection-to-esphome-and-home-assistant/</loc>
+    <lastmod>2026-09-13</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/zigbee-irrigation-valve-home-assistant-growerhub/</loc>
+    <lastmod>2026-09-13</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/how-to-connect-a-zigbee-temperature-and-humidity-sensor-step-by-step-check/</loc>
     <lastmod>2026-08-16</lastmod>
   </url>
   <url>
@@ -362,10 +374,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/zigbee-device-does-not-connect-or-is-missing-diagnostics-step-by-step/</loc>
-    <lastmod>2026-08-16</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/zigbee-irrigation-valve-home-assistant-growerhub/</loc>
     <lastmod>2026-08-16</lastmod>
   </url>
   <url>
@@ -393,14 +401,6 @@
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/en/articles/zigbee2mqtt-compatibility-exposes-availability-and-device-capabilities/</loc>
-    <lastmod>2026-07-23</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/plant-dashboard-in-home-assistant-what-to-show-first/</loc>
-    <lastmod>2026-07-23</lastmod>
-  </url>
-  <url>
     <loc>https://growerhub.ru/en/articles/diy-or-ready-made-irrigation-controller-what-to-choose/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
@@ -410,14 +410,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/greenhouse-monitoring-quick-playbook/</loc>
-    <lastmod>2026-07-23</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/</loc>
-    <lastmod>2026-07-23</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/microclimate-history-and-charts-how-to-read-data-without-panic/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
@@ -445,6 +437,14 @@
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
+    <loc>https://growerhub.ru/en/articles/microclimate-history-and-charts-how-to-read-data-without-panic/</loc>
+    <lastmod>2026-07-23</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/mini-farm-alerts-emergencies-risks-and-maintenance/</loc>
+    <lastmod>2026-07-23</lastmod>
+  </url>
+  <url>
     <loc>https://growerhub.ru/en/articles/mini-farm-of-two-grow-boxes-how-to-organize-control-and-automation/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
@@ -453,11 +453,11 @@
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/en/articles/mqtt-for-automated-watering-topics-for-sensors-and-commands/</loc>
+    <loc>https://growerhub.ru/en/articles/mqtt-discovery-in-home-assistant-how-to-add-plant-sensors-without-manual-yaml/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/en/articles/mqtt-discovery-in-home-assistant-how-to-add-plant-sensors-without-manual-yaml/</loc>
+    <loc>https://growerhub.ru/en/articles/mqtt-for-automated-watering-topics-for-sensors-and-commands/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
@@ -474,6 +474,10 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/photo-growth-diary-how-to-compare-plants-week-by-week/</loc>
+    <lastmod>2026-07-23</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/plant-dashboard-in-home-assistant-what-to-show-first/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
@@ -497,10 +501,6 @@
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/en/articles/zigbee-device-roles-in-growerhub-coordinator-router-sensor-and-actuator/</loc>
-    <lastmod>2026-07-23</lastmod>
-  </url>
-  <url>
     <loc>https://growerhub.ru/en/articles/safe-automatic-watering-water-limits-pauses-and-emergency-stop/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
@@ -513,19 +513,11 @@
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/en/articles/mini-farm-alerts-emergencies-risks-and-maintenance/</loc>
-    <lastmod>2026-07-23</lastmod>
-  </url>
-  <url>
     <loc>https://growerhub.ru/en/articles/smart-watering-starter-kit-for-5-10-plants/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/smart-zigbee-socket-for-light-and-pump-capabilities-and-limitations/</loc>
-    <lastmod>2026-07-23</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/soil-moisture-sensor-on-esp32-connection-to-esphome-and-home-assistant/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
@@ -553,6 +545,10 @@
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
+    <loc>https://growerhub.ru/en/articles/zigbee-device-roles-in-growerhub-coordinator-router-sensor-and-actuator/</loc>
+    <lastmod>2026-07-23</lastmod>
+  </url>
+  <url>
     <loc>https://growerhub.ru/en/articles/zigbee-for-a-greenhouse-how-to-choose-sensors-relays-and-network-routers/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
@@ -562,6 +558,10 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/zigbee-or-wi-fi-sensors-for-plants-what-to-choose/</loc>
+    <lastmod>2026-07-23</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/zigbee2mqtt-compatibility-exposes-availability-and-device-capabilities/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>

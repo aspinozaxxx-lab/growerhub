@@ -16,6 +16,8 @@ import AppOverview from './AppOverview';
 
 const { openSensorStats } = vi.hoisted(() => ({ openSensorStats: vi.fn() }));
 
+vi.mock('../../features/auth/AuthContext', () => ({ useAuth: () => ({ demoActive: false }) }));
+
 vi.mock('../../api/selfService', () => ({
   fetchFarmsOverview: vi.fn(),
   fetchManualWateringGreenhouseStatistics: vi.fn(),

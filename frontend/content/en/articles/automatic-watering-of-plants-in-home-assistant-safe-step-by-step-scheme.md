@@ -4,7 +4,7 @@ slug: "home-assistant-plant-watering-safe-step-by-step-setup"
 title: "Plant watering in Home Assistant: a safe step-by-step setup"
 summary: "How to set up plant watering in Home Assistant with a calibrated sensor, explicit conditions, pump runtime limits, leak protection, and useful history."
 created_at: "2026-07-23"
-updated_at: "2026-08-16"
+updated_at: "2026-09-13"
 cluster: "home-assistant-i-diy"
 tags:
   - "GrowerHub"
@@ -28,6 +28,14 @@ hero_alt: "Home Assistant plant watering with a moisture sensor and safety condi
 Home Assistant can connect a soil-moisture sensor, a pump relay, leak detection, and a schedule. But “moisture below 40% — start the pump” is not yet a safe watering system. It needs a freshness check, bounded runtime, a recovery interval, and defined behavior after a fault.
 
 Begin with observation rather than automation. Water manually for several days, review the trend, and record the delivered volume. This establishes the operating range of your sensor, substrate, and pot instead of borrowing somebody else's threshold.
+
+## Try watering and history before connecting equipment
+
+[Open the GrowerHub demo](/app/demo/?lang=en), go to Manual watering, select a greenhouse and start a short one-minute cycle. When it finishes, open the watering journal from Overview. It shows duration, the completion reason and past sessions. Under Devices and environment, change soil moisture or trigger a virtual leak to inspect the scenario’s response.
+
+This is a server simulation in the regular application; it does not activate real pumps. Guest changes last 24 hours. Save the demo to an account to continue later. For an existing HA installation, follow the [MQTT connector guide](/articles/growerhub-i-home-assistant-cherez-mqtt/).
+
+![Watering journal in the GrowerHub demo with durations and completion reasons](/screenshots/en/demo-watering.webp)
 
 ## Minimum setup
 

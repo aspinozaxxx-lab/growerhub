@@ -49,7 +49,7 @@ const downloadTextFile = (name, content) => {
 
 function HelpLink({ step }) {
   return (
-    <p className="onboarding-help">{translateApp("Мы на связи и поможем на любом этапе подключения и настройки.")}{' '}
+    <p className="onboarding-help">{translateApp("Поможем подключить первый датчик. Напишите модель координатора, Windows или Linux и есть ли у вас Home Assistant.")}{' '}
       <TelegramContactLink placement={`onboarding_${step}`}>{translateApp("Помощь в Telegram")}</TelegramContactLink>
     </p>
   );
@@ -118,10 +118,12 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
       {connectionMode === CONNECTION_MODES.BRIDGE ? (
         <div className="onboarding-local-mqtt">
           <h3>{translateApp("Локальный MQTT")}</h3>
+          <p>{translateApp("Укажите адрес брокера, доступный компьютеру с connector, и mqtt.base_topic из вашей конфигурации Zigbee2MQTT. Для Home Assistant OS используйте адрес сервера в локальной сети.")}</p>
           <p>{translateApp("Эти значения используются только для создания файла в браузере и не отправляются GrowerHub.")}</p>
           <div className="onboarding-fields">
             <label>{translateApp("Адрес")}<input value={localMqtt.host} onChange={(event) => setLocalMqtt((value) => ({ ...value, host: event.target.value }))} placeholder="192.168.1.10" /></label>
             <label>{translateApp("Порт")}<input value={localMqtt.port} onChange={(event) => setLocalMqtt((value) => ({ ...value, port: event.target.value }))} inputMode="numeric" /></label>
+            <label>{translateApp("Базовая тема Zigbee2MQTT")}<input value={localMqtt.baseTopic ?? 'zigbee2mqtt'} onChange={(event) => setLocalMqtt((value) => ({ ...value, baseTopic: event.target.value }))} /></label>
             <label>{translateApp("Имя пользователя")}<input value={localMqtt.username} onChange={(event) => setLocalMqtt((value) => ({ ...value, username: event.target.value }))} autoComplete="off" /></label>
             <label>{translateApp("Пароль")}<input type="password" value={localMqtt.password} onChange={(event) => setLocalMqtt((value) => ({ ...value, password: event.target.value }))} autoComplete="new-password" /></label>
           </div>
@@ -135,7 +137,7 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
             <Button onClick={() => downloadTextFile('secret.yaml', setup.secret_yaml)}>{translateApp("Скачать secret.yaml")}</Button>
           </>
         ) : (
-          <Button variant="primary" onClick={() => downloadTextFile('bridge.conf', bridgeConfig)}>{translateApp("Скачать личный bridge.conf")}</Button>
+          <Button variant="primary" disabled={!bridgeConfig} onClick={() => downloadTextFile('bridge.conf', bridgeConfig)}>{translateApp("Скачать личный bridge.conf")}</Button>
         )}
         {platform !== SETUP_PLATFORMS.MANUAL ? (
           <a className="gh-btn gh-btn--secondary gh-btn--md" href={GITHUB_RELEASES_URL} target="_blank" rel="noreferrer">{translateApp("Открыть пакеты установки")}</a>
@@ -158,7 +160,7 @@ function AppOnboarding() {
   const [coordinatorName, setCoordinatorName] = useState(translateApp("Моя ферма"));
   const [connectionMode, setConnectionMode] = useState(CONNECTION_MODES.DIRECT);
   const [platform, setPlatform] = useState(SETUP_PLATFORMS.WINDOWS);
-  const [localMqtt, setLocalMqtt] = useState({ host: '', port: '1883', username: '', password: '' });
+  const [localMqtt, setLocalMqtt] = useState({ host: '', port: '1883', username: '', password: '', baseTopic: 'zigbee2mqtt' });
   const [zoneName, setZoneName] = useState(translateApp("Первая теплица"));
   const [temperatureChoice, setTemperatureChoice] = useState('');
   const [lightChoice, setLightChoice] = useState('');

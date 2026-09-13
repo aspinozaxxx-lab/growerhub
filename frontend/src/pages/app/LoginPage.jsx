@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/AuthContext';
 import FormField from '../../components/ui/FormField';
@@ -6,63 +6,55 @@ import Button from '../../components/ui/Button';
 import './LoginPage.css';
 import { getCurrentLocale, translateApp } from '../../locales/i18n';
 import { getPublicPath } from '../../domain/localizedRoutes';
+import { DEMO_PUBLIC_ENABLED } from '../../domain/siteConfig';
+import { trackProductGoal, trackProductGoalOnce } from '../../utils/analytics';
 import { buildSsoLoginUrl } from '../../features/auth/sso';
 
 function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const {
-    status,
+    accountStatus: status,
     error,
     loginWithPassword,
     clearError,
     consumeRedirectAfterLogin,
     setRedirectAfterLogin,
-    redirectAfterLogin,
   } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const queryRedirect = params.get('redirect');
-    const stateRedirect = location.state?.from?.pathname;
-    if (status === 'authorized' && location.pathname === '/app/login/' && !redirectAfterLogin && !queryRedirect && !stateRedirect) {
-      // Translitem: perebrosyvaem uzhe avtorizovannogo s login na glavnyj /app
-      navigate('/app/', { replace: true });
-    }
-  }, [status, location.pathname, location.search, location.state, redirectAfterLogin, navigate]);
+  const redirected = useRef(false);
+  const from = location.state?.from;
+  const requested = new URLSearchParams(location.search).get('redirect')
+    || (from?.pathname ? from.pathname + (from.search || '') : null);
+  const destination = requested?.startsWith('/app/') && !requested.includes('\\')
+    && !requested.startsWith('/app/login/') ? requested : null;
 
   useEffect(() => {
     clearError();
-    // pick redirect from query (?redirect=...) or location.state.from.pathname
-    const params = new URLSearchParams(location.search);
-    const queryRedirect = params.get('redirect');
-    const stateRedirect = location.state?.from?.pathname;
-    const candidate = queryRedirect || stateRedirect;
-    if (candidate && candidate.startsWith('/app')) {
-      setRedirectAfterLogin(candidate);
-    }
+    if (destination) setRedirectAfterLogin(destination);
+  }, [destination, setRedirectAfterLogin, clearError]);
 
-    if (status === 'authorized') {
-      const target = consumeRedirectAfterLogin();
-      navigate(target, { replace: true });
-    }
-  }, [status, consumeRedirectAfterLogin, navigate, location.search, location.state, setRedirectAfterLogin, clearError]);
+  useEffect(() => {
+    if (status !== 'authorized' || redirected.current) return;
+    redirected.current = true;
+    const stored = consumeRedirectAfterLogin();
+    navigate(destination || stored, { replace: true });
+  }, [status, destination, consumeRedirectAfterLogin, navigate]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     clearError();
-    const result = await loginWithPassword(email.trim(), password);
-    if (result?.success) {
-      const target = consumeRedirectAfterLogin();
-      navigate(target, { replace: true });
-    }
+    await loginWithPassword(email.trim(), password);
   };
 
+  useEffect(() => { trackProductGoalOnce('login_view', { placement: 'login' }); }, []);
+
   const handleSSO = (provider) => {
-    const target = consumeRedirectAfterLogin();
+    trackProductGoal('sso_start', { provider, mode: 'account' });
+    const target = destination || consumeRedirectAfterLogin();
     window.location.href = buildSsoLoginUrl(
       provider,
       target,
@@ -77,7 +69,8 @@ function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <h1>{translateApp("Начать работу с GrowerHub")}</h1>
-        <p className="login-intro">{translateApp("GrowerHub доступен бесплатно и без карты. После входа сразу перейдём к подключению Zigbee2MQTT.")}</p>
+        <p className="login-intro">{translateApp("GrowerHub доступен бесплатно и без карты. Войдите, чтобы подключить свои устройства или сохранить демоферму.")}</p>
+        {DEMO_PUBLIC_ENABLED ? <a className="demo-link" href="/app/demo/">{translateApp("Сначала попробовать демо без регистрации")}</a> : null}
         <div className="login-sso">
           <button type="button" className="login-sso__btn login-sso__btn--primary" onClick={() => handleSSO('yandex')}>{translateApp("Продолжить с Яндексом")}</button>
           <button type="button" className="login-sso__btn" onClick={() => handleSSO('google')}>{translateApp("Продолжить с Google")}</button>

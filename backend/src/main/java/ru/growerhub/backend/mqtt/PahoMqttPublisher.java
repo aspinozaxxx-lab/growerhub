@@ -13,6 +13,8 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.SmartLifecycle;
+import ru.growerhub.backend.device.DeviceFacade;
+import ru.growerhub.backend.zigbee.ZigbeeFacade;
 
 public class PahoMqttPublisher implements MqttPublisher, SmartLifecycle {
     private static final Logger logger = LoggerFactory.getLogger(PahoMqttPublisher.class);
@@ -21,6 +23,8 @@ public class PahoMqttPublisher implements MqttPublisher, SmartLifecycle {
     private final DebugSettings debugSettings;
     private final ObjectMapper objectMapper;
     private final MqttMessageLog messageLog;
+    private final DeviceFacade deviceFacade;
+    private final ZigbeeFacade zigbeeFacade;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private MqttClient client;
 
@@ -28,16 +32,21 @@ public class PahoMqttPublisher implements MqttPublisher, SmartLifecycle {
             MqttSettings settings,
             DebugSettings debugSettings,
             ObjectMapper objectMapper,
-            MqttMessageLog messageLog
+            MqttMessageLog messageLog,
+            DeviceFacade deviceFacade,
+            ZigbeeFacade zigbeeFacade
     ) {
         this.settings = settings;
         this.debugSettings = debugSettings;
         this.objectMapper = objectMapper;
         this.messageLog = messageLog;
+        this.deviceFacade = deviceFacade;
+        this.zigbeeFacade = zigbeeFacade;
     }
 
     @Override
     public void publishCmd(String deviceId, Object cmd) {
+        deviceFacade.requirePhysicalTarget(deviceId);
         if (!isRunning()) {
             throw new IllegalStateException("MQTT client is not connected");
         }
@@ -47,6 +56,11 @@ public class PahoMqttPublisher implements MqttPublisher, SmartLifecycle {
 
     @Override
     public void publishJson(String topic, Object payload, int qos, boolean retained) {
+        zigbeeFacade.requirePhysicalTopic(topic);
+        if (topic != null && topic.startsWith("gh/dev/")) {
+            String[] parts = topic.split("/");
+            if (parts.length > 2) deviceFacade.requirePhysicalTarget(parts[2]);
+        }
         if (!isRunning()) {
             throw new IllegalStateException("MQTT client is not connected");
         }

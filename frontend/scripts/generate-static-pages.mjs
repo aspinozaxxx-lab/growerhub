@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
+import { renderArticle } from '../node_modules/.cache/growerhub-render/entry-public-server.js';
 import { marked } from 'marked';
 import {
   articleClusters,
@@ -16,6 +17,7 @@ import {
 } from '../src/domain/localizedRoutes.js';
 import {
   DEFAULT_OG_IMAGE,
+  DEMO_PUBLIC_ENABLED,
   GITHUB_REPOSITORY_URL,
   ORGANIZATION_ID,
   PLATFORM_START_PATH,
@@ -142,7 +144,7 @@ const readArticles = (locale = 'ru') => fs.readdirSync(locale === 'en' ? EN_ARTI
       bodyHtml: canonicalizePublicLinksInHtml(marked.parse(body)),
     };
   })
-  .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+  .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at) || a.slug.localeCompare(b.slug));
 
 const extractHeadAssets = (template) => {
   const head = template.match(/<head>([\s\S]*?)<\/head>/)?.[1] || '';
@@ -248,6 +250,10 @@ const platformLink = (placement, label = null, className = 'hero-cta', locale = 
   return `<a class="${className}" href="${href}" data-platform-placement="${htmlEscape(placement)}">${htmlEscape(resolvedLabel)}</a>`;
 };
 
+const demoLink = (placement, locale = 'ru', className = 'hero-cta') => DEMO_PUBLIC_ENABLED
+  ? `<a class="${className}" href="/app/demo/?lang=${locale}" data-demo-placement="${htmlEscape(placement)}">${locale === 'en' ? 'Try the demo, no registration' : 'Попробовать демо без регистрации'}</a>`
+  : '';
+
 const leadCta = (
   placement,
   title = 'Начните с первого устройства',
@@ -260,8 +266,9 @@ const leadCta = (
           <p>${htmlEscape(text)}</p>
         </div>
         <div class="cta-row">
+          ${demoLink(placement + '_demo', locale)}
           ${platformLink(placement, null, 'hero-cta', locale)}
-          ${telegramLink(`${placement}_help`, locale === 'en' ? 'Telegram support' : 'Помощь в Telegram')}
+          ${telegramLink(`${placement}_help`, locale === 'en' ? 'Get help connecting your first sensor' : 'Поможем подключить первый датчик')}
         </div>
       </section>`;
 
@@ -283,6 +290,7 @@ const staticLayout = (mainHtml, locale = 'ru', canonical = null) => {
           <a class="nav-link" href="${getPublicPath('equipment', locale)}">${en ? 'Equipment' : 'Оборудование'}</a>
           <a class="nav-link" href="${getPublicPath('articles', locale)}">${en ? 'Guides' : 'Статьи'}</a>
           <a class="nav-link app-link" href="/app/?lang=${locale}">${en ? 'Sign in' : 'Вход'}</a>
+          ${demoLink('header_demo', locale, 'nav-link contact-link')}
           ${platformLink('header', null, 'nav-link contact-link', locale)}
           ${telegramLink('header_help', en ? 'Help' : 'Помощь', 'nav-link')}
           <a class="nav-link locale-switch" href="${htmlEscape(switchHref)}" hreflang="${en ? 'ru' : 'en'}">${en ? 'RU' : 'EN'}</a>
@@ -303,13 +311,13 @@ ${mainHtml}
 
 const pageShell = (template, meta, mainHtml, assets) => {
   const locale = meta.locale || (meta.canonical && new URL(meta.canonical).pathname.startsWith('/en/') ? 'en' : 'ru');
-  return replaceHtmlLang(
-    replaceRoot(
-      replaceHead(template, makeMetaHead({ ...meta, locale, assets })),
-      staticLayout(mainHtml, locale, meta.canonical),
-    ),
-    locale,
-  );
+  const content = meta.initialArticle
+    ? renderArticle(new URL(meta.canonical).pathname, locale, meta.initialArticle)
+    : staticLayout(mainHtml, locale, meta.canonical);
+  const page = replaceHtmlLang(replaceRoot(replaceHead(template, makeMetaHead({ ...meta, locale, assets })), content), locale);
+  return meta.initialArticle
+    ? page.replace('<div id="root">', '<div id="root" data-react-ssr="1">').replace('</body>', pageDataScript(meta.initialArticle) + '\n</body>')
+    : page;
 };
 
 const appShell = (template, meta, assets) => replaceHtmlLang(
@@ -320,9 +328,9 @@ const appShell = (template, meta, assets) => replaceHtmlLang(
   meta.locale || 'ru',
 );
 
-const formatDate = (date) => (date ? new Date(date).toLocaleDateString('ru-RU') : '');
+const formatDate = (date) => (date ? new Date(date).toLocaleDateString('ru-RU', { timeZone: 'UTC' }) : '');
 const formatLocalizedDate = (date, locale = 'ru') => (
-  date ? new Date(date).toLocaleDateString(locale === 'en' ? 'en-GB' : 'ru-RU') : ''
+  date ? new Date(date).toLocaleDateString(locale === 'en' ? 'en-GB' : 'ru-RU', { timeZone: 'UTC' }) : ''
 );
 
 const pageDataScript = (article) => {
@@ -408,18 +416,6 @@ const articleLd = (article, cluster) => ({
   publisher: organizationLd,
 });
 
-const articleEvidence = (locale = 'ru') => {
-  const en = locale === 'en';
-  return `
-          <aside class="info-block content-section">
-            <strong>${en ? 'GrowerHub editorial team' : 'Редакция GrowerHub'}</strong>
-            <p>${en
-    ? 'This guide is accompanied by a public development history and a clear account of operational data. It does not mean that we have tested every device mentioned.'
-    : 'Материал сопровождается публичной историей разработки и честным описанием эксплуатационных данных. Это не означает, что каждое упомянутое устройство проверено нами.'}</p>
-            <div class="cta-row"><a class="secondary-link" href="${getPublicPath('about', locale)}">${en ? 'How we substantiate our experience' : 'Как мы подтверждаем опыт'}</a><a class="secondary-link" href="${GITHUB_REPOSITORY_URL}" target="_blank" rel="noreferrer">${en ? 'Source code on GitHub' : 'Исходный код на GitHub'}</a></div>
-          </aside>`;
-};
-
 const collectionLd = (title, description, url, articles = []) => ({
   '@context': 'https://schema.org',
   '@type': 'CollectionPage',
@@ -433,40 +429,14 @@ const collectionLd = (title, description, url, articles = []) => ({
   })),
 });
 
-const renderArticlePage = (template, assets, article, articlesBySlug, clustersBySlug) => {
+const renderArticlePage = (template, assets, article, _articlesBySlug, clustersBySlug) => {
   const cluster = clustersBySlug.get(article.cluster);
-  const related = article.related.map((slug) => articlesBySlug.get(slug)).filter(Boolean).slice(0, 4);
   const canonical = toCanonicalUrl(`/articles/${article.slug}/`);
-  const heroInBody = article.hero_image && article.body.includes(`](${article.hero_image})`);
-  const mainHtml = `
-          <div class="article-meta">Обновлено ${htmlEscape(formatDate(article.updated_at))}</div>
-          <h1>${htmlEscape(article.title)}</h1>
-          <p class="article-lead">${htmlEscape(article.summary)}</p>
-          ${cluster ? `<p><a class="secondary-link" href="/articles/clusters/${htmlEscape(cluster.slug)}/">${htmlEscape(cluster.title)}</a></p>` : ''}
-          ${article.hero_image && !heroInBody ? `<img class="article-hero-image" src="${htmlEscape(article.hero_image)}" alt="${htmlEscape(article.hero_alt)}" />` : ''}
-          ${articleEvidence()}
-          <div class="article-body">
-${article.bodyHtml}
-          </div>
-          ${leadCta(
-    'article_bottom',
-    cluster?.guide.cta.title || 'Подключите устройство к GrowerHub',
-    cluster?.guide.cta.text || 'Войдите, настройте Zigbee2MQTT и увидьте метрики в кабинете. Если потребуется помощь, Telegram доступен на каждом шаге.',
-  )}
-          ${related.length ? `
-          <section class="related-articles">
-            <h2>Читайте также</h2>
-            <div class="articles-list">
-${related.map(renderArticleCard).join('\n')}
-            </div>
-          </section>` : ''}
-          <div class="content-section"><a class="secondary-link" href="/articles/">Назад к статьям</a></div>
-          ${pageDataScript(article)}`;
-
   return pageShell(template, {
     title: `${article.title} - GrowerHub`,
     description: article.summary,
     canonical,
+    initialArticle: article,
     type: 'article',
     image: article.hero_image || DEFAULT_OG_IMAGE,
     jsonLd: [
@@ -478,7 +448,7 @@ ${related.map(renderArticleCard).join('\n')}
         { name: article.title, url: canonical },
       ]),
     ],
-  }, mainHtml, assets);
+  }, '', assets);
 };
 
 const renderArticlesIndex = (template, assets, articlesByCluster) => {
@@ -569,7 +539,7 @@ const renderHomePage = (
   articlesBySlug,
 ) => {
   const { hero, secondary, features } = homeContent;
-  const description = 'GrowerHub — платформа, в которой собран большой практический опыт автоматизации теплиц: Zigbee-устройства, зоны, история датчиков и сценарии управления.';
+  const description = homeContent.description;
   const mainHtml = `
           <div class="hero">
             <div>
@@ -577,18 +547,20 @@ const renderHomePage = (
               <h1>${htmlEscape(hero.title)}</h1>
               <p>${htmlEscape(hero.subtitle)}</p>
               <div class="cta-row">
-                ${platformLink('home_hero', SELF_SERVICE_PUBLIC_ENABLED ? hero.cta : 'Как начать')}
+                ${demoLink('home_hero_demo', 'ru')}
+                ${platformLink('home_hero', SELF_SERVICE_PUBLIC_ENABLED ? hero.cta : 'Как начать', 'secondary-link', 'ru')}
                 <a class="secondary-link" href="/kak-nachat/">Путь подключения</a>
               </div>
             </div>
-            <div class="card">
-              <h2>${htmlEscape(secondary.title)}</h2>
-              <p>${htmlEscape(secondary.text)}</p>
-              <div class="card-grid">
-${secondary.points.map((point) => `                <div class="info-block"><strong>${htmlEscape(point.title)}</strong><p>${htmlEscape(point.text)}</p></div>`).join('\n')}
-              </div>
-            </div>
+            <figure class="hero-product-preview">
+              <img src="${hero.preview_image}" srcset="${hero.preview_image.replace('.webp', '-640.webp')} 640w, ${hero.preview_image} 1280w" sizes="(max-width: 800px) 100vw, 50vw" width="1280" height="720" fetchpriority="high" alt="${htmlEscape(hero.preview_alt)}" />
+              <figcaption>${htmlEscape(hero.preview_caption)}</figcaption>
+            </figure>
           </div>
+          <section class="content-section">
+            <h2>${htmlEscape(secondary.title)}</h2><p>${htmlEscape(secondary.text)}</p>
+            <div class="card-grid">${secondary.points.map((point) => `<div class="info-block"><strong>${htmlEscape(point.title)}</strong><p>${htmlEscape(point.text)}</p></div>`).join('')}</div>
+          </section>
           <section class="content-section">
             <h2>${htmlEscape(features.title)}</h2>
             <div class="card-grid">
@@ -629,7 +601,7 @@ ${articles.slice(0, 4).map(renderArticleCard).join('\n')}
           ${leadCta('home_bottom')}`;
 
   return pageShell(template, {
-    title: 'GrowerHub — платформа управления мини-фермой',
+    title: homeContent.title,
     description,
     canonical: HOME_URL,
     jsonLd: [
@@ -731,23 +703,23 @@ const renderAboutPage = (template, assets, aboutContent) => {
 
 const renderMiniFarmDemos = (screens) => `
           <section class="content-section" id="demo-ekrany">
-            <h2>Интерфейс на синтетических данных</h2>
-            <p>Все названия и значения вымышлены. На экранах нет реальных адресов, IEEE, логинов или данных доступа.</p>
+            <h2>Настоящее приложение с виртуальной фермой</h2>
+            <p>Эти экраны сняты в демоферме GrowerHub. Устройства и показания симулируются, а разделы управления, графики и сценарии — те же, что в вашей ферме.</p>
             <div class="demo-grid demo-grid--four">
               <figure class="demo-card">
-                <img class="product-screenshot" src="/screenshots/zones.png" alt="Обзор двух зон GrowerHub на синтетических данных" width="1010" height="520" loading="eager">
+                <img class="product-screenshot" src="/screenshots/zones.webp" alt="Четыре теплицы и состояние оборудования в обычном кабинете. Данные демо смоделированы." width="1280" height="720" loading="eager">
                 <figcaption><strong>${htmlEscape(screens[0].title)}</strong><span>${htmlEscape(screens[0].text)}</span></figcaption>
               </figure>
               <figure class="demo-card">
-                <img class="product-screenshot" src="/screenshots/history.png" alt="История температуры и влажности GrowerHub на синтетических данных" width="1010" height="520" loading="lazy">
+                <img class="product-screenshot" src="/screenshots/history.webp" alt="Семь дней температуры в общей панели истории. График из работающего симулятора." width="1280" height="720" loading="lazy">
                 <figcaption><strong>${htmlEscape(screens[1].title)}</strong><span>${htmlEscape(screens[1].text)}</span></figcaption>
               </figure>
               <figure class="demo-card">
-                <img class="product-screenshot" src="/screenshots/connection.png" alt="Подключение Zigbee-координатора GrowerHub на синтетических данных" width="1010" height="520" loading="lazy">
+                <img class="product-screenshot" src="/screenshots/connection.webp" alt="Виртуальные контроллеры и Zigbee-устройства в общем списке оборудования." width="1280" height="720" loading="lazy">
                 <figcaption><strong>${htmlEscape(screens[2].title)}</strong><span>${htmlEscape(screens[2].text)}</span></figcaption>
               </figure>
               <figure class="demo-card">
-                <img class="product-screenshot" src="/screenshots/automation.png" alt="Автоматизации GrowerHub на синтетических данных" width="1010" height="520" loading="lazy">
+                <img class="product-screenshot" src="/screenshots/automation.webp" alt="Настройки света, климата и полива в тех же формах, что у реальной фермы." width="1280" height="720" loading="lazy">
                 <figcaption><strong>${htmlEscape(screens[3].title)}</strong><span>${htmlEscape(screens[3].text)}</span></figcaption>
               </figure>
             </div>
@@ -808,16 +780,17 @@ const renderGettingStartedPage = (template, assets, platformContent) => {
             <div><div class="badge">Самостоятельный запуск</div><h1>${htmlEscape(start.title)}</h1><p>${htmlEscape(start.intro)}</p>${leadCta('getting_started_hero')}</div>
             <aside class="landing-summary"><strong>Ранний доступ открыт</strong><p>${htmlEscape(earlyAccessText)}</p></aside>
           </section>
+          <section class="content-section"><h2>${htmlEscape(start.paths_title)}</h2><div class="card-grid">${start.paths.filter((item) => !item.demo || DEMO_PUBLIC_ENABLED).map((item) => `<article class="card"><h3><a href="${htmlEscape(item.href)}">${htmlEscape(item.title)}</a></h3><p>${htmlEscape(item.text)}</p></article>`).join('')}</div></section>
           <section class="content-section"><h2>Семь коротких шагов</h2><ol class="steps-list">${start.steps.map((step) => `<li><strong>${htmlEscape(step.title)}</strong><span>${htmlEscape(step.text)}</span></li>`).join('')}</ol></section>
           <section class="content-section split-section">
             <div><h2>${htmlEscape(minimum.title)}</h2><div class="info-grid"><div class="info-block"><h3>Только мониторинг</h3><p>${htmlEscape(minimum.monitoring)}</p></div><div class="info-block"><h3>Управление</h3><p>${htmlEscape(minimum.control)}</p></div></div></div>
             <div class="info-block"><h2>Уже есть Home Assistant?</h2><p>${htmlEscape(minimum.existing)}</p><a class="secondary-link" href="/oborudovanie/zigbee-koordinator/">Проверить оборудование</a></div>
           </section>
-          <section class="content-section"><h2>Поможем с подключением и настройкой</h2><p>Если что-то не подключается или хочется быстрее разобраться с функцией, напишите нам в Telegram. Команда GrowerHub поможет на любом этапе.</p>${telegramLink('getting_started_help')}</section>
+          <section class="content-section"><h2>Поможем с подключением и настройкой</h2><p>${htmlEscape(start.help)}</p>${telegramLink('getting_started_help')}</section>
           ${leadCta('getting_started_bottom')}`;
 
   return pageShell(template, {
-    title: `${start.title} — подключение Zigbee2MQTT`,
+    title: `${start.title} — Zigbee2MQTT`,
     description: start.description,
     canonical,
     jsonLd: [
@@ -985,8 +958,8 @@ const renderLegalPage = (template, assets, legal, type) => {
   const mainHtml = ready ? `
           <h1>${htmlEscape(title)}</h1><p>Оператор: ${htmlEscape(legal.operator_name)}. Контакт: ${htmlEscape(legal.operator_contact)}.</p>
           ${isPrivacy
-    ? '<h2>Какие данные обрабатываются</h2><p>Адрес электронной почты и идентификатор выбранного способа входа, технические данные подключений и устройств, события безопасности, настройки зон и автоматизаций.</p><h2>Для чего</h2><p>Для входа, работы платформы, защиты пользовательского пространства, диагностики и поддержки по обращению пользователя.</p><h2>Секреты подключения</h2><p>Одноразовый MQTT-пароль показывается при создании или ротации и не хранится в базе GrowerHub в открытом виде. Локальные данные доступа Home Assistant вводятся только в браузере для скачиваемого файла.</p><h2>Веб-аналитика</h2><p>Яндекс Метрика и Google Analytics 4 помогают понимать посещаемость и этапы запуска платформы. В события передаются адрес страницы, язык интерфейса и неперсональные параметры сценария. Email, внутренние идентификаторы, IEEE и реквизиты MQTT в аналитику не передаются.</p><h2>Обращения</h2><p>По вопросам данных и удаления аккаунта используйте доменный контакт оператора.</p>'
-    : '<h2>Ранний доступ</h2><p>GrowerHub доступен бесплатно и без карты. Основные функции уже работают, а каталог устройств и сценариев постоянно расширяется. О важных изменениях сообщим заранее.</p><h2>Подключение оборудования</h2><p>Для оборудования с водой и сетевым питанием соблюдайте электробезопасность, проверяйте нагрузку и предусмотрите физическое аварийное отключение.</p><h2>Поддержка</h2><p>Если понадобится помощь, напишите нам в Telegram — подскажем с подключением, устройствами и настройкой функций.</p>'}` : `
+    ? '<h2>Какие данные обрабатываются</h2><p>Адрес электронной почты и идентификатор выбранного способа входа, технические данные подключений и устройств, события безопасности, настройки зон и автоматизаций.</p><h2>Для чего</h2><p>Для входа, работы платформы, защиты пользовательского пространства, диагностики и поддержки по обращению пользователя.</p><h2>Секреты подключения</h2><p>Одноразовый MQTT-пароль показывается при создании или ротации и не хранится в базе GrowerHub в открытом виде. Локальные данные доступа Home Assistant вводятся только в браузере для скачиваемого файла.</p><h2>Веб-аналитика</h2><p>Яндекс Метрика и Google Analytics 4 помогают понимать посещаемость и этапы запуска платформы. В события передаются адрес страницы, язык интерфейса и неперсональные параметры сценария. Email, внутренние идентификаторы, IEEE и реквизиты MQTT в аналитику не передаются.</p><h2>Обращения</h2><p>По вопросам данных и удаления аккаунта используйте контакт оператора.</p>'
+    : '<h2>Ранний доступ</h2><p>GrowerHub доступен бесплатно и без карты. Основные функции уже работают, а каталог устройств и сценариев постоянно расширяется. О важных изменениях сообщим заранее.</p><h2>Подключение оборудования</h2><p>Для оборудования с водой и сетевым питанием соблюдайте электробезопасность, проверяйте нагрузку и предусмотрите физическое аварийное отключение.</p><h2>Поддержка</h2><p>Если понадобится помощь, напишите нам в Telegram — подскажем с подключением, устройствами и настройкой функций на русском или английском.</p>'}` : `
           <div class="badge">Информация обновляется</div><h1>${htmlEscape(title)}</h1><p>Мы обновляем эту страницу. Если у вас есть вопрос о GrowerHub или работе с данными, напишите команде в Telegram.</p>`;
 
   return pageShell(template, {
@@ -994,7 +967,7 @@ const renderLegalPage = (template, assets, legal, type) => {
     description: `${title} для пользователей платформы GrowerHub.`,
     canonical: toCanonicalUrl(routePath),
     robots: 'noindex,follow',
-  }, mainHtml, assets);
+  }, mainHtml + (ready ? `<h2>${htmlEscape((isPrivacy ? legal.demo_privacy : legal.demo_terms).title)}</h2><p>${htmlEscape((isPrivacy ? legal.demo_privacy : legal.demo_terms).text)}</p>` : ''), assets);
 };
 
 const renderEnglishArticleCard = (article) => `
@@ -1039,47 +1012,17 @@ const renderEnglishArticlePage = (
   template,
   assets,
   article,
-  articlesById,
+  _articlesById,
   clustersById,
 ) => {
   const cluster = clustersById.get(article.cluster);
-  const related = article.related
-    .map((id) => articlesById.get(id))
-    .filter(Boolean)
-    .slice(0, 4);
   const articlePath = getArticlePath(article, 'en');
   const canonical = toCanonicalUrl(articlePath);
-  const heroInBody = article.hero_image && article.body.includes(`](${article.hero_image})`);
-  const mainHtml = `
-          <div class="article-meta">Updated ${htmlEscape(formatLocalizedDate(article.updated_at, 'en'))}</div>
-          <h1>${htmlEscape(article.title)}</h1>
-          <p class="article-lead">${htmlEscape(article.summary)}</p>
-          ${cluster ? `<p><a class="secondary-link" href="${htmlEscape(getClusterPath(cluster, 'en'))}">${htmlEscape(cluster.title)}</a></p>` : ''}
-          ${article.hero_image && !heroInBody ? `<img class="article-hero-image" src="${htmlEscape(article.hero_image)}" alt="${htmlEscape(article.hero_alt)}" />` : ''}
-          ${articleEvidence('en')}
-          <div class="article-body">
-${article.bodyHtml}
-          </div>
-          ${leadCta(
-    'article_bottom',
-    cluster?.guide.cta.title || 'Connect a device to GrowerHub',
-    cluster?.guide.cta.text || 'Sign in, connect Zigbee2MQTT, and see device metrics in one dashboard. If you need help, message us in Telegram in Russian or English.',
-    'en',
-  )}
-          ${related.length ? `
-          <section class="related-articles">
-            <h2>Related guides</h2>
-            <div class="articles-list">
-${related.map(renderEnglishArticleCard).join('\n')}
-            </div>
-          </section>` : ''}
-          <div class="content-section"><a class="secondary-link" href="${getPublicPath('articles', 'en')}">Back to guides</a></div>
-          ${pageDataScript(article)}`;
-
   return pageShell(template, {
     title: `${article.title} — GrowerHub`,
     description: article.summary,
     canonical,
+    initialArticle: article,
     type: 'article',
     image: article.hero_image || DEFAULT_OG_IMAGE,
     locale: 'en',
@@ -1095,7 +1038,7 @@ ${related.map(renderEnglishArticleCard).join('\n')}
         { name: article.title, url: canonical },
       ]),
     ],
-  }, mainHtml, assets);
+  }, '', assets);
 };
 
 const renderEnglishArticlesIndex = (template, assets, clusters, articlesByCluster) => {
@@ -1203,7 +1146,7 @@ const renderEnglishHomePage = (
   const { hero, secondary, features } = homeContent;
   const routePath = getPublicPath('home', 'en');
   const canonical = toCanonicalUrl(routePath);
-  const description = 'GrowerHub brings practical greenhouse automation experience into one platform for Zigbee devices, zones, sensor history, and safe control scenarios.';
+  const description = homeContent.description;
   const mainHtml = `
           <div class="hero">
             <div>
@@ -1211,18 +1154,20 @@ const renderEnglishHomePage = (
               <h1>${htmlEscape(hero.title)}</h1>
               <p>${htmlEscape(hero.subtitle)}</p>
               <div class="cta-row">
-                ${platformLink('home_hero', SELF_SERVICE_PUBLIC_ENABLED ? hero.cta : 'Getting started', 'hero-cta', 'en')}
-                <a class="secondary-link" href="${getPublicPath('gettingStarted', 'en')}">Setup path</a>
+                ${demoLink('home_hero_demo', 'en')}
+                ${platformLink('home_hero', SELF_SERVICE_PUBLIC_ENABLED ? hero.cta : 'Getting started', 'secondary-link', 'en')}
+                <a class="secondary-link" href="${getPublicPath('gettingStarted', 'en')}">Connection guide</a>
               </div>
             </div>
-            <div class="card">
-              <h2>${htmlEscape(secondary.title)}</h2>
-              <p>${htmlEscape(secondary.text)}</p>
-              <div class="card-grid">
-${secondary.points.map((point) => `                <div class="info-block"><strong>${htmlEscape(point.title)}</strong><p>${htmlEscape(point.text)}</p></div>`).join('\n')}
-              </div>
-            </div>
+            <figure class="hero-product-preview">
+              <img src="${hero.preview_image}" srcset="${hero.preview_image.replace('.webp', '-640.webp')} 640w, ${hero.preview_image} 1280w" sizes="(max-width: 800px) 100vw, 50vw" width="1280" height="720" fetchpriority="high" alt="${htmlEscape(hero.preview_alt)}" />
+              <figcaption>${htmlEscape(hero.preview_caption)}</figcaption>
+            </figure>
           </div>
+          <section class="content-section">
+            <h2>${htmlEscape(secondary.title)}</h2><p>${htmlEscape(secondary.text)}</p>
+            <div class="card-grid">${secondary.points.map((point) => `<div class="info-block"><strong>${htmlEscape(point.title)}</strong><p>${htmlEscape(point.text)}</p></div>`).join('')}</div>
+          </section>
           <section class="content-section">
             <h2>${htmlEscape(features.title)}</h2>
             <div class="card-grid">
@@ -1232,7 +1177,7 @@ ${features.items.map((item) => `              <div class="card"><h3>${htmlEscape
           <section class="content-section early-access-note">
             <h2>Extensive automation experience in one platform</h2>
             <p>${htmlEscape(homeContent.early_access)}</p>
-            <div class="cta-row"><a class="secondary-link" href="${getPublicPath('equipment', 'en')}">Choose equipment</a><a class="secondary-link" href="${getPublicPath('farmAutomation', 'en')}">Explore platform features</a></div>
+            <div class="cta-row"><a class="secondary-link" href="${getPublicPath('equipment', 'en')}">Choose suitable equipment</a><a class="secondary-link" href="${getPublicPath('farmAutomation', 'en')}">Platform capabilities</a></div>
           </section>
           <section class="content-section">
             <div class="cluster-block__header"><div><h2>${htmlEscape(aboutContent.evidence.title)}</h2><p>${htmlEscape(aboutContent.evidence.intro)}</p></div><a class="secondary-link" href="${getPublicPath('about', 'en')}">History and methodology</a></div>
@@ -1242,7 +1187,7 @@ ${aboutContent.evidence.facts.slice(0, 3).map((fact) => `              <article 
             <p class="source-links"><a href="${GITHUB_REPOSITORY_URL}" target="_blank" rel="noreferrer">Open the code on GitHub and support the project with a star</a></p>
           </section>
           <section class="content-section">
-            <h2>Practical sections</h2>
+            <h2>Practical topics</h2>
             <div class="cluster-home-grid">
 ${clusters.map((cluster) => {
     const featured = cluster.featuredArticles
@@ -1258,7 +1203,7 @@ ${clusters.map((cluster) => {
             </div>
           </section>
           <section class="content-section">
-            <div class="cluster-block__header"><div><h2>Recent guides</h2><p>Step-by-step Zigbee, Home Assistant, sensor, and safe irrigation guides.</p></div><a class="secondary-link" href="${getPublicPath('articles', 'en')}">All guides</a></div>
+            <div class="cluster-block__header"><div><h2>Latest guides</h2><p>Step-by-step guides to Zigbee, Home Assistant, sensors and safe irrigation.</p></div><a class="secondary-link" href="${getPublicPath('articles', 'en')}">All guides</a></div>
             <div class="articles-list">
 ${articles.slice(0, 4).map(renderEnglishArticleCard).join('\n')}
             </div>
@@ -1266,12 +1211,12 @@ ${articles.slice(0, 4).map(renderEnglishArticleCard).join('\n')}
           ${leadCta(
     'home_bottom',
     'Start with your first device',
-    'Connect Zigbee2MQTT, discover your devices, and create the first zone. GrowerHub is free to use in early access.',
+    'Sign in, connect Zigbee2MQTT and create your first zone. GrowerHub is free to use and does not require a card.',
     'en',
   )}`;
 
   return pageShell(template, {
-    title: 'GrowerHub — small-farm management platform',
+    title: homeContent.title,
     description,
     canonical,
     locale: 'en',
@@ -1355,7 +1300,7 @@ const renderEnglishMiniFarmPage = (template, assets, data) => {
           <section class="content-section"><h2>Farm tasks in one dashboard</h2><div class="card-grid">${data.tasks.map((item) => `<article class="card"><h3>${htmlEscape(item.title)}</h3><p>${htmlEscape(item.text)}</p></article>`).join('')}</div></section>
           <section class="content-section split-section"><div><h2>Platform features</h2><ul class="check-list">${data.capabilities.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></div><div class="info-block"><h2>${htmlEscape(data.compatibility.title)}</h2><p>${htmlEscape(data.compatibility.text)}</p><a class="secondary-link" href="${getPublicPath('equipment', 'en')}">Choose equipment</a></div></section>
           <section class="content-section"><h2>From sign-in to dashboard</h2><ol class="steps-list">${data.stages.map((step) => `<li><strong>${htmlEscape(step.title)}</strong><span>${htmlEscape(step.text)}</span></li>`).join('')}</ol></section>
-          <section class="content-section"><h2>GrowerHub interface</h2><div class="demo-grid">${data.screens.map((screen, index) => `<figure class="demo-card"><img src="/screenshots/en/${screenFiles[index]}.png" alt="${htmlEscape(screen.title)} — synthetic GrowerHub interface" width="1440" height="900" loading="lazy" decoding="async" /><figcaption><strong>${htmlEscape(screen.title)}</strong><span>${htmlEscape(screen.text)}</span></figcaption></figure>`).join('')}</div></section>
+          <section class="content-section" id="demo-ekrany"><h2>The real app with a virtual farm</h2><p>These screens were captured in a GrowerHub demo farm. Devices and readings are simulated; management screens, charts and scenarios are shared with your own farm.</p><div class="demo-grid demo-grid--four">${data.screens.map((screen, index) => `<figure class="demo-card"><img class="product-screenshot" src="/screenshots/en/${screenFiles[index]}.webp" alt="${htmlEscape(screen.text)}" width="1280" height="720" loading="${index === 0 ? 'eager' : 'lazy'}" /><figcaption><strong>${htmlEscape(screen.title)}</strong><span>${htmlEscape(screen.text)}</span></figcaption></figure>`).join('')}</div></section>
           <section class="content-section"><h2>Clear and safe boundaries</h2><ul class="check-list limitations-list">${data.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></section>
           ${leadCta(
     'farm_bottom',
@@ -1395,14 +1340,15 @@ const renderEnglishGettingStartedPage = (template, assets, data) => {
       ]),
     ],
   }, `
-          <section class="landing-hero"><div><div class="badge">Self-service setup</div><h1>${htmlEscape(start.title)}</h1><p>${htmlEscape(start.intro)}</p>${leadCta('getting_started_hero', 'Start with your first device', 'Sign in, connect Zigbee2MQTT, and create your first zone.', 'en')}</div><aside class="landing-summary"><strong>Early access is open</strong><p>${htmlEscape(earlyAccessText)}</p></aside></section>
+          <section class="landing-hero"><div><div class="badge">Self-service setup</div><h1>${htmlEscape(start.title)}</h1><p>${htmlEscape(start.intro)}</p>${leadCta('getting_started_hero', 'Start with your first device', 'Sign in, connect Zigbee2MQTT and create your first zone. GrowerHub is free to use and does not require a card.', 'en')}</div><aside class="landing-summary"><strong>Early access is open</strong><p>${htmlEscape(earlyAccessText)}</p></aside></section>
+          <section class="content-section"><h2>${htmlEscape(start.paths_title)}</h2><div class="card-grid">${start.paths.filter((item) => !item.demo || DEMO_PUBLIC_ENABLED).map((item) => `<article class="card"><h3><a href="${htmlEscape(item.href)}">${htmlEscape(item.title)}</a></h3><p>${htmlEscape(item.text)}</p></article>`).join('')}</div></section>
           <section class="content-section"><h2>Seven short steps</h2><ol class="steps-list">${start.steps.map((step) => `<li><strong>${htmlEscape(step.title)}</strong><span>${htmlEscape(step.text)}</span></li>`).join('')}</ol></section>
           <section class="content-section split-section"><div><h2>${htmlEscape(minimum.title)}</h2><div class="info-grid"><div class="info-block"><h3>Monitoring only</h3><p>${htmlEscape(minimum.monitoring)}</p></div><div class="info-block"><h3>Control</h3><p>${htmlEscape(minimum.control)}</p></div></div></div><div class="info-block"><h2>Already using Home Assistant?</h2><p>${htmlEscape(minimum.existing)}</p><a class="secondary-link" href="${getPublicPath('equipmentCoordinators', 'en')}">Check equipment</a></div></section>
-          <section class="content-section"><h2>We can help with setup</h2><p>If something does not connect or you want to understand a feature faster, message us in Telegram. The GrowerHub team can help at any stage in Russian or English.</p>${telegramLink('getting_started_help', 'Telegram support')}</section>
+          <section class="content-section"><h2>We can help with connection and setup</h2><p>${htmlEscape(start.help)}</p>${telegramLink('getting_started_help', 'Telegram support')}</section>
           ${leadCta(
     'getting_started_bottom',
     'Start with your first device',
-    'Connect your equipment independently and build the first zone at your own pace.',
+    'Sign in, connect Zigbee2MQTT and create your first zone. GrowerHub is free to use and does not require a card.',
     'en',
   )}`, assets);
 };
@@ -1593,7 +1539,7 @@ const renderEnglishLegalPage = (template, assets, legal, type) => {
     canonical,
     robots: 'noindex,follow',
     locale: 'en',
-  }, body, assets);
+  }, body + `<h2>${htmlEscape((privacy ? legal.demo_privacy : legal.demo_terms).title)}</h2><p>${htmlEscape((privacy ? legal.demo_privacy : legal.demo_terms).text)}</p>`, assets);
 };
 
 const renderEnglish404 = (template, assets) => pageShell(template, {

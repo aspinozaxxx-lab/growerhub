@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "prepare:content": "node scripts/generate-article-metadata.mjs",
-    "build": "npm run prepare:content && vite build && node scripts/generate-static-pages.mjs",
+    "build": "npm run prepare:content && vite build && vite build --ssr src/entry-public-server.jsx --outDir node_modules/.cache/growerhub-render && node scripts/generate-static-pages.mjs",
     "capture:screenshots": "node scripts/capture-product-screenshots.mjs",
     "auth:google": "node scripts/authorize-google.mjs",
     "audit:seo:google": "node scripts/audit-seo-google.mjs",
@@ -41,6 +41,7 @@
     "globals": "^16.5.0",
     "jsdom": "^27.0.1",
     "playwright-core": "^1.61.1",
+    "sharp": "^0.35.4",
     "vite": "^7.2.4",
     "vitest": "^3.2.4"
   }

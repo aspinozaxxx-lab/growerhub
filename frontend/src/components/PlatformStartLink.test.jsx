@@ -3,6 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import PlatformStartLink from './PlatformStartLink';
+import { SELF_SERVICE_PUBLIC_ENABLED } from '../domain/siteConfig';
 
 const authState = vi.hoisted(() => ({
   current: { status: 'unauthorized', user: null },
@@ -45,13 +46,13 @@ describe('PlatformStartLink', () => {
       .toHaveAttribute('href', '/app/onboarding/');
   });
 
-  it('ne pokazyvaet nevernyj CTA poka sessija zagruzhaetsja', () => {
+  it('sohranyaet publichnyj CTA do vosstanovleniya sessii dlya sovpadeniya SSR', () => {
     authState.current = { status: 'loading', user: null };
     const { container } = render(
       <MemoryRouter>
         <PlatformStartLink placement="test" />
       </MemoryRouter>,
     );
-    expect(container).toBeEmptyDOMElement();
+    expect(container.querySelector('a')).toHaveAttribute('href', SELF_SERVICE_PUBLIC_ENABLED ? '/app/login/?lang=ru&redirect=%2Fapp%2Fonboarding%2F' : '/kak-nachat/');
   });
 });

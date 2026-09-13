@@ -783,3 +783,7 @@ main {
     grid-template-columns: 1fr;
   }
 }
+
+.hero-product-preview { margin: 0; min-width: 0; }
+.hero-product-preview img { width: 100%; height: auto; display: block; border: 1px solid #dbe5df; border-radius: 14px; box-shadow: 0 14px 32px #17342612; }
+.hero-product-preview figcaption { padding-top: 12px; color: #617568; font-size: 13px; line-height: 1.5; }

@@ -23,6 +23,17 @@ import ru.growerhub.backend.zigbee.contract.ZigbeeCoordinatorStatus;
         }
 )
 public class ZigbeeCoordinatorEntity {
+    @org.hibernate.annotations.ColumnDefault("'PHYSICAL'")
+    @Column(name = "execution_kind", nullable = false)
+    private String executionKind = "PHYSICAL";
+
+    public boolean isSimulated() { return "SIMULATED".equals(executionKind); }
+
+    public void initializeSimulation() {
+        if (id != null) throw new IllegalStateException("Persisted transport is immutable");
+        executionKind = "SIMULATED";
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)

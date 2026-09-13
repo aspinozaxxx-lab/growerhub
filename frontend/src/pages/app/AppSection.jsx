@@ -9,6 +9,9 @@ import NotFoundPage from '../NotFoundPage';
 import LoginPage from './LoginPage';
 import { translateApp } from '../../locales/i18n';
 import { LEGACY_APP_REDIRECTS } from './appNavigation';
+import { useAuth } from '../../features/auth/AuthContext';
+import AppDemo from './AppDemo';
+const AppDemoTools = lazy(() => import('./AppDemoTools'));
 
 const AppOverview = lazy(() => import('./AppOverview'));
 const SensorStatsSidebar = lazy(() => import('../../features/sensors/SensorStatsSidebar'));
@@ -34,9 +37,10 @@ const AdminUsers = lazy(() => import('./admin/AdminUsers'));
 const AdminZigbee = lazy(() => import('./admin/AdminZigbee'));
 
 function ProtectedAppLayout() {
+  const { sessionKey } = useAuth();
   return (
     <RequireAuth>
-      <WateringSidebarProvider>
+      <WateringSidebarProvider key={sessionKey}>
         <SensorStatsProvider>
           <AppLayout />
           <SensorStatsSidebar />
@@ -48,13 +52,16 @@ function ProtectedAppLayout() {
 }
 
 function AppSection() {
+  const { demoActive } = useAuth();
   return (
     <Suspense fallback={<div className="app-loading">{translateApp("Загружаем раздел…")}</div>}>
         <Routes>
           <Route path="login/" element={<LoginPage />} />
+          <Route path="demo/" element={<AppDemo />} />
           <Route element={<ProtectedAppLayout />}>
             <Route index element={<AppOverview />} />
-            <Route path="onboarding/" element={<AppOnboarding />} />
+            <Route path="onboarding/" element={demoActive ? <Navigate to="/app/" replace /> : <AppOnboarding />} />
+            <Route path="demo-tools/" element={<AppDemoTools />} />
             <Route path="farm/" element={<FarmConstructor />} />
             <Route path="manual-watering/" element={<AppManualWatering />} />
             <Route path="automations/" element={<AppAutomations />} />
@@ -62,10 +69,10 @@ function AppSection() {
             <Route path="plants/:plantId/journal/" element={<AppPlantJournal />} />
             <Route path="settings/" element={<AppSettings />}>
               <Route index element={<Navigate to="connections/" replace />} />
-              <Route path="connections/" element={<AppConnections />} />
+              <Route path="connections/" element={demoActive ? <Navigate to="/app/demo-tools/" replace /> : <AppConnections />} />
               <Route path="zones/" element={<FarmZonesSettings />} />
               <Route path="devices/" element={<AppDevices />} />
-              <Route path="profile/" element={<AppProfile />} />
+              <Route path="profile/" element={demoActive ? <Navigate to="/app/demo-tools/" replace /> : <AppProfile />} />
             </Route>
             {Object.entries(LEGACY_APP_REDIRECTS).map(([source, target]) => (
               <Route

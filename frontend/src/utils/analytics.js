@@ -3,6 +3,7 @@ import {
   METRIKA_ID,
 } from '../domain/siteConfig';
 import { getCurrentLocale } from '../locales/i18n';
+import { getAuthMode } from '../api/client';
 
 const METRIKA_SCRIPT_ID = 'yandex-metrika-script';
 const GOOGLE_ANALYTICS_SCRIPT_ID = 'google-analytics-script';
@@ -68,7 +69,9 @@ const initGoogleAnalytics = () => {
   }
 };
 
-export const initAnalytics = () => {
+export const initAnalytics = ({ enabled = typeof window !== 'undefined'
+  && !['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname) } = {}) => {
+  if (!enabled) return;
   initMetrika();
   initGoogleAnalytics();
 };
@@ -80,12 +83,21 @@ export const trackTelegramContact = (placement) => {
 const PRODUCT_GOALS = new Set([
   'platform_start',
   'signup_complete',
+  'login_view',
+  'sso_start',
   'coordinator_created',
   'coordinator_connected',
   'first_device_seen',
   'zone_created',
   'automation_enabled',
   'telegram_contact',
+  'demo_open',
+  'demo_ready',
+  'demo_action',
+  'demo_save',
+  'demo_reset',
+  'demo_exit',
+  'demo_real_setup_start',
 ]);
 
 const ALLOWED_GOAL_PARAMS = new Set([
@@ -93,8 +105,11 @@ const ALLOWED_GOAL_PARAMS = new Set([
   'page_path',
   'step',
   'connection_mode',
+  'provider',
   'scenario_type',
   'locale',
+  'action',
+  'mode',
 ]);
 
 export const trackProductGoal = (goal, params = {}) => {
@@ -102,7 +117,10 @@ export const trackProductGoal = (goal, params = {}) => {
     return false;
   }
 
+  const mode = getAuthMode();
+  if (mode === 'demo' && ['coordinator_created', 'coordinator_connected', 'first_device_seen', 'zone_created', 'automation_enabled'].includes(goal)) return false;
   const safeParams = {
+    mode,
     page_path: window.location.pathname,
     locale: getCurrentLocale(),
   };
@@ -134,6 +152,7 @@ export const trackPageView = ({ url, referer, title }) => {
     window.ym(METRIKA_ID, 'hit', url, {
       referer,
       title,
+      params: { mode: getAuthMode() },
     });
     sent = true;
   }
@@ -141,6 +160,7 @@ export const trackPageView = ({ url, referer, title }) => {
     const googleParams = {
       page_location: url,
       page_title: title,
+      mode: getAuthMode(),
     };
     if (referer) googleParams.page_referrer = referer;
     window.gtag('event', 'page_view', googleParams);
@@ -152,7 +172,7 @@ export const trackPageView = ({ url, referer, title }) => {
 export const trackProductGoalOnce = (goal, params = {}, eventKey = goal) => {
   if (typeof window === 'undefined') return false;
 
-  const storageKey = `gh_analytics_${eventKey}`;
+  const storageKey = `gh_analytics_${getAuthMode()}_${eventKey}`;
   try {
     if (window.sessionStorage.getItem(storageKey) === '1') return false;
   } catch {

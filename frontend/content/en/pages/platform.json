@@ -1,10 +1,10 @@
 {
-  "updated_at": "2026-07-23",
+  "updated_at": "2026-09-13",
   "early_access_text": "The main functions of GrowerHub are already available for free and without a card. Connect equipment, assemble zones and customize controls at your own pace. If you need help, the GrowerHub team is nearby on Telegram.",
   "start": {
     "title": "How to get started with GrowerHub",
     "description": "A short self-service path from a Zigbee coordinator to your first device, zone and GrowerHub dashboard.",
-    "intro": "Log in via Yandex or Google, connect Zigbee2MQTT and assemble your zones from automatically found devices. Plants and additional settings can be added later.",
+    "intro": "Explore a prepared farm or connect one of your own sensors first. You can start monitoring before adding every plant or configuring automation.",
     "steps": [
       {
         "title": "Login",
@@ -34,7 +34,27 @@
         "title": "Open dashboard",
         "text": "View data and manage permitted functions. Turn on automation later."
       }
-    ]
+    ],
+    "paths_title": "Choose your first step",
+    "paths": [
+      {
+        "title": "Try it without equipment",
+        "text": "Open a prepared demo farm with charts, watering and scenarios. No registration is required.",
+        "href": "/app/demo/?lang=en",
+        "demo": true
+      },
+      {
+        "title": "Already using Home Assistant / Zigbee2MQTT",
+        "text": "Keep your Zigbee network and local MQTT. Add the connector and verify one sensor.",
+        "href": "/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/"
+      },
+      {
+        "title": "Start with a USB coordinator on Windows",
+        "text": "Check the COM port and adapter type, download your personal configuration and start the package.",
+        "href": "/en/articles/install-zigbee2mqtt-on-windows-usb-coordinator/"
+      }
+    ],
+    "help": "Tell us your coordinator model, Windows or Linux, whether you use Home Assistant and the step where you stopped. We can help get your first sensor reporting in the dashboard."
   },
   "minimum": {
     "title": "Minimum to start",

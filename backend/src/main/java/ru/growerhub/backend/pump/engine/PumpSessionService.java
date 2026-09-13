@@ -167,6 +167,30 @@ public class PumpSessionService {
 
         LocalDateTime now = nowUtc();
         String correlationId = correlationId();
+        PumpWateringSessionEntity session = createSession(request, user, pump, device, resolved, plannedWaterVolumeL, now, correlationId);
+
+        sessionRepository.flush();
+        int commandDurationS = currentRunDurationS(session);
+        boolean published = false;
+        try {
+            commandGateway.publishStart(device.deviceId(), correlationId, now, commandDurationS);
+            published = true;
+            session.setLastCommandAt(now);
+            sessionRepository.saveAndFlush(session);
+            updateDeviceManualState(session, commandDurationS, now, "running");
+        } catch (RuntimeException ex) {
+            if (!published) {
+                session.setJournalEligible(false);
+            }
+            compensateStartAttempt(session, ex, now);
+            throw ex;
+        }
+        return toView(session, now);
+    }
+
+    private PumpWateringSessionEntity createSession(PumpSessionData.Start request, AuthenticatedUser user,
+            PumpEntity pump, DeviceSummary device, ResolvedStart resolved, Double plannedWaterVolumeL,
+            LocalDateTime now, String correlationId) {
         PumpWateringSessionEntity session = PumpWateringSessionEntity.create();
         session.setPumpId(pump.getId());
         session.setDeviceId(device.id());
@@ -195,23 +219,42 @@ public class PumpSessionService {
         sessionRepository.saveAndFlush(session);
         saveTargets(session, resolved.boxes());
 
-        sessionRepository.flush();
-        int commandDurationS = currentRunDurationS(session);
-        boolean published = false;
-        try {
-            commandGateway.publishStart(device.deviceId(), correlationId, now, commandDurationS);
-            published = true;
-            session.setLastCommandAt(now);
-            sessionRepository.saveAndFlush(session);
-            updateDeviceManualState(session, commandDurationS, now, "running");
-        } catch (RuntimeException ex) {
-            if (!published) {
-                session.setJournalEligible(false);
-            }
-            compensateStartAttempt(session, ex, now);
-            throw ex;
+        return session;
+    }
+
+    public void seedSimulatedHistory(PumpSessionData.Start request, AuthenticatedUser user, LocalDateTime startedAt) {
+        PumpEntity pump = requirePumpAccess(request.pumpId(), user);
+        DeviceSummary device = requireDevice(pump);
+        if (user == null || !user.isDemo() || !deviceFacade.isSimulatedDevice(device.deviceId())) {
+            throw new DomainException("forbidden", "History seed requires a simulated device");
         }
-        return toView(session, now);
+        ResolvedStart resolved = resolveStart(request);
+        validateTargets(resolved.mode(), resolved.boxes());
+        PumpWateringSessionEntity session = createSession(request, user, pump, device, resolved, null, startedAt, correlationId());
+        session.setCompletionReason(PumpSessionData.REASON_DURATION);
+        finish(session, startedAt.plusSeconds(resolved.durationS()));
+        sessionRepository.flush();
+    }
+
+    public void pauseSimulatedDevice(String deviceKey, LocalDateTime now) {
+        if (!deviceFacade.isSimulatedDevice(deviceKey)) throw new DomainException("forbidden", "Simulated device required");
+        sessionRepository.findByActiveDeviceKey(deviceKey).ifPresent(session -> {
+            session.setCompletionReason(PumpSessionData.REASON_MANUAL);
+            finish(session, now);
+        });
+    }
+
+    public void deleteSimulatedHistory(Integer deviceId) {
+        DeviceSummary device = deviceFacade.getDeviceSummary(deviceId);
+        if (device == null || !deviceFacade.isSimulatedDevice(device.deviceId())) {
+            throw new DomainException("forbidden", "Simulated device required");
+        }
+        for (PumpWateringSessionEntity session : sessionRepository.findAllByDeviceId(deviceId)) {
+            sessionPlantRepository.deleteAllBySession_Id(session.getId());
+            leakRepository.deleteAllBySession_Id(session.getId());
+            boxRepository.deleteAllBySession_Id(session.getId());
+            sessionRepository.delete(session);
+        }
     }
 
     public PumpSessionData.View stop(Integer pumpId, AuthenticatedUser user) {

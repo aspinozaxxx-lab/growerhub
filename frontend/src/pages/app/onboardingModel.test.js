@@ -70,3 +70,22 @@ describe('onboardingModel', () => {
     expect(englishConfig).not.toMatch(/[\u0400-\u04ff]/u);
   });
 });
+
+describe('podklyuchenie sushchestvujushchego MQTT', () => {
+  const setup = { username: 'u', password: 'p', client_id: 'c', base_topic: 'gh/z2m/u' };
+  it('napravljaet sostojanija i komandy v vybrannuju bazovuju temu', () => {
+    const config = buildBridgeConfig({ setup, local: { host: '192.0.2.10', port: '1883', baseTopic: 'greenhouse/z2m' } });
+    expect(config).toContain('topic + in 1 relay/from-local/ greenhouse/z2m/');
+    expect(config).toContain('topic +/set out 1 relay/to-local/ greenhouse/z2m/');
+    expect(config).not.toContain(' zigbee2mqtt/');
+    expect(config).not.toContain('topic #');
+  });
+  it.each([
+    { host: '', port: '1883' },
+    { host: '192.0.2.10', port: '65536' },
+    { host: '192.0.2.10', port: '1883', baseTopic: 'z2m/#' },
+    { host: '192.0.2.10', port: '1883', password: 'secret\nlistener 1883' },
+  ])('ne sozdaet nekorrektnyj ili dopolnennyj direktivami konfiguracionnyj fajl', (local) => {
+    expect(buildBridgeConfig({ setup, local })).toBe('');
+  });
+});

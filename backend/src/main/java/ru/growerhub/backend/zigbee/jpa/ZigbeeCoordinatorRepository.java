@@ -21,4 +21,7 @@ public interface ZigbeeCoordinatorRepository extends JpaRepository<ZigbeeCoordin
     List<ZigbeeCoordinatorEntity> findAllByArchivedAtIsNullOrderByCreatedAtAsc();
 
     Optional<ZigbeeCoordinatorEntity> findFirstByUserIdOrderByCredentialIssuedAtDesc(Integer userId);
+
+    @org.springframework.data.jpa.repository.Query("select c.baseTopic from ZigbeeCoordinatorEntity c where c.executionKind = 'SIMULATED'")
+    List<String> findSimulatedBaseTopics();
 }

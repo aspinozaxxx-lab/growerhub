@@ -3,7 +3,7 @@ import LeadCta from '../components/LeadCta';
 import TelegramContactLink from '../components/TelegramContactLink';
 import { platformContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
-import { SITE_NAME, SITE_URL } from '../domain/siteConfig';
+import { DEMO_PUBLIC_ENABLED, SITE_NAME, SITE_URL } from '../domain/siteConfig';
 import { getCurrentLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 
@@ -51,6 +51,11 @@ function GettingStartedPage() {
       </section>
 
       <section className="content-section">
+        <h2>{start.paths_title}</h2>
+        <div className="card-grid">{start.paths.filter((item) => !item.demo || DEMO_PUBLIC_ENABLED).map((item) => <article className="card" key={item.href}><h3><Link to={item.href}>{item.title}</Link></h3><p>{item.text}</p></article>)}</div>
+      </section>
+
+      <section className="content-section">
         <h2>{translatePublic('Семь коротких шагов')}</h2>
         <ol className="steps-list">
           {start.steps.map((step) => <li key={step.title}><strong>{step.title}</strong><span>{step.text}</span></li>)}
@@ -76,7 +81,7 @@ function GettingStartedPage() {
 
       <section className="content-section">
         <h2>{translatePublic('Поможем с подключением и настройкой')}</h2>
-        <p>{translatePublic('Если что-то не подключается или хочется быстрее разобраться с функцией, напишите нам в Telegram. Команда GrowerHub поможет на любом этапе на русском или английском.')}</p>
+        <p>{start.help}</p>
         <TelegramContactLink placement="getting_started_help" className="secondary-link">{translatePublic('Помощь в Telegram')}</TelegramContactLink>
       </section>
 

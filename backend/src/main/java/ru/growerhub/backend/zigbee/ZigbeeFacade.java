@@ -87,6 +87,7 @@ public class ZigbeeFacade {
     private final MqttTopicSettings topicSettings;
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    private final ru.growerhub.backend.user.UserFacade userFacade;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public ZigbeeFacade(
@@ -103,7 +104,8 @@ public class ZigbeeFacade {
             ZigbeeSelfServiceSettings selfServiceSettings,
             MqttTopicSettings topicSettings,
             ObjectMapper objectMapper,
-            Clock clock
+            Clock clock,
+            @org.springframework.context.annotation.Lazy ru.growerhub.backend.user.UserFacade userFacade
     ) {
         this.bridgeRepository = bridgeRepository;
         this.deviceRepository = deviceRepository;
@@ -119,11 +121,109 @@ public class ZigbeeFacade {
         this.topicSettings = topicSettings;
         this.objectMapper = objectMapper;
         this.clock = clock;
+        this.userFacade = userFacade;
+    }
+
+    @Transactional
+    public ru.growerhub.backend.zigbee.contract.ZigbeeSimulationCoordinator createSimulatedCoordinator(
+            Integer ownerId, String name) {
+        userFacade.requireDemoOwner(ownerId);
+        UUID publicId = UUID.randomUUID();
+        LocalDateTime now = LocalDateTime.now(clock);
+        ZigbeeCoordinatorEntity coordinator = ZigbeeCoordinatorEntity.create(
+                publicId, ownerId, name, "sim_" + publicId.toString().replace("-", ""),
+                "demo/" + publicId, now);
+        coordinator.initializeSimulation();
+        coordinator.setStatus(ZigbeeCoordinatorStatus.ONLINE);
+        coordinator.setConnectedAt(now);
+        coordinator.setLastSeenAt(now);
+        coordinatorRepository.saveAndFlush(coordinator);
+        return simulationCoordinator(coordinator);
+    }
+
+    @Transactional(readOnly = true)
+    public ru.growerhub.backend.zigbee.contract.ZigbeeSimulationCoordinator getSimulationCoordinator(Integer ownerId) {
+        userFacade.requireDemoOwner(ownerId);
+        return coordinatorRepository.findAllByUserIdAndArchivedAtIsNullOrderByCreatedAtAsc(ownerId).stream()
+                .filter(ZigbeeCoordinatorEntity::isSimulated).findFirst().map(this::simulationCoordinator)
+                .orElseThrow(() -> new DomainException("not_found", "Demo koordinator ne najden"));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isSimulatedBaseTopic(String baseTopic) {
+        return coordinatorRepository.findByBaseTopicAndArchivedAtIsNull(baseTopic)
+                .map(ZigbeeCoordinatorEntity::isSimulated).orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public void requirePhysicalBaseTopic(String baseTopic) {
+        ZigbeeCoordinatorEntity coordinator = coordinatorRepository.findByBaseTopicAndArchivedAtIsNull(baseTopic).orElse(null);
+        if (coordinator != null && (coordinator.isSimulated() || userFacade.isDemoOwner(coordinator.getUserId()))) {
+            throw new DomainException("forbidden", "Demo ne imeet dostupa k MQTT");
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public void requirePhysicalTopic(String topic) {
+        for (String base : coordinatorRepository.findSimulatedBaseTopics()) {
+            if (topic.equals(base) || topic.startsWith(base + "/")) {
+                throw new DomainException("forbidden", "Demo ne imeet dostupa k MQTT");
+            }
+        }
+    }
+
+    @Transactional
+    public void recordSimulatedSnapshot(Integer coordinatorId,
+            ru.growerhub.backend.zigbee.contract.ZigbeeMqttMessageType type,
+            String friendlyName, Object payload, LocalDateTime timestamp) {
+        ZigbeeCoordinatorEntity coordinator = coordinatorRepository.findById(coordinatorId)
+                .orElseThrow(() -> new DomainException("not_found", "Demo koordinator ne najden"));
+        if (!coordinator.isSimulated()) throw new DomainException("forbidden", "Fizicheskij koordinator");
+        userFacade.requireDemoOwner(coordinator.getUserId());
+        CoordinatorContext context = new CoordinatorContext(coordinator.getId(), coordinator.getBaseTopic(), coordinator);
+        ZigbeeMqttSnapshotMessage message = new ZigbeeMqttSnapshotMessage(
+                coordinator.getMqttUsername(), coordinator.getBaseTopic(), type,
+                coordinator.getBaseTopic() + "/" + friendlyName, friendlyName, friendlyName,
+                toJson(payload), payload, timestamp);
+        applySnapshot(context, message);
+    }
+
+    @Transactional
+    public void renameSimulatedDevice(String baseTopic, String from, String to) {
+        ZigbeeCoordinatorEntity coordinator = coordinatorRepository.findByBaseTopicAndArchivedAtIsNull(baseTopic)
+                .orElseThrow(() -> new DomainException("not_found", "Demo koordinator ne najden"));
+        if (!coordinator.isSimulated()) throw new DomainException("forbidden", "Fizicheskij koordinator");
+        userFacade.requireDemoOwner(coordinator.getUserId());
+        ZigbeeDeviceSnapshotEntity device = deviceRepository.findByCoordinatorIdAndFriendlyName(coordinator.getId(), from)
+                .orElseThrow(() -> new DomainException("not_found", "Demo ustrojstvo ne najdeno"));
+        device.setFriendlyName(normalizeFriendlyName(to));
+        deviceRepository.save(device);
+    }
+
+    @Transactional
+    public void deleteSimulatedCoordinators(Integer ownerId) {
+        userFacade.requireDemoOwner(ownerId);
+        for (ZigbeeCoordinatorEntity coordinator : coordinatorRepository.findAllByUserIdAndArchivedAtIsNullOrderByCreatedAtAsc(ownerId)) {
+            if (!coordinator.isSimulated()) throw new DomainException("forbidden", "Fizicheskij koordinator");
+            Integer id = coordinator.getId();
+            propertyReadingRepository.deleteByCoordinatorId(id);
+            stateEventRepository.deleteByCoordinatorId(id);
+            commandResponseRepository.deleteByCoordinatorId(id);
+            deviceRepository.deleteByCoordinatorId(id);
+            bridgeRepository.deleteByCoordinatorId(id);
+            coordinatorRepository.delete(coordinator);
+        }
+    }
+
+    private ru.growerhub.backend.zigbee.contract.ZigbeeSimulationCoordinator simulationCoordinator(ZigbeeCoordinatorEntity coordinator) {
+        return new ru.growerhub.backend.zigbee.contract.ZigbeeSimulationCoordinator(
+                coordinator.getId(), coordinator.getPublicId(), coordinator.getBaseTopic());
     }
 
     @Transactional
     public ZigbeeCoordinatorCreated createCoordinator(AuthenticatedUser user, String name) {
         requireSelfService(user);
+        if (user.isDemo() || userFacade.isDemoOwner(user.id())) throw new DomainException("forbidden", "Demo ne sozdaet MQTT credentials");
         LocalDateTime now = LocalDateTime.now(clock);
         enforceCredentialCooldown(user.id(), now);
         String normalizedName = normalizeCoordinatorName(name);
@@ -172,7 +272,7 @@ public class ZigbeeFacade {
 
     @Transactional(readOnly = true)
     public ZigbeeProductAnalytics getProductAnalytics() {
-        List<ZigbeeCoordinatorEntity> all = coordinatorRepository.findAll();
+        List<ZigbeeCoordinatorEntity> all = coordinatorRepository.findAll().stream().filter(c -> !c.isSimulated()).toList();
         LocalDateTime now = LocalDateTime.now(clock);
         Set<Integer> usersWithCoordinator = new HashSet<>();
         Set<Integer> usersWithConnectedCoordinator = new HashSet<>();
@@ -235,7 +335,7 @@ public class ZigbeeFacade {
     @Transactional(readOnly = true)
     public List<ZigbeeOwnedDeviceData> getDevicesForAutomation() {
         List<ZigbeeCoordinatorEntity> coordinators = coordinatorRepository
-                .findAllByArchivedAtIsNullOrderByCreatedAtAsc();
+                .findAllByArchivedAtIsNullOrderByCreatedAtAsc().stream().filter(coordinator -> !coordinator.isSimulated()).toList();
         List<ZigbeeOwnedDeviceData> result = new ArrayList<>(collectCoordinatorDevices(coordinators));
         boolean hasLegacy = coordinators.stream().anyMatch(item -> item.getId().equals(LEGACY_COORDINATOR_ID));
         if (!hasLegacy) {
@@ -260,6 +360,7 @@ public class ZigbeeFacade {
         requireSelfService(user);
         ZigbeeCoordinatorEntity coordinator = findOwnedCoordinator(user, coordinatorPublicId);
         LocalDateTime now = LocalDateTime.now(clock);
+        requirePhysicalBaseTopic(coordinator.getBaseTopic());
         enforceCoordinatorCredentialCooldown(coordinator, now);
         String password = generatePassword();
         brokerCredentialGateway.rotate(coordinator.getMqttUsername(), password);
@@ -274,6 +375,7 @@ public class ZigbeeFacade {
     public void archiveCoordinator(AuthenticatedUser user, UUID coordinatorPublicId) {
         requireSelfService(user);
         ZigbeeCoordinatorEntity coordinator = findOwnedCoordinator(user, coordinatorPublicId);
+        requirePhysicalBaseTopic(coordinator.getBaseTopic());
         brokerCredentialGateway.revoke(coordinator.getMqttUsername(), selfServiceSettings.getBrokerRole());
         LocalDateTime now = LocalDateTime.now(clock);
         coordinator.setArchivedAt(now);
@@ -820,6 +922,11 @@ public class ZigbeeFacade {
         if (context == null) {
             return;
         }
+        if (context.coordinator() != null && context.coordinator().isSimulated()) return;
+        applySnapshot(context, message);
+    }
+
+    private void applySnapshot(CoordinatorContext context, ZigbeeMqttSnapshotMessage message) {
         touchCoordinator(context, message);
         switch (message.type()) {
             case BRIDGE_STATE -> handleBridgeState(context, message);
@@ -1736,7 +1843,7 @@ public class ZigbeeFacade {
         if (user == null || user.id() == null) {
             throw new DomainException("unauthorized", "Необходимо войти в аккаунт");
         }
-        if (!selfServiceSettings.isEnabled()) {
+        if (!selfServiceSettings.isEnabled() && !user.isDemo()) {
             throw new DomainException("unavailable", "Самостоятельное подключение пока выключено до завершения проверки");
         }
     }

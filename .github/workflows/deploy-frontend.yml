@@ -51,6 +51,7 @@ jobs:
         working-directory: frontend
         env:
           VITE_SELF_SERVICE_ENABLED: "true"
+          VITE_DEMO_ENABLED: ${{ vars.VITE_DEMO_ENABLED || 'false' }}
         run: npm run build
 
       - name: Upload frontend dist

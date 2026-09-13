@@ -2,6 +2,9 @@ package ru.growerhub.backend.mqtt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
+import org.springframework.context.annotation.Lazy;
+import ru.growerhub.backend.device.DeviceFacade;
+import ru.growerhub.backend.zigbee.ZigbeeFacade;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,9 +26,11 @@ public class MqttConfig {
             MqttSettings settings,
             DebugSettings debugSettings,
             ObjectMapper objectMapper,
-            MqttMessageLog messageLog
+            MqttMessageLog messageLog,
+            @Lazy DeviceFacade deviceFacade,
+            @Lazy ZigbeeFacade zigbeeFacade
     ) {
-        return new PahoMqttPublisher(settings, debugSettings, objectMapper, messageLog);
+        return new PahoMqttPublisher(settings, debugSettings, objectMapper, messageLog, deviceFacade, zigbeeFacade);
     }
 
     @Bean

@@ -12,6 +12,8 @@ import org.springframework.data.repository.query.Param;
 public interface PumpWateringSessionRepository extends JpaRepository<PumpWateringSessionEntity, Long> {
     Optional<PumpWateringSessionEntity> findFirstByPumpIdAndActiveDeviceKeyIsNotNullOrderByIdDesc(Integer pumpId);
 
+    List<PumpWateringSessionEntity> findAllByDeviceId(Integer deviceId);
+
     Optional<PumpWateringSessionEntity> findByActiveDeviceKey(String activeDeviceKey);
 
     List<PumpWateringSessionEntity> findAllByActiveDeviceKeyIsNotNullOrderByIdAsc();

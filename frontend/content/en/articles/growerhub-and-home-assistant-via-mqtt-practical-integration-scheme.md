@@ -2,11 +2,9 @@
 translation_of: growerhub-i-home-assistant-cherez-mqtt
 slug: growerhub-and-home-assistant-via-mqtt-practical-integration-scheme
 title: 'GrowerHub and Home Assistant via MQTT: practical integration scheme'
-summary: >-
-  How to connect GrowerHub and Home Assistant via MQTT: zones, sensors,
-  commands, discovery, event log and boundaries of responsibility.
+summary: "Connect an existing Zigbee2MQTT and Home Assistant installation to GrowerHub: MQTT bridge, first sensor, history, control ownership and disconnection."
 created_at: '2026-07-23'
-updated_at: '2026-07-23'
+updated_at: "2026-09-13"
 cluster: home-assistant-i-diy
 tags:
   - GrowerHub
@@ -21,39 +19,74 @@ related:
   - mqtt-avtopoliv-kakie-topiki-nuzhny
   - mqtt-discovery-home-assistant
   - lokalnaya-avtomatizatsiya-bez-oblaka
-hero_image: /content/articles/illustrations/growerhub-i-home-assistant-cherez-mqtt.webp
-hero_alt: >-
-  Illustration of GrowerHub: MQTT connects GrowerHub, Home Assistant, sensors
-  and pump
 ---
-![Illustration GrowerHub: MQTT connects GrowerHub, Home Assistant, sensors and pump](/content/articles/illustrations/growerhub-i-home-assistant-cherez-mqtt.webp)
 
-GrowerHub and Home Assistant complement each other well if responsibility is shared in advance. Home Assistant is convenient as a universal center for smart home and local integrations. GrowerHub stores plant context: zones, watering, diary, tips, reports and restrictions. MQTT can become a connecting layer between them.
+Already running Home Assistant, Zigbee2MQTT and sensors? Keep that installation and add GrowerHub for greenhouse zones, plants, history and automation. The supported path is a separate MQTT connector between your existing broker and GrowerHub. Your Zigbee devices stay paired to their current coordinator.
 
-Poor integration looks like a chaotic exchange of topics. A good one is like a clear model: what data is transmitted, who makes the decision, where the log is stored and what happens if the connection is lost.
+**See the result first:** [open the demo without signing up](/app/demo/?lang=en). It contains four greenhouses, virtual devices and seven days of history. Open a temperature chart, try watering and change the environment. The demo uses the same application and automation rules as a regular farm; its readings are simulated.
 
-## What to give to Home Assistant
+![Four greenhouses in the actual GrowerHub demo](/screenshots/en/zones.webp)
 
-In Home Assistant it is useful to publish current values: soil moisture, temperature, air humidity, leakage, pump status, light, ventilation, service mode. It gives dashboard, automation and general notifications. For entities, you can use MQTT discovery so as not to configure each one manually.
+## What you need
 
-But not every GrowerHub field needs to become a separate entity. It is better to leave diary notes, long reports and advisor explanations in GrowerHub, and transfer key statuses and events to Home Assistant.
+| Your existing installation | What you add |
+|---|---|
+| Coordinator and paired Zigbee network | A coordinator connection in your GrowerHub account |
+| Zigbee2MQTT and a local MQTT broker | A connector with a separate TLS connection to GrowerHub |
+| Home Assistant entities and dashboards | GrowerHub greenhouse zones, plants, history and scenarios |
 
-## What GrowerHub can read
+Run the connector on an always-on Linux computer or Raspberry Pi with Docker Compose and access to your MQTT broker. Home Assistant OS is not a general Docker Compose host: use a separate Linux machine or your existing Docker server. The supplied connector uses host networking; Windows and Docker Desktop require a separate network check.
 
-GrowerHub can read data from Zigbee2MQTT, ESPHome or Home Assistant through MQTT if the topics are stable. For example, Home Assistant already has a leak sensor, and GrowerHub uses it as an emergency stop for watering. It is important to keep a connection with the zone and check the freshness of the data.
+This connects **Zigbee2MQTT devices**. GrowerHub does not automatically import arbitrary Home Assistant entities, ESPHome native API sensors, MQTT discovery definitions or old HA history. A sensor appearing in HA does not by itself make it compatible with GrowerHub.
 
-If the device is not available, GrowerHub should not silently use the last value. Availability and timestamp are required for automatic watering.
+## 1. Keep your working Zigbee network
 
-## Who controls the pump
+Check that the selected sensor is online in Zigbee2MQTT and reports fresh readings. Note the local broker address and port, the credentials for a connector user, and `mqtt.base_topic` from Zigbee2MQTT. The default topic is `zigbee2mqtt`; use your actual value.
 
-The most important question is where the pump crew lives. If Home Assistant controls the outlet and GrowerHub decides when to water, a clear command and confirmation is needed. If GrowerHub controls the pump directly, Home Assistant can only display status and send manual commands with restrictions.
+Keep Home Assistant’s MQTT integration, the coordinator’s USB connection and device pairing unchanged. Leave equipment control in your current system while testing telemetry.
 
-Do not allow two independent automations that turn on the same pump according to different rules. This leads to conflicts and difficult diagnostics. The structure of topics for commands is described in the article [MQTT-automated watering](/articles/mqtt-avtopoliv-kakie-topiki-nuzhny).
+## 2. Download your bridge configuration
 
-## Event log
+1. [Sign in to GrowerHub](/app/login/?lang=en&redirect=%2Fapp%2Fonboarding%2F) and create a named coordinator connection.
+2. Choose the option for an existing Zigbee2MQTT/Home Assistant installation.
+3. Under Local MQTT, enter the address, port, Zigbee2MQTT base topic, username and password.
+4. Download your personal `bridge.conf` before refreshing the page. Local broker credentials are used in the browser to generate the file and are not sent to GrowerHub.
 
-Each action must have a source: GrowerHub, Home Assistant, Node-RED, operator, emergency stop. If the command went through MQTT, the log should show not only the status of the outlet, but also the reason. Otherwise, after a week it will be impossible to understand why the pump turned on.
+From a separate connector computer, `localhost` refers to that computer. Use the MQTT server’s reachable LAN address; an HA add-on container hostname may not resolve outside HA. The generated local connection uses TCP; the GrowerHub connection uses TLS on port 8883.
 
-## Conclusion
+## 3. Start the connector
 
-Integration of GrowerHub and Home Assistant through MQTT should be explicit: zones, topics, availability, commands, confirmations and log. Home Assistant remains a strong smart home hub, GrowerHub is a plant care system. MQTT links them, but does not replace the responsibility architecture.
+Download the [GrowerHub connector directory](https://github.com/aspinozaxxx-lab/growerhub/tree/main/zigbee_coordinator/connector). Keep `docker-compose.yml`, `mosquitto.conf` and your `bridge.conf` together. The example file is not your personal configuration.
+
+Run these commands in that directory:
+
+```sh
+docker compose up -d
+docker compose ps
+docker compose logs --tail=80 connector
+```
+
+Check the logs for successful connections to both brokers. Do not share passwords or the contents of `bridge.conf`. For authentication failures, check local broker access separately from GrowerHub credentials. If the cloud password was lost, issue replacement connection credentials in GrowerHub and update the connector file.
+
+## 4. Verify the first useful result
+
+1. Wait for the coordinator to show ONLINE and for your existing sensor to appear.
+2. Compare its temperature and update time with Zigbee2MQTT. Battery sensors do not necessarily report every second.
+3. Create your first greenhouse and assign the sensor to its slot in Farm constructor.
+4. Open the sensor chart from Overview. GrowerHub history starts when telemetry arrives; existing HA history stays in HA.
+
+![Temperature history in the shared GrowerHub interface; demo readings are simulated](/screenshots/en/history.webp)
+
+## Choose which system controls the equipment
+
+The connector forwards state, availability, inventory and Zigbee2MQTT responses to GrowerHub. It forwards `/set`, `/get` and `bridge/request/*` commands back. It does not forward the whole MQTT tree indiscriminately. The directions are defined in the [connector configuration](https://github.com/aspinozaxxx-lab/growerhub/blob/main/zigbee_coordinator/connector/mosquitto-bridge.conf.example).
+
+Choose one automatic controller per actuator. Disable a competing HA rule before enabling the equivalent GrowerHub scenario. Start with lighting or ventilation and check both the command and reported state. Test irrigation separately: a generic Zigbee valve and a native GrowerHub watering controller have different supported functions.
+
+GrowerHub server scenarios need connectivity to the equipment. Local HA rules can operate without the cloud when that is the chosen control arrangement.
+
+## Disconnect without changing Home Assistant
+
+Run `docker compose stop connector` in the connector directory. Verify that sensor readings still arrive in Home Assistant. Revoke that GrowerHub connection when disconnecting permanently. Archiving its coordinator in GrowerHub does not remove the Zigbee network from your hardware.
+
+**The first result is one real sensor with fresh readings in your greenhouse.** You do not need to configure the whole farm at once. [Ask for help in Telegram](https://t.me/growerhub_info?direct) with your coordinator model, where Zigbee2MQTT runs and the step where you got stuck.

@@ -35,6 +35,7 @@ describe('product analytics goals', () => {
       step: 'device_detected',
       connection_mode: 'bridge',
       locale: getCurrentLocale(),
+      mode: 'account',
     });
     expect(window.gtag).toHaveBeenCalledWith('event', 'first_device_seen', {
       placement: 'onboarding',
@@ -42,6 +43,7 @@ describe('product analytics goals', () => {
       step: 'device_detected',
       connection_mode: 'bridge',
       locale: getCurrentLocale(),
+      mode: 'account',
     });
   });
 
@@ -64,7 +66,7 @@ describe('product analytics goals', () => {
     delete window.__growerHubGoogleAnalyticsInitialized;
     document.getElementById('google-analytics-script')?.remove();
 
-    initAnalytics();
+    initAnalytics({ enabled: true });
 
     expect(Object.prototype.toString.call(window.dataLayer[0])).toBe('[object Arguments]');
     expect(Array.from(window.dataLayer[0])[0]).toBe('js');
@@ -89,11 +91,13 @@ describe('product analytics goals', () => {
     expect(window.ym).toHaveBeenCalledWith(METRIKA_ID, 'hit', 'https://growerhub.ru/kak-nachat/', {
       referer: 'https://growerhub.ru/',
       title: 'Как начать',
+      params: { mode: 'account' },
     });
     expect(window.gtag).toHaveBeenCalledWith('event', 'page_view', {
       page_location: 'https://growerhub.ru/kak-nachat/',
       page_referrer: 'https://growerhub.ru/',
       page_title: 'Как начать',
+      mode: 'account',
     });
   });
 });

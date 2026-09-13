@@ -290,7 +290,9 @@ public class AuthService {
             return null;
         }
         try {
-            Integer userId = parseUserId(jwtService.parseToken(token).get("user_id"));
+            var claims = jwtService.parseToken(token);
+            if (claims.get("token_use") != null) return null;
+            Integer userId = parseUserId(claims.get("user_id"));
             if (userId == null) {
                 return null;
             }

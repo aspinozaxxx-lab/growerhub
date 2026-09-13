@@ -36,14 +36,15 @@ const readStaticBody = (article) => {
   }
 };
 
-function ArticlePage() {
+function ArticlePage({ initialArticle } = {}) {
   const { slug } = useParams();
   const locale = getCurrentLocale();
   const article = useMemo(() => getArticleBySlug(slug, locale), [locale, slug]);
   const cluster = useMemo(() => getArticleClusterById(article?.cluster, locale), [article, locale]);
   const relatedArticles = useMemo(() => getRelatedArticles(article, 4, locale), [article, locale]);
   const articleKey = article ? `${article.locale}:${article.id}` : '';
-  const staticBodyHtml = useMemo(() => readStaticBody(article), [article]);
+  const staticBodyHtml = useMemo(() => (initialArticle?.id === article?.id && initialArticle?.locale === locale
+    ? initialArticle.bodyHtml : readStaticBody(article)), [article, initialArticle, locale]);
   const [loadedBody, setLoadedBody] = useState({ key: '', html: '', error: false });
   const bodyHtml = staticBodyHtml || (loadedBody.key === articleKey ? loadedBody.html : '');
   const bodyError = loadedBody.key === articleKey && loadedBody.error;
@@ -111,7 +112,7 @@ function ArticlePage() {
   return (
     <article className="section">
       <div className="article-meta">
-        {translatePublic('Обновлено')} {new Date(article.updated_at).toLocaleDateString(getIntlLocale(locale))}
+        {translatePublic('Обновлено')} {new Date(article.updated_at).toLocaleDateString(getIntlLocale(locale), { timeZone: 'UTC' })}
       </div>
       <h1>{article.title}</h1>
       <p className="article-lead">{article.summary}</p>
@@ -121,7 +122,16 @@ function ArticlePage() {
         </Link>
       )}
       {article.hero_image && !article.hero_in_body && (
-        <img className="article-hero-image" src={article.hero_image} alt={article.hero_alt || article.title} />
+        <img fetchPriority="high" decoding="async" className="article-hero-image" src={article.hero_image} alt={article.hero_alt || article.title} />
+      )}
+      {bodyError ? (
+        <div className="article-body">{translatePublic('Не удалось загрузить материал. Обновите страницу.')}</div>
+      ) : (
+        <div
+          className="article-body"
+          // Translitem: Markdown zagruzhaetsya otdel'no ot metadannyh stranicy.
+          dangerouslySetInnerHTML={{ __html: bodyHtml }}
+        />
       )}
       <aside className="info-block content-section">
         <strong>{translatePublic('Редакция GrowerHub')}</strong>
@@ -137,15 +147,6 @@ function ArticlePage() {
           </a>
         </div>
       </aside>
-      {bodyError ? (
-        <div className="article-body">{translatePublic('Не удалось загрузить материал. Обновите страницу.')}</div>
-      ) : (
-        <div
-          className="article-body"
-          // Translitem: Markdown zagruzhaetsya otdel'no ot metadannyh stranicy.
-          dangerouslySetInnerHTML={{ __html: bodyHtml }}
-        />
-      )}
       <LeadCta
         placement="article_bottom"
         title={cluster?.guide.cta.title || translatePublic('Подключите устройство к GrowerHub')}

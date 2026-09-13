@@ -205,6 +205,21 @@ public class PumpFacade {
     }
 
     @Transactional
+    public void seedSimulatedHistory(PumpSessionData.Start request, AuthenticatedUser user, LocalDateTime startedAt) {
+        sessionService.seedSimulatedHistory(request, user, startedAt);
+    }
+
+    @Transactional
+    public void pauseSimulatedDevice(String deviceKey, LocalDateTime now) {
+        sessionService.pauseSimulatedDevice(deviceKey, now);
+    }
+
+    @Transactional
+    public void deleteSimulatedHistory(Integer deviceId) {
+        sessionService.deleteSimulatedHistory(deviceId);
+    }
+
+    @Transactional
     public void deleteByDeviceId(Integer deviceId) {
         pumpService.deleteAllByDeviceId(deviceId);
     }

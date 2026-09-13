@@ -16,6 +16,8 @@ const viteSelfServiceEnabled = typeof import.meta.env !== 'undefined'
 const nodeSelfServiceEnabled = globalThis.process?.env?.VITE_SELF_SERVICE_ENABLED === 'true';
 
 export const SELF_SERVICE_PUBLIC_ENABLED = viteSelfServiceEnabled || nodeSelfServiceEnabled;
+export const DEMO_PUBLIC_ENABLED = (typeof import.meta.env !== 'undefined' && import.meta.env?.VITE_DEMO_ENABLED === 'true')
+  || globalThis.process?.env?.VITE_DEMO_ENABLED === 'true';
 
 export const toCanonicalPath = (pathname = '/') => {
   const cleanPath = String(pathname).split(/[?#]/, 1)[0] || '/';

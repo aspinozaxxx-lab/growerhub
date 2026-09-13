@@ -8,9 +8,6 @@ import { useAuth } from '../features/auth/AuthContext';
 function PlatformStartLink({ placement, className = 'hero-cta', children, onClick }) {
   const locale = getCurrentLocale();
   const { status, user } = useAuth();
-  if (status === 'idle' || status === 'loading') {
-    return null;
-  }
   if (status === 'authorized' && user?.onboarding_completed) {
     return null;
   }
@@ -33,7 +30,7 @@ function PlatformStartLink({ placement, className = 'hero-cta', children, onClic
   };
 
   return (
-    <Link className={className} to={target} onClick={handleClick}>
+    <Link className={className} to={target} onClick={handleClick} data-platform-placement={placement}>
       {label}
     </Link>
   );

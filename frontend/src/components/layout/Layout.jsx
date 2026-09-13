@@ -1,6 +1,7 @@
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import PlatformStartLink from '../PlatformStartLink';
+import DemoStartLink from '../DemoStartLink';
 import TelegramContactLink from '../TelegramContactLink';
 import { GITHUB_REPOSITORY_URL, TELEGRAM_CHANNEL_URL } from '../../domain/siteConfig';
 import { getPublicLocale, getPublicPath, isAppPath } from '../../domain/localizedRoutes';
@@ -64,6 +65,7 @@ function Layout({ children }) {
           >
             {translatePublic('Вход')}
           </NavLink>
+          {!inApp ? <DemoStartLink placement="header_demo" className="nav-link" onClick={closeMenu} /> : null}
           <PlatformStartLink placement="header" className="nav-link contact-link" onClick={closeMenu} />
           <TelegramContactLink
             placement="header_help"

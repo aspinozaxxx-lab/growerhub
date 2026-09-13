@@ -39,6 +39,7 @@ import ru.growerhub.backend.automation.jpa.AutomationScenarioConfigRepository;
 import ru.growerhub.backend.automation.jpa.AutomationScenarioStateEntity;
 import ru.growerhub.backend.automation.jpa.AutomationScenarioStateRepository;
 import ru.growerhub.backend.common.config.AutomationSettings;
+import ru.growerhub.backend.common.config.DemoSettings;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.DeviceFacade;
@@ -125,6 +126,7 @@ public class AutomationFacade {
     private final ZigbeeFacade zigbeeFacade;
     private final UserFacade userFacade;
     private final AutomationSettings settings;
+    private final DemoSettings demoSettings;
     private final ObjectMapper objectMapper;
 
     public AutomationFacade(
@@ -142,6 +144,7 @@ public class AutomationFacade {
             ZigbeeFacade zigbeeFacade,
             UserFacade userFacade,
             AutomationSettings settings,
+            DemoSettings demoSettings,
             ObjectMapper objectMapper
     ) {
         this.roomRepository = roomRepository;
@@ -158,13 +161,15 @@ public class AutomationFacade {
         this.zigbeeFacade = zigbeeFacade;
         this.userFacade = userFacade;
         this.settings = settings;
+        this.demoSettings = demoSettings;
         this.objectMapper = objectMapper;
     }
 
     @Transactional(readOnly = true)
     public AutomationData.ProductAnalyticsSnapshot getProductAnalytics() {
-        List<AutomationRoomEntity> rooms = roomRepository.findAll();
-        List<AutomationBoxEntity> boxes = boxRepository.findAll();
+        Set<Integer> demoOwners = userFacade.getDemoOwnerIds();
+        List<AutomationRoomEntity> rooms = roomRepository.findAll().stream().filter(room -> !demoOwners.contains(room.getUserId())).toList();
+        List<AutomationBoxEntity> boxes = boxRepository.findAll().stream().filter(box -> !demoOwners.contains(box.getRoom().getUserId())).toList();
         Map<Integer, Integer> roomOwners = rooms.stream()
                 .collect(Collectors.toMap(AutomationRoomEntity::getId, AutomationRoomEntity::getUserId));
         Map<Integer, Integer> boxOwners = boxes.stream()
@@ -339,6 +344,11 @@ public class AutomationFacade {
             AutomationData.SaveRoomRequest request
     ) {
         requireAuthenticated(user);
+        if (user.isDemo()) {
+            userFacade.lockDemoOwner(user.id());
+            long count = roomRepository.findAll().stream().filter(room -> Objects.equals(room.getUserId(), user.id())).count();
+            if (count >= demoSettings.maxFarms()) throw new DomainException("conflict", "Demo farm limit reached");
+        }
         LocalDateTime now = nowUtc();
         AutomationRoomEntity farm = AutomationRoomEntity.create(
                 user.id(),
@@ -379,6 +389,11 @@ public class AutomationFacade {
             AutomationData.SaveBoxRequest request
     ) {
         AutomationRoomEntity farm = requireOwnedFarm(user, farmId);
+        if (user.isDemo()) {
+            userFacade.lockDemoOwner(user.id());
+            long count = boxRepository.findAll().stream().filter(box -> Objects.equals(box.getRoom().getUserId(), user.id())).count();
+            if (count >= demoSettings.maxGreenhouses()) throw new DomainException("conflict", "Demo greenhouse limit reached");
+        }
         LocalDateTime now = nowUtc();
         AutomationBoxEntity greenhouse = AutomationBoxEntity.create(
                 farm,
@@ -1187,10 +1202,25 @@ public class AutomationFacade {
     }
 
     public void evaluateAll() {
-        LocalDateTime now = nowUtc();
-        Catalog catalog = buildCatalog();
-        List<AutomationRoomEntity> rooms = roomRepository.findAllByOrderByNameAscIdAsc();
-        List<AutomationBoxEntity> boxes = boxRepository.findAllByOrderByNameAscIdAsc();
+        Set<Integer> demoOwners = userFacade.getDemoOwnerIds();
+        List<AutomationRoomEntity> rooms = roomRepository.findAllByOrderByNameAscIdAsc().stream()
+                .filter(room -> !demoOwners.contains(room.getUserId())).toList();
+        List<AutomationBoxEntity> boxes = boxRepository.findAllByOrderByNameAscIdAsc().stream()
+                .filter(box -> !demoOwners.contains(box.getRoom().getUserId())).toList();
+        evaluateZones(rooms, boxes, buildCatalog(), nowUtc());
+    }
+
+    public void evaluateDemoOwner(Integer ownerId) {
+        userFacade.requireDemoOwner(ownerId);
+        Catalog catalog = buildOwnedCatalog(new AuthenticatedUser(ownerId, "demo"));
+        List<AutomationRoomEntity> rooms = roomRepository.findAllByOrderByNameAscIdAsc().stream()
+                .filter(room -> Objects.equals(room.getUserId(), ownerId)).toList();
+        List<AutomationBoxEntity> boxes = boxRepository.findAllByOrderByNameAscIdAsc().stream()
+                .filter(box -> Objects.equals(box.getRoom().getUserId(), ownerId)).toList();
+        evaluateZones(rooms, boxes, catalog, nowUtc());
+    }
+
+    private void evaluateZones(List<AutomationRoomEntity> rooms, List<AutomationBoxEntity> boxes, Catalog catalog, LocalDateTime now) {
         Map<Integer, AutomationRoomEntity> roomsById = rooms.stream()
                 .collect(Collectors.toMap(AutomationRoomEntity::getId, Function.identity()));
         Map<Integer, String> timezones = userFacade.getTimezones(
@@ -1214,14 +1244,27 @@ public class AutomationFacade {
     @Transactional(readOnly = true)
     public void evaluateActiveWateringSessions() {
         LocalDateTime now = nowUtc();
-        List<PumpSessionData.Probe> probes = pumpFacade.listActiveSessionProbes();
+        List<PumpSessionData.Probe> probes = pumpFacade.listActiveSessionProbes().stream()
+                .filter(probe -> probe == null || !deviceFacade.isSimulatedDevice(probe.deviceKey())).toList();
         if (probes.isEmpty()) {
             return;
         }
-        Catalog catalog = buildCatalog();
+        advanceWatering(probes, buildCatalog(), now);
+    }
+
+    public void evaluateDemoWatering(Integer ownerId) {
+        userFacade.requireDemoOwner(ownerId);
+        Catalog catalog = buildOwnedCatalog(new AuthenticatedUser(ownerId, "demo"));
+        Set<String> keys = catalog.nativeDevices.stream().map(AutomationData.NativeDevice::deviceId).collect(Collectors.toSet());
+        advanceWatering(pumpFacade.listActiveSessionProbes().stream()
+                .filter(probe -> probe != null && keys.contains(probe.deviceKey())).toList(), catalog, nowUtc());
+    }
+
+    private void advanceWatering(List<PumpSessionData.Probe> probes, Catalog catalog, LocalDateTime now) {
         Map<String, AutomationData.NativeDevice> devicesByKey = catalog.nativeDevices.stream()
                 .collect(Collectors.toMap(AutomationData.NativeDevice::deviceId, Function.identity()));
         for (PumpSessionData.Probe probe : probes) {
+            if (probe == null) continue;
             Long sessionId = probe != null ? probe.sessionId() : null;
             try {
                 AutomationData.NativeDevice device = devicesByKey.get(probe.deviceKey());
@@ -2948,8 +2991,9 @@ public class AutomationFacade {
     }
 
     private Catalog buildCatalog(AuthenticatedUser user, boolean allData) {
+        Set<Integer> demoOwners = allData ? userFacade.getDemoOwnerIds() : Set.of();
         List<AutomationData.Plant> plants = allData
-                ? plantFacade.listAdminPlants(SYSTEM_ADMIN).stream().map(this::toPlantData).toList()
+                ? plantFacade.listAdminPlants(SYSTEM_ADMIN).stream().filter(plant -> !demoOwners.contains(plant.ownerId())).map(this::toPlantData).toList()
                 : plantFacade.listPlants(user).stream().map(this::toPlantData).toList();
         Map<Integer, AutomationData.Plant> plantsById = plants.stream()
                 .collect(Collectors.toMap(AutomationData.Plant::id, Function.identity()));
@@ -2958,7 +3002,7 @@ public class AutomationFacade {
         Map<Integer, AutomationData.NativeSensor> sensorsById = new HashMap<>();
         Map<Integer, AutomationData.NativePump> pumpsById = new HashMap<>();
         List<DeviceSummary> deviceSummaries = allData
-                ? deviceFacade.listAdminDevices()
+                ? deviceFacade.listAdminDevices().stream().filter(device -> !demoOwners.contains(device.userId())).toList()
                 : deviceFacade.listMyDevices(user.id());
         for (DeviceSummary summary : deviceSummaries) {
             DeviceShadowState shadow = deviceFacade.getShadowState(summary.deviceId());

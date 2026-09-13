@@ -7,7 +7,7 @@ summary: >-
   ESPHome, transfer the data to the Home Assistant and use it safely for
   watering.
 created_at: '2026-07-23'
-updated_at: '2026-07-23'
+updated_at: "2026-09-13"
 cluster: home-assistant-i-diy
 tags:
   - GrowerHub
@@ -41,6 +41,18 @@ The ESP32 and capacitive sensor are suitable for monitoring soil moisture as lon
 | control | multimeter and manual substrate condition check |
 
 Before connecting, check the diagram of your board and sensor. The color of the wire and the signature from a random product card are not documentation.
+
+## ESP32 and ESP32-C3 SuperMini use different pins
+
+The GPIO34 example below applies to the original ESP32, where that pin is an ADC1 input. **ESP32-C3 has no GPIO34:** ESPHome lists ADC1 on GPIO0–GPIO4. For a SuperMini, check the exact board pinout and whether the pin is exposed, then replace `pin`. The chip family alone does not verify a particular board layout. [ADC pin table](https://esphome.io/components/sensor/adc/#esp32-pins-and-hardware-details).
+
+| Connection | Check before applying power |
+|---|---|
+| Sensor GND → board GND | Common ground |
+| Sensor VCC → suitable supply | Sensor’s specified supply voltage |
+| Analog OUT → selected ADC1 | Output stays within the board input limits |
+
+This describes pin functions; it is not a photograph of a tested SuperMini assembly. Do not apply 5 V to ADC. A capacitive moisture sensor does not measure EC or fertilizer concentration; that requires a separate measurement device.
 
 ## Step 1: Get the raw ADC value
 
@@ -108,7 +120,7 @@ The numbers above only show the format. For some sensors the direction will be r
 
 ## Step 4. Transfer data to Home Assistant
 
-ESPHome can use native API or MQTT. Native API is simpler if data is needed only Home Assistant. MQTT is useful when the same measurement is read by GrowerHub or another local system. In any case, the entity should become unavailable when the controller is lost, and the interface should show the last update time.
+ESPHome can use native API or MQTT. Native API is simpler if data is needed only Home Assistant. MQTT is useful when another system understands the selected topics and payload format. MQTT alone does not make an ESPHome sensor compatible with GrowerHub. In any case, the entity should become unavailable when the controller is lost, and the interface should show the last update time.
 
 For MQTT, configure state and availability, and for automation, do not use the saved value after the allowed time has expired. General integration rules are described on the page Home Assistant [MQTT](https://www.home-assistant.io/integrations/mqtt/).
 
@@ -136,4 +148,4 @@ If these conditions are not met, leave the ESP32 as the sensor. For future water
 
 The percentage then becomes a useful zone-specific scale rather than a random number with a nice blob icon.
 
-ESP32 with its own local MQTT configuration is an exception to the limitation of conventional cloud Wi-Fi sensors. The [hardware section](/oborudovanie/) explains why retail Tuya sensors generally cannot be routed to the MQTT GrowerHub, but the open source ESP32 can be integrated separately.
+The supplied GrowerHub connector reads Zigbee2MQTT; native controllers use their own protocol. Arbitrary ESPHome/MQTT topics are not imported automatically. An additional integration needs a compatible adapter and contract verification. While calibrating ESP32 in Home Assistant, use the [demo farm](/app/demo/?lang=en) to evaluate GrowerHub charts and watering without buying equipment.

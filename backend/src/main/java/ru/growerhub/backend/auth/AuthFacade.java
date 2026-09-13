@@ -25,11 +25,13 @@ public class AuthFacade {
     private final AuthService authService;
     private final SsoService ssoService;
     private final JwtService jwtService;
+    private final ru.growerhub.backend.auth.engine.DemoAuthService demoAuth;
 
-    public AuthFacade(AuthService authService, SsoService ssoService, JwtService jwtService) {
+    public AuthFacade(AuthService authService, SsoService ssoService, JwtService jwtService, ru.growerhub.backend.auth.engine.DemoAuthService demoAuth) {
         this.authService = authService;
         this.ssoService = ssoService;
         this.jwtService = jwtService;
+        this.demoAuth = demoAuth;
     }
 
     @Transactional(readOnly = true)
@@ -166,6 +168,7 @@ public class AuthFacade {
     @Transactional
     public void logout(HttpServletRequest request, HttpServletResponse response) {
         authService.logout(request, response);
+        demoAuth.logout(request, response);
     }
 
     @Transactional
@@ -228,8 +231,48 @@ public class AuthFacade {
         } catch (JwtException | IllegalArgumentException ex) {
             return null;
         }
+        if (claims.get("token_use") != null) return null;
         return parseUserIdClaim(claims.get("user_id"));
     }
+
+    @Transactional
+    public ru.growerhub.backend.auth.contract.DemoTokens startDemo(String authorization, String locale, String timezone,
+            HttpServletRequest request, HttpServletResponse response) {
+        return demoAuth.start(authorization, locale, timezone, request, response);
+    }
+
+    @Transactional
+    public ru.growerhub.backend.auth.contract.DemoTokens refreshDemo(String authorization, HttpServletRequest request) {
+        return demoAuth.refresh(authorization, request);
+    }
+
+    @Transactional
+    public ru.growerhub.backend.auth.contract.DemoTokens saveDemo(AuthenticatedUser user, boolean replace,
+            HttpServletRequest request, HttpServletResponse response) {
+        return demoAuth.save(user, replace, request, response);
+    }
+
+    @Transactional
+    public ru.growerhub.backend.auth.contract.DemoTokens resetDemo(AuthenticatedUser user,
+            HttpServletRequest request, HttpServletResponse response) {
+        return demoAuth.reset(user, request, response);
+    }
+
+    @Transactional
+    public AuthenticatedUser authenticateDemoToken(String token, String method, String path) {
+        return demoAuth.authenticate(token, method, path);
+    }
+
+    @Transactional
+    public void logoutDemo(HttpServletRequest request, HttpServletResponse response) {
+        demoAuth.logout(request, response);
+    }
+
+    @Transactional
+    public void revokeDemoSpace(java.util.UUID id) { demoAuth.revokeSpace(id); }
+
+    @Transactional
+    public void cleanupDemoSessions() { demoAuth.cleanup(); }
 
     private Integer parseUserIdClaim(Object rawValue) {
         if (rawValue == null) {

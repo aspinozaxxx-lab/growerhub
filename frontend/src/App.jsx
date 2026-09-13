@@ -24,7 +24,7 @@ const AppSection = lazy(async () => {
 
 function AnalyticsRouteTracker() {
   const location = useLocation();
-  const previousUrlRef = useRef(document.referrer || '');
+  const previousUrlRef = useRef(typeof document === 'undefined' ? '' : document.referrer || '');
 
   useEffect(() => {
     const url = window.location.href;
@@ -41,7 +41,7 @@ function AnalyticsRouteTracker() {
   return null;
 }
 
-function App() {
+function App({ initialArticle } = {}) {
   return (
     <AuthProvider>
       <Layout>
@@ -67,8 +67,8 @@ function App() {
         <Route path="/en/articles/" element={<ArticlesListPage />} />
         <Route path="/articles/clusters/:clusterSlug/" element={<ArticleClusterPage />} />
         <Route path="/en/articles/clusters/:clusterSlug/" element={<ArticleClusterPage />} />
-        <Route path="/articles/:slug/" element={<ArticlePage />} />
-        <Route path="/en/articles/:slug/" element={<ArticlePage />} />
+        <Route path="/articles/:slug/" element={<ArticlePage initialArticle={initialArticle} />} />
+        <Route path="/en/articles/:slug/" element={<ArticlePage initialArticle={initialArticle} />} />
         <Route path="/about/" element={<AboutPage />} />
         <Route path="/en/about/" element={<AboutPage />} />
         <Route path="/privacy/" element={<LegalPage type="privacy" />} />

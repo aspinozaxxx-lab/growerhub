@@ -1,0 +1,224 @@
+{
+  "version": 1,
+  "farmName": {
+    "ru": "Демоферма · Зелёный дом",
+    "en": "Demo farm · Green house"
+  },
+  "profiles": [
+    {
+      "key": "controller",
+      "kind": "native",
+      "name": {
+        "ru": "Контроллер Grovika",
+        "en": "Grovika controller"
+      },
+      "description": {
+        "ru": "Температура, влажность воздуха и почвы, насос",
+        "en": "Air and soil sensors with a watering pump"
+      },
+      "powerWatts": 12,
+      "temperature": 25,
+      "humidity": 61,
+      "moisture": 64
+    },
+    {
+      "key": "light",
+      "kind": "switch",
+      "name": {
+        "ru": "Фитолампа",
+        "en": "Grow light"
+      },
+      "description": {
+        "ru": "Расписание света и счётчик энергии",
+        "en": "Light schedules and energy meter"
+      },
+      "powerWatts": 120,
+      "temperature": 25,
+      "humidity": 61,
+      "moisture": 64
+    },
+    {
+      "key": "fan",
+      "kind": "switch",
+      "name": {
+        "ru": "Вытяжной вентилятор",
+        "en": "Exhaust fan"
+      },
+      "description": {
+        "ru": "Управление температурой и расход энергии",
+        "en": "Temperature control and energy meter"
+      },
+      "powerWatts": 35,
+      "temperature": 25,
+      "humidity": 61,
+      "moisture": 64
+    },
+    {
+      "key": "ac",
+      "kind": "switch",
+      "name": {
+        "ru": "Кондиционер",
+        "en": "Air conditioner"
+      },
+      "description": {
+        "ru": "Общий климат фермы",
+        "en": "Shared farm climate control"
+      },
+      "powerWatts": 450,
+      "temperature": 25,
+      "humidity": 61,
+      "moisture": 64
+    },
+    {
+      "key": "leak",
+      "kind": "leak",
+      "name": {
+        "ru": "Датчик протечки",
+        "en": "Leak sensor"
+      },
+      "description": {
+        "ru": "Проверка безопасной остановки полива",
+        "en": "Try stopping watering on a leak"
+      },
+      "powerWatts": 0,
+      "temperature": 25,
+      "humidity": 61,
+      "moisture": 64
+    },
+    {
+      "key": "air",
+      "kind": "air",
+      "name": {
+        "ru": "Датчик воздуха",
+        "en": "Air sensor"
+      },
+      "description": {
+        "ru": "Температура и влажность",
+        "en": "Temperature and humidity"
+      },
+      "powerWatts": 0,
+      "temperature": 25,
+      "humidity": 61,
+      "moisture": 64
+    },
+    {
+      "key": "soil",
+      "kind": "soil",
+      "name": {
+        "ru": "Датчик почвы",
+        "en": "Soil sensor"
+      },
+      "description": {
+        "ru": "Влажность почвы",
+        "en": "Soil moisture"
+      },
+      "powerWatts": 0,
+      "temperature": 25,
+      "humidity": 61,
+      "moisture": 64
+    }
+  ],
+  "greenhouses": [
+    {
+      "name": {
+        "ru": "Рассада",
+        "en": "Seedlings"
+      },
+      "plants": [
+        {
+          "ru": "Томат · рассада",
+          "en": "Tomato seedlings"
+        },
+        {
+          "ru": "Перец · рассада",
+          "en": "Pepper seedlings"
+        }
+      ]
+    },
+    {
+      "name": {
+        "ru": "Пряные травы",
+        "en": "Herbs"
+      },
+      "plants": [
+        {
+          "ru": "Базилик",
+          "en": "Basil"
+        },
+        {
+          "ru": "Мята",
+          "en": "Mint"
+        }
+      ]
+    },
+    {
+      "name": {
+        "ru": "Томаты",
+        "en": "Tomatoes"
+      },
+      "plants": [
+        {
+          "ru": "Томат черри",
+          "en": "Cherry tomato"
+        }
+      ]
+    },
+    {
+      "name": {
+        "ru": "Клубника",
+        "en": "Strawberries"
+      },
+      "plants": [
+        {
+          "ru": "Клубника",
+          "en": "Strawberry"
+        }
+      ]
+    }
+  ],
+  "scenarios": {
+    "BOX_CLIMATE": {
+      "max_c": 28,
+      "exhaust_off_below_c": 27,
+      "ac_request_above_c": 29,
+      "ac_clear_below_c": 27
+    },
+    "LIGHT_SCHEDULE": {
+      "start_time": "06:00",
+      "end_time": "22:00",
+      "days": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "WATERING": {
+      "soil_threshold_percent": 40,
+      "max_interval_hours": 48,
+      "stop_mode": "fixed_duration",
+      "run_seconds": 30,
+      "max_run_minutes": 10,
+      "pulse_enabled": false,
+      "pulse_run_minutes": 3,
+      "pulse_pause_minutes": 5,
+      "min_interval_hours": 6,
+      "daily_max_seconds": 1200
+    },
+    "ROOM_CLIMATE": {}
+  },
+  "physics": {
+    "dailyTemperatureDelta": 2,
+    "temperatureResponsePerMinute": 0.12,
+    "lightHeat": 2,
+    "fanCooling": 3,
+    "acCooling": 5,
+    "pumpMoisturePerSecond": 0.25,
+    "dryingPerHour": 0.35,
+    "wateringRateMlPerHour": 24000,
+    "historyWateringSeconds": 30
+  }
+}

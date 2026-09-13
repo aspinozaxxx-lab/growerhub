@@ -22,4 +22,5 @@ public interface ZigbeeDeviceSnapshotRepository extends JpaRepository<ZigbeeDevi
     List<ZigbeeDeviceSnapshotEntity> findAllByCoordinatorIdOrderByCoordinatorDescFriendlyNameAsc(Integer coordinatorId);
 
     long countByCoordinatorIdAndCoordinatorFalse(Integer coordinatorId);
+    void deleteByCoordinatorId(Integer coordinatorId);
 }

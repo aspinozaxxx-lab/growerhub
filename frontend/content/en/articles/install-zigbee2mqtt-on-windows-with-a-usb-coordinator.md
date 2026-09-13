@@ -4,7 +4,7 @@ slug: "install-zigbee2mqtt-on-windows-usb-coordinator"
 title: "Install Zigbee2MQTT on Windows with a USB coordinator"
 summary: "A step-by-step Zigbee2MQTT setup for Windows: USB coordinator, COM port, Z-Stack or Ember, GrowerHub configuration, startup and troubleshooting."
 created_at: "2026-08-16"
-updated_at: "2026-08-16"
+updated_at: "2026-09-13"
 cluster: "zigbee-hub-i-ustroystva"
 tags:
   - "GrowerHub"
@@ -26,6 +26,8 @@ hero_alt: "Zigbee2MQTT on Windows with a USB coordinator, MQTT and GrowerHub"
 Zigbee2MQTT can run on an ordinary always-on Windows computer. A USB coordinator with coordinator firmware and one Zigbee sensor are enough for a first setup. GrowerHub provides an isolated, encrypted MQTT connection, so a new direct installation does not require a local MQTT broker.
 
 The shortest path is to download the GrowerHub Windows package and two personal configuration files from the dashboard. This guide also explains where to look when Windows cannot see the USB stick or Zigbee2MQTT does not come online.
+
+**Want to see the dashboard first?** [Open the demo without signing up](/app/demo/?lang=en). Sensors, greenhouses and history are already prepared; no USB coordinator is needed for the demo. The steps below connect your physical equipment.
 
 ## What you need
 
@@ -100,6 +102,17 @@ Wait for measurements and capabilities to appear before moving the sensor to its
 | a sensor will not pair | pair near the coordinator, factory-reset the device, verify power, and read the Zigbee2MQTT log |
 
 The local package interface is available only on that computer at `http://127.0.0.1:8080`. It does not need to be exposed to the internet.
+
+## Verify recovery after a Windows restart
+
+Back up the `data` directory before an upgrade. It contains configuration and Zigbee network state; keep it separate from other installations.
+
+1. Stop the package with `stop-coordinator.bat`, then run `start-coordinator.bat` again.
+2. Check `status-coordinator.bat` and fresh readings in GrowerHub.
+3. Restart Windows and repeat the check. A running process alone does not prove the coordinator is ONLINE.
+4. If using Task Scheduler, set absolute paths and the package working directory. Test the chosen startup or sign-in trigger. Do not assume the package has configured automatic startup.
+
+At this update, the official [Zigbee2MQTT Windows guide](https://www.zigbee2mqtt.io/guide/installation/05_windows.html) uses Node.js 22 LTS, Corepack and pnpm. Check `node --version` and `corepack --version` before starting. Open a new terminal after installing Node. If Windows blocks a PowerShell command shim, use the corresponding `.cmd` command instead of disabling system-wide security policies.
 
 ## If Zigbee2MQTT already works
 

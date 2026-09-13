@@ -3,6 +3,9 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Leaf } from 'lucide-react';
 import { getPublicPath } from '../../domain/localizedRoutes';
 import './AppLayout.css';
+import { useAuth } from '../../features/auth/AuthContext';
+import DemoBanner from '../../features/auth/DemoBanner';
+import { DEMO_PUBLIC_ENABLED } from '../../domain/siteConfig';
 import {
   getCurrentLocale,
   getStoredLocale,
@@ -31,6 +34,7 @@ const renderNavItems = () =>
 // Kabinet ispolzuet verhnee menyu; admin sohranyaet bokovuyu navigaciyu.
 function AppLayout() {
   const location = useLocation();
+  const { demoActive } = useAuth();
   const adminRoute = location.pathname.startsWith('/app/admin/');
   const currentLocale = getCurrentLocale();
 
@@ -76,6 +80,8 @@ function AppLayout() {
 
       <main className="app-content">
         <div className="app-content__inner">
+          <DemoBanner />
+          {DEMO_PUBLIC_ENABLED && !demoActive && !adminRoute ? <div className="app-demo-entry-link"><Link to="/app/demo/">{translateApp("Попробовать на демоферме")}</Link></div> : null}
           <Outlet />
         </div>
       </main>

@@ -288,3 +288,56 @@ automation:
   sensorOfflineMinutes: 20
   # Chasovoj poyas raspisanij.
   timezone: "Europe/Istanbul"
+
+# Translitem: demo vklyuchaetsja otdelno posle proverki izoljacii.
+demo:
+  # Translitem: dostupnost demonstracionnyh pesochnic.
+  enabled: ${DEMO_ENABLED:false}
+  # Translitem: vremja zhizni access token demo v minutah.
+  access-token-minutes: 15
+  # Translitem: srok hranenija nesohranennogo gostevogo demo v chasah.
+  guest-ttl-hours: 24
+  # Translitem: srok obnovlenija sessii sohranennogo demo v dnjah.
+  saved-session-days: 30
+  # Translitem: prostoj do ostanovki simuljacii v minutah.
+  inactive-minutes: 10
+  # Translitem: predel gostevyh pesochnic v baze.
+  max-guest-spaces: 100
+  # Translitem: predel odnovremenno aktivnyh simuljacij.
+  max-active-spaces: 20
+  # Translitem: predel sozdanij s odnogo adresa za chas.
+  max-creates-per-hour: 6
+  # Translitem: predel izmenjajushhih REST zaprosov odnoj pesochnicy za minutu.
+  max-actions-per-minute: 60
+  # Translitem: dorogoe vosstanovlenie istorii ogranicheno otdelno.
+  max-resets-per-hour: 3
+  # Translitem: predel ustrojstv odnoj pesochnicy.
+  max-devices: 32
+  # Translitem: predel rastenij odnoj pesochnicy.
+  max-plants: 24
+  # Translitem: predel ferm odnoj pesochnicy.
+  max-farms: 3
+  # Translitem: predel teplic odnoj pesochnicy.
+  max-greenhouses: 8
+  # Translitem: razmer odnoj porcii fonovoj obrabotki.
+  worker-batch-size: 5
+  # Translitem: interval worker demo v millisekundah.
+  worker-period-ms: 1000
+  # Translitem: interval ochistki demo v millisekundah.
+  cleanup-period-ms: 60000
+  # Translitem: glubina nachalnoj istorii v dnjah.
+  history-days: 7
+  # Translitem: shag nachalnoj istorii v minutah.
+  history-step-minutes: 60
+  # Translitem: interval zapisi tekushhej telemetrii v sekundah.
+  telemetry-period-seconds: 15
+  # Translitem: otdelnaja refresh cookie dlya demo.
+  cookie-name: gh_demo_refresh
+  # Translitem: HTTPS cookie v production.
+  secure-cookie: ${DEMO_SECURE_COOKIE:true}
+  # Translitem: razreshennyj origin operacij s cookie.
+  allowed-origin: ${DEMO_ALLOWED_ORIGIN:https://growerhub.ru}
+  # Translitem: tolko eti reverse proxy mogut peredat adres posetitelja v X-Real-IP.
+  trusted-proxy-addresses: ${DEMO_TRUSTED_PROXY_ADDRESSES:127.0.0.1,::1,0:0:0:0:0:0:0:1}
+  # Translitem: versionirovannyj shablon demonstracionnoj fermy.
+  template-path: classpath:demo/farm-v1.json

@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
 import PlatformStartLink from '../components/PlatformStartLink';
+import DemoStartLink from '../components/DemoStartLink';
 import { articleClusters } from '../content/articleClusters';
-import { articles, getArticleById } from '../content/articles';
+import { getArticles, getArticleById } from '../content/articles';
 import { aboutContent, homeContent } from '../content/pages';
 import {
   getArticlePath,
@@ -24,7 +25,7 @@ import useSeoMeta from '../utils/useSeoMeta';
 function HomePage() {
   const locale = getCurrentLocale();
   const path = getPublicPath('home', locale);
-  const pageDescription = translatePublic('home.description');
+  const pageDescription = homeContent.description;
   const organizationLd = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -52,7 +53,7 @@ function HomePage() {
   };
 
   useSeoMeta({
-    title: translatePublic('home.title'),
+    title: homeContent.title,
     description: pageDescription,
     path,
     jsonLd: [organizationLd, softwareApplicationLd],
@@ -60,7 +61,7 @@ function HomePage() {
   });
 
   const { hero, secondary, features } = homeContent;
-  const recentArticles = articles.slice(0, 4);
+  const recentArticles = [...getArticles(locale)].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at) || a.slug.localeCompare(b.slug)).slice(0, 4);
 
   return (
     <div className="section">
@@ -70,27 +71,25 @@ function HomePage() {
           <h1>{hero.title}</h1>
           <p>{hero.subtitle}</p>
           <div className="cta-row">
-            <PlatformStartLink placement="home_hero">
-              {SELF_SERVICE_PUBLIC_ENABLED ? hero.cta : 'Как начать'}
+            <DemoStartLink placement="home_hero_demo" />
+            <PlatformStartLink placement="home_hero" className="secondary-link">
+              {SELF_SERVICE_PUBLIC_ENABLED ? hero.cta : translatePublic('Как начать')}
             </PlatformStartLink>
             <Link className="secondary-link" to={getPublicPath('gettingStarted', locale)}>
               {translatePublic('Путь подключения')}
             </Link>
           </div>
         </div>
-        <div className="card">
-          <h2>{secondary.title}</h2>
-          <p>{secondary.text}</p>
-          <div className="card-grid">
-            {secondary.points.map((point) => (
-              <div key={point.title} className="info-block">
-                <strong>{point.title}</strong>
-                <p>{point.text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        <figure className="hero-product-preview">
+          <img src={hero.preview_image} srcSet={`${hero.preview_image.replace('.webp', '-640.webp')} 640w, ${hero.preview_image} 1280w`} sizes="(max-width: 800px) 100vw, 50vw" width="1280" height="720" fetchPriority="high" alt={hero.preview_alt} />
+          <figcaption>{hero.preview_caption}</figcaption>
+        </figure>
       </div>
+
+      <section className="content-section">
+        <h2>{secondary.title}</h2><p>{secondary.text}</p>
+        <div className="card-grid">{secondary.points.map((point) => <div className="info-block" key={point.title}><strong>{point.title}</strong><p>{point.text}</p></div>)}</div>
+      </section>
 
       <section className="content-section">
         <h2>{features.title}</h2>
@@ -183,7 +182,7 @@ function HomePage() {
           {recentArticles.map((article) => (
             <article className="article-card" key={article.slug}>
               <div className="article-meta">
-                {new Date(article.updated_at).toLocaleDateString(getIntlLocale(locale))}
+                {translatePublic('Обновлено')} {new Date(article.updated_at).toLocaleDateString(getIntlLocale(locale), { timeZone: 'UTC' })}
               </div>
               <Link to={getArticlePath(article, locale)}>{article.title}</Link>
               <p>{article.summary}</p>

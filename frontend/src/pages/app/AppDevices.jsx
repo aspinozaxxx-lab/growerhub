@@ -1,4 +1,5 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
+﻿import { Link } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DeviceCard from '../../components/devices/DeviceCard';
 import {
   claimDevice,
@@ -29,7 +30,7 @@ function isGrovika(device) {
 }
 
 function AppDevices() {
-  const { token } = useAuth();
+  const { token, demoActive } = useAuth();
   const { refreshVersion } = useWateringSidebar();
   const [devices, setDevices] = useState([]);
   const [farmOverview, setFarmOverview] = useState(null);
@@ -218,7 +219,7 @@ function AppDevices() {
   return (
     <div className="app-devices">
       <AppPageHeader title={translateApp("Устройства")} />
-      <Surface variant="card" padding="md" className="device-claim-card">
+      {demoActive ? <p><Link className="gh-btn gh-btn--primary gh-btn--md" to="/app/demo-tools/">{translateApp("Добавить виртуальное устройство")}</Link></p> : <Surface variant="card" padding="md" className="device-claim-card">
         <div className="device-claim-card__intro">
           <Title level={3}>{translateApp('Добавить Grovika')}</Title>
           <Text tone="muted">
@@ -268,7 +269,7 @@ function AppDevices() {
         {retryMessage ? (
           <div className="device-claim-retry" role="status"><Text>{retryMessage}</Text></div>
         ) : null}
-      </Surface>
+      </Surface>}
       {isLoading && <AppPageState kind="loading" title={translateApp("Загрузка...")} />}
       {error && <AppPageState kind="error" title={error} />}
 
@@ -284,7 +285,7 @@ function AppDevices() {
             assignments={assignmentsForNativeDevice(farmOverview, device)}
             firmwareStatus={firmwareByDevice[device.device_id] || null}
             isFirmwareUpdating={Boolean(updatingFirmware[device.device_id])}
-            onFirmwareUpdate={() => handleFirmwareUpdate(device)}
+            onFirmwareUpdate={demoActive ? undefined : () => handleFirmwareUpdate(device)}
           />
         ))}
       </AppGrid>

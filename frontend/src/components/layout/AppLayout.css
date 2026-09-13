@@ -494,3 +494,6 @@
   }
 
 }
+
+.app-demo-entry-link { display: flex; justify-content: flex-end; margin-bottom: 12px; font-size: 13px; }
+.app-demo-entry-link a { color: #37644b; text-underline-offset: 3px; }

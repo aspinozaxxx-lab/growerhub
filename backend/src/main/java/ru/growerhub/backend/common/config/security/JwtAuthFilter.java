@@ -26,7 +26,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private static final Set<String> PUBLIC_PATHS = Set.of(
             "/api/auth/login",
             "/api/auth/refresh",
-            "/api/auth/logout"
+            "/api/auth/logout",
+            "/api/demo/start",
+            "/api/demo/refresh",
+            "/api/demo/logout"
     );
 
     private final AuthFacade authFacade;
@@ -75,6 +78,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
+        try {
+            AuthenticatedUser demoUser = authFacade.authenticateDemoToken(token, request.getMethod(), request.getRequestURI());
+            if (demoUser != null) {
+                SecurityContextHolder.getContext().setAuthentication(
+                        new UsernamePasswordAuthenticationToken(demoUser, null, java.util.List.of()));
+                filterChain.doFilter(request, response);
+                return;
+            }
+        } catch (ru.growerhub.backend.common.contract.DomainException ex) {
+            int status = "forbidden".equals(ex.getCode()) ? 403 : "too_many_requests".equals(ex.getCode()) ? 429 : 401;
+            writeError(response, status, ex.getMessage(), status == 401);
+            return;
+        }
         Integer userId = authFacade.parseUserId(token);
         if (userId == null) {
             writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "Ne udalos' raspoznavat' token", true);

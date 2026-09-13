@@ -10,12 +10,16 @@ import './index.css';
 
 initAnalytics();
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const application = (
   <React.StrictMode>
     <I18nextProvider i18n={i18n}>
       <BrowserRouter>
         <App />
       </BrowserRouter>
     </I18nextProvider>
-  </React.StrictMode>,
+  </React.StrictMode>
 );
+
+const root = document.getElementById('root');
+if (root.dataset.reactSsr === '1') ReactDOM.hydrateRoot(root, application);
+else ReactDOM.createRoot(root).render(application);

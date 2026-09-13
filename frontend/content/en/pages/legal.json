@@ -1,8 +1,16 @@
 {
-  "updated_at": "2026-07-23",
+  "updated_at": "2026-09-13",
   "operator_name": "GrowerHub",
   "operator_contact": "https://t.me/growerhub_info",
   "reviewed": true,
   "privacy_title": "GrowerHub Privacy Policy",
-  "terms_title": "GrowerHub Terms of Use"
+  "terms_title": "GrowerHub Terms of Use",
+  "demo_privacy": {
+    "title": "Demo farm and sessions",
+    "text": "A guest demo farm stores virtual devices, settings and history for 24 hours. Access uses a separate protected session cookie; a hash of the network address limits how often farms can be created. Simulation pauses after 10 minutes of inactivity. A demo saved to an account remains until reset, replacement or account deletion. Demo access does not grant access to the account's real devices."
+  },
+  "demo_terms": {
+    "title": "Demonstration mode",
+    "text": "Sensor readings, water use and electricity use in the demo farm are simulated. They let you try the interface and scenarios but do not confirm compatibility with specific equipment. Guest farms are deleted after expiry; save your demo to an account to continue later."
+  }
 }

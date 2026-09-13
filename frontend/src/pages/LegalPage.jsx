@@ -45,6 +45,8 @@ function LegalPage({ type }) {
           <h2>{translatePublic('Поддержка')}</h2><p>{translatePublic('Если понадобится помощь, напишите нам в Telegram — подскажем с подключением, устройствами и настройкой функций на русском или английском.')}</p>
         </>
       )}
+      <h2>{(isPrivacy ? legalContent.demo_privacy : legalContent.demo_terms).title}</h2>
+      <p>{(isPrivacy ? legalContent.demo_privacy : legalContent.demo_terms).text}</p>
     </div>
   );
 }

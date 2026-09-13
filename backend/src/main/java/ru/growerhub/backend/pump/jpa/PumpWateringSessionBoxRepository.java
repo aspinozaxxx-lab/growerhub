@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface PumpWateringSessionBoxRepository extends JpaRepository<PumpWateringSessionBoxEntity, Long> {
+    void deleteAllBySession_Id(Long sessionId);
+
     List<PumpWateringSessionBoxEntity> findAllBySession_IdOrderById(Long sessionId);
 
     @Query("""

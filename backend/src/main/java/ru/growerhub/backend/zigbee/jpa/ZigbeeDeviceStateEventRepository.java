@@ -28,4 +28,5 @@ public interface ZigbeeDeviceStateEventRepository extends JpaRepository<ZigbeeDe
             @Param("fromTs") LocalDateTime fromTs,
             @Param("toTs") LocalDateTime toTs
     );
+    void deleteByCoordinatorId(Integer coordinatorId);
 }

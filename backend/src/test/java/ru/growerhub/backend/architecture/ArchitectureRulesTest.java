@@ -29,6 +29,7 @@ class ArchitectureRulesTest {
             "advisor",
             "auth",
             "automation",
+            "demo",
             "device",
             "firmware",
             "journal",

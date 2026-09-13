@@ -251,4 +251,5 @@ public interface ZigbeeDevicePropertyReadingRepository extends JpaRepository<Zig
             @Param("toTs") LocalDateTime toTs,
             @Param("eventProperties") Collection<String> eventProperties
     );
+    void deleteByCoordinatorId(Integer coordinatorId);
 }

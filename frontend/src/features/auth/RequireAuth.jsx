@@ -4,21 +4,21 @@ import { useAuth } from './AuthContext';
 import { translateApp } from '../../locales/i18n';
 
 function RequireAuth({ children }) {
-  const { status, setRedirectAfterLogin } = useAuth();
+  const { status, demoActive, setRedirectAfterLogin } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
-    if (status === 'unauthorized' && location.pathname !== '/app/login/') {
+    if (!demoActive && status === 'unauthorized' && location.pathname !== '/app/login/') {
       setRedirectAfterLogin(location.pathname);
     }
-  }, [status, location.pathname, setRedirectAfterLogin]);
+  }, [status, demoActive, location.pathname, setRedirectAfterLogin]);
 
   if (status === 'loading' || status === 'idle') {
     return <div className="app-loading">{translateApp("Загрузка...")}</div>;
   }
 
   if (status === 'unauthorized') {
-    return <Navigate to="/app/login/" replace />;
+    return <Navigate to={demoActive ? "/app/demo/?expired=1" : "/app/login/"} replace />;
   }
 
   return children;

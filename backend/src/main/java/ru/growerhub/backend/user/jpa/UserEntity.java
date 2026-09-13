@@ -23,7 +23,11 @@ public class UserEntity {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @Column(name = "email", nullable = false)
+    @org.hibernate.annotations.ColumnDefault("'ACCOUNT'")
+    @Column(name = "account_kind", nullable = false)
+    private String accountKind = "ACCOUNT";
+
+    @Column(name = "email", nullable = true)
     private String email;
 
     @Column(name = "username", nullable = true)
@@ -81,6 +85,14 @@ public class UserEntity {
         user.updatedAt = updatedAt;
         return user;
     }
+
+    public static UserEntity createDemo(String name, String timezone, LocalDateTime now) {
+        UserEntity user = create(null, name, "demo", true, timezone, now, now);
+        user.accountKind = "DEMO";
+        return user;
+    }
+
+    public boolean isDemo() { return "DEMO".equals(accountKind); }
 
     public Integer getId() {
         return id;
