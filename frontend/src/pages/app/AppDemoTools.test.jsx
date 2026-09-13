@@ -15,6 +15,10 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 it('prinimaet drobnye pokazaniya posle simuljacii i menjaet tolko vybrannye uslovija', async () => {
   render(<MemoryRouter><AppDemoTools /></MemoryRouter>);
   const temperature = await screen.findByLabelText('Температура воздуха, °C');
+  await waitFor(() => {
+    expect(temperature).toHaveValue(23.43);
+    expect(screen.getByLabelText('Влажность почвы, %')).toHaveValue(81.5);
+  });
   expect(temperature.checkValidity()).toBe(true);
   expect(screen.getByLabelText('Влажность почвы, %').checkValidity()).toBe(true);
   fireEvent.change(temperature, { target: { value: '34' } });
