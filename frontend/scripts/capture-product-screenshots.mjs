@@ -49,7 +49,7 @@ try {
     await page.locator('.device-card').first().waitFor();
     await shot('connection');
     await go('/app/automations/');
-    await page.getByRole('button', { name: locale === 'ru' ? 'Сохранить настройки' : 'Save settings', exact: true }).first().waitFor();
+    await page.getByRole('button', { name: locale === 'ru' ? 'Сохранить' : 'Save', exact: true }).first().waitFor();
     await shot('automation');
     await go('/app/manual-watering/');
     await page.getByRole('button', { name: locale === 'ru' ? 'Журнал насоса' : 'Pump log', exact: true }).first().click();

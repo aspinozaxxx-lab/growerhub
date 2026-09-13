@@ -57,7 +57,7 @@ access token и управляет cookie. Профиль auth возвраща�
 
 SSO callback не передаёт access token через URL. После проверки провайдера он устанавливает защищённую refresh-cookie и перенаправляет только на разрешённый путь внутри `/app`; frontend восстанавливает access token отдельным refresh-запросом.
 
-Демо использует отдельные JWT с token_use, id сессии и поколением, отдельную HttpOnly refresh-cookie и таблицу auth_demo_sessions. AuthFacade выдаёт, обновляет и отзывает их; DemoAccessPolicy ограничивает маршруты обычными операциями фермы и demo API. Сохранение требует основной сессии аккаунта. Подробности — ADR-006.
+Демо использует отдельные JWT с token_use, id сессии и поколением, отдельную HttpOnly refresh-cookie и таблицу auth_demo_sessions. AuthFacade выдаёт, обновляет и отзывает их; DemoAccessPolicy ограничивает маршруты обычными операциями фермы и demo API. Общий переключатель `PUT /api/automation/scenarios/enabled` доступен демосессии только для сценариев её технического владельца. Сохранение требует основной сессии аккаунта. Подробности — ADR-006.
 
 ## Ограничения
 

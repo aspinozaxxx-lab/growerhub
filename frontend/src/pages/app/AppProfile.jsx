@@ -26,6 +26,7 @@ function AppProfile() {
   const [authMethods, setAuthMethods] = useState(null);
   const [loadingMethods, setLoadingMethods] = useState(false);
   const [methodsError, setMethodsError] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [updatingLocal, setUpdatingLocal] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
@@ -70,9 +71,17 @@ function AppProfile() {
     }
   }, [setCurrentUser, timezone]);
 
-  const handleLogout = useCallback(() => {
-    logout();
-    navigate('/app/login/', { replace: true });
+  const handleLogout = useCallback(async () => {
+    setLoggingOut(true);
+    setMethodsError('');
+    try {
+      await logout();
+      navigate('/app/login/', { replace: true });
+    } catch {
+      setMethodsError(translateApp('Не удалось выйти. Повторите попытку.'));
+    } finally {
+      setLoggingOut(false);
+    }
   }, [logout, navigate]);
 
   /**
@@ -244,7 +253,7 @@ function AppProfile() {
                 onClick={() => navigate('/app/admin/')}
               >{translateApp("Администрирование")}</Button>
             ) : null}
-            <Button type="button" variant="secondary" onClick={handleLogout}>{translateApp("Выйти")}</Button>
+            <Button type="button" variant="secondary" onClick={handleLogout} disabled={loggingOut} isLoading={loggingOut}>{translateApp("Выйти")}</Button>
           </div>
         </Surface>
 

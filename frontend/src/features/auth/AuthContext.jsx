@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 /* eslint-disable react-refresh/only-export-components */
 import { registerAuthHandlers, resetApiSession } from '../../api/client';
-import { requestAccountRefresh, requestCurrentUser, requestPasswordLogin } from '../../api/auth';
+import { requestAccountLogout, requestAccountRefresh, requestCurrentUser, requestPasswordLogin } from '../../api/auth';
 import { startDemoSession, saveDemoSession, resetDemoSession, refreshDemoSession } from '../../api/demo';
 import { getCurrentLocale, translateApp } from '../../locales/i18n';
 import { DEFAULT_UI_TIME_ZONE, setUiTimeZone } from '../../utils/formatters';
@@ -62,7 +62,9 @@ function AuthProvider({ children }) {
     setMode(false); demoTokenRef.current = null; setDemoSession(null); setDemoStatus('idle');
     setUiTimeZone(accountUserRef.current?.timezone || DEFAULT_UI_TIME_ZONE);
   }, [setMode]);
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    const response = await requestAccountLogout();
+    if (!response.ok) throw new Error(translateApp('Не удалось выйти. Повторите попытку.'));
     leaveDemo(); clearAccount(); setError(null); setRedirectAfterLoginState(null);
   }, [leaveDemo, clearAccount]);
 

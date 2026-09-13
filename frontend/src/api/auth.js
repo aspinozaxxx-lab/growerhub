@@ -119,6 +119,7 @@ export async function changePassword(currentPassword, newPassword, token) {
   return data;
 }
 
+export const requestAccountLogout = () => fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
 export const requestAccountRefresh = () => fetch('/api/auth/refresh', { method: 'POST', credentials: 'same-origin' });
 export const requestCurrentUser = () => apiFetch('/api/auth/me', { authScope: 'account' });
 export const requestPasswordLogin = (email, password) => fetch('/api/auth/login', {

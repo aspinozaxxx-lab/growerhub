@@ -26,7 +26,8 @@ public final class DemoAccessPolicy {
                     || path.matches("/api/zigbee/coordinators/[0-9a-fA-F-]+/devices/[^/]+/(set-state|set|rename)");
         }
         if ("PUT".equals(method)) {
-            return path.matches("/api/automation/(?:farms|greenhouses)/\\d+(?:/(slots|scenarios|plants))?")
+            return path.equals("/api/automation/scenarios/enabled")
+                    || path.matches("/api/automation/(?:farms|greenhouses)/\\d+(?:/(slots|scenarios|plants))?")
                     || path.matches("/api/device/[^/]+/settings")
                     || path.matches("/api/(sensors|pumps)/\\d+/bindings");
         }

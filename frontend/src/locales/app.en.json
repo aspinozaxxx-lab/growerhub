@@ -868,5 +868,6 @@
   "Обновляется автоматически": "Updates automatically",
   "Загрузка ручного полива...": "Loading manual watering…",
   "Насосы для ручного полива не настроены": "No pumps set up for manual watering",
-  "Привяжите насосы, теплицы и растения в Конструкторе фермы.": "Assign pumps, greenhouses and plants in Farm Builder."
+  "Привяжите насосы, теплицы и растения в Конструкторе фермы.": "Assign pumps, greenhouses and plants in Farm Builder.",
+  "Не удалось выйти. Повторите попытку.": "Could not sign out. Please try again."
 }

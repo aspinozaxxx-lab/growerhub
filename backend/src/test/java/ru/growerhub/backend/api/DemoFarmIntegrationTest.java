@@ -166,6 +166,11 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         request(reset.path("access_token")).get("/api/automation/farms").then().statusCode(200).body("farms", hasSize(1));
         assertThat(users.findById(account.getId()).orElseThrow().getEmail()).isEqualTo(account.getEmail());
         assertThat(userFacade.getDemoOwnerIds()).contains(spaces.findById(UUID.fromString(spaceId)).orElseThrow().dataUserId);
+        request(accountToken).cookie("gh_demo_refresh", reset.cookie("gh_demo_refresh"))
+                .post("/api/auth/logout").then().statusCode(200);
+        request(reset.path("access_token")).get("/api/demo/status").then().statusCode(401);
+        request(accountToken).cookie("gh_demo_refresh", reset.cookie("gh_demo_refresh"))
+                .post("/api/demo/refresh").then().statusCode(401);
         verifyNoInteractions(publisher);
     }
 
@@ -245,6 +250,39 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
                 .post("/api/demo/reset").then().statusCode(429);
         assertThat(spaces.findById(id).orElseThrow().generation).isEqualTo(previous.generation);
         request(token).get("/api/demo/status").then().statusCode(200).body("devices.size()", equalTo(17));
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
+    void sharedScenarioSwitchPreservesDemoSettingsAndOtherOwners() {
+        Response guest = start();
+        String token = guest.path("access_token");
+        var space = spaces.findById(UUID.fromString(guest.path("space.id"))).orElseThrow();
+        var owner = new AuthenticatedUser(space.dataUserId, "demo");
+        Response other = start();
+        var otherSpace = spaces.findById(UUID.fromString(other.path("space.id"))).orElseThrow();
+        var otherOwner = new AuthenticatedUser(otherSpace.dataUserId, "demo");
+        var settings = automation.getFarmsOverview(owner).farms().stream()
+                .flatMap(farm -> farm.greenhouses().stream()).flatMap(greenhouse -> greenhouse.scenarios().stream())
+                .map(scenario -> scenario.config()).toList();
+        var account = account();
+        String primary = jwt.createToken(Map.of("user_id", account.getId()), Duration.ofHours(1));
+        request(primary).body(Map.of("name", "Physical farm")).post("/api/automation/farms").then().statusCode(200);
+        String realBefore = request(primary).get("/api/automation/farms").asString();
+
+        request(token).body(Map.of("enabled", false)).put("/api/automation/scenarios/enabled").then().statusCode(200);
+        assertThat(automation.getFarmsOverview(owner).farms().stream()
+                .flatMap(farm -> farm.greenhouses().stream()).flatMap(greenhouse -> greenhouse.scenarios().stream()))
+                .allMatch(scenario -> !scenario.enabled());
+        assertThat(automation.getFarmsOverview(otherOwner).farms().stream()
+                .flatMap(farm -> farm.greenhouses().stream()).flatMap(greenhouse -> greenhouse.scenarios().stream()))
+                .allMatch(scenario -> scenario.enabled());
+        request(token).body(Map.of("enabled", true)).put("/api/automation/scenarios/enabled").then().statusCode(200);
+        var restored = automation.getFarmsOverview(owner).farms().stream()
+                .flatMap(farm -> farm.greenhouses().stream()).flatMap(greenhouse -> greenhouse.scenarios().stream()).toList();
+        assertThat(restored).allMatch(scenario -> scenario.enabled());
+        assertThat(restored.stream().map(scenario -> scenario.config()).toList()).isEqualTo(settings);
+        assertThat(request(primary).get("/api/automation/farms").asString()).isEqualTo(realBefore);
         verifyNoInteractions(publisher);
     }
 
