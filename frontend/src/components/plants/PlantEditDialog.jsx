@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useLayoutEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../features/auth/AuthContext';
 import { isSessionExpiredError } from '../../api/client';
 import {
@@ -64,7 +64,7 @@ function PlantEditDialog({
     return date.toISOString();
   };
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isOpen) return;
     setError(null);
     setIsSaving(false);
