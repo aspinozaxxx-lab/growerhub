@@ -1,10 +1,10 @@
 ---
 translation_of: "zigbee2mqtt-prostymi-slovami"
 slug: "zigbee2mqtt-in-simple-words-how-the-sensor-coordinator-and-mqtt-are-connected"
-title: "What is Zigbee2MQTT? Sensors, coordinator, and MQTT explained"
-summary: "A plain-language Zigbee2MQTT diagram: what the coordinator, routers, MQTT broker, topics, exposes, and availability do, and how GrowerHub uses them."
+title: "What is Zigbee2MQTT? How it works and what you need"
+summary: "Understand Zigbee2MQTT, coordinators and MQTT brokers. A practical first-sensor checklist, with Home Assistant and GrowerHub dashboard examples."
 created_at: "2026-07-23"
-updated_at: "2026-08-16"
+updated_at: "2026-09-17"
 cluster: "zigbee-hub-i-ustroystva"
 tags:
   - "GrowerHub"
@@ -23,9 +23,15 @@ hero_image: "/content/articles/illustrations/zigbee2mqtt-prostymi-slovami.webp"
 hero_alt: "Zigbee2MQTT data path from a device through a coordinator and MQTT to GrowerHub"
 ---
 
-![Zigbee2MQTT data path from a device through a coordinator and MQTT to GrowerHub](/content/articles/illustrations/zigbee2mqtt-prostymi-slovami.webp)
-
 Zigbee2MQTT is software that connects a Zigbee network to MQTT. A sensor talks over Zigbee to the coordinator, Zigbee2MQTT converts its message into structured data, and an MQTT broker delivers that data to GrowerHub, Home Assistant, or another application. A relay command follows the same path in reverse.
+
+## What you need for your first sensor
+
+Start with a supported Zigbee coordinator, a computer running Zigbee2MQTT, an MQTT broker and a Zigbee device. An ordinary Wi-Fi router does not replace the coordinator. Home Assistant is one consumer of the data, rather than a requirement for Zigbee2MQTT. See the [official getting-started guide](https://www.zigbee2mqtt.io/guide/getting-started/) for prerequisites and installation options.
+
+To explore readings and history first, [open the GrowerHub demo farm](/app/demo/?lang=en&view=overview). Its virtual devices let you try the dashboard; they do not validate support for your physical model.
+
+![Zigbee2MQTT data path from a device through a coordinator and MQTT to GrowerHub](/content/articles/illustrations/zigbee2mqtt-prostymi-slovami.webp)
 
 ## The system in five layers
 

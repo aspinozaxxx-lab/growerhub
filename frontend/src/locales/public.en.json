@@ -182,5 +182,13 @@
   "Попробовать демо без регистрации": "Try the demo, no registration",
   "Поможем подключить первый датчик": "Get help connecting your first sensor",
   "Настоящее приложение с виртуальной фермой": "The real app with a virtual farm",
-  "Эти экраны сняты в демоферме GrowerHub. Устройства и показания симулируются, а разделы управления, графики и сценарии — те же, что в вашей ферме.": "These screens were captured in a GrowerHub demo farm. Devices and readings are simulated; management screens, charts and scenarios are shared with your own farm."
+  "Эти экраны сняты в демоферме GrowerHub. Устройства и показания симулируются, а разделы управления, графики и сценарии — те же, что в вашей ферме.": "These screens were captured in a GrowerHub demo farm. Devices and readings are simulated; management screens, charts and scenarios are shared with your own farm.",
+  "Открыть демо": "Open demo",
+  "Попробовать в GrowerHub": "Try it in GrowerHub",
+  "Попробуйте на готовой ферме": "Try a ready-made farm",
+  "Без регистрации и оборудования.": "No sign-up or hardware needed.",
+  "Измените расписание света и параметры полива в готовой теплице.": "Change the lighting schedule and watering settings in a ready-made greenhouse.",
+  "Откройте растения, историю поливов и записи в журнале.": "Explore plants, watering history and journal entries.",
+  "Посмотрите, как устройства и растения собраны в четыре теплицы.": "See how devices and plants are organized into four greenhouses.",
+  "Сравните показания четырёх теплиц и откройте историю любого датчика.": "Compare readings from four greenhouses and open any sensor’s history."
 }

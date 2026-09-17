@@ -5,7 +5,7 @@ import { I18nextProvider } from 'react-i18next';
 import App from './App';
 import i18n from './locales/i18n';
 
-export function renderArticle(url, locale, article) {
+export function renderPublicPage(url, locale, article) {
   i18n.changeLanguage(locale);
   return renderToString(
     <React.StrictMode>

@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://growerhub.ru/</loc>
-    <lastmod>2026-09-13</lastmod>
+    <lastmod>2026-09-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/about/</loc>
@@ -10,7 +10,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-09-13</lastmod>
+    <lastmod>2026-09-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/avtomatizatsiya-mini-fermy/</loc>
@@ -50,7 +50,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zigbee-hub-i-ustroystva/</loc>
-    <lastmod>2026-09-13</lastmod>
+    <lastmod>2026-09-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/mini-ferma-i-neskolko-boksov/</loc>
@@ -59,6 +59,14 @@
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
     <lastmod>2026-09-13</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/podklyuchit-zigbee-datchik-temperatury-vlazhnosti/</loc>
+    <lastmod>2026-09-17</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/zigbee2mqtt-prostymi-slovami/</loc>
+    <lastmod>2026-09-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/esp32-datchik-vlazhnosti-home-assistant/</loc>
@@ -86,14 +94,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya/</loc>
-    <lastmod>2026-08-16</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/podklyuchit-zigbee-datchik-temperatury-vlazhnosti/</loc>
-    <lastmod>2026-08-16</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/zigbee2mqtt-prostymi-slovami/</loc>
     <lastmod>2026-08-16</lastmod>
   </url>
   <url>
@@ -286,7 +286,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/</loc>
-    <lastmod>2026-09-13</lastmod>
+    <lastmod>2026-09-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/about/</loc>
@@ -294,7 +294,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-09-13</lastmod>
+    <lastmod>2026-09-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/farm-automation/</loc>
@@ -334,7 +334,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/zigbee-hubs-and-devices/</loc>
-    <lastmod>2026-09-13</lastmod>
+    <lastmod>2026-09-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/small-farms-and-multiple-grow-boxes/</loc>
@@ -343,6 +343,14 @@
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/home-assistant-and-diy/</loc>
     <lastmod>2026-09-13</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/how-to-connect-a-zigbee-temperature-and-humidity-sensor-step-by-step-check/</loc>
+    <lastmod>2026-09-17</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/zigbee2mqtt-in-simple-words-how-the-sensor-coordinator-and-mqtt-are-connected/</loc>
+    <lastmod>2026-09-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/</loc>
@@ -365,19 +373,11 @@
     <lastmod>2026-09-13</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/en/articles/how-to-connect-a-zigbee-temperature-and-humidity-sensor-step-by-step-check/</loc>
-    <lastmod>2026-08-16</lastmod>
-  </url>
-  <url>
     <loc>https://growerhub.ru/en/articles/soil-moisture-sensor-for-automatic-watering-how-to-use-without-false-alarms/</loc>
     <lastmod>2026-08-16</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/zigbee-device-does-not-connect-or-is-missing-diagnostics-step-by-step/</loc>
-    <lastmod>2026-08-16</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/zigbee2mqtt-in-simple-words-how-the-sensor-coordinator-and-mqtt-are-connected/</loc>
     <lastmod>2026-08-16</lastmod>
   </url>
   <url>

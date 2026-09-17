@@ -787,3 +787,25 @@ main {
 .hero-product-preview { margin: 0; min-width: 0; }
 .hero-product-preview img { width: 100%; height: auto; display: block; border: 1px solid #dbe5df; border-radius: 14px; box-shadow: 0 14px 32px #17342612; }
 .hero-product-preview figcaption { padding-top: 12px; color: #617568; font-size: 13px; line-height: 1.5; }
+
+.home-page .hero h1 { font-size: clamp(28px, 3.6vw, 42px); line-height: 1.16; letter-spacing: -.025em; margin: 18px 0 14px; }
+.home-page .hero-reassurance { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: #9de8ba; }
+.home-page .hero-product-preview figcaption { color: #a4b9c9; }
+.demo-task-card .secondary-link { margin-top: auto; min-height: 44px; display: inline-flex; align-items: center; }
+.home-faq { display: grid; gap: 10px; }
+.home-faq details { border: 1px solid var(--border); border-radius: 12px; padding: 0 16px; background: var(--surface-1); }
+.home-faq summary { padding: 14px 0; cursor: pointer; font-weight: 600; }
+.home-faq p { margin: 0 0 16px; }
+.article-demo-invite { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 18px; margin: 22px 0; border: 1px solid rgba(95, 212, 145, .35); border-radius: 14px; background: rgba(95, 212, 145, .07); }
+.article-demo-invite p { margin: 0; font-size: 14px; line-height: 1.5; }
+.article-demo-invite strong, .article-demo-invite span { display: block; }
+.article-demo-invite strong { color: #f6fbff; margin-bottom: 4px; }
+.article-demo-invite .hero-cta { margin: 0; flex-shrink: 0; white-space: nowrap; min-height: 44px; }
+@media (max-width: 600px) {
+  .home-page .hero { gap: 18px; }
+  .home-page .hero > div > p { line-height: 1.55; }
+  .home-page .hero .cta-row { align-items: stretch; gap: 14px; }
+  .home-page .hero .hero-cta { text-align: center; }
+  .article-demo-invite { display: grid; gap: 12px; padding: 14px; }
+  .article-demo-invite .hero-cta { justify-self: start; }
+}

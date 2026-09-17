@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
-import { renderArticle } from '../node_modules/.cache/growerhub-render/entry-public-server.js';
+import { renderPublicPage } from '../node_modules/.cache/growerhub-render/entry-public-server.js';
 import { marked } from 'marked';
 import {
   articleClusters,
@@ -250,8 +250,8 @@ const platformLink = (placement, label = null, className = 'hero-cta', locale = 
   return `<a class="${className}" href="${href}" data-platform-placement="${htmlEscape(placement)}">${htmlEscape(resolvedLabel)}</a>`;
 };
 
-const demoLink = (placement, locale = 'ru', className = 'hero-cta') => DEMO_PUBLIC_ENABLED
-  ? `<a class="${className}" href="/app/demo/?lang=${locale}" data-demo-placement="${htmlEscape(placement)}">${locale === 'en' ? 'Try the demo, no registration' : 'Попробовать демо без регистрации'}</a>`
+const demoLink = (placement, locale = 'ru', className = 'hero-cta', label = locale === 'en' ? 'Try the demo, no registration' : 'Попробовать демо без регистрации') => DEMO_PUBLIC_ENABLED
+  ? `<a class="${className}" href="/app/demo/?lang=${locale}" data-demo-placement="${htmlEscape(placement)}">${htmlEscape(label)}</a>`
   : '';
 
 const leadCta = (
@@ -267,7 +267,7 @@ const leadCta = (
         </div>
         <div class="cta-row">
           ${demoLink(placement + '_demo', locale)}
-          ${platformLink(placement, null, 'hero-cta', locale)}
+          ${platformLink(placement, null, DEMO_PUBLIC_ENABLED ? 'secondary-link' : 'hero-cta', locale)}
           ${telegramLink(`${placement}_help`, locale === 'en' ? 'Get help connecting your first sensor' : 'Поможем подключить первый датчик')}
         </div>
       </section>`;
@@ -283,15 +283,16 @@ const staticLayout = (mainHtml, locale = 'ru', canonical = null) => {
           <a href="${getPublicPath('home', locale)}" class="brand-link">GrowerHub</a>
           <span class="brand-tagline">${en ? 'Manage your farm from one dashboard' : 'Управление фермой в одном кабинете'}</span>
         </div>
-        <button class="menu-toggle" type="button" aria-label="${en ? 'Toggle menu' : 'Переключить меню'}">≡</button>
-        <nav class="nav-links">
+        ${demoLink('header_mobile_demo', locale, 'mobile-demo-link', en ? 'Open demo' : 'Открыть демо')}
+        <button class="menu-toggle" type="button" aria-label="${en ? 'Toggle menu' : 'Переключить меню'}" aria-expanded="false" aria-controls="public-navigation">≡</button>
+        <nav id="public-navigation" class="nav-links">
           <a class="nav-link" href="${getPublicPath('home', locale)}">${en ? 'Home' : 'Главная'}</a>
           <a class="nav-link" href="${getPublicPath('gettingStarted', locale)}">${en ? 'Getting started' : 'Как начать'}</a>
           <a class="nav-link" href="${getPublicPath('equipment', locale)}">${en ? 'Equipment' : 'Оборудование'}</a>
           <a class="nav-link" href="${getPublicPath('articles', locale)}">${en ? 'Guides' : 'Статьи'}</a>
           <a class="nav-link app-link" href="/app/?lang=${locale}">${en ? 'Sign in' : 'Вход'}</a>
-          ${demoLink('header_demo', locale, 'nav-link contact-link')}
-          ${platformLink('header', null, 'nav-link contact-link', locale)}
+          ${demoLink('header_demo', locale, 'nav-link contact-link', en ? 'Open demo' : 'Открыть демо')}
+          ${platformLink('header', null, 'nav-link', locale)}
           ${telegramLink('header_help', en ? 'Help' : 'Помощь', 'nav-link')}
           <a class="nav-link locale-switch" href="${htmlEscape(switchHref)}" hreflang="${en ? 'ru' : 'en'}">${en ? 'RU' : 'EN'}</a>
         </nav>
@@ -311,13 +312,13 @@ ${mainHtml}
 
 const pageShell = (template, meta, mainHtml, assets) => {
   const locale = meta.locale || (meta.canonical && new URL(meta.canonical).pathname.startsWith('/en/') ? 'en' : 'ru');
-  const content = meta.initialArticle
-    ? renderArticle(new URL(meta.canonical).pathname, locale, meta.initialArticle)
+  const reactRendered = meta.initialArticle || meta.renderWithReact;
+  const content = reactRendered
+    ? renderPublicPage(new URL(meta.canonical).pathname, locale, meta.initialArticle)
     : staticLayout(mainHtml, locale, meta.canonical);
   const page = replaceHtmlLang(replaceRoot(replaceHead(template, makeMetaHead({ ...meta, locale, assets })), content), locale);
-  return meta.initialArticle
-    ? page.replace('<div id="root">', '<div id="root" data-react-ssr="1">').replace('</body>', pageDataScript(meta.initialArticle) + '\n</body>')
-    : page;
+  const renderedPage = reactRendered ? page.replace('<div id="root">', '<div id="root" data-react-ssr="1">') : page;
+  return meta.initialArticle ? renderedPage.replace('</body>', pageDataScript(meta.initialArticle) + '\n</body>') : renderedPage;
 };
 
 const appShell = (template, meta, assets) => replaceHtmlLang(
@@ -530,106 +531,30 @@ ${otherClusters.map((item) => `              <a href="/articles/clusters/${htmlE
   }, mainHtml, assets);
 };
 
-const renderHomePage = (
-  template,
-  assets,
-  homeContent,
-  aboutContent,
-  articles,
-  articlesBySlug,
-) => {
-  const { hero, secondary, features } = homeContent;
-  const description = homeContent.description;
-  const mainHtml = `
-          <div class="hero">
-            <div>
-              <div class="badge">${htmlEscape(hero.badge)}</div>
-              <h1>${htmlEscape(hero.title)}</h1>
-              <p>${htmlEscape(hero.subtitle)}</p>
-              <div class="cta-row">
-                ${demoLink('home_hero_demo', 'ru')}
-                ${platformLink('home_hero', SELF_SERVICE_PUBLIC_ENABLED ? hero.cta : 'Как начать', 'secondary-link', 'ru')}
-                <a class="secondary-link" href="/kak-nachat/">Путь подключения</a>
-              </div>
-            </div>
-            <figure class="hero-product-preview">
-              <img src="${hero.preview_image}" srcset="${hero.preview_image.replace('.webp', '-640.webp')} 640w, ${hero.preview_image} 1280w" sizes="(max-width: 800px) 100vw, 50vw" width="1280" height="720" fetchpriority="high" alt="${htmlEscape(hero.preview_alt)}" />
-              <figcaption>${htmlEscape(hero.preview_caption)}</figcaption>
-            </figure>
-          </div>
-          <section class="content-section">
-            <h2>${htmlEscape(secondary.title)}</h2><p>${htmlEscape(secondary.text)}</p>
-            <div class="card-grid">${secondary.points.map((point) => `<div class="info-block"><strong>${htmlEscape(point.title)}</strong><p>${htmlEscape(point.text)}</p></div>`).join('')}</div>
-          </section>
-          <section class="content-section">
-            <h2>${htmlEscape(features.title)}</h2>
-            <div class="card-grid">
-${features.items.map((item) => `              <div class="card"><h3>${htmlEscape(item.title)}</h3><p>${htmlEscape(item.text)}</p></div>`).join('\n')}
-            </div>
-          </section>
-          <section class="content-section early-access-note">
-            <h2>Большой опыт автоматизации — в одной платформе</h2>
-            <p>${htmlEscape(homeContent.early_access)}</p>
-            <div class="cta-row"><a class="secondary-link" href="/oborudovanie/">Какое оборудование подойдёт</a><a class="secondary-link" href="/avtomatizatsiya-mini-fermy/">Возможности платформы</a></div>
-          </section>
-          <section class="content-section">
-            <div class="cluster-block__header"><div><h2>${htmlEscape(aboutContent.evidence.title)}</h2><p>${htmlEscape(aboutContent.evidence.intro)}</p></div><a class="secondary-link" href="/about/">История и методика</a></div>
-            <div class="card-grid">
-${aboutContent.evidence.facts.slice(0, 3).map((fact) => `              <article class="card"><h3>${htmlEscape(fact.value)}</h3><strong>${htmlEscape(fact.label)}</strong><p>${htmlEscape(fact.detail)}</p></article>`).join('\n')}
-            </div>
-            <p class="source-links"><a href="${GITHUB_REPOSITORY_URL}" target="_blank" rel="noreferrer">Открыть код на GitHub и поддержать проект звездой</a></p>
-          </section>
-          <section class="content-section">
-            <h2>Практические разделы</h2>
-            <div class="cluster-home-grid">
-${articleClusters.map((cluster) => {
-    const featured = cluster.featuredArticles.map((slug) => articlesBySlug.get(slug)).filter(Boolean).slice(0, 4);
-    return `              <article class="article-card">
-                <a href="/articles/clusters/${htmlEscape(cluster.slug)}/">${htmlEscape(cluster.title)}</a>
-                <p>${htmlEscape(cluster.description)}</p>
-                <ul class="compact-link-list">${featured.map((article) => `<li><a href="/articles/${htmlEscape(article.slug)}/">${htmlEscape(article.title)}</a></li>`).join('')}</ul>
-              </article>`;
-  }).join('\n')}
-            </div>
-          </section>
-          <section class="content-section">
-            <div class="cluster-block__header"><div><h2>Свежие статьи</h2><p>Пошаговые материалы по Zigbee, Home Assistant, датчикам и безопасному поливу.</p></div><a class="secondary-link" href="/articles/">Все статьи</a></div>
-            <div class="articles-list">
-${articles.slice(0, 4).map(renderArticleCard).join('\n')}
-            </div>
-          </section>
-          ${leadCta('home_bottom')}`;
-
+const renderHomePage = (template, assets, homeContent, locale = 'ru') => {
+  const canonical = toCanonicalUrl(getPublicPath('home', locale));
   return pageShell(template, {
     title: homeContent.title,
-    description,
-    canonical: HOME_URL,
+    description: homeContent.description,
+    canonical,
+    locale,
+    renderWithReact: true,
     jsonLd: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'WebSite',
-        name: SITE_NAME,
-        url: HOME_URL,
-        publisher: { '@id': ORGANIZATION_ID },
-      },
+      { '@context': 'https://schema.org', '@type': 'WebSite', name: SITE_NAME, url: canonical, publisher: { '@id': ORGANIZATION_ID } },
       { '@context': 'https://schema.org', ...organizationLd },
       {
-        '@context': 'https://schema.org',
-        '@type': 'SoftwareApplication',
-        name: SITE_NAME,
-        applicationCategory: 'BusinessApplication',
-        operatingSystem: 'Web',
-        url: HOME_URL,
-        description,
-        areaServed: 'Россия и страны СНГ',
+        '@context': 'https://schema.org', '@type': 'SoftwareApplication',
+        name: SITE_NAME, applicationCategory: 'BusinessApplication', operatingSystem: 'Web',
+        url: canonical, description: homeContent.description, inLanguage: locale,
+        areaServed: locale === 'en' ? 'Russia and CIS countries' : 'Россия и страны СНГ',
         provider: { '@id': ORGANIZATION_ID },
         ...(SELF_SERVICE_PUBLIC_ENABLED ? {
           isAccessibleForFree: true,
-          offers: { '@type': 'Offer', price: '0', priceCurrency: 'RUB' },
+          offers: { '@type': 'Offer', price: '0', priceCurrency: locale === 'en' ? 'USD' : 'RUB' },
         } : {}),
       },
     ],
-  }, mainHtml, assets);
+  }, '', assets);
 };
 
 const renderAboutContent = (data, locale = 'ru') => {
@@ -1130,120 +1055,6 @@ ${otherClusters.map((item) => `              <a href="${htmlEscape(getClusterPat
         { name: 'Guides', url: toCanonicalUrl(getPublicPath('articles', 'en')) },
         { name: cluster.title, url: canonical },
       ]),
-    ],
-  }, mainHtml, assets);
-};
-
-const renderEnglishHomePage = (
-  template,
-  assets,
-  homeContent,
-  aboutContent,
-  articles,
-  articlesById,
-  clusters,
-) => {
-  const { hero, secondary, features } = homeContent;
-  const routePath = getPublicPath('home', 'en');
-  const canonical = toCanonicalUrl(routePath);
-  const description = homeContent.description;
-  const mainHtml = `
-          <div class="hero">
-            <div>
-              <div class="badge">${htmlEscape(hero.badge)}</div>
-              <h1>${htmlEscape(hero.title)}</h1>
-              <p>${htmlEscape(hero.subtitle)}</p>
-              <div class="cta-row">
-                ${demoLink('home_hero_demo', 'en')}
-                ${platformLink('home_hero', SELF_SERVICE_PUBLIC_ENABLED ? hero.cta : 'Getting started', 'secondary-link', 'en')}
-                <a class="secondary-link" href="${getPublicPath('gettingStarted', 'en')}">Connection guide</a>
-              </div>
-            </div>
-            <figure class="hero-product-preview">
-              <img src="${hero.preview_image}" srcset="${hero.preview_image.replace('.webp', '-640.webp')} 640w, ${hero.preview_image} 1280w" sizes="(max-width: 800px) 100vw, 50vw" width="1280" height="720" fetchpriority="high" alt="${htmlEscape(hero.preview_alt)}" />
-              <figcaption>${htmlEscape(hero.preview_caption)}</figcaption>
-            </figure>
-          </div>
-          <section class="content-section">
-            <h2>${htmlEscape(secondary.title)}</h2><p>${htmlEscape(secondary.text)}</p>
-            <div class="card-grid">${secondary.points.map((point) => `<div class="info-block"><strong>${htmlEscape(point.title)}</strong><p>${htmlEscape(point.text)}</p></div>`).join('')}</div>
-          </section>
-          <section class="content-section">
-            <h2>${htmlEscape(features.title)}</h2>
-            <div class="card-grid">
-${features.items.map((item) => `              <div class="card"><h3>${htmlEscape(item.title)}</h3><p>${htmlEscape(item.text)}</p></div>`).join('\n')}
-            </div>
-          </section>
-          <section class="content-section early-access-note">
-            <h2>Extensive automation experience in one platform</h2>
-            <p>${htmlEscape(homeContent.early_access)}</p>
-            <div class="cta-row"><a class="secondary-link" href="${getPublicPath('equipment', 'en')}">Choose suitable equipment</a><a class="secondary-link" href="${getPublicPath('farmAutomation', 'en')}">Platform capabilities</a></div>
-          </section>
-          <section class="content-section">
-            <div class="cluster-block__header"><div><h2>${htmlEscape(aboutContent.evidence.title)}</h2><p>${htmlEscape(aboutContent.evidence.intro)}</p></div><a class="secondary-link" href="${getPublicPath('about', 'en')}">History and methodology</a></div>
-            <div class="card-grid">
-${aboutContent.evidence.facts.slice(0, 3).map((fact) => `              <article class="card"><h3>${htmlEscape(fact.value)}</h3><strong>${htmlEscape(fact.label)}</strong><p>${htmlEscape(fact.detail)}</p></article>`).join('\n')}
-            </div>
-            <p class="source-links"><a href="${GITHUB_REPOSITORY_URL}" target="_blank" rel="noreferrer">Open the code on GitHub and support the project with a star</a></p>
-          </section>
-          <section class="content-section">
-            <h2>Practical topics</h2>
-            <div class="cluster-home-grid">
-${clusters.map((cluster) => {
-    const featured = cluster.featuredArticles
-      .map((id) => articlesById.get(id))
-      .filter(Boolean)
-      .slice(0, 4);
-    return `              <article class="article-card">
-                <a href="${htmlEscape(getClusterPath(cluster, 'en'))}">${htmlEscape(cluster.title)}</a>
-                <p>${htmlEscape(cluster.description)}</p>
-                <ul class="compact-link-list">${featured.map((article) => `<li><a href="${htmlEscape(getArticlePath(article, 'en'))}">${htmlEscape(article.title)}</a></li>`).join('')}</ul>
-              </article>`;
-  }).join('\n')}
-            </div>
-          </section>
-          <section class="content-section">
-            <div class="cluster-block__header"><div><h2>Latest guides</h2><p>Step-by-step guides to Zigbee, Home Assistant, sensors and safe irrigation.</p></div><a class="secondary-link" href="${getPublicPath('articles', 'en')}">All guides</a></div>
-            <div class="articles-list">
-${articles.slice(0, 4).map(renderEnglishArticleCard).join('\n')}
-            </div>
-          </section>
-          ${leadCta(
-    'home_bottom',
-    'Start with your first device',
-    'Sign in, connect Zigbee2MQTT and create your first zone. GrowerHub is free to use and does not require a card.',
-    'en',
-  )}`;
-
-  return pageShell(template, {
-    title: homeContent.title,
-    description,
-    canonical,
-    locale: 'en',
-    jsonLd: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'WebSite',
-        name: SITE_NAME,
-        url: canonical,
-        publisher: { '@id': ORGANIZATION_ID },
-      },
-      { '@context': 'https://schema.org', ...organizationLd },
-      {
-        '@context': 'https://schema.org',
-        '@type': 'SoftwareApplication',
-        name: SITE_NAME,
-        applicationCategory: 'BusinessApplication',
-        operatingSystem: 'Web',
-        url: canonical,
-        description,
-        areaServed: 'Russia and CIS countries',
-        provider: { '@id': ORGANIZATION_ID },
-        ...(SELF_SERVICE_PUBLIC_ENABLED ? {
-          isAccessibleForFree: true,
-          offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-        } : {}),
-      },
     ],
   }, mainHtml, assets);
 };
@@ -1787,7 +1598,7 @@ const main = () => {
 
   writePublicPage(
     '/',
-    renderHomePage(template, assets, homeContent, aboutContent, articles, articlesBySlug),
+    renderHomePage(template, assets, homeContent),
   );
   writePublicPage('/about/', renderAboutPage(template, assets, aboutContent));
   writePublicPage('/articles/', renderArticlesIndex(template, assets, articlesByCluster));
@@ -1822,15 +1633,7 @@ const main = () => {
 
   writePublicPage(
     getPublicPath('home', 'en'),
-    renderEnglishHomePage(
-      template,
-      assets,
-      enHomeContent,
-      enAboutContent,
-      enArticles,
-      enArticlesById,
-      enClusters,
-    ),
+    renderHomePage(template, assets, enHomeContent, 'en'),
   );
   writePublicPage(
     getPublicPath('about', 'en'),

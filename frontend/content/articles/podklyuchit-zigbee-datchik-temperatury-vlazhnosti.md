@@ -1,9 +1,9 @@
 ---
 slug: "podklyuchit-zigbee-datchik-temperatury-vlazhnosti"
-title: "Как подключить Zigbee-датчик температуры и влажности: пошаговая проверка"
-summary: "Подключение Zigbee-датчика температуры и влажности к Zigbee2MQTT: выбор модели, pairing, exposes, availability, место установки и проверка данных."
+title: "Как подключить Zigbee-датчик температуры и влажности к Zigbee2MQTT"
+summary: "Подключение Zigbee-датчика по шагам: Permit join, режим сопряжения, interview, проверка температуры и влажности, графики и поиск ошибок."
 created_at: "2026-06-29"
-updated_at: "2026-08-16"
+updated_at: "2026-09-17"
 cluster: "zigbee-hub-i-ustroystva"
 tags:
   - "GrowerHub"
@@ -22,9 +22,15 @@ hero_image: "/content/articles/illustrations/podklyuchit-zigbee-datchik-temperat
 hero_alt: "Подключение Zigbee-датчика температуры и влажности к Zigbee2MQTT"
 ---
 
-![Подключение Zigbee-датчика температуры и влажности к Zigbee2MQTT](/content/articles/illustrations/podklyuchit-zigbee-datchik-temperatury-vlazhnosti.webp)
-
 Подключить Zigbee-датчик — значит не только увидеть его имя в интерфейсе. Для рабочей зоны нужны достоверные температура и влажность, понятная частота обновления, контроль доступности и правильное место установки. Ниже — последовательность от выбора модели до привязки к GrowerHub.
+
+## Короткий ответ: как добавить датчик
+
+В работающем Zigbee2MQTT нажмите **Permit join**, переведите датчик в сопряжение по инструкции его точной модели и дождитесь завершения **interview**. Затем проверьте, что обновляются `temperature` и `humidity`, и закройте приём новых устройств. Время удержания кнопки зависит от модели; универсальной команды reset нет. Процесс описан в [официальной инструкции подключения](https://www.zigbee2mqtt.io/guide/usage/pairing_devices.html).
+
+Если Zigbee2MQTT ещё не установлен, начните с [инструкции для Windows](/articles/ustanovka-zigbee2mqtt-na-windows/). Дальше разобраны проверка показаний, размещение и работа с историей.
+
+![Подключение Zigbee-датчика температуры и влажности к Zigbee2MQTT](/content/articles/illustrations/podklyuchit-zigbee-datchik-temperatury-vlazhnosti.webp)
 
 ## Что проверить до покупки
 

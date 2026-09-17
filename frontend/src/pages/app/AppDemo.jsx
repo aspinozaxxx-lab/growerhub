@@ -6,6 +6,14 @@ import { translateApp as t } from '../../locales/i18n';
 import './AppDemo.css';
 import { trackProductGoal } from '../../utils/analytics';
 
+const DEMO_VIEWS = {
+  overview: '/app/',
+  automations: '/app/automations/',
+  watering: '/app/manual-watering/',
+  farm: '/app/farm/',
+  plants: '/app/plants/',
+};
+
 export default function AppDemo() {
   const auth = useAuth();
   const location = useLocation();
@@ -15,13 +23,15 @@ export default function AppDemo() {
   const [failure, setFailure] = useState(null);
   const save = new URLSearchParams(location.search).get('save') === '1';
   const expired = new URLSearchParams(location.search).get('expired') === '1';
+  const requestedView = new URLSearchParams(location.search).get('view');
+  const view = Object.hasOwn(DEMO_VIEWS, requestedView) ? requestedView : 'overview';
 
   const run = async (operation) => {
     if (busy) return;
     setBusy(true); setFailure(null);
     try {
       const result = await operation();
-      if (result.success) navigate('/app/', { replace: true });
+      if (result.success) navigate(DEMO_VIEWS[view], { replace: true });
       else setFailure(result.status);
     } catch (error) {
       if (error?.name !== 'AbortError') setFailure(503);
@@ -37,7 +47,7 @@ export default function AppDemo() {
     }
     if (expired) return;
     started.current = true;
-    if (!save) trackProductGoal('demo_open', { placement: location.state?.demoPlacement || 'direct' });
+    if (!save) trackProductGoal('demo_open', { placement: location.state?.demoPlacement || 'direct', action: view });
     run(save ? () => auth.saveDemo(false) : auth.startDemo);
     // Translitem: vhod vypolnjaetsja odin raz na otkrytie marshruta.
     // eslint-disable-next-line react-hooks/exhaustive-deps

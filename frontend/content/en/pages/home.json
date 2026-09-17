@@ -1,17 +1,19 @@
 {
-  "updated_at": "2026-09-13",
+  "updated_at": "2026-09-17",
   "hero": {
-    "badge": "GrowerHub · early access is open",
-    "title": "Your greenhouse climate and watering on one screen",
-    "subtitle": "Organize sensors, lighting and watering by greenhouse and plant. View history, configure automations and try them on the demo farm. Connect your existing Zigbee2MQTT setup or start with one sensor.",
-    "cta": "Connect my Zigbee2MQTT",
+    "badge": "GrowerHub · greenhouse management",
+    "title": "Your greenhouse climate, lighting and watering in one place",
+    "subtitle": "See what is happening in every growing zone and adjust its care. Try a ready-made farm with four greenhouses, plants and sensor history, right in your browser.",
+    "cta": "Connect my devices",
     "preview_image": "/screenshots/en/zones.webp",
     "preview_alt": "GrowerHub demo farm: four greenhouses with climate, watering and lighting",
-    "preview_caption": "A demo farm in the same app: open charts, water plants and try your own settings."
+    "preview_caption": "The real app with virtual devices. Your changes belong to your own demo farm.",
+    "demo_cta": "Open the demo farm",
+    "reassurance": "No sign-up · No hardware · Free to try"
   },
   "secondary": {
-    "title": "Start with your current setup",
-    "text": "If Home Assistant and Zigbee2MQTT already work, use the local bridge. First check that one sensor shows fresh readings, then add growing zones and controls.",
+    "title": "Ready to connect your own greenhouse?",
+    "text": "Keep your existing Home Assistant and Zigbee2MQTT setup. Connect it through a local bridge, check one sensor, then add devices and automations at your own pace.",
     "points": [
       {
         "title": "What you need",
@@ -28,27 +30,58 @@
     ]
   },
   "features": {
-    "title": "What's available at GrowerHub",
+    "title": "What would you like to try?",
+    "text": "Choose a task. The demo will open the relevant part of the app.",
     "items": [
       {
-        "title": "Unified overview",
-        "text": "Zones, device states and latest readings in one dashboard."
+        "title": "Compare four greenhouses",
+        "text": "See different temperatures and moisture levels. Tap a reading to explore its history.",
+        "view": "overview",
+        "cta": "Explore sensors"
       },
       {
-        "title": "Sensor history",
-        "text": "Track temperature, humidity and other metrics exposed by Zigbee2MQTT over time."
+        "title": "Set up lighting and watering",
+        "text": "Change a lighting schedule, climate thresholds or watering settings, then save your scenario.",
+        "view": "automations",
+        "cta": "Try automations"
       },
       {
-        "title": "Manual control",
-        "text": "Commands are only available for control capabilities that the device has advertised and enabled by GrowerHub."
-      },
-      {
-        "title": "Automation",
-        "text": "Light schedule, climate thresholds with hysteresis and watering with customizable protective limits."
+        "title": "Water a virtual plant",
+        "text": "Choose a greenhouse, run a short watering session and see it appear in the history.",
+        "view": "watering",
+        "cta": "Try watering"
       }
     ]
   },
-  "early_access": "GrowerHub grew out of extensive practical experience in greenhouse automation. We have brought monitoring, control and clear automation scenarios together in one platform that is already free to use without a card. If you need help or support for a new device model, message us in Telegram — we can help in Russian or English.",
-  "title": "GrowerHub — greenhouse sensors, irrigation and climate",
-  "description": "Manage greenhouse sensors, irrigation, lighting and climate in one dashboard. Try a ready-made demo without signing up, or connect your own Zigbee2MQTT."
+  "title": "Greenhouse monitoring and automation — GrowerHub demo",
+  "description": "Monitor greenhouse climate, lighting and watering in one dashboard. Try four virtual greenhouses without signing up, then connect your own Zigbee2MQTT devices.",
+  "faq": {
+    "title": "Before you open the demo",
+    "items": [
+      {
+        "question": "Do I need an account or any devices?",
+        "answer": "No. The demo comes with virtual devices, plants, watering records and sensor history. It uses the same interface as a connected farm."
+      },
+      {
+        "question": "Can I change things in the demo?",
+        "answer": "Yes. Edit scenarios, assign devices, add plants and try watering. Each visitor has a separate demo farm; its commands do not control physical hardware."
+      },
+      {
+        "question": "Will my changes be saved?",
+        "answer": "A guest demo lasts 24 hours. Choose “Save demo farm” and sign in to keep it in your account and continue later."
+      },
+      {
+        "question": "What does GrowerHub cost?",
+        "answer": "The dashboard, sensor history and available automations are currently free, with no payment card required. Hardware and an always-on computer for Zigbee2MQTT are supplied separately."
+      }
+    ]
+  },
+  "evidence": {
+    "title": "See how GrowerHub is built",
+    "text": "The code, development history and a dated summary of operational data are public. The demo shows the interface and simulated behaviour; the project page explains the evidence from physical devices."
+  },
+  "cta": {
+    "title": "Your demo farm is ready",
+    "text": "Open it, change a setting and see how the app works. Connect your own devices when you are ready."
+  }
 }

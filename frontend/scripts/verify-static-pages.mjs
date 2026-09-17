@@ -217,14 +217,23 @@ const ruLandingHtml = read(path.join(DIST_DIR, 'avtomatizatsiya-mini-fermy', 'in
 const enLandingHtml = read(path.join(DIST_DIR, 'en', 'farm-automation', 'index.html'));
 assert(ruHomeHtml.includes(ruHomeContent.hero.title), 'RU static home differs from shared content');
 assert(enHomeHtml.includes(enHomeContent.hero.title), 'EN static home differs from shared content');
+for (const [locale, html, content] of [['ru', ruHomeHtml, ruHomeContent], ['en', enHomeHtml, enHomeContent]]) {
+  assert(html.includes('data-react-ssr="1"'), `${locale} home must hydrate shared React markup`);
+  assert(html.includes(content.faq.items[0].answer), `${locale} home FAQ is missing without JavaScript`);
+  if (html.includes('class="mobile-demo-link"')) {
+    for (const view of ['overview', 'automations', 'watering']) {
+      assert(html.includes(`/app/demo/?lang=${locale}&amp;view=${view}`), `${locale} home is missing demo task ${view}`);
+    }
+  }
+}
 assert(ruAboutHtml.includes(ruAboutContent.title), 'RU static about differs from shared content');
 assert(enAboutHtml.includes(enAboutContent.title), 'EN static about differs from shared content');
 assert(
-  ruHomeHtml.includes(ruAboutContent.evidence.facts[0].value),
+  ruHomeHtml.includes(ruHomeContent.evidence.text) && ruHomeHtml.includes('href="/about/"'),
   'RU home has no operational evidence',
 );
 assert(
-  enHomeHtml.includes(enAboutContent.evidence.facts[0].value),
+  enHomeHtml.includes(enHomeContent.evidence.text) && enHomeHtml.includes('href="/en/about/"'),
   'EN home has no operational evidence',
 );
 for (const [locale, html] of [['RU', ruAboutHtml], ['EN', enAboutHtml]]) {

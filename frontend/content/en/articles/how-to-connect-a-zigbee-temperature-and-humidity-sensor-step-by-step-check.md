@@ -1,10 +1,10 @@
 ---
 translation_of: "podklyuchit-zigbee-datchik-temperatury-vlazhnosti"
 slug: "how-to-connect-a-zigbee-temperature-and-humidity-sensor-step-by-step-check"
-title: "Pair a Zigbee temperature and humidity sensor with Zigbee2MQTT"
-summary: "A step-by-step Zigbee sensor setup: exact model, pairing and interview, temperature and humidity exposes, availability, placement, and data verification."
+title: "Connect a Zigbee temperature sensor to Zigbee2MQTT: pairing and checks"
+summary: "Pair a Zigbee temperature and humidity sensor: Permit join, model-specific reset, interview, fresh readings and troubleshooting missing data."
 created_at: "2026-07-23"
-updated_at: "2026-08-16"
+updated_at: "2026-09-17"
 cluster: "zigbee-hub-i-ustroystva"
 tags:
   - "GrowerHub"
@@ -23,9 +23,15 @@ hero_image: "/content/articles/illustrations/podklyuchit-zigbee-datchik-temperat
 hero_alt: "Pairing a Zigbee temperature and humidity sensor with Zigbee2MQTT"
 ---
 
-![Pairing a Zigbee temperature and humidity sensor with Zigbee2MQTT](/content/articles/illustrations/podklyuchit-zigbee-datchik-temperatury-vlazhnosti.webp)
-
 A sensor is not fully connected just because its name appears in a dashboard. A working zone needs plausible temperature and humidity, a known reporting pattern, availability, and sensible placement. This sequence starts with the exact model and ends with verified data in GrowerHub.
+
+## Quick answer: add the sensor
+
+In a running Zigbee2MQTT installation, select **Permit join**, put the sensor into pairing mode using its exact model instructions, and wait for **interview** to finish. Check that `temperature` and `humidity` update, then close joining. Button-hold times depend on the model; there is no universal reset sequence. See the [official pairing instructions](https://www.zigbee2mqtt.io/guide/usage/pairing_devices.html).
+
+If Zigbee2MQTT is not running yet, start with [the Windows installation guide](/en/articles/install-zigbee2mqtt-on-windows-usb-coordinator/). The steps below cover readings, placement and useful history.
+
+![Pairing a Zigbee temperature and humidity sensor with Zigbee2MQTT](/content/articles/illustrations/podklyuchit-zigbee-datchik-temperatury-vlazhnosti.webp)
 
 ## What to check before buying
 

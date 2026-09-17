@@ -4,6 +4,7 @@
 [![Backend CI/CD](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-cd-backend.yml/badge.svg)](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-cd-backend.yml)
 [![Frontend Deploy](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/deploy-frontend.yml/badge.svg)](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/deploy-frontend.yml)
 
+[Попробовать демоферму без регистрации](https://growerhub.ru/app/demo/?lang=ru&utm_source=github&utm_medium=referral&utm_campaign=demo_launch) ·
 [Сайт](https://growerhub.ru/) ·
 [Начать работу](https://growerhub.ru/kak-nachat/) ·
 [История и эксплуатационные данные](https://growerhub.ru/about/) ·
@@ -17,6 +18,22 @@ GrowerHub — открытая платформа управления тепл�
 После эксплуатации и нескольких архитектурных итераций GrowerHub вырос в
 многопользовательскую self-service-платформу с изолированными координаторами,
 MQTTS и автоматизациями.
+
+## Попробовать до подключения оборудования
+
+Демоферма открывается в браузере: четыре теплицы с разным микроклиматом,
+растения, история датчиков и поливов уже настроены. Это общее приложение
+GrowerHub с виртуальными устройствами. У каждого посетителя своя песочница;
+демокоманды не управляют физическим оборудованием.
+
+- [Посмотреть датчики и историю](https://growerhub.ru/app/demo/?lang=ru&view=overview&utm_source=github&utm_medium=referral&utm_campaign=demo_launch).
+- [Настроить свет, климат и полив](https://growerhub.ru/app/demo/?lang=ru&view=automations&utm_source=github&utm_medium=referral&utm_campaign=demo_launch).
+- [Попробовать ручной полив](https://growerhub.ru/app/demo/?lang=ru&view=watering&utm_source=github&utm_medium=referral&utm_campaign=demo_launch).
+
+Гостевое демо живёт 24 часа. Чтобы вернуться к своим изменениям позже,
+нажмите «Сохранить демоферму» и войдите в аккаунт. Для реального оборудования
+есть [путь подключения](https://growerhub.ru/kak-nachat/) и
+[помощь проекта](https://t.me/growerhub_info?direct).
 
 ## Проверяемая история
 
@@ -62,6 +79,12 @@ pio run
 [`docs/architecture/architecture.md`](docs/architecture/architecture.md).
 
 ## English
+
+[Try the demo farm — no sign-up or hardware](https://growerhub.ru/app/demo/?lang=en&utm_source=github&utm_medium=referral&utm_campaign=demo_launch).
+Explore four greenhouses with different sensor readings and history, edit
+lighting and watering schedules, and try a virtual watering session. Each
+visitor gets a separate demo farm in the same application as physical farms.
+Guest data lasts 24 hours; sign in and save the demo to keep your changes.
 
 GrowerHub is an open greenhouse and small-farm management platform. It brings
 Zigbee2MQTT, MQTT devices, zones, sensor history, and control scenarios into one

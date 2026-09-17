@@ -34,15 +34,18 @@ function Layout({ children }) {
           </Link>
           <span className="brand-tagline">{translatePublic('Управление фермой в одном кабинете')}</span>
         </div>
+        {!inApp ? <DemoStartLink placement="header_mobile_demo" className="mobile-demo-link">{translatePublic('Открыть демо')}</DemoStartLink> : null}
         <button
           className="menu-toggle"
           type="button"
           onClick={() => setMenuOpen((prev) => !prev)}
           aria-label={translatePublic('Переключить меню')}
+          aria-expanded={menuOpen}
+          aria-controls="public-navigation"
         >
           ≡
         </button>
-        <nav className={`nav-links ${menuOpen ? 'nav-open' : ''}`}>
+        <nav id="public-navigation" className={`nav-links ${menuOpen ? 'nav-open' : ''}`}>
           {navLinks.map((item) => {
             const to = getPublicPath(item.routeId, publicLocale);
             return (
@@ -65,8 +68,8 @@ function Layout({ children }) {
           >
             {translatePublic('Вход')}
           </NavLink>
-          {!inApp ? <DemoStartLink placement="header_demo" className="nav-link" onClick={closeMenu} /> : null}
-          <PlatformStartLink placement="header" className="nav-link contact-link" onClick={closeMenu} />
+          {!inApp ? <DemoStartLink placement="header_demo" className="nav-link contact-link" onClick={closeMenu}>{translatePublic('Открыть демо')}</DemoStartLink> : null}
+          <PlatformStartLink placement="header" className="nav-link" onClick={closeMenu} />
           <TelegramContactLink
             placement="header_help"
             className="nav-link"

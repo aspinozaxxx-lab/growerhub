@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
+import DemoStartLink from '../components/DemoStartLink';
 import { getArticleClusterById } from '../content/articleClusters';
 import {
   getArticleBySlug,
@@ -15,6 +16,7 @@ import {
 } from '../domain/localizedRoutes';
 import {
   GITHUB_REPOSITORY_URL,
+  DEMO_PUBLIC_ENABLED,
   ORGANIZATION_ID,
   SITE_URL,
 } from '../domain/siteConfig';
@@ -51,6 +53,18 @@ function ArticlePage({ initialArticle } = {}) {
   const ruArticle = getArticleTranslation(article, 'ru');
   const enArticle = getArticleTranslation(article, 'en');
   const path = article ? getArticlePath(article, locale) : null;
+  const demoView = {
+    'avtopoliv-i-kontroller-vyrashchivaniya': 'automations',
+    'home-assistant-i-diy': 'automations',
+    'zhurnal-i-sovetnik-uhoda': 'plants',
+    'mini-ferma-i-neskolko-boksov': 'farm',
+  }[article?.cluster] || 'overview';
+  const demoHint = {
+    automations: translatePublic('Измените расписание света и параметры полива в готовой теплице.'),
+    plants: translatePublic('Откройте растения, историю поливов и записи в журнале.'),
+    farm: translatePublic('Посмотрите, как устройства и растения собраны в четыре теплицы.'),
+    overview: translatePublic('Сравните показания четырёх теплиц и откройте историю любого датчика.'),
+  }[demoView];
 
   useEffect(() => {
     if (!article || staticBodyHtml) return undefined;
@@ -121,6 +135,12 @@ function ArticlePage({ initialArticle } = {}) {
           {cluster.title}
         </Link>
       )}
+      {DEMO_PUBLIC_ENABLED && (
+        <aside className="article-demo-invite" aria-label={translatePublic('Попробовать в GrowerHub')}>
+          <p><strong>{translatePublic('Попробуйте на готовой ферме')}</strong><span>{demoHint} {translatePublic('Без регистрации и оборудования.')}</span></p>
+          <DemoStartLink placement="article_intro_demo" view={demoView} className="hero-cta">{translatePublic('Открыть демо')}</DemoStartLink>
+        </aside>
+      )}
       {article.hero_image && !article.hero_in_body && (
         <img fetchPriority="high" decoding="async" className="article-hero-image" src={article.hero_image} alt={article.hero_alt || article.title} />
       )}
@@ -149,8 +169,9 @@ function ArticlePage({ initialArticle } = {}) {
       </aside>
       <LeadCta
         placement="article_bottom"
-        title={cluster?.guide.cta.title || translatePublic('Подключите устройство к GrowerHub')}
-        text={cluster?.guide.cta.text || translatePublic('Войдите, настройте Zigbee2MQTT и увидьте метрики в кабинете. Если потребуется помощь, напишите нам в Telegram на русском или английском.')}
+        demoView={demoView}
+        title={DEMO_PUBLIC_ENABLED ? translatePublic('Попробуйте на готовой ферме') : cluster?.guide.cta.title}
+        text={DEMO_PUBLIC_ENABLED ? `${demoHint} ${translatePublic('Без регистрации и оборудования.')}` : cluster?.guide.cta.text}
       />
       {relatedArticles.length > 0 && (
         <section className="related-articles">

@@ -1,9 +1,9 @@
 ---
 slug: "zigbee2mqtt-prostymi-slovami"
-title: "Zigbee2MQTT простыми словами: как связаны датчик, координатор и MQTT"
-summary: "Понятная схема Zigbee2MQTT: что делают координатор, роутеры, MQTT-брокер, топики, exposes и availability и как это применяет GrowerHub."
+title: "Zigbee2MQTT: что это такое, что нужно и как начать"
+summary: "Zigbee2MQTT простыми словами: чем программа отличается от хаба и MQTT-брокера, что нужно для старта и как увидеть датчики в Home Assistant или GrowerHub."
 created_at: "2026-06-29"
-updated_at: "2026-08-16"
+updated_at: "2026-09-17"
 cluster: "zigbee-hub-i-ustroystva"
 tags:
   - "GrowerHub"
@@ -22,9 +22,15 @@ hero_image: "/content/articles/illustrations/zigbee2mqtt-prostymi-slovami.webp"
 hero_alt: "Схема Zigbee2MQTT: устройство, координатор, MQTT-брокер и GrowerHub"
 ---
 
-![Схема Zigbee2MQTT: устройство, координатор, MQTT-брокер и GrowerHub](/content/articles/illustrations/zigbee2mqtt-prostymi-slovami.webp)
-
 Zigbee2MQTT — это программа-посредник между Zigbee-сетью и MQTT. Датчик разговаривает по Zigbee с координатором, Zigbee2MQTT переводит его сообщение в понятные данные, а MQTT-брокер доставляет их GrowerHub, Home Assistant или другому сервису. В обратную сторону команда реле проходит тот же путь.
+
+## Что понадобится для первого датчика
+
+Нужны совместимый Zigbee-координатор, компьютер с Zigbee2MQTT, MQTT-брокер и Zigbee-устройство. Обычный Wi-Fi-роутер не заменяет координатор. Home Assistant — один из потребителей этих данных, а не обязательная часть Zigbee2MQTT. Требования и варианты установки приведены в [официальном руководстве по запуску](https://www.zigbee2mqtt.io/guide/getting-started/).
+
+Если хотите сначала понять, как выглядят показания и история, [откройте демоферму GrowerHub](/app/demo/?lang=ru&view=overview). Там виртуальные устройства: это знакомство с кабинетом, а не проверка совместимости вашей модели.
+
+![Схема Zigbee2MQTT: устройство, координатор, MQTT-брокер и GrowerHub](/content/articles/illustrations/zigbee2mqtt-prostymi-slovami.webp)
 
 ## Система по слоям
 
