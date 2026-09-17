@@ -40,8 +40,9 @@ export default function AppDemo() {
         if (saving && result.status === 410) setSaveUnavailable(true);
       }
     } catch (error) {
-      if (saving && isSessionExpiredError(error)) {
-        navigate('/app/login/?redirect=' + encodeURIComponent('/app/demo/?save=1'), { replace: true });
+      if (isSessionExpiredError(error)) {
+        const resume = saving ? '/app/demo/?save=1' : '/app/demo/?view=' + view;
+        navigate('/app/login/?redirect=' + encodeURIComponent(resume), { replace: true });
       } else if (error?.name !== 'AbortError') setFailure(503);
     } finally { setBusy(false); }
   };

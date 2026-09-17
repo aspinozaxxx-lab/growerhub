@@ -93,6 +93,18 @@ it('pri istechenii akkaunta vo vremja sohraneniya vozvrashchaet na vhod s namere
   expect(auth.saveDemo).toHaveBeenCalledExactlyOnceWith(false);
 });
 
+it('pri istechenii akkaunta posle 410 vozvrashchaet na vhod dlya otkrytiya sohranennogo demo', async () => {
+  auth.accountStatus = 'authorized';
+  auth.saveDemo.mockResolvedValue({ success: false, status: 410 });
+  auth.startDemo.mockRejectedValue(Object.assign(new Error('SESSION_EXPIRED'), { code: 'SESSION_EXPIRED' }));
+  entry('?save=1&view=farm');
+  expect(await screen.findByRole('alert')).toHaveTextContent('Текущая демосессия недоступна.');
+  fireEvent.click(screen.getByRole('button', { name: 'Открыть демоферму' }));
+  await waitFor(() => expect(screen.getByTestId('destination')).toHaveTextContent('/app/login/?redirect=%2Fapp%2Fdemo%2F%3Fview%3Dfarm'));
+  expect(auth.startDemo).toHaveBeenCalledTimes(1);
+  expect(auth.saveDemo).toHaveBeenCalledExactlyOnceWith(false);
+});
+
 it('ne zamenyaet sohranennoe demo pri konflikte bez javnogo vybora', async () => {
   auth.accountStatus = 'authorized';
   auth.saveDemo.mockResolvedValue({ success: false, status: 409 });
