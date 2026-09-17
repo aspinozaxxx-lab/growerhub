@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronDown, FlaskConical, RotateCcw } from 'lucide-react';
+import { ChevronDown, FlaskConical, MessageCircle, RotateCcw } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
+import TelegramContactLink from '../../components/TelegramContactLink';
 import useCompactLayout from '../../components/layout/useCompactLayout';
 import { useAuth } from './AuthContext';
 import { translateApp as t } from '../../locales/i18n';
@@ -39,6 +40,7 @@ export default function DemoBanner() {
         {!demoSession?.saved ? <Link className="demo-link demo-link--primary" to="/app/demo/?save=1">{t('Сохранить демоферму')}</Link> : null}
         <button className="demo-link" onClick={connect}>{t('Подключить свои устройства')}</button>
         {accountUser ? <button className="demo-link" onClick={() => { trackProductGoal('demo_exit'); leaveDemo(); navigate('/app/'); }}>{t('Моя ферма')}</button> : null}
+        <TelegramContactLink className="demo-link" placement={compact ? 'demo_menu_feedback' : 'demo_banner_feedback'}><MessageCircle size={16} aria-hidden="true" />{t('Вопрос или отзыв в Telegram')}</TelegramContactLink>
         <button className="demo-link demo-reset" onClick={() => setConfirmReset(true)} aria-label={t('Восстановить демоферму')}><RotateCcw size={16} /><span>{t('Сбросить демо')}</span></button>
       </div>
       {confirmReset ? <div className="demo-confirm" role="group" aria-label={t('Подтверждение сброса')}>
@@ -50,11 +52,14 @@ export default function DemoBanner() {
   </>;
   return <aside className="demo-banner" aria-label={t('Демонстрационный режим')}>
     {compact ? <>
-      <button type="button" className="demo-banner__compact" onClick={() => setExpanded(true)} aria-expanded={expanded}>
-        <FlaskConical size={17} aria-hidden="true" /><strong>{t('Демо')}</strong>
-        <span>{demoSession?.saved ? t('Сохранено в аккаунте') : t('Изменения доступны 24 ч')}</span>
-        <ChevronDown size={16} aria-hidden="true" />
-      </button>
+      <div className="demo-banner__compact-row">
+        <button type="button" className="demo-banner__compact" onClick={() => setExpanded(true)} aria-expanded={expanded} aria-label={`${t('Демо')}. ${demoSession?.saved ? t('Сохранено в аккаунте') : t('Изменения доступны 24 ч')}`}>
+          <FlaskConical size={17} aria-hidden="true" /><strong>{t('Демо')}</strong>
+          <span>{demoSession?.saved ? t('Сохранено') : <>24 {t('ч')}</>}</span>
+          <ChevronDown size={16} aria-hidden="true" />
+        </button>
+        <TelegramContactLink className="demo-banner__feedback" placement="demo_banner_feedback"><MessageCircle size={16} aria-hidden="true" />{t('Отзыв в Telegram')}</TelegramContactLink>
+      </div>
       <Modal isOpen={expanded} title={t('Демонстрационный режим')} presentation="sheet" onClose={() => { if (!busy) setExpanded(false); }}>
         {content}
       </Modal>

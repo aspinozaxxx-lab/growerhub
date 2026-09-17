@@ -41,10 +41,13 @@
 
 @media (max-width: 680px) {
   .demo-banner { margin-bottom: 8px; padding: 0; border-radius: 10px; }
-  .demo-banner__compact { display: flex; align-items: center; width: 100%; min-height: 44px; gap: 7px; padding: 6px 10px; color: inherit; font: inherit; font-size: 12px; border: 0; background: transparent; cursor: pointer; text-align: left; }
-  .demo-banner__compact span { min-width: 0; font-size: 11px; }
+  .demo-banner__compact-row { display: flex; align-items: center; }
+  .demo-banner__compact { display: flex; align-items: center; flex: 1; min-width: 0; min-height: 44px; gap: 7px; padding: 6px 10px; color: inherit; font: inherit; font-size: 12px; border: 0; background: transparent; cursor: pointer; text-align: left; }
+  .demo-banner__compact span { min-width: 0; font-size: 11px; white-space: nowrap; }
   .demo-banner__compact svg { flex: none; }
   .demo-banner__compact svg:last-child { margin-left: auto; }
+  .demo-banner__feedback { display: inline-flex; align-items: center; flex: none; min-height: 44px; gap: 6px; padding: 6px 10px; border-left: 1px solid #bddbc7; color: inherit; font-size: 11px; font-weight: 600; text-underline-offset: 3px; }
+  .demo-banner__feedback svg { flex: none; }
   .demo-banner .gh-modal__panel { --text-1: #1b4930; --text-2: #37644b; --surface-1: #edf7f0; --border-1: #bddbc7; --border-2: #bddbc7; }
   .demo-banner .demo-actions { display: grid; gap: 4px; }
   .demo-banner .demo-link { min-height: 44px; }
