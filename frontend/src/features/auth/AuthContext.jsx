@@ -155,8 +155,9 @@ function AuthProvider({ children }) {
     (async () => {
       await loadCurrentUser();
       if (!cancelled && modeRef.current === 'demo') {
+        const operation = demoOperation.current;
         setDemoStatus('loading');
-        if (!await refreshDemo() && !cancelled) setDemoStatus('unauthorized');
+        if (!await refreshDemo() && !cancelled && operation === demoOperation.current) setDemoStatus('unauthorized');
       }
     })();
     return () => { cancelled = true; };

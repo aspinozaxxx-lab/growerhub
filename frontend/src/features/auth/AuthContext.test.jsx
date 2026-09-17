@@ -46,3 +46,41 @@ it('ne pokazyvaet uspeshnyj vyhod pri oshibke otzyva cookie', async () => {
   expect(result.current.accountStatus).toBe('authorized');
   expect(result.current.demoSession.saved).toBe(true);
 });
+
+it.each([200, 503])('pozdnij nachalnyj refresh %s ne sbrasyvaet uspeshno sohranennoe demo', async (status) => {
+  const defaultFetch = fetch.getMockImplementation();
+  let finishRefresh;
+  const savedSpace = { id: 'guest-demo', saved: true, timezone: 'UTC' };
+  fetch.mockImplementation((url, options) => {
+    if (url === '/api/demo/refresh') return new Promise((resolve) => { finishRefresh = resolve; });
+    if (url === '/api/demo/save') return Promise.resolve(json({ access_token: 'saved-demo-token', space: savedSpace }));
+    return defaultFetch(url, options);
+  });
+  const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+  await waitFor(() => expect(finishRefresh).toBeTypeOf('function'));
+  expect(result.current.accountStatus).toBe('authorized');
+  expect(result.current.status).toBe('loading');
+
+  await act(async () => { expect(await result.current.saveDemo()).toEqual({ success: true }); });
+  expect(result.current.status).toBe('authorized');
+  await act(async () => {
+    finishRefresh(json({ access_token: 'old-guest-token', space: { ...savedSpace, saved: false } }, status));
+  });
+
+  expect(result.current.status).toBe('authorized');
+  expect(result.current.token).toBe('saved-demo-token');
+  expect(result.current.demoSession).toEqual(savedSpace);
+  expect(result.current.demoActive).toBe(true);
+  expect(result.current.accountStatus).toBe('authorized');
+  expect(result.current.accountUser.id).toBe(1);
+});
+
+it('neuspeshnyj nachalnyj refresh bez novoj sessii zavershaet demo', async () => {
+  const defaultFetch = fetch.getMockImplementation();
+  fetch.mockImplementation((url, options) => url === '/api/demo/refresh'
+    ? Promise.resolve(json({}, 503)) : defaultFetch(url, options));
+  const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+  await waitFor(() => expect(result.current.status).toBe('unauthorized'));
+  expect(result.current.accountStatus).toBe('authorized');
+  expect(result.current.demoSession).toBeNull();
+});
