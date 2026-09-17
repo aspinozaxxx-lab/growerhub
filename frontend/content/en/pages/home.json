@@ -50,6 +50,12 @@
         "text": "Choose a greenhouse, run a short watering session and see it appear in the history.",
         "view": "watering",
         "cta": "Try watering"
+      },
+      {
+        "title": "Keep a plant journal",
+        "text": "Open “Journal” on a plant card, add an observation and download your records as Markdown.",
+        "view": "plants",
+        "cta": "Try the plant journal"
       }
     ]
   },

@@ -90,7 +90,7 @@ function HomePage() {
       <section className="content-section">
         <h2>{features.title}</h2>
         <p>{features.text}</p>
-        <div className="card-grid">
+        <div className="card-grid demo-task-grid">
           {features.items.map((item) => (
             <div className="card demo-task-card" key={item.title}>
               <h3>{item.title}</h3>

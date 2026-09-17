@@ -1,5 +1,5 @@
 ﻿import { apiFetch } from './client';
-import { translateApp } from '../locales/i18n';
+import { getCurrentLocale, translateApp } from '../locales/i18n';
 
 export async function fetchPlantJournal(plantId, token) {
   void token;
@@ -66,7 +66,7 @@ export async function downloadJournalPhotoBlob(photoId, token) {
 
 export async function downloadPlantJournalMarkdown(plantId, token) {
   void token;
-  const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}/journal/export?format=md`, {
+  const response = await apiFetch(`/api/plants/${encodeURIComponent(plantId)}/journal/export?format=md&lang=${encodeURIComponent(getCurrentLocale())}`, {
     method: 'GET',
   });
   if (!response.ok) {

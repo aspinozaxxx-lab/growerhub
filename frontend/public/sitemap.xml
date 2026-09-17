@@ -46,7 +46,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zhurnal-i-sovetnik-uhoda/</loc>
-    <lastmod>2026-06-30</lastmod>
+    <lastmod>2026-09-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zigbee-hub-i-ustroystva/</loc>
@@ -62,6 +62,10 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/datchik-vlazhnosti-pochvy-dlya-avtopoliva/</loc>
+    <lastmod>2026-09-17</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/dnevnik-rasteniya-chto-zapisyvat/</loc>
     <lastmod>2026-09-17</lastmod>
   </url>
   <url>
@@ -138,10 +142,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/diy-ili-gotovyy-kontroller-poliva/</loc>
-    <lastmod>2026-06-30</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/dnevnik-rasteniya-chto-zapisyvat/</loc>
     <lastmod>2026-06-30</lastmod>
   </url>
   <url>
@@ -330,7 +330,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/plant-journal-and-care-guidance/</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/zigbee-hubs-and-devices/</loc>
@@ -362,6 +362,10 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/mqtt-discovery-in-home-assistant-how-to-add-plant-sensors-without-manual-yaml/</loc>
+    <lastmod>2026-09-17</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/plant-diary-what-to-write-down-to-understand-growth-and-mistakes/</loc>
     <lastmod>2026-09-17</lastmod>
   </url>
   <url>
@@ -478,10 +482,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/plant-dashboard-in-home-assistant-what-to-show-first/</loc>
-    <lastmod>2026-07-23</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/plant-diary-what-to-write-down-to-understand-growth-and-mistakes/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
