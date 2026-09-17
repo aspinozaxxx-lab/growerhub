@@ -16,7 +16,7 @@ Ansible описывает серверную инфраструктуру Growe
 
 - `java_backend` - backend-сервис systemd из собранного jar.
 - `mosquitto` — MQTT broker с TLS listener `8883`, локальным backend listener и Dynamic Security; wildcard namespaces пользовательских клиентов используют pattern ACL для subscribe/unsubscribe.
-- `nginx` - reverse proxy и раздача frontend dist.
+- `nginx` - reverse proxy и раздача frontend dist. Публичные страницы и HTML кабинета перепроверяются в браузере при загрузке; файлы `/assets/` с хешами имеют длительный immutable-кеш.
 - `gh_db_postgresql` - PostgreSQL.
 - `pgadmin` - администрирование БД.
 

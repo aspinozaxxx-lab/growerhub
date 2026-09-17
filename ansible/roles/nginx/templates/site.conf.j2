@@ -168,15 +168,18 @@ server {
     }
 
     location /app/ {
+        expires -1;
         try_files $uri $uri/ /{{ nginx_index }};
     }
 
     location /en/ {
+        expires -1;
         error_page 404 =404 /en/404.html;
         try_files $uri $uri/index.html =404;
     }
 
     location / {
+        expires -1;
         try_files $uri $uri/index.html =404;
     }
 
