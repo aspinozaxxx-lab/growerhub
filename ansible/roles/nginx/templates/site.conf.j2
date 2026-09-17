@@ -169,7 +169,7 @@ server {
 
     location /app/ {
         expires -1;
-        try_files $uri $uri/ /{{ nginx_index }};
+        try_files $uri $uri/ /app/{{ nginx_index }};
     }
 
     location /en/ {

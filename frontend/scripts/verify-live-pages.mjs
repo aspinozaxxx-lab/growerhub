@@ -124,11 +124,13 @@ for (const [pathname, expectedText] of [
   assert(html.includes(expectedText), `Wrong localized 404: ${pathname}`);
 }
 
-for (const pathname of ['/app/', '/app/plants/']) {
+for (const pathname of ['/app/', '/app/demo/', '/app/demo-tools/', '/app/farm/', '/app/settings/devices/', '/app/plants/']) {
   const response = await request(`${origin}${pathname}`);
   const html = await response.text();
   assert(response.status === 200, `App fallback status ${response.status}: ${pathname}`);
   assert(html.includes('noindex,nofollow'), `App shell is indexable: ${pathname}`);
+  assert(!html.includes('data-react-ssr'), `App shell contains public SSR markup: ${pathname}`);
+  assert(/no-cache/i.test(response.headers.get('cache-control') || ''), `App shell is not revalidated: ${pathname}`);
 }
 
 const compressedPage = await request(`${origin}/en/`);
