@@ -4,7 +4,7 @@ slug: "soil-moisture-sensor-for-automatic-watering-how-to-use-without-false-alar
 title: "Soil moisture sensor for automatic watering: how to avoid false triggers"
 summary: "Where to install a soil moisture sensor, how to calibrate it in the actual substrate, recognize faulty data, and build a safer watering rule."
 created_at: "2026-07-23"
-updated_at: "2026-08-16"
+updated_at: "2026-09-17"
 cluster: "avtopoliv-i-kontroller-vyrashchivaniya"
 tags:
   - "GrowerHub"
@@ -28,6 +28,16 @@ hero_alt: "Plant pot with a soil moisture sensor and a moisture trend"
 A soil moisture sensor does not measure the “true moisture” of an entire pot. It describes a small area around its probe. Used with that limitation in mind, it can reveal drying, confirm that a dripper worked, and prevent an unnecessary watering cycle. Used as an absolute judge, it turns irrigation into a lottery: the rule reacts to one point while roots occupy a volume.
 
 Use a new sensor for observation only during the first several days. Water manually, note how fast its value rises, where it peaks, and how long it takes to return to the usual range. This shows the behavior of the zone rather than one number: a light substrate dries quickly, a dense mix holds water longer, and a large pot changes more slowly than a small one.
+
+## Try the chart and watering workflow without hardware
+
+The [GrowerHub demo farm](/app/demo/?lang=en&view=overview) already contains four greenhouses with different readings and history. No account is needed.
+
+1. In the Overview, select a greenhouse's soil moisture reading to open its chart.
+2. Open manual watering with the watering-can button, choose the same greenhouse and start a one-minute watering session.
+3. After it finishes, return to the soil reading and compare it with the starting value. Select “Watering” in that greenhouse's card to open its journal. The Overview refreshes every 30 seconds, so the result may not appear immediately.
+
+This is a way to try the shared dashboard, history and watering workflow with virtual devices. Values are simulated: the demo does not calibrate a real sensor or choose a threshold for your substrate. The sections below explain how to check a physical probe before enabling automation.
 
 ## Where to place the sensor
 
@@ -87,6 +97,6 @@ Inspect the cable, enclosure, probe position, and trend stability periodically. 
 
 ## Conclusion
 
-A soil moisture sensor is an observation tool, not an absolute judge. It supports irrigation only when installed in a meaningful location, verified in the actual substrate, and combined with safe limits. In GrowerHub, use it for charts and alerts first; enable automatic action after the zone's behavior is understood.
+A soil moisture sensor is an observation tool, not an absolute judge. It supports irrigation only when installed in a meaningful location, verified in the actual substrate, and combined with safe limits. In GrowerHub, compare the moisture chart with the watering journal first; enable automatic action after the zone's behavior is understood.
 
 See the [Zigbee sensor examples](/oborudovanie/datchiki/) and the [self-service connection path](/kak-nachat/) for a first setup. The model choice remains open, but checking the exact model ID and exposed fields in Zigbee2MQTT before purchase avoids surprises.

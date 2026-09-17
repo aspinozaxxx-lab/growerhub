@@ -31,6 +31,8 @@ In a running Zigbee2MQTT installation, select **Permit join**, put the sensor in
 
 If Zigbee2MQTT is not running yet, start with [the Windows installation guide](/en/articles/install-zigbee2mqtt-on-windows-usb-coordinator/). The steps below cover readings, placement and useful history.
 
+If the sensor already works in Zigbee2MQTT, there is no need to pair it again for GrowerHub. Keep the existing Zigbee network and forward readings through a separate MQTT connector. The [existing-installation guide](/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/) covers host requirements and the first-sensor check; a device appearing only in Home Assistant does not establish compatibility. Before setting up the connector, [explore readings and history from four demo greenhouses](/app/demo/?lang=en&view=overview) without an account or hardware.
+
 ![Pairing a Zigbee temperature and humidity sensor with Zigbee2MQTT](/content/articles/illustrations/podklyuchit-zigbee-datchik-temperatury-vlazhnosti.webp)
 
 ## What to check before buying
@@ -78,7 +80,7 @@ Do not automate from the first packet. A sensor needs time to equalize after bei
 
 Names should survive equipment moves. `sensor_01` and “left sensor” quickly lose meaning. Combine zone and role, for example “Seedlings · air” or `seedlings_air`. Keep the IEEE address as a technical identifier rather than exposing it in normal dashboards.
 
-GrowerHub assigns the sensor to a room, greenhouse, or grow box so its reading appears with the equipment in that zone instead of being mixed into a farm-wide average.
+After connecting Zigbee2MQTT to GrowerHub, wait for the sensor to appear in the application. In the Farm builder, assign its temperature and humidity to the corresponding slots in the intended greenhouse. Its readings will then appear beside that greenhouse's equipment in the Overview. Select a value to open its history: GrowerHub starts collecting history after connection and does not automatically import earlier Home Assistant records.
 
 ## Step 5: Choose the installation location
 

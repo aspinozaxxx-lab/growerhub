@@ -56,6 +56,7 @@ function ArticlePage({ initialArticle } = {}) {
   const demoView = {
     'home-assistant-dlya-rasteniy': 'watering',
     'mqtt-discovery-home-assistant': 'overview',
+    'datchik-vlazhnosti-pochvy-dlya-avtopoliva': 'overview',
   }[article?.id] || {
     'avtopoliv-i-kontroller-vyrashchivaniya': 'automations',
     'home-assistant-i-diy': 'automations',
