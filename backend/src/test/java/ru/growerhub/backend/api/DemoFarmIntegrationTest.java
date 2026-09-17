@@ -277,6 +277,51 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         verifyNoInteractions(publisher);
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void returningVisitorSeesReadyDevicesBeforeWorkerRuns(boolean saved) {
+        String primary = saved ? jwt.createToken(Map.of("user_id", account().getId()), Duration.ofHours(1)) : null;
+        Response session = request(primary).body(Map.of("locale", "ru", "timezone", "UTC")).post("/api/demo/start");
+        session.then().statusCode(200);
+        UUID id = UUID.fromString(session.path("space.id"));
+        var space = spaces.findById(id).orElseThrow();
+        var owner = new AuthenticatedUser(space.dataUserId, "demo");
+        var coordinator = zigbee.getSimulationCoordinator(space.dataUserId);
+        LocalDateTime stale = LocalDateTime.now(ZoneOffset.UTC).minusHours(1);
+        jdbc.update("update demo_spaces set last_active_at = ? where id = ?", stale, id);
+        demo.cleanup();
+        assertThat(spaces.findById(id).orElseThrow().paused).isTrue();
+        var pausedStates = jdbc.queryForList("select state_json from demo_devices where space_id = ? order by id", String.class, id);
+        for (var device : deviceFacade.listMyDevices(space.dataUserId)) {
+            deviceFacade.handleSimulatedState(device.deviceId(), deviceFacade.getShadowState(device.deviceId()), stale);
+        }
+        jdbc.update("update zigbee_device_snapshots set last_state_at = ?, updated_at = ? where coordinator_id = ?",
+                stale, stale, coordinator.id());
+        assertThat(deviceFacade.listMyDevices(space.dataUserId)).hasSize(4)
+                .allMatch(device -> !Boolean.TRUE.equals(device.isOnline()));
+
+        LocalDateTime returningAt = LocalDateTime.now(ZoneOffset.UTC);
+        request(primary).cookie("gh_demo_refresh", session.cookie("gh_demo_refresh"))
+                .body(Map.of("locale", "ru", "timezone", "UTC")).post("/api/demo/start")
+                .then().statusCode(200).body("space.id", equalTo(id.toString()));
+
+        assertThat(deviceFacade.listMyDevices(space.dataUserId)).hasSize(4).allSatisfy(device -> {
+            assertThat(device.isOnline()).isTrue();
+            assertThat(device.lastSeen()).isAfterOrEqualTo(returningAt);
+        });
+        assertThat(zigbee.getOverview(owner, coordinator.publicId()).devices()).hasSize(13).allSatisfy(device -> {
+            assertThat(device.availability()).isEqualTo("online");
+            assertThat(device.lastStateAt()).isAfterOrEqualTo(returningAt);
+        });
+        for (var greenhouse : automation.getFarmsOverview(owner).farms().getFirst().greenhouses()) {
+            assertThat(greenhouse.slots()).allMatch(slot -> slot.ready());
+        }
+        assertThat(jdbc.queryForList("select state_json from demo_devices where space_id = ? order by id", String.class, id))
+                .isEqualTo(pausedStates);
+        assertThat(spaces.findById(id).orElseThrow().paused).isFalse();
+        verifyNoInteractions(publisher);
+    }
+
     @Test
     void creationQuotaIsSerializedAndCrossOriginAdmissionIsDenied() throws Exception {
         long before = spaces.count();

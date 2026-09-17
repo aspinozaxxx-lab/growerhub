@@ -124,8 +124,10 @@ public class DemoFacade {
             space.actionsInWindow++;
         }
         if (space.paused) {
+            LocalDateTime resumedAt = now();
             for (DemoDeviceEntity device : devices.findBySpaceId(space.id)) {
-                device.updatedAt = now().minusSeconds(settings.telemetryPeriodSeconds() + 1); devices.save(device);
+                publish(device, state(device), resumedAt);
+                device.updatedAt = resumedAt.minusSeconds(settings.telemetryPeriodSeconds() + 1); devices.save(device);
             }
         }
         space.lastActiveAt = now(); space.paused = false;
