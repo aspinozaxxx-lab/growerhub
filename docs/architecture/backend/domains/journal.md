@@ -10,7 +10,7 @@
 
 - `listEntries(Integer plantId, AuthenticatedUser user)`
 - `getLastWatering(Integer plantId, AuthenticatedUser user)`
-- `exportJournal(Integer plantId, String format, AuthenticatedUser user)`
+- `exportJournal(Integer plantId, String format, String language, AuthenticatedUser user)`
 - `createEntry(Integer plantId, AuthenticatedUser user, String type, String text, LocalDateTime eventAt, List<String> photoUrls)`
 - `updateEntry(Integer plantId, Integer entryId, AuthenticatedUser user, String type, String text)`
 - `deleteEntry(Integer plantId, Integer entryId, AuthenticatedUser user)`
@@ -33,6 +33,7 @@
 ## Используемые домены
 
 - `plant`.
+- `user`.
 
 ## Внешние пользователи домена
 
@@ -41,7 +42,7 @@
 
 ## Алгоритм работы
 
-Facade проверяет доступ к растению, читает или изменяет записи, формирует DTO и экспорт. Для полива пакетно создаёт по одной записи каждому доступному target. Повторный запрос той же pump session и растения не создаёт дубль. Неизвестный расход сохраняется как `water_volume_l=null`, а длительность, режим и причина остаются доступными.
+Facade проверяет доступ к растению, читает или изменяет записи, формирует DTO и экспорт. Markdown использует часовой пояс профиля, явное смещение UTC у событий и язык интерфейса (`ru` по умолчанию или `en`); текст записей не переводится. Для полива пакетно создаёт по одной записи каждому доступному target. Повторный запрос той же pump session и растения не создаёт дубль. Неизвестный расход сохраняется как `water_volume_l=null`, а длительность, режим и причина остаются доступными.
 
 ## Ограничения
 

@@ -45,9 +45,10 @@ public class JournalController {
     public ResponseEntity<String> exportJournal(
             @PathVariable("plant_id") Integer plantId,
             @RequestParam(value = "format", defaultValue = "md") String format,
+            @RequestParam(value = "lang", defaultValue = "ru") String language,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        String markdown = journalFacade.exportJournal(plantId, format, user);
+        String markdown = journalFacade.exportJournal(plantId, format, language, user);
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"plant_journal_" + plantId + ".md\"");
         headers.set(HttpHeaders.CONTENT_TYPE, "text/markdown; charset=utf-8");

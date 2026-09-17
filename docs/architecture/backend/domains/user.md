@@ -42,7 +42,7 @@
 
 - REST adapter `api`
 - security filter в `common.config.security`
-- домены `auth`, `automation`, `onboarding`, `plant`
+- домены `auth`, `automation`, `journal`, `onboarding`, `plant`
 
 ## Алгоритм работы
 

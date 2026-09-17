@@ -2,9 +2,11 @@
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -27,6 +29,7 @@ import ru.growerhub.backend.journal.contract.JournalWateringDetails;
 import ru.growerhub.backend.journal.contract.JournalWateringInfo;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.plant.contract.PlantInfo;
+import ru.growerhub.backend.user.UserFacade;
 
 @Service
 public class JournalFacade {
@@ -44,19 +47,22 @@ public class JournalFacade {
     private final PlantJournalWateringDetailsRepository wateringDetailsRepository;
     private final JournalService journalService;
     private final PlantFacade plantFacade;
+    private final UserFacade userFacade;
 
     public JournalFacade(
             PlantJournalEntryRepository entryRepository,
             PlantJournalPhotoRepository photoRepository,
             PlantJournalWateringDetailsRepository wateringDetailsRepository,
             JournalService journalService,
-            @Lazy PlantFacade plantFacade
+            @Lazy PlantFacade plantFacade,
+            @Lazy UserFacade userFacade
     ) {
         this.entryRepository = entryRepository;
         this.photoRepository = photoRepository;
         this.wateringDetailsRepository = wateringDetailsRepository;
         this.journalService = journalService;
         this.plantFacade = plantFacade;
+        this.userFacade = userFacade;
     }
 
     @Transactional(readOnly = true)
@@ -102,14 +108,15 @@ public class JournalFacade {
     }
 
     @Transactional(readOnly = true)
-    public String exportJournal(Integer plantId, String format, AuthenticatedUser user) {
+    public String exportJournal(Integer plantId, String format, String language, AuthenticatedUser user) {
         if (!"md".equals(format)) {
             throw new DomainException("bad_request", "podderzhivaetsya tolko format=md");
         }
         PlantInfo plant = plantFacade.requireOwnedPlantInfo(plantId, user);
         List<PlantJournalEntryEntity> entries =
                 entryRepository.findAllByPlantIdOrderByEventAtAsc(plantId);
-        return buildJournalMarkdown(plant, entries);
+        ZoneId zone = ZoneId.of(userFacade.getTimezone(user.id()));
+        return buildJournalMarkdown(plant, entries, zone, "en".equals(language));
     }
 
     @Transactional
@@ -290,23 +297,29 @@ public class JournalFacade {
         );
     }
 
-    private String buildJournalMarkdown(PlantInfo plant, List<PlantJournalEntryEntity> entries) {
+    private String buildJournalMarkdown(
+            PlantInfo plant, List<PlantJournalEntryEntity> entries, ZoneId zone, boolean english) {
         LocalDate plantedDate = plant.plantedAt() != null
-                ? plant.plantedAt().toLocalDate()
-                : LocalDate.now();
-        long ageDays = java.time.temporal.ChronoUnit.DAYS.between(plantedDate, LocalDate.now());
+                ? plant.plantedAt().atOffset(ZoneOffset.UTC).atZoneSameInstant(zone).toLocalDate()
+                : null;
         List<String> lines = new ArrayList<>();
-        lines.add("# Zhurnal rasteniya");
+        lines.add(english ? "# Plant journal" : "# Журнал растения");
         lines.add("");
-        lines.add("Nazvanie: " + plant.name());
-        lines.add("Data posadki: " + plantedDate);
-        lines.add("Tekushchii vozrast: " + Math.max(ageDays, 0) + " dnei");
+        lines.add((english ? "Name: " : "Название: ") + plant.name());
+        lines.add((english ? "Time zone: " : "Часовой пояс: ") + zone.getId());
+        lines.add((english ? "Planted: " : "Дата посадки: ") + (plantedDate != null ? plantedDate : "—"));
+        if (plantedDate != null) {
+            long ageDays = java.time.temporal.ChronoUnit.DAYS.between(plantedDate, LocalDate.now(zone));
+            lines.add((english ? "Current age: " : "Текущий возраст: ")
+                    + Math.max(ageDays, 0) + (english ? " days" : " дней"));
+        }
         lines.add("");
 
-        entries.sort(Comparator.comparing(PlantJournalEntryEntity::getEventAt));
         LocalDate currentDay = null;
+        DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("HH:mm XXX");
         for (PlantJournalEntryEntity entry : entries) {
-            LocalDate entryDay = entry.getEventAt().toLocalDate();
+            ZonedDateTime localEvent = entry.getEventAt().atOffset(ZoneOffset.UTC).atZoneSameInstant(zone);
+            LocalDate entryDay = localEvent.toLocalDate();
             if (!entryDay.equals(currentDay)) {
                 if (currentDay != null) {
                     lines.add("");
@@ -314,59 +327,54 @@ public class JournalFacade {
                 lines.add("## " + entryDay);
                 currentDay = entryDay;
             }
-            String timePart = entry.getEventAt().toLocalTime().withSecond(0).withNano(0).toString();
-            if (timePart.length() > 5) {
-                timePart = timePart.substring(0, 5);
-            }
-            String icon = "??";
-            String label = "Nablyudenie";
+            String timePart = localEvent.format(timeFormat);
+            String label = switch (entry.getType()) {
+                case "watering" -> english ? "Watering" : "Полив";
+                case "feeding" -> english ? "Care" : "Уход";
+                case "harvest" -> english ? "Harvest" : "Сбор";
+                case "photo" -> english ? "Photo" : "Фото";
+                default -> english ? "Observation" : "Наблюдение";
+            };
             String text = entry.getText() != null ? entry.getText() : "";
 
             if ("watering".equals(entry.getType())) {
-                icon = "??";
-                label = "Poliv";
                 PlantJournalWateringDetailsEntity details = wateringDetailsRepository
                         .findByJournalEntry_Id(entry.getId())
                         .orElse(null);
-                String detailsText = buildWateringText(details);
+                String detailsText = buildWateringText(details, english);
                 if (!detailsText.isEmpty()) {
-                    text = detailsText;
-                }
-            } else if ("feeding".equals(entry.getType())) {
-                icon = "??";
-                label = "Uhod";
-            } else if ("photo".equals(entry.getType())) {
-                icon = "??";
-                label = "Foto";
-                if (text.isEmpty()) {
-                    text = "Foto";
+                    text = detailsText + (text.isEmpty() ? "" : "; " + text);
                 }
             }
 
             String textSuffix = text.isEmpty() ? "" : ": " + text;
-            lines.add("- " + timePart + " " + icon + " " + label + textSuffix);
+            lines.add("- " + timePart + " " + label + textSuffix);
         }
 
         String payload = String.join("\n", lines).trim();
         return payload + "\n";
     }
 
-    private String buildWateringText(PlantJournalWateringDetailsEntity details) {
+    private String buildWateringText(PlantJournalWateringDetailsEntity details, boolean english) {
         if (details == null) {
             return "";
         }
         List<String> parts = new ArrayList<>();
-        String volume = formatVolumeLiters(details.getWaterVolumeL());
+        String volume = formatNumber(details.getWaterVolumeL(), english);
         if (volume != null) {
-            parts.add(volume);
+            parts.add(volume + (english ? " L" : " л"));
+        }
+        String ph = formatNumber(details.getPh(), english);
+        if (ph != null) {
+            parts.add("pH: " + ph);
         }
         if (details.getFertilizersPerLiter() != null && !details.getFertilizersPerLiter().isEmpty()) {
-            parts.add("udobreniya: " + details.getFertilizersPerLiter());
+            parts.add((english ? "fertilizers: " : "удобрения: ") + details.getFertilizersPerLiter());
         }
         return String.join("; ", parts);
     }
 
-    private String formatVolumeLiters(Double value) {
+    private String formatNumber(Double value, boolean english) {
         if (value == null) {
             return null;
         }
@@ -379,7 +387,7 @@ public class JournalFacade {
                 formatted = formatted.substring(0, formatted.length() - 1);
             }
         }
-        return formatted.replace(".", ",") + " l";
+        return english ? formatted : formatted.replace(".", ",");
     }
 
     private void validateJournalType(String type) {

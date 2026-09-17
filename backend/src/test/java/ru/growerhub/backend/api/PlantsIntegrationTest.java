@@ -594,17 +594,19 @@ class PlantsIntegrationTest extends IntegrationTestBase {
     @Test
     void journalExportMarkdown() {
         UserEntity owner = createUser("export-owner@example.com", "user");
+        owner.setTimezone("Europe/Istanbul");
+        userRepository.save(owner);
         String token = buildToken(owner.getId());
         PlantEntity plant = createPlant(owner, "ExportPlant");
-        plant.setPlantedAt(LocalDateTime.of(2025, 1, 1, 0, 0));
+        plant.setPlantedAt(LocalDateTime.of(2025, 1, 1, 22, 0));
         plantRepository.save(plant);
 
         PlantJournalEntryEntity watering = PlantJournalEntryEntity.create();
         watering.setPlantId(plant.getId());
         watering.setUserId(owner.getId());
         watering.setType("watering");
-        watering.setText("");
-        watering.setEventAt(LocalDateTime.of(2025, 1, 2, 8, 30));
+        watering.setText("Proverit kapelnicu");
+        watering.setEventAt(LocalDateTime.of(2025, 1, 2, 23, 30));
         watering.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
         watering.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         plantJournalEntryRepository.save(watering);
@@ -613,6 +615,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         details.setJournalEntry(watering);
         details.setWaterVolumeL(1.5);
         details.setDurationS(120);
+        details.setPh(6.3);
         details.setFertilizersPerLiter("G8 M12 B16");
         plantJournalWateringDetailsRepository.save(details);
 
@@ -621,7 +624,7 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         feeding.setUserId(owner.getId());
         feeding.setType("feeding");
         feeding.setText("podrezka listev");
-        feeding.setEventAt(LocalDateTime.of(2025, 1, 2, 12, 0));
+        feeding.setEventAt(LocalDateTime.of(2025, 1, 3, 0, 0));
         feeding.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
         feeding.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         plantJournalEntryRepository.save(feeding);
@@ -643,11 +646,39 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         String body = response.asString();
         Assertions.assertTrue(body.startsWith("# "));
         Assertions.assertFalse(body.trim().startsWith("{"));
-        Assertions.assertTrue(body.contains("Nazvanie: ExportPlant"));
-        Assertions.assertTrue(body.contains("Data posadki: 2025-01-01"));
-        Assertions.assertTrue(body.contains("1,5"));
-        Assertions.assertTrue(body.contains("udobreniya"));
-        Assertions.assertTrue(body.contains("Poliv"));
+        Assertions.assertTrue(body.startsWith("# Журнал растения\n"));
+        Assertions.assertTrue(body.contains("Название: ExportPlant"));
+        Assertions.assertTrue(body.contains("Дата посадки: 2025-01-02"));
+        Assertions.assertTrue(body.contains("Часовой пояс: Europe/Istanbul"));
+        Assertions.assertTrue(body.contains("## 2025-01-03\n- 02:30 +03:00 Полив"));
+        Assertions.assertTrue(body.contains("03:00 +03:00 Уход: podrezka listev"));
+        Assertions.assertTrue(body.contains("1,5 л"));
+        Assertions.assertTrue(body.contains("pH: 6,3"));
+        Assertions.assertTrue(body.contains("удобрения: G8 M12 B16"));
+        Assertions.assertTrue(body.contains("Proverit kapelnicu"));
+        Assertions.assertFalse(body.contains("??"));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/plants/" + plant.getId() + "/journal/export?format=md&lang=en")
+                .then()
+                .statusCode(200)
+                .body(containsString("# Plant journal\n"))
+                .body(containsString("Time zone: Europe/Istanbul"))
+                .body(containsString("02:30 +03:00 Watering"))
+                .body(containsString("1.5 L"))
+                .body(containsString("pH: 6.3"))
+                .body(containsString("fertilizers: G8 M12 B16"))
+                .body(containsString("Proverit kapelnicu"));
+
+        UserEntity other = createUser("export-other@example.com", "user");
+        given()
+                .header("Authorization", "Bearer " + buildToken(other.getId()))
+                .when()
+                .get("/api/plants/" + plant.getId() + "/journal/export?format=md&lang=en")
+                .then()
+                .statusCode(404);
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -656,6 +687,43 @@ class PlantsIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(400)
                 .body("detail", equalTo("podderzhivaetsya tolko format=md"));
+    }
+
+    @Test
+    void journalExportDistinguishesRepeatedHourAndKeepsUnknownVolume() {
+        UserEntity owner = createUser("export-dst@example.com", "user");
+        owner.setTimezone("Europe/Berlin");
+        userRepository.save(owner);
+        PlantEntity plant = createPlant(owner, "AutumnPlant");
+
+        for (int hour = 0; hour <= 1; hour++) {
+            PlantJournalEntryEntity entry = PlantJournalEntryEntity.create();
+            entry.setPlantId(plant.getId());
+            entry.setUserId(owner.getId());
+            entry.setType(hour == 0 ? "watering" : "harvest");
+            entry.setText(hour == 0 ? "Rashod ne izmeren" : "150 g");
+            entry.setEventAt(LocalDateTime.of(2025, 10, 26, hour, 30));
+            entry.setCreatedAt(LocalDateTime.now(ZoneOffset.UTC));
+            entry.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
+            plantJournalEntryRepository.save(entry);
+            if (hour == 0) {
+                PlantJournalWateringDetailsEntity details = PlantJournalWateringDetailsEntity.create();
+                details.setJournalEntry(entry);
+                details.setDurationS(60);
+                plantJournalWateringDetailsRepository.save(details);
+            }
+        }
+
+        given()
+                .header("Authorization", "Bearer " + buildToken(owner.getId()))
+                .when()
+                .get("/api/plants/" + plant.getId() + "/journal/export?format=md&lang=en")
+                .then()
+                .statusCode(200)
+                .body(containsString("Time zone: Europe/Berlin"))
+                .body(containsString("02:30 +02:00 Watering: Rashod ne izmeren"))
+                .body(containsString("02:30 +01:00 Harvest: 150 g"))
+                .body(not(containsString("0 L")));
     }
 
     @Test
@@ -808,7 +876,6 @@ class PlantsIntegrationTest extends IntegrationTestBase {
         jdbcTemplate.update("DELETE FROM users");
     }
 }
-
 
 
 
