@@ -25,7 +25,7 @@ Already running Home Assistant, Zigbee2MQTT and sensors? Keep that installation 
 
 **See the result first:** [open the demo without signing up](/app/demo/?lang=en). It contains four greenhouses, virtual devices and seven days of history. Open a temperature chart, try watering and change the environment. The demo uses the same application and automation rules as a regular farm; its readings are simulated.
 
-![Four greenhouses in the actual GrowerHub demo](/screenshots/en/zones.webp)
+![Four greenhouses in the actual GrowerHub demo](/screenshots/en/zones.webp?v=20260917)
 
 ## What you need
 

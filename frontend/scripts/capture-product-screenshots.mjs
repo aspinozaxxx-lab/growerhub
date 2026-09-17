@@ -70,7 +70,7 @@ try {
   }
   fs.writeFileSync(
     path.join(rootDir, 'src', 'content', 'productScreenshots.js'),
-    `export const overviewScreenshotDimensions = ${JSON.stringify(overviewDimensions, null, 2)};\n`,
+    `export const overviewScreenshotVersion = '${Date.now()}';\n\nexport const overviewScreenshotDimensions = ${JSON.stringify(overviewDimensions, null, 2)};\n`,
   );
 } finally {
   await browser.close();

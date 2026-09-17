@@ -5,7 +5,7 @@ import DemoStartLink from '../components/DemoStartLink';
 import { getArticleClusters } from '../content/articleClusters';
 import { getArticles } from '../content/articles';
 import { getPageContent } from '../content/pages';
-import { overviewScreenshotDimensions } from '../content/productScreenshots';
+import { overviewScreenshotDimensions, overviewScreenshotVersion } from '../content/productScreenshots';
 import {
   getArticlePath,
   getClusterPath,
@@ -82,7 +82,7 @@ function HomePage() {
           {DEMO_PUBLIC_ENABLED && <p className="hero-reassurance">{hero.reassurance}</p>}
         </div>
         <figure className="hero-product-preview">
-          <img src={hero.preview_image} srcSet={`${hero.preview_image.replace('.webp', '-640.webp')} 640w, ${hero.preview_image} 1280w`} sizes="(max-width: 800px) 100vw, 50vw" {...overviewScreenshotDimensions[locale]} fetchPriority="high" alt={hero.preview_alt} />
+          <img src={`${hero.preview_image}?v=${overviewScreenshotVersion}`} srcSet={`${hero.preview_image.replace('.webp', '-640.webp')}?v=${overviewScreenshotVersion} 640w, ${hero.preview_image}?v=${overviewScreenshotVersion} 1280w`} sizes="(max-width: 800px) 100vw, 50vw" {...overviewScreenshotDimensions[locale]} fetchPriority="high" alt={hero.preview_alt} />
           <figcaption>{hero.preview_caption}</figcaption>
         </figure>
       </div>

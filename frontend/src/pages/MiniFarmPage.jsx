@@ -4,7 +4,7 @@ import LeadCta from '../components/LeadCta';
 import PlatformStartLink from '../components/PlatformStartLink';
 import TelegramContactLink from '../components/TelegramContactLink';
 import { miniFarmContent } from '../content/pages';
-import { overviewScreenshotDimensions } from '../content/productScreenshots';
+import { overviewScreenshotDimensions, overviewScreenshotVersion } from '../content/productScreenshots';
 import { getPublicPath } from '../domain/localizedRoutes';
 import { DEMO_PUBLIC_ENABLED, SELF_SERVICE_PUBLIC_ENABLED, SITE_URL } from '../domain/siteConfig';
 import { getCurrentLocale, translatePublic } from '../locales/i18n';
@@ -84,7 +84,7 @@ function MiniFarmPage() {
 
                 <img
                   className="product-screenshot"
-                  src={`${screenshotPrefix}/${screenshotNames[index]}.webp`}
+                  src={`${screenshotPrefix}/${screenshotNames[index]}.webp${index === 0 ? `?v=${overviewScreenshotVersion}` : ''}`}
                   alt={screen.text}
                   width="1280"
                   height={index === 0 ? overviewScreenshotDimensions[locale].height : 720}
