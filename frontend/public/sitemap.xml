@@ -10,7 +10,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-18</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/avtomatizatsiya-mini-fermy/</loc>
@@ -50,7 +50,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zigbee-hub-i-ustroystva/</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-18</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/mini-ferma-i-neskolko-boksov/</loc>
@@ -59,6 +59,10 @@
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
     <lastmod>2026-09-17</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya/</loc>
+    <lastmod>2026-09-18</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/datchik-vlazhnosti-pochvy-dlya-avtopoliva/</loc>
@@ -107,10 +111,6 @@
   <url>
     <loc>https://growerhub.ru/articles/zigbee-klapan-poliva-home-assistant/</loc>
     <lastmod>2026-09-13</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya/</loc>
-    <lastmod>2026-08-16</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/oshibki-avtopoliva-kotorye-ubivayut-rasteniya/</loc>
@@ -334,7 +334,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/zigbee-hubs-and-devices/</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-18</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/small-farms-and-multiple-grow-boxes/</loc>
@@ -346,6 +346,10 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/</loc>
+    <lastmod>2026-09-18</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/zigbee-device-does-not-connect-or-is-missing-diagnostics-step-by-step/</loc>
     <lastmod>2026-09-18</lastmod>
   </url>
   <url>
@@ -391,10 +395,6 @@
   <url>
     <loc>https://growerhub.ru/en/articles/zigbee-irrigation-valve-home-assistant-growerhub/</loc>
     <lastmod>2026-09-13</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/zigbee-device-does-not-connect-or-is-missing-diagnostics-step-by-step/</loc>
-    <lastmod>2026-08-16</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/7-automatic-watering-mistakes-that-cause-plants-to-become-overwatered-or-dry/</loc>

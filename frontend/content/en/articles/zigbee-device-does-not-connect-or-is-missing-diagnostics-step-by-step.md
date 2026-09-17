@@ -1,10 +1,10 @@
 ---
 translation_of: "pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya"
 slug: "zigbee-device-does-not-connect-or-is-missing-diagnostics-step-by-step"
-title: "Zigbee device will not pair or has disappeared: step-by-step diagnostics"
-summary: "What to check when a Zigbee device is not found, disappears, or stops pairing after removal: reset, permit join, power, logs, availability, and mesh coverage."
+title: "Zigbee2MQTT not pairing: interview failed and offline devices"
+summary: "Troubleshoot a missing Zigbee sensor: permit join, interview errors, model support, power and debug logs. Check the failure without resetting the whole mesh."
 created_at: "2026-07-23"
-updated_at: "2026-08-16"
+updated_at: "2026-09-18"
 cluster: "zigbee-hub-i-ustroystva"
 tags:
   - "GrowerHub"
@@ -24,19 +24,19 @@ hero_image: "/content/articles/illustrations/pairing-zigbee-pochemu-ustroystvo-n
 hero_alt: "Diagnostics for a Zigbee device that will not connect to its coordinator"
 ---
 
-![Diagnostics for a Zigbee device that will not connect to its coordinator](/content/articles/illustrations/pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya.webp)
-
-First identify the situation: the Zigbee device **has never joined**, **used to work and disappeared**, or **will not join after removal**. Each case needs a different response. Repeated button presses and premature deletion usually erase useful diagnostic clues.
+If Zigbee2MQTT cannot find a device, start with **Permit join**, power and the exact model's pairing instructions. **Interview failed** means the device was detected but its interview did not finish. If a previously working device became **offline**, check recent messages and power. These checks do not require resetting the whole network.
 
 ## Quick diagnostic table
 
-| Symptom | Likely cause | First check |
-|---|---|---|
-| no response to reset in the log | the device did not enter pairing mode or its battery is low | exact-model instructions, a known-good battery, and a test near the coordinator |
-| interview starts and then fails | weak link, sleeping battery device, or partial model support | wake the device during interview, move it closer, and check its model page |
-| device joins but a required property is missing | a different revision or incomplete converter support | `model`, `manufacturer`, and the actual `exposes` list |
-| a working device becomes `offline` | power, coverage, powered-router failure, or radio interference | last message, battery, nearby routers, and coordinator placement |
-| device will not return after removal | it still remembers the old network | factory reset, then a new permit join window |
+| Symptom | Where to start |
+|---|---|
+| No log response to reset | Check Permit join, the model instructions and battery. Retry close to the coordinator. |
+| Interview starts but fails | Check power, wake the battery sensor with its normal button and move it closer to the coordinator. |
+| The sensor joins but a property is missing | Compare the exact model and actual `exposes` with the Zigbee2MQTT catalog. |
+| A working device becomes `offline` | Check its last message, sensor power and powered routers. Look for new interference. |
+| No pairing after removal | The device may remember its old network. Follow its reset instructions, then enable Permit join again. |
+
+![Diagnostics for a Zigbee device that will not connect to its coordinator](/content/articles/illustrations/pairing-zigbee-pochemu-ustroystvo-ne-nahoditsya.webp)
 
 ## If the device has never joined
 
@@ -48,6 +48,19 @@ First identify the situation: the Zigbee device **has never joined**, **used to 
 6. Read the log. A successful join reaches a completed interview, after which the model and capabilities appear.
 
 The official sequence is documented under [Allowing devices to join](https://www.zigbee2mqtt.io/guide/usage/pairing_devices.html). If a battery device falls asleep during interview, wake it briefly with its normal button instead of factory-resetting it again.
+
+## Interview failed: identify the unfinished step
+
+Check the battery, retry close to the coordinator and keep the device awake with its normal short button press when its instructions allow it. See the [official interview troubleshooting FAQ](https://www.zigbee2mqtt.io/guide/faq/#interview-fails) for additional cases.
+
+In **your sensor's entry** in `bridge/devices`, distinguish these two results:
+
+| Field | What it confirms |
+|---|---|
+| `interview_state: SUCCESSFUL` | the device interview finished |
+| `supported: true` and the required `definition.exposes` | Zigbee2MQTT knows the model and its capabilities |
+
+A successful interview can coexist with `supported: false` and a missing `definition`. Check the exact `model_id` and model support; deleting it again will not add a converter. The fields are documented in the [Zigbee2MQTT MQTT API](https://www.zigbee2mqtt.io/guide/usage/mqtt_topics_and_messages.html#zigbee2mqtt-bridge-devices).
 
 ## If a working device disappeared
 
@@ -80,6 +93,17 @@ When availability is enabled, Zigbee2MQTT publishes `online` or `offline` to the
 
 Check the default behavior in the [Device Availability documentation](https://www.zigbee2mqtt.io/guide/configuration/device-availability.html). For irrigation, also apply a separate freshness limit to the actual measurement. An old soil-moisture value is unsafe even if the device has not yet been marked `offline`.
 
+With availability enabled, the defaults are a 10-minute interval followed by a connectivity check for powered devices, and 25 hours without polling for battery devices. These are presence checks, not promised measurement intervals. Compare your configuration with the [availability documentation](https://www.zigbee2mqtt.io/guide/configuration/device-availability.html) before deciding that the sensor has disappeared.
+
+## Readings reach Zigbee2MQTT but not the application
+
+If fresh readings arrive in Zigbee2MQTT, check their delivery to the application next:
+
+- **Home Assistant:** the MQTT integration and Zigbee2MQTT's `homeassistant.enabled` are enabled, and discovery is not disabled for this device. See the [integration settings](https://www.zigbee2mqtt.io/guide/configuration/homeassistant.html) and [per-device options](https://www.zigbee2mqtt.io/guide/configuration/devices-groups.html).
+- **GrowerHub:** the connector reaches your existing Zigbee2MQTT installation, uses the correct local `base_topic`, and imports the device into Settings. Assign its sensors to the greenhouse slots in the Farm builder. Follow the [existing MQTT installation guide](/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/).
+
+Connecting GrowerHub to an existing Zigbee2MQTT installation does not require pairing working sensors again. Follow one fresh measurement through the device, Zigbee2MQTT, MQTT and the application.
+
 ## After removing a device from the network
 
 Deleting an entity in Zigbee2MQTT does not always reset the physical device. It may still remember the old network. Use this sequence:
@@ -91,6 +115,12 @@ Deleting an entity in Zigbee2MQTT does not always reset the physical device. It 
 5. verify real readings before moving it to the final location.
 
 After moving it, wait for several normal report cycles. If the sensor disappears again only at its final location, pairing works and the likely problem is coverage or interference.
+
+## What to collect for a useful diagnostic report
+
+Record the sensor model, Zigbee2MQTT and coordinator firmware versions, the time of one failed attempt, and several log lines before and after the error. Note whether the device worked before and what changed before the failure.
+
+For detailed logging, temporarily set `log_level: debug` under `advanced` in the Zigbee2MQTT configuration. Debug messages do not reach MQTT or the web interface by default: use the configured log file or process console. Restore the previous level after capturing the attempt. The [official Logging guide](https://www.zigbee2mqtt.io/guide/configuration/logging.html#debugging) explains the output options. Remove passwords, tokens and the network key before sharing an excerpt.
 
 ## When not to use the device in an automation
 
@@ -107,4 +137,6 @@ Do not connect it to a pump, lighting, or ventilation rule if interview does not
 - messages remain stable at the final location;
 - stale data blocks dangerous automations.
 
-Following this order reveals whether the failure is pairing, model support, or the working mesh. For a new network, start with the [coordinator guide](/oborudovanie/zigbee-koordinator/) and [sensor examples](/oborudovanie/datchiki/). GrowerHub can enable joining for three minutes and automatically shows devices that complete the interview.
+Following this order reveals whether the failure is pairing, model support, or the working mesh. For a new network, start with the [coordinator guide](/en/equipment/zigbee-coordinators/) and [sensor examples](/en/equipment/sensors/). In GrowerHub's new-connection flow, joining opens when you select the three-minute pairing button after connecting the coordinator. The existing-installation flow imports devices already paired with Zigbee2MQTT.
+
+To see how readings appear by zone, [open the demo without an account](/app/demo/?lang=en&view=overview) and select a greenhouse's soil moisture value. Its virtual sensor history lets you explore the chart and interface before connecting your own network.
