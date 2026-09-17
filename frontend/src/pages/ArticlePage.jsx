@@ -54,12 +54,16 @@ function ArticlePage({ initialArticle } = {}) {
   const enArticle = getArticleTranslation(article, 'en');
   const path = article ? getArticlePath(article, locale) : null;
   const demoView = {
+    'home-assistant-dlya-rasteniy': 'watering',
+    'mqtt-discovery-home-assistant': 'overview',
+  }[article?.id] || {
     'avtopoliv-i-kontroller-vyrashchivaniya': 'automations',
     'home-assistant-i-diy': 'automations',
     'zhurnal-i-sovetnik-uhoda': 'plants',
     'mini-ferma-i-neskolko-boksov': 'farm',
   }[article?.cluster] || 'overview';
   const demoHint = {
+    watering: translatePublic('Запустите пробный полив на одну минуту и посмотрите результат в журнале.'),
     automations: translatePublic('Измените расписание света и параметры полива в готовой теплице.'),
     plants: translatePublic('Откройте растения, историю поливов и записи в журнале.'),
     farm: translatePublic('Посмотрите, как устройства и растения собраны в четыре теплицы.'),

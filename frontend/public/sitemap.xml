@@ -61,6 +61,10 @@
     <lastmod>2026-09-17</lastmod>
   </url>
   <url>
+    <loc>https://growerhub.ru/articles/home-assistant-dlya-rasteniy/</loc>
+    <lastmod>2026-09-17</lastmod>
+  </url>
+  <url>
     <loc>https://growerhub.ru/articles/mini-ferma-iz-dvuh-grouboksov-dashboard/</loc>
     <lastmod>2026-09-17</lastmod>
   </url>
@@ -82,10 +86,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/growerhub-i-home-assistant-cherez-mqtt/</loc>
-    <lastmod>2026-09-13</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/home-assistant-dlya-rasteniy/</loc>
     <lastmod>2026-09-13</lastmod>
   </url>
   <url>
@@ -345,6 +345,10 @@
     <lastmod>2026-09-17</lastmod>
   </url>
   <url>
+    <loc>https://growerhub.ru/en/articles/home-assistant-plant-watering-safe-step-by-step-setup/</loc>
+    <lastmod>2026-09-17</lastmod>
+  </url>
+  <url>
     <loc>https://growerhub.ru/en/articles/how-to-connect-a-zigbee-temperature-and-humidity-sensor-step-by-step-check/</loc>
     <lastmod>2026-09-17</lastmod>
   </url>
@@ -362,10 +366,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/</loc>
-    <lastmod>2026-09-13</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/home-assistant-plant-watering-safe-step-by-step-setup/</loc>
     <lastmod>2026-09-13</lastmod>
   </url>
   <url>
