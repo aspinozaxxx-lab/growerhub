@@ -4,7 +4,7 @@ slug: "install-zigbee2mqtt-on-windows-usb-coordinator"
 title: "Install Zigbee2MQTT on Windows with a USB coordinator"
 summary: "A step-by-step Zigbee2MQTT setup for Windows: USB coordinator, COM port, Z-Stack or Ember, GrowerHub configuration, startup and troubleshooting."
 created_at: "2026-08-16"
-updated_at: "2026-09-13"
+updated_at: "2026-09-17"
 cluster: "zigbee-hub-i-ustroystva"
 tags:
   - "GrowerHub"
@@ -34,7 +34,7 @@ The shortest path is to download the GrowerHub Windows package and two personal 
 | Component | Minimum setup | What to verify |
 |---|---|---|
 | host | an always-on Windows 10/11 computer | stable internet and a free USB port |
-| coordinator | a USB adapter supported by Zigbee2MQTT | coordinator firmware and adapter type |
+| coordinator | a Zigbee2MQTT USB coordinator using `zstack` or `ember` | coordinator firmware and adapter type |
 | runtime | a current Node.js LTS release with Corepack | `node --version` and `corepack --version` work |
 | first device | a Zigbee temperature and humidity sensor | the exact model is in the compatibility catalog |
 | GrowerHub | a free account | a connection exists and both configuration files are saved |
@@ -43,11 +43,12 @@ The official Zigbee2MQTT Windows guide currently specifies Node.js 22 LTS. Check
 
 ## Step 1: Identify the coordinator type
 
-Choose the adapter type from its chipset and firmware, not its enclosure:
+The GrowerHub Windows package and its setup wizard support two adapter types. Choose the type from its chipset and firmware, not its enclosure:
 
 - `zstack` for SONOFF ZBDongle-P and compatible CC2652/CC1352 coordinators;
-- `ember` for SONOFF ZBDongle-E and compatible Silicon Labs coordinators;
-- for another model, find it in the [official adapter list](https://www.zigbee2mqtt.io/guide/adapters/) and use the documented value.
+- `ember` for SONOFF ZBDongle-E and compatible Silicon Labs coordinators.
+
+If the [official adapter list](https://www.zigbee2mqtt.io/guide/adapters/) specifies a different type for your model, follow the [official Zigbee2MQTT Windows installation instructions](https://www.zigbee2mqtt.io/guide/installation/05_windows.html). The GrowerHub Windows setup wizard described here does not support other adapter types.
 
 An inexpensive CC2652P stick is suitable when it contains coordinator firmware. A USB extension cable also helps move the radio away from the computer chassis, USB 3.0, and other interference sources.
 
