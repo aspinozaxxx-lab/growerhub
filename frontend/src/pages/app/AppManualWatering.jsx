@@ -5,6 +5,7 @@ import AppPageState from '../../components/layout/AppPageState';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import Surface from '../../components/ui/Surface';
+import { useAuth } from '../../features/auth/AuthContext';
 import useManualWatering from '../../features/manual-watering/useManualWatering';
 import {
   completionReasonLabel,
@@ -270,10 +271,11 @@ function NumberField({ label, value, onChange, disabled = false }) {
 }
 
 function LaunchWateringModal({ pump, defaults, actionKey, actionError, onClose, onStart }) {
+  const { demoActive } = useAuth();
   const initialMode = modeAvailable(pump, 'timed') ? 'timed' : 'until_leak';
   const [form, setForm] = useState({
     mode: initialMode,
-    duration_minutes: String(defaults.timed_duration_s / 60),
+    duration_minutes: String(demoActive ? 1 : defaults.timed_duration_s / 60),
     max_active_duration_minutes: String(defaults.until_leak_max_active_duration_s / 60),
     pulse_enabled: false,
     pulse_run_minutes: String(defaults.pulse_run_s / 60),
@@ -401,7 +403,7 @@ function AppManualWatering() {
   } = useManualWatering();
   const [launchPump, setLaunchPump] = useState(null);
   const [openHistories, setOpenHistories] = useState({});
-  const pumps = useMemo(() => listOrEmpty(overview?.pumps), [overview]);
+  const pumps = useMemo(() => [...listOrEmpty(overview?.pumps)].sort((left, right) => left.id - right.id), [overview]);
   const startConfigReady = wateringDefaultsReady(overview?.defaults);
 
   const toggleHistory = async (pumpId) => {

@@ -31,7 +31,7 @@ Begin with observation rather than automation. Water manually for several days, 
 
 ## Try watering and history before connecting equipment
 
-[Open Manual watering in the GrowerHub demo](/app/demo/?lang=en&view=watering), select a greenhouse and start a short one-minute cycle. When it finishes, open the watering journal from Overview. It shows duration, the completion reason and past sessions. Under Devices and environment, change soil moisture or trigger a virtual leak to inspect the scenario’s response.
+[Open Manual watering in the GrowerHub demo](/app/demo/?lang=en&view=watering), click “Start watering” on the card for your greenhouse and start a one-minute cycle. When it finishes, click “Pump log” on that same card. It shows duration, the completion reason and past sessions. Under Devices and environment, change soil moisture or trigger a virtual leak to inspect the scenario’s response.
 
 This is a server simulation in the regular application; it does not activate real pumps. Guest changes last 24 hours. Save the demo to an account to continue later. For an existing HA installation, follow the [MQTT connector guide](/articles/growerhub-i-home-assistant-cherez-mqtt/).
 
