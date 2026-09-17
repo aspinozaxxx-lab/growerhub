@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { I18nextProvider } from 'react-i18next';
 import App from './App';
+import LoadErrorBoundary from './components/layout/LoadErrorBoundary';
 import i18n from './locales/i18n';
 import { initAnalytics } from './utils/analytics';
 import './theme.css';
@@ -14,7 +15,9 @@ const application = (
   <React.StrictMode>
     <I18nextProvider i18n={i18n}>
       <BrowserRouter>
-        <App />
+        <LoadErrorBoundary>
+          <App />
+        </LoadErrorBoundary>
       </BrowserRouter>
     </I18nextProvider>
   </React.StrictMode>

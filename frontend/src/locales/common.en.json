@@ -3,5 +3,8 @@
   "language.english": "English",
   "language.switch": "Switch language",
   "loading.application": "Loading the application…",
-  "loading.section": "Loading this section…"
+  "loading.section": "Loading this section…",
+  "error.load.title": "Could not open this page",
+  "error.load.description": "Reload the page and try again. If the problem continues, check your internet connection.",
+  "error.load.reload": "Reload page"
 }

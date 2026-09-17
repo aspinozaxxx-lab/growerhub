@@ -3,5 +3,8 @@
   "language.english": "English",
   "language.switch": "Переключить язык",
   "loading.application": "Загружаем приложение…",
-  "loading.section": "Загружаем раздел…"
+  "loading.section": "Загружаем раздел…",
+  "error.load.title": "Не удалось открыть страницу",
+  "error.load.description": "Обновите страницу и попробуйте ещё раз. Если ошибка повторяется, проверьте подключение к интернету.",
+  "error.load.reload": "Обновить страницу"
 }

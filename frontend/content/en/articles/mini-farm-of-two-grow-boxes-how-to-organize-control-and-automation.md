@@ -2,12 +2,9 @@
 translation_of: mini-ferma-iz-dvuh-grouboksov-dashboard
 slug: mini-farm-of-two-grow-boxes-how-to-organize-control-and-automation
 title: 'Mini-farm of two grow boxes: how to organize control and automation'
-summary: >-
-  Using the GrowerHub dashboard as an example, let’s look at a mini-farm
-  consisting of two growboxes: climate, light, airflow, watering, sensors,
-  plants and access via the Internet or local server.
+summary: 'Divide a small farm into zones, set light schedules and test watering before buying sensors. A practical walkthrough of the GrowerHub demo farm.'
 created_at: '2026-07-23'
-updated_at: '2026-07-23'
+updated_at: '2026-09-17'
 cluster: mini-ferma-i-neskolko-boksov
 tags:
   - GrowerHub
@@ -19,73 +16,79 @@ keywords:
   - grow box automation
   - small farm dashboard
   - greenhouse control via the Internet
-  - local server for the farm
+  - smart greenhouse demo
 related:
   - monitoring-neskolkih-boksov
-  - masshtabirovanie-ot-boksa-do-mini-fermy
-  - avtomatizatsiya-teplitsy-chto-kontrolirovat
+  - avtomatizatsiya-sveta-v-groubokse
+  - bezopasnyy-avtopoliv-limity-i-avariynyy-stop
   - zigbee-dlya-teplitsy-kakie-ustroystva-polezny
-hero_image: /content/articles/illustrations/mini-ferma-iz-dvuh-grouboksov-dashboard.png
-hero_alt: >-
-  Dashboard GrowerHub with a mini-farm of two growboxes, air conditioning,
-  devices and sensors
+hero_image: /screenshots/en/automation.webp
+hero_alt: 'Light schedules for four virtual greenhouses in GrowerHub'
 ---
-![Dashboard GrowerHub with a mini-farm of two grow boxes, air conditioning, devices and sensors](/content/articles/illustrations/mini-ferma-iz-dvuh-grouboksov-dashboard.png)
 
-A mini-farm of two grow boxes is no longer just “two cabinets with light.” Each box has its own character: in some places the temperature rises faster, in others the humidity lasts longer, in others airflow is needed more often, and in others it is better to leave watering on hold. If you look at all this as separate applications from sockets, sensors and relays, confusion begins very quickly.
+Two grow boxes rarely behave alike. Their lights produce different amounts of heat, the growing medium dries at different rates, and the plants need different care. A flat list of switches and sensors makes it hard to see what is happening in the second box. Organizing equipment by growing zone gives each reading and action a clear context.
 
-The idea of GrowerHub is to put the farm together into one clear picture. The screenshot shows an example of such a mini-farm: there is a common “small farm” block, two boxes, a common air conditioner, requests for cooling, light, airflow, watering and sensors. This is not a beautiful widget for the sake of a widget, but a working panel that you can go to and understand what is happening in a few seconds.
+GrowerHub calls a growing zone a greenhouse. It can represent an actual greenhouse, a grow box or a shelf; several zones belong to one farm. You can try this structure before buying equipment: [open the demo farm without signing up](/app/demo/?lang=en&view=overview). It comes with four zones — Seedlings, Herbs, Tomatoes and Strawberries — plus virtual devices, plants and recorded history.
 
-And yes, all this is accessible via the Internet from anywhere in the world. You can open the dashboard from your phone while on the road, from a laptop in another city, or from your work computer if you need to quickly check the status of your farm.
+## Separate the boxes and shared equipment
 
-## What can be seen from the dashboard example
+Create one farm and two greenhouses with recognizable names. Assign sensors, lights and pumps to the zones they serve. A shared air conditioner can belong to the farm; the overview shows which greenhouses are requesting cooling.
 
-The top part shows the overall farm. It’s convenient to keep everything here that relates not to one box, but to the entire installation at once. In the example, this is an air conditioner and requests for air conditioning from boxes. This approach is especially useful when one resource serves several zones: air conditioning, supply ventilation, a common tank, a common pump, a common server or a power source.
+| What you want to check | Where to look |
+|---|---|
+| Temperature, moisture and equipment state in each box | Overview |
+| How readings changed over time | Select a sensor in the overview |
+| Which sensor, light or pump belongs to a zone | Farm Builder |
+| Light schedules and climate or watering conditions | Automations, called Scenarios on a phone |
+| What happened during a manual pump run | Manual watering → Pump log |
+| Which plants grow in each zone | Plants and Farm Builder |
 
-Below the farm is divided into boxes. In the first box the light is on, but the airflow and watering are not connected. In the second box, the airflow and light are turned on, watering is on hold, and sensors show air temperature and soil moisture. This is a good example of why boxes are best viewed as individual zones rather than as a general list of devices. It’s immediately clear where everything is connected, where what’s missing, and where the automation is already working.
+The number of devices does not have to match the number of zones. One controller may provide several sensors and a pump channel. Assign each resource to its role in the builder. Before controlling real equipment, check that the command will affect the intended box.
 
-The “Air Conditioner Requests” block is especially useful. If one of the boxes asks for cooling, it can be seen next to the air conditioner. The farm owner not only sees that the air conditioner is on, but understands the reason: for example, “Greenhouse 2 New” requested the climate. This is a small thing that greatly reduces anxiety. The system does not look like a black box.
+## Three things to try without sensors
 
-## What can be automated
+The demo uses the same application as a real farm. Look for the Demo banner at the top and keep that mode active throughout this walkthrough.
 
-The most obvious layer is light. For each box, you can set a schedule, day and night modes, switching on via a socket or relay. On the dashboard you can see this as the “On” or “Off” state, and in the statistics you can see how long the device was actually turned on.
+### 1. Compare two zones and open their history
 
-The next layer is blowing. The fan can be turned on according to a schedule, according to temperature, humidity or climate scenario. For example, if the humidity is consistently high at night, the air blower may work more often. If the temperature rises, the fan helps to even out the microclimate in the box.
+In the [demo overview](/app/demo/?lang=en&view=overview), compare temperature and humidity in two zones. All four greenhouses have different initial conditions and history. Select a temperature or moisture reading, then choose a chart period. History is already populated, so you do not have to wait several days to explore a chart.
 
-It is better to automate watering carefully. You need a pump or valve, a soil moisture sensor, limits and a clear “waiting / watering” state. Good irrigation automation does not just turn on the pump, but takes into account duration, pauses, freshness of sensor data and emergency restrictions. If there is little data or the sensor has not been updated, it is better not to pretend that everything is under control.
+Look beyond the latest number: compare daily changes and differences between zones. When you return to an idle demo, its simulation resumes. The overview refreshes every 30 seconds, so previous readings may briefly appear when you first return.
 
-The farm climate can be brought to a general level. In the example, the air conditioner is shared, and requests come from the boxes. This is a normal scheme for a small farm: each box monitors its own climate, and the common resource is turned on when it is really needed. In detail, this can work differently, but the logic is simple: the boxes report that they are hot, the farm makes a decision on the overall design.
+### 2. Change the light schedule for one greenhouse
 
-## What is needed for this
+[Open the demo light schedules](/app/demo/?lang=en&view=automations). Select Strawberries, change Start or End and press Save. On a phone, tap that greenhouse's light interval to open the editor with exact time fields.
 
-The minimum set for such a farm looks quite mundane: two grow boxes, a light in each box, a fan or hood, temperature and humidity sensors, soil moisture sensors, a pump or valve for watering, and a device through which all this is connected to GrowerHub.
+Return to the shared timeline and check that the selected zone's interval changed. Saving a schedule and enabling a scenario are separate actions; check the switch next to the greenhouse. The overview shows the lamp's current state. Having a schedule does not necessarily mean the light should be on now.
 
-Some devices may be Zigbee: sockets, temperature and humidity sensors, leakage sensors, relays. Some may be native devices GrowerHub: controllers, sensors, pumps, executive modules. The possibilities for integrating different devices are constantly expanding, so the farm can be assembled gradually. You don't have to buy everything at once and build the perfect system in one evening.
+![Light schedules for four virtual greenhouses in GrowerHub](/screenshots/en/automation.webp)
 
-A practical way is this: first connect the sensors and look at the history, then add light and airflow, then carefully turn on the watering and common resources like air conditioning. This way there is less risk and more understanding of what exactly is happening in each box.
+*The shared light timeline. Each greenhouse has its own interval. On a phone, tap an interval to open its detailed controls.*
 
-## Plants inside boxes
+### 3. Run a virtual pump and check the result
 
-You can add plants to the boxes. Then the box ceases to be just a set of devices and becomes a place for growing specific plants. Each plant is observed separately: it has its own cultivation log, its own notes, photographs, care events, watering and observation history.
+[Open manual watering in the demo](/app/demo/?lang=en&view=watering). Find a pump by its assigned greenhouse, select Start watering, leave the mode set to By time, and enter **1 minute**. Press Start. The page shows the pump running and the remaining time.
 
-This is convenient when you want to understand not only “the humidity in the box was 80%,” but “this plant looked better this week after changing the watering.” The plant can be moved between boxes and its history is not lost. Today it is in "Greenhouse 1", tomorrow it moved to "Greenhouse 2 New" - the magazine remains with the plant.
+After the run finishes, open Pump log. Compare the run with moisture history and the plants' journals. The virtual pump changes simulated moisture, helping you understand the controls and sequence of events. Real water flow and the response of your growing medium need measurements on your own installation.
 
-But this is not a required level of detail. If you don’t want to bother, you can run a farm at the box level: look at sensors, devices, watering and climate without separately accounting for each plant. GrowerHub does not force you to keep a laboratory diary where simple control is sufficient.
+## Other experiments
 
-## How it works without unnecessary details
+Open Devices and growing conditions from the demo menu. On a phone, tap the Demo banner to reveal that menu. You can add a virtual device, then assign it in Farm Builder.
 
-The devices send their status: the sensor sent the temperature, the socket reported that it was turned on, the pump sent the actual status, the climate scenario saw a request from the box. GrowerHub puts this data into a clear model: farm, boxes, resources, sensors, scenarios and history.
+To explore climate control, select a greenhouse's sensor and set a higher temperature. Check the thresholds in Scenarios and make sure the scenario is enabled. Then inspect the fan state and the request for cooling. Change one condition at a time so you can tell what caused the response.
 
-Then the interface shows not technical noise, but a human picture. There is no need to remember which outlet is called `smartplug4_exhaust_box2` if on the dashboard it is located in the “Greenhouse 2 New” block and labeled as “Blower”. Technical names remain for maintenance, but the operating screen speaks the language of the farm.
+Virtual smart plugs also provide simulated power and energy usage. These values demonstrate the reports; they do not replace a meter or predict your farm's electricity bill.
 
-## Online and offline
+## Keep your changes
 
-For daily use, Internet access is most convenient. The dashboard can be opened from anywhere in the world, check the temperature, see the lights on, watering status, requests for air conditioning and the freshness of the data. This is especially useful if the farm is located at home, in the country, in a workshop or in a separate room.
+A guest demo is kept for 24 hours. To continue later, choose Save demo farm and sign in. A saved demo remains separate from your real devices. To start a fresh experiment, use Reset demo and confirm the reset.
 
-In this case, another scheme is possible: managing the farm offline from a local server without access to the Internet. This option is suitable when autonomy, closed loop or unstable communication is important. The local server is located next to the equipment, collects data and runs scripts within the network. In this case, the Internet is not needed for basic work, but only if the owner himself decides to open remote access.
+The demo shares the application's plant pages, scenarios, builder and statistics. Device commands run through a simulator. The demo cannot claim a physical Grovika device, issue MQTT access or start firmware updates. Trying the interface also does not establish compatibility with a particular sensor, relay or third-party controller.
 
-## Where to start
+## Move on to your own farm
 
-If you have two boxes, don't try to automate everything at once. Start with a map: what resources are shared, what devices belong to each box, what sensors are actually needed for solutions. Then connect monitoring, make sure that the data is fresh and understandable. After that, add automation of light, blowing, watering and climate.
+Choose Connect my devices in the demo menu or follow the [getting started guide](/en/getting-started/). Start with sensors in one zone and check data freshness and history, then add a light. Before automating water, test the pump, measure its flow, configure limits and verify stopping behavior.
 
-A good dashboard shouldn't be intimidating. He must calmly answer simple questions: where is it hot, where is it humid, what is turned on, what is not connected, who is asking for air conditioning, when was the last signal from the sensor and whether it is necessary to intervene. On this basis, a mini-farm of two grow boxes becomes not a collection of wires and applications, but a managed system that can be developed step by step.
+The [greenhouse Zigbee equipment guide](/articles/zigbee-dlya-teplitsy-kakie-ustroystva-polezny/) helps with planning. Before the first automatic watering run, work through the [limits and emergency stop guide](/articles/bezopasnyy-avtopoliv-limity-i-avariynyy-stop/). The hosted dashboard requires internet access; equipment behavior during an outage must be checked separately.
+
+If you already have an installation, [message us on Telegram](https://t.me/growerhub_info?direct) with the number of zones, sensor and controller models, and the task you want to automate. If you are still exploring, start with one change: [open the demo and adjust one greenhouse's light schedule](/app/demo/?lang=en&view=automations).

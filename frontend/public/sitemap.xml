@@ -54,11 +54,15 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/mini-ferma-i-neskolko-boksov/</loc>
-    <lastmod>2026-07-05</lastmod>
+    <lastmod>2026-09-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
     <lastmod>2026-09-13</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/mini-ferma-iz-dvuh-grouboksov-dashboard/</loc>
+    <lastmod>2026-09-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/podklyuchit-zigbee-datchik-temperatury-vlazhnosti/</loc>
@@ -103,10 +107,6 @@
   <url>
     <loc>https://growerhub.ru/articles/zigbee-dlya-teplitsy-kakie-ustroystva-polezny/</loc>
     <lastmod>2026-07-23</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/mini-ferma-iz-dvuh-grouboksov-dashboard/</loc>
-    <lastmod>2026-07-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/automation-basics/</loc>
@@ -338,7 +338,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/small-farms-and-multiple-grow-boxes/</loc>
-    <lastmod>2026-07-23</lastmod>
+    <lastmod>2026-09-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/home-assistant-and-diy/</loc>
@@ -346,6 +346,10 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/how-to-connect-a-zigbee-temperature-and-humidity-sensor-step-by-step-check/</loc>
+    <lastmod>2026-09-17</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/mini-farm-of-two-grow-boxes-how-to-organize-control-and-automation/</loc>
     <lastmod>2026-09-17</lastmod>
   </url>
   <url>
@@ -442,10 +446,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/mini-farm-alerts-emergencies-risks-and-maintenance/</loc>
-    <lastmod>2026-07-23</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/mini-farm-of-two-grow-boxes-how-to-organize-control-and-automation/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
