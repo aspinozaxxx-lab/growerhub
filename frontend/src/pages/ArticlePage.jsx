@@ -58,6 +58,7 @@ function ArticlePage({ initialArticle } = {}) {
     'zhurnal-poliva-obem-ph-udobreniya': 'watering',
     'mqtt-discovery-home-assistant': 'overview',
     'datchik-vlazhnosti-pochvy-dlya-avtopoliva': 'overview',
+    'esp32-datchik-vlazhnosti-home-assistant': 'overview',
   }[article?.id] || {
     'avtopoliv-i-kontroller-vyrashchivaniya': 'automations',
     'home-assistant-i-diy': 'automations',

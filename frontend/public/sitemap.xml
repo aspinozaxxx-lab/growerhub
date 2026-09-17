@@ -69,6 +69,10 @@
     <lastmod>2026-09-17</lastmod>
   </url>
   <url>
+    <loc>https://growerhub.ru/articles/esp32-datchik-vlazhnosti-home-assistant/</loc>
+    <lastmod>2026-09-17</lastmod>
+  </url>
+  <url>
     <loc>https://growerhub.ru/articles/home-assistant-dlya-rasteniy/</loc>
     <lastmod>2026-09-17</lastmod>
   </url>
@@ -95,10 +99,6 @@
   <url>
     <loc>https://growerhub.ru/articles/zigbee2mqtt-prostymi-slovami/</loc>
     <lastmod>2026-09-17</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/esp32-datchik-vlazhnosti-home-assistant/</loc>
-    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/growerhub-i-home-assistant-cherez-mqtt/</loc>
@@ -373,6 +373,10 @@
     <lastmod>2026-09-17</lastmod>
   </url>
   <url>
+    <loc>https://growerhub.ru/en/articles/soil-moisture-sensor-on-esp32-connection-to-esphome-and-home-assistant/</loc>
+    <lastmod>2026-09-17</lastmod>
+  </url>
+  <url>
     <loc>https://growerhub.ru/en/articles/watering-log-volume-ph-fertilizers-and-date/</loc>
     <lastmod>2026-09-17</lastmod>
   </url>
@@ -382,10 +386,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/</loc>
-    <lastmod>2026-09-13</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/soil-moisture-sensor-on-esp32-connection-to-esphome-and-home-assistant/</loc>
     <lastmod>2026-09-13</lastmod>
   </url>
   <url>
