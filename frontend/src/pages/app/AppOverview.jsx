@@ -107,9 +107,9 @@ function AppOverview() {
       {demoActive ? <details className="demo-welcome">
         <summary>{translateApp("Что попробовать за две минуты")}</summary>
         <ol>
-          <li>{translateApp("Откройте график температуры или влажности в карточке теплицы — история уже есть.")}</li>
-          <li><Link to="/app/manual-watering/">{translateApp("Запустите короткий полив")}</Link> — {translateApp("результат появится в статистике и журнале растений.")}</li>
-          <li><Link to="/app/demo-tools/">{translateApp("Повысьте температуру или включите протечку")}</Link> — {translateApp("проверьте реакцию сценариев.")}</li>
+          <li>{translateApp("Нажмите на влажность почвы в карточке теплицы и посмотрите историю.")}</li>
+          <li><Link to="/app/manual-watering/">{translateApp("Откройте ручной полив")}</Link> — {translateApp("нажмите «Начать полив», выберите «По времени», задайте 1 минуту и нажмите «Запустить».")}</li>
+          <li>{translateApp("Через минуту вернитесь в Обзор и нажмите «Полив» в той же теплице: журнал покажет завершённый полив.")}</li>
         </ol>
       </details> : null}
       {error ? <AppPageState kind="error" title={error} /> : null}
