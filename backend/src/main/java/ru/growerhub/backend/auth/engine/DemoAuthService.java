@@ -79,7 +79,8 @@ public class DemoAuthService {
             HttpServletResponse response) {
         checkOrigin(request);
         if (account == null || account.isDemo()) throw expired();
-        DemoSessionEntity session = requireCookieSession(request);
+        DemoSessionEntity session = cookieSession(request);
+        if (session == null) throw new DomainException("demo_session_unavailable", "Sessija demo nedostupna");
         if (session.accountUserId != null && !session.accountUserId.equals(account.id())) throw expired();
         DemoData.Space space = demo.save(session.spaceId, session.generation, account.id(), replace);
         sessions.deleteBySpaceId(space.id());

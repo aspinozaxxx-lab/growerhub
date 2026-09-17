@@ -131,6 +131,7 @@ public class ApiExceptionHandler {
         }
         return switch (code) {
             case "unauthorized" -> HttpStatus.UNAUTHORIZED;
+            case "demo_session_unavailable" -> HttpStatus.GONE;
             case "forbidden" -> HttpStatus.FORBIDDEN;
             case "not_found" -> HttpStatus.NOT_FOUND;
             case "conflict" -> HttpStatus.CONFLICT;

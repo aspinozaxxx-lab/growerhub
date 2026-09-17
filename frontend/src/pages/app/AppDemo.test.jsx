@@ -65,6 +65,47 @@ it('sohranyaet obychnyj vhod v akkaunt dlya sohraneniya demo', async () => {
   expect(auth.saveDemo).not.toHaveBeenCalled();
 });
 
+it('posle nedostupnoj gostevoj sessii otkryvaet demo tolko po nazhatiju i ne povtoryaet sohranenie', async () => {
+  auth.accountStatus = 'authorized';
+  auth.saveDemo.mockResolvedValue({ success: false, status: 410 });
+  auth.startDemo.mockResolvedValueOnce({ success: false, status: 503 }).mockResolvedValueOnce({ success: true });
+  entry('?save=1&view=farm');
+  expect(await screen.findByRole('alert')).toHaveTextContent('Текущая демосессия недоступна. Сохранить её изменения не удалось.');
+  expect(screen.getByText('Откроется сохранённая демоферма вашего аккаунта. Если её нет, будет создана новая.')).toBeInTheDocument();
+  expect(auth.startDemo).not.toHaveBeenCalled();
+  expect(auth.saveDemo).toHaveBeenCalledExactlyOnceWith(false);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Открыть демоферму' }));
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Не удалось открыть демоферму. Попробуйте ещё раз.'));
+  fireEvent.click(screen.getByRole('button', { name: 'Открыть демоферму' }));
+  await waitFor(() => expect(screen.getByTestId('destination')).toHaveTextContent('/app/farm/'));
+  expect(auth.startDemo).toHaveBeenCalledTimes(2);
+  expect(auth.saveDemo).toHaveBeenCalledTimes(1);
+  expect(auth.leaveDemo).not.toHaveBeenCalled();
+});
+
+it('pri istechenii akkaunta vo vremja sohraneniya vozvrashchaet na vhod s namereniem sohranit demo', async () => {
+  auth.accountStatus = 'authorized';
+  auth.saveDemo.mockRejectedValue(Object.assign(new Error('SESSION_EXPIRED'), { code: 'SESSION_EXPIRED' }));
+  entry('?save=1');
+  await waitFor(() => expect(screen.getByTestId('destination')).toHaveTextContent('/app/login/?redirect=%2Fapp%2Fdemo%2F%3Fsave%3D1'));
+  expect(auth.startDemo).not.toHaveBeenCalled();
+  expect(auth.saveDemo).toHaveBeenCalledExactlyOnceWith(false);
+});
+
+it('ne zamenyaet sohranennoe demo pri konflikte bez javnogo vybora', async () => {
+  auth.accountStatus = 'authorized';
+  auth.saveDemo.mockResolvedValue({ success: false, status: 409 });
+  auth.startDemo.mockResolvedValue({ success: true });
+  entry('?save=1');
+  expect(await screen.findByRole('heading', { name: 'У вас уже есть сохранённая демоферма' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Заменить её текущей демофермой' })).toBeInTheDocument();
+  expect(auth.startDemo).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button', { name: 'Открыть сохранённую' }));
+  await waitFor(() => expect(screen.getByTestId('destination')).toHaveTextContent('/app/'));
+  expect(auth.saveDemo).toHaveBeenCalledExactlyOnceWith(false);
+});
+
 it('sohranyaet anglijskij jazyk publichnoj stranicy pri vhode v demo', async () => {
   localStorage.setItem(LOCALE_STORAGE_KEY, 'ru');
   await changeLocale('en', { remember: false });

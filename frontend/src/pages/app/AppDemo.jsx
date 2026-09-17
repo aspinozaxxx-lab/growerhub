@@ -5,6 +5,7 @@ import { useAuth } from '../../features/auth/AuthContext';
 import { getCurrentLocale, rememberLocale, translateApp as t } from '../../locales/i18n';
 import './AppDemo.css';
 import { trackProductGoal } from '../../utils/analytics';
+import { isSessionExpiredError } from '../../api/client';
 
 const DEMO_VIEWS = {
   overview: '/app/',
@@ -21,21 +22,27 @@ export default function AppDemo() {
   const started = useRef(false);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState(null);
+  const [saveUnavailable, setSaveUnavailable] = useState(false);
   const save = new URLSearchParams(location.search).get('save') === '1';
   const expired = new URLSearchParams(location.search).get('expired') === '1';
   const requestedView = new URLSearchParams(location.search).get('view');
   const view = Object.hasOwn(DEMO_VIEWS, requestedView) ? requestedView : 'overview';
 
-  const run = async (operation) => {
+  const run = async (operation, saving = false) => {
     if (busy) return;
     setBusy(true); setFailure(null);
     rememberLocale(getCurrentLocale());
     try {
       const result = await operation();
       if (result.success) navigate(DEMO_VIEWS[view], { replace: true });
-      else setFailure(result.status);
+      else {
+        setFailure(result.status);
+        if (saving && result.status === 410) setSaveUnavailable(true);
+      }
     } catch (error) {
-      if (error?.name !== 'AbortError') setFailure(503);
+      if (saving && isSessionExpiredError(error)) {
+        navigate('/app/login/?redirect=' + encodeURIComponent('/app/demo/?save=1'), { replace: true });
+      } else if (error?.name !== 'AbortError') setFailure(503);
     } finally { setBusy(false); }
   };
 
@@ -49,7 +56,7 @@ export default function AppDemo() {
     if (expired) return;
     started.current = true;
     if (!save) trackProductGoal('demo_open', { placement: location.state?.demoPlacement || 'direct', action: view });
-    run(save ? () => auth.saveDemo(false) : auth.startDemo);
+    run(save ? () => auth.saveDemo(false) : auth.startDemo, save);
     // Translitem: vhod vypolnjaetsja odin raz na otkrytie marshruta.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.accountStatus, save, expired, navigate]);
@@ -65,13 +72,14 @@ export default function AppDemo() {
         {failure === 409 ? (
           <div className="demo-actions">
             <button className="gh-btn gh-btn--primary gh-btn--md" disabled={busy} onClick={() => run(auth.startDemo)}>{t('Открыть сохранённую')}</button>
-            <button className="gh-btn gh-btn--outline gh-btn--md" disabled={busy} onClick={() => run(() => auth.saveDemo(true))}>{t('Заменить её текущей демофермой')}</button>
+            <button className="gh-btn gh-btn--outline gh-btn--md" disabled={busy} onClick={() => run(() => auth.saveDemo(true), true)}>{t('Заменить её текущей демофермой')}</button>
             <p>{t('При замене настройки предыдущей демофермы будут удалены.')}</p>
           </div>
         ) : null}
-        {failure && failure !== 409 ? <p role="alert">{failure === 429 ? t('Сейчас демоферма занята. Попробуйте немного позже.') : t('Не удалось открыть демоферму. Попробуйте ещё раз.')}</p> : null}
+        {failure && failure !== 409 ? <p role="alert">{failure === 410 ? t('Текущая демосессия недоступна. Сохранить её изменения не удалось.') : failure === 429 ? t('Сейчас демоферма занята. Попробуйте немного позже.') : t('Не удалось открыть демоферму. Попробуйте ещё раз.')}</p> : null}
+        {saveUnavailable ? <p>{t('Откроется сохранённая демоферма вашего аккаунта. Если её нет, будет создана новая.')}</p> : null}
         {expired ? <p role="status">{t('Сессия демо завершилась. Откройте демоферму снова, чтобы продолжить.')}</p> : null}
-        {!busy && (expired || (failure && failure !== 409)) ? <button className="gh-btn gh-btn--primary gh-btn--md" onClick={() => run(save ? () => auth.saveDemo(false) : auth.startDemo)}>{t('Открыть демоферму')}</button> : null}
+        {!busy && (expired || (failure && failure !== 409)) ? <button className="gh-btn gh-btn--primary gh-btn--md" onClick={() => run(save && !saveUnavailable ? () => auth.saveDemo(false) : auth.startDemo, save && !saveUnavailable)}>{t('Открыть демоферму')}</button> : null}
         <Link to="/app/" onClick={auth.leaveDemo}>{t('Вернуться в приложение')}</Link>
       </div>
     </div>

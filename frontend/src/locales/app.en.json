@@ -787,6 +787,8 @@
   "При замене настройки предыдущей демофермы будут удалены.": "Replacing the demo will delete its previous settings.",
   "Сейчас демоферма занята. Попробуйте немного позже.": "The demo is busy. Please try again shortly.",
   "Не удалось открыть демоферму. Попробуйте ещё раз.": "Could not open the demo farm. Please try again.",
+  "Текущая демосессия недоступна. Сохранить её изменения не удалось.": "This demo session is no longer available. Its changes could not be saved.",
+  "Откроется сохранённая демоферма вашего аккаунта. Если её нет, будет создана новая.": "Your account’s saved demo farm will open. If you do not have one, a new demo farm will be created.",
   "Сессия демо завершилась. Откройте демоферму снова, чтобы продолжить.": "Your demo session has ended. Open the demo again to continue.",
   "Открыть демоферму": "Open demo farm",
   "Вернуться в приложение": "Return to the app",

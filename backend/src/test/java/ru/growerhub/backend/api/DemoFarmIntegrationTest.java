@@ -13,6 +13,8 @@ import java.time.ZoneOffset;
 import java.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -171,6 +173,82 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         request(reset.path("access_token")).get("/api/demo/status").then().statusCode(401);
         request(accountToken).cookie("gh_demo_refresh", reset.cookie("gh_demo_refresh"))
                 .post("/api/demo/refresh").then().statusCode(401);
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
+    void unavailableDemoCookieOnSaveDoesNotInvalidateAccount() {
+        var account = account();
+        String token = jwt.createToken(Map.of("user_id", account.getId()), Duration.ofHours(1));
+        request(token).body(Map.of("replace", false)).post("/api/demo/save").then().statusCode(410);
+        request(token).cookie("gh_demo_refresh", "unknown-demo-session").body(Map.of("replace", false))
+                .post("/api/demo/save").then().statusCode(410);
+        request(token).get("/api/auth/me").then().statusCode(200).body("id", equalTo(account.getId()));
+        request(token).post("/api/demo/refresh").then().statusCode(401);
+        request(null).body(Map.of("replace", false)).post("/api/demo/save").then().statusCode(401);
+        request("invalid-account-token").body(Map.of("replace", false)).post("/api/demo/save").then().statusCode(401);
+        assertThat(jdbc.queryForObject("select count(*) from demo_spaces where account_user_id = ?", Integer.class, account.getId())).isZero();
+        verifyNoInteractions(publisher);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"session_expired", "space_expired", "generation_changed", "space_removed"})
+    void unavailableGuestOnSaveReturnsGoneWithoutChangingAccount(String condition) {
+        var account = account();
+        String token = jwt.createToken(Map.of("user_id", account.getId()), Duration.ofHours(1));
+        Response guest = start();
+        UUID spaceId = UUID.fromString(guest.path("space.id"));
+        switch (condition) {
+            case "session_expired" -> jdbc.update("update auth_demo_sessions set expires_at = ? where space_id = ?", LocalDateTime.now(ZoneOffset.UTC).minusMinutes(1), spaceId);
+            case "space_expired" -> jdbc.update("update demo_spaces set expires_at = ? where id = ?", LocalDateTime.now(ZoneOffset.UTC).minusMinutes(1), spaceId);
+            case "generation_changed" -> jdbc.update("update demo_spaces set generation = generation + 1 where id = ?", spaceId);
+            case "space_removed" -> {
+                jdbc.update("update demo_spaces set expires_at = ? where id = ?", LocalDateTime.now(ZoneOffset.UTC).minusMinutes(1), spaceId);
+                demo.cleanup();
+            }
+            default -> throw new IllegalArgumentException(condition);
+        }
+        request(token).cookie("gh_demo_refresh", guest.cookie("gh_demo_refresh")).body(Map.of("replace", false))
+                .post("/api/demo/save").then().statusCode(410);
+        request(token).get("/api/auth/me").then().statusCode(200).body("id", equalTo(account.getId()));
+        request(token).cookie("gh_demo_refresh", guest.cookie("gh_demo_refresh"))
+                .post("/api/demo/refresh").then().statusCode(401);
+        assertThat(jdbc.queryForObject("select count(*) from demo_spaces where account_user_id = ?", Integer.class, account.getId())).isZero();
+        if ("space_removed".equals(condition)) {
+            assertThat(spaces.findById(spaceId)).isEmpty();
+            assertThatThrownBy(() -> demo.save(spaceId, 1, account.getId(), false))
+                    .isInstanceOfSatisfying(DomainException.class, failure -> assertThat(failure.getCode()).isEqualTo("demo_session_unavailable"));
+        } else {
+            assertThat(spaces.findById(spaceId).orElseThrow().accountUserId).isNull();
+        }
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
+    void savingStillRejectsAnotherAccountAndRequiresExplicitReplacement() {
+        var account = account();
+        var other = account();
+        String token = jwt.createToken(Map.of("user_id", account.getId()), Duration.ofHours(1));
+        String otherToken = jwt.createToken(Map.of("user_id", other.getId()), Duration.ofHours(1));
+        Response saved = request(token).body(Map.of("locale", "ru", "timezone", "UTC")).post("/api/demo/start");
+        saved.then().statusCode(200);
+        UUID savedId = UUID.fromString(saved.path("space.id"));
+        for (boolean replace : List.of(false, true)) {
+            request(otherToken).cookie("gh_demo_refresh", saved.cookie("gh_demo_refresh")).body(Map.of("replace", replace))
+                    .post("/api/demo/save").then().statusCode(401);
+        }
+        var savedSpace = spaces.findById(savedId).orElseThrow();
+        assertThatThrownBy(() -> demo.save(savedId, savedSpace.generation, other.getId(), true))
+                .isInstanceOfSatisfying(DomainException.class, failure -> assertThat(failure.getCode()).isEqualTo("unauthorized"));
+        Response guest = start();
+        request(guest.path("access_token")).cookie("gh_demo_refresh", guest.cookie("gh_demo_refresh"))
+                .body(Map.of("replace", false)).post("/api/demo/save").then().statusCode(403);
+        request(token).cookie("gh_demo_refresh", guest.cookie("gh_demo_refresh")).body(Map.of("replace", false))
+                .post("/api/demo/save").then().statusCode(409);
+        assertThat(spaces.findById(savedId).orElseThrow().accountUserId).isEqualTo(account.getId());
+        assertThat(jdbc.queryForObject("select count(*) from demo_spaces where account_user_id = ?", Integer.class, other.getId())).isZero();
+        request(token).cookie("gh_demo_refresh", saved.cookie("gh_demo_refresh"))
+                .post("/api/demo/refresh").then().statusCode(200);
         verifyNoInteractions(publisher);
     }
 

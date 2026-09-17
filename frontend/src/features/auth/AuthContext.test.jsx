@@ -84,3 +84,16 @@ it('neuspeshnyj nachalnyj refresh bez novoj sessii zavershaet demo', async () =>
   expect(result.current.accountStatus).toBe('authorized');
   expect(result.current.demoSession).toBeNull();
 });
+
+it('nedostupnaya demo-cookie pri sohranenii ne sbrasyvaet akkaunt i ne obnovlyaet ego token', async () => {
+  const defaultFetch = fetch.getMockImplementation();
+  fetch.mockImplementation((url, options) => url === '/api/demo/save'
+    ? Promise.resolve(json({ detail: 'Demo session unavailable' }, 410)) : defaultFetch(url, options));
+  const { result } = renderHook(() => useAuth(), { wrapper: AuthProvider });
+  await waitFor(() => expect(result.current.status).toBe('authorized'));
+  fetch.mockClear();
+  await act(async () => { expect(await result.current.saveDemo()).toEqual({ success: false, status: 410 }); });
+  expect(result.current.accountStatus).toBe('authorized');
+  expect(result.current.accountUser.id).toBe(1);
+  expect(fetch.mock.calls.map(([url]) => url)).toEqual(['/api/demo/save']);
+});

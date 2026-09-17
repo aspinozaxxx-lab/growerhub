@@ -135,10 +135,12 @@ public class DemoFacade {
 
     public DemoData.Space save(UUID id, int generation, Integer accountId, boolean replace) {
         enabled(); users.lockAccount(accountId);
-        DemoSpaceEntity space = spaces.lockById(id).orElseThrow(() -> new DomainException("unauthorized", "Demo session expired"));
-        if (space.generation != generation || (space.expiresAt != null && !space.expiresAt.isAfter(now()))
-                || (space.accountUserId != null && !space.accountUserId.equals(accountId))) {
+        DemoSpaceEntity space = spaces.lockById(id).orElseThrow(() -> new DomainException("demo_session_unavailable", "Sessija demo nedostupna"));
+        if (space.accountUserId != null && !space.accountUserId.equals(accountId)) {
             throw new DomainException("unauthorized", "Demo session expired");
+        }
+        if (space.generation != generation || (space.expiresAt != null && !space.expiresAt.isAfter(now()))) {
+            throw new DomainException("demo_session_unavailable", "Sessija demo nedostupna");
         }
         DemoSpaceEntity previous = spaces.findByAccountUserId(accountId).orElse(null);
         if (previous != null && !previous.id.equals(id)) {
