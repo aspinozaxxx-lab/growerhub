@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
+import DemoStartLink from '../components/DemoStartLink';
 import LeadCta from '../components/LeadCta';
 import PlatformStartLink from '../components/PlatformStartLink';
 import TelegramContactLink from '../components/TelegramContactLink';
 import { miniFarmContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
-import { SELF_SERVICE_PUBLIC_ENABLED, SITE_URL } from '../domain/siteConfig';
+import { DEMO_PUBLIC_ENABLED, SELF_SERVICE_PUBLIC_ENABLED, SITE_URL } from '../domain/siteConfig';
 import { getCurrentLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 
@@ -46,9 +47,10 @@ function MiniFarmPage() {
           <h1>{data.title}</h1>
           <p>{data.hero.text}</p>
           <div className="cta-row">
-            <PlatformStartLink placement="mini_farm_hero">{SELF_SERVICE_PUBLIC_ENABLED ? data.hero.cta : translatePublic('Как начать')}</PlatformStartLink>
-            <Link className="secondary-link" to={getPublicPath('equipment', locale)}>{translatePublic('Подобрать оборудование')}</Link>
+            <DemoStartLink placement="mini_farm_hero_demo" />
+            <PlatformStartLink placement="mini_farm_hero" className={DEMO_PUBLIC_ENABLED ? 'secondary-link' : 'hero-cta'}>{translatePublic(SELF_SERVICE_PUBLIC_ENABLED ? 'Подключите первое устройство' : 'Как начать')}</PlatformStartLink>
           </div>
+          {DEMO_PUBLIC_ENABLED && <p className="hero-reassurance">{translatePublic('Без регистрации и оборудования.')}</p>}
         </div>
         <aside className="landing-summary">
           <strong>{translatePublic('Ранний доступ открыт')}</strong>
@@ -107,7 +109,11 @@ function MiniFarmPage() {
         </div>
       </section>
 
-      <LeadCta placement="mini_farm_bottom" title={translatePublic('Подключите первое устройство')} text={translatePublic('Начните самостоятельно с координатора и датчика. Зоны и автоматизации можно добавлять постепенно.')} />
+      <LeadCta
+        placement="mini_farm_bottom"
+        title={translatePublic(DEMO_PUBLIC_ENABLED ? 'Попробуйте на готовой ферме' : 'Подключите первое устройство')}
+        text={translatePublic(DEMO_PUBLIC_ENABLED ? 'Сравните показания четырёх теплиц и откройте историю любого датчика.' : 'Начните самостоятельно с координатора и датчика. Зоны и автоматизации можно добавлять постепенно.')}
+      />
     </div>
   );
 }

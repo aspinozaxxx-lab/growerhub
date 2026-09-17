@@ -654,7 +654,7 @@ const renderMiniFarmPage = (template, assets, data) => {
   const canonical = toCanonicalUrl('/avtomatizatsiya-mini-fermy/');
   const mainHtml = `
           <section class="landing-hero">
-            <div><div class="badge">${htmlEscape(data.hero.eyebrow)}</div><h1>${htmlEscape(data.title)}</h1><p>${htmlEscape(data.hero.text)}</p><div class="cta-row">${platformLink('mini_farm_hero', SELF_SERVICE_PUBLIC_ENABLED ? data.hero.cta : 'Как начать')}<a class="secondary-link" href="/oborudovanie/">Подобрать оборудование</a></div></div>
+            <div><div class="badge">${htmlEscape(data.hero.eyebrow)}</div><h1>${htmlEscape(data.title)}</h1><p>${htmlEscape(data.hero.text)}</p><div class="cta-row">${demoLink('mini_farm_hero_demo')}${platformLink('mini_farm_hero', SELF_SERVICE_PUBLIC_ENABLED ? 'Подключите первое устройство' : 'Как начать', DEMO_PUBLIC_ENABLED ? 'secondary-link' : 'hero-cta')}</div>${DEMO_PUBLIC_ENABLED ? '<p class="hero-reassurance">Без регистрации и оборудования.</p>' : ''}</div>
             <aside class="landing-summary"><strong>Ранний доступ открыт</strong><p>${htmlEscape(data.early_access)}</p><p>Начните с оборудования и зон; растения и дополнительные настройки можно добавить позже.</p></aside>
           </section>
           <section class="content-section"><h2>Что можно сделать</h2><div class="card-grid">${data.tasks.map((item) => `<article class="card"><h3>${htmlEscape(item.title)}</h3><p>${htmlEscape(item.text)}</p></article>`).join('')}</div></section>
@@ -668,7 +668,7 @@ const renderMiniFarmPage = (template, assets, data) => {
             <div><h2>Что важно знать</h2><ul class="check-list limitations-list">${data.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></div>
             <div class="info-block"><h2>Мы рядом, если понадобится помощь</h2><p>Напишите нам в Telegram — поможем подключить оборудование, разобраться с функциями и настроить GrowerHub под вашу ферму.</p>${telegramLink('mini_farm_help')}</div>
           </section>
-          ${leadCta('mini_farm_bottom', 'Подключите первое устройство', 'Начните самостоятельно с координатора и датчика. Зоны и автоматизации можно добавлять постепенно.')}`;
+          ${leadCta('mini_farm_bottom', DEMO_PUBLIC_ENABLED ? 'Попробуйте на готовой ферме' : 'Подключите первое устройство', DEMO_PUBLIC_ENABLED ? 'Сравните показания четырёх теплиц и откройте историю любого датчика.' : 'Начните самостоятельно с координатора и датчика. Зоны и автоматизации можно добавлять постепенно.')}`;
 
   return pageShell(template, {
     title: data.title,
@@ -1107,16 +1107,16 @@ const renderEnglishMiniFarmPage = (template, assets, data) => {
       ]),
     ],
   }, `
-          <section class="landing-hero"><div><div class="badge">${htmlEscape(data.hero.eyebrow)}</div><h1>${htmlEscape(data.title)}</h1><p>${htmlEscape(data.hero.text)}</p><div class="cta-row">${platformLink('farm_hero', data.hero.cta, 'hero-cta', 'en')}${telegramLink('farm_hero_help', 'Telegram support')}</div></div><aside class="landing-summary"><strong>Early access is open</strong><p>${htmlEscape(data.early_access)}</p></aside></section>
+          <section class="landing-hero"><div><div class="badge">${htmlEscape(data.hero.eyebrow)}</div><h1>${htmlEscape(data.title)}</h1><p>${htmlEscape(data.hero.text)}</p><div class="cta-row">${demoLink('mini_farm_hero_demo', 'en')}${platformLink('mini_farm_hero', SELF_SERVICE_PUBLIC_ENABLED ? 'Connect your first device' : 'Getting started', DEMO_PUBLIC_ENABLED ? 'secondary-link' : 'hero-cta', 'en')}</div>${DEMO_PUBLIC_ENABLED ? '<p class="hero-reassurance">No sign-up or hardware needed.</p>' : ''}</div><aside class="landing-summary"><strong>Early access is open</strong><p>${htmlEscape(data.early_access)}</p></aside></section>
           <section class="content-section"><h2>Farm tasks in one dashboard</h2><div class="card-grid">${data.tasks.map((item) => `<article class="card"><h3>${htmlEscape(item.title)}</h3><p>${htmlEscape(item.text)}</p></article>`).join('')}</div></section>
           <section class="content-section split-section"><div><h2>Platform features</h2><ul class="check-list">${data.capabilities.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></div><div class="info-block"><h2>${htmlEscape(data.compatibility.title)}</h2><p>${htmlEscape(data.compatibility.text)}</p><a class="secondary-link" href="${getPublicPath('equipment', 'en')}">Choose equipment</a></div></section>
           <section class="content-section"><h2>From sign-in to dashboard</h2><ol class="steps-list">${data.stages.map((step) => `<li><strong>${htmlEscape(step.title)}</strong><span>${htmlEscape(step.text)}</span></li>`).join('')}</ol></section>
           <section class="content-section" id="demo-ekrany"><h2>The real app with a virtual farm</h2><p>These screens were captured in a GrowerHub demo farm. Devices and readings are simulated; management screens, charts and scenarios are shared with your own farm.</p><div class="demo-grid demo-grid--four">${data.screens.map((screen, index) => `<figure class="demo-card"><img class="product-screenshot" src="/screenshots/en/${screenFiles[index]}.webp" alt="${htmlEscape(screen.text)}" width="1280" height="720" loading="${index === 0 ? 'eager' : 'lazy'}" /><figcaption><strong>${htmlEscape(screen.title)}</strong><span>${htmlEscape(screen.text)}</span></figcaption></figure>`).join('')}</div></section>
           <section class="content-section"><h2>Clear and safe boundaries</h2><ul class="check-list limitations-list">${data.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></section>
           ${leadCta(
-    'farm_bottom',
-    'Connect equipment and open your dashboard',
-    'Create a connection, run Zigbee2MQTT, and see devices automatically. We can help in Telegram in Russian or English.',
+    'mini_farm_bottom',
+    DEMO_PUBLIC_ENABLED ? 'Try a ready-made farm' : 'Connect your first device',
+    DEMO_PUBLIC_ENABLED ? 'Compare readings from four greenhouses and open any sensor’s history.' : 'Start with a coordinator and one sensor. Add zones and automations gradually.',
     'en',
   )}`, assets);
 };
