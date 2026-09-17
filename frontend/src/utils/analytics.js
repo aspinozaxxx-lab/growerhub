@@ -7,6 +7,23 @@ import { getAuthMode } from '../api/client';
 
 const METRIKA_SCRIPT_ID = 'yandex-metrika-script';
 const GOOGLE_ANALYTICS_SCRIPT_ID = 'google-analytics-script';
+const INTERNAL_VISIT_KEY = 'gh_analytics_internal_visit';
+
+const isInternalVisit = () => {
+  if (typeof window === 'undefined') return false;
+  if (window.__growerHubInternalVisit) return true;
+
+  const params = new URLSearchParams(window.location.search);
+  let internal = params.get('utm_source') === 'qa' && params.get('utm_medium') === 'internal';
+  try {
+    internal = internal || window.sessionStorage.getItem(INTERNAL_VISIT_KEY) === '1';
+    if (internal) window.sessionStorage.setItem(INTERNAL_VISIT_KEY, '1');
+  } catch {
+    // Translitem: bez storage priznak proverki zhivet do perezagruzki vkladki.
+  }
+  if (internal) window.__growerHubInternalVisit = true;
+  return internal;
+};
 
 const initMetrika = () => {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -71,7 +88,7 @@ const initGoogleAnalytics = () => {
 
 export const initAnalytics = ({ enabled = typeof window !== 'undefined'
   && !['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname) } = {}) => {
-  if (!enabled) return;
+  if (!enabled || isInternalVisit()) return;
   initMetrika();
   initGoogleAnalytics();
 };
@@ -113,7 +130,7 @@ const ALLOWED_GOAL_PARAMS = new Set([
 ]);
 
 export const trackProductGoal = (goal, params = {}) => {
-  if (!PRODUCT_GOALS.has(goal) || typeof window === 'undefined') {
+  if (!PRODUCT_GOALS.has(goal) || typeof window === 'undefined' || isInternalVisit()) {
     return false;
   }
 
@@ -143,7 +160,7 @@ export const trackProductGoal = (goal, params = {}) => {
 };
 
 export const trackPageView = ({ url, referer, title }) => {
-  if (typeof window === 'undefined') {
+  if (typeof window === 'undefined' || isInternalVisit()) {
     return false;
   }
 
