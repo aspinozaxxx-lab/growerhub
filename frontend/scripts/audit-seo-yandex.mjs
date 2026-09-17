@@ -241,11 +241,15 @@ const auditMetrika = async () => {
     `https://api-metrika.yandex.net/management/v1/counter/${METRIKA_COUNTER_ID}/goals`,
   );
   const goals = goalsResponse.goals || [];
-  const goalsByName = new Map(goals.map((goal) => [goal.name, goal]));
+  const goalsByEvent = new Map(goals
+    .filter((goal) => goal.type === 'action')
+    .flatMap((goal) => (goal.conditions || [])
+      .filter((condition) => condition.type === 'exact')
+      .map((condition) => [condition.url, goal])));
   const configuredGoals = PRODUCT_GOALS
-    .map((name) => ({ name, goal: goalsByName.get(name) }))
+    .map((name) => ({ name, goal: goalsByEvent.get(name) }))
     .filter((item) => item.goal);
-  const missingGoals = PRODUCT_GOALS.filter((name) => !goalsByName.has(name));
+  const missingGoals = PRODUCT_GOALS.filter((name) => !goalsByEvent.has(name));
   const goalMetrics = configuredGoals.map(
     ({ goal }) => `ym:s:goal${goal.id}reaches`,
   );

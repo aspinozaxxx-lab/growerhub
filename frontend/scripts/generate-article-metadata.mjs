@@ -43,6 +43,7 @@ const readLocale = (directory, locale) => {
         related: normalizeArray(parsed.data.related),
         hero_image: parsed.data.hero_image || '',
         hero_alt: parsed.data.hero_alt || parsed.data.title,
+        download: parsed.data.download || null,
         source_file: fileName,
         hero_in_body: Boolean(
           parsed.data.hero_image && parsed.content.includes(`](${parsed.data.hero_image})`),
@@ -100,6 +101,7 @@ fs.writeFileSync(
       'hero_alt',
       'source_file',
       'hero_in_body',
+      'download',
     ],
     ru: withSortDates(ru).map((article) => [
       article.id,
@@ -114,6 +116,7 @@ fs.writeFileSync(
       article.hero_alt,
       article.source_file,
       article.hero_in_body,
+      article.download,
     ]),
     en: withSortDates(en).map((article) => [
       article.id,
@@ -128,6 +131,7 @@ fs.writeFileSync(
       article.hero_alt,
       article.source_file,
       article.hero_in_body,
+      article.download,
     ]),
   })}\n`,
   'utf8',

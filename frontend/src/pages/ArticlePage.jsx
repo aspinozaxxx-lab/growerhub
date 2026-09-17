@@ -55,6 +55,7 @@ function ArticlePage({ initialArticle } = {}) {
   const path = article ? getArticlePath(article, locale) : null;
   const demoView = {
     'home-assistant-dlya-rasteniy': 'watering',
+    'zhurnal-poliva-obem-ph-udobreniya': 'watering',
     'mqtt-discovery-home-assistant': 'overview',
     'datchik-vlazhnosti-pochvy-dlya-avtopoliva': 'overview',
   }[article?.id] || {
@@ -135,12 +136,17 @@ function ArticlePage({ initialArticle } = {}) {
       </div>
       <h1>{article.title}</h1>
       <p className="article-lead">{article.summary}</p>
+      {article.download && (
+        <p className="cta-row">
+          <a className="hero-cta" href={article.download.url}>{article.download.label}</a>
+        </p>
+      )}
       {cluster && (
         <Link to={getClusterPath(cluster, locale)} className="secondary-link">
           {cluster.title}
         </Link>
       )}
-      {DEMO_PUBLIC_ENABLED && (
+      {DEMO_PUBLIC_ENABLED && !article.download && (
         <aside className="article-demo-invite" aria-label={translatePublic('Попробовать в GrowerHub')}>
           <p><strong>{translatePublic('Попробуйте на готовой ферме')}</strong><span>{demoHint} {translatePublic('Без регистрации и оборудования.')}</span></p>
           <DemoStartLink placement="article_intro_demo" view={demoView} className="hero-cta">{translatePublic('Открыть демо')}</DemoStartLink>
