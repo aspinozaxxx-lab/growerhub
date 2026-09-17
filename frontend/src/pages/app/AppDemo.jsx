@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Leaf } from 'lucide-react';
 import { useAuth } from '../../features/auth/AuthContext';
-import { translateApp as t } from '../../locales/i18n';
+import { getCurrentLocale, rememberLocale, translateApp as t } from '../../locales/i18n';
 import './AppDemo.css';
 import { trackProductGoal } from '../../utils/analytics';
 
@@ -29,6 +29,7 @@ export default function AppDemo() {
   const run = async (operation) => {
     if (busy) return;
     setBusy(true); setFailure(null);
+    rememberLocale(getCurrentLocale());
     try {
       const result = await operation();
       if (result.success) navigate(DEMO_VIEWS[view], { replace: true });

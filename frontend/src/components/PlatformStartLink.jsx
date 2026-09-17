@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom';
 import { getPlatformStartPath, getPublicPath } from '../domain/localizedRoutes';
 import { SELF_SERVICE_PUBLIC_ENABLED } from '../domain/siteConfig';
-import { getCurrentLocale, translatePublic } from '../locales/i18n';
+import { getCurrentLocale, rememberLocale, translatePublic } from '../locales/i18n';
 import { trackProductGoal } from '../utils/analytics';
 import { useAuth } from '../features/auth/AuthContext';
 
 function PlatformStartLink({ placement, className = 'hero-cta', children, onClick }) {
   const locale = getCurrentLocale();
-  const { status, user } = useAuth();
+  const { accountStatus: status, accountUser: user, demoActive, leaveDemo } = useAuth();
   if (status === 'authorized' && user?.onboarding_completed) {
     return null;
   }
@@ -22,6 +22,13 @@ function PlatformStartLink({ placement, className = 'hero-cta', children, onClic
     : (children || translatePublic(SELF_SERVICE_PUBLIC_ENABLED ? 'Начать бесплатно' : 'Как начать'));
 
   const handleClick = (event) => {
+    if (SELF_SERVICE_PUBLIC_ENABLED || continueSetup) {
+      rememberLocale(locale);
+      if (demoActive) {
+        trackProductGoal('demo_real_setup_start', { placement });
+        leaveDemo();
+      }
+    }
     trackProductGoal('platform_start', {
       placement,
       step: SELF_SERVICE_PUBLIC_ENABLED ? 'login' : 'early_access_waitlist',

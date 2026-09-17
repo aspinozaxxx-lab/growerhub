@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import AppDemo from './AppDemo';
 import { trackProductGoal } from '../../utils/analytics';
+import { changeLocale, getStoredLocale, LOCALE_STORAGE_KEY } from '../../locales/i18n';
 
 const auth = vi.hoisted(() => ({
   accountStatus: 'unauthorized',
@@ -12,7 +13,11 @@ const auth = vi.hoisted(() => ({
 }));
 vi.mock('../../features/auth/AuthContext', () => ({ useAuth: () => auth }));
 vi.mock('../../utils/analytics', () => ({ trackProductGoal: vi.fn() }));
-afterEach(() => { cleanup(); vi.resetAllMocks(); auth.accountStatus = 'unauthorized'; });
+afterEach(async () => {
+  cleanup(); vi.resetAllMocks(); auth.accountStatus = 'unauthorized';
+  localStorage.removeItem(LOCALE_STORAGE_KEY);
+  await changeLocale('ru', { remember: false });
+});
 
 function Destination() {
   const location = useLocation();
@@ -58,4 +63,13 @@ it('sohranyaet obychnyj vhod v akkaunt dlya sohraneniya demo', async () => {
   await waitFor(() => expect(screen.getByTestId('destination')).toHaveTextContent('/app/login/?redirect=%2Fapp%2Fdemo%2F%3Fsave%3D1'));
   expect(auth.startDemo).not.toHaveBeenCalled();
   expect(auth.saveDemo).not.toHaveBeenCalled();
+});
+
+it('sohranyaet anglijskij jazyk publichnoj stranicy pri vhode v demo', async () => {
+  localStorage.setItem(LOCALE_STORAGE_KEY, 'ru');
+  await changeLocale('en', { remember: false });
+  auth.startDemo.mockResolvedValue({ success: true });
+  entry('?lang=en&view=automations');
+  await waitFor(() => expect(screen.getByTestId('destination')).toHaveTextContent('/app/automations/'));
+  expect(getStoredLocale()).toBe('en');
 });
