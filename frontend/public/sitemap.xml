@@ -294,7 +294,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-18</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/farm-automation/</loc>
@@ -342,7 +342,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/home-assistant-and-diy/</loc>
-    <lastmod>2026-09-17</lastmod>
+    <lastmod>2026-09-18</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/</loc>
+    <lastmod>2026-09-18</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/home-assistant-plant-watering-safe-step-by-step-setup/</loc>
@@ -383,10 +387,6 @@
   <url>
     <loc>https://growerhub.ru/en/articles/zigbee2mqtt-in-simple-words-how-the-sensor-coordinator-and-mqtt-are-connected/</loc>
     <lastmod>2026-09-17</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/</loc>
-    <lastmod>2026-09-13</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/zigbee-irrigation-valve-home-assistant-growerhub/</loc>

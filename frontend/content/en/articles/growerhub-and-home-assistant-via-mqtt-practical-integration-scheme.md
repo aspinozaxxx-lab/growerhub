@@ -4,7 +4,7 @@ slug: growerhub-and-home-assistant-via-mqtt-practical-integration-scheme
 title: 'GrowerHub and Home Assistant via MQTT: practical integration scheme'
 summary: "Connect an existing Zigbee2MQTT and Home Assistant installation to GrowerHub: MQTT bridge, first sensor, history, control ownership and disconnection."
 created_at: '2026-07-23'
-updated_at: "2026-09-13"
+updated_at: "2026-09-18"
 cluster: home-assistant-i-diy
 tags:
   - GrowerHub
@@ -25,7 +25,7 @@ Already running Home Assistant, Zigbee2MQTT and sensors? Keep that installation 
 
 **See the result first:** [open the demo without signing up](/app/demo/?lang=en). It contains four greenhouses, virtual devices and seven days of history. Open a temperature chart, try watering and change the environment. The demo uses the same application and automation rules as a regular farm; its readings are simulated.
 
-![Four greenhouses in the actual GrowerHub demo](/screenshots/en/zones.webp?v=20260917)
+![Four greenhouses in the actual GrowerHub demo](/screenshots/en/zones.webp?v=20260918)
 
 ## What you need
 
@@ -75,7 +75,7 @@ Check the logs for successful connections to both brokers. Do not share password
 3. Create your first greenhouse and assign the sensor to its slot in Farm constructor.
 4. Open the sensor chart from Overview. GrowerHub history starts when telemetry arrives; existing HA history stays in HA.
 
-![Temperature history in the shared GrowerHub interface; demo readings are simulated](/screenshots/en/history.webp)
+![Soil moisture history in the shared GrowerHub interface; demo readings are simulated](/screenshots/en/history.webp?v=20260918)
 
 ## Choose which system controls the equipment
 

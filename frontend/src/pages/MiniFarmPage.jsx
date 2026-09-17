@@ -84,7 +84,7 @@ function MiniFarmPage() {
 
                 <img
                   className="product-screenshot"
-                  src={`${screenshotPrefix}/${screenshotNames[index]}.webp${index === 0 ? `?v=${overviewScreenshotVersion}` : ''}`}
+                  src={`${screenshotPrefix}/${screenshotNames[index]}.webp?v=${overviewScreenshotVersion}`}
                   alt={screen.text}
                   width="1280"
                   height={index === 0 ? overviewScreenshotDimensions[locale].height : 720}

@@ -61,7 +61,7 @@ Look beyond the latest number: compare daily changes and differences between zon
 
 Return to the shared timeline and check that the selected zone's interval changed. Saving a schedule and enabling a scenario are separate actions; check the switch next to the greenhouse. The overview shows the lamp's current state. Having a schedule does not necessarily mean the light should be on now.
 
-![Light schedules for four virtual greenhouses in GrowerHub](/screenshots/en/automation.webp)
+![Light schedules for four virtual greenhouses in GrowerHub](/screenshots/en/automation.webp?v=20260918)
 
 *The shared light timeline. Each greenhouse has its own interval. On a phone, tap an interval to open its detailed controls.*
 
