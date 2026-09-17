@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
 import { renderPublicPage } from '../node_modules/.cache/growerhub-render/entry-public-server.js';
 import { marked } from 'marked';
+import { overviewScreenshotDimensions } from '../src/content/productScreenshots.js';
 import {
   articleClusters,
   getArticleClusters,
@@ -632,7 +633,7 @@ const renderMiniFarmDemos = (screens) => `
             <p>Эти экраны сняты в демоферме GrowerHub. Устройства и показания симулируются, а разделы управления, графики и сценарии — те же, что в вашей ферме.</p>
             <div class="demo-grid demo-grid--four">
               <figure class="demo-card">
-                <img class="product-screenshot" src="/screenshots/zones.webp" alt="Четыре теплицы и состояние оборудования в обычном кабинете. Данные демо смоделированы." width="1280" height="720" loading="eager">
+                <img class="product-screenshot" src="/screenshots/zones.webp" alt="Четыре теплицы и состояние оборудования в обычном кабинете. Данные демо смоделированы." width="1280" height="${overviewScreenshotDimensions.ru.height}" loading="eager">
                 <figcaption><strong>${htmlEscape(screens[0].title)}</strong><span>${htmlEscape(screens[0].text)}</span></figcaption>
               </figure>
               <figure class="demo-card">
@@ -1111,7 +1112,7 @@ const renderEnglishMiniFarmPage = (template, assets, data) => {
           <section class="content-section"><h2>Farm tasks in one dashboard</h2><div class="card-grid">${data.tasks.map((item) => `<article class="card"><h3>${htmlEscape(item.title)}</h3><p>${htmlEscape(item.text)}</p></article>`).join('')}</div></section>
           <section class="content-section split-section"><div><h2>Platform features</h2><ul class="check-list">${data.capabilities.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></div><div class="info-block"><h2>${htmlEscape(data.compatibility.title)}</h2><p>${htmlEscape(data.compatibility.text)}</p><a class="secondary-link" href="${getPublicPath('equipment', 'en')}">Choose equipment</a></div></section>
           <section class="content-section"><h2>From sign-in to dashboard</h2><ol class="steps-list">${data.stages.map((step) => `<li><strong>${htmlEscape(step.title)}</strong><span>${htmlEscape(step.text)}</span></li>`).join('')}</ol></section>
-          <section class="content-section" id="demo-ekrany"><h2>The real app with a virtual farm</h2><p>These screens were captured in a GrowerHub demo farm. Devices and readings are simulated; management screens, charts and scenarios are shared with your own farm.</p><div class="demo-grid demo-grid--four">${data.screens.map((screen, index) => `<figure class="demo-card"><img class="product-screenshot" src="/screenshots/en/${screenFiles[index]}.webp" alt="${htmlEscape(screen.text)}" width="1280" height="720" loading="${index === 0 ? 'eager' : 'lazy'}" /><figcaption><strong>${htmlEscape(screen.title)}</strong><span>${htmlEscape(screen.text)}</span></figcaption></figure>`).join('')}</div></section>
+          <section class="content-section" id="demo-ekrany"><h2>The real app with a virtual farm</h2><p>These screens were captured in a GrowerHub demo farm. Devices and readings are simulated; management screens, charts and scenarios are shared with your own farm.</p><div class="demo-grid demo-grid--four">${data.screens.map((screen, index) => `<figure class="demo-card"><img class="product-screenshot" src="/screenshots/en/${screenFiles[index]}.webp" alt="${htmlEscape(screen.text)}" width="1280" height="${index === 0 ? overviewScreenshotDimensions.en.height : 720}" loading="${index === 0 ? 'eager' : 'lazy'}" /><figcaption><strong>${htmlEscape(screen.title)}</strong><span>${htmlEscape(screen.text)}</span></figcaption></figure>`).join('')}</div></section>
           <section class="content-section"><h2>Clear and safe boundaries</h2><ul class="check-list limitations-list">${data.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></section>
           ${leadCta(
     'mini_farm_bottom',

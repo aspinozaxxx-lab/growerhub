@@ -7,6 +7,7 @@ import sharp from 'sharp';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outputDir = path.join(rootDir, 'public', 'screenshots');
+const overviewDimensions = {};
 const baseUrl = process.env.GROWERHUB_SCREENSHOT_BASE_URL || 'http://127.0.0.1:4173';
 if (!['localhost', '127.0.0.1', '[::1]'].includes(new URL(baseUrl).hostname)) {
   throw new Error('Snimki snimajutsja tolko s lokalnogo stenda s vklyuchennym demo.');
@@ -28,9 +29,10 @@ try {
     const page = await context.newPage();
     const shot = async (name) => {
       await page.evaluate(() => document.fonts.ready);
-      const bytes = await page.screenshot({ animations: 'disabled' });
-      await sharp(bytes).webp({ quality: 86 }).toFile(path.join(output, name + '.webp'));
+      const bytes = await page.screenshot({ animations: 'disabled', fullPage: name === 'zones' });
+      const info = await sharp(bytes).resize({ width: 1280 }).webp({ quality: 86 }).toFile(path.join(output, name + '.webp'));
       if (name === 'zones') {
+        overviewDimensions[locale] = { width: info.width, height: info.height };
         await sharp(bytes).resize({ width: 640 }).webp({ quality: 84 }).toFile(path.join(output, 'zones-640.webp'));
       }
     };
@@ -66,6 +68,10 @@ try {
     await shot('demo-energy');
     await context.close();
   }
+  fs.writeFileSync(
+    path.join(rootDir, 'src', 'content', 'productScreenshots.js'),
+    `export const overviewScreenshotDimensions = ${JSON.stringify(overviewDimensions, null, 2)};\n`,
+  );
 } finally {
   await browser.close();
 }
