@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-17",
+  "updated_at": "2026-09-18",
   "hero": {
     "badge": "GrowerHub · greenhouse management",
     "title": "Your greenhouse climate, lighting and watering in one place",
@@ -10,6 +10,21 @@
     "preview_caption": "The real app with virtual devices. Your changes belong to your own demo farm.",
     "demo_cta": "Open the demo farm",
     "reassurance": "No sign-up · No hardware · Free to try"
+  },
+  "demo_video": {
+    "title": "Watch watering in action",
+    "duration": "28 seconds · no sound",
+    "heading": "Try the same steps in your demo farm",
+    "src": "/videos/watering-demo-20260918-en.mp4",
+    "poster": "/videos/watering-demo-20260918-en.webp",
+    "fallback": "Open the video",
+    "steps": [
+      "Choose “Start watering” on the pump assigned to seedlings and set a duration of 1 minute.",
+      "Choose “Start” to see the timer and the stop button.",
+      "When watering finishes, open “Pump log” to see the duration and calculated volume."
+    ],
+    "note": "A recording of the working demo. Devices are virtual and the water volume is simulated. Waiting time is shortened in the video.",
+    "cta": "Try watering yourself"
   },
   "secondary": {
     "title": "Ready to connect your own greenhouse?",

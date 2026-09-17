@@ -795,6 +795,17 @@ main {
 .home-page .hero h1 { font-size: clamp(28px, 3.6vw, 42px); line-height: 1.16; letter-spacing: -.025em; margin: 18px 0 14px; }
 .home-page .hero-reassurance { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: #9de8ba; }
 .home-page .hero-product-preview figcaption { color: #a4b9c9; }
+.home-demo-video { margin-top: 24px; border: 1px solid var(--border-1); border-radius: 14px; background: var(--surface-1); }
+.home-demo-video summary { display: list-item; padding: 16px 18px; cursor: pointer; font-weight: 600; color: #f6fbff; }
+.home-demo-video summary::marker { color: #9de8ba; }
+.home-demo-video summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 14px; }
+.home-demo-video__duration { margin-left: 12px; color: #a4b9c9; font-size: 13px; font-weight: 400; white-space: nowrap; }
+.home-demo-video__content { display: grid; grid-template-columns: minmax(0, 270px) minmax(0, 1fr); gap: 28px; align-items: center; padding: 0 18px 20px; }
+.home-demo-video video { display: block; width: 100%; height: auto; max-height: 60vh; border-radius: 12px; background: #112227; }
+.home-demo-video ol { padding-left: 22px; color: #c7d7ef; line-height: 1.6; }
+.home-demo-video li + li { margin-top: 10px; }
+.home-demo-video__content p { font-size: 13px; }
+.home-demo-video__content .hero-cta { margin-top: 0; }
 .demo-task-card .secondary-link { margin-top: auto; min-height: 44px; display: inline-flex; align-items: center; }
 .home-faq { display: grid; gap: 10px; }
 .home-faq details { border: 1px solid var(--border); border-radius: 12px; padding: 0 16px; background: var(--surface-1); }
@@ -810,6 +821,9 @@ main {
   .home-page .hero > div > p { line-height: 1.55; }
   .home-page .hero .cta-row { align-items: stretch; gap: 14px; }
   .home-page .hero .hero-cta { text-align: center; }
+  .home-demo-video__duration { display: block; margin: 6px 0 0; }
+  .home-demo-video__content { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .home-demo-video video { width: min(100%, 270px); justify-self: center; }
   .article-demo-invite { display: grid; gap: 12px; padding: 14px; }
   .article-demo-invite .hero-cta { justify-self: start; }
 }

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
 import PlatformStartLink from '../components/PlatformStartLink';
@@ -25,6 +26,7 @@ import { getCurrentLocale, getIntlLocale, translatePublic } from '../locales/i18
 import useSeoMeta from '../utils/useSeoMeta';
 
 function HomePage() {
+  const [videoOpen, setVideoOpen] = useState(false);
   const locale = getCurrentLocale();
   const { homeContent } = getPageContent(locale);
   const path = getPublicPath('home', locale);
@@ -63,7 +65,7 @@ function HomePage() {
     locale,
   });
 
-  const { hero, secondary, features } = homeContent;
+  const { hero, secondary, features, demo_video: demoVideo } = homeContent;
   const recentArticles = [...getArticles(locale)].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at) || a.slug.localeCompare(b.slug)).slice(0, 4);
 
   return (
@@ -86,6 +88,25 @@ function HomePage() {
           <figcaption>{hero.preview_caption}</figcaption>
         </figure>
       </div>
+
+      <details className="home-demo-video" onToggle={(event) => setVideoOpen(event.currentTarget.open)}>
+        <summary>
+          <span>{demoVideo.title}</span>{' '}
+          <span className="home-demo-video__duration">{demoVideo.duration}</span>
+        </summary>
+        <div className="home-demo-video__content">
+          {videoOpen && <video key={demoVideo.src} controls playsInline autoPlay muted preload="none" width="720" height="1280" poster={demoVideo.poster} aria-label={demoVideo.title}>
+            <source src={demoVideo.src} type="video/mp4" />
+            <a href={demoVideo.src}>{demoVideo.fallback}</a>
+          </video>}
+          <div>
+            <h2>{demoVideo.heading}</h2>
+            <DemoStartLink placement="home_video_watering" view="watering">{demoVideo.cta}</DemoStartLink>
+            <ol>{demoVideo.steps.map((step) => <li key={step}>{step}</li>)}</ol>
+            <p>{demoVideo.note}</p>
+          </div>
+        </div>
+      </details>
 
       <section className="content-section">
         <h2>{features.title}</h2>
