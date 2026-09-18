@@ -182,6 +182,7 @@ describe('AppManualWatering', () => {
       pulse_run_s: 180,
       pulse_pause_s: 300,
     }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
     fireEvent.click(screen.getByRole('button', { name: 'Начать полив' }));
     fireEvent.click(screen.getByLabelText('До протечки'));
@@ -197,6 +198,7 @@ describe('AppManualWatering', () => {
       duration_s: 300,
       pulse_enabled: false,
     }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('blokiruet until leak po servernoj capability', () => {
