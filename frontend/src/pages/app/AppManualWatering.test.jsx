@@ -5,11 +5,14 @@ import AppManualWatering from './AppManualWatering';
 
 const startWatering = vi.fn();
 const clearActionError = vi.fn();
+const loadSessions = vi.fn();
 let actionError = '';
 let capabilityOverrides = {};
 let demoActive = false;
 let timedDurationS = 300;
 let pumpIds = [7];
+let histories = {};
+let currentSession = null;
 
 vi.mock('../../features/auth/AuthContext', () => ({
   useAuth: () => ({ demoActive }),
@@ -39,7 +42,7 @@ vi.mock('../../features/manual-watering/useManualWatering', () => ({
           start_block_reasons: [],
           ...capabilityOverrides,
         },
-        current_session: null,
+        current_session: currentSession,
         boxes: [{
           id: 2,
           name: 'Бокс 2',
@@ -58,8 +61,8 @@ vi.mock('../../features/manual-watering/useManualWatering', () => ({
     actionError,
     notice: '',
     actionKey: '',
-    histories: {},
-    loadSessions: vi.fn(),
+    histories,
+    loadSessions,
     startWatering,
     stopWatering: vi.fn(),
     clearActionError,
@@ -71,11 +74,86 @@ describe('AppManualWatering', () => {
     cleanup();
     startWatering.mockReset();
     clearActionError.mockReset();
+    loadSessions.mockReset();
     actionError = '';
     capabilityOverrides = {};
     demoActive = false;
     timedDurationS = 300;
     pumpIds = [7];
+    histories = {};
+    currentSession = null;
+  });
+
+  it('otkryvaet zhurnal tolko zapushchennogo nasosa bez ozhidaniya zagruzki istorii', async () => {
+    pumpIds = [7, 8];
+    startWatering.mockResolvedValue(true);
+    loadSessions.mockReturnValue(new Promise(() => {}));
+    render(<AppManualWatering />);
+    const selectedPump = screen.getByRole('heading', { name: 'Насос 8 · канал 1' }).closest('.manual-watering-pump');
+    const otherPump = screen.getByRole('heading', { name: 'Основной насос · канал 1' }).closest('.manual-watering-pump');
+
+    fireEvent.click(within(selectedPump).getByRole('button', { name: 'Начать полив' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Запустить' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(within(selectedPump).getByRole('button', { name: 'Скрыть журнал' })).toHaveAttribute('aria-expanded', 'true');
+    expect(within(otherPump).getByRole('button', { name: 'Журнал насоса' })).toHaveAttribute('aria-expanded', 'false');
+    expect(loadSessions).toHaveBeenCalledExactlyOnceWith(8);
+  });
+
+  it('ne otkryvaet zhurnal pri otklonennom zapuske', async () => {
+    startWatering.mockResolvedValue(false);
+    render(<AppManualWatering />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Начать полив' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Запустить' }));
+
+    await waitFor(() => expect(startWatering).toHaveBeenCalledOnce());
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Журнал насоса' })).toHaveAttribute('aria-expanded', 'false');
+    expect(loadSessions).not.toHaveBeenCalled();
+  });
+
+  it('povtorno otkryvaet zagruzhennyj zhurnal bez lishnego zaprosa', async () => {
+    startWatering.mockResolvedValue(true);
+    histories = { 7: { loaded: true, items: [] } };
+    render(<AppManualWatering />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Начать полив' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Запустить' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Скрыть журнал' })).toHaveAttribute('aria-expanded', 'true');
+    expect(loadSessions).not.toHaveBeenCalled();
+  });
+
+  it('obnovlyaet tekushchuyu zapis zhurnala iz overview i ne zatiraet zavershennyj rezultat', () => {
+    const initialSession = {
+      id: 10, source: 'user_manual', mode: 'timed', phase: 'running',
+      started_at: '2026-09-18T10:00:00Z', finished_at: null,
+      active_duration_s: 0, known_volume_l: 0,
+    };
+    histories = { 7: { loaded: true, items: [initialSession] } };
+    currentSession = { ...initialSession, active_duration_s: 30, known_volume_l: 0.4 };
+    const { rerender } = render(<AppManualWatering />);
+    fireEvent.click(screen.getByRole('button', { name: 'Журнал насоса' }));
+    const journal = () => within(screen.getByRole('region', { name: 'Журнал: Основной насос · канал 1' }));
+    expect(journal().getByText('30 сек')).toBeInTheDocument();
+    expect(journal().getByText('0,4 л')).toBeInTheDocument();
+
+    currentSession = { ...currentSession, active_duration_s: 45, known_volume_l: 0.6 };
+    rerender(<AppManualWatering />);
+    expect(journal().getByText('45 сек')).toBeInTheDocument();
+    expect(journal().getByText('0,6 л')).toBeInTheDocument();
+
+    histories = { 7: { loaded: true, items: [{
+      ...initialSession, active_duration_s: 60, known_volume_l: 0.8,
+      finished_at: '2026-09-18T10:01:00Z', completion_reason: 'duration',
+    }] } };
+    rerender(<AppManualWatering />);
+    expect(journal().getByText('1 мин')).toBeInTheDocument();
+    expect(journal().getByText('0,8 л')).toBeInTheDocument();
+    expect(journal().getByText('Завершён по времени')).toBeInTheDocument();
   });
 
   it('pokazyvaet ierarhiyu i preobrazuet minutnye defaults v sekundy API', async () => {

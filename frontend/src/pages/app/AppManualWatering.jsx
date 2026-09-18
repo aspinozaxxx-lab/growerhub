@@ -150,7 +150,7 @@ function ActiveSession({ pump, session, actionKey, onStop }) {
   );
 }
 
-function PumpHistory({ pumpId, history, onLoadMore }) {
+function PumpHistory({ pumpId, history, currentSession, onLoadMore }) {
   if (!history?.loaded && history?.isLoading) {
     return <div className="manual-watering-state">{translateApp("Загрузка журнала...")}</div>;
   }
@@ -162,7 +162,12 @@ function PumpHistory({ pumpId, history, onLoadMore }) {
     <div className="manual-watering-history">
       {items.length === 0 ? (
         <div className="manual-watering-state">{translateApp("Завершённых сессий пока нет")}</div>
-      ) : items.map((session) => <SessionSummary key={session.id} session={session} />)}
+      ) : items.map((session) => (
+        <SessionSummary
+          key={session.id}
+          session={currentSession && !session.finished_at && session.id === currentSession.id ? currentSession : session}
+        />
+      ))}
       {history?.nextBeforeId ? (
         <Button
           type="button"
@@ -245,7 +250,7 @@ function PumpCard({
 
       {historyOpen ? (
         <section id={`pump-history-${pump.id}`} aria-label={`${translateApp("Журнал:")} ${pumpTitle(pump)}`}>
-          <PumpHistory pumpId={pump.id} history={history} onLoadMore={onLoadMore} />
+          <PumpHistory pumpId={pump.id} history={history} currentSession={session} onLoadMore={onLoadMore} />
         </section>
       ) : null}
     </Surface>
@@ -421,6 +426,14 @@ function AppManualWatering() {
     clearActionError();
     setLaunchPump(null);
   };
+  const handleStartWatering = async (pumpId, payload) => {
+    const started = await startWatering(pumpId, payload);
+    if (started) {
+      setOpenHistories((prev) => ({ ...prev, [pumpId]: true }));
+      if (!histories[pumpId]?.loaded) void loadSessions(pumpId);
+    }
+    return started;
+  };
 
   return (
     <div className="self-service-page manual-watering-page">
@@ -474,7 +487,7 @@ function AppManualWatering() {
           actionKey={actionKey}
           actionError={actionError}
           onClose={closeLaunchModal}
-          onStart={startWatering}
+          onStart={handleStartWatering}
         />
       ) : null}
     </div>
