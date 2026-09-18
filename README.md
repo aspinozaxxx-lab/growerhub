@@ -4,7 +4,9 @@
 [![Backend CI/CD](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-cd-backend.yml/badge.svg)](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/ci-cd-backend.yml)
 [![Frontend Deploy](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/deploy-frontend.yml/badge.svg)](https://github.com/aspinozaxxx-lab/growerhub/actions/workflows/deploy-frontend.yml)
 
-[Попробовать демоферму без регистрации](https://growerhub.ru/app/demo/?lang=ru&utm_source=github&utm_medium=referral&utm_campaign=demo_launch) ·
+[Try the demo — no sign-up](https://growerhub.ru/app/demo/?lang=en&utm_source=github&utm_medium=referral&utm_campaign=demo_launch&utm_content=readme_top_en) ·
+[Демо без регистрации](https://growerhub.ru/app/demo/?lang=ru&utm_source=github&utm_medium=referral&utm_campaign=demo_launch&utm_content=readme_top_ru) ·
+[Feedback / Отзыв](https://github.com/aspinozaxxx-lab/growerhub/issues/new?template=demo-feedback.yml) ·
 [Сайт](https://growerhub.ru/) ·
 [Начать работу](https://growerhub.ru/kak-nachat/) ·
 [История и эксплуатационные данные](https://growerhub.ru/about/) ·
@@ -13,6 +15,10 @@
 GrowerHub — открытая платформа управления теплицей или мини-фермой. Она
 объединяет Zigbee2MQTT, MQTT-устройства, зоны, историю датчиков и сценарии
 управления в одном веб-интерфейсе.
+
+![GrowerHub demo farm: four greenhouses with different sensor readings](frontend/public/screenshots/en/zones.webp)
+
+*Виртуальные устройства и демонстрационные показания / Virtual devices with simulated readings.*
 
 Проект начинался с ESP32-контроллера полива, который позже получил имя Grovika.
 После эксплуатации и нескольких архитектурных итераций GrowerHub вырос в
@@ -34,6 +40,9 @@ GrowerHub с виртуальными устройствами. У каждог�
 нажмите «Сохранить демоферму» и войдите в аккаунт. Для реального оборудования
 есть [путь подключения](https://growerhub.ru/kak-nachat/) и
 [помощь проекта](https://t.me/growerhub_info?direct).
+
+После знакомства можно [оставить отзыв на GitHub](https://github.com/aspinozaxxx-lab/growerhub/issues/new?template=demo-feedback.yml).
+Достаточно написать, что попробовали и что получилось или оказалось непонятным.
 
 ## Проверяемая история
 
@@ -85,6 +94,9 @@ Explore four greenhouses with different sensor readings and history, edit
 lighting and watering schedules, and try a virtual watering session. Each
 visitor gets a separate demo farm in the same application as physical farms.
 Guest data lasts 24 hours; sign in and save the demo to keep your changes.
+
+[Share demo feedback on GitHub](https://github.com/aspinozaxxx-lab/growerhub/issues/new?template=demo-feedback.yml):
+tell us what you tried and what worked or felt unclear. English and Russian are welcome.
 
 GrowerHub is an open greenhouse and small-farm management platform. It brings
 Zigbee2MQTT, MQTT devices, zones, sensor history, and control scenarios into one

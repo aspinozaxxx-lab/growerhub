@@ -1,0 +1,24 @@
+name: Demo feedback / Отзыв о демо
+description: What worked, what was unclear, or what you missed / Что получилось, что непонятно или чего не хватило
+title: "[Demo] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Спасибо, что попробовали GrowerHub! Можно написать по-русски или по-английски. Отзыв будет публичным.
+
+        Thanks for trying GrowerHub! English and Russian are welcome. Your feedback will be public.
+  - type: textarea
+    id: experience
+    attributes:
+      label: Ваш опыт / Your experience
+      description: Что попробовали и что получилось или оказалось непонятным? / What did you try, and what worked or felt unclear?
+      placeholder: Например, открыли график датчика, настроили свет, запустили полив или добавили запись в журнал. / For example, a sensor chart, a lighting schedule, watering, or a journal entry.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Устройство и браузер / Device and browser
+      description: Необязательно; поможет разобраться с отображением страницы. / Optional; helps us understand display issues.
+      placeholder: iPhone / Safari, Android / Chrome, Windows / Firefox…
