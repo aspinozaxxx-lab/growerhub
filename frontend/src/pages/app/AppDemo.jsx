@@ -6,6 +6,7 @@ import { getCurrentLocale, rememberLocale, translateApp as t } from '../../local
 import './AppDemo.css';
 import { trackProductGoal } from '../../utils/analytics';
 import { isSessionExpiredError } from '../../api/client';
+import useSeoMeta from '../../utils/useSeoMeta';
 
 const DEMO_VIEWS = {
   overview: '/app/',
@@ -27,6 +28,14 @@ export default function AppDemo() {
   const expired = new URLSearchParams(location.search).get('expired') === '1';
   const requestedView = new URLSearchParams(location.search).get('view');
   const view = Object.hasOwn(DEMO_VIEWS, requestedView) ? requestedView : 'overview';
+  const description = t('Четыре теплицы, растения, полив, свет и история датчиков. Можно менять настройки и добавлять виртуальные устройства.');
+
+  useSeoMeta({
+    title: `${t('Демоферма')} — GrowerHub`,
+    description,
+    path: null,
+    robots: 'noindex,nofollow',
+  });
 
   const run = async (operation, saving = false) => {
     if (busy) return;
@@ -68,7 +77,7 @@ export default function AppDemo() {
         <Leaf size={36} aria-hidden="true" />
         <p className="demo-eyebrow">GrowerHub · {t('Демоферма')}</p>
         <h1>{failure === 409 ? t('У вас уже есть сохранённая демоферма') : t('Попробуйте управление фермой')}</h1>
-        <p>{t('Четыре теплицы, растения, полив, свет и история датчиков. Можно менять настройки и добавлять виртуальные устройства.')}</p>
+        <p>{description}</p>
         {busy || ['idle', 'loading'].includes(auth.accountStatus) ? <p role="status">{t('Подготавливаем вашу демоферму с историей…')}</p> : null}
         {failure === 409 ? (
           <div className="demo-actions">

@@ -111,6 +111,11 @@ for (const url of urls) {
   assert(alternates['x-default'] === alternates.ru, `x-default mismatch: ${url}`);
   assert(alternates.ru !== alternates.en, `Identical locale alternates: ${url}`);
   assert(
+    [...html.matchAll(/<link rel="alternate" hreflang="[^"]+"[^>]*>/gi)]
+      .every(([tag]) => tag.includes('data-growerhub-hreflang="true"')),
+    `Unmanaged static hreflang: ${url}`,
+  );
+  assert(
     extractAlternates(read(urlToFile(alternates.ru))).en === alternates.en,
     `Non-reciprocal RU alternate: ${url}`,
   );
@@ -126,12 +131,13 @@ for (const url of urls) {
   );
 
   const jsonLdBlocks = [...html.matchAll(
-    /<script type="application\/ld\+json">([\s\S]*?)<\/script>/gi,
+    /<script type="application\/ld\+json"([^>]*)>([\s\S]*?)<\/script>/gi,
   )];
   assert(jsonLdBlocks.length > 0, `Missing JSON-LD: ${url}`);
   for (const block of jsonLdBlocks) {
+    assert(block[1].includes('data-growerhub-jsonld="static"'), `Unmanaged static JSON-LD: ${url}`);
     try {
-      const jsonLd = JSON.parse(block[1]);
+      const jsonLd = JSON.parse(block[2]);
       assert(jsonLd.inLanguage === locale, `JSON-LD language mismatch: ${url}`);
     } catch {
       assert(false, `Invalid JSON-LD: ${url}`);
@@ -289,6 +295,9 @@ for (const pathname of ['/404.html', '/en/404.html']) {
 
 const appHtml = read(path.join(DIST_DIR, 'app', 'index.html'));
 assert(appHtml.includes('noindex,nofollow'), 'App shell is not noindex,nofollow');
+assert(!appHtml.includes('rel="canonical"'), 'App shell must not have canonical');
+assert(!appHtml.includes('hreflang='), 'App shell must not have public locale alternates');
+assert(!appHtml.includes('application/ld+json'), 'App shell must not have public structured data');
 
 const initialScript = ruHomeHtml.match(/<script type="module"[^>]+src="([^"]+)"/i)?.[1];
 assert(Boolean(initialScript), 'Public page has no initial module script');

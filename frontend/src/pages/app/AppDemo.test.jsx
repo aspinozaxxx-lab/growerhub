@@ -53,6 +53,8 @@ it('ostavlyaet polzovatelya na oshibke i sohranyaet vybor pri povtore', async ()
   auth.startDemo.mockResolvedValueOnce({ success: false, status: 429 }).mockResolvedValueOnce({ success: true });
   entry('?view=farm');
   expect(await screen.findByRole('alert')).toBeInTheDocument();
+  expect(document.title).toBe('Демоферма — GrowerHub');
+  expect(document.head.querySelector('meta[name="robots"]').content).toBe('noindex,nofollow');
   expect(screen.queryByTestId('destination')).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Открыть демоферму' }));
   await waitFor(() => expect(screen.getByTestId('destination')).toHaveTextContent('/app/farm/'));

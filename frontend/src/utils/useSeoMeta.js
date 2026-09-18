@@ -65,6 +65,9 @@ export default function useSeoMeta({
 }) {
   useEffect(() => {
     const canonical = path === null ? null : toCanonicalUrl(path);
+    const previousCanonical = document.head.querySelector('link[rel="canonical"]')?.href;
+    const staticJsonLd = [...document.head.querySelectorAll('script[data-growerhub-jsonld="static"]')];
+    const keepStaticJsonLd = canonical && previousCanonical === canonical && staticJsonLd.length > 0;
     const imageUrl = image.startsWith('http') ? image : `${SITE_URL}${image}`;
     const normalizedLocale = locale === 'en' ? 'en' : 'ru';
     const paths = path === null ? null : (alternatePaths || getLocalizedPathPair(path));
@@ -77,6 +80,10 @@ export default function useSeoMeta({
     setMeta('meta[property="og:description"]', { property: 'og:description', content: description });
     setMeta('meta[property="og:type"]', { property: 'og:type', content: type });
     setMeta('meta[property="og:image"]', { property: 'og:image', content: imageUrl });
+    setMeta('meta[name="twitter:card"]', { name: 'twitter:card', content: 'summary_large_image' });
+    setMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: title });
+    setMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: description });
+    setMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: imageUrl });
     setMeta('meta[property="og:locale"]', {
       property: 'og:locale',
       content: normalizedLocale === 'en' ? 'en_US' : 'ru_RU',
@@ -96,8 +103,10 @@ export default function useSeoMeta({
     setCanonical(path);
     setAlternateLinks(paths);
 
+    // Translitem: SSR-razmetka sohranyaetsya na svoem URL i udaljetsya pri perehode.
+    if (!keepStaticJsonLd) staticJsonLd.forEach((item) => item.remove());
     document.head.querySelectorAll('script[data-growerhub-jsonld="true"]').forEach((item) => item.remove());
-    jsonLd.filter(Boolean).forEach((item) => {
+    (keepStaticJsonLd ? [] : jsonLd).filter(Boolean).forEach((item) => {
       const script = document.createElement('script');
       script.type = 'application/ld+json';
       script.dataset.growerhubJsonld = 'true';

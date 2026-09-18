@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, matchPath, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Leaf } from 'lucide-react';
 import { getPublicPath } from '../../domain/localizedRoutes';
 import './AppLayout.css';
@@ -13,7 +13,18 @@ import {
   translateApp,
 } from '../../locales/i18n';
 import { translateCommon } from '../../locales/i18n';
-import { APP_NAV_ITEMS } from '../../pages/app/appNavigation';
+import { APP_NAV_ITEMS, SETTINGS_TABS } from '../../pages/app/appNavigation';
+import useSeoMeta from '../../utils/useSeoMeta';
+
+const PAGE_LABELS = [
+  { to: '/app/plants/:plantId/journal/', label: 'Журнал растения', end: true },
+  { to: '/app/manual-watering/', label: 'Ручной полив', end: true },
+  { to: '/app/demo-tools/', label: 'Устройства и условия среды', end: true },
+  { to: '/app/onboarding/', label: 'Первое подключение', end: true },
+  { to: '/app/admin/', label: 'Администрирование' },
+  ...SETTINGS_TABS,
+  ...APP_NAV_ITEMS,
+];
 
 // Edinoe menyu dlya verhnej, bokovoj i mobilnoj navigacii.
 const renderNavItems = () =>
@@ -37,6 +48,19 @@ function AppLayout() {
   const { demoActive } = useAuth();
   const adminRoute = location.pathname.startsWith('/app/admin/');
   const currentLocale = getCurrentLocale();
+  const pageLabel = PAGE_LABELS.find((item) => matchPath({
+    path: item.to,
+    end: item.end ?? false,
+  }, location.pathname))?.label || 'Обзор';
+  const pageTitle = translateApp(pageLabel);
+
+  useSeoMeta({
+    title: `${pageTitle} — ${demoActive ? `${translateApp('Демоферма')} · ` : ''}GrowerHub`,
+    description: pageTitle,
+    path: null,
+    robots: 'noindex,nofollow',
+    locale: currentLocale,
+  });
 
   useEffect(() => {
     const desiredLocale = adminRoute ? 'ru' : getStoredLocale();

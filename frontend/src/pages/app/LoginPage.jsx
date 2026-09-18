@@ -9,6 +9,7 @@ import { getPublicPath } from '../../domain/localizedRoutes';
 import { DEMO_PUBLIC_ENABLED } from '../../domain/siteConfig';
 import { trackProductGoal, trackProductGoalOnce } from '../../utils/analytics';
 import { buildSsoLoginUrl } from '../../features/auth/sso';
+import useSeoMeta from '../../utils/useSeoMeta';
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -24,6 +25,15 @@ function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const title = translateApp('Начать работу с GrowerHub');
+  const description = translateApp('GrowerHub доступен бесплатно и без карты. Войдите, чтобы подключить свои устройства или сохранить демоферму.');
+
+  useSeoMeta({
+    title,
+    description,
+    path: null,
+    robots: 'noindex,nofollow',
+  });
 
   const redirected = useRef(false);
   const from = location.state?.from;
@@ -68,8 +78,8 @@ function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1>{translateApp("Начать работу с GrowerHub")}</h1>
-        <p className="login-intro">{translateApp("GrowerHub доступен бесплатно и без карты. Войдите, чтобы подключить свои устройства или сохранить демоферму.")}</p>
+        <h1>{title}</h1>
+        <p className="login-intro">{description}</p>
         {DEMO_PUBLIC_ENABLED ? <a className="demo-link" href="/app/demo/">{translateApp("Сначала попробовать демо без регистрации")}</a> : null}
         <div className="login-sso">
           <button type="button" className="login-sso__btn login-sso__btn--primary" onClick={() => handleSSO('yandex')}>{translateApp("Продолжить с Яндексом")}</button>

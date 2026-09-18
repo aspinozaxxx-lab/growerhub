@@ -35,6 +35,8 @@ function entry(url) {
 
 it('vozvrashchaet posle parolnogo vhoda k sohraneniyu demo odin raz', async () => {
   entry('/app/login/?redirect=%2Fapp%2Fdemo%2F%3Fsave%3D1');
+  expect(document.title).toBe('Начать работу с GrowerHub');
+  expect(document.head.querySelector('meta[name="robots"]').content).toBe('noindex,nofollow');
   fireEvent.click(screen.getByText('Вход по паролю для существующих аккаунтов'));
   fireEvent.change(screen.getByLabelText('Электронная почта'), { target: { value: 'test@example.invalid' } });
   fireEvent.change(screen.getByLabelText('Пароль'), { target: { value: 'local-test' } });

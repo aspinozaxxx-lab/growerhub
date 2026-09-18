@@ -192,7 +192,7 @@ const makeMetaHead = ({
   const imageUrl = image.startsWith('http') ? image : `${SITE_URL}${image}`;
   const jsonBlocks = jsonLd
     .filter(Boolean)
-    .map((item) => `    <script type="application/ld+json">${JSON.stringify({
+    .map((item) => `    <script type="application/ld+json" data-growerhub-jsonld="static">${JSON.stringify({
       ...item,
       inLanguage: item.inLanguage || locale,
     })}</script>`)
@@ -202,9 +202,9 @@ const makeMetaHead = ({
     `    <meta property="og:url" content="${htmlEscape(canonical)}" />`,
   ] : [];
   const alternateTags = localizedPair ? [
-    `    <link rel="alternate" hreflang="ru" href="${htmlEscape(localizedPair.ru)}" />`,
-    `    <link rel="alternate" hreflang="en" href="${htmlEscape(localizedPair.en)}" />`,
-    `    <link rel="alternate" hreflang="x-default" href="${htmlEscape(localizedPair.ru)}" />`,
+    `    <link rel="alternate" hreflang="ru" href="${htmlEscape(localizedPair.ru)}" data-growerhub-hreflang="true" />`,
+    `    <link rel="alternate" hreflang="en" href="${htmlEscape(localizedPair.en)}" data-growerhub-hreflang="true" />`,
+    `    <link rel="alternate" hreflang="x-default" href="${htmlEscape(localizedPair.ru)}" data-growerhub-hreflang="true" />`,
   ] : [];
   const imageDimensions = image === DEFAULT_OG_IMAGE ? [
     '    <meta property="og:image:width" content="1200" />',
@@ -1369,7 +1369,6 @@ const renderEnglish404 = (template, assets) => pageShell(template, {
 const renderAppNoIndexPage = (template, assets, route) => appShell(template, {
   title: route.title,
   description: route.description,
-  canonical: toCanonicalUrl(route.path),
 }, assets);
 
 const render404 = (template, assets) => pageShell(template, {
