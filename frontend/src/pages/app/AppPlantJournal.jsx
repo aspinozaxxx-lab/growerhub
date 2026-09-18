@@ -236,6 +236,7 @@ function CalendarGrid({ startDate, endDate, entries, plantedAt, selectedDate, on
                     key={key}
                     type="button"
                     className={`journal-calendar__day ${selectedDate === key ? 'is-selected' : ''}`}
+                    aria-pressed={selectedDate === key}
                     onClick={() => onSelectDate(key)}
                   >
                     <span className="journal-calendar__date-number">{day.getDate()}</span>
@@ -284,9 +285,15 @@ function AppPlantJournal() {
     try {
       const [plants, journal] = await Promise.all([fetchPlants(token), fetchPlantJournal(plantId, token)]);
       const currentPlant = plants.find((item) => String(item.id) === String(plantId)) || null;
+      const journalEntries = Array.isArray(journal) ? journal : [];
       setPlant(currentPlant);
-      setEntries(Array.isArray(journal) ? journal : []);
+      setEntries(journalEntries);
       const todayKey = dateKeyFromString(new Date());
+      const latestEntryDate = journalEntries.reduce((latest, entry) => {
+        const key = dateKeyFromString(entry.event_at);
+        return key > latest ? key : latest;
+      }, '');
+      setSelectedDate((previous) => previous || latestEntryDate || todayKey);
       setFormState((prev) => ({ ...prev, date: prev.date || todayKey }));
     } catch (err) {
       if (isSessionExpiredError(err)) return;
@@ -408,8 +415,9 @@ function AppPlantJournal() {
     if (!plantId) return;
     const backendType = BACKEND_TYPES.includes(formState.type) ? formState.type : 'note';
     try {
+      let savedEntry;
       if (editingId) {
-        await updatePlantJournalEntry(
+        savedEntry = await updatePlantJournalEntry(
           plantId,
           editingId,
           { type: backendType, text: formState.text || null },
@@ -425,9 +433,10 @@ function AppPlantJournal() {
         if (backendType === 'photo' && formState.photoUrl) {
           payload.photo_urls = [formState.photoUrl];
         }
-        await createPlantJournalEntry(plantId, payload, token);
+        savedEntry = await createPlantJournalEntry(plantId, payload, token);
       }
       await loadData();
+      setSelectedDate(dateKeyFromString(savedEntry?.event_at) || formState.date);
       setIsFormOpen(false);
       resetForm();
     } catch (err) {
