@@ -35,7 +35,9 @@ Begin with observation rather than automation. Water manually for several days, 
 
 This is a server simulation in the regular application; it does not activate real pumps. Guest changes last 24 hours. Save the demo to an account to continue later. For an existing HA installation, follow the [MQTT connector guide](/articles/growerhub-i-home-assistant-cherez-mqtt/).
 
-![Watering journal in the GrowerHub demo with durations and completion reasons](/screenshots/en/demo-watering.webp)
+![Watering log in a saved GrowerHub demo farm with duration, estimated volume and completion reason](/screenshots/en/demo-watering.webp?v=20260918-mobile)
+
+This saved demo farm has Russian plant and greenhouse names. Switching the interface language keeps those names as entered.
 
 ## Minimum setup
 
