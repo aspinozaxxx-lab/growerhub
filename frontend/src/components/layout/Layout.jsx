@@ -34,7 +34,7 @@ function Layout({ children }) {
           </Link>
           <span className="brand-tagline">{translatePublic('Управление фермой в одном кабинете')}</span>
         </div>
-        {!inApp ? <DemoStartLink placement="header_mobile_demo" className="mobile-demo-link">{translatePublic('Открыть демо')}</DemoStartLink> : null}
+        {!inApp ? <DemoStartLink placement="header_mobile_demo" className="mobile-demo-link">{translatePublic('Демо')}</DemoStartLink> : null}
         <button
           className="menu-toggle"
           type="button"
@@ -77,17 +77,20 @@ function Layout({ children }) {
           >
             {translatePublic('Помощь')}
           </TelegramContactLink>
-          {!inApp && (
-            <a
-              className="nav-link locale-switch"
-              href={publicLocale === 'ru' ? pathPair.en : pathPair.ru}
-              hrefLang={publicLocale === 'ru' ? 'en' : 'ru'}
-              onClick={closeMenu}
-            >
-              {publicLocale === 'ru' ? 'EN' : 'RU'}
-            </a>
-          )}
         </nav>
+        {!inApp && (
+          <a
+            className="nav-link locale-switch"
+            href={publicLocale === 'ru' ? pathPair.en : pathPair.ru}
+            hrefLang={publicLocale === 'ru' ? 'en' : 'ru'}
+            lang="en"
+            aria-label={publicLocale === 'ru' ? 'English' : 'Russian'}
+            title={publicLocale === 'ru' ? 'English' : 'Russian'}
+            onClick={closeMenu}
+          >
+            {publicLocale === 'ru' ? 'EN' : 'RU'}
+          </a>
+        )}
       </header>
       <main className="app-main">{children}</main>
       <footer className="app-footer">

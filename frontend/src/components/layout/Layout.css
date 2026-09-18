@@ -74,6 +74,10 @@
   background: rgba(255, 255, 255, 0.03);
 }
 
+.locale-switch {
+  flex-shrink: 0;
+}
+
 .nav-link.is-active {
   color: var(--text);
   background: rgba(95, 212, 145, 0.14);
@@ -175,9 +179,10 @@
 @media (max-width: 1100px) {
   .app-shell:not(.app-shell--cabinet) > .app-header { flex-wrap: wrap; gap: 10px; padding: 10px 16px; }
   .app-shell:not(.app-shell--cabinet) .brand { margin-right: auto; }
-  .app-shell:not(.app-shell--cabinet) .menu-toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
-  .app-shell:not(.app-shell--cabinet) .nav-links { display: none; width: 100%; flex-direction: column; align-items: stretch; }
+  .app-shell:not(.app-shell--cabinet) .locale-switch { order: 1; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 8px; }
+  .app-shell:not(.app-shell--cabinet) .menu-toggle { order: 3; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
+  .app-shell:not(.app-shell--cabinet) .nav-links { order: 4; display: none; width: 100%; flex-direction: column; align-items: stretch; }
   .app-shell:not(.app-shell--cabinet) .nav-open { display: flex; }
   .app-shell:not(.app-shell--cabinet) .nav-link { text-align: center; }
-  .mobile-demo-link { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; border-radius: 10px; background: var(--accent-strong); color: #0a1120; font-size: 13px; font-weight: 700; text-decoration: none; }
+  .mobile-demo-link { order: 2; display: inline-flex; align-items: center; min-height: 44px; padding: 8px 12px; border-radius: 10px; background: var(--accent-strong); color: #0a1120; font-size: 13px; font-weight: 700; text-decoration: none; }
 }
