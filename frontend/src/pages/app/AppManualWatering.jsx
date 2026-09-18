@@ -29,11 +29,18 @@ import {
 import './AppManualWatering.css';
 import { translateApp } from '../../locales/i18n';
 
-function pumpTitle(pump) {
+function pumpIdentity(pump) {
   const base = pump?.label || `${translateApp("Насос")} ${pump?.id ?? ''}`.trim();
   return pump?.channel === null || pump?.channel === undefined
     ? base
     : `${base} · ${translateApp("канал")} ${pump.channel}`;
+}
+
+function pumpTitle(pump) {
+  const boxes = listOrEmpty(pump?.boxes);
+  return !pump?.label && boxes.length === 1 && boxes[0].name
+    ? boxes[0].name
+    : pumpIdentity(pump);
 }
 
 function SessionSummary({ session }) {
@@ -77,18 +84,18 @@ function LeakSensorState({ sensor }) {
   );
 }
 
-function WateringBox({ box }) {
+function WateringBox({ box, hideHeading = false }) {
   const plants = listOrEmpty(box.plants);
   const leakSensors = listOrEmpty(box.leak_sensors);
   return (
     <section className={`manual-watering-box ${box.enabled === false ? 'is-disabled' : ''}`}>
-      <header className="manual-watering-box__header">
-        <div>
+      {!hideHeading || box.enabled === false ? <header className="manual-watering-box__header">
+        {!hideHeading ? <div>
           <h4>{box.name || translateApp("Теплица без названия")}</h4>
           <span>{box.room_name || translateApp("Ферма не указана")}</span>
-        </div>
+        </div> : null}
         {box.enabled === false ? <span className="manual-watering-box__disabled">{translateApp("Выключен в автоматизации")}</span> : null}
-      </header>
+      </header> : null}
       <div className="manual-watering-box__plants">
         {plants.length === 0 ? (
           <span className="manual-watering-empty">{translateApp("Растения не привязаны")}</span>
@@ -194,6 +201,8 @@ function PumpCard({
   onLoadMore,
 }) {
   const session = pumpCurrentSession(pump);
+  const boxes = listOrEmpty(pump.boxes);
+  const usesBoxTitle = !pump.label && boxes.length === 1 && Boolean(boxes[0].name);
   const blockedReasons = pumpStartBlockReasons(pump);
   const startDisabled = !pumpCanStart(pump) || !startConfigReady || Boolean(actionKey);
   return (
@@ -201,7 +210,12 @@ function PumpCard({
       <header className="manual-watering-pump__header">
         <div>
           <h3>{pumpTitle(pump)}</h3>
-          <span>{pump.device_key || pump.device_id || translateApp("Устройство не указано")}</span>
+          {usesBoxTitle ? <span>{boxes[0].room_name || translateApp("Ферма не указана")}</span> : null}
+          <details className="manual-watering-pump__device">
+            <summary>{translateApp("Устройство")}</summary>
+            <span>{pumpIdentity(pump)}</span>
+            <span>{pump.device_key || pump.device_id || translateApp("Устройство не указано")}</span>
+          </details>
         </div>
         <div className="manual-watering-pump__statuses">
           <span className={pump.is_online === true ? 'is-online' : pump.is_online === false ? 'is-offline' : ''}>
@@ -216,9 +230,9 @@ function PumpCard({
       {session ? <ActiveSession pump={pump} session={session} actionKey={actionKey} onStop={onStop} /> : null}
 
       <div className="manual-watering-pump__boxes">
-        {listOrEmpty(pump.boxes).length === 0 ? (
+        {boxes.length === 0 ? (
           <div className="manual-watering-state">{translateApp("Теплицы не привязаны. Назначьте насос в Конструкторе фермы.")}</div>
-        ) : listOrEmpty(pump.boxes).map((box) => <WateringBox key={box.id} box={box} />)}
+        ) : boxes.map((box) => <WateringBox key={box.id} box={box} hideHeading={usesBoxTitle} />)}
       </div>
 
       <footer className="manual-watering-pump__footer">
@@ -335,6 +349,11 @@ function LaunchWateringModal({ pump, defaults, actionKey, actionError, onClose, 
           <Droplets size={18} aria-hidden="true" />
           <span>{translateApp("Будут поливаться все привязанные теплицы, включая выключенные в автоматизации.")}</span>
         </div>
+        <p className="manual-watering-form__targets">
+          {listOrEmpty(pump.boxes).map((box) => (
+            <span key={box.id}>{box.name || translateApp("Теплица без названия")}{box.room_name ? ` · ${box.room_name}` : ''}</span>
+          ))}
+        </p>
         <fieldset className="manual-watering-form__modes">
           <legend>{translateApp("Режим полива")}</legend>
           <label>

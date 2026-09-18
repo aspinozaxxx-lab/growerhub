@@ -4,7 +4,7 @@ slug: mini-farm-of-two-grow-boxes-how-to-organize-control-and-automation
 title: 'Mini-farm of two grow boxes: how to organize control and automation'
 summary: 'Divide a small farm into zones, set light schedules and test watering before buying sensors. A practical walkthrough of the GrowerHub demo farm.'
 created_at: '2026-07-23'
-updated_at: '2026-09-17'
+updated_at: '2026-09-18'
 cluster: mini-ferma-i-neskolko-boksov
 tags:
   - GrowerHub
@@ -69,7 +69,7 @@ Return to the shared timeline and check that the selected zone's interval change
 
 [Open manual watering in the demo](/app/demo/?lang=en&view=watering). Find a pump by its assigned greenhouse, select Start watering, leave the mode set to By time, and enter **1 minute**. Press Start. The page shows the pump running and the remaining time.
 
-After the run finishes, open Pump log. Compare the run with moisture history and the plants' journals. The virtual pump changes simulated moisture, helping you understand the controls and sequence of events. Real water flow and the response of your growing medium need measurements on your own installation.
+The pump log opens automatically when the run starts. Once watering finishes, compare the result with moisture history and the plants' journals. The virtual pump changes simulated moisture, helping you understand the controls and sequence of events. Real water flow and the response of your growing medium need measurements on your own installation.
 
 ## Other experiments
 

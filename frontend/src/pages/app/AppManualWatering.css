@@ -75,6 +75,23 @@
   gap: 6px;
 }
 
+.manual-watering-pump__device {
+  color: var(--text-3);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.manual-watering-pump__device summary {
+  width: fit-content;
+  padding: 5px 0;
+  cursor: pointer;
+}
+
+.manual-watering-pump__device span {
+  display: block;
+  margin-top: 3px;
+}
+
 .manual-watering-pump__statuses span,
 .manual-watering-box__disabled,
 .manual-watering-leak {
@@ -288,6 +305,15 @@
   gap: 14px;
 }
 
+.manual-watering-form__targets {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  color: var(--text-2);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
 .manual-watering-form__warning {
   display: flex;
   gap: 8px;
@@ -366,19 +392,62 @@
 }
 
 @media (max-width: 720px) {
-  .manual-watering-pump__header,
-  .manual-watering-pump__footer,
+  .manual-watering-pump {
+    padding: 12px;
+    gap: 10px;
+  }
+
   .manual-watering-active {
     grid-template-columns: 1fr;
   }
 
-  .manual-watering-pump__header,
-  .manual-watering-pump__footer {
-    display: grid;
+  .manual-watering-pump__header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .manual-watering-pump__header h3 {
+    font-size: 16px;
   }
 
   .manual-watering-pump__statuses {
     justify-content: flex-start;
+    gap: 4px;
+  }
+
+  .manual-watering-pump__statuses span {
+    padding: 4px 5px;
+    font-size: 10px;
+  }
+
+  .manual-watering-box {
+    padding: 8px;
+    gap: 7px;
+  }
+
+  .manual-watering-box__plants {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .manual-watering-plant {
+    padding: 6px;
+    font-size: 12px;
+  }
+
+  .manual-watering-pump__footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    padding-top: 8px;
+    align-items: start;
+  }
+
+  .manual-watering-pump__footer > .gh-btn,
+  .manual-watering-pump__start > .gh-btn {
+    min-height: 44px;
+    padding-inline: 10px;
+    font-size: 12px;
   }
 
   .manual-watering-active > .gh-btn,

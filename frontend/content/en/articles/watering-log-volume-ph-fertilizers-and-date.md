@@ -4,7 +4,7 @@ slug: watering-log-volume-ph-fertilizers-and-date
 title: 'Plant watering log: example and free printable template'
 summary: 'Download a one-page A4 watering log. Record date, plant, water volume, reason and feeding; see a filled example and try a virtual watering history.'
 created_at: '2026-07-23'
-updated_at: '2026-09-17'
+updated_at: '2026-09-18'
 cluster: zhurnal-i-sovetnik-uhoda
 tags:
   - GrowerHub
@@ -73,7 +73,7 @@ If the pump ran but the substrate stayed dry, check the reservoir, tubing, dripp
 
 ## Try an electronic watering history
 
-[Open manual watering in the GrowerHub demo farm](/app/demo/?lang=en&view=watering). Open the pump log on a greenhouse card to inspect its prefilled history. To add your own example, start a one-minute watering cycle and check the log after it finishes. It records duration, volume when the delivery rate is known, and the completion reason.
+[Open manual watering in the GrowerHub demo farm](/app/demo/?lang=en&view=watering). Open the pump log on a greenhouse card to inspect its prefilled history. To add your own example, start a one-minute watering cycle. The log opens automatically; after the run finishes, it shows duration, volume when the delivery rate is known, and the completion reason.
 
 The demo uses virtual devices and needs no account or hardware. For observations, open a plant's journal in Plants; you can add a note and export the records. Guest changes remain available for 24 hours, and you can save the demo farm to an account.
 
