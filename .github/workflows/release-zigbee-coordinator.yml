@@ -9,7 +9,21 @@ permissions:
   contents: write
 
 jobs:
+  check-connector:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test isolated connector with packaged Mosquitto version
+        run: >-
+          docker run --rm --network none --user 0 --entrypoint sh
+          --mount type=bind,source="$PWD",target=/workspace,readonly
+          eclipse-mosquitto:2.0.22
+          /workspace/zigbee_coordinator/test-connector.sh
+
   release:
+    needs: [ check-connector ]
     runs-on: windows-latest
     steps:
       - name: Checkout

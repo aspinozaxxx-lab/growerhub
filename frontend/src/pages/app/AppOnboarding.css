@@ -184,6 +184,20 @@
   align-items: center;
 }
 
+.onboarding-bridge-steps {
+  display: grid;
+  gap: 10px;
+}
+
+.onboarding-bridge-steps ol {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.onboarding-card code {
+  overflow-wrap: anywhere;
+}
+
 .onboarding-actions .hero-cta {
   margin-top: 0;
 }

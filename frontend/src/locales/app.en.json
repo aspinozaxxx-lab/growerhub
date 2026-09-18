@@ -892,5 +892,19 @@
   "Кондиционер фермы": "Farm air conditioner",
   "Ферма выключена": "Farm is off",
   "с": "s",
-  "ч": "h"
+  "ч": "h",
+  "Укажите LAN-адрес MQTT-брокера и mqtt.base_topic из Zigbee2MQTT. Если брокер работает на том же компьютере с Docker Desktop, используйте host.docker.internal. Адрес 127.0.0.1 внутри модуля связи не ведёт к вашему брокеру.": "Enter your MQTT broker's LAN address and Zigbee2MQTT mqtt.base_topic. If the broker runs on the same Docker Desktop computer, use host.docker.internal. Address 127.0.0.1 inside the connector does not reach your broker.",
+  "Скачать модуль связи": "Download connector",
+  "Запустите модуль связи": "Start the connector",
+  "Нужен постоянно включённый компьютер с Docker Compose: Linux/Raspberry Pi или Windows с Docker Desktop в режиме Linux containers.": "Use an always-on computer with Docker Compose: Linux/Raspberry Pi, or Windows with Docker Desktop using Linux containers.",
+  "Распакуйте скачанный модуль связи.": "Extract the downloaded connector archive.",
+  "Положите личный bridge.conf рядом с docker-compose.yml.": "Place your personal bridge.conf beside docker-compose.yml.",
+  "Откройте терминал в этой папке и выполните:": "Open a terminal in this directory and run:",
+  "Дождитесь статуса «В сети» и появления уже сопряжённых устройств.": "Wait for the connection to appear online and your existing devices to be imported.",
+  "Для Home Assistant OS запустите модуль связи на другом компьютере с Docker в той же сети. USB-координатор и настройки Zigbee2MQTT остаются на прежнем месте.": "For Home Assistant OS, run this connector on another Docker computer on the same network. Keep your USB coordinator and Zigbee2MQTT configuration where they are.",
+  "Запустите модуль связи. Статус обновится автоматически.": "Start the connector. Its status will update automatically.",
+  "Проверьте, что Docker работает, а bridge.conf находится рядом с docker-compose.yml.": "Check that Docker is running and bridge.conf is beside docker-compose.yml.",
+  "Проверьте адрес, порт, базовую тему и учётные данные локального MQTT-брокера.": "Check your local MQTT broker's address, port, base topic and credentials.",
+  "Разрешите исходящие подключения к growerhub.ru:8883.": "Allow outbound connections to growerhub.ru:8883.",
+  "Посмотрите причину ошибки:": "Check the error details:"
 }

@@ -4,7 +4,7 @@ import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import TelegramContactLink from '../../components/TelegramContactLink';
 import Button from '../../components/ui/Button';
-import { GITHUB_RELEASES_URL } from '../../domain/siteConfig';
+import { GITHUB_RELEASES_URL, ZIGBEE_CONNECTOR_DOWNLOAD_URL } from '../../domain/siteConfig';
 import {
   createCoordinator,
   completeOnboarding,
@@ -98,7 +98,7 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
         <div><dt>{translateApp("Базовый топик")}</dt><dd>{setup.base_topic}</dd></div>
       </dl>
 
-      <div className="onboarding-choice-grid" role="group" aria-label={translateApp("Платформа установки")}>
+      {connectionMode === CONNECTION_MODES.DIRECT ? <div className="onboarding-choice-grid" role="group" aria-label={translateApp("Платформа установки")}>
         {[
           [SETUP_PLATFORMS.WINDOWS, 'Windows', translateApp("Мастер с выбором COM-порта и Z-Stack/Ember.")],
           [SETUP_PLATFORMS.LINUX, 'Raspberry Pi / Linux', translateApp("Docker Compose, подключение USB и постоянное хранилище.")],
@@ -113,12 +113,12 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
             <strong>{title}</strong><span>{text}</span>
           </button>
         ))}
-      </div>
+      </div> : null}
 
       {connectionMode === CONNECTION_MODES.BRIDGE ? (
         <div className="onboarding-local-mqtt">
           <h3>{translateApp("Локальный MQTT")}</h3>
-          <p>{translateApp("Укажите адрес брокера, доступный компьютеру с connector, и mqtt.base_topic из вашей конфигурации Zigbee2MQTT. Для Home Assistant OS используйте адрес сервера в локальной сети.")}</p>
+          <p>{translateApp("Укажите LAN-адрес MQTT-брокера и mqtt.base_topic из Zigbee2MQTT. Если брокер работает на том же компьютере с Docker Desktop, используйте host.docker.internal. Адрес 127.0.0.1 внутри модуля связи не ведёт к вашему брокеру.")}</p>
           <p>{translateApp("Эти значения используются только для создания файла в браузере и не отправляются GrowerHub.")}</p>
           <div className="onboarding-fields">
             <label>{translateApp("Адрес")}<input value={localMqtt.host} onChange={(event) => setLocalMqtt((value) => ({ ...value, host: event.target.value }))} placeholder="192.168.1.10" /></label>
@@ -139,10 +139,25 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
         ) : (
           <Button variant="primary" disabled={!bridgeConfig} onClick={() => downloadTextFile('bridge.conf', bridgeConfig)}>{translateApp("Скачать личный bridge.conf")}</Button>
         )}
-        {platform !== SETUP_PLATFORMS.MANUAL ? (
+        {connectionMode === CONNECTION_MODES.BRIDGE ? (
+          <a className="gh-btn gh-btn--secondary gh-btn--md" href={ZIGBEE_CONNECTOR_DOWNLOAD_URL}>{translateApp("Скачать модуль связи")}</a>
+        ) : platform !== SETUP_PLATFORMS.MANUAL ? (
           <a className="gh-btn gh-btn--secondary gh-btn--md" href={GITHUB_RELEASES_URL} target="_blank" rel="noreferrer">{translateApp("Открыть пакеты установки")}</a>
         ) : null}
       </div>
+      {connectionMode === CONNECTION_MODES.BRIDGE ? (
+        <div className="onboarding-bridge-steps">
+          <h3>{translateApp("Запустите модуль связи")}</h3>
+          <p>{translateApp("Нужен постоянно включённый компьютер с Docker Compose: Linux/Raspberry Pi или Windows с Docker Desktop в режиме Linux containers.")}</p>
+          <ol>
+            <li>{translateApp("Распакуйте скачанный модуль связи.")}</li>
+            <li>{translateApp("Положите личный bridge.conf рядом с docker-compose.yml.")}</li>
+            <li>{translateApp("Откройте терминал в этой папке и выполните:")} <code>docker compose up -d</code>.</li>
+            <li>{translateApp("Дождитесь статуса «В сети» и появления уже сопряжённых устройств.")}</li>
+          </ol>
+          <p>{translateApp("Для Home Assistant OS запустите модуль связи на другом компьютере с Docker в той же сети. USB-координатор и настройки Zigbee2MQTT остаются на прежнем месте.")}</p>
+        </div>
+      ) : null}
       <p className="onboarding-note">{translateApp("Не публикуйте эти файлы и не отправляйте их в Telegram. GrowerHub никогда не просит прислать пароль MQTT.")}</p>
     </section>
   );
@@ -405,11 +420,22 @@ function AppOnboarding() {
           {!status?.coordinator_connected ? (
             <section className="onboarding-card onboarding-wait">
               <span className="status-pulse" aria-hidden="true" />
-              <div><h2>{translateApp("Ждём координатор")}</h2><p>{translateApp("Запустите пакет или Zigbee2MQTT. Статус обновится автоматически.")}</p></div>
+              <div><h2>{translateApp("Ждём координатор")}</h2><p>{connectionMode === CONNECTION_MODES.BRIDGE
+                ? translateApp("Запустите модуль связи. Статус обновится автоматически.")
+                : translateApp("Запустите пакет или Zigbee2MQTT. Статус обновится автоматически.")}</p></div>
               {showConnectionHelp ? (
                 <div className="onboarding-diagnostics">
                   <strong>{translateApp("Что проверить")}</strong>
-                  <ul><li>{translateApp("порт USB и тип адаптера;")}</li><li>{translateApp("доступ к `growerhub.ru:8883`;")}</li><li>{translateApp("файлы `configuration.yaml` и `secret.yaml` рядом с данными Zigbee2MQTT.")}</li></ul>
+                  {connectionMode === CONNECTION_MODES.BRIDGE ? (
+                    <ul>
+                      <li>{translateApp("Проверьте, что Docker работает, а bridge.conf находится рядом с docker-compose.yml.")}</li>
+                      <li>{translateApp("Проверьте адрес, порт, базовую тему и учётные данные локального MQTT-брокера.")}</li>
+                      <li>{translateApp("Разрешите исходящие подключения к growerhub.ru:8883.")}</li>
+                      <li>{translateApp("Посмотрите причину ошибки:")} <code>docker compose logs --tail=50 connector</code>.</li>
+                    </ul>
+                  ) : (
+                    <ul><li>{translateApp("порт USB и тип адаптера;")}</li><li>{translateApp("доступ к `growerhub.ru:8883`;")}</li><li>{translateApp("файлы `configuration.yaml` и `secret.yaml` рядом с данными Zigbee2MQTT.")}</li></ul>
+                  )}
                 </div>
               ) : null}
               <HelpLink step="wait_online" />
