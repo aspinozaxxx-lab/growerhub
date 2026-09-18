@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import ru.growerhub.backend.IntegrationTestBase;
@@ -50,7 +51,7 @@ import ru.growerhub.backend.zigbee.ZigbeeFacade;
 class DemoFarmIntegrationTest extends IntegrationTestBase {
     @LocalServerPort int port;
     @Autowired JdbcTemplate jdbc;
-    @Autowired ru.growerhub.backend.common.config.DemoSettings demoSettings;
+    @SpyBean ru.growerhub.backend.common.config.DemoSettings demoSettings;
     @Autowired ru.growerhub.backend.auth.AuthFacade authFacade;
     @Autowired JwtService jwt;
     @Autowired UserRepository users;
@@ -115,6 +116,49 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         assertThat(((Number) request(token).get("/api/demo/status").path("devices.find { it.profile == 'fan' && it.state.state == 'ON' }.state.energy")).doubleValue()).isPositive();
         request(token).body(Map.of("profile", "air", "name", "Дополнительный датчик"))
                 .post("/api/demo/devices").then().statusCode(200).body("profile", equalTo("air"));
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
+    void hourlySeedKeepsFullHistoryAndMatchingCurrentStates() throws Exception {
+        doReturn(60).when(demoSettings).historyStepMinutes();
+        Response session = start();
+        UUID id = UUID.fromString(session.path("space.id"));
+        var space = spaces.findById(id).orElseThrow();
+        var all = jdbc.queryForList("select * from demo_devices where space_id = ?", id);
+        assertThat(all).hasSize(17);
+        for (var device : all) {
+            Map<String, Object> state = mapper.readValue(device.get("state_json").toString(), new com.fasterxml.jackson.core.type.TypeReference<>() {});
+            assertThat(((java.sql.Timestamp) device.get("updated_at")).toLocalDateTime()).isEqualTo(space.createdAt);
+            if (device.get("native_device_id") != null) {
+                for (String type : List.of("AIR_TEMPERATURE", "AIR_HUMIDITY", "SOIL_MOISTURE")) {
+                    var readings = new TreeMap<LocalDateTime, Double>();
+                    jdbc.query("select r.ts, r.value_numeric from sensor_readings r join sensors s on s.id = r.sensor_id where s.device_id = ? and s.type = ? order by r.ts, r.id",
+                            (org.springframework.jdbc.core.RowCallbackHandler) row -> readings.put(row.getTimestamp(1).toLocalDateTime(), row.getDouble(2)), device.get("native_device_id"), type);
+                    assertThat(readings).hasSize(169);
+                    assertThat(readings.firstKey()).isEqualTo(space.createdAt.minusDays(7));
+                    assertThat(readings.lastKey()).isEqualTo(space.createdAt);
+                    String metric = switch (type) {
+                        case "AIR_TEMPERATURE" -> "temperature";
+                        case "AIR_HUMIDITY" -> "humidity";
+                        default -> "moisture";
+                    };
+                    double value = ((Number) state.get(metric)).doubleValue();
+                    assertThat(readings.lastEntry().getValue()).isEqualTo("moisture".equals(metric) ? (double) Math.round(value) : value);
+                }
+            } else {
+                var snapshot = jdbc.queryForMap("select availability, last_state_at from zigbee_device_snapshots where coordinator_id = ? and friendly_name = ?",
+                        device.get("coordinator_id"), state.get("friendly_name"));
+                assertThat(snapshot.get("availability")).isEqualTo("online");
+                assertThat(((java.sql.Timestamp) snapshot.get("last_state_at")).toLocalDateTime()).isEqualTo(space.createdAt);
+                if ("light".equals(device.get("profile_key"))) {
+                    var energy = jdbc.queryForList("select value_numeric from zigbee_device_property_readings where coordinator_id = ? and friendly_name = ? and property = 'energy' order by ts, id",
+                            Double.class, device.get("coordinator_id"), state.get("friendly_name"));
+                    assertThat(energy).hasSizeGreaterThan(160).isSorted();
+                    assertThat(energy.getLast()).isEqualTo(((Number) state.get("energy")).doubleValue()).isPositive();
+                }
+            }
+        }
         verifyNoInteractions(publisher);
     }
 

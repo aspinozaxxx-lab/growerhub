@@ -515,6 +515,14 @@ public class DemoFacade {
     }
 
     private void publish(DemoDeviceEntity device, Map<String, Object> state, LocalDateTime now) {
+        publishState(device, state, now);
+        if (device.coordinatorId != null) {
+            zigbee.recordSimulatedSnapshot(device.coordinatorId, ZigbeeMqttMessageType.DEVICE_AVAILABILITY,
+                    String.valueOf(state.get("friendly_name")), Map.of("state", "online"), now);
+        }
+    }
+
+    private void publishState(DemoDeviceEntity device, Map<String, Object> state, LocalDateTime now) {
         if (device.nativeDeviceId != null) {
             DeviceShadowState previous = nativeDevices.getShadowState(device.targetId);
             var manual = previous != null ? previous.manualWatering() : null;
@@ -537,7 +545,6 @@ public class DemoFacade {
                 default -> throw new IllegalStateException("Unsupported demo profile");
             }
             zigbee.recordSimulatedSnapshot(device.coordinatorId, ZigbeeMqttMessageType.DEVICE_STATE, String.valueOf(state.get("friendly_name")), payload, now);
-            zigbee.recordSimulatedSnapshot(device.coordinatorId, ZigbeeMqttMessageType.DEVICE_AVAILABILITY, String.valueOf(state.get("friendly_name")), Map.of("state", "online"), now);
         }
     }
 
@@ -545,42 +552,62 @@ public class DemoFacade {
         List<DemoDeviceEntity> all = devices.findBySpaceId(space.id);
         LocalDateTime start = now.minusDays(settings.historyDays());
         ZoneId zone = ZoneId.of(users.getTimezone(space.dataUserId));
+        Map<UUID, Map<String, Object>> states = new HashMap<>();
+        Map<UUID, DemoTemplate.Environment> environments = new HashMap<>();
         Map<UUID, List<LocalDateTime>> waterings = new HashMap<>();
-        for (DemoDeviceEntity device : all) waterings.put(device.id, historyWaterings(environment(state(device)), now, zone));
-        for (LocalDateTime at = start; !at.isAfter(now); at = at.plusMinutes(settings.historyStepMinutes())) {
-            double hours = Duration.between(start, at).toMinutes() / 60.0;
-            for (DemoDeviceEntity device : all) {
-                Map<String, Object> state = state(device); DemoTemplate.Profile profile = profile(device.profileKey);
-                DemoTemplate.Environment environment = environment(state);
-                if (environment == null) {
-                    state.put("temperature", rounded(profile.temperature() + template.physics().dailyTemperatureDelta() * Math.sin(at.getHour() * Math.PI / 12)));
-                    state.put("humidity", rounded(profile.humidity() - template.physics().dailyTemperatureDelta() * Math.sin(at.getHour() * Math.PI / 12)));
-                    state.put("moisture", rounded(profile.moisture() + Math.cos(hours * Math.PI / 12) * template.physics().dryingPerHour() * 12));
-                } else {
-                    double wave = dailyWave(environment, at, zone);
-                    state.put("temperature", rounded(environment.temperature() + environment.dailyTemperatureDelta() * wave));
-                    state.put("humidity", rounded(environment.humidity() - environment.dailyHumidityDelta() * wave));
-                    double pumpedSeconds = 0;
-                    for (LocalDateTime watering : waterings.get(device.id)) {
-                        LocalDateTime from = watering.isAfter(start) ? watering : start;
-                        LocalDateTime finish = watering.plusSeconds(environment.historyWateringSeconds());
-                        LocalDateTime until = finish.isBefore(at) ? finish : at;
-                        pumpedSeconds += Math.max(0, Duration.between(from, until).toMillis() / 1000.0);
-                    }
-                    state.put("moisture", rounded(Math.max(0, Math.min(100, environment.moisture()
-                            + pumpedSeconds * template.physics().pumpMoisturePerSecond() - hours * environment.dryingPerHour()))));
-                }
-                if ("switch".equals(profile.kind())) {
-                    int localHour = at.atOffset(ZoneOffset.UTC).atZoneSameInstant(zone).getHour();
-                    boolean on = "light".equals(profile.key()) && localHour >= 6 && localHour < 22;
-                    state.put("state", on ? "ON" : "OFF"); state.put("power", on ? profile.powerWatts() : 0.0);
-                    state.put("energy", number(state, "energy") + (on ? profile.powerWatts() * settings.historyStepMinutes() / 60 / 1000 : 0));
-                }
-                persist(device, state, at); publish(device, state, at);
-            }
-            entityManager.flush();
-            entityManager.clear();
+        for (DemoDeviceEntity device : all) {
+            Map<String, Object> state = state(device);
+            DemoTemplate.Environment environment = environment(state);
+            states.put(device.id, state);
+            environments.put(device.id, environment);
+            waterings.put(device.id, historyWaterings(environment, now, zone));
         }
+        LocalDateTime lastSample = start;
+        entityManager.flush();
+        var flushMode = entityManager.getFlushMode();
+        // Metadannye uzhe sozdany; izmeneniya kazhdogo istoricheskogo sreza sbrasyvayutsya yavno.
+        entityManager.setFlushMode(jakarta.persistence.FlushModeType.COMMIT);
+        try {
+            for (LocalDateTime at = start; !at.isAfter(now); at = at.plusMinutes(settings.historyStepMinutes())) {
+                double hours = Duration.between(start, at).toMinutes() / 60.0;
+                for (DemoDeviceEntity device : all) {
+                    Map<String, Object> state = states.get(device.id); DemoTemplate.Profile profile = profile(device.profileKey);
+                    DemoTemplate.Environment environment = environments.get(device.id);
+                    if (environment == null) {
+                        state.put("temperature", rounded(profile.temperature() + template.physics().dailyTemperatureDelta() * Math.sin(at.getHour() * Math.PI / 12)));
+                        state.put("humidity", rounded(profile.humidity() - template.physics().dailyTemperatureDelta() * Math.sin(at.getHour() * Math.PI / 12)));
+                        state.put("moisture", rounded(profile.moisture() + Math.cos(hours * Math.PI / 12) * template.physics().dryingPerHour() * 12));
+                    } else {
+                        double wave = dailyWave(environment, at, zone);
+                        state.put("temperature", rounded(environment.temperature() + environment.dailyTemperatureDelta() * wave));
+                        state.put("humidity", rounded(environment.humidity() - environment.dailyHumidityDelta() * wave));
+                        double pumpedSeconds = 0;
+                        for (LocalDateTime watering : waterings.get(device.id)) {
+                            LocalDateTime from = watering.isAfter(start) ? watering : start;
+                            LocalDateTime finish = watering.plusSeconds(environment.historyWateringSeconds());
+                            LocalDateTime until = finish.isBefore(at) ? finish : at;
+                            pumpedSeconds += Math.max(0, Duration.between(from, until).toMillis() / 1000.0);
+                        }
+                        state.put("moisture", rounded(Math.max(0, Math.min(100, environment.moisture()
+                                + pumpedSeconds * template.physics().pumpMoisturePerSecond() - hours * environment.dryingPerHour()))));
+                    }
+                    if ("switch".equals(profile.kind())) {
+                        int localHour = at.atOffset(ZoneOffset.UTC).atZoneSameInstant(zone).getHour();
+                        boolean on = "light".equals(profile.key()) && localHour >= 6 && localHour < 22;
+                        state.put("state", on ? "ON" : "OFF"); state.put("power", on ? profile.powerWatts() : 0.0);
+                        state.put("energy", number(state, "energy") + (on ? profile.powerWatts() * settings.historyStepMinutes() / 60 / 1000 : 0));
+                    }
+                    publishState(device, state, at);
+                }
+                entityManager.flush();
+                entityManager.clear();
+                lastSample = at;
+            }
+        } finally {
+            entityManager.setFlushMode(flushMode);
+        }
+        // Promezhutochnye sostoyaniya uzhe zapisany v istoriyu; simulyatoru nuzhen tolko poslednij srez.
+        for (DemoDeviceEntity device : all) persist(device, states.get(device.id), lastSample);
     }
 
     private DemoTemplate.Environment environment(Map<String, Object> state) {
