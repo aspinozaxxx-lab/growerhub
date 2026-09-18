@@ -77,11 +77,36 @@ jobs:
       RELEASES_DIR: /opt/growerhub/releases/frontend
       CURRENT_LINK: /opt/growerhub/current/frontend
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.0"
+
       - name: Download frontend dist
         uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: frontend-artifact
+
+      - name: Prepare changed public URLs for IndexNow
+        id: indexnow_prepare
+        continue-on-error: true
+        env:
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+        run: node frontend/scripts/indexnow.mjs prepare frontend-artifact indexnow-plan.json
+
+      - name: Save IndexNow publication plan
+        if: ${{ steps.indexnow_prepare.outcome == 'success' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: indexnow-plan
+          path: indexnow-plan.json
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Setup pinned VPS SSH
         shell: bash
@@ -182,6 +207,13 @@ jobs:
             esac
           done
           EOF
+
+      - name: Notify search engines about changed public pages
+        if: ${{ steps.indexnow_prepare.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+        run: node frontend/scripts/indexnow.mjs submit indexnow-plan.json
 
   deploy_legacy:
     name: Deploy frontend to legacy manually
