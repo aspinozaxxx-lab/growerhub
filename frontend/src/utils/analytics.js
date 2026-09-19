@@ -108,6 +108,7 @@ const PRODUCT_GOALS = new Set([
   'zone_created',
   'automation_enabled',
   'telegram_contact',
+  'telegram_channel_open',
   'demo_open',
   'demo_ready',
   'demo_action',

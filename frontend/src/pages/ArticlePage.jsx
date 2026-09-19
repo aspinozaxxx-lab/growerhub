@@ -182,6 +182,7 @@ function ArticlePage({ initialArticle } = {}) {
       <LeadCta
         placement="article_bottom"
         demoView={demoView}
+        showChannel
         title={DEMO_PUBLIC_ENABLED ? translatePublic('Попробуйте на готовой ферме') : cluster?.guide.cta.title}
         text={DEMO_PUBLIC_ENABLED ? `${demoHint} ${translatePublic('Без регистрации и оборудования.')}` : cluster?.guide.cta.text}
       />

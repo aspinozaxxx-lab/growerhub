@@ -184,7 +184,7 @@ function HomePage() {
         </div>
       </section>
 
-      <LeadCta placement="home_bottom" title={homeContent.cta.title} text={homeContent.cta.text} />
+      <LeadCta placement="home_bottom" title={homeContent.cta.title} text={homeContent.cta.text} showChannel />
     </div>
   );
 }

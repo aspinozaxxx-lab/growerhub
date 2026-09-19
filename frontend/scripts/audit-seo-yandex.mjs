@@ -14,6 +14,7 @@ const PRODUCT_GOALS = [
   'zone_created',
   'automation_enabled',
   'telegram_contact',
+  'telegram_channel_open',
   'login_view',
   'sso_start',
   'demo_open',
