@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import ru.growerhub.backend.IntegrationTestBase;
@@ -45,21 +47,22 @@ class ZigbeeMqttSnapshotIntegrationTest extends IntegrationTestBase {
         bridgeRepository.deleteAll();
     }
 
-    @Test
-    void storesBridgeDevicesAndSmartPlugState() {
-        inject("zigbee2growerhub/bridge/state", "{\"state\":\"online\"}");
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void storesBridgeDevicesAndSmartPlugState(boolean retained) {
+        inject("zigbee2growerhub/bridge/state", "{\"state\":\"online\"}", retained);
         inject("zigbee2growerhub/bridge/info", """
                 {"version":"2.12.0","permit_join":false,"permit_join_end":null,"coordinator":{"ieee_address":"0x00124b002c7a2966","type":"zStack3x0"}}
-                """);
+                """, retained);
         inject("zigbee2growerhub/bridge/devices", """
                 [
                   {"friendly_name":"Coordinator","ieee_address":"0x00124b002c7a2966","type":"Coordinator","supported":true,"disabled":false},
                   {"friendly_name":"smartplug1","ieee_address":"0xa4c13895af2c1df3","type":"Router","supported":true,"disabled":false,
                    "definition":{"model":"TS011F_plug_1_1","exposes":[{"type":"switch","features":[{"property":"state","access":7}]}]}}
                 ]
-                """);
-        inject("zigbee2growerhub/smartplug1/availability", "{\"state\":\"online\"}");
-        inject("zigbee2growerhub/smartplug1", "{\"state\":\"ON\",\"power\":12.5,\"current\":0.1,\"voltage\":220,\"energy\":1.5,\"linkquality\":150}");
+                """, retained);
+        inject("zigbee2growerhub/smartplug1/availability", "{\"state\":\"online\"}", retained);
+        inject("zigbee2growerhub/smartplug1", "{\"state\":\"ON\",\"power\":12.5,\"current\":0.1,\"voltage\":220,\"energy\":1.5,\"linkquality\":150}", retained);
 
         ZigbeeOverviewData overview = zigbeeFacade.getOverview();
 
@@ -84,7 +87,7 @@ class ZigbeeMqttSnapshotIntegrationTest extends IntegrationTestBase {
     void storesCommandResponseSnapshot() {
         inject("zigbee2growerhub/bridge/response/device/rename", """
                 {"status":"ok","data":{"from":"smartplug1","to":"plug-main","homeassistant_rename":false}}
-                """);
+                """, false);
 
         ZigbeeOverviewData overview = zigbeeFacade.getOverview();
 
@@ -93,7 +96,7 @@ class ZigbeeMqttSnapshotIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals("ok", overview.lastCommandResponse().status());
     }
 
-    private void inject(String topic, String payload) {
-        mqttMessageHandler.handleInboundMessage(topic, payload.getBytes(StandardCharsets.UTF_8));
+    private void inject(String topic, String payload, boolean retained) {
+        mqttMessageHandler.handleInboundMessage(topic, payload.getBytes(StandardCharsets.UTF_8), retained);
     }
 }

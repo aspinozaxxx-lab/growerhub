@@ -56,7 +56,7 @@ public class MqttMessageHandler {
         this.zigbeeFacade = zigbeeFacade;
     }
 
-    public void handleInboundMessage(String topic, byte[] payload) {
+    public void handleInboundMessage(String topic, byte[] payload, boolean retained) {
         messageLog.recordInbound(topic, payload, resolveKind(topic));
         if (handleZigbeeMessage(topic, payload)) {
             return;
@@ -66,6 +66,10 @@ public class MqttMessageHandler {
         } else if (topic != null && topic.endsWith(topicSettings.getEventsSuffix())) {
             handleEventMessage(topic, payload);
         } else if (topic != null && topic.endsWith(topicSettings.getStateSuffix())) {
+            if (retained) {
+                logger.info("Sohranennyj MQTT state ne schitaetsya zhivym: {}", topic);
+                return;
+            }
             handleStateMessage(topic, payload);
         }
     }

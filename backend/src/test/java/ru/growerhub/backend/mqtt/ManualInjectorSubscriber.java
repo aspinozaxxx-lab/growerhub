@@ -21,7 +21,7 @@ public class ManualInjectorSubscriber implements MqttSubscriber {
     }
 
     public void injectMessage(String topic, byte[] payload) {
-        handler.handleInboundMessage(topic, payload);
+        handler.handleInboundMessage(topic, payload, false);
     }
 
     @Override

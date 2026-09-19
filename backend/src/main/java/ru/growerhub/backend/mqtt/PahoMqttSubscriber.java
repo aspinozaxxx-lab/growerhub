@@ -167,7 +167,7 @@ public class PahoMqttSubscriber implements MqttSubscriber, SmartLifecycle {
                 logger.info("MQTT DEBUG message topic={} payload={}", topic, new String(payload, StandardCharsets.UTF_8));
             }
             try {
-                handler.handleInboundMessage(topic, payload);
+                handler.handleInboundMessage(topic, payload, message != null && message.isRetained());
             } catch (Exception ex) {
                 logger.warn("MQTT handler failure for topic {}: {}", topic, ex.getMessage());
             }

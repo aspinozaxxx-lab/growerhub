@@ -2,15 +2,20 @@
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.verify;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -19,6 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
+import ru.growerhub.backend.common.config.mqtt.MqttTopicSettings;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.engine.DeviceIngestionService;
 import ru.growerhub.backend.device.engine.DeviceShadowStore;
@@ -53,6 +59,12 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private ManualInjectorSubscriber injectorSubscriber;
+
+    @Autowired
+    private MqttMessageHandler messageHandler;
+
+    @Autowired
+    private MqttTopicSettings topicSettings;
 
     @Autowired
     private DeviceRepository deviceRepository;
@@ -268,6 +280,81 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals("not-json", messages.get(0).payload());
     }
 
+    @Test
+    void retainedNativeStateIsIgnoredUntilFreshHeartbeatArrives() throws Exception {
+        String deviceId = "mqtt-retained";
+        String topic = "gh/dev/" + deviceId + "/state";
+        String initialJson = """
+                {"fw_ver":"1.0.0","air":{"available":true,"temperature":22.0,"humidity":55.5},"soil":{"ports":[{"port":0,"detected":true,"percent":42}]},"pump":{"status":"off"}}
+                """;
+        injectorSubscriber.injectState(topic, initialJson.getBytes(StandardCharsets.UTF_8));
+        LocalDateTime staleAt = LocalDateTime.of(2025, 1, 1, 0, 0);
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElseThrow();
+        device.setLastSeen(staleAt);
+        deviceRepository.save(device);
+        DeviceStateLastEntity savedState = deviceStateLastRepository.findByDeviceId(deviceId).orElseThrow();
+        savedState.setUpdatedAt(staleAt);
+        deviceStateLastRepository.save(savedState);
+        shadowStore.clear();
+
+        SensorEntity temperature = sensorRepository.findByDeviceIdAndTypeAndChannel(
+                device.getId(), SensorType.AIR_TEMPERATURE, 0).orElseThrow();
+        PlantEntity plant = PlantEntity.create();
+        plant.setName("MQTT replay plant");
+        plant.setPlantedAt(staleAt);
+        plantRepository.save(plant);
+        bindSensorToPlant(temperature, plant);
+        long readingsBefore = sensorReadingRepository.count();
+        long plantReadingsBefore = plantMetricSampleRepository.count();
+        Long pumpReadingsBefore = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM pump_state_readings", Long.class);
+        String replayJson = """
+                {"fw_ver":"1.1.0","air":{"available":true,"temperature":27.0,"humidity":65.5},"soil":{"ports":[{"port":0,"detected":true,"percent":12}]},"pump":{"status":"on"}}
+                """;
+        MqttMessage message = new MqttMessage(replayJson.getBytes(StandardCharsets.UTF_8));
+        message.setRetained(true);
+
+        try (var clients = mockConstruction(MqttClient.class)) {
+            PahoMqttSubscriber subscriber = new PahoMqttSubscriber(
+                    new MqttSettings(), new DebugSettings(), topicSettings, messageHandler);
+            subscriber.start();
+            ArgumentCaptor<MqttCallback> callback = ArgumentCaptor.forClass(MqttCallback.class);
+            verify(clients.constructed().getFirst()).setCallback(callback.capture());
+            try {
+                callback.getValue().messageArrived(topic, message);
+
+                DeviceEntity afterReplay = deviceRepository.findByDeviceId(deviceId).orElseThrow();
+                Assertions.assertEquals(staleAt, afterReplay.getLastSeen());
+                Assertions.assertEquals("1.0.0", afterReplay.getCurrentVersion());
+                DeviceStateLastEntity unchanged = deviceStateLastRepository.findByDeviceId(deviceId).orElseThrow();
+                Assertions.assertEquals(staleAt, unchanged.getUpdatedAt());
+                Assertions.assertEquals(savedState.getStateJson(), unchanged.getStateJson());
+                Assertions.assertFalse(shadowStore.getSnapshotOrLoad(deviceId).isOnline());
+                Assertions.assertEquals(22.0, shadowStore.getLastState(deviceId).air().temperature());
+                Assertions.assertEquals(temperature.getUpdatedAt(), sensorRepository.findById(temperature.getId()).orElseThrow().getUpdatedAt());
+                Assertions.assertEquals(readingsBefore, sensorReadingRepository.count());
+                Assertions.assertEquals(plantReadingsBefore, plantMetricSampleRepository.count());
+                Assertions.assertEquals(pumpReadingsBefore, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM pump_state_readings", Long.class));
+                Assertions.assertEquals(replayJson, messageLog.list(null, null, null).getFirst().payload());
+
+                callback.getValue().messageArrived("gh/dev/mqtt-retained-unknown/state", message);
+                Assertions.assertTrue(deviceRepository.findByDeviceId("mqtt-retained-unknown").isEmpty());
+
+                message.setRetained(false);
+                callback.getValue().messageArrived(topic, message);
+
+                Assertions.assertTrue(deviceRepository.findByDeviceId(deviceId).orElseThrow().getLastSeen().isAfter(staleAt));
+                Assertions.assertEquals("1.1.0", deviceRepository.findByDeviceId(deviceId).orElseThrow().getCurrentVersion());
+                Assertions.assertTrue(shadowStore.getSnapshotOrLoad(deviceId).isOnline());
+                Assertions.assertEquals(27.0, shadowStore.getLastState(deviceId).air().temperature());
+                Assertions.assertEquals(readingsBefore + 3, sensorReadingRepository.count());
+                Assertions.assertEquals(plantReadingsBefore + 1, plantMetricSampleRepository.count());
+                Assertions.assertEquals(pumpReadingsBefore + 1, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM pump_state_readings", Long.class));
+            } finally {
+                subscriber.stop();
+            }
+        }
+    }
+
     private SensorEntity createSensor(DeviceEntity device, SensorType type, int channel) {
         SensorEntity sensor = SensorEntity.create();
         sensor.setDeviceId(device.getId());
@@ -308,7 +395,5 @@ class MqttMessageHandlingIntegrationTest extends IntegrationTestBase {
         }
     }
 }
-
-
 
 

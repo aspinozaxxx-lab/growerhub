@@ -297,12 +297,12 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
                 """.formatted(SHARED_NAME, SHARED_IEEE);
         mqttMessageHandler.handleInboundMessage(
                 coordinator.baseTopic() + "/bridge/devices",
-                device.getBytes(StandardCharsets.UTF_8)
+                device.getBytes(StandardCharsets.UTF_8), false
         );
         String payload = "{\"state\":\"" + state + "\",\"power\":" + power + "}";
         mqttMessageHandler.handleInboundMessage(
                 coordinator.baseTopic() + "/" + SHARED_NAME,
-                payload.getBytes(StandardCharsets.UTF_8)
+                payload.getBytes(StandardCharsets.UTF_8), false
         );
     }
 
