@@ -178,6 +178,35 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void batchedBooleanHistoryKeepsTransitionsAndEventReferences() throws Exception {
+        Response session = start();
+        var space = spaces.findById(UUID.fromString(session.path("space.id"))).orElseThrow();
+        var leak = jdbc.queryForList("select coordinator_id, state_json from demo_devices where space_id = ? and profile_key = 'leak' order by id", space.id).getFirst();
+        String friendlyName = mapper.readTree(leak.get("state_json").toString()).get("friendly_name").asText();
+        int coordinatorId = ((Number) leak.get("coordinator_id")).intValue();
+        LocalDateTime first = space.createdAt.minusHours(2).minusMinutes(7);
+        LocalDateTime last = first.plusMinutes(2);
+
+        zigbee.seedSimulatedHistory(coordinatorId, friendlyName, Map.of(
+                last, Map.of("water_leak", false),
+                first.plusMinutes(1), Map.of("water_leak", true),
+                first, Map.of("water_leak", true)));
+
+        var readings = jdbc.queryForList("select r.value_boolean, r.value_numeric, r.value_text, r.ts, e.ts as event_ts "
+                + "from zigbee_device_property_readings r join zigbee_device_state_events e on e.id = r.state_event_id "
+                + "where r.coordinator_id = ? and r.friendly_name = ? and r.property = 'water_leak' and r.ts between ? and ? order by r.ts",
+                coordinatorId, friendlyName, first, last);
+        assertThat(readings).hasSize(2);
+        assertThat(readings.stream().map(row -> row.get("value_boolean"))).containsExactly(true, false);
+        for (var reading : readings) {
+            assertThat(reading.get("value_numeric")).isNull();
+            assertThat(reading.get("value_text")).isEqualTo(reading.get("value_boolean").toString());
+            assertThat(reading.get("event_ts")).isEqualTo(reading.get("ts"));
+        }
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
     void historicalSeedDoesNotRewindDeviceOrInterruptCurrentWatering() {
         Response session = start();
         String token = session.path("access_token");
@@ -454,6 +483,32 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         verifyNoInteractions(publisher);
     }
 
+
+    @Test
+    void farmAndGreenhouseQuotasAreScopedToTheDemoOwner() {
+        Response session = start();
+        String token = session.path("access_token");
+        Response other = start();
+        String otherToken = other.path("access_token");
+        doReturn(2).when(demoSettings).maxFarms();
+        doReturn(5).when(demoSettings).maxGreenhouses();
+        int firstFarmId = request(token).get("/api/automation/farms").path("farms[0].id");
+
+        Response added = request(token).body(Map.of("name", "Second demo farm")).post("/api/automation/farms");
+        added.then().statusCode(200).body("farms.size()", equalTo(2));
+        int secondFarmId = added.path("farms.find { it.name == 'Second demo farm' }.id");
+        request(token).body(Map.of("name", "Over farm limit")).post("/api/automation/farms").then().statusCode(409);
+        request(token).body(Map.of("name", "Fifth greenhouse"))
+                .post("/api/automation/farms/" + secondFarmId + "/greenhouses").then().statusCode(200);
+        request(token).body(Map.of("name", "Over greenhouse limit"))
+                .post("/api/automation/farms/" + firstFarmId + "/greenhouses").then().statusCode(409);
+
+        request(otherToken).get("/api/automation/farms").then().statusCode(200)
+                .body("farms.size()", equalTo(1)).body("farms[0].greenhouses.size()", equalTo(4));
+        request(otherToken).body(Map.of("name", "Other owner farm")).post("/api/automation/farms")
+                .then().statusCode(200).body("farms.size()", equalTo(2));
+        verifyNoInteractions(publisher);
+    }
 
     @Test
     void mutationAndResetLimitsLeaveReadingAndStoredFarmAvailable() {

@@ -346,7 +346,7 @@ public class AutomationFacade {
         requireAuthenticated(user);
         if (user.isDemo()) {
             userFacade.lockDemoOwner(user.id());
-            long count = roomRepository.findAll().stream().filter(room -> Objects.equals(room.getUserId(), user.id())).count();
+            long count = roomRepository.countByUserId(user.id());
             if (count >= demoSettings.maxFarms()) throw new DomainException("conflict", "Demo farm limit reached");
         }
         LocalDateTime now = nowUtc();
@@ -391,7 +391,7 @@ public class AutomationFacade {
         AutomationRoomEntity farm = requireOwnedFarm(user, farmId);
         if (user.isDemo()) {
             userFacade.lockDemoOwner(user.id());
-            long count = boxRepository.findAll().stream().filter(box -> Objects.equals(box.getRoom().getUserId(), user.id())).count();
+            long count = boxRepository.countByRoom_UserId(user.id());
             if (count >= demoSettings.maxGreenhouses()) throw new DomainException("conflict", "Demo greenhouse limit reached");
         }
         LocalDateTime now = nowUtc();

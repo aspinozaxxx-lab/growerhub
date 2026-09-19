@@ -25,7 +25,7 @@
 - `getHistoryForAdmin(UUID coordinatorPublicId, String ieeeAddress, String property, Integer hours)`
 - `getPowerStatisticsForAutomation(Integer coordinatorId, String ieeeAddress, String stateProperty, String onValue, Integer hours, String timezone)`
 - `handleMqttSnapshot(ZigbeeMqttSnapshotMessage message)`
-- `seedSimulatedHistory(Integer coordinatorId, String friendlyName, Map<LocalDateTime, Map<String, Object>> history)` — порция начальной истории DEMO/SIMULATED в порядке времени, с однократным чтением snapshot и общим отбором свойств и checkpoint.
+- `seedSimulatedHistory(Integer coordinatorId, String friendlyName, Map<LocalDateTime, Map<String, Object>> history)` — порция истории DEMO/SIMULATED в порядке времени, с однократным чтением snapshot, общим отбором свойств и checkpoint, записью свойств одним параметризованным INSERT. События и свойства сохраняются в общей транзакции.
 - `permitJoin(Integer seconds)`
 - `setDeviceState(String ieeeAddress, String state)`
 - `setDeviceProperty(String ieeeAddress, String property, Object value)`

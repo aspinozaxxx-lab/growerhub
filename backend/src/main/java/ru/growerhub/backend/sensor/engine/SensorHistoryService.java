@@ -1,8 +1,10 @@
 ﻿package ru.growerhub.backend.sensor.engine;
 
+import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -23,15 +25,18 @@ public class SensorHistoryService {
     private final SensorRepository sensorRepository;
     private final SensorReadingRepository sensorReadingRepository;
     private final DeviceFacade deviceFacade;
+    private final EntityManager entityManager;
 
     public SensorHistoryService(
             SensorRepository sensorRepository,
             SensorReadingRepository sensorReadingRepository,
-            @Lazy DeviceFacade deviceFacade
+            @Lazy DeviceFacade deviceFacade,
+            EntityManager entityManager
     ) {
         this.sensorRepository = sensorRepository;
         this.sensorReadingRepository = sensorReadingRepository;
         this.deviceFacade = deviceFacade;
+        this.entityManager = entityManager;
     }
 
     public List<SensorReadingSummary> record(String deviceId, List<SensorMeasurement> measurements, LocalDateTime ts) {
@@ -98,8 +103,21 @@ public class SensorHistoryService {
                 SensorEntity sensor = sensors.stream().filter(item -> item.getType() == measurement.type()
                         && Objects.equals(item.getChannel(), measurement.channel())).findFirst()
                         .orElseThrow(() -> new DomainException("not_found", "Demo sensor ne najden"));
-                summaries.add(recordReading(sensor, measurement.value(), entry.getKey(), createdAt));
+                summaries.add(new SensorReadingSummary(sensor.getId(), sensor.getType(), entry.getKey(), measurement.value()));
             }
+        }
+        if (!summaries.isEmpty()) {
+            var insert = entityManager.createNativeQuery(
+                    "INSERT INTO sensor_readings (sensor_id, ts, value_numeric, created_at) VALUES "
+                            + String.join(",", Collections.nCopies(summaries.size(), "(?,?,?,?)")));
+            int parameter = 1;
+            for (SensorReadingSummary summary : summaries) {
+                insert.setParameter(parameter++, summary.sensorId());
+                insert.setParameter(parameter++, summary.ts());
+                insert.setParameter(parameter++, summary.value());
+                insert.setParameter(parameter++, createdAt);
+            }
+            insert.executeUpdate();
         }
         return summaries;
     }

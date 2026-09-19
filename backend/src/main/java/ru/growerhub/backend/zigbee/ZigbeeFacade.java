@@ -1,6 +1,7 @@
 package ru.growerhub.backend.zigbee;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HexFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,6 +25,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import org.hibernate.query.TypedParameterValue;
+import org.hibernate.type.StandardBasicTypes;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.common.config.ZigbeeSettings;
@@ -87,6 +91,7 @@ public class ZigbeeFacade {
     private final MqttTopicSettings topicSettings;
     private final ObjectMapper objectMapper;
     private final Clock clock;
+    private final EntityManager entityManager;
     private final ru.growerhub.backend.user.UserFacade userFacade;
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -105,7 +110,8 @@ public class ZigbeeFacade {
             MqttTopicSettings topicSettings,
             ObjectMapper objectMapper,
             Clock clock,
-            @org.springframework.context.annotation.Lazy ru.growerhub.backend.user.UserFacade userFacade
+            @org.springframework.context.annotation.Lazy ru.growerhub.backend.user.UserFacade userFacade,
+            EntityManager entityManager
     ) {
         this.bridgeRepository = bridgeRepository;
         this.deviceRepository = deviceRepository;
@@ -122,6 +128,7 @@ public class ZigbeeFacade {
         this.objectMapper = objectMapper;
         this.clock = clock;
         this.userFacade = userFacade;
+        this.entityManager = entityManager;
     }
 
     @Transactional
@@ -197,14 +204,16 @@ public class ZigbeeFacade {
         userFacade.requireDemoOwner(coordinator.getUserId());
         ZigbeeDeviceSnapshotEntity device = deviceRepository.findByCoordinatorIdAndFriendlyName(coordinatorId, friendlyName)
                 .orElseThrow(() -> new DomainException("not_found", "Demo ustrojstvo ne najdeno"));
+        List<ZigbeeDevicePropertyReadingEntity> readings = new ArrayList<>();
         for (var entry : history.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
             Map<String, Object> payload = entry.getValue();
             ZigbeeMqttSnapshotMessage message = new ZigbeeMqttSnapshotMessage(coordinator.getMqttUsername(),
                     coordinator.getBaseTopic(), ru.growerhub.backend.zigbee.contract.ZigbeeMqttMessageType.DEVICE_STATE,
                     coordinator.getBaseTopic() + "/" + friendlyName, friendlyName, friendlyName,
                     toJson(payload), payload, entry.getKey());
-            recordDeviceState(device, message);
+            recordDeviceState(device, message, readings);
         }
+        insertHistoryBatch(readings);
     }
 
     @Transactional
@@ -1121,17 +1130,18 @@ public class ZigbeeFacade {
                 message.friendlyName(),
                 message.receivedAt()
         );
-        recordDeviceState(device, message);
+        recordDeviceState(device, message, null);
         markFirstDeviceSeen(context, message.receivedAt());
     }
 
-    private void recordDeviceState(ZigbeeDeviceSnapshotEntity device, ZigbeeMqttSnapshotMessage message) {
+    private void recordDeviceState(ZigbeeDeviceSnapshotEntity device, ZigbeeMqttSnapshotMessage message,
+            List<ZigbeeDevicePropertyReadingEntity> batch) {
         String previousStateJson = device.getStateJson();
         device.setStateJson(message.rawPayload());
         device.setLastStateAt(message.receivedAt());
         device.setUpdatedAt(message.receivedAt());
         deviceRepository.save(device);
-        recordDeviceStateHistory(device, message, previousStateJson);
+        recordDeviceStateHistory(device, message, previousStateJson, batch);
     }
 
     private void handleDeviceAvailability(CoordinatorContext context, ZigbeeMqttSnapshotMessage message) {
@@ -1353,7 +1363,8 @@ public class ZigbeeFacade {
     private void recordDeviceStateHistory(
             ZigbeeDeviceSnapshotEntity device,
             ZigbeeMqttSnapshotMessage message,
-            String previousStateJson
+            String previousStateJson,
+            List<ZigbeeDevicePropertyReadingEntity> batch
     ) {
         if (!(message.payload() instanceof Map<?, ?> map)) {
             return;
@@ -1438,10 +1449,34 @@ public class ZigbeeFacade {
                 }
             }
         }
-        propertyReadingRepository.saveAll(readings);
+        if (batch == null) propertyReadingRepository.saveAll(readings);
+        else batch.addAll(readings);
         if (selected.stream().anyMatch(HistoryProperty::numeric)) {
             device.setHistoryCheckpointJson(toHistoryCheckpointsJson(checkpoints));
         }
+    }
+
+    private void insertHistoryBatch(List<ZigbeeDevicePropertyReadingEntity> readings) {
+        if (readings.isEmpty()) return;
+        var insert = entityManager.createNativeQuery(
+                "INSERT INTO zigbee_device_property_readings (coordinator_id, state_event_id, device_snapshot_id, "
+                        + "ieee_address, friendly_name, property, ts, value_numeric, value_text, value_boolean, created_at) VALUES "
+                        + String.join(",", Collections.nCopies(readings.size(), "(?,?,?,?,?,?,?,?,?,?,?)")));
+        int parameter = 1;
+        for (ZigbeeDevicePropertyReadingEntity reading : readings) {
+            insert.setParameter(parameter++, reading.getCoordinatorId());
+            insert.setParameter(parameter++, reading.getStateEvent().getId());
+            insert.setParameter(parameter++, reading.getDeviceSnapshot().getId());
+            insert.setParameter(parameter++, reading.getIeeeAddress());
+            insert.setParameter(parameter++, reading.getFriendlyName());
+            insert.setParameter(parameter++, reading.getProperty());
+            insert.setParameter(parameter++, reading.getTs());
+            insert.setParameter(parameter++, new TypedParameterValue<>(StandardBasicTypes.DOUBLE, reading.getValueNumeric()));
+            insert.setParameter(parameter++, new TypedParameterValue<>(StandardBasicTypes.STRING, reading.getValueText()));
+            insert.setParameter(parameter++, new TypedParameterValue<>(StandardBasicTypes.BOOLEAN, reading.getValueBoolean()));
+            insert.setParameter(parameter++, reading.getCreatedAt());
+        }
+        insert.executeUpdate();
     }
 
     private Map<?, ?> readHistoryState(String json) {

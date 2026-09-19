@@ -5,6 +5,8 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AutomationBoxRepository extends JpaRepository<AutomationBoxEntity, Integer> {
+    long countByRoom_UserId(Integer userId);
+
     List<AutomationBoxEntity> findAllByOrderByNameAscIdAsc();
 
     List<AutomationBoxEntity> findAllByRoom_IdOrderByNameAscIdAsc(Integer roomId);
