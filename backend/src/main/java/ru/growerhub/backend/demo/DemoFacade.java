@@ -515,26 +515,28 @@ public class DemoFacade {
     }
 
     private void publish(DemoDeviceEntity device, Map<String, Object> state, LocalDateTime now) {
-        publishState(device, state, now);
+        publishState(device, state, now, false);
         if (device.coordinatorId != null) {
             zigbee.recordSimulatedSnapshot(device.coordinatorId, ZigbeeMqttMessageType.DEVICE_AVAILABILITY,
                     String.valueOf(state.get("friendly_name")), Map.of("state", "online"), now);
         }
     }
 
-    private void publishState(DemoDeviceEntity device, Map<String, Object> state, LocalDateTime now) {
+    private void publishState(DemoDeviceEntity device, Map<String, Object> state, LocalDateTime now, boolean historyOnly) {
         if (device.nativeDeviceId != null) {
-            DeviceShadowState previous = nativeDevices.getShadowState(device.targetId);
+            DeviceShadowState previous = historyOnly ? null : nativeDevices.getShadowState(device.targetId);
             var manual = previous != null ? previous.manualWatering() : null;
             boolean running = Boolean.TRUE.equals(state.get("pump_running"));
             if (manual != null) manual = new DeviceShadowState.ManualWateringState(running ? "running" : "stopped",
                     manual.durationS(), manual.startedAt(), device.stopAt == null ? 0 : (int) Math.max(0, Duration.between(now, device.stopAt).toSeconds()),
                     manual.correlationId(), manual.pumpId(), manual.waterVolumeL(), manual.ph(), manual.fertilizersPerLiter(), manual.journalWrittenForCorrelationId());
             double temperature = rounded(number(state, "temperature")); double humidity = rounded(number(state, "humidity")); double moisture = number(state, "moisture");
-            nativeDevices.handleSimulatedState(device.targetId, new DeviceShadowState(manual, "demo", "GROVIKA_V1",
+            DeviceShadowState telemetry = new DeviceShadowState(manual, "demo", "GROVIKA_V1",
                     null, null, null, new DeviceShadowState.AirState(true, temperature, humidity, SensorStatus.OK),
                     new DeviceShadowState.SoilState(List.of(new DeviceShadowState.SoilPort(0, true, (int) Math.round(moisture), SensorStatus.OK))),
-                    new DeviceShadowState.RelayState("off"), new DeviceShadowState.RelayState(running ? "on" : "off"), null), now);
+                    new DeviceShadowState.RelayState("off"), new DeviceShadowState.RelayState(running ? "on" : "off"), null);
+            if (historyOnly) nativeDevices.seedSimulatedHistory(device.targetId, telemetry, now);
+            else nativeDevices.handleSimulatedState(device.targetId, telemetry, now);
         } else {
             Map<String, Object> payload = new LinkedHashMap<>();
             switch (profile(device.profileKey).kind()) {
@@ -597,7 +599,7 @@ public class DemoFacade {
                         state.put("state", on ? "ON" : "OFF"); state.put("power", on ? profile.powerWatts() : 0.0);
                         state.put("energy", number(state, "energy") + (on ? profile.powerWatts() * settings.historyStepMinutes() / 60 / 1000 : 0));
                     }
-                    publishState(device, state, at);
+                    publishState(device, state, at, true);
                 }
                 entityManager.flush();
                 entityManager.clear();

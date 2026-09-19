@@ -32,6 +32,7 @@ import ru.growerhub.backend.demo.DemoFacade;
 import ru.growerhub.backend.demo.engine.DemoWorker;
 import ru.growerhub.backend.demo.jpa.DemoSpaceRepository;
 import ru.growerhub.backend.device.DeviceFacade;
+import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.device.jpa.DeviceEntity;
 import ru.growerhub.backend.device.jpa.DeviceRepository;
 import ru.growerhub.backend.mqtt.*;
@@ -131,6 +132,10 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
             Map<String, Object> state = mapper.readValue(device.get("state_json").toString(), new com.fasterxml.jackson.core.type.TypeReference<>() {});
             assertThat(((java.sql.Timestamp) device.get("updated_at")).toLocalDateTime()).isEqualTo(space.createdAt);
             if (device.get("native_device_id") != null) {
+                var nativeDevice = devices.findById(((Number) device.get("native_device_id")).intValue()).orElseThrow();
+                assertThat(nativeDevice.getLastSeen()).isEqualTo(space.createdAt);
+                assertThat(jdbc.queryForObject("select updated_at from device_state_last where device_id = ?",
+                        LocalDateTime.class, nativeDevice.getDeviceId())).isEqualTo(space.createdAt);
                 for (String type : List.of("AIR_TEMPERATURE", "AIR_HUMIDITY", "SOIL_MOISTURE")) {
                     var readings = new TreeMap<LocalDateTime, Double>();
                     jdbc.query("select r.ts, r.value_numeric from sensor_readings r join sensors s on s.id = r.sensor_id where s.device_id = ? and s.type = ? order by r.ts, r.id",
@@ -163,6 +168,40 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void historicalSeedDoesNotRewindDeviceOrInterruptCurrentWatering() {
+        Response session = start();
+        String token = session.path("access_token");
+        var space = spaces.findById(UUID.fromString(session.path("space.id"))).orElseThrow();
+        var target = automation.getFarmsOverview(new AuthenticatedUser(space.dataUserId, "demo"))
+                .resourceCatalog().nativeDevices().getFirst();
+        var device = devices.findById(target.id()).orElseThrow();
+        int pumpId = target.pumps().getFirst().id();
+        request(token).body(Map.of("mode", "timed", "duration_s", 30, "pulse_enabled", false))
+                .post("/api/manual-watering/pumps/" + pumpId + "/start").then().statusCode(200).body("phase", equalTo("running"));
+        device = devices.findById(target.id()).orElseThrow();
+        var shadow = deviceFacade.getShadowState(device.getDeviceId());
+        var lastState = jdbc.queryForMap("select state_json, updated_at from device_state_last where device_id = ?", device.getDeviceId());
+        Long wateringId = pumps.currentSession(pumpId).id();
+        LocalDateTime at = space.createdAt.minusHours(2).minusMinutes(7);
+        var historical = new DeviceShadowState(null, "historical-firmware", null, 55.0, 9.0, 44.0,
+                null, null, new DeviceShadowState.RelayState("off"), new DeviceShadowState.RelayState("off"), null);
+
+        deviceFacade.seedSimulatedHistory(device.getDeviceId(), historical, at);
+
+        assertThat(deviceFacade.getShadowState(device.getDeviceId())).isEqualTo(shadow);
+        assertThat(jdbc.queryForMap("select state_json, updated_at from device_state_last where device_id = ?", device.getDeviceId())).isEqualTo(lastState);
+        var unchanged = devices.findById(device.getId()).orElseThrow();
+        assertThat(unchanged.getLastSeen()).isEqualTo(device.getLastSeen());
+        assertThat(unchanged.getCurrentVersion()).isEqualTo(device.getCurrentVersion());
+        assertThat(pumps.currentSession(pumpId).id()).isEqualTo(wateringId);
+        assertThat(pumps.currentSession(pumpId).phase()).isEqualTo("running");
+        assertThat(jdbc.queryForObject("select r.value_numeric from sensor_readings r join sensors s on s.id=r.sensor_id where s.device_id=? and s.type='AIR_TEMPERATURE' and r.ts=?",
+                Double.class, device.getId(), at)).isEqualTo(9.0);
+        request(token).post("/api/manual-watering/pumps/" + pumpId + "/stop").then().statusCode(200);
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
     void demoCannotReachAnotherFarmCredentialsOrPhysicalTransport() {
         var account = account();
         var physical = DeviceEntity.create(); physical.setDeviceId("PHYSICAL_" + UUID.randomUUID().toString().replace("-", ""));
@@ -179,6 +218,8 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         assertThatThrownBy(() -> deviceFacade.adminAssign(simulated.getId(), account.getId())).isInstanceOf(DomainException.class);
         int physicalId = physical.getId();
         assertThatThrownBy(() -> deviceFacade.adminAssign(physicalId, space.dataUserId)).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> deviceFacade.seedSimulatedHistory(devices.findById(physicalId).orElseThrow().getDeviceId(), null,
+                LocalDateTime.now(ZoneOffset.UTC).minusDays(1))).isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> deviceFacade.provisionMqttDevice(simulated.getDeviceId(), false)).isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> deviceFacade.handleState(simulated.getDeviceId(), null, LocalDateTime.now(ZoneOffset.UTC))).isInstanceOf(DomainException.class);
         var finalTransport = new PahoMqttPublisher(mqttSettings, debugSettings, mapper, messageLog, deviceFacade, zigbee);

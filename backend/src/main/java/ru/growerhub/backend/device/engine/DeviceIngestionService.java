@@ -153,7 +153,7 @@ public class DeviceIngestionService {
         deviceStateLastRepository.save(record);
     }
 
-    private List<SensorMeasurement> extractMeasurements(
+    public List<SensorMeasurement> extractMeasurements(
             String deviceId,
             DeviceShadowState state,
             LocalDateTime observedAt

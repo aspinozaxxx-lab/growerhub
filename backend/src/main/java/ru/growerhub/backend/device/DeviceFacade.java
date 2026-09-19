@@ -158,6 +158,17 @@ public class DeviceFacade {
     }
 
     @Transactional
+    public void seedSimulatedHistory(String deviceId, DeviceShadowState state, LocalDateTime at) {
+        DeviceEntity device = deviceRepository.findByDeviceId(deviceId)
+                .orElseThrow(() -> new DomainException("not_found", "Demo ustrojstvo ne najdeno"));
+        if (!device.isSimulated()) throw new DomainException("forbidden", "Fizicheskoe ustrojstvo");
+        userFacade.requireDemoOwner(device.getUserId());
+        List<SensorMeasurement> measurements = deviceIngestionService.extractMeasurements(deviceId, state, at);
+        List<SensorReadingSummary> summaries = sensorFacade.recordMeasurements(deviceId, measurements, at);
+        plantFacade.recordFromSensorBindings(summaries);
+    }
+
+    @Transactional
     public void deleteSimulatedDevices(Integer ownerId) {
         userFacade.requireDemoOwner(ownerId);
         for (DeviceEntity device : deviceRepository.findAllByUserId(ownerId)) {
