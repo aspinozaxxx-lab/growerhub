@@ -4,7 +4,7 @@ slug: growerhub-and-home-assistant-via-mqtt-practical-integration-scheme
 title: 'GrowerHub and Home Assistant via MQTT: practical integration scheme'
 summary: "Connect an existing Zigbee2MQTT and Home Assistant installation to GrowerHub: MQTT bridge, first sensor, history, control ownership and disconnection."
 created_at: '2026-07-23'
-updated_at: "2026-09-18"
+updated_at: "2026-09-19"
 cluster: home-assistant-i-diy
 tags:
   - GrowerHub
@@ -35,7 +35,7 @@ Already running Home Assistant, Zigbee2MQTT and sensors? Keep that installation 
 | Zigbee2MQTT and a local MQTT broker | A connector with a separate TLS connection to GrowerHub |
 | Home Assistant entities and dashboards | GrowerHub greenhouse zones, plants, history and scenarios |
 
-Run the connector on an always-on Linux computer or Raspberry Pi with Docker Compose and access to your MQTT broker. Home Assistant OS is not a general Docker Compose host: use a separate Linux machine or your existing Docker server. The supplied connector uses host networking; Windows and Docker Desktop require a separate network check.
+Run the connector on an always-on computer with Docker Compose: Linux/Raspberry Pi, or Windows with Docker Desktop using Linux containers. This package is not a Home Assistant OS add-on; for that installation, use a separate Docker computer on the same network. Connector v0.2.1 uses regular Docker networking and does not require host networking.
 
 This connects **Zigbee2MQTT devices**. GrowerHub does not automatically import arbitrary Home Assistant entities, ESPHome native API sensors, MQTT discovery definitions or old HA history. A sensor appearing in HA does not by itself make it compatible with GrowerHub.
 
@@ -52,11 +52,11 @@ Keep Home Assistant’s MQTT integration, the coordinator’s USB connection and
 3. Under Local MQTT, enter the address, port, Zigbee2MQTT base topic, username and password.
 4. Download your personal `bridge.conf` before refreshing the page. Local broker credentials are used in the browser to generate the file and are not sent to GrowerHub.
 
-From a separate connector computer, `localhost` refers to that computer. Use the MQTT server’s reachable LAN address; an HA add-on container hostname may not resolve outside HA. The generated local connection uses TCP; the GrowerHub connection uses TLS on port 8883.
+Inside the container, `localhost` or `127.0.0.1` refers to the connector itself. Use your MQTT server's LAN address reachable from Docker. If the broker runs on the same Docker Desktop computer, use `host.docker.internal`, as explained in the [Docker documentation](https://docs.docker.com/desktop/features/networking/networking-how-tos/). An HA add-on container hostname may not resolve outside HA. The generated local connection uses TCP; the GrowerHub connection uses TLS on port 8883.
 
 ## 3. Start the connector
 
-Download the [GrowerHub connector directory](https://github.com/aspinozaxxx-lab/growerhub/tree/main/zigbee_coordinator/connector). Keep `docker-compose.yml`, `mosquitto.conf` and your `bridge.conf` together. The example file is not your personal configuration.
+Download and extract the [connector v0.2.1 ZIP](https://github.com/aspinozaxxx-lab/growerhub/releases/download/coordinator-v0.2.1/growerhub-zigbee-connector-v0.2.1.zip). Keep `docker-compose.yml`, `mosquitto.conf` and your `bridge.conf` together. The example file is not your personal configuration. An existing Zigbee2MQTT installation needs this connector, rather than the package for starting a new coordinator.
 
 Run these commands in that directory:
 
@@ -66,7 +66,7 @@ docker compose ps
 docker compose logs --tail=80 connector
 ```
 
-Check the logs for successful connections to both brokers. Do not share passwords or the contents of `bridge.conf`. For authentication failures, check local broker access separately from GrowerHub credentials. If the cloud password was lost, issue replacement connection credentials in GrowerHub and update the connector file.
+Check the logs for successful connections to both brokers. If a connection fails, check the local broker address, access from Docker and outbound access to `growerhub.ru:8883`. For authentication failures, check local broker access separately from GrowerHub credentials. If the cloud password was lost, issue replacement connection credentials in GrowerHub and update the connector file. After editing it, run `docker compose restart connector`. Do not share passwords or the contents of `bridge.conf`.
 
 ## 4. Verify the first useful result
 

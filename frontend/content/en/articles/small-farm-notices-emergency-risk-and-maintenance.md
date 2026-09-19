@@ -3,10 +3,10 @@ translation_of: uvedomleniya-v-mini-ferme
 slug: mini-farm-alerts-emergencies-risks-and-maintenance
 title: 'Mini-farm alerts: emergencies, risks and maintenance'
 summary: >-
-  How to configure GrowerHub alerts so emergencies remain visible without
-  turning routine warnings into noise.
+  Which greenhouse alerts are useful, how to choose thresholds, and what you
+  can already check in GrowerHub: readings, history and automation.
 created_at: '2026-07-23'
-updated_at: '2026-07-23'
+updated_at: '2026-09-19'
 cluster: mini-ferma-i-neskolko-boksov
 tags:
   - GrowerHub
@@ -28,32 +28,44 @@ hero_alt: >-
 ---
 ![Illustration GrowerHub: mini-farm notifications with emergency, risk and maintenance levels](/content/articles/illustrations/uvedomleniya-v-mini-ferme.webp)
 
-Notifications only help when they are few and clear. If GrowerHub sends a message for every small jump in humidity, people quickly stop responding. If an emergency comes into the general flow without priority, it can be skipped. Therefore, a mini-farm requires levels: accident, risk, maintenance and information event.
+A message such as “check the seedlings: moisture is below your chosen threshold” can be more useful than constantly checking charts. First decide which event needs action and which can stay in the history.
 
-Separation is especially important when there are several zones. The owner must understand from the notification: where the problem is, how urgent it is, what the system has already done and who should respond. The phrase “sensor triggered” is weak. The message "Box 2: leakage, pump stopped, inspection required" is already actionable.
+## What GrowerHub supports today
 
-## Accidents
+**GrowerHub does not currently send Telegram, email or push notifications.** It also has no ready-made alert profiles with thresholds for individual plant species. The recommendations below describe how to choose useful alerts, rather than how to enable an existing feature.
 
-Accidents require immediate response or automatic stop. Leakage, overheating for longer than a specified time, frozen pump, absence of a critical sensor, fire or electrical alarm, if such sensors exist. For alarms, the notification must be sent to the responsible channel and remain active until acknowledged.
+You can already view sensor readings and history, equipment state and watering records, and configure lighting, irrigation and climate scenarios. [Open Automations in the demo](/app/demo/?lang=en&view=automations) to try them with virtual devices and simulated readings. An automation scenario controls equipment; it does not also send its owner a message.
 
-In GrowerHub the alarm should show the last action of the system. For example, the pump is turned off, watering is blocked, the ventilation relay is turned on. If there was no action, this also needs to be shown. The leakage sensor in automatic watering is described in the article [Zigbee-leakage sensor](/articles/zigbee-datchik-protechki-dlya-avtopoliva).
+Keep any important alerts already configured in your current system while trying GrowerHub. Choose one automatic controller per actuator. See [GrowerHub and Home Assistant via MQTT](/articles/growerhub-i-home-assistant-cherez-mqtt) for the connection steps.
+
+## Choose thresholds for your installation
+
+A plant name alone is not enough to choose a moisture threshold: substrate, sensor placement and the sensor's scale matter. Compare readings with the plant and your own observations first. For lighting, distinguish lamp operating time from measured illuminance: an active smart plug does not prove that the plant receives enough light.
+
+Describe one rule in plain language: “if this reading stays beyond the chosen limit, tell me which zone to check.” For non-critical deviations, consider duration and limit repeated messages. Numbers in the examples below illustrate message structure, not plant-care recommendations.
+
+## Emergencies
+
+A leak or a pump that does not stop needs attention at the installation. Decide who will inspect it and how to shut it down safely. A notification cannot replace hardware limits or checking actual equipment state.
+
+An example message is “Greenhouse 2: water detected; inspection needed.” Only add “pump stopped” after the equipment confirms it. Sending a stop command alone is not proof.
 
 ## Risks
 
-A risk is a situation that could become a problem if it were repeated or prolonged. For example, the temperature is higher than usual for 30 minutes, soil moisture drops faster than the weekly average, nighttime air humidity is high, the sensor battery is low. The risk should not wake everyone up at night, but should be included in the daytime view.
+A risk is a deviation worth checking before it becomes a problem. Temperature might stay above your chosen value, or soil moisture might drop unusually quickly. A useful message identifies the zone, reading, update time and action to take.
 
-Delay is useful for risks. If the temperature went above the threshold for two minutes and returned, notification may be unnecessary. If the deviation lasts longer or repeats for three days in a row, this is already a signal.
+For example: “Seedlings: temperature has exceeded your threshold for 30 minutes; check ventilation.” This is an example of a proposed alert, not a record of a GrowerHub notification. Missing fresh readings should also be distinguished from a normal measurement.
 
-## Service
+## Maintenance
 
-Maintenance is not an accident, but without it, accidents will become more likely. Low battery, no leak test, need to wash the filter, replace the sensor, check the droppers, clean the ventilation. It is better to send such notifications during working hours and associate them with a task.
+Include batteries, filters, drippers and the reservoir in your regular inspection. Give reminders a convenient time and an owner so that they do not get lost among urgent events.
 
-A person in charge is required for maintenance. If everyone sees the notification, often no one does. The article [user roles in a smart greenhouse](/articles/roli-polzovateley-v-umnoy-teplitse) describes how to separate access and responsibilities.
+GrowerHub does not currently schedule these reminders. You can record completed work and observations in the plant journal.
 
 ## Information events
 
-Not all events require a reaction. Automatic watering is completed, the light schedule is changed, the service mode is turned on, the weekly report is ready. Such entries may be in a log or digest, but should not interrupt accidents.
+An ordinary completed watering session does not always need a message. In GrowerHub, check its result in the watering log. Keep plant observations separately so you can compare care with the plant's condition later.
 
-## Conclusion
+## Start with one useful event
 
-Mini-farm notifications should help you take action. Divide them into accidents, risks, maintenance and information events. For each message, indicate the zone, reason, system action, and person responsible. Then GrowerHub reduces noise and increases the chance that an important issue will be handled on time.
+Choose one zone, one measurable value and one action when it changes. Check that readings are fresh and look at their history. If you need GrowerHub alerts, tell us what you grow, which sensor you use and which event you want to notice in time. A concrete example helps define a useful feature without promising unsupported capabilities.
