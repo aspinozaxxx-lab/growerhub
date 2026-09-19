@@ -5,6 +5,7 @@ import AppPageState from '../../components/layout/AppPageState';
 import TelegramContactLink from '../../components/TelegramContactLink';
 import Button from '../../components/ui/Button';
 import { GITHUB_RELEASES_URL, ZIGBEE_CONNECTOR_DOWNLOAD_URL } from '../../domain/siteConfig';
+import { getPublicPath } from '../../domain/localizedRoutes';
 import {
   createCoordinator,
   completeOnboarding,
@@ -173,7 +174,7 @@ function AppOnboarding() {
   const [overview, setOverview] = useState(null);
   const [setup, setSetup] = useState(null);
   const [coordinatorName, setCoordinatorName] = useState(translateApp("Моя ферма"));
-  const [connectionMode, setConnectionMode] = useState(CONNECTION_MODES.DIRECT);
+  const [connectionMode, setConnectionMode] = useState(null);
   const [platform, setPlatform] = useState(SETUP_PLATFORMS.WINDOWS);
   const [localMqtt, setLocalMqtt] = useState({ host: '', port: '1883', username: '', password: '', baseTopic: 'zigbee2mqtt' });
   const [zoneName, setZoneName] = useState(translateApp("Первая теплица"));
@@ -186,6 +187,7 @@ function AppOnboarding() {
   const selectedCoordinator = coordinators.find((item) => item.id === selectedCoordinatorId)
     || coordinators[0]
     || null;
+  const setupComplete = status?.step === 'COMPLETE';
 
   const refresh = useCallback(async ({ quiet = false } = {}) => {
     if (!quiet) setBusy('loading');
@@ -257,6 +259,7 @@ function AppOnboarding() {
 
   const handleCreateCoordinator = async (event) => {
     event.preventDefault();
+    if (!connectionMode) return;
     setBusy('create-coordinator');
     setError('');
     try {
@@ -373,33 +376,49 @@ function AppOnboarding() {
       <Progress status={status} />
       {error ? <AppPageState kind="error" title={error}><HelpLink step="error" /></AppPageState> : null}
 
-      {!selectedCoordinator ? (
+      {setupComplete ? (
+        <section className="onboarding-card onboarding-complete">
+          <div className="onboarding-kicker">{translateApp("Готово")}</div>
+          <h2>{translateApp("Базовая настройка завершена")}</h2>
+          <p>{translateApp("Данные устройств уже доступны в кабинете. Автоматизации можно включить позже.")}</p>
+          <div className="onboarding-actions">
+            <Link className="hero-cta" to="/app/">{translateApp("Открыть обзор")}</Link>
+            <Link className="secondary-link" to="/app/automations/">{translateApp("Настроить автоматизацию")}</Link>
+            <Link className="secondary-link" to="/app/settings/connections/">{translateApp("Управлять подключениями")}</Link>
+          </div>
+          <p className="onboarding-help"><TelegramContactLink placement="onboarding_complete">{translateApp("Помощь в Telegram")}</TelegramContactLink></p>
+        </section>
+      ) : (
+        <section className="onboarding-card">
+          <h2>{translateApp("Что у вас уже есть?")}</h2>
+          <p>{translateApp("Для начала хватит одного датчика или розетки. Выберите свой вариант — покажем нужную инструкцию.")}</p>
+          <div className="onboarding-choice-grid" role="group" aria-label={translateApp("Способ подключения")}>
+            <button type="button" aria-pressed={connectionMode === CONNECTION_MODES.BRIDGE} className={connectionMode === CONNECTION_MODES.BRIDGE ? 'choice-card is-selected' : 'choice-card'} onClick={() => setConnectionMode(CONNECTION_MODES.BRIDGE)}>
+              <strong>{translateApp("Уже работает Zigbee2MQTT")}</strong><span>{translateApp("Отдельно или внутри Home Assistant. Подключим существующие устройства через модуль связи.")}</span>
+            </button>
+            <button type="button" aria-pressed={connectionMode === CONNECTION_MODES.DIRECT} className={connectionMode === CONNECTION_MODES.DIRECT ? 'choice-card is-selected' : 'choice-card'} onClick={() => setConnectionMode(CONNECTION_MODES.DIRECT)}>
+              <strong>{translateApp("Новая установка")}</strong><span>{translateApp("Есть USB-координатор и Zigbee-устройства. Настроим Zigbee2MQTT с подключением к GrowerHub.")}</span>
+            </button>
+          </div>
+          {connectionMode === CONNECTION_MODES.BRIDGE ? <p>{translateApp("Нужен компьютер с Docker в вашей сети. Существующая сеть Zigbee сохраняется. Если в Home Assistant используется ZHA, этот способ пока не подходит.")}</p> : null}
+          <p>{translateApp("Оборудование ещё не выбрано?")}{' '}<Link to={getPublicPath('equipment', getCurrentLocale())}>{translateApp("Посмотреть совместимые устройства")}</Link></p>
+        </section>
+      )}
+
+      {!setupComplete && connectionMode && (!selectedCoordinator ? (
         <section className="onboarding-card">
           <div className="onboarding-kicker">{translateApp("Шаг 1")}</div>
           <h2>{translateApp("Создайте подключение")}</h2>
           <p>{translateApp("Название нужно только вам. Культуры, число растений и подробную схему фермы указывать не требуется.")}</p>
           <form className="onboarding-form" onSubmit={handleCreateCoordinator}>
-            <label htmlFor="coordinator-name">{translateApp("Название координатора")}</label>
+            <label htmlFor="coordinator-name">{translateApp("Название подключения")}</label>
             <input id="coordinator-name" value={coordinatorName} onChange={(event) => setCoordinatorName(event.target.value)} maxLength="120" required />
-            <Button type="submit" variant="primary" isLoading={busy === 'create-coordinator'}>{translateApp("Создать координатор")}</Button>
+            <Button type="submit" variant="primary" isLoading={busy === 'create-coordinator'}>{translateApp("Создать подключение")}</Button>
           </form>
           <HelpLink step="create_coordinator" />
         </section>
       ) : (
         <>
-          <section className="onboarding-card">
-            <div className="onboarding-kicker">{translateApp("Шаг 2")}</div>
-            <h2>{translateApp("Как вы подключаетесь?")}</h2>
-            <div className="onboarding-choice-grid">
-              <button type="button" className={connectionMode === CONNECTION_MODES.DIRECT ? 'choice-card is-selected' : 'choice-card'} onClick={() => setConnectionMode(CONNECTION_MODES.DIRECT)}>
-                <strong>{translateApp("Новая установка")}</strong><span>{translateApp("Zigbee2MQTT подключится к GrowerHub напрямую.")}</span>
-              </button>
-              <button type="button" className={connectionMode === CONNECTION_MODES.BRIDGE ? 'choice-card is-selected' : 'choice-card'} onClick={() => setConnectionMode(CONNECTION_MODES.BRIDGE)}>
-                <strong>{translateApp("Уже есть Zigbee2MQTT / Home Assistant")}</strong><span>{translateApp("Модуль связи сохранит локальный MQTT и передаст только нужные топики.")}</span>
-              </button>
-            </div>
-          </section>
-
           {setup ? (
             <SecretPanel
               setup={setup}
@@ -409,13 +428,13 @@ function AppOnboarding() {
               localMqtt={localMqtt}
               setLocalMqtt={setLocalMqtt}
             />
-          ) : (
+          ) : !status?.coordinator_connected ? (
             <section className="onboarding-card">
               <h2>{translateApp("Нужна новая копия конфигурации?")}</h2>
               <p>{translateApp("Секрет уже был показан и не хранится на сервере. Ротация сразу отзовёт прежний MQTT-пароль.")}</p>
               <Button onClick={handleRotate} isLoading={busy === 'rotate'}>{translateApp("Выпустить новые данные")}</Button>
             </section>
-          )}
+          ) : null}
 
           {!status?.coordinator_connected ? (
             <section className="onboarding-card onboarding-wait">
@@ -487,17 +506,8 @@ function AppOnboarding() {
             </section>
           ) : null}
 
-          {status?.zone_created ? (
-            <section className="onboarding-card onboarding-complete">
-              <div className="onboarding-kicker">{translateApp("Готово")}</div>
-              <h2>{translateApp("Базовая настройка завершена")}</h2>
-              <p>{translateApp("Данные устройств уже доступны в кабинете. Автоматизации можно включить позже.")}</p>
-              <div className="onboarding-actions"><Link className="hero-cta" to="/app/">{translateApp("Открыть обзор")}</Link><Link className="secondary-link" to="/app/automations/">{translateApp("Настроить автоматизацию")}</Link></div>
-              <HelpLink step="complete" />
-            </section>
-          ) : null}
         </>
-      )}
+      ))}
     </div>
   );
 }
