@@ -189,6 +189,25 @@ public class ZigbeeFacade {
     }
 
     @Transactional
+    public void seedSimulatedHistory(Integer coordinatorId, String friendlyName,
+            Map<LocalDateTime, Map<String, Object>> history) {
+        ZigbeeCoordinatorEntity coordinator = coordinatorRepository.findById(coordinatorId)
+                .orElseThrow(() -> new DomainException("not_found", "Demo koordinator ne najden"));
+        if (!coordinator.isSimulated()) throw new DomainException("forbidden", "Fizicheskij koordinator");
+        userFacade.requireDemoOwner(coordinator.getUserId());
+        ZigbeeDeviceSnapshotEntity device = deviceRepository.findByCoordinatorIdAndFriendlyName(coordinatorId, friendlyName)
+                .orElseThrow(() -> new DomainException("not_found", "Demo ustrojstvo ne najdeno"));
+        for (var entry : history.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+            Map<String, Object> payload = entry.getValue();
+            ZigbeeMqttSnapshotMessage message = new ZigbeeMqttSnapshotMessage(coordinator.getMqttUsername(),
+                    coordinator.getBaseTopic(), ru.growerhub.backend.zigbee.contract.ZigbeeMqttMessageType.DEVICE_STATE,
+                    coordinator.getBaseTopic() + "/" + friendlyName, friendlyName, friendlyName,
+                    toJson(payload), payload, entry.getKey());
+            recordDeviceState(device, message);
+        }
+    }
+
+    @Transactional
     public void renameSimulatedDevice(String baseTopic, String from, String to) {
         ZigbeeCoordinatorEntity coordinator = coordinatorRepository.findByBaseTopicAndArchivedAtIsNull(baseTopic)
                 .orElseThrow(() -> new DomainException("not_found", "Demo koordinator ne najden"));
@@ -1102,13 +1121,17 @@ public class ZigbeeFacade {
                 message.friendlyName(),
                 message.receivedAt()
         );
+        recordDeviceState(device, message);
+        markFirstDeviceSeen(context, message.receivedAt());
+    }
+
+    private void recordDeviceState(ZigbeeDeviceSnapshotEntity device, ZigbeeMqttSnapshotMessage message) {
         String previousStateJson = device.getStateJson();
         device.setStateJson(message.rawPayload());
         device.setLastStateAt(message.receivedAt());
         device.setUpdatedAt(message.receivedAt());
         deviceRepository.save(device);
         recordDeviceStateHistory(device, message, previousStateJson);
-        markFirstDeviceSeen(context, message.receivedAt());
     }
 
     private void handleDeviceAvailability(CoordinatorContext context, ZigbeeMqttSnapshotMessage message) {

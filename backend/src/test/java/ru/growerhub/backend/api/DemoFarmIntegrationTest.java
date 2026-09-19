@@ -59,10 +59,12 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
     @Autowired UserFacade userFacade;
     @Autowired DeviceRepository devices;
     @Autowired DeviceFacade deviceFacade;
+    @Autowired ru.growerhub.backend.sensor.SensorFacade sensorFacade;
     @Autowired DemoFacade demo;
     @Autowired DemoSpaceRepository spaces;
     @Autowired AutomationFacade automation;
     @Autowired ZigbeeFacade zigbee;
+    @Autowired ru.growerhub.backend.zigbee.jpa.ZigbeeCoordinatorRepository coordinators;
     @Autowired PumpFacade pumps;
     @Autowired ru.growerhub.backend.plant.PlantFacade plantFacade;
     @Autowired ObjectMapper mapper;
@@ -120,9 +122,11 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         verifyNoInteractions(publisher);
     }
 
-    @Test
-    void hourlySeedKeepsFullHistoryAndMatchingCurrentStates() throws Exception {
+    @ParameterizedTest
+    @ValueSource(ints = {1, 24})
+    void hourlySeedKeepsFullHistoryAndMatchingCurrentStates(int batchSize) throws Exception {
         doReturn(60).when(demoSettings).historyStepMinutes();
+        doReturn(batchSize).when(demoSettings).historyBatchSize();
         Response session = start();
         UUID id = UUID.fromString(session.path("space.id"));
         var space = spaces.findById(id).orElseThrow();
@@ -161,6 +165,12 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
                             Double.class, device.get("coordinator_id"), state.get("friendly_name"));
                     assertThat(energy).hasSizeGreaterThan(160).isSorted();
                     assertThat(energy.getLast()).isEqualTo(((Number) state.get("energy")).doubleValue()).isPositive();
+                    var transitions = jdbc.queryForList("select value_text from zigbee_device_property_readings where coordinator_id = ? and friendly_name = ? and property = 'state' order by ts, id",
+                            String.class, device.get("coordinator_id"), state.get("friendly_name"));
+                    assertThat(transitions).hasSizeGreaterThanOrEqualTo(14);
+                    for (int index = 1; index < transitions.size(); index++) {
+                        assertThat(transitions.get(index)).isNotEqualTo(transitions.get(index - 1));
+                    }
                 }
             }
         }
@@ -181,15 +191,17 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         device = devices.findById(target.id()).orElseThrow();
         var shadow = deviceFacade.getShadowState(device.getDeviceId());
         var lastState = jdbc.queryForMap("select state_json, updated_at from device_state_last where device_id = ?", device.getDeviceId());
+        var sensorStates = jdbc.queryForList("select id, status, status_changed_at, last_error_at, updated_at from sensors where device_id = ? order by id", device.getId());
         Long wateringId = pumps.currentSession(pumpId).id();
         LocalDateTime at = space.createdAt.minusHours(2).minusMinutes(7);
         var historical = new DeviceShadowState(null, "historical-firmware", null, 55.0, 9.0, 44.0,
                 null, null, new DeviceShadowState.RelayState("off"), new DeviceShadowState.RelayState("off"), null);
 
-        deviceFacade.seedSimulatedHistory(device.getDeviceId(), historical, at);
+        deviceFacade.seedSimulatedHistory(device.getDeviceId(), Map.of(at, historical));
 
         assertThat(deviceFacade.getShadowState(device.getDeviceId())).isEqualTo(shadow);
         assertThat(jdbc.queryForMap("select state_json, updated_at from device_state_last where device_id = ?", device.getDeviceId())).isEqualTo(lastState);
+        assertThat(jdbc.queryForList("select id, status, status_changed_at, last_error_at, updated_at from sensors where device_id = ? order by id", device.getId())).isEqualTo(sensorStates);
         var unchanged = devices.findById(device.getId()).orElseThrow();
         assertThat(unchanged.getLastSeen()).isEqualTo(device.getLastSeen());
         assertThat(unchanged.getCurrentVersion()).isEqualTo(device.getCurrentVersion());
@@ -206,6 +218,9 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         var account = account();
         var physical = DeviceEntity.create(); physical.setDeviceId("PHYSICAL_" + UUID.randomUUID().toString().replace("-", ""));
         physical.setUserId(account.getId()); physical.setName("Рабочая ферма"); physical = devices.saveAndFlush(physical);
+        String coordinatorKey = "physical-" + UUID.randomUUID();
+        var physicalCoordinator = coordinators.saveAndFlush(ru.growerhub.backend.zigbee.jpa.ZigbeeCoordinatorEntity.create(
+                UUID.randomUUID(), account.getId(), "Рабочий координатор", coordinatorKey, coordinatorKey, LocalDateTime.now(ZoneOffset.UTC)));
         Response session = start(); String token = session.path("access_token");
         var space = spaces.findById(UUID.fromString(session.path("space.id"))).orElseThrow();
         var simulated = devices.findAllByUserId(space.dataUserId).getFirst();
@@ -218,8 +233,12 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         assertThatThrownBy(() -> deviceFacade.adminAssign(simulated.getId(), account.getId())).isInstanceOf(DomainException.class);
         int physicalId = physical.getId();
         assertThatThrownBy(() -> deviceFacade.adminAssign(physicalId, space.dataUserId)).isInstanceOf(DomainException.class);
-        assertThatThrownBy(() -> deviceFacade.seedSimulatedHistory(devices.findById(physicalId).orElseThrow().getDeviceId(), null,
-                LocalDateTime.now(ZoneOffset.UTC).minusDays(1))).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> deviceFacade.seedSimulatedHistory(devices.findById(physicalId).orElseThrow().getDeviceId(), Map.of()))
+                .isInstanceOfSatisfying(DomainException.class, error -> assertThat(error.getCode()).isEqualTo("forbidden"));
+        assertThatThrownBy(() -> zigbee.seedSimulatedHistory(physicalCoordinator.getId(), "physical-device", Map.of()))
+                .isInstanceOfSatisfying(DomainException.class, error -> assertThat(error.getCode()).isEqualTo("forbidden"));
+        assertThatThrownBy(() -> sensorFacade.seedSimulatedHistory(devices.findById(physicalId).orElseThrow().getDeviceId(), Map.of()))
+                .isInstanceOfSatisfying(DomainException.class, error -> assertThat(error.getCode()).isEqualTo("forbidden"));
         assertThatThrownBy(() -> deviceFacade.provisionMqttDevice(simulated.getDeviceId(), false)).isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> deviceFacade.handleState(simulated.getDeviceId(), null, LocalDateTime.now(ZoneOffset.UTC))).isInstanceOf(DomainException.class);
         var finalTransport = new PahoMqttPublisher(mqttSettings, debugSettings, mapper, messageLog, deviceFacade, zigbee);

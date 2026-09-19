@@ -104,6 +104,15 @@ public class SensorFacade {
         return historyService.record(deviceId, measurements, ts);
     }
 
+    @Transactional
+    public List<SensorReadingSummary> seedSimulatedHistory(
+            String deviceId, Map<LocalDateTime, List<SensorMeasurement>> history) {
+        if (!deviceFacade.isSimulatedDevice(deviceId)) {
+            throw new DomainException("forbidden", "Fizicheskoe ustrojstvo");
+        }
+        return historyService.seedHistory(deviceId, history);
+    }
+
     @Transactional(readOnly = true)
     public Map<Integer, List<Integer>> getPlantIdsBySensorIds(List<Integer> sensorIds) {
         return bindingService.getPlantIdsBySensorIds(sensorIds);

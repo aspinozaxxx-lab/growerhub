@@ -15,6 +15,7 @@
 - `listByPlantIdLight(Integer plantId)`
 - `deleteByDeviceId(Integer deviceId)`
 - `recordMeasurements(String deviceId, List<SensorMeasurement> measurements, LocalDateTime ts)`
+- `seedSimulatedHistory(String deviceId, Map<LocalDateTime, List<SensorMeasurement>> history)`
 - `getPlantIdsBySensorIds(List<Integer> sensorIds)`
 - `getOldestHistoryTimestamp()`
 - `compactHistoryDay(LocalDateTime fromTs, LocalDateTime toTs)`
@@ -46,7 +47,7 @@
 
 ## Алгоритм работы
 
-Facade обновляет привязки, проверяет доступ к датчику, отдаёт списки и историю. При поступлении measurements домен создаёт или обновляет sensor records, сохраняет readings и возвращает summary для записи метрик растения. Выбор точек длинного диапазона выполняется в БД. По запросу maintenance полные старые сутки прореживаются до последней точки каждого датчика в каждом часовом интервале.
+Facade обновляет привязки, проверяет доступ к датчику, отдаёт списки и историю. При поступлении measurements домен создаёт или обновляет sensor records, сохраняет readings и возвращает summary для записи метрик растения. Начальная история SIMULATED пишется порциями: существующие датчики читаются один раз на порцию, их статусы и время обновления не изменяются. Выбор точек длинного диапазона выполняется в БД. По запросу maintenance полные старые сутки прореживаются до последней точки каждого датчика в каждом часовом интервале.
 
 ## Ограничения
 

@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -158,13 +159,14 @@ public class DeviceFacade {
     }
 
     @Transactional
-    public void seedSimulatedHistory(String deviceId, DeviceShadowState state, LocalDateTime at) {
+    public void seedSimulatedHistory(String deviceId, Map<LocalDateTime, DeviceShadowState> history) {
         DeviceEntity device = deviceRepository.findByDeviceId(deviceId)
                 .orElseThrow(() -> new DomainException("not_found", "Demo ustrojstvo ne najdeno"));
         if (!device.isSimulated()) throw new DomainException("forbidden", "Fizicheskoe ustrojstvo");
         userFacade.requireDemoOwner(device.getUserId());
-        List<SensorMeasurement> measurements = deviceIngestionService.extractMeasurements(deviceId, state, at);
-        List<SensorReadingSummary> summaries = sensorFacade.recordMeasurements(deviceId, measurements, at);
+        Map<LocalDateTime, List<SensorMeasurement>> measurements = new LinkedHashMap<>();
+        history.forEach((at, state) -> measurements.put(at, deviceIngestionService.extractMeasurements(deviceId, state, at)));
+        List<SensorReadingSummary> summaries = sensorFacade.seedSimulatedHistory(deviceId, measurements);
         plantFacade.recordFromSensorBindings(summaries);
     }
 

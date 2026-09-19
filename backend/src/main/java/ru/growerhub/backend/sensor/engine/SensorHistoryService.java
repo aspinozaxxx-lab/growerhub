@@ -4,9 +4,12 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import ru.growerhub.backend.device.DeviceFacade;
+import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.sensor.contract.SensorMeasurement;
 import ru.growerhub.backend.sensor.contract.SensorReadingSummary;
 import ru.growerhub.backend.sensor.contract.SensorStatus;
@@ -78,15 +81,36 @@ public class SensorHistoryService {
             sensorRepository.save(sensor);
 
             if (measurement.value() != null) {
-                SensorReadingEntity reading = SensorReadingEntity.create();
-                reading.setSensor(sensor);
-                reading.setTs(ts);
-                reading.setValueNumeric(measurement.value());
-                reading.setCreatedAt(now);
-                sensorReadingRepository.save(reading);
-                summaries.add(new SensorReadingSummary(sensor.getId(), sensor.getType(), ts, measurement.value()));
+                summaries.add(recordReading(sensor, measurement.value(), ts, now));
             }
         }
         return summaries;
+    }
+
+    public List<SensorReadingSummary> seedHistory(String deviceId, Map<LocalDateTime, List<SensorMeasurement>> history) {
+        Integer devicePk = deviceFacade.findDeviceId(deviceId);
+        List<SensorEntity> sensors = sensorRepository.findAllByDeviceId(devicePk);
+        List<SensorReadingSummary> summaries = new ArrayList<>();
+        LocalDateTime createdAt = LocalDateTime.now(ZoneOffset.UTC);
+        for (var entry : history.entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+            for (SensorMeasurement measurement : entry.getValue()) {
+                if (measurement == null || measurement.value() == null) continue;
+                SensorEntity sensor = sensors.stream().filter(item -> item.getType() == measurement.type()
+                        && Objects.equals(item.getChannel(), measurement.channel())).findFirst()
+                        .orElseThrow(() -> new DomainException("not_found", "Demo sensor ne najden"));
+                summaries.add(recordReading(sensor, measurement.value(), entry.getKey(), createdAt));
+            }
+        }
+        return summaries;
+    }
+
+    private SensorReadingSummary recordReading(SensorEntity sensor, Double value, LocalDateTime ts, LocalDateTime createdAt) {
+        SensorReadingEntity reading = SensorReadingEntity.create();
+        reading.setSensor(sensor);
+        reading.setTs(ts);
+        reading.setValueNumeric(value);
+        reading.setCreatedAt(createdAt);
+        sensorReadingRepository.save(reading);
+        return new SensorReadingSummary(sensor.getId(), sensor.getType(), ts, value);
     }
 }

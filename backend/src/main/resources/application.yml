@@ -329,6 +329,8 @@ demo:
   history-days: 7
   # Translitem: shag nachalnoj istorii v minutah.
   history-step-minutes: 60
+  # Translitem: chislo istoricheskih srezov odnogo ustrojstva v porcii zapisi.
+  history-batch-size: 24
   # Translitem: interval zapisi tekushhej telemetrii v sekundah.
   telemetry-period-seconds: 15
   # Translitem: otdelnaja refresh cookie dlya demo.

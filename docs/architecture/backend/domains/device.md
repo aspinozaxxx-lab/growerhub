@@ -20,7 +20,7 @@
 - `markFirmwareUpdate(String deviceId, String version, String firmwareUrl, String correlationId, LocalDateTime requestedAt)`
 - `markFirmwareUpdateFailed(String deviceId, String correlationId, String error, LocalDateTime completedAt)`
 - `handleState(String deviceId, DeviceShadowState state, LocalDateTime now)`
-- `seedSimulatedHistory(String deviceId, DeviceShadowState state, LocalDateTime at)` — исторические показания только DEMO/SIMULATED через sensor и plant, без изменения device shadow и обработки насосов.
+- `seedSimulatedHistory(String deviceId, Map<LocalDateTime, DeviceShadowState> history)` — порция истории только DEMO/SIMULATED через sensor и plant, без изменения shadow, статусов датчиков и обработки насосов.
 - `handleAck(String deviceId, String correlationId, String result, String status, Map<String, Object> payloadMap, LocalDateTime receivedAt, LocalDateTime expiresAt)`
 - `handleServiceEvent(String deviceId, DeviceServiceEventData event, LocalDateTime receivedAt)`
 - `cleanupExpiredAcks()`

@@ -21,6 +21,7 @@ public record DemoSettings(
         int workerBatchSize,
         int historyDays,
         int historyStepMinutes,
+        int historyBatchSize,
         int telemetryPeriodSeconds,
         String cookieName,
         boolean secureCookie,

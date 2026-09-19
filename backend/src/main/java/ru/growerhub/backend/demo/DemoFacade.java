@@ -515,66 +515,62 @@ public class DemoFacade {
     }
 
     private void publish(DemoDeviceEntity device, Map<String, Object> state, LocalDateTime now) {
-        publishState(device, state, now, false);
-        if (device.coordinatorId != null) {
+        if (device.nativeDeviceId != null) {
+            nativeDevices.handleSimulatedState(device.targetId, nativeTelemetry(device, state, now, false), now);
+        } else {
+            zigbee.recordSimulatedSnapshot(device.coordinatorId, ZigbeeMqttMessageType.DEVICE_STATE,
+                    String.valueOf(state.get("friendly_name")), zigbeePayload(device, state), now);
             zigbee.recordSimulatedSnapshot(device.coordinatorId, ZigbeeMqttMessageType.DEVICE_AVAILABILITY,
                     String.valueOf(state.get("friendly_name")), Map.of("state", "online"), now);
         }
     }
 
-    private void publishState(DemoDeviceEntity device, Map<String, Object> state, LocalDateTime now, boolean historyOnly) {
-        if (device.nativeDeviceId != null) {
-            DeviceShadowState previous = historyOnly ? null : nativeDevices.getShadowState(device.targetId);
-            var manual = previous != null ? previous.manualWatering() : null;
-            boolean running = Boolean.TRUE.equals(state.get("pump_running"));
-            if (manual != null) manual = new DeviceShadowState.ManualWateringState(running ? "running" : "stopped",
-                    manual.durationS(), manual.startedAt(), device.stopAt == null ? 0 : (int) Math.max(0, Duration.between(now, device.stopAt).toSeconds()),
-                    manual.correlationId(), manual.pumpId(), manual.waterVolumeL(), manual.ph(), manual.fertilizersPerLiter(), manual.journalWrittenForCorrelationId());
-            double temperature = rounded(number(state, "temperature")); double humidity = rounded(number(state, "humidity")); double moisture = number(state, "moisture");
-            DeviceShadowState telemetry = new DeviceShadowState(manual, "demo", "GROVIKA_V1",
-                    null, null, null, new DeviceShadowState.AirState(true, temperature, humidity, SensorStatus.OK),
-                    new DeviceShadowState.SoilState(List.of(new DeviceShadowState.SoilPort(0, true, (int) Math.round(moisture), SensorStatus.OK))),
-                    new DeviceShadowState.RelayState("off"), new DeviceShadowState.RelayState(running ? "on" : "off"), null);
-            if (historyOnly) nativeDevices.seedSimulatedHistory(device.targetId, telemetry, now);
-            else nativeDevices.handleSimulatedState(device.targetId, telemetry, now);
-        } else {
-            Map<String, Object> payload = new LinkedHashMap<>();
-            switch (profile(device.profileKey).kind()) {
-                case "switch" -> { payload.put("state", state.get("state")); payload.put("power", state.get("power")); payload.put("energy", state.get("energy")); }
-                case "leak" -> payload.put("water_leak", state.get("water_leak"));
-                case "air" -> { payload.put("temperature", state.get("temperature")); payload.put("humidity", state.get("humidity")); }
-                case "soil" -> payload.put("soil_moisture", state.get("moisture"));
-                default -> throw new IllegalStateException("Unsupported demo profile");
-            }
-            zigbee.recordSimulatedSnapshot(device.coordinatorId, ZigbeeMqttMessageType.DEVICE_STATE, String.valueOf(state.get("friendly_name")), payload, now);
+    private DeviceShadowState nativeTelemetry(DemoDeviceEntity device, Map<String, Object> state,
+            LocalDateTime now, boolean historyOnly) {
+        DeviceShadowState previous = historyOnly ? null : nativeDevices.getShadowState(device.targetId);
+        var manual = previous != null ? previous.manualWatering() : null;
+        boolean running = Boolean.TRUE.equals(state.get("pump_running"));
+        if (manual != null) manual = new DeviceShadowState.ManualWateringState(running ? "running" : "stopped",
+                manual.durationS(), manual.startedAt(), device.stopAt == null ? 0 : (int) Math.max(0, Duration.between(now, device.stopAt).toSeconds()),
+                manual.correlationId(), manual.pumpId(), manual.waterVolumeL(), manual.ph(), manual.fertilizersPerLiter(), manual.journalWrittenForCorrelationId());
+        double temperature = rounded(number(state, "temperature")); double humidity = rounded(number(state, "humidity")); double moisture = number(state, "moisture");
+        return new DeviceShadowState(manual, "demo", "GROVIKA_V1",
+                null, null, null, new DeviceShadowState.AirState(true, temperature, humidity, SensorStatus.OK),
+                new DeviceShadowState.SoilState(List.of(new DeviceShadowState.SoilPort(0, true, (int) Math.round(moisture), SensorStatus.OK))),
+                new DeviceShadowState.RelayState("off"), new DeviceShadowState.RelayState(running ? "on" : "off"), null);
+    }
+
+    private Map<String, Object> zigbeePayload(DemoDeviceEntity device, Map<String, Object> state) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        switch (profile(device.profileKey).kind()) {
+            case "switch" -> { payload.put("state", state.get("state")); payload.put("power", state.get("power")); payload.put("energy", state.get("energy")); }
+            case "leak" -> payload.put("water_leak", state.get("water_leak"));
+            case "air" -> { payload.put("temperature", state.get("temperature")); payload.put("humidity", state.get("humidity")); }
+            case "soil" -> payload.put("soil_moisture", state.get("moisture"));
+            default -> throw new IllegalStateException("Unsupported demo profile");
         }
+        return payload;
     }
 
     private void seedReadings(DemoSpaceEntity space, LocalDateTime now) {
         List<DemoDeviceEntity> all = devices.findBySpaceId(space.id);
         LocalDateTime start = now.minusDays(settings.historyDays());
         ZoneId zone = ZoneId.of(users.getTimezone(space.dataUserId));
-        Map<UUID, Map<String, Object>> states = new HashMap<>();
-        Map<UUID, DemoTemplate.Environment> environments = new HashMap<>();
-        Map<UUID, List<LocalDateTime>> waterings = new HashMap<>();
-        for (DemoDeviceEntity device : all) {
-            Map<String, Object> state = state(device);
-            DemoTemplate.Environment environment = environment(state);
-            states.put(device.id, state);
-            environments.put(device.id, environment);
-            waterings.put(device.id, historyWaterings(environment, now, zone));
-        }
-        LocalDateTime lastSample = start;
         entityManager.flush();
         var flushMode = entityManager.getFlushMode();
-        // Metadannye uzhe sozdany; izmeneniya kazhdogo istoricheskogo sreza sbrasyvayutsya yavno.
+        // Metadannye uzhe sozdany; istorija pishetsja ogranichennymi porcijami odnogo ustrojstva.
         entityManager.setFlushMode(jakarta.persistence.FlushModeType.COMMIT);
         try {
-            for (LocalDateTime at = start; !at.isAfter(now); at = at.plusMinutes(settings.historyStepMinutes())) {
-                double hours = Duration.between(start, at).toMinutes() / 60.0;
-                for (DemoDeviceEntity device : all) {
-                    Map<String, Object> state = states.get(device.id); DemoTemplate.Profile profile = profile(device.profileKey);
-                    DemoTemplate.Environment environment = environments.get(device.id);
+            for (DemoDeviceEntity device : all) {
+                Map<String, Object> state = state(device);
+                DemoTemplate.Profile profile = profile(device.profileKey);
+                DemoTemplate.Environment environment = environment(state);
+                List<LocalDateTime> waterings = historyWaterings(environment, now, zone);
+                Map<LocalDateTime, DeviceShadowState> nativeHistory = new LinkedHashMap<>();
+                Map<LocalDateTime, Map<String, Object>> zigbeeHistory = new LinkedHashMap<>();
+                LocalDateTime lastSample = start;
+                for (LocalDateTime at = start; !at.isAfter(now); at = at.plusMinutes(settings.historyStepMinutes())) {
+                    double hours = Duration.between(start, at).toMinutes() / 60.0;
                     if (environment == null) {
                         state.put("temperature", rounded(profile.temperature() + template.physics().dailyTemperatureDelta() * Math.sin(at.getHour() * Math.PI / 12)));
                         state.put("humidity", rounded(profile.humidity() - template.physics().dailyTemperatureDelta() * Math.sin(at.getHour() * Math.PI / 12)));
@@ -584,7 +580,7 @@ public class DemoFacade {
                         state.put("temperature", rounded(environment.temperature() + environment.dailyTemperatureDelta() * wave));
                         state.put("humidity", rounded(environment.humidity() - environment.dailyHumidityDelta() * wave));
                         double pumpedSeconds = 0;
-                        for (LocalDateTime watering : waterings.get(device.id)) {
+                        for (LocalDateTime watering : waterings) {
                             LocalDateTime from = watering.isAfter(start) ? watering : start;
                             LocalDateTime finish = watering.plusSeconds(environment.historyWateringSeconds());
                             LocalDateTime until = finish.isBefore(at) ? finish : at;
@@ -599,17 +595,26 @@ public class DemoFacade {
                         state.put("state", on ? "ON" : "OFF"); state.put("power", on ? profile.powerWatts() : 0.0);
                         state.put("energy", number(state, "energy") + (on ? profile.powerWatts() * settings.historyStepMinutes() / 60 / 1000 : 0));
                     }
-                    publishState(device, state, at, true);
+                    if (device.nativeDeviceId != null) nativeHistory.put(at, nativeTelemetry(device, state, at, true));
+                    else zigbeeHistory.put(at, zigbeePayload(device, state));
+                    if (Math.max(nativeHistory.size(), zigbeeHistory.size()) >= Math.max(1, settings.historyBatchSize())
+                            || at.plusMinutes(settings.historyStepMinutes()).isAfter(now)) {
+                        if (device.nativeDeviceId != null) nativeDevices.seedSimulatedHistory(device.targetId, nativeHistory);
+                        else zigbee.seedSimulatedHistory(device.coordinatorId, String.valueOf(state.get("friendly_name")), zigbeeHistory);
+                        entityManager.flush();
+                        entityManager.clear();
+                        nativeHistory.clear();
+                        zigbeeHistory.clear();
+                    }
+                    lastSample = at;
                 }
+                persist(device, state, lastSample);
                 entityManager.flush();
                 entityManager.clear();
-                lastSample = at;
             }
         } finally {
             entityManager.setFlushMode(flushMode);
         }
-        // Promezhutochnye sostoyaniya uzhe zapisany v istoriyu; simulyatoru nuzhen tolko poslednij srez.
-        for (DemoDeviceEntity device : all) persist(device, states.get(device.id), lastSample);
     }
 
     private DemoTemplate.Environment environment(Map<String, Object> state) {
