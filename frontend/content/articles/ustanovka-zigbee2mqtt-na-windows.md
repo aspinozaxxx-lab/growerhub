@@ -3,7 +3,7 @@ slug: "ustanovka-zigbee2mqtt-na-windows"
 title: "Установка Zigbee2MQTT на Windows с USB-координатором"
 summary: "Пошаговая установка Zigbee2MQTT на Windows: выбор USB-координатора, COM-порт, Z-Stack или Ember, конфигурация GrowerHub, запуск и диагностика."
 created_at: "2026-08-16"
-updated_at: "2026-09-17"
+updated_at: "2026-09-20"
 cluster: "zigbee-hub-i-ustroystva"
 tags:
   - "GrowerHub"
@@ -54,9 +54,9 @@ Windows-пакет GrowerHub и его мастер настройки подд�
 ## Шаг 2. Создайте подключение GrowerHub
 
 1. Войдите в GrowerHub и откройте мастер первого подключения.
-2. Создайте координатор с любым понятным названием.
-3. Выберите «Новая установка» и Windows.
-4. Скачайте `configuration.yaml` и `secret.yaml` сразу: MQTT-пароль показывается один раз.
+2. Выберите «Новая установка».
+3. Введите понятное название и нажмите «Создать подключение».
+4. Выберите Windows и сразу скачайте `configuration.yaml` и `secret.yaml`: MQTT-пароль показывается один раз.
 5. Откройте пакеты установки и скачайте последний Windows ZIP из [GitHub Releases](https://github.com/aspinozaxxx-lab/growerhub/releases).
 
 В ZIP нет личных данных доступа. Не публикуйте скачанный `secret.yaml` и не отправляйте его в чат; при потере файла выпустите новые credentials в кабинете.
@@ -116,7 +116,7 @@ Windows-пакет GrowerHub и его мастер настройки подд�
 
 ## Если Zigbee2MQTT уже работает
 
-Не создавайте вторую Zigbee-сеть и не переносите все устройства ради GrowerHub. В мастере выберите вариант «Уже есть Zigbee2MQTT / Home Assistant»: направленный connector сохраняет локальный MQTT и передаёт только нужные состояния и команды. Схема разобрана в статье [GrowerHub и Home Assistant через MQTT](/articles/growerhub-i-home-assistant-cherez-mqtt/).
+Не создавайте вторую Zigbee-сеть и не переносите все устройства ради GrowerHub. В мастере выберите вариант «Уже работает Zigbee2MQTT»: направленный connector сохраняет локальный MQTT и передаёт только нужные состояния и команды. Схема разобрана в статье [GrowerHub и Home Assistant через MQTT](/articles/growerhub-i-home-assistant-cherez-mqtt/).
 
 ## Готово, если
 

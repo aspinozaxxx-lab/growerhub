@@ -4,7 +4,7 @@ slug: growerhub-and-home-assistant-via-mqtt-practical-integration-scheme
 title: 'GrowerHub and Home Assistant via MQTT: practical integration scheme'
 summary: "Connect an existing Zigbee2MQTT and Home Assistant installation to GrowerHub: MQTT bridge, first sensor, history, control ownership and disconnection."
 created_at: '2026-07-23'
-updated_at: "2026-09-19"
+updated_at: "2026-09-20"
 cluster: home-assistant-i-diy
 tags:
   - GrowerHub
@@ -37,7 +37,7 @@ Already running Home Assistant, Zigbee2MQTT and sensors? Keep that installation 
 
 Run the connector on an always-on computer with Docker Compose: Linux/Raspberry Pi, or Windows with Docker Desktop using Linux containers. This package is not a Home Assistant OS add-on; for that installation, use a separate Docker computer on the same network. Connector v0.2.1 uses regular Docker networking and does not require host networking.
 
-This connects **Zigbee2MQTT devices**. GrowerHub does not automatically import arbitrary Home Assistant entities, ESPHome native API sensors, MQTT discovery definitions or old HA history. A sensor appearing in HA does not by itself make it compatible with GrowerHub.
+This connects **Zigbee2MQTT devices**. If your Zigbee network uses ZHA in Home Assistant, this connector does not support it yet. GrowerHub does not automatically import arbitrary Home Assistant entities, ESPHome native API sensors, MQTT discovery definitions or old HA history. A sensor appearing in HA does not by itself make it compatible with GrowerHub.
 
 ## 1. Keep your working Zigbee network
 
@@ -47,10 +47,11 @@ Keep Home Assistant’s MQTT integration, the coordinator’s USB connection and
 
 ## 2. Download your bridge configuration
 
-1. [Sign in to GrowerHub](/app/login/?lang=en&redirect=%2Fapp%2Fonboarding%2F) and create a named coordinator connection.
-2. Choose the option for an existing Zigbee2MQTT/Home Assistant installation.
-3. Under Local MQTT, enter the address, port, Zigbee2MQTT base topic, username and password.
-4. Download your personal `bridge.conf` before refreshing the page. Local broker credentials are used in the browser to generate the file and are not sent to GrowerHub.
+1. [Sign in to GrowerHub](/app/login/?lang=en&redirect=%2Fapp%2Fonboarding%2F) to open the first-connection wizard.
+2. Select “Zigbee2MQTT is already running”. This also applies to Zigbee2MQTT running inside Home Assistant.
+3. Enter a clear name and select “Create connection”.
+4. Under Local MQTT, enter the address, port, Zigbee2MQTT base topic, username and password.
+5. Download your personal `bridge.conf` before refreshing the page. Local broker credentials are used in the browser to generate the file and are not sent to GrowerHub.
 
 Inside the container, `localhost` or `127.0.0.1` refers to the connector itself. Use your MQTT server's LAN address reachable from Docker. If the broker runs on the same Docker Desktop computer, use `host.docker.internal`, as explained in the [Docker documentation](https://docs.docker.com/desktop/features/networking/networking-how-tos/). An HA add-on container hostname may not resolve outside HA. The generated local connection uses TCP; the GrowerHub connection uses TLS on port 8883.
 

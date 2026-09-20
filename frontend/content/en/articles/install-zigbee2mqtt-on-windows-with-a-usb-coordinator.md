@@ -4,7 +4,7 @@ slug: "install-zigbee2mqtt-on-windows-usb-coordinator"
 title: "Install Zigbee2MQTT on Windows with a USB coordinator"
 summary: "A step-by-step Zigbee2MQTT setup for Windows: USB coordinator, COM port, Z-Stack or Ember, GrowerHub configuration, startup and troubleshooting."
 created_at: "2026-08-16"
-updated_at: "2026-09-17"
+updated_at: "2026-09-20"
 cluster: "zigbee-hub-i-ustroystva"
 tags:
   - "GrowerHub"
@@ -55,9 +55,9 @@ An inexpensive CC2652P stick is suitable when it contains coordinator firmware. 
 ## Step 2: Create a GrowerHub connection
 
 1. Sign in to GrowerHub and open the first-connection wizard.
-2. Create a coordinator with any clear name.
-3. Select “New installation” and Windows.
-4. Download `configuration.yaml` and `secret.yaml` immediately; the MQTT password is displayed once.
+2. Select “New installation”.
+3. Enter a clear name and select “Create connection”.
+4. Select Windows and immediately download `configuration.yaml` and `secret.yaml`; the MQTT password is displayed once.
 5. Open the installation packages and download the latest Windows ZIP from [GitHub Releases](https://github.com/aspinozaxxx-lab/growerhub/releases).
 
 The ZIP contains no personal credentials. Do not publish `secret.yaml` or send it in chat. If it is lost, rotate the credentials in the dashboard.
@@ -117,7 +117,7 @@ At this update, the official [Zigbee2MQTT Windows guide](https://www.zigbee2mqtt
 
 ## If Zigbee2MQTT already works
 
-Do not create a second Zigbee network or move every device just for GrowerHub. Select “Already using Zigbee2MQTT / Home Assistant” in the wizard. The directed connector keeps local MQTT in place and forwards only the required states and commands. See [GrowerHub and Home Assistant over MQTT](/articles/growerhub-i-home-assistant-cherez-mqtt/) for the architecture.
+Do not create a second Zigbee network or move every device just for GrowerHub. Select “Zigbee2MQTT is already running” in the wizard. The directed connector keeps local MQTT in place and forwards only the required states and commands. See [GrowerHub and Home Assistant over MQTT](/articles/growerhub-i-home-assistant-cherez-mqtt/) for the architecture.
 
 ## The setup is complete when
 
