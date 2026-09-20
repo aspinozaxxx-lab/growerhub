@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import AboutPage from './pages/AboutPage';
 import ArticleClusterPage from './pages/ArticleClusterPage';
@@ -14,8 +14,8 @@ import MiniFarmPage from './pages/MiniFarmPage';
 import NotFoundPage from './pages/NotFoundPage';
 import PumpEarlyAccessPage from './pages/PumpEarlyAccessPage';
 import { loadAppTranslations, translateCommon } from './locales/i18n';
-import { trackPageView } from './utils/analytics';
-import { AuthProvider } from './features/auth/AuthContext';
+import { trackPageView, trackProductGoalOnce } from './utils/analytics';
+import { AuthProvider, useAuth } from './features/auth/AuthContext';
 
 const AppSection = lazy(async () => {
   await loadAppTranslations();
@@ -24,7 +24,21 @@ const AppSection = lazy(async () => {
 
 function AnalyticsRouteTracker() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { accountStatus } = useAuth();
   const previousUrlRef = useRef(typeof document === 'undefined' ? '' : document.referrer || '');
+
+  useEffect(() => {
+    if (accountStatus !== 'authorized' || !location.pathname.startsWith('/app/')) return;
+    const params = new URLSearchParams(location.search);
+    if (params.get('signup') !== 'complete') return;
+
+    trackProductGoalOnce('signup_complete', { step: 'sso_callback', mode: 'account' });
+    params.delete('signup');
+    navigate({ pathname: location.pathname, search: params.toString(), hash: location.hash }, {
+      replace: true, state: location.state,
+    });
+  }, [accountStatus, location.pathname, location.search, location.hash, location.state, navigate]);
 
   useEffect(() => {
     const url = window.location.href;

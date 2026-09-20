@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import TelegramContactLink from '../../components/TelegramContactLink';
@@ -166,7 +166,6 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
 
 function AppOnboarding() {
   const { loadCurrentUser } = useAuth();
-  const location = useLocation();
   const navigate = useNavigate();
   const [status, setStatus] = useState(null);
   const [coordinators, setCoordinators] = useState([]);
@@ -242,15 +241,6 @@ function AppOnboarding() {
     const timer = window.setInterval(() => refresh({ quiet: true }), POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, [refresh]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    if (params.get('signup') !== 'complete') return;
-
-    trackProductGoalOnce('signup_complete', { step: 'sso_callback' });
-    params.delete('signup');
-    navigate(`${location.pathname}${params.toString() ? `?${params}` : ''}`, { replace: true });
-  }, [location.pathname, location.search, navigate]);
 
   const temperatureFeatures = useMemo(() => getReadableFeatures(overview, 'temperature'), [overview]);
   const writableSwitches = useMemo(() => getWritableSwitches(overview), [overview]);
