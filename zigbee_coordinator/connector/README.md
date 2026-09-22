@@ -12,6 +12,8 @@
 
 Для ручной настройки можно скопировать `mosquitto-bridge.conf.example` в `bridge.conf` и заменить все `CHANGE_ME_*`, включая базовую тему локального Zigbee2MQTT. При анонимном локальном доступе удалите `remote_username` и `remote_password` только из секции `local-zigbee2mqtt`.
 
+Локальный `remote_clientid` имеет вид `<GrowerHub client ID>-local`. У каждого подключения он свой: два моста к одному локальному брокеру не должны использовать одинаковый client ID. При ручной настройке замените `CHANGE_ME_GROWERHUB_USERNAME` в обеих секциях файла. Если в старом `bridge.conf` указан общий `growerhub-connector-local`, замените только этот ID на client ID из секции `growerhub` с суффиксом `-local` и перезапустите свой connector; выпускать новый пароль не требуется.
+
 Если подключения нет, проверьте логи, доступность локального MQTT из Docker, адрес и учётные данные брокера, а также исходящий доступ к `growerhub.ru:8883`. После замены конфигурации выполните `docker compose restart connector`. Для остановки моста используйте `docker compose down`; существующие Zigbee2MQTT и Home Assistant продолжат работать.
 
 Два соединения обмениваются данными через раздельные внутренние деревья `relay/from-local` и `relay/to-local`: состояние, доступность и служебные ответы идут только наружу; `/set`, `/get` и `bridge/request/*` — только обратно. Перед включением сценария выберите один источник автоматических команд для каждого исполнительного устройства, чтобы расписания Home Assistant и GrowerHub не конфликтовали.
@@ -27,5 +29,7 @@ This connector keeps your existing Zigbee2MQTT broker and Home Assistant configu
 5. Check `docker compose logs --tail=50 connector`. GrowerHub should show the connection online and import existing devices. No USB move or device re-pairing is required.
 
 For manual configuration, copy `mosquitto-bridge.conf.example` to `bridge.conf` and replace every `CHANGE_ME_*` value, including the local Zigbee2MQTT base topic. Remove the local section's `remote_username` and `remote_password` only if your local broker allows anonymous connections.
+
+The local `remote_clientid` is `<GrowerHub client ID>-local`. Each connection needs its own ID so that two connectors sharing a local broker do not disconnect each other. For manual setup, replace `CHANGE_ME_GROWERHUB_USERNAME` in both sections of the file. If an older `bridge.conf` uses the shared `growerhub-connector-local`, replace only that ID with the client ID from the `growerhub` section plus `-local`, then restart your connector; no password rotation is required.
 
 If the connector stays offline, check its logs, local broker reachability from Docker, credentials and outbound access to `growerhub.ru:8883`. Run `docker compose restart connector` after editing the configuration. `docker compose down` stops this connector while your existing local setup keeps running. Use one automatic controller per actuator to avoid conflicting Home Assistant and GrowerHub schedules.

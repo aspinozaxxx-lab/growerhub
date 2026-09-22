@@ -6,7 +6,7 @@ start_type automatic
 cleansession false
 notifications false
 try_private true
-remote_clientid growerhub-connector-local
+remote_clientid CHANGE_ME_GROWERHUB_USERNAME-local
 remote_username CHANGE_ME_LOCAL_MQTT_USERNAME
 remote_password CHANGE_ME_LOCAL_MQTT_PASSWORD
 

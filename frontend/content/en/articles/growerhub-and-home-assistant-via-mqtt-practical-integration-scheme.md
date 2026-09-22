@@ -4,7 +4,7 @@ slug: growerhub-and-home-assistant-via-mqtt-practical-integration-scheme
 title: 'GrowerHub and Home Assistant via MQTT: practical integration scheme'
 summary: "Connect an existing Zigbee2MQTT and Home Assistant installation to GrowerHub: MQTT bridge, first sensor, history, control ownership and disconnection."
 created_at: '2026-07-23'
-updated_at: "2026-09-20"
+updated_at: "2026-09-22"
 cluster: home-assistant-i-diy
 tags:
   - GrowerHub
@@ -35,7 +35,7 @@ Already running Home Assistant, Zigbee2MQTT and sensors? Keep that installation 
 | Zigbee2MQTT and a local MQTT broker | A connector with a separate TLS connection to GrowerHub |
 | Home Assistant entities and dashboards | GrowerHub greenhouse zones, plants, history and scenarios |
 
-Run the connector on an always-on computer with Docker Compose: Linux/Raspberry Pi, or Windows with Docker Desktop using Linux containers. This package is not a Home Assistant OS add-on; for that installation, use a separate Docker computer on the same network. Connector v0.2.1 uses regular Docker networking and does not require host networking.
+Run the connector on an always-on computer with Docker Compose: Linux/Raspberry Pi, or Windows with Docker Desktop using Linux containers. This package is not a Home Assistant OS add-on; for that installation, use a separate Docker computer on the same network. Connector v0.2.2 uses regular Docker networking and does not require host networking.
 
 This connects **Zigbee2MQTT devices**. If your Zigbee network uses ZHA in Home Assistant, this connector does not support it yet. GrowerHub does not automatically import arbitrary Home Assistant entities, ESPHome native API sensors, MQTT discovery definitions or old HA history. A sensor appearing in HA does not by itself make it compatible with GrowerHub.
 
@@ -57,7 +57,9 @@ Inside the container, `localhost` or `127.0.0.1` refers to the connector itself.
 
 ## 3. Start the connector
 
-Download and extract the [connector v0.2.1 ZIP](https://github.com/aspinozaxxx-lab/growerhub/releases/download/coordinator-v0.2.1/growerhub-zigbee-connector-v0.2.1.zip). Keep `docker-compose.yml`, `mosquitto.conf` and your `bridge.conf` together. The example file is not your personal configuration. An existing Zigbee2MQTT installation needs this connector, rather than the package for starting a new coordinator.
+Download and extract the [connector v0.2.2 ZIP](https://github.com/aspinozaxxx-lab/growerhub/releases/download/coordinator-v0.2.2/growerhub-zigbee-connector-v0.2.2.zip). Keep `docker-compose.yml`, `mosquitto.conf` and your `bridge.conf` together. The example file is not your personal configuration. An existing Zigbee2MQTT installation needs this connector, rather than the package for starting a new coordinator.
+
+Use a separate personal `bridge.conf` for each connection. Version 0.2.2 fixes a conflict between two connectors sharing a local MQTT broker; the archive README explains how to update an older configuration without rotating its password.
 
 Run these commands in that directory:
 

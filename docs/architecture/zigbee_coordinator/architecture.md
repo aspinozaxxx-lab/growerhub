@@ -38,6 +38,8 @@ Connector передаёт из локального broker в GrowerHub тол�
 
 В git хранятся только шаблоны без MQTT credentials и Zigbee network key. Одноразовый `secret.yaml` скачивается отдельно из кабинета и хранится локально в ignored runtime-каталоге. Credentials локального broker для connector вводятся только на машине пользователя и не отправляются GrowerHub.
 
+Client ID соединения connector с локальным broker равен `<GrowerHub client ID>-local`; он постоянен для координатора и различается у разных подключений, в том числе при общем локальном broker. Облачное соединение сохраняет выданный backend client ID.
+
 Шаблон для новой машины:
 
 ```text

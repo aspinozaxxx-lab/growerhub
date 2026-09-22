@@ -73,6 +73,22 @@ describe('onboardingModel', () => {
 
 describe('podklyuchenie sushchestvujushchego MQTT', () => {
   const setup = { username: 'u', password: 'p', client_id: 'c', base_topic: 'gh/z2m/u' };
+  it('ne vytesnjaet drugoj connector na tom zhe lokalnom brokere', () => {
+    const local = { host: '192.0.2.10', port: '1883' };
+    const first = buildBridgeConfig({ setup, local });
+    const second = buildBridgeConfig({
+      setup: { username: 'u2', password: 'p2', client_id: 'c2', base_topic: 'gh/z2m/u2' },
+      local,
+    });
+    const clientIds = (config) => [...config.matchAll(/^remote_clientid (.+)$/gmu)].map((match) => match[1]);
+
+    expect(new Set([...clientIds(first), ...clientIds(second)]).size).toBe(4);
+    expect(clientIds(first)[1]).toBe(setup.client_id);
+    expect(clientIds(buildBridgeConfig({ setup: { ...setup, password: 'rotated' }, local })))
+      .toEqual(clientIds(first));
+    expect(buildBridgeConfig({ setup: { ...setup, client_id: '' }, local })).toBe('');
+  });
+
   it('napravljaet sostojanija i komandy v vybrannuju bazovuju temu', () => {
     const config = buildBridgeConfig({ setup, local: { host: '192.0.2.10', port: '1883', baseTopic: 'greenhouse/z2m' } });
     expect(config).toContain('topic + in 1 relay/from-local/ greenhouse/z2m/');

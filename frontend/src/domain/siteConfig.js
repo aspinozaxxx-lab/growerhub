@@ -8,7 +8,7 @@ export const DEFAULT_OG_IMAGE = '/og-growerhub.svg';
 export const GITHUB_REPOSITORY_URL = 'https://github.com/aspinozaxxx-lab/growerhub';
 export const GITHUB_COMMITS_URL = `${GITHUB_REPOSITORY_URL}/commits/main/`;
 export const GITHUB_RELEASES_URL = `${GITHUB_REPOSITORY_URL}/releases`;
-export const ZIGBEE_CONNECTOR_DOWNLOAD_URL = `${GITHUB_RELEASES_URL}/download/coordinator-v0.2.1/growerhub-zigbee-connector-v0.2.1.zip`;
+export const ZIGBEE_CONNECTOR_DOWNLOAD_URL = `${GITHUB_RELEASES_URL}/download/coordinator-v0.2.2/growerhub-zigbee-connector-v0.2.2.zip`;
 export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 export const PLATFORM_START_PATH = '/app/login/?lang=ru&redirect=%2Fapp%2Fonboarding%2F';
 
