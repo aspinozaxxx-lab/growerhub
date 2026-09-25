@@ -111,6 +111,7 @@ const PRODUCT_GOALS = new Set([
   'telegram_channel_open',
   'demo_open',
   'demo_ready',
+  'demo_explore',
   'demo_action',
   'demo_save',
   'demo_reset',

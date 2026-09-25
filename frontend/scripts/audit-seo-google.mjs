@@ -16,6 +16,7 @@ const PRODUCT_EVENTS = [
   'sso_start',
   'demo_open',
   'demo_ready',
+  'demo_explore',
   'demo_action',
   'demo_save',
   'demo_reset',

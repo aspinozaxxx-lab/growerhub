@@ -19,6 +19,7 @@ const PRODUCT_GOALS = [
   'sso_start',
   'demo_open',
   'demo_ready',
+  'demo_explore',
   'demo_action',
   'demo_save',
   'demo_reset',
@@ -251,18 +252,24 @@ const auditMetrika = async () => {
     .map((name) => ({ name, goal: goalsByEvent.get(name) }))
     .filter((item) => item.goal);
   const missingGoals = PRODUCT_GOALS.filter((name) => !goalsByEvent.has(name));
-  const goalMetrics = configuredGoals.map(
-    ({ goal }) => `ym:s:goal${goal.id}reaches`,
-  );
-  const report = await metrikaData({
+  const goalBatches = [];
+  for (let offset = 0; offset < Math.max(configuredGoals.length, 1); offset += 17) {
+    goalBatches.push(configuredGoals.slice(offset, offset + 17));
+  }
+  const reports = await Promise.all(goalBatches.map((batch) => metrikaData({
     dimensions: 'ym:s:startURL,ym:s:lastTrafficSource,ym:s:regionCountry',
-    metrics: ['ym:s:visits', 'ym:s:users', 'ym:s:pageviews', ...goalMetrics].join(','),
-  });
-  const rows = (report.data || [])
-    .map((row) => {
+    metrics: [
+      'ym:s:visits', 'ym:s:users', 'ym:s:pageviews',
+      ...batch.map(({ goal }) => `ym:s:goal${goal.id}reaches`),
+    ].join(','),
+  })));
+  const rowsByDimensions = new Map();
+  reports.forEach((report, batchIndex) => {
+    for (const row of report.data || []) {
+      const key = JSON.stringify(row.dimensions);
       const startUrl = dimensionName(row, 0);
       const metrics = row.metrics || [];
-      const result = {
+      const result = rowsByDimensions.get(key) || {
         Локаль: localeForPath(startUrl).toUpperCase(),
         Страница: startUrl,
         Источник: dimensionName(row, 1) || 'Не определён',
@@ -270,12 +277,15 @@ const auditMetrika = async () => {
         Визиты: Number(metrics[0] || 0),
         Посетители: Number(metrics[1] || 0),
         Просмотры: Number(metrics[2] || 0),
+        ...Object.fromEntries(configuredGoals.map(({ name }) => [name, 0])),
       };
-      configuredGoals.forEach(({ name }, index) => {
+      goalBatches[batchIndex].forEach(({ name }, index) => {
         result[name] = Number(metrics[index + 3] || 0);
       });
-      return result;
-    })
+      rowsByDimensions.set(key, result);
+    }
+  });
+  const rows = [...rowsByDimensions.values()]
     .filter((row) => locale === 'all' || row.Локаль.toLowerCase() === locale);
 
   return { rows, configuredGoals, missingGoals };

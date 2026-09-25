@@ -14,6 +14,7 @@ import {
 import { FarmDashboardRooms } from '../../features/dashboard/FarmDashboard';
 import { formatDateTime } from '../../features/dashboard/dashboardModel';
 import { formatTimeHHMM } from '../../utils/formatters';
+import { trackProductGoal } from '../../utils/analytics';
 import { translateApp } from '../../locales/i18n';
 import './SelfServicePages.css';
 import { useAuth } from '../../features/auth/AuthContext';
@@ -70,6 +71,12 @@ function AppOverview() {
 
   const handleOpenStats = (payload) => {
     if (!payload) return;
+    if (demoActive) {
+      trackProductGoal('demo_explore', {
+        placement: 'overview',
+        action: payload.mode === 'box-watering' ? 'watering_history' : 'statistics',
+      });
+    }
     if (payload.mode === 'box-watering') {
       setWateringStatsTarget({ ...payload, title: payload.subtitle || payload.title });
       return;
@@ -104,7 +111,11 @@ function AppOverview() {
         )}
       />
 
-      {demoActive ? <details className="demo-welcome">
+      {demoActive ? <details className="demo-welcome" onToggle={(event) => {
+        if (event.currentTarget.open) {
+          trackProductGoal('demo_explore', { placement: 'overview', action: 'quickstart' });
+        }
+      }}>
         <summary>{translateApp("Что попробовать за две минуты")}</summary>
         <ol>
           <li>{translateApp("Нажмите на влажность почвы в карточке теплицы и посмотрите историю.")}</li>
