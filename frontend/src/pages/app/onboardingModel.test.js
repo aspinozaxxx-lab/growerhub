@@ -5,6 +5,7 @@ import {
   encodeFeatureChoice,
   getReadableFeatures,
   getWritableSwitches,
+  isLocalMqttValid,
 } from './onboardingModel';
 
 const overview = {
@@ -73,6 +74,14 @@ describe('onboardingModel', () => {
 
 describe('podklyuchenie sushchestvujushchego MQTT', () => {
   const setup = { username: 'u', password: 'p', client_id: 'c', base_topic: 'gh/z2m/u' };
+  it('sozdaet rabochij adres iz prinyatyh polej s probelami po krajam', () => {
+    const local = { host: ' 192.0.2.10 ', port: ' 1883 ', username: 'local', password: ' secret ' };
+    expect(isLocalMqttValid(local)).toBe(true);
+    const config = buildBridgeConfig({ setup, local });
+    expect(config.split('\n').find((line) => line.startsWith('address '))).toBe('address 192.0.2.10:1883');
+    expect(config).toContain('remote_password  secret \n');
+  });
+
   it('ne vytesnjaet drugoj connector na tom zhe lokalnom brokere', () => {
     const local = { host: '192.0.2.10', port: '1883' };
     const first = buildBridgeConfig({ setup, local });

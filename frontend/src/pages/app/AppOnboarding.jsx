@@ -396,7 +396,13 @@ function AppOnboarding() {
               <strong>{translateApp("Новая установка")}</strong><span>{translateApp("Есть USB-координатор и Zigbee-устройства. Настроим Zigbee2MQTT с подключением к GrowerHub.")}</span>
             </button>
           </div>
-          {connectionMode === CONNECTION_MODES.BRIDGE ? <p>{translateApp("Нужен компьютер с Docker в вашей сети. Существующая сеть Zigbee сохраняется. Если в Home Assistant используется ZHA, этот способ пока не подходит.")}</p> : null}
+          {connectionMode === CONNECTION_MODES.BRIDGE ? (
+            <>
+              <p>{translateApp("Нужен компьютер с Docker в вашей сети. Существующая сеть Zigbee сохраняется. Если в Home Assistant используется ZHA, этот способ пока не подходит.")}</p>
+              <p>{translateApp("После запуска модуля в ваш аккаунт GrowerHub поступят список и показания всех устройств выбранного Zigbee2MQTT. Модуль также передаёт команды из GrowerHub обратно устройствам; отдельного режима только чтения и выбора одного устройства пока нет.")}</p>
+              <p>{translateApp("Сценарии включаются отдельно. Для каждого устройства используйте автоматизацию в одной системе — Home Assistant или GrowerHub, чтобы их команды не мешали друг другу.")}</p>
+            </>
+          ) : null}
           <p>{translateApp("Оборудование ещё не выбрано?")}{' '}<Link to={getPublicPath('equipment', getCurrentLocale())}>{translateApp("Посмотреть совместимые устройства")}</Link></p>
         </section>
       )}
