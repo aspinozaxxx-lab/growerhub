@@ -35,19 +35,25 @@ export const decodeFeatureChoice = (value) => {
   }
 };
 
-export const buildSectionResources = ({ coordinatorId, temperatureChoice, lightChoice, overview }) => {
+export const buildSectionResources = ({ coordinatorId, temperatureChoice, humidityChoice, soilMoistureChoice, lightChoice, overview }) => {
   const resources = [];
-  const temperature = decodeFeatureChoice(temperatureChoice);
   const light = decodeFeatureChoice(lightChoice);
 
-  if (temperature) {
-    resources.push({
-      role: 'AIR_TEMPERATURE_SENSOR',
-      source_type: 'ZIGBEE_DEVICE',
-      zigbee_coordinator_id: coordinatorId,
-      zigbee_ieee_address: temperature.ieee_address,
-      zigbee_property: temperature.property,
-    });
+  for (const [role, value] of [
+    ['AIR_TEMPERATURE_SENSOR', temperatureChoice],
+    ['AIR_HUMIDITY_SENSOR', humidityChoice],
+    ['SOIL_MOISTURE_SENSOR', soilMoistureChoice],
+  ]) {
+    const choice = decodeFeatureChoice(value);
+    if (choice) {
+      resources.push({
+        role,
+        source_type: 'ZIGBEE_DEVICE',
+        zigbee_coordinator_id: coordinatorId,
+        zigbee_ieee_address: choice.ieee_address,
+        zigbee_property: choice.property,
+      });
+    }
   }
 
   if (light) {

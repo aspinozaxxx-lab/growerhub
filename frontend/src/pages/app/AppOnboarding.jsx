@@ -178,6 +178,8 @@ function AppOnboarding() {
   const [localMqtt, setLocalMqtt] = useState({ host: '', port: '1883', username: '', password: '', baseTopic: 'zigbee2mqtt' });
   const [zoneName, setZoneName] = useState(translateApp("Первая теплица"));
   const [temperatureChoice, setTemperatureChoice] = useState('');
+  const [humidityChoice, setHumidityChoice] = useState('');
+  const [soilMoistureChoice, setSoilMoistureChoice] = useState('');
   const [lightChoice, setLightChoice] = useState('');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
@@ -243,6 +245,8 @@ function AppOnboarding() {
   }, [refresh]);
 
   const temperatureFeatures = useMemo(() => getReadableFeatures(overview, 'temperature'), [overview]);
+  const humidityFeatures = useMemo(() => getReadableFeatures(overview, 'humidity'), [overview]);
+  const soilMoistureFeatures = useMemo(() => getReadableFeatures(overview, 'soil_moisture'), [overview]);
   const writableSwitches = useMemo(() => getWritableSwitches(overview), [overview]);
   const showConnectionHelp = selectedCoordinator && !status?.coordinator_connected
     && Date.now() - waitStartedAt >= CONNECTION_HELP_DELAY_MS;
@@ -321,6 +325,8 @@ function AppOnboarding() {
       const resources = buildSectionResources({
         coordinatorId: selectedCoordinator.id,
         temperatureChoice,
+        humidityChoice,
+        soilMoistureChoice,
         lightChoice,
         overview,
       });
@@ -469,18 +475,22 @@ function AppOnboarding() {
             <section className="onboarding-card">
               <div className="onboarding-kicker">{translateApp("Шаг 4")}</div>
               <h2>{translateApp("Создайте первую теплицу")}</h2>
-              <p>{translateApp("Достаточно названия. Найденные устройства можно сразу назначить теплице или сделать это позже.")}</p>
+              <p>{translateApp("Назначьте найденные устройства, чтобы увидеть их состояние в Обзоре. Это можно сделать и позже в Конструкторе фермы.")}</p>
               <form className="onboarding-form" onSubmit={handleCreateZone}>
                 <label htmlFor="zone-name">{translateApp("Название теплицы")}</label>
                 <input id="zone-name" value={zoneName} onChange={(event) => setZoneName(event.target.value)} maxLength="120" required />
 
-                {temperatureFeatures.length > 0 ? (
-                  <label>{translateApp("Датчик температуры")}<select value={temperatureChoice} onChange={(event) => setTemperatureChoice(event.target.value)}>
+                {[
+                  { label: 'Датчик температуры', features: temperatureFeatures, value: temperatureChoice, setValue: setTemperatureChoice },
+                  { label: 'Влажность воздуха', features: humidityFeatures, value: humidityChoice, setValue: setHumidityChoice },
+                  { label: 'Влажность почвы', features: soilMoistureFeatures, value: soilMoistureChoice, setValue: setSoilMoistureChoice },
+                ].filter(({ features }) => features.length > 0).map(({ label, features, value, setValue }) => (
+                  <label key={label}>{translateApp(label)}<select value={value} onChange={(event) => setValue(event.target.value)}>
                       <option value="">{translateApp("Назначить позже")}</option>
-                      {temperatureFeatures.map(({ device, feature }) => <option key={`${device.ieee_address}-${feature.property}`} value={encodeFeatureChoice(device, feature)}>{device.friendly_name} · {feature.label || feature.property}</option>)}
+                      {features.map(({ device, feature }) => <option key={`${device.ieee_address}-${feature.property}`} value={encodeFeatureChoice(device, feature)}>{device.friendly_name} · {feature.label || feature.property}</option>)}
                     </select>
                   </label>
-                ) : null}
+                ))}
 
                 {writableSwitches.length > 0 ? (
                   <label>{translateApp("Розетка или реле для света")}<select value={lightChoice} onChange={(event) => setLightChoice(event.target.value)}>

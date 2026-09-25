@@ -657,7 +657,7 @@
   "Добавить слот": "Add slot",
   "Добавить ферму": "Add farm",
   "Добавьте теплицу во вкладке «Зоны».": "Add a greenhouse in the Zones tab.",
-  "Достаточно названия. Найденные устройства можно сразу назначить теплице или сделать это позже.": "A name is enough. You can assign discovered devices to the greenhouse now or later.",
+  "Назначьте найденные устройства, чтобы увидеть их состояние в Обзоре. Это можно сделать и позже в Конструкторе фермы.": "Assign discovered devices to see their readings and status in Overview. You can also do this later in Farm builder.",
   "Изменить структуру": "Edit structure",
   "Канал уже используется в другом месте:\n{{value1}}\n\nПереназначить его?": "This channel is already used elsewhere:\n{{value1}}\n\nReassign it?",
   "Названия и структура ферм настраиваются во вкладке «Зоны».": "Farm names and structure are managed in the Zones tab.",
