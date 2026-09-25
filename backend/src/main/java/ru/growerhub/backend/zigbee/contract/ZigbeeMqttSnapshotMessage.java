@@ -11,8 +11,14 @@ public record ZigbeeMqttSnapshotMessage(
         String friendlyName,
         String rawPayload,
         Object payload,
-        LocalDateTime receivedAt
+        LocalDateTime receivedAt,
+        boolean retained
 ) {
+    public ZigbeeMqttSnapshotMessage(String mqttUsername, String baseTopic, ZigbeeMqttMessageType type,
+            String topic, String relativeTopic, String friendlyName, String rawPayload, Object payload,
+            LocalDateTime receivedAt) {
+        this(mqttUsername, baseTopic, type, topic, relativeTopic, friendlyName, rawPayload, payload, receivedAt, false);
+    }
     public ZigbeeMqttSnapshotMessage(
             ZigbeeMqttMessageType type,
             String topic,

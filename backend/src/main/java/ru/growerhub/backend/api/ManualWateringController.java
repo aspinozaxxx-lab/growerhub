@@ -72,4 +72,24 @@ public class ManualWateringController {
                 user
         );
     }
+
+    @PostMapping("/api/manual-watering/resources/{resource_id}/start")
+    public PumpSessionData.View startResource(@AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("resource_id") Integer resourceId, @RequestBody AutomationData.ManualWateringStartRequest request) {
+        return automationFacade.startResourceWatering(resourceId, request, user);
+    }
+
+    @PostMapping("/api/manual-watering/resources/{resource_id}/stop")
+    public PumpSessionData.View stopResource(@AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("resource_id") Integer resourceId) {
+        return automationFacade.stopResourceWatering(resourceId, user);
+    }
+
+    @GetMapping("/api/manual-watering/resources/{resource_id}/sessions")
+    public PumpSessionData.Page resourceSessions(@AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("resource_id") Integer resourceId,
+            @RequestParam(value = "limit", defaultValue = "20") int limit,
+            @RequestParam(value = "before_id", required = false) Long beforeId) {
+        return automationFacade.resourceWateringSessions(resourceId, limit, beforeId, user);
+    }
 }

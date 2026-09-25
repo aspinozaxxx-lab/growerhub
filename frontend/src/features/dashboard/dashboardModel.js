@@ -135,7 +135,8 @@ export function isSwitchResourceOn(resource) {
 }
 
 export function isPumpResourceRunning(resource) {
-  return resource?.current_value === true;
+  return resource?.source_type === RESOURCE_SOURCE_TYPES.ZIGBEE_DEVICE
+    ? isSwitchResourceOn(resource) : resource?.current_value === true;
 }
 
 export function isEquipmentActive(resource, role) {
@@ -317,6 +318,9 @@ export function buildResourceStatsPayload(resource, role, subtitle, scope = {}) 
     };
   }
   if (resource.source_type === RESOURCE_SOURCE_TYPES.ZIGBEE_DEVICE && resource.zigbee_ieee_address) {
+    if (role === RESOURCE_ROLES.WATER_PUMP && resource.id) {
+      return { mode: 'box-watering', boxId: scope.boxId || null, resourceBindingId: resource.id, title, subtitle: resolvedSubtitle };
+    }
     if (POWER_STATISTICS_ROLES.has(role) && resource.id) {
       return {
         mode: 'equipment',

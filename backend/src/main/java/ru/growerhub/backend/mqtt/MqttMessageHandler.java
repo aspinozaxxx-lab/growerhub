@@ -58,7 +58,7 @@ public class MqttMessageHandler {
 
     public void handleInboundMessage(String topic, byte[] payload, boolean retained) {
         messageLog.recordInbound(topic, payload, resolveKind(topic));
-        if (handleZigbeeMessage(topic, payload)) {
+        if (handleZigbeeMessage(topic, payload, retained)) {
             return;
         }
         if (topic != null && topic.endsWith(topicSettings.getAckSuffix())) {
@@ -198,7 +198,7 @@ public class MqttMessageHandler {
         return "raw";
     }
 
-    private boolean handleZigbeeMessage(String topic, byte[] payload) {
+    private boolean handleZigbeeMessage(String topic, byte[] payload, boolean retained) {
         String zigbeeBase = topicSettings.getZigbeeBase();
         if (topic == null) {
             return false;
@@ -260,7 +260,8 @@ public class MqttMessageHandler {
                 friendlyName,
                 rawPayload,
                 parsedPayload,
-                LocalDateTime.now(clock)
+                LocalDateTime.now(clock),
+                retained
         ));
         return true;
     }

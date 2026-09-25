@@ -18,6 +18,9 @@
 - `startSession(PumpSessionData.Start request, AuthenticatedUser user)`
 - `stopSession(Integer pumpId, AuthenticatedUser user)`
 - `currentSession(Integer pumpId)`
+- варианты `stopSession`, `currentSession`, `listSessions` с `ZigbeeWateringData.Target`
+- `hasActiveZigbeeSession(Integer coordinatorId)`
+- `pauseSimulatedZigbee` и `deleteSimulatedZigbeeHistory` для жизненного цикла демо
 - `listSessions(Integer pumpId, int limit, Long beforeId)`
 - `lastCompletedSessionForBox(Integer boxId)`
 - `boxStatistics(Integer boxId, String range, int limit, Long beforeId)`
@@ -59,6 +62,7 @@
 - `device`.
 - `journal`.
 - `plant`.
+- `zigbee` — проверенный исполнитель, живое состояние, ограниченная команда.
 
 ## Внешние пользователи домена
 
@@ -68,18 +72,7 @@
 
 ## Алгоритм работы
 
-Start валидирует насос, targets и единственный active slot физического
-устройства, сохраняет snapshot и отправляет ограниченную по времени
-MQTT-команду. Worker по probe ведёт `running/pause/stopping`, считает только
-активное время и выполняет защитные остановки. История состояния записывает
-только изменение фактического состояния или статуса; при чтении добавляется
-состояние на начало диапазона. Maintenance удаляет старые последовательные
-дубли, сохраняя первый отсчёт суток и все переходы. Завершение идемпотентно
-создаёт журнал каждому snapshot-растению; объём равен `rate × active time`.
-Календарные диапазоны статистики принимают timezone вызывающего сценария;
-legacy-вызов использует системное значение automation.
-
-Демо использует те же сессии и правила завершения, включая журнал и защиту от протечки. Физический worker исключает SIMULATED-устройства; отдельный worker demo вызывает общий жизненный цикл по владельцу. Предзаполненная история создаётся внутренним методом без команды устройству (ADR-006).
+Start проверяет владельца, растения и единственный active slot, сохраняет неизменяемую цель и снимок растений. Native сохраняет прежний MQTT-контракт; Zigbee использует координатор, IEEE и свойство через Facade (ADR-007). Zigbee стартует только в timed-режиме, без импульсов; до живого ON после команды показывает starting и не создаёт полив в журнале. Worker ведёт running/pause/stopping, защитные остановки и восстановление по БД; Zigbee start никогда не повторяется. Живой OFF подтверждает завершение; неизвестная остановка остаётся stopping. Завершение идемпотентно создаёт записи snapshot-растениям, объём рассчитывается по скорости, без неё остаётся null. История сохраняет переходы; календарная статистика использует timezone сценария. Физический worker исключает SIMULATED; demo вызывает тот же жизненный цикл и очищает только свои сессии (ADR-006).
 
 ## Ограничения
 

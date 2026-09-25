@@ -16,6 +16,13 @@ public interface PumpWateringSessionRepository extends JpaRepository<PumpWaterin
 
     Optional<PumpWateringSessionEntity> findByActiveDeviceKey(String activeDeviceKey);
 
+    List<PumpWateringSessionEntity> findByZigbeeCoordinatorId(Integer coordinatorId);
+    boolean existsByZigbeeCoordinatorIdAndActiveDeviceKeyIsNotNull(Integer coordinatorId);
+
+    @Query("select s from PumpWateringSessionEntity s where s.executorKey = :key and (:beforeId is null or s.id < :beforeId) order by s.id desc")
+    List<PumpWateringSessionEntity> findPageByExecutorKey(@Param("key") String key,
+            @Param("beforeId") Long beforeId, Pageable pageable);
+
     List<PumpWateringSessionEntity> findAllByActiveDeviceKeyIsNotNullOrderByIdAsc();
 
     @Query("""

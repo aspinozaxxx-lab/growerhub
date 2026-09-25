@@ -54,8 +54,20 @@ public final class PumpSessionData {
             @JsonProperty("boxes") List<BoxTarget> boxes,
             @JsonProperty("water_volume_l") Double waterVolumeL,
             @JsonProperty("ph") Double ph,
-            @JsonProperty("fertilizers_per_liter") String fertilizersPerLiter
+            @JsonProperty("fertilizers_per_liter") String fertilizersPerLiter,
+            @JsonProperty("zigbee_target") ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target zigbeeTarget
     ) {
+        public Start(Integer pumpId, String source, String mode, Integer durationS, Integer maxActiveDurationS,
+                Boolean pulseEnabled, Integer pulseRunS, Integer pulsePauseS, List<BoxTarget> boxes,
+                Double waterVolumeL, Double ph, String fertilizersPerLiter) {
+            this(pumpId, source, mode, durationS, maxActiveDurationS, pulseEnabled, pulseRunS, pulsePauseS,
+                    boxes, waterVolumeL, ph, fertilizersPerLiter, null);
+        }
+
+        public Start withZigbeeTarget(ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target target) {
+            return new Start(null, source, mode, durationS, maxActiveDurationS, pulseEnabled, pulseRunS, pulsePauseS,
+                    boxes, waterVolumeL, ph, fertilizersPerLiter, target);
+        }
         public Start(
                 Integer pumpId,
                 String source,
@@ -140,8 +152,13 @@ public final class PumpSessionData {
             @JsonProperty("device_key") String deviceKey,
             @JsonProperty("mode") String mode,
             @JsonProperty("phase") String phase,
-            @JsonProperty("leak_sensors") List<LeakTarget> leakSensors
+            @JsonProperty("leak_sensors") List<LeakTarget> leakSensors,
+            @JsonProperty("zigbee_target") ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target zigbeeTarget,
+            @JsonProperty("owner_id") Integer ownerId
     ) {
+        public Probe(Long sessionId, Integer pumpId, String deviceKey, String mode, String phase, List<LeakTarget> leaks) {
+            this(sessionId, pumpId, deviceKey, mode, phase, leaks, null, null);
+        }
     }
 
     public record PlantSnapshot(
@@ -194,7 +211,9 @@ public final class PumpSessionData {
             @JsonProperty("correlation_id") String correlationId,
             @JsonProperty("completion_reason") String completionReason,
             @JsonProperty("error_message") String errorMessage,
-            @JsonProperty("boxes") List<BoxSnapshot> boxes
+            @JsonProperty("boxes") List<BoxSnapshot> boxes,
+            @JsonProperty("executor_type") String executorType,
+            @JsonProperty("zigbee_target") ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target zigbeeTarget
     ) {
     }
 

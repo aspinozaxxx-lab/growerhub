@@ -6,6 +6,9 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ZigbeeCoordinatorRepository extends JpaRepository<ZigbeeCoordinatorEntity, Integer> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select c from ZigbeeCoordinatorEntity c where c.id = :id and c.archivedAt is null")
+    Optional<ZigbeeCoordinatorEntity> lockActiveById(@org.springframework.data.repository.query.Param("id") Integer id);
     Optional<ZigbeeCoordinatorEntity> findByPublicIdAndUserIdAndArchivedAtIsNull(UUID publicId, Integer userId);
 
     Optional<ZigbeeCoordinatorEntity> findByPublicIdAndArchivedAtIsNull(UUID publicId);

@@ -52,6 +52,7 @@ import ru.growerhub.backend.pump.PumpFacade;
 import ru.growerhub.backend.pump.contract.PumpSessionData;
 import ru.growerhub.backend.pump.contract.PumpStartResult;
 import ru.growerhub.backend.pump.contract.PumpView;
+import ru.growerhub.backend.zigbee.contract.ZigbeeWateringData;
 import ru.growerhub.backend.sensor.SensorFacade;
 import ru.growerhub.backend.sensor.contract.SensorView;
 import ru.growerhub.backend.zigbee.ZigbeeFacade;
@@ -122,6 +123,7 @@ public class AutomationFacade {
     private final DeviceFacade deviceFacade;
     private final SensorFacade sensorFacade;
     private final PumpFacade pumpFacade;
+    private final java.time.Clock clock;
     private final PlantFacade plantFacade;
     private final ZigbeeFacade zigbeeFacade;
     private final UserFacade userFacade;
@@ -145,7 +147,8 @@ public class AutomationFacade {
             UserFacade userFacade,
             AutomationSettings settings,
             DemoSettings demoSettings,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            java.time.Clock clock
     ) {
         this.roomRepository = roomRepository;
         this.boxRepository = boxRepository;
@@ -163,6 +166,7 @@ public class AutomationFacade {
         this.settings = settings;
         this.demoSettings = demoSettings;
         this.objectMapper = objectMapper;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
@@ -1021,7 +1025,99 @@ public class AutomationFacade {
                 ));
             }
         }
+        for (var entry : topology.zigbeeBindings.entrySet()) {
+            var binding = entry.getValue();
+            if (findZigbeeDevice(binding, catalog) == null) continue;
+            var target = zigbeeWateringTarget(binding);
+            var executor = zigbeeFacade.resolveWateringExecutor(target, SYSTEM_ADMIN, false);
+            var observed = zigbeeFacade.wateringState(target, executor.onValue(), executor.offValue());
+            var current = pumpFacade.currentSession(target);
+            var boxes = topology.boxesByZigbee.getOrDefault(entry.getKey(), List.of());
+            List<String> reasons = new ArrayList<>();
+            if (!executor.capability().ready()) reasons.add(executor.capability().reason());
+            if (!observed.online()) reasons.add("Нет свежего состояния клапана");
+            else if (!Boolean.FALSE.equals(observed.running()) && current == null) reasons.add("Закрытие клапана не подтверждено");
+            if (current != null) reasons.add("Полив уже выполняется");
+            if (boxes.stream().noneMatch(box -> !box.plants().isEmpty())) reasons.add("Добавьте растения в теплицу");
+            if (boxes.stream().flatMap(box -> box.leakSensors().stream()).anyMatch(leak -> Boolean.TRUE.equals(leak.triggered()))) reasons.add("Обнаружена протечка");
+            pumps.add(new AutomationData.ManualWateringPump(null, null, target.key(), null, executor.label(),
+                    observed.online(), observed.running(), new AutomationData.ManualWateringCapabilities(
+                    reasons.isEmpty(), reasons, true, false, current != null, false, executor.capability().maxDurationS()),
+                    boxes, current, binding.getId(), target.key()));
+        }
         return new AutomationData.ManualWateringOverview(pumpFacade.sessionDefaults(), pumps);
+    }
+
+    @Transactional(noRollbackFor = RuntimeException.class)
+    public PumpSessionData.View startResourceWatering(Integer resourceId, AutomationData.ManualWateringStartRequest request,
+            AuthenticatedUser user) {
+        var binding = ownedWateringBinding(resourceId, user);
+        binding = resourceRepository.lockById(binding.getId())
+                .orElseThrow(() -> new DomainException("not_found", "Ресурс уже переназначен"));
+        Catalog catalog = buildOwnedCatalog(user);
+        var topology = buildOwnedWateringTopology(user, catalog);
+        var target = zigbeeWateringTarget(binding);
+        var safe = request != null ? request : new AutomationData.ManualWateringStartRequest(null, null, null, null, null, null);
+        return pumpFacade.startSession(new PumpSessionData.Start(null, PumpSessionData.SOURCE_USER_MANUAL,
+                safe.mode(), safe.durationS(), safe.maxActiveDurationS(), safe.pulseEnabled(), safe.pulseRunS(), safe.pulsePauseS(),
+                topology.targetsByZigbee.getOrDefault(target.key(), List.of()), null, null).withZigbeeTarget(target), user);
+    }
+
+    @Transactional
+    public PumpSessionData.View stopResourceWatering(Integer resourceId, AuthenticatedUser user) {
+        return pumpFacade.stopSession(zigbeeWateringTarget(ownedWateringBinding(resourceId, user)), user);
+    }
+
+    @Transactional(readOnly = true)
+    public PumpSessionData.Page resourceWateringSessions(Integer resourceId, int limit, Long beforeId, AuthenticatedUser user) {
+        return pumpFacade.listSessions(zigbeeWateringTarget(ownedWateringBinding(resourceId, user)), limit, beforeId);
+    }
+
+    private AutomationResourceBindingEntity ownedWateringBinding(Integer resourceId, AuthenticatedUser user) {
+        requireAuthenticated(user);
+        var binding = resourceRepository.findById(resourceId).orElseThrow(() -> new DomainException("not_found", "Ресурс не найден"));
+        if (!Objects.equals(user.id(), resourceOwnerId(binding)) || !isZigbeeWatering(binding)) {
+            throw new DomainException("not_found", "Ресурс не найден");
+        }
+        return binding;
+    }
+
+    private boolean isZigbeeWatering(AutomationResourceBindingEntity binding) {
+        return binding != null && AutomationData.ROLE_WATER_PUMP.equals(binding.getRole())
+                && AutomationData.SOURCE_ZIGBEE_DEVICE.equals(binding.getSourceType());
+    }
+
+    private ZigbeeWateringData.Target zigbeeWateringTarget(AutomationResourceBindingEntity binding) {
+        return new ZigbeeWateringData.Target(binding.getZigbeeCoordinatorId(), binding.getZigbeeIeeeAddress(), binding.getZigbeeProperty());
+    }
+
+    private PumpSessionData.View currentWatering(AutomationResourceBindingEntity binding) {
+        return isZigbeeWatering(binding) ? pumpFacade.currentSession(zigbeeWateringTarget(binding)) : pumpFacade.currentSession(binding.getNativePumpId());
+    }
+
+    private void requireWateringIdle(AutomationResourceBindingEntity binding) {
+        if (!isZigbeeWatering(binding)) return;
+        if (resourceRepository.lockById(binding.getId()).isEmpty()) return;
+        zigbeeFacade.resolveWateringExecutor(zigbeeWateringTarget(binding), SYSTEM_ADMIN, true);
+        if (currentWatering(binding) != null) {
+            throw new DomainException("conflict", "Сначала остановите полив и дождитесь подтверждения закрытия клапана");
+        }
+    }
+
+    private void validateZigbeeWateringConfig(AutomationResourceBindingEntity binding, Map<String, Object> cfg) {
+        var executor = zigbeeFacade.resolveWateringExecutor(zigbeeWateringTarget(binding), SYSTEM_ADMIN, false);
+        if (isUntilDrain(cfg) || pulseEnabled(cfg)) {
+            throw new DomainException("bad_request", "Для этого клапана доступен полив по времени без импульсов");
+        }
+        Integer max = executor.capability().maxDurationS();
+        if (max == null || integer(cfg.get("run_seconds"), 30) > max) {
+            throw new DomainException("bad_request", "Длительность превышает проверенный предел клапана");
+        }
+    }
+
+    private List<PumpSessionData.BoxTarget> wateringTargets(AutomationResourceBindingEntity binding, WateringTopology topology) {
+        return isZigbeeWatering(binding) ? topology.targetsByZigbee.getOrDefault(zigbeeWateringTarget(binding).key(), List.of())
+                : topology.targetsByPump.getOrDefault(binding.getNativePumpId(), List.of());
     }
 
     @Transactional(noRollbackFor = RuntimeException.class)
@@ -1245,7 +1341,9 @@ public class AutomationFacade {
     public void evaluateActiveWateringSessions() {
         LocalDateTime now = nowUtc();
         List<PumpSessionData.Probe> probes = pumpFacade.listActiveSessionProbes().stream()
-                .filter(probe -> probe == null || !deviceFacade.isSimulatedDevice(probe.deviceKey())).toList();
+                .filter(probe -> probe != null && (probe.zigbeeTarget() != null
+                        ? !zigbeeFacade.isSimulatedCoordinator(probe.zigbeeTarget().coordinatorId())
+                        : !deviceFacade.isSimulatedDevice(probe.deviceKey()))).toList();
         if (probes.isEmpty()) {
             return;
         }
@@ -1257,7 +1355,8 @@ public class AutomationFacade {
         Catalog catalog = buildOwnedCatalog(new AuthenticatedUser(ownerId, "demo"));
         Set<String> keys = catalog.nativeDevices.stream().map(AutomationData.NativeDevice::deviceId).collect(Collectors.toSet());
         advanceWatering(pumpFacade.listActiveSessionProbes().stream()
-                .filter(probe -> probe != null && keys.contains(probe.deviceKey())).toList(), catalog, nowUtc());
+                .filter(probe -> probe != null && (probe.zigbeeTarget() != null
+                        ? Objects.equals(ownerId, probe.ownerId()) : keys.contains(probe.deviceKey()))).toList(), catalog, nowUtc());
     }
 
     private void advanceWatering(List<PumpSessionData.Probe> probes, Catalog catalog, LocalDateTime now) {
@@ -1334,6 +1433,14 @@ public class AutomationFacade {
             next.add(entity);
         }
         validateResourcesAgainstScenarios(scopeType, scopeId, next, catalog);
+        var previousWatering = resource(scopeType, scopeId, AutomationData.ROLE_WATER_PUMP);
+        if (isZigbeeWatering(previousWatering)) {
+            resourceRepository.lockById(previousWatering.getId());
+            var replacement = next.stream().filter(this::isZigbeeWatering).findFirst().orElse(null);
+            if (replacement == null || !zigbeeWateringTarget(previousWatering).equals(zigbeeWateringTarget(replacement))) {
+                requireWateringIdle(previousWatering);
+            }
+        }
         resourceRepository.deleteAllByScopeTypeAndScopeId(scopeType, scopeId);
         resourceRepository.flush();
         resourceRepository.saveAll(next);
@@ -1426,6 +1533,11 @@ public class AutomationFacade {
         if (!STOP_MODE_FIXED_DURATION.equals(stopMode) && !STOP_MODE_UNTIL_DRAIN.equals(stopMode)) {
             throw new DomainException("bad_request", "Некорректный режим остановки");
         }
+        var watering = resource(scopeType, scopeId, AutomationData.ROLE_WATER_PUMP);
+        if (isZigbeeWatering(watering)) {
+            validateZigbeeWateringConfig(watering, cfg);
+            return;
+        }
         if (!STOP_MODE_UNTIL_DRAIN.equals(stopMode)) {
             return;
         }
@@ -1456,6 +1568,7 @@ public class AutomationFacade {
             return;
         }
         Map<String, Object> cfg = configMap(config, AutomationData.SCENARIO_WATERING);
+        nextResources.stream().filter(this::isZigbeeWatering).forEach(binding -> validateZigbeeWateringConfig(binding, cfg));
         if (!isUntilDrain(cfg)) {
             return;
         }
@@ -1711,14 +1824,14 @@ public class AutomationFacade {
         );
         WateringTopology topology = buildWateringTopology(catalog);
         boolean hasAvailableLeakSensor = pumpBinding != null
-                && topology.targetsByPump.getOrDefault(pumpBinding.getNativePumpId(), List.of()).stream()
+                && wateringTargets(pumpBinding, topology).stream()
                 .flatMap(target -> target.leakSensors().stream())
                 .anyMatch(sensor -> Boolean.TRUE.equals(sensor.available()));
         if (untilDrain && !hasAvailableLeakSensor) {
             markState(state, "unready", "Нужен доступный датчик LEAK_SENSOR", false, now);
             return;
         }
-        if (pumpBinding != null && pumpFacade.currentSession(pumpBinding.getNativePumpId()) != null) {
+        if (pumpBinding != null && currentWatering(pumpBinding) != null) {
             markState(state, "active", null, false, now);
             return;
         }
@@ -1779,7 +1892,11 @@ public class AutomationFacade {
             WateringTopology topology
     ) {
         try {
-            pumpFacade.startSession(new PumpSessionData.Start(
+            if (isZigbeeWatering(pumpBinding) && resourceRepository.lockById(pumpBinding.getId()).isEmpty()) {
+                markState(state, "waiting", "Исполнитель полива переназначен", false, now);
+                return;
+            }
+            PumpSessionData.Start request = new PumpSessionData.Start(
                     pumpBinding.getNativePumpId(),
                     PumpSessionData.SOURCE_AUTOMATION,
                     untilDrain ? PumpSessionData.MODE_UNTIL_LEAK : PumpSessionData.MODE_TIMED,
@@ -1788,10 +1905,12 @@ public class AutomationFacade {
                     pulseEnabled(cfg),
                     pulseRunSeconds(cfg),
                     pulsePauseSeconds(cfg),
-                    topology.targetsByPump.getOrDefault(pumpBinding.getNativePumpId(), List.of()),
+                    wateringTargets(pumpBinding, topology),
                     null,
                     null
-            ), SYSTEM_ADMIN);
+            );
+            if (isZigbeeWatering(pumpBinding)) request = request.withZigbeeTarget(zigbeeWateringTarget(pumpBinding));
+            pumpFacade.startSession(request, SYSTEM_ADMIN);
             logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, pumpBinding,
                     "PUMP_START", reason, "published", requestedRunSeconds, now);
             state.setLastActionAt(now);
@@ -2146,7 +2265,7 @@ public class AutomationFacade {
         }
         ResourceStatus pump = resolveResourceStatus(resource(AutomationData.SCOPE_BOX, boxId, AutomationData.ROLE_WATER_PUMP), catalog);
         if (!pump.ready()) {
-            return new AutomationData.Readiness(false, "Нужен насос, подключённый к GrowerHub", roles);
+            return new AutomationData.Readiness(false, "Нужен насос или клапан с проверенным таймером", roles);
         }
         return new AutomationData.Readiness(true, null, roles);
     }
@@ -2180,6 +2299,10 @@ public class AutomationFacade {
             AutomationData.ZigbeeDevice device = findZigbeeDevice(binding, catalog);
             if (device == null) {
                 return ResourceStatus.notReady("Устройство Zigbee не найдено");
+            }
+            if (isZigbeeWatering(binding)) {
+                var capability = device.watering().stream().filter(c -> Objects.equals(c.property(), binding.getZigbeeProperty())).findFirst().orElse(null);
+                if (capability == null || !capability.ready()) return ResourceStatus.notReady(capability != null ? capability.reason() : "Таймер клапана не проверен");
             }
             Object value = readZigbeeFeatureValue(device, binding.getZigbeeProperty());
             LocalDateTime ts = device.lastStateAt();
@@ -2254,8 +2377,18 @@ public class AutomationFacade {
             requireZigbeeDeviceReference(catalog, item.zigbeeCoordinatorId(), item.zigbeeIeeeAddress());
         }
         if (AutomationData.ROLE_WATER_PUMP.equals(role)) {
-            if (!AutomationData.SOURCE_NATIVE_PUMP.equals(sourceType) || !catalog.pumpsById.containsKey(item.nativePumpId())) {
-                throw new DomainException("bad_request", "В первой версии WATER_PUMP должен быть насосом GrowerHub");
+            if (AutomationData.SOURCE_ZIGBEE_DEVICE.equals(sourceType)) {
+                if (item.nativePumpId() != null || item.nativeSensorId() != null) {
+                    throw new DomainException("bad_request", "Укажите один тип исполнителя полива");
+                }
+                var device = requireZigbeeDeviceReference(catalog, item.zigbeeCoordinatorId(), item.zigbeeIeeeAddress());
+                String property = defaultCommandProperty(role, item.commandProperty());
+                var capability = device.watering().stream().filter(c -> Objects.equals(c.property(), property)).findFirst().orElse(null);
+                if (capability == null || !capability.ready() || !Objects.equals(property, item.zigbeeProperty())) {
+                    throw new DomainException("bad_request", capability != null ? capability.reason() : "Для клапана не проверен локальный таймер");
+                }
+            } else if (!AutomationData.SOURCE_NATIVE_PUMP.equals(sourceType) || !catalog.pumpsById.containsKey(item.nativePumpId())) {
+                throw new DomainException("bad_request", "Выберите насос GrowerHub или проверенный клапан Zigbee");
             }
             return;
         }
@@ -2264,6 +2397,11 @@ public class AutomationFacade {
                 throw new DomainException("bad_request", role + " в первой версии должен быть Zigbee-переключателем");
             }
             String property = defaultCommandProperty(role, item.commandProperty());
+            var device = requireZigbeeDeviceReference(catalog, item.zigbeeCoordinatorId(), item.zigbeeIeeeAddress());
+            if (device.watering().stream().anyMatch(capability -> Objects.equals(property, capability.property())
+                    && capability.maxDurationS() != null)) {
+                throw new DomainException("bad_request", "Назначьте клапан в слот полива");
+            }
             if (!zigbeeHasWritableProperty(
                     catalog,
                     item.zigbeeCoordinatorId(),
@@ -2767,6 +2905,7 @@ public class AutomationFacade {
                     "Ресурс уже назначен слоту " + conflict.getRole() + " в «" + scopeName + "»"
             );
         }
+        conflicts.forEach(this::requireWateringIdle);
         Set<Integer> affectedPumps = conflicts.stream()
                 .map(AutomationResourceBindingEntity::getNativePumpId)
                 .filter(Objects::nonNull)
@@ -3032,12 +3171,11 @@ public class AutomationFacade {
                 .filter(item -> !item.device().coordinator())
                 .map(this::toZigbeeDeviceData)
                 .toList();
-        Map<String, AutomationData.ZigbeeDevice> zigbeeByKey = ownedZigbeeDevices.stream()
-                .filter(item -> !item.device().coordinator())
-                .filter(item -> item.device().ieeeAddress() != null)
+        Map<String, AutomationData.ZigbeeDevice> zigbeeByKey = zigbeeDevices.stream()
+                .filter(item -> item.ieeeAddress() != null)
                 .collect(Collectors.toMap(
-                        item -> zigbeeKey(item.coordinatorId(), item.device().ieeeAddress()),
-                        this::toZigbeeDeviceData,
+                        item -> zigbeeKey(item.coordinatorId(), item.ieeeAddress()),
+                        Function.identity(),
                         (left, right) -> left
                 ));
         Map<Integer, UUID> coordinatorPublicByInternal = ownedZigbeeDevices.stream()
@@ -3141,7 +3279,8 @@ public class AutomationFacade {
                 device.metrics().stream().map(this::toZigbeeFeatureData).toList(),
                 device.controls().stream().map(this::toZigbeeFeatureData).toList(),
                 device.availability(),
-                device.lastStateAt()
+                device.lastStateAt(),
+                zigbeeFacade.wateringCapabilities(ownedDevice.coordinatorInternalId(), device.ieeeAddress())
         );
     }
 
@@ -3210,6 +3349,9 @@ public class AutomationFacade {
         Map<String, List<AutomationResourceBindingEntity>> resources = groupResources(rooms, boxes);
         Map<Integer, List<AutomationData.ManualWateringBox>> boxesByPump = new LinkedHashMap<>();
         Map<Integer, List<PumpSessionData.BoxTarget>> targetsByPump = new LinkedHashMap<>();
+        Map<String, List<AutomationData.ManualWateringBox>> boxesByZigbee = new LinkedHashMap<>();
+        Map<String, List<PumpSessionData.BoxTarget>> targetsByZigbee = new LinkedHashMap<>();
+        Map<String, AutomationResourceBindingEntity> zigbeeBindings = new LinkedHashMap<>();
         LocalDateTime now = nowUtc();
 
         for (AutomationBoxEntity box : boxes) {
@@ -3221,7 +3363,7 @@ public class AutomationFacade {
                     .filter(binding -> AutomationData.ROLE_WATER_PUMP.equals(binding.getRole()))
                     .findFirst()
                     .orElse(null);
-            if (pumpBinding == null || pumpBinding.getNativePumpId() == null) {
+            if (pumpBinding == null || (pumpBinding.getNativePumpId() == null && !isZigbeeWatering(pumpBinding))) {
                 continue;
             }
             AutomationRoomEntity room = roomsById.get(box.getRoomId());
@@ -3257,10 +3399,17 @@ public class AutomationFacade {
                             .toList(),
                     leakSensors
             );
-            boxesByPump.computeIfAbsent(pumpBinding.getNativePumpId(), ignored -> new ArrayList<>()).add(manualBox);
-            targetsByPump.computeIfAbsent(pumpBinding.getNativePumpId(), ignored -> new ArrayList<>()).add(target);
+            if (isZigbeeWatering(pumpBinding)) {
+                String key = zigbeeWateringTarget(pumpBinding).key();
+                boxesByZigbee.computeIfAbsent(key, ignored -> new ArrayList<>()).add(manualBox);
+                targetsByZigbee.computeIfAbsent(key, ignored -> new ArrayList<>()).add(target);
+                zigbeeBindings.put(key, pumpBinding);
+            } else {
+                boxesByPump.computeIfAbsent(pumpBinding.getNativePumpId(), ignored -> new ArrayList<>()).add(manualBox);
+                targetsByPump.computeIfAbsent(pumpBinding.getNativePumpId(), ignored -> new ArrayList<>()).add(target);
+            }
         }
-        return new WateringTopology(boxesByPump, targetsByPump);
+        return new WateringTopology(boxesByPump, targetsByPump, boxesByZigbee, targetsByZigbee, zigbeeBindings);
     }
 
     private AutomationData.NativePump requireOwnedPump(Integer pumpId, Catalog catalog) {
@@ -3480,6 +3629,7 @@ public class AutomationFacade {
     }
 
     private void deleteBoxResources(Integer boxId) {
+        requireWateringIdle(resource(AutomationData.SCOPE_BOX, boxId, AutomationData.ROLE_WATER_PUMP));
         boxPlantRepository.deleteAllByBox_Id(boxId);
         resourceRepository.deleteAllByScopeTypeAndScopeId(AutomationData.SCOPE_BOX, boxId);
         configRepository.deleteAllByScopeTypeAndScopeId(AutomationData.SCOPE_BOX, boxId);
@@ -3961,7 +4111,7 @@ public class AutomationFacade {
     }
 
     private LocalDateTime nowUtc() {
-        return LocalDateTime.now(ZoneOffset.UTC);
+        return LocalDateTime.now(clock);
     }
 
     private String key(String scopeType, Integer scopeId) {
@@ -3989,7 +4139,10 @@ public class AutomationFacade {
 
     private record WateringTopology(
             Map<Integer, List<AutomationData.ManualWateringBox>> boxesByPump,
-            Map<Integer, List<PumpSessionData.BoxTarget>> targetsByPump
+            Map<Integer, List<PumpSessionData.BoxTarget>> targetsByPump,
+            Map<String, List<AutomationData.ManualWateringBox>> boxesByZigbee,
+            Map<String, List<PumpSessionData.BoxTarget>> targetsByZigbee,
+            Map<String, AutomationResourceBindingEntity> zigbeeBindings
     ) {
     }
 

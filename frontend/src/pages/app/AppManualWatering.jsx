@@ -25,6 +25,7 @@ import {
   sourceLabel,
   startBlockReasonLabel,
   wateringDefaultsReady,
+  wateringKey,
 } from '../../features/manual-watering/manualWateringModel';
 import './AppManualWatering.css';
 import { translateApp } from '../../locales/i18n';
@@ -64,11 +65,13 @@ function SessionSummary({ session }) {
       <div className={`manual-watering-session__reason is-${session.completion_reason || 'unknown'}`}>
         {session.finished_at
           ? completionReasonLabel(session.completion_reason)
-          : phaseLabel(session.phase)}
+          : phaseLabel(session.phase, session.executor_type)}
       </div>
       {session.error_message ? (
         <div className="manual-watering-session__error">{session.error_message}</div>
       ) : null}
+      {session.executor_type === 'ZIGBEE_DEVICE' && session.known_volume_l !== null && session.known_volume_l !== undefined
+        ? <small>{translateApp("Объём рассчитан по заданной скорости полива.")}</small> : null}
     </article>
   );
 }
@@ -122,14 +125,14 @@ function WateringBox({ box, hideHeading = false }) {
 }
 
 function ActiveSession({ pump, session, actionKey, onStop }) {
-  const stopping = actionKey === `stop:${pump.id}`;
+  const stopping = actionKey === `stop:${wateringKey(pump)}`;
   return (
     <section className="manual-watering-active" aria-live="polite">
       <div className="manual-watering-active__icon" aria-hidden="true">
         {session.phase === 'pause' ? <Pause size={22} /> : <Droplets size={22} />}
       </div>
       <div className="manual-watering-active__body">
-        <strong>{phaseLabel(session.phase)}</strong>
+        <strong>{phaseLabel(session.phase, session.executor_type)}</strong>
         <span>{modeLabel(session.mode)} · {sourceLabel(session.source)}</span>
         <div className="manual-watering-active__facts">
           <span>{translateApp("Активно:")} {formatDurationSeconds(session.active_duration_s)}</span>
@@ -148,7 +151,7 @@ function ActiveSession({ pump, session, actionKey, onStop }) {
         type="button"
         variant="danger"
         size="sm"
-        onClick={() => onStop(pump.id)}
+        onClick={() => onStop(wateringKey(pump))}
         disabled={!pumpCanStop(pump) || Boolean(actionKey)}
         isLoading={stopping}
       >
@@ -222,7 +225,7 @@ function PumpCard({
             {pump.is_online === true ? translateApp("В сети") : pump.is_online === false ? translateApp("Не в сети") : translateApp("Связь неизвестна")}
           </span>
           <span className={pump.is_running === true ? 'is-running' : ''}>
-            {pump.is_running === true ? translateApp("Насос включён") : pump.is_running === false ? translateApp("Ожидание") : translateApp("Состояние неизвестно")}
+            {pump.is_running === true ? translateApp(pump.resource_binding_id ? "Клапан открыт" : "Насос включён") : pump.is_running === false ? translateApp("Ожидание") : translateApp("Состояние неизвестно")}
           </span>
         </div>
       </header>
@@ -253,18 +256,18 @@ function PumpCard({
           type="button"
           variant="ghost"
           size="sm"
-          onClick={() => onHistoryToggle(pump.id)}
+          onClick={() => onHistoryToggle(wateringKey(pump))}
           aria-expanded={historyOpen}
-          aria-controls={`pump-history-${pump.id}`}
+          aria-controls={`pump-history-${wateringKey(pump)}`}
         >
           <History size={15} aria-hidden="true" />
-          {historyOpen ? translateApp("Скрыть журнал") : translateApp("Журнал насоса")}
+          {historyOpen ? translateApp("Скрыть журнал") : translateApp(pump.resource_binding_id ? "Журнал полива" : "Журнал насоса")}
         </Button>
       </footer>
 
       {historyOpen ? (
-        <section id={`pump-history-${pump.id}`} aria-label={`${translateApp("Журнал:")} ${pumpTitle(pump)}`}>
-          <PumpHistory pumpId={pump.id} history={history} currentSession={session} onLoadMore={onLoadMore} />
+        <section id={`pump-history-${wateringKey(pump)}`} aria-label={`${translateApp("Журнал:")} ${pumpTitle(pump)}`}>
+          <PumpHistory pumpId={wateringKey(pump)} history={history} currentSession={session} onLoadMore={onLoadMore} />
         </section>
       ) : null}
     </Surface>
@@ -294,14 +297,14 @@ function LaunchWateringModal({ pump, defaults, actionKey, actionError, onClose, 
   const initialMode = modeAvailable(pump, 'timed') ? 'timed' : 'until_leak';
   const [form, setForm] = useState({
     mode: initialMode,
-    duration_minutes: String(demoActive ? 1 : defaults.timed_duration_s / 60),
+    duration_minutes: String(Math.min(demoActive ? 1 : defaults.timed_duration_s / 60, (pump.capabilities?.max_duration_s ?? Infinity) / 60)),
     max_active_duration_minutes: String(defaults.until_leak_max_active_duration_s / 60),
     pulse_enabled: false,
     pulse_run_minutes: String(defaults.pulse_run_s / 60),
     pulse_pause_minutes: String(defaults.pulse_pause_s / 60),
   });
   const [formError, setFormError] = useState('');
-  const isStarting = actionKey === `start:${pump.id}`;
+  const isStarting = actionKey === `start:${wateringKey(pump)}`;
 
   const setField = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
   const submit = async (event) => {
@@ -314,8 +317,13 @@ function LaunchWateringModal({ pump, defaults, actionKey, actionError, onClose, 
       setFormError(translateApp("Все интервалы должны быть целыми положительными числами"));
       return;
     }
+    if (form.mode === 'timed' && pump.capabilities?.max_duration_s
+      && Number(form.duration_minutes) * 60 > pump.capabilities.max_duration_s) {
+      setFormError(translateApp("Превышен предел локального таймера клапана"));
+      return;
+    }
     setFormError('');
-    const completed = await onStart(pump.id, {
+    const completed = await onStart(wateringKey(pump), {
       mode: form.mode,
       ...(form.mode === 'timed'
         ? { duration_s: Number(form.duration_minutes) * 60 }
@@ -332,7 +340,7 @@ function LaunchWateringModal({ pump, defaults, actionKey, actionError, onClose, 
   const footer = (
     <div className="modal__actions">
       <Button type="button" variant="secondary" onClick={onClose} disabled={isStarting}>{translateApp("Отмена")}</Button>
-      <Button type="submit" variant="primary" form={`manual-watering-form-${pump.id}`} isLoading={isStarting}>{translateApp("Запустить")}</Button>
+      <Button type="submit" variant="primary" form={`manual-watering-form-${wateringKey(pump)}`} isLoading={isStarting}>{translateApp("Запустить")}</Button>
     </div>
   );
 
@@ -344,7 +352,7 @@ function LaunchWateringModal({ pump, defaults, actionKey, actionError, onClose, 
       footer={footer}
       disableOverlayClose={isStarting}
     >
-      <form id={`manual-watering-form-${pump.id}`} className="manual-watering-form" onSubmit={submit}>
+      <form id={`manual-watering-form-${wateringKey(pump)}`} className="manual-watering-form" onSubmit={submit}>
         <div className="manual-watering-form__warning">
           <Droplets size={18} aria-hidden="true" />
           <span>{translateApp("Будут поливаться все привязанные теплицы, включая выключенные в автоматизации.")}</span>
@@ -378,7 +386,7 @@ function LaunchWateringModal({ pump, defaults, actionKey, actionError, onClose, 
             />
             <span>{translateApp("До протечки")}</span>
           </label>
-          {!modeAvailable(pump, 'until_leak') ? (
+          {!modeAvailable(pump, 'until_leak') && !pump.resource_binding_id ? (
             <small>{translateApp("Режим доступен только при наличии рабочего датчика протечки.")}</small>
           ) : null}
         </fieldset>
@@ -389,14 +397,14 @@ function LaunchWateringModal({ pump, defaults, actionKey, actionError, onClose, 
           <NumberField label={translateApp("Предельное активное время, мин")} value={form.max_active_duration_minutes} onChange={(value) => setField('max_active_duration_minutes', value)} />
         )}
 
-        <label className="manual-watering-form__pulse-toggle">
+        {pump.capabilities?.pulse !== false ? <label className="manual-watering-form__pulse-toggle">
           <input
             type="checkbox"
             checked={form.pulse_enabled}
             onChange={(event) => setField('pulse_enabled', event.target.checked)}
           />
           <span>{translateApp("Импульсный режим")}</span>
-        </label>
+        </label> : <p>{translateApp("Клапан закроется по локальному таймеру. Импульсный режим для этой модели недоступен.")}</p>}
         {form.pulse_enabled ? (
           <div className="manual-watering-form__pulse-fields">
             <NumberField label={translateApp("Работа насоса, мин")} value={form.pulse_run_minutes} onChange={(value) => setField('pulse_run_minutes', value)} />
@@ -484,11 +492,11 @@ function AppManualWatering() {
       <div className="manual-watering-pumps">
         {pumps.map((pump) => (
           <PumpCard
-            key={pump.id}
+            key={wateringKey(pump)}
             pump={pump}
             actionKey={actionKey}
-            history={histories[pump.id]}
-            historyOpen={Boolean(openHistories[pump.id])}
+            history={histories[wateringKey(pump)]}
+            historyOpen={Boolean(openHistories[wateringKey(pump)])}
             startConfigReady={startConfigReady}
             onHistoryToggle={toggleHistory}
             onStart={openLaunchModal}

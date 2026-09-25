@@ -187,6 +187,17 @@ user:
   defaultTimezone: "Europe/Moscow"
 
 zigbee:
+  watering:
+    # Dopusk Zigbee-poliva posle proverki modeli i avtonomnogo tajmera.
+    enabled: ${ZIGBEE_WATERING_ENABLED:false}
+    # Maksimal'nyj vozrast zhivogo sostoyaniya pered polivom.
+    state-freshness-seconds: 120
+    # Vremya ozhidaniya podtverzhdeniya vklyucheniya.
+    start-confirmation-seconds: 15
+    # Lokal'nyj limit virtual'nogo klapana.
+    simulated-max-duration-seconds: 3600
+    # Tol'ko proverennye fizicheskie kanaly s ssylkoj na protokol ispytaniya.
+    verified-devices: []
   self-service:
     # Publichnyj self-service vklyuchaetsja tol'ko posle smoke-proverki.
     enabled: ${SELF_SERVICE_ENABLED:false}

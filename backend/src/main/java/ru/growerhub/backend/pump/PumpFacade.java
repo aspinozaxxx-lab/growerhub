@@ -21,6 +21,7 @@ import ru.growerhub.backend.pump.engine.PumpSessionService;
 import ru.growerhub.backend.pump.engine.PumpWateringService;
 import ru.growerhub.backend.pump.contract.PumpView;
 import ru.growerhub.backend.pump.contract.PumpSessionData;
+import ru.growerhub.backend.zigbee.contract.ZigbeeWateringData;
 
 @Service
 public class PumpFacade {
@@ -70,6 +71,26 @@ public class PumpFacade {
     @Transactional(readOnly = true)
     public PumpSessionData.Page listSessions(Integer pumpId, int limit, Long beforeId) {
         return sessionService.listSessions(pumpId, limit, beforeId);
+    }
+
+    @Transactional
+    public PumpSessionData.View stopSession(ZigbeeWateringData.Target target, AuthenticatedUser user) {
+        return sessionService.stop(target, user);
+    }
+
+    @Transactional(readOnly = true)
+    public PumpSessionData.View currentSession(ZigbeeWateringData.Target target) {
+        return sessionService.current(target);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasActiveZigbeeSession(Integer coordinatorId) {
+        return sessionService.hasActiveZigbeeSession(coordinatorId);
+    }
+
+    @Transactional(readOnly = true)
+    public PumpSessionData.Page listSessions(ZigbeeWateringData.Target target, int limit, Long beforeId) {
+        return sessionService.listSessions(target, limit, beforeId);
     }
 
     @Transactional(readOnly = true)
@@ -217,6 +238,16 @@ public class PumpFacade {
     @Transactional
     public void deleteSimulatedHistory(Integer deviceId) {
         sessionService.deleteSimulatedHistory(deviceId);
+    }
+
+    @Transactional
+    public void pauseSimulatedZigbee(Integer coordinatorId, LocalDateTime now) {
+        sessionService.pauseSimulatedZigbee(coordinatorId, now);
+    }
+
+    @Transactional
+    public void deleteSimulatedZigbeeHistory(Integer coordinatorId) {
+        sessionService.deleteSimulatedZigbeeHistory(coordinatorId);
     }
 
     @Transactional

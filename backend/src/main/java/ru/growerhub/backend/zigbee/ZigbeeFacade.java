@@ -94,6 +94,8 @@ public class ZigbeeFacade {
     private final EntityManager entityManager;
     private final ru.growerhub.backend.user.UserFacade userFacade;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final ru.growerhub.backend.zigbee.engine.ZigbeeWateringService wateringService;
+    private final ru.growerhub.backend.pump.PumpFacade pumpFacade;
 
     public ZigbeeFacade(
             ZigbeeBridgeSnapshotRepository bridgeRepository,
@@ -111,7 +113,9 @@ public class ZigbeeFacade {
             ObjectMapper objectMapper,
             Clock clock,
             @org.springframework.context.annotation.Lazy ru.growerhub.backend.user.UserFacade userFacade,
-            EntityManager entityManager
+            EntityManager entityManager,
+            ru.growerhub.backend.zigbee.engine.ZigbeeWateringService wateringService,
+            @org.springframework.context.annotation.Lazy ru.growerhub.backend.pump.PumpFacade pumpFacade
     ) {
         this.bridgeRepository = bridgeRepository;
         this.deviceRepository = deviceRepository;
@@ -129,7 +133,41 @@ public class ZigbeeFacade {
         this.clock = clock;
         this.userFacade = userFacade;
         this.entityManager = entityManager;
+        this.wateringService = wateringService;
+        this.pumpFacade = pumpFacade;
     }
+
+    @Transactional(readOnly = true)
+    public List<ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Capability> wateringCapabilities(Integer coordinatorId, String ieee) {
+        return wateringService.capabilities(coordinatorId, ieee);
+    }
+
+    @Transactional(noRollbackFor = RuntimeException.class)
+    public ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Executor resolveWateringExecutor(
+            ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target target, AuthenticatedUser user, boolean lock) {
+        return wateringService.resolve(target, user, lock);
+    }
+
+    @Transactional(readOnly = true, noRollbackFor = RuntimeException.class)
+    public ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.State wateringState(
+            ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target target, String onValue, String offValue) {
+        return wateringService.state(target, onValue, offValue);
+    }
+
+    @Transactional(noRollbackFor = RuntimeException.class)
+    public void startWatering(ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target target,
+            int durationSeconds, AuthenticatedUser user) {
+        wateringService.start(target, durationSeconds, user);
+    }
+
+    @Transactional(noRollbackFor = RuntimeException.class)
+    public void stopWatering(ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target target,
+            String offValue, AuthenticatedUser user) {
+        wateringService.stop(target, offValue, user);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isSimulatedCoordinator(Integer id) { return wateringService.simulated(id); }
 
     @Transactional
     public ru.growerhub.backend.zigbee.contract.ZigbeeSimulationCoordinator createSimulatedCoordinator(
@@ -387,6 +425,7 @@ public class ZigbeeFacade {
     ) {
         requireSelfService(user);
         ZigbeeCoordinatorEntity coordinator = findOwnedCoordinator(user, coordinatorPublicId);
+        requireWateringIdle(coordinator);
         LocalDateTime now = LocalDateTime.now(clock);
         requirePhysicalBaseTopic(coordinator.getBaseTopic());
         enforceCoordinatorCredentialCooldown(coordinator, now);
@@ -403,6 +442,7 @@ public class ZigbeeFacade {
     public void archiveCoordinator(AuthenticatedUser user, UUID coordinatorPublicId) {
         requireSelfService(user);
         ZigbeeCoordinatorEntity coordinator = findOwnedCoordinator(user, coordinatorPublicId);
+        requireWateringIdle(coordinator);
         requirePhysicalBaseTopic(coordinator.getBaseTopic());
         brokerCredentialGateway.revoke(coordinator.getMqttUsername(), selfServiceSettings.getBrokerRole());
         LocalDateTime now = LocalDateTime.now(clock);
@@ -410,6 +450,14 @@ public class ZigbeeFacade {
         coordinator.setStatus(ZigbeeCoordinatorStatus.ARCHIVED);
         coordinator.setUpdatedAt(now);
         coordinatorRepository.save(coordinator);
+    }
+
+    private void requireWateringIdle(ZigbeeCoordinatorEntity coordinator) {
+        coordinatorRepository.lockActiveById(coordinator.getId())
+                .orElseThrow(() -> new DomainException("not_found", "Координатор не найден"));
+        if (pumpFacade.hasActiveZigbeeSession(coordinator.getId())) {
+            throw new DomainException("conflict", "Сначала остановите полив и дождитесь подтверждения закрытия клапана");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -1018,6 +1066,7 @@ public class ZigbeeFacade {
         if (feature == null) {
             throw new DomainException("bad_request", "Свойство Zigbee недоступно для записи");
         }
+        wateringService.requireGenericCommandAllowed(coordinatorId, device, normalizedProperty, value);
         commandGateway.publishSet(baseTopic, device.getFriendlyName(), Map.of(normalizedProperty, value));
         return new ZigbeeCommandPublishResult(
                 "set command published",
@@ -1139,6 +1188,10 @@ public class ZigbeeFacade {
         String previousStateJson = device.getStateJson();
         device.setStateJson(message.rawPayload());
         device.setLastStateAt(message.receivedAt());
+        if (!message.retained()) {
+            device.setLiveStateJson(message.rawPayload());
+            device.setLastLiveStateAt(message.receivedAt());
+        }
         device.setUpdatedAt(message.receivedAt());
         deviceRepository.save(device);
         recordDeviceStateHistory(device, message, previousStateJson, batch);

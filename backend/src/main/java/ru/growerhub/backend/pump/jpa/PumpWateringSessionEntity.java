@@ -26,6 +26,23 @@ public class PumpWateringSessionEntity {
     @Column(name = "pump_id")
     private Integer pumpId;
 
+    @Column(name = "executor_type", nullable = false)
+    private String executorType = "NATIVE_PUMP";
+    @Column(name = "executor_key", length = 512)
+    private String executorKey;
+    @Column(name = "zigbee_coordinator_id")
+    private Integer zigbeeCoordinatorId;
+    @Column(name = "zigbee_ieee_address")
+    private String zigbeeIeeeAddress;
+    @Column(name = "zigbee_property")
+    private String zigbeeProperty;
+    @Column(name = "zigbee_on_value")
+    private String zigbeeOnValue;
+    @Column(name = "zigbee_off_value")
+    private String zigbeeOffValue;
+    @Column(name = "run_confirmed_at")
+    private LocalDateTime runConfirmedAt;
+
     @Column(name = "device_id")
     private Integer deviceId;
 
@@ -118,6 +135,23 @@ public class PumpWateringSessionEntity {
     }
 
     public Long getId() { return id; }
+    public String getExecutorType() { return executorType; }
+    public void setExecutorType(String value) { executorType = value; }
+    public String getExecutorKey() { return executorKey; }
+    public void setExecutorKey(String value) { executorKey = value; }
+    public Integer getZigbeeCoordinatorId() { return zigbeeCoordinatorId; }
+    public void setZigbeeCoordinatorId(Integer value) { zigbeeCoordinatorId = value; }
+    public String getZigbeeIeeeAddress() { return zigbeeIeeeAddress; }
+    public void setZigbeeIeeeAddress(String value) { zigbeeIeeeAddress = value; }
+    public String getZigbeeProperty() { return zigbeeProperty; }
+    public void setZigbeeProperty(String value) { zigbeeProperty = value; }
+    public String getZigbeeOnValue() { return zigbeeOnValue; }
+    public void setZigbeeOnValue(String value) { zigbeeOnValue = value; }
+    public String getZigbeeOffValue() { return zigbeeOffValue; }
+    public void setZigbeeOffValue(String value) { zigbeeOffValue = value; }
+    public LocalDateTime getRunConfirmedAt() { return runConfirmedAt; }
+    public void setRunConfirmedAt(LocalDateTime value) { runConfirmedAt = value; }
+    public boolean isZigbee() { return "ZIGBEE_DEVICE".equals(executorType); }
     public Integer getPumpId() { return pumpId; }
     public void setPumpId(Integer pumpId) { this.pumpId = pumpId; }
     public Integer getDeviceId() { return deviceId; }

@@ -53,6 +53,23 @@ const nativeCatalog = {
 };
 
 describe('farm resource options', () => {
+  it('ne predlagaet proverennyj klapan kak svet ili ventiljator', () => {
+    const valve = { ...smartplug2, watering: [{ property: 'state', ready: true, max_duration_s: 600 }] };
+    expect(optionsForRole('LIGHT_SWITCH', { zigbee_devices: [valve] })).toEqual([]);
+    expect(optionsForRole('EXHAUST_SWITCH', { zigbee_devices: [valve] })).toEqual([]);
+    expect(optionsForRole('WATER_PUMP', { zigbee_devices: [valve] })).toHaveLength(1);
+  });
+
+  it('predlagaet dlya poliva tolko serverom dopushchennyj Zigbee-kanal', () => {
+    const valve = { ...smartplug2, watering: [{ property: 'state', ready: true }],
+      controls: [{ property: 'state', value: 'OFF', value_on: 'ON', value_off: 'OFF' }] };
+    const options = optionsForRole('WATER_PUMP', { zigbee_devices: [valve, { ...valve, watering: [{ property: 'state', ready: false }] }] });
+    expect(options).toHaveLength(1);
+    expect(resourcePayload('WATER_PUMP', options[0].value)).toMatchObject({
+      role: 'WATER_PUMP', source_type: 'ZIGBEE_DEVICE', native_pump_id: null,
+      zigbee_coordinator_id: valve.coordinator_id, zigbee_property: 'state', command_property: 'state',
+    });
+  });
   it('uses the same option value for saved Zigbee switch bindings and catalog options', () => {
     const catalog = { zigbee_devices: [smartplug2] };
 

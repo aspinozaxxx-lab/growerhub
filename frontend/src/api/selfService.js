@@ -91,13 +91,19 @@ export const fetchResourceStatistics = (resourceId, hours = 24) => requestJson(
 
 export const fetchManualWateringOverview = () => requestJson('/api/manual-watering');
 
+function wateringPath(key) {
+  const match = /^resource:(\d+)$/.exec(String(key));
+  return match ? `/api/manual-watering/resources/${match[1]}`
+    : `/api/manual-watering/pumps/${encodeURIComponent(key)}`;
+}
+
 export const startManualWatering = (pumpId, payload) => requestJson(
-  `/api/manual-watering/pumps/${encodeURIComponent(pumpId)}/start`,
+  `${wateringPath(pumpId)}/start`,
   { method: 'POST', body: JSON.stringify(payload || {}) },
 );
 
 export const stopManualWatering = (pumpId) => requestJson(
-  `/api/manual-watering/pumps/${encodeURIComponent(pumpId)}/stop`,
+  `${wateringPath(pumpId)}/stop`,
   { method: 'POST' },
 );
 
@@ -111,7 +117,7 @@ export const fetchManualWateringSessions = (pumpId, options = {}) => {
   }
   const query = params.toString();
   return requestJson(
-    `/api/manual-watering/pumps/${encodeURIComponent(pumpId)}/sessions${query ? `?${query}` : ''}`,
+    `${wateringPath(pumpId)}/sessions${query ? `?${query}` : ''}`,
   );
 };
 

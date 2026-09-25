@@ -7,5 +7,7 @@ public interface ZigbeeCommandGateway {
 
     void publishSet(String baseTopic, String friendlyName, Map<String, Object> payload);
 
+    void publishWateringStart(String baseTopic, String friendlyName, Map<String, Object> payload);
+
     void publishRename(String baseTopic, String fromFriendlyName, String toFriendlyName);
 }

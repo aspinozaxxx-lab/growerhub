@@ -58,6 +58,12 @@ public class ZigbeeDeviceSnapshotEntity {
     @Column(name = "last_state_at")
     private LocalDateTime lastStateAt;
 
+    @Column(name = "live_state_json", columnDefinition = "TEXT")
+    private String liveStateJson;
+
+    @Column(name = "last_live_state_at")
+    private LocalDateTime lastLiveStateAt;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
@@ -171,6 +177,11 @@ public class ZigbeeDeviceSnapshotEntity {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    public String getLiveStateJson() { return liveStateJson; }
+    public void setLiveStateJson(String value) { liveStateJson = value; }
+    public LocalDateTime getLastLiveStateAt() { return lastLiveStateAt; }
+    public void setLastLiveStateAt(LocalDateTime value) { lastLiveStateAt = value; }
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;

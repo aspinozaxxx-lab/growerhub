@@ -12,7 +12,7 @@ public final class DemoAccessPolicy {
                     || path.matches("/api/journal/photos/\\d+")
                     || path.matches("/api/sensors/\\d+/history")
                     || path.matches("/api/pumps/\\d+/watering/status")
-                    || path.matches("/api/manual-watering(?:/pumps/\\d+/sessions|/greenhouses/\\d+/statistics)?")
+                    || path.matches("/api/manual-watering(?:/(?:pumps|resources)/\\d+/sessions|/greenhouses/\\d+/statistics)?")
                     || path.matches("/api/automation/(?:farms|resources/\\d+/statistics)")
                     || path.matches("/api/zigbee/coordinators(?:/[0-9a-fA-F-]+(?:/overview|/devices/[^/]+/history)?)?");
         }
@@ -21,7 +21,7 @@ public final class DemoAccessPolicy {
                     || path.equals("/api/plants")
                     || path.matches("/api/plants/\\d+/(journal|harvest)")
                     || path.matches("/api/automation/farms(?:/\\d+/greenhouses)?")
-                    || path.matches("/api/manual-watering/pumps/\\d+/(start|stop)")
+                    || path.matches("/api/manual-watering/(?:pumps|resources)/\\d+/(start|stop)")
                     || path.matches("/api/pumps/\\d+/watering/(start|stop|reboot)")
                     || path.matches("/api/zigbee/coordinators/[0-9a-fA-F-]+/devices/[^/]+/(set-state|set|rename)");
         }

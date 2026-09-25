@@ -52,13 +52,28 @@ public class MqttZigbeeCommandGateway implements ZigbeeCommandGateway {
         ));
     }
 
+    @Override
+    public void publishWateringStart(String baseTopic, String friendlyName, Map<String, Object> payload) {
+        if (zigbeeFacade.isSimulatedBaseTopic(baseTopic)) {
+            demoFacade.commandZigbee(baseTopic, friendlyName, payload);
+            return;
+        }
+        zigbeeFacade.requirePhysicalBaseTopic(baseTopic);
+        // Start ne povtoryaetsya MQTT-klientom; OFF ostayotsya s QoS 1.
+        publish(baseTopic + "/" + friendlyName + "/set", payload, 0);
+    }
+
     private void publish(String topic, Object payload) {
+        publish(topic, payload, 1);
+    }
+
+    private void publish(String topic, Object payload, int qos) {
         MqttPublisher publisher = publisherProvider.getIfAvailable();
         if (publisher == null) {
             throw new DomainException("unavailable", "MQTT publisher unavailable");
         }
         try {
-            publisher.publishJson(topic, payload, 1, false);
+            publisher.publishJson(topic, payload, qos, false);
         } catch (Exception ex) {
             throw new DomainException("bad_gateway", "Failed to publish Zigbee MQTT command");
         }

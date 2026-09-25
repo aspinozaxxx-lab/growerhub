@@ -30,7 +30,7 @@ export const SLOT_ROLE_LABELS = {
   LEAK_SENSOR: 'Протечка',
   EXHAUST_SWITCH: 'Обдув',
   LIGHT_SWITCH: 'Свет',
-  WATER_PUMP: 'Насос',
+  WATER_PUMP: 'Полив',
 };
 
 export const SCENARIO_LABELS = {

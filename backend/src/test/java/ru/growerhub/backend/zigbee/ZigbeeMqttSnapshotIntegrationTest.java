@@ -81,6 +81,18 @@ class ZigbeeMqttSnapshotIntegrationTest extends IntegrationTestBase {
         Assertions.assertTrue(plug.state() instanceof Map<?, ?>);
         Assertions.assertEquals("ON", ((Map<?, ?>) plug.state()).get("state"));
         Assertions.assertEquals(12.5, ((Number) ((Map<?, ?>) plug.state()).get("power")).doubleValue());
+        var stored = deviceRepository.findByCoordinatorIdAndFriendlyName(1, "smartplug1").orElseThrow();
+        if (retained) {
+            Assertions.assertNull(stored.getLastLiveStateAt());
+            Assertions.assertNull(stored.getLiveStateJson());
+        } else {
+            Assertions.assertNotNull(stored.getLastLiveStateAt());
+            Assertions.assertTrue(stored.getLiveStateJson().contains("ON"));
+            inject("zigbee2growerhub/smartplug1", "{\"state\":\"OFF\"}", true);
+            var replayed = deviceRepository.findByCoordinatorIdAndFriendlyName(1, "smartplug1").orElseThrow();
+            Assertions.assertEquals(stored.getLastLiveStateAt(), replayed.getLastLiveStateAt());
+            Assertions.assertTrue(replayed.getLiveStateJson().contains("ON"));
+        }
     }
 
     @Test

@@ -13,6 +13,7 @@ let timedDurationS = 300;
 let pumpIds = [7];
 let histories = {};
 let currentSession = null;
+let resourceBindingId = null;
 
 vi.mock('../../features/auth/AuthContext', () => ({
   useAuth: () => ({ demoActive }),
@@ -29,6 +30,7 @@ vi.mock('../../features/manual-watering/useManualWatering', () => ({
       },
       pumps: pumpIds.map((id) => ({
         id,
+        resource_binding_id: resourceBindingId,
         label: id === 7 ? 'Основной насос' : `Насос ${id}`,
         device_id: 'GH-1',
         channel: 1,
@@ -82,6 +84,21 @@ describe('AppManualWatering', () => {
     pumpIds = [7];
     histories = {};
     currentSession = null;
+    resourceBindingId = null;
+  });
+
+  it('zapuskaet klapan po privyazke i ne predlagaet impulsy', async () => {
+    pumpIds = [null];
+    resourceBindingId = 42;
+    capabilityOverrides = { pulse: false, until_leak: false, max_duration_s: 600 };
+    startWatering.mockResolvedValue(true);
+    render(<AppManualWatering />);
+    fireEvent.click(screen.getByRole('button', { name: 'Начать полив' }));
+    expect(screen.queryByRole('checkbox', { name: 'Импульсный режим' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Запустить' }));
+    await waitFor(() => expect(startWatering).toHaveBeenCalledWith('resource:42', {
+      mode: 'timed', duration_s: 300, pulse_enabled: false,
+    }));
   });
 
   it('otkryvaet zhurnal tolko zapushchennogo nasosa bez ozhidaniya zagruzki istorii', async () => {

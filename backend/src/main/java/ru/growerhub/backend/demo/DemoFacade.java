@@ -46,6 +46,7 @@ public class DemoFacade {
     private final PumpFacade pumps;
     private final AuthFacade auth;
     private final DemoSettings settings;
+    private final ru.growerhub.backend.common.config.zigbee.ZigbeeWateringSettings wateringSettings;
     private final ObjectMapper mapper;
     private final Clock clock;
     private final DemoTemplate template;
@@ -53,11 +54,13 @@ public class DemoFacade {
     public DemoFacade(DemoSpaceRepository spaces, DemoDeviceRepository devices, DemoCapacityRepository capacity,
             @Lazy UserFacade users, @Lazy DeviceFacade nativeDevices, @Lazy ZigbeeFacade zigbee,
             @Lazy AutomationFacade automation, @Lazy PlantFacade plants, @Lazy PumpFacade pumps,
-            @Lazy AuthFacade auth, DemoSettings settings, ObjectMapper mapper, Clock clock, ResourceLoader resources) {
+            @Lazy AuthFacade auth, DemoSettings settings, ObjectMapper mapper, Clock clock, ResourceLoader resources,
+            ru.growerhub.backend.common.config.zigbee.ZigbeeWateringSettings wateringSettings) {
         this.spaces = spaces; this.devices = devices; this.capacity = capacity; this.users = users;
         this.nativeDevices = nativeDevices; this.zigbee = zigbee; this.automation = automation;
         this.plants = plants; this.pumps = pumps; this.auth = auth; this.settings = settings;
         this.mapper = mapper; this.clock = clock;
+        this.wateringSettings = wateringSettings;
         try (var stream = resources.getResource(settings.templatePath()).getInputStream()) {
             this.template = mapper.readValue(stream, DemoTemplate.class);
         } catch (Exception ex) { throw new IllegalStateException("Cannot load demo farm template", ex); }
@@ -181,7 +184,8 @@ public class DemoFacade {
     @Transactional(readOnly = true)
     public List<DemoData.Profile> catalog(AuthenticatedUser user) {
         DemoSpaceEntity space = owned(user);
-        return template.profiles().stream().map(profile -> new DemoData.Profile(profile.key(),
+        return template.profiles().stream().filter(profile -> !"valve".equals(profile.kind()) || wateringSettings.enabled())
+                .map(profile -> new DemoData.Profile(profile.key(),
                 label(profile.name(), space.locale), label(profile.description(), space.locale))).toList();
     }
 
@@ -189,6 +193,7 @@ public class DemoFacade {
         DemoSpaceEntity space = owned(user); users.lockDemoOwner(space.dataUserId);
         if (request == null) throw new DomainException("bad_request", "Device profile required");
         DemoTemplate.Profile profile = profile(request.profile());
+        if ("valve".equals(profile.kind()) && !wateringSettings.enabled()) throw new DomainException("bad_request", "Zigbee watering disabled");
         String name = request.name() == null || request.name().isBlank() ? label(profile.name(), space.locale) : request.name().strip();
         if (name.length() > 80 || name.contains("/") || name.contains("+") || name.contains("#")) {
             throw new DomainException("bad_request", "Invalid device name");
@@ -241,6 +246,28 @@ public class DemoFacade {
         DemoDeviceEntity device = devices.lockByTargetId(base + "/" + name)
                 .orElseThrow(() -> new DomainException("forbidden", "Unknown simulated device"));
         users.requireDemoOwner(required(device.spaceId).dataUserId);
+        if (zigbee.isSimulatedBaseTopic(base) && "valve".equals(profile(device.profileKey).kind())) {
+            if (payload == null || !Set.of("ON", "OFF").contains(String.valueOf(payload.get("state")))) {
+                throw new DomainException("bad_request", "Unsupported valve command");
+            }
+            boolean running = "ON".equals(payload.get("state"));
+            if (running) {
+                Object duration = payload.get("watering_duration");
+                if (payload.size() != 2 || !(duration instanceof Number number) || number.doubleValue() != number.intValue()
+                        || number.intValue() < 1 || number.intValue() > wateringSettings.simulatedMaxDurationSeconds()) {
+                    throw new DomainException("bad_request", "Bounded valve duration required");
+                }
+                if (device.stopAt != null) throw new DomainException("conflict", "Valve already running");
+                device.stopAt = now().plusSeconds(((Number) duration).intValue());
+            } else {
+                if (payload.size() != 1) throw new DomainException("bad_request", "Unsupported valve stop");
+                device.stopAt = null;
+            }
+            Map<String, Object> state = state(device);
+            state.put("state", running ? "ON" : "OFF");
+            persist(device, state, now()); publish(device, state, now());
+            return;
+        }
         if (!zigbee.isSimulatedBaseTopic(base) || !"switch".equals(profile(device.profileKey).kind())) {
             throw new DomainException("forbidden", "Simulated switch required");
         }
@@ -303,7 +330,11 @@ public class DemoFacade {
                         + pumpSeconds * template.physics().pumpMoisturePerSecond() - seconds / 3600 * drying)));
             }
             integrateEnergy(device, state, now);
-            if (deadline) { state.put("pump_running", false); device.stopAt = null; }
+            if (deadline) {
+                state.put("pump_running", false);
+                if ("valve".equals(profile.kind())) state.put("state", "OFF");
+                device.stopAt = null;
+            }
             persist(device, state, now); publish(device, state, now);
         }
         space.lastTickAt = now; spaces.save(space);
@@ -335,11 +366,13 @@ public class DemoFacade {
             persist(device, state, now); publish(device, state, now);
             if (device.nativeDeviceId != null) pumps.pauseSimulatedDevice(device.targetId, now);
         }
+        pumps.pauseSimulatedZigbee(zigbee.getSimulationCoordinator(space.dataUserId).id(), now);
     }
 
     private void clearResources(DemoSpaceEntity space) {
         users.requireDemoOwner(space.dataUserId); pause(space, now());
         AuthenticatedUser user = demoUser(space);
+        pumps.deleteSimulatedZigbeeHistory(zigbee.getSimulationCoordinator(space.dataUserId).id());
         for (var device : devices.findBySpaceId(space.id)) {
             if (device.nativeDeviceId != null) pumps.deleteSimulatedHistory(device.nativeDeviceId);
         }
@@ -499,6 +532,11 @@ public class DemoFacade {
 
     private List<Map<String, Object>> exposes(DemoTemplate.Profile profile) {
         List<Map<String, Object>> result = new ArrayList<>();
+        if ("valve".equals(profile.kind())) {
+            result.add(Map.of("type", "binary", "name", "state", "property", "state", "access", 7, "value_on", "ON", "value_off", "OFF"));
+            result.add(Map.of("type", "numeric", "name", "watering_duration", "property", "watering_duration", "access", 2,
+                    "unit", "s", "value_min", 1, "value_max", wateringSettings.simulatedMaxDurationSeconds()));
+        }
         if ("switch".equals(profile.kind())) {
             result.add(Map.of("type", "switch", "features", List.of(Map.of("type", "binary", "name", "state", "property", "state",
                     "access", 7, "value_on", "ON", "value_off", "OFF"))));
@@ -544,6 +582,7 @@ public class DemoFacade {
         Map<String, Object> payload = new LinkedHashMap<>();
         switch (profile(device.profileKey).kind()) {
             case "switch" -> { payload.put("state", state.get("state")); payload.put("power", state.get("power")); payload.put("energy", state.get("energy")); }
+            case "valve" -> payload.put("state", state.get("state"));
             case "leak" -> payload.put("water_leak", state.get("water_leak"));
             case "air" -> { payload.put("temperature", state.get("temperature")); payload.put("humidity", state.get("humidity")); }
             case "soil" -> payload.put("soil_moisture", state.get("moisture"));

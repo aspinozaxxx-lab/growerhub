@@ -342,7 +342,8 @@ public final class AutomationData {
             @JsonProperty("metrics") List<ZigbeeFeature> metrics,
             @JsonProperty("controls") List<ZigbeeFeature> controls,
             @JsonProperty("availability") String availability,
-            @JsonProperty("last_state_at") LocalDateTime lastStateAt
+            @JsonProperty("last_state_at") LocalDateTime lastStateAt,
+            @JsonProperty("watering") List<ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Capability> watering
     ) {
     }
 
@@ -421,8 +422,15 @@ public final class AutomationData {
             @JsonProperty("is_running") Boolean isRunning,
             @JsonProperty("capabilities") ManualWateringCapabilities capabilities,
             @JsonProperty("boxes") List<ManualWateringBox> boxes,
-            @JsonProperty("current_session") PumpSessionData.View currentSession
+            @JsonProperty("current_session") PumpSessionData.View currentSession,
+            @JsonProperty("resource_binding_id") Integer resourceBindingId,
+            @JsonProperty("executor_key") String executorKey
     ) {
+        public ManualWateringPump(Integer id, Integer deviceId, String deviceKey, Integer channel, String label,
+                Boolean isOnline, Boolean isRunning, ManualWateringCapabilities capabilities,
+                List<ManualWateringBox> boxes, PumpSessionData.View currentSession) {
+            this(id, deviceId, deviceKey, channel, label, isOnline, isRunning, capabilities, boxes, currentSession, null, "native:" + id);
+        }
     }
 
     public record ManualWateringCapabilities(
@@ -430,8 +438,13 @@ public final class AutomationData {
             @JsonProperty("start_block_reasons") List<String> startBlockReasons,
             @JsonProperty("timed") boolean timed,
             @JsonProperty("until_leak") boolean untilLeak,
-            @JsonProperty("can_stop") boolean canStop
+            @JsonProperty("can_stop") boolean canStop,
+            @JsonProperty("pulse") boolean pulse,
+            @JsonProperty("max_duration_s") Integer maxDurationS
     ) {
+        public ManualWateringCapabilities(boolean canStart, List<String> reasons, boolean timed, boolean untilLeak, boolean canStop) {
+            this(canStart, reasons, timed, untilLeak, canStop, true, null);
+        }
     }
 
     public record ManualWateringBox(

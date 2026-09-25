@@ -11,6 +11,7 @@ import {
   normalizeSessionPage,
   overviewHasActiveSession,
   mergeSessionsById,
+  wateringKey,
 } from './manualWateringModel';
 import { translateApp } from '../../locales/i18n';
 
@@ -140,7 +141,7 @@ export default function useManualWatering() {
     const nextActiveIds = new Set(
       (Array.isArray(overview?.pumps) ? overview.pumps : [])
         .filter((pump) => Boolean(pump?.current_session || pump?.active_session))
-        .map((pump) => pump.id),
+        .map(wateringKey),
     );
     activePumpIdsRef.current.forEach((pumpId) => {
       if (!nextActiveIds.has(pumpId) && histories[pumpId]?.loaded) {
@@ -175,7 +176,7 @@ export default function useManualWatering() {
       await startManualWatering(pumpId, payload);
       await loadOverview({ silent: true });
       await refreshLoadedHistory(pumpId);
-      setNotice(translateApp("Полив запущен"));
+      setNotice(translateApp(String(pumpId).startsWith('resource:') ? "Команда полива отправлена" : "Полив запущен"));
       return true;
     } catch (err) {
       if (isSessionExpiredError(err)) return false;

@@ -106,7 +106,7 @@ describe('DeviceCard firmware', () => {
 
     expect(screen.getByText('Роли в ферме')).toBeInTheDocument();
     expect(screen.getByText('Ферма · Теплица 1 · Влажность почвы')).toHaveAttribute('href', '/app/farm/');
-    expect(screen.getByText('Ферма · Теплица 1 · Насос')).toHaveAttribute('href', '/app/farm/');
+    expect(screen.getByText('Ферма · Теплица 1 · Полив')).toHaveAttribute('href', '/app/farm/');
     expect(screen.queryByText('Розмарин')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Редактировать' })).not.toBeInTheDocument();
   });

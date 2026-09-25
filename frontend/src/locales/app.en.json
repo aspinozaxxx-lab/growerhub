@@ -1,4 +1,9 @@
 {
+  "Ожидается открытие клапана": "Waiting for the valve to open",
+  "Команда полива отправлена": "Watering command sent",
+  "Клапан закроется по локальному таймеру. Импульсный режим для этой модели недоступен.": "The valve closes using its local timer. Pulse mode is unavailable for this model.",
+  "Превышен предел локального таймера клапана": "The duration exceeds the valve's local timer limit",
+  "Объём рассчитан по заданной скорости полива.": "Volume is estimated from the configured watering rate.",
   "Управлять подключениями": "Manage connections",
   "Что у вас уже есть?": "What do you already have?",
   "Для начала хватит одного датчика или розетки. Выберите свой вариант — покажем нужную инструкцию.": "One sensor or smart plug is enough to start. Choose your setup to see the right instructions.",
@@ -738,6 +743,8 @@
   "Подключите устройство к сети для обновления": "Connect the device to the network to update it",
   "Повторить обновление": "Retry update",
   "Обновить прошивку": "Update firmware",
+  "Клапан открыт": "Valve open",
+  "Журнал полива": "Watering history",
   "Журнал насоса": "Pump log",
   "Ручной полив": "Manual watering",
   "Сценарии": "Scenarios",

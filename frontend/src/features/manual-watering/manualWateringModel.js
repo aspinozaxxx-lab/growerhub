@@ -7,6 +7,7 @@ const MODE_LABELS = {
 };
 
 const PHASE_LABELS = {
+  starting: translateApp("Ожидается открытие клапана"),
   active: translateApp("Полив активен"),
   running: translateApp("Насос работает"),
   pause: translateApp("Пауза импульса"),
@@ -91,6 +92,10 @@ export function pumpCurrentSession(pump) {
   return pump?.current_session || pump?.active_session || null;
 }
 
+export function wateringKey(pump) {
+  return pump?.resource_binding_id ? `resource:${pump.resource_binding_id}` : pump?.id;
+}
+
 export function overviewHasActiveSession(overview) {
   return listOrEmpty(overview?.pumps).some((pump) => Boolean(pumpCurrentSession(pump)));
 }
@@ -138,7 +143,8 @@ export function modeLabel(value) {
   return MODE_LABELS[value] || translateApp("Режим неизвестен");
 }
 
-export function phaseLabel(value) {
+export function phaseLabel(value, executorType) {
+  if (executorType === 'ZIGBEE_DEVICE' && value === 'running') return translateApp('Идет полив');
   return PHASE_LABELS[value] || translateApp("Состояние обновляется");
 }
 

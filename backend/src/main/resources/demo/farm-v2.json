@@ -6,6 +6,16 @@
   },
   "profiles": [
     {
+      "key": "valve",
+      "kind": "valve",
+      "name": { "ru": "Клапан полива", "en": "Watering valve" },
+      "description": { "ru": "Виртуальный Zigbee-клапан с локальным таймером", "en": "Simulated Zigbee valve with a local timer" },
+      "powerWatts": 0,
+      "temperature": 25,
+      "humidity": 61,
+      "moisture": 64
+    },
+    {
       "key": "controller",
       "kind": "native",
       "name": {

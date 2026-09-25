@@ -1,3 +1,5 @@
+import { translateApp } from '../../locales/i18n';
+
 const SWITCH_ROLES = new Set(['AC_SWITCH', 'EXHAUST_SWITCH', 'LIGHT_SWITCH']);
 
 const OPTION_KEYS = [
@@ -180,7 +182,8 @@ export function optionsForRole(role, catalog) {
 
   if (SWITCH_ROLES.has(role)) {
     zigbeeDevices
-      .filter((device) => hasWritableState(device))
+      .filter((device) => hasWritableState(device)
+        && !listOrEmpty(device.watering).some((capability) => capability.property === 'state' && capability.max_duration_s))
       .forEach((device) => {
         options.push({
           value: optionValue({
@@ -202,6 +205,20 @@ export function optionsForRole(role, catalog) {
   }
 
   if (role === 'WATER_PUMP') {
+    zigbeeDevices.forEach((device) => {
+      listOrEmpty(device.watering).filter((capability) => capability.ready).forEach((capability) => {
+        const feature = listOrEmpty(device.controls).find((item) => item.property === capability.property);
+        options.push({
+          value: optionValue({ source_type: 'ZIGBEE_DEVICE', zigbee_coordinator_id: device.coordinator_id,
+            zigbee_ieee_address: device.ieee_address, zigbee_property: capability.property,
+            command_property: capability.property, on_value: feature?.value_on, off_value: feature?.value_off }),
+          label: `${device.friendly_name} · ${translateApp('Полив')}`,
+          currentValue: feature?.value,
+          lastSeenAt: device.last_state_at,
+          connectionStatus: device.availability,
+        });
+      });
+    });
     nativeDevices.forEach((device) => {
       listOrEmpty(device.pumps).forEach((pump) => {
         options.push({

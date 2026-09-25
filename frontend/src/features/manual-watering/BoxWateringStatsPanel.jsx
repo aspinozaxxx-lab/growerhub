@@ -133,7 +133,7 @@ function BoxWateringStatsPanel({ target, onClose }) {
 
   const handleStop = async () => {
     const session = statistics?.active_session;
-    const pumpId = session?.pump_id || target?.pumpId;
+    const pumpId = target?.resourceBindingId ? `resource:${target.resourceBindingId}` : session?.pump_id || target?.pumpId;
     if (!pumpId) return;
     const accepted = window.confirm(translateApp("Остановить насос? Полив завершится во всех привязанных к нему боксах."));
     if (!accepted) return;
@@ -161,7 +161,7 @@ function BoxWateringStatsPanel({ target, onClose }) {
     <SidePanel
       isOpen
       onClose={onClose}
-      title={translateApp("Журнал насоса")}
+      title={translateApp(target.resourceBindingId ? "Журнал полива" : "Журнал насоса")}
       subtitle={target.title || translateApp("Теплица")}
       width="lg"
     >

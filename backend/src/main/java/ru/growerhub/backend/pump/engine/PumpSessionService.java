@@ -47,6 +47,9 @@ import ru.growerhub.backend.pump.jpa.PumpWateringSessionLeakRepository;
 import ru.growerhub.backend.pump.jpa.PumpWateringSessionPlantEntity;
 import ru.growerhub.backend.pump.jpa.PumpWateringSessionPlantRepository;
 import ru.growerhub.backend.pump.jpa.PumpWateringSessionRepository;
+import ru.growerhub.backend.zigbee.ZigbeeFacade;
+import ru.growerhub.backend.zigbee.contract.ZigbeeWateringData;
+import ru.growerhub.backend.common.config.zigbee.ZigbeeWateringSettings;
 
 @Service
 public class PumpSessionService {
@@ -73,6 +76,9 @@ public class PumpSessionService {
     private final PumpRunningStatusProvider runningStatusProvider;
     private final PumpWateringSettings settings;
     private final AutomationSettings automationSettings;
+    private final ZigbeeFacade zigbeeFacade;
+    private final ZigbeeWateringSettings zigbeeSettings;
+    private final java.time.Clock clock;
 
     public PumpSessionService(
             PumpRepository pumpRepository,
@@ -87,7 +93,10 @@ public class PumpSessionService {
             PumpCommandGateway commandGateway,
             PumpRunningStatusProvider runningStatusProvider,
             PumpWateringSettings settings,
-            AutomationSettings automationSettings
+            AutomationSettings automationSettings,
+            @Lazy ZigbeeFacade zigbeeFacade,
+            ZigbeeWateringSettings zigbeeSettings,
+            java.time.Clock clock
     ) {
         this.pumpRepository = pumpRepository;
         this.bindingRepository = bindingRepository;
@@ -102,6 +111,9 @@ public class PumpSessionService {
         this.runningStatusProvider = runningStatusProvider;
         this.settings = settings;
         this.automationSettings = automationSettings;
+        this.zigbeeFacade = zigbeeFacade;
+        this.zigbeeSettings = zigbeeSettings;
+        this.clock = clock;
     }
 
     public PumpSessionData.Defaults defaults() {
@@ -114,7 +126,62 @@ public class PumpSessionService {
     }
 
     public PumpSessionData.View start(PumpSessionData.Start request, AuthenticatedUser user) {
+        if (request != null && request.zigbeeTarget() != null) return startZigbee(request, user);
         return startInternal(request, user, true, request != null ? request.waterVolumeL() : null);
+    }
+
+    private PumpSessionData.View startZigbee(PumpSessionData.Start request, AuthenticatedUser user) {
+        if (request.pumpId() != null) throw new DomainException("bad_request", "Укажите одного исполнителя полива");
+        var executor = zigbeeFacade.resolveWateringExecutor(request.zigbeeTarget(), user, true);
+        if (!executor.capability().ready()) throw new DomainException("bad_request", executor.capability().reason());
+        ResolvedStart resolved = resolveStart(request);
+        if (resolved.pulseEnabled() || !PumpSessionData.MODE_TIMED.equals(resolved.mode())) {
+            throw new DomainException("bad_request", "Для этого клапана доступен только полив по времени без импульсов");
+        }
+        if (resolved.durationS() > executor.capability().maxDurationS()) {
+            throw new DomainException("bad_request", "Превышен предел локального таймера клапана");
+        }
+        validateTargets(resolved.mode(), resolved.boxes());
+        for (var box : resolved.boxes()) for (var plant : box.plants()) {
+            PlantInfo actual = plantFacade.getPlantInfoById(plant.plantId());
+            if (actual == null || !java.util.Objects.equals(actual.userId(), executor.ownerId())
+                    || !java.util.Objects.equals(plant.ownerId(), executor.ownerId())) {
+                throw new DomainException("not_found", "Растение не найдено");
+            }
+        }
+        if (sessionRepository.findByActiveDeviceKey(executor.target().key()).isPresent()) {
+            throw new DomainException("conflict", "Клапан уже занят поливом");
+        }
+        var state = zigbeeFacade.wateringState(executor.target(), executor.onValue(), executor.offValue());
+        if (!state.online() || !Boolean.FALSE.equals(state.running())) {
+            throw new DomainException("conflict", "Нужно свежее подтверждение закрытого клапана");
+        }
+        LocalDateTime now = nowUtc();
+        PumpWateringSessionEntity session = PumpWateringSessionEntity.create();
+        session.setExecutorType("ZIGBEE_DEVICE");
+        session.setExecutorKey(executor.target().key());
+        session.setZigbeeCoordinatorId(executor.target().coordinatorId());
+        session.setZigbeeIeeeAddress(executor.target().ieeeAddress());
+        session.setZigbeeProperty(executor.target().property());
+        session.setZigbeeOnValue(executor.onValue());
+        session.setZigbeeOffValue(executor.offValue());
+        session.setDeviceKey(executor.target().key());
+        session.setActiveDeviceKey(executor.target().key());
+        session.setChannel(0);
+        session.setPumpLabel(executor.label());
+        initializeSession(session, request, user, resolved, null, now, correlationId());
+        session.setUserId(executor.ownerId());
+        session.setJournalEligible(false);
+        sessionRepository.saveAndFlush(session);
+        try {
+            session.setLastCommandAt(now);
+            publishStart(session, session.getCorrelationId(), now, resolved.durationS());
+            sessionRepository.saveAndFlush(session);
+        } catch (RuntimeException ex) {
+            compensateStartAttempt(session, ex, now);
+            throw ex;
+        }
+        return toView(session, now);
     }
 
     public PumpSessionData.View startLegacy(
@@ -198,6 +265,13 @@ public class PumpSessionService {
         session.setActiveDeviceKey(device.deviceId());
         session.setChannel(pump.getChannel() != null ? pump.getChannel() : 0);
         session.setPumpLabel(pump.getLabel());
+        session.setExecutorKey("native:" + pump.getId());
+        return initializeSession(session, request, user, resolved, plannedWaterVolumeL, now, correlationId);
+    }
+
+    private PumpWateringSessionEntity initializeSession(PumpWateringSessionEntity session,
+            PumpSessionData.Start request, AuthenticatedUser user, ResolvedStart resolved, Double plannedWaterVolumeL,
+            LocalDateTime now, String correlationId) {
         session.setUserId(user != null && user.id() != null && user.id() > 0 ? user.id() : null);
         session.setSource(resolved.source());
         session.setMode(resolved.mode());
@@ -257,6 +331,31 @@ public class PumpSessionService {
         }
     }
 
+    public void pauseSimulatedZigbee(Integer coordinatorId, LocalDateTime now) {
+        if (!zigbeeFacade.isSimulatedCoordinator(coordinatorId)) throw new DomainException("forbidden", "Simulated coordinator required");
+        for (var item : sessionRepository.findByZigbeeCoordinatorId(coordinatorId)) {
+            if (item.getActiveDeviceKey() == null) continue;
+            var session = sessionRepository.findByIdForUpdate(item.getId()).orElseThrow();
+            var probe = resolveProbe(session, null);
+            if (Boolean.FALSE.equals(probe.pumpRunning()) && probe.pumpObservedAt() != null
+                    && !probe.pumpObservedAt().isBefore(session.getStartedAt())) {
+                session.setCompletionReason(PumpSessionData.REASON_MANUAL);
+                finish(session, now);
+            } else enterStopping(session, PumpSessionData.REASON_MANUAL, now);
+        }
+    }
+
+    public void deleteSimulatedZigbeeHistory(Integer coordinatorId) {
+        if (!zigbeeFacade.isSimulatedCoordinator(coordinatorId)) throw new DomainException("forbidden", "Simulated coordinator required");
+        for (var session : sessionRepository.findByZigbeeCoordinatorId(coordinatorId)) {
+            if (session.getActiveDeviceKey() != null) throw new DomainException("conflict", "Полив ещё не остановлен");
+            sessionPlantRepository.deleteAllBySession_Id(session.getId());
+            leakRepository.deleteAllBySession_Id(session.getId());
+            boxRepository.deleteAllBySession_Id(session.getId());
+            sessionRepository.delete(session);
+        }
+    }
+
     public PumpSessionData.View stop(Integer pumpId, AuthenticatedUser user) {
         PumpEntity pump = requirePumpAccess(pumpId, user);
         PumpWateringSessionEntity session = sessionRepository
@@ -269,6 +368,18 @@ public class PumpSessionService {
         if (session == null || session.getActiveDeviceKey() == null) {
             return null;
         }
+        return stopSession(session);
+    }
+
+    public PumpSessionData.View stop(ZigbeeWateringData.Target target, AuthenticatedUser user) {
+        zigbeeFacade.resolveWateringExecutor(target, user, false);
+        PumpWateringSessionEntity session = sessionRepository.findByActiveDeviceKey(target.key()).orElse(null);
+        if (session == null) return null;
+        session = sessionRepository.findByIdForUpdate(session.getId()).orElseThrow();
+        return session.getActiveDeviceKey() == null ? null : stopSession(session);
+    }
+
+    private PumpSessionData.View stopSession(PumpWateringSessionEntity session) {
         LocalDateTime now = nowUtc();
         if (PumpSessionData.PHASE_STOPPING.equals(session.getPhase())) {
             if (session.getStoppingTargetPhase() != null) {
@@ -311,6 +422,21 @@ public class PumpSessionService {
         return new PumpSessionData.Page(views, nextBeforeId);
     }
 
+    public PumpSessionData.View current(ZigbeeWateringData.Target target) {
+        return sessionRepository.findByActiveDeviceKey(target.key()).map(s -> toView(s, nowUtc())).orElse(null);
+    }
+
+    public boolean hasActiveZigbeeSession(Integer coordinatorId) {
+        return sessionRepository.existsByZigbeeCoordinatorIdAndActiveDeviceKeyIsNotNull(coordinatorId);
+    }
+
+    public PumpSessionData.Page listSessions(ZigbeeWateringData.Target target, int limit, Long beforeId) {
+        int size = pageSize(limit);
+        var items = sessionRepository.findPageByExecutorKey(target.key(), beforeId, PageRequest.of(0, size))
+                .stream().map(s -> toView(s, nowUtc())).toList();
+        return new PumpSessionData.Page(items, items.size() == size ? items.get(items.size() - 1).id() : null);
+    }
+
     public List<PumpSessionData.Probe> listActiveProbes() {
         List<PumpSessionData.Probe> result = new ArrayList<>();
         for (PumpWateringSessionEntity session : sessionRepository.findAllByActiveDeviceKeyIsNotNullOrderByIdAsc()) {
@@ -320,7 +446,9 @@ public class PumpSessionService {
                     session.getDeviceKey(),
                     session.getMode(),
                     session.getPhase(),
-                    leakTargets(session.getId())
+                    leakTargets(session.getId()),
+                    zigbeeTarget(session),
+                    session.getUserId()
             ));
         }
         return result;
@@ -336,7 +464,8 @@ public class PumpSessionService {
             return toView(session, now);
         }
         PumpSessionData.LeakProbe resolvedProbe = resolveProbe(session, probe);
-        PumpAck ack = commandGateway.getAck(session.getCorrelationId());
+        if (session.isZigbee() && observeZigbeeRun(session, resolvedProbe, now)) return toView(session, now);
+        PumpAck ack = session.isZigbee() ? null : commandGateway.getAck(session.getCorrelationId());
         if (PumpSessionData.PHASE_STOPPING.equals(session.getPhase())) {
             if (isStopConfirmed(ack)) {
                 confirmStopTransition(session, now);
@@ -517,6 +646,12 @@ public class PumpSessionService {
     }
 
     private void advanceRunning(PumpWateringSessionEntity session, LocalDateTime now) {
+        if (session.isZigbee()) {
+            if (elapsedS(session.getLastCommandAt(), now) >= targetActiveDurationS(session)) {
+                enterStopping(session, terminalTimeReason(session), now);
+            }
+            return;
+        }
         int elapsed = runningElapsedS(session, now);
         int segmentS = currentRunDurationS(session);
         if (elapsed < segmentS) {
@@ -534,7 +669,7 @@ public class PumpSessionService {
         }
         String correlationId = correlationId();
         try {
-            commandGateway.publishStop(session.getDeviceKey(), correlationId, now);
+            publishStop(session, correlationId, now);
             session.setCorrelationId(correlationId);
             session.setLastCommandAt(now);
             session.setPhase(PumpSessionData.PHASE_STOPPING);
@@ -554,7 +689,7 @@ public class PumpSessionService {
         int durationS = currentRunDurationS(session);
         String correlationId = correlationId();
         try {
-            commandGateway.publishStart(session.getDeviceKey(), correlationId, now, durationS);
+            publishStart(session, correlationId, now, durationS);
             session.setCorrelationId(correlationId);
             session.setLastCommandAt(now);
             session.setPhase(PumpSessionData.PHASE_RUNNING);
@@ -583,7 +718,7 @@ public class PumpSessionService {
         session.setCorrelationId(stopCorrelationId);
         session.setLastCommandAt(now);
         try {
-            commandGateway.publishStop(session.getDeviceKey(), stopCorrelationId, now);
+            publishStop(session, stopCorrelationId, now);
         } catch (RuntimeException stopError) {
             startError.addSuppressed(stopError);
         }
@@ -623,7 +758,7 @@ public class PumpSessionService {
         }
         String correlationId = correlationId();
         try {
-            commandGateway.publishStop(session.getDeviceKey(), correlationId, now);
+            publishStop(session, correlationId, now);
             session.setCorrelationId(correlationId);
             session.setLastCommandAt(now);
             session.setUpdatedAt(now);
@@ -646,7 +781,7 @@ public class PumpSessionService {
         session.setUpdatedAt(now);
         String correlationId = correlationId();
         try {
-            commandGateway.publishStop(session.getDeviceKey(), correlationId, now);
+            publishStop(session, correlationId, now);
             session.setCorrelationId(correlationId);
             session.setLastCommandAt(now);
             sessionRepository.save(session);
@@ -687,7 +822,7 @@ public class PumpSessionService {
         session.setUpdatedAt(now);
         String correlationId = correlationId();
         try {
-            commandGateway.publishStop(session.getDeviceKey(), correlationId, now);
+            publishStop(session, correlationId, now);
             session.setCorrelationId(correlationId);
             session.setLastCommandAt(now);
         } catch (RuntimeException ex) {
@@ -775,6 +910,15 @@ public class PumpSessionService {
             PumpWateringSessionEntity session,
             PumpSessionData.LeakProbe probe
     ) {
+        if (session.isZigbee()) {
+            List<PumpSessionData.LeakState> leaks = probe != null && probe.leakStates() != null ? probe.leakStates() : List.of();
+            try {
+                var state = zigbeeFacade.wateringState(zigbeeTarget(session), session.getZigbeeOnValue(), session.getZigbeeOffValue());
+                return new PumpSessionData.LeakProbe(state.online(), state.running(), state.observedAt(), leaks);
+            } catch (DomainException ex) {
+                return new PumpSessionData.LeakProbe(false, null, null, leaks);
+            }
+        }
         DeviceSummary device = deviceFacade.getDeviceSummary(session.getDeviceId());
         Boolean online = probe != null && probe.deviceOnline() != null
                 ? probe.deviceOnline()
@@ -1047,7 +1191,8 @@ public class PumpSessionService {
                 session.getSource(),
                 session.getMode(),
                 status,
-                session.getPhase(),
+                session.isZigbee() && PumpSessionData.PHASE_RUNNING.equals(session.getPhase()) && session.getRunConfirmedAt() == null
+                        ? "starting" : session.getPhase(),
                 session.getPlannedDurationS(),
                 session.getMaxActiveDurationS(),
                 session.isPulseEnabled(),
@@ -1066,7 +1211,9 @@ public class PumpSessionService {
                 session.getCorrelationId(),
                 session.getCompletionReason(),
                 session.getErrorMessage(),
-                boxes
+                boxes,
+                session.getExecutorType(),
+                zigbeeTarget(session)
         );
     }
 
@@ -1102,7 +1249,7 @@ public class PumpSessionService {
             LocalDateTime now,
             String status
     ) {
-        if (session.getDeviceKey() == null) {
+        if (session.isZigbee() || session.getDeviceKey() == null) {
             return;
         }
         DeviceShadowState.ManualWateringState state = new DeviceShadowState.ManualWateringState(
@@ -1129,7 +1276,49 @@ public class PumpSessionService {
     }
 
     private int runningElapsedS(PumpWateringSessionEntity session, LocalDateTime now) {
+        if (session.isZigbee()) return session.getRunConfirmedAt() == null ? 0 : elapsedS(session.getRunConfirmedAt(), now);
         return elapsedS(session.getPhaseStartedAt(), now);
+    }
+
+    private boolean observeZigbeeRun(PumpWateringSessionEntity session, PumpSessionData.LeakProbe probe, LocalDateTime now) {
+        if (!PumpSessionData.PHASE_RUNNING.equals(session.getPhase())) return false;
+        boolean fresh = Boolean.TRUE.equals(probe.deviceOnline()) && probe.pumpObservedAt() != null
+                && !probe.pumpObservedAt().isBefore(session.getLastCommandAt());
+        if (fresh && Boolean.TRUE.equals(probe.pumpRunning()) && session.getRunConfirmedAt() == null) {
+            session.setRunConfirmedAt(probe.pumpObservedAt());
+            session.setJournalEligible(true);
+            sessionRepository.save(session);
+        }
+        if (fresh && Boolean.FALSE.equals(probe.pumpRunning()) && session.getRunConfirmedAt() != null) {
+            session.setCompletionReason(elapsedS(session.getLastCommandAt(), probe.pumpObservedAt()) >= targetActiveDurationS(session)
+                    ? PumpSessionData.REASON_DURATION : PumpSessionData.REASON_MANUAL);
+            finish(session, probe.pumpObservedAt());
+            return true;
+        }
+        if (session.getRunConfirmedAt() == null
+                && elapsedS(session.getLastCommandAt(), now) >= zigbeeSettings.startConfirmationSeconds()) {
+            session.setErrorMessage("Открытие клапана не подтверждено");
+            enterStopping(session, PumpSessionData.REASON_COMMAND_ERROR, now);
+            return true;
+        }
+        return false;
+    }
+
+    private ZigbeeWateringData.Target zigbeeTarget(PumpWateringSessionEntity session) {
+        return session.isZigbee() ? new ZigbeeWateringData.Target(session.getZigbeeCoordinatorId(),
+                session.getZigbeeIeeeAddress(), session.getZigbeeProperty()) : null;
+    }
+
+    private void publishStart(PumpWateringSessionEntity session, String correlationId, LocalDateTime now, int durationS) {
+        if (session.isZigbee()) {
+            zigbeeFacade.startWatering(zigbeeTarget(session), durationS, new AuthenticatedUser(session.getUserId(), "user"));
+        } else commandGateway.publishStart(session.getDeviceKey(), correlationId, now, durationS);
+    }
+
+    private void publishStop(PumpWateringSessionEntity session, String correlationId, LocalDateTime now) {
+        if (session.isZigbee()) {
+            zigbeeFacade.stopWatering(zigbeeTarget(session), session.getZigbeeOffValue(), new AuthenticatedUser(session.getUserId(), "user"));
+        } else commandGateway.publishStop(session.getDeviceKey(), correlationId, now);
     }
 
     private int currentRunDurationS(PumpWateringSessionEntity session) {
@@ -1309,7 +1498,7 @@ public class PumpSessionService {
     }
 
     private LocalDateTime nowUtc() {
-        return LocalDateTime.now(ZoneOffset.UTC);
+        return LocalDateTime.now(clock);
     }
 
     private String correlationId() {
