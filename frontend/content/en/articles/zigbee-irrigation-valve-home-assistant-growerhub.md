@@ -4,7 +4,7 @@ slug: "zigbee-irrigation-valve-home-assistant-growerhub"
 title: "Zigbee irrigation valve with Home Assistant and GrowerHub"
 summary: "How to choose and pair a Zigbee irrigation valve through Zigbee2MQTT, verify Home Assistant controls, add water safeguards, and use it in GrowerHub."
 created_at: "2026-08-16"
-updated_at: "2026-09-13"
+updated_at: "2026-09-25"
 cluster: "home-assistant-i-diy"
 tags:
   - "GrowerHub"
@@ -86,15 +86,27 @@ Zigbee2MQTT support, visible telemetry in GrowerHub and participation in a water
 | Listed by Zigbee2MQTT | Match the exact model, revision and `exposes` |
 | Telemetry visible in GrowerHub | Supported metrics must arrive through your coordinator |
 | Control available | Only an allowed writable property; visibility does not imply every vendor-app feature |
-| Pump slot and managed watering journal | These use native GrowerHub pumps; an arbitrary Zigbee valve is not automatically a native pump |
+| Watering slot, manual start, automation and history | Shared by GrowerHub pumps and approved Zigbee valves; an unverified valve cannot be assigned to watering |
 
-Do not buy a valve assuming this article guarantees a ready-made GrowerHub irrigation scenario. Confirm the supported action for the exact model and test it with water. Position controls, timers and nonstandard commands may need additional support.
+**As of September 25, 2026, no physical Zigbee valves have been approved for watering in GrowerHub.** You can already try the shared scenario with a virtual valve in the demo farm. This does not establish compatibility with a product from a shop.
+
+An ON/OFF command alone is not enough for approval. A real valve must accept a bounded duration, close by itself after losing connectivity and avoid extending a watering run when a command is repeated. These behaviors require physical testing of the exact device, firmware and `exposes`. A position control or a separate timer does not replace that check.
+
+Watering waits for the device to confirm opening, and completion requires confirmation that it has closed. Lost connectivity is not reported as a successful stop. Without a flow meter, volume is estimated from the configured flow rate and labeled accordingly; without a flow rate, it is unknown. Zigbee currently supports timed watering, without pulse mode or an until-leak mode; protective shutdown on a leak alarm remains available.
 
 Keep control of an existing valve in Home Assistant while connecting supported telemetry through the [MQTT bridge](/articles/growerhub-i-home-assistant-cherez-mqtt/). Disable competing rules before handing control to another system.
 
-## Try native watering in the demo
+## Try a valve in the demo farm
 
-The [demo farm](/app/demo/?lang=en) includes virtual native pumps, moisture sensors, leak sensors and watering history. It lets you try the interface and shared automation rules. It does not certify compatibility with any particular Zigbee valve.
+The [demo farm needs no registration](/app/demo/?lang=en) and starts with four greenhouses, pumps, sensors and history. Add a virtual valve separately:
+
+1. Open the demo menu and go to its device and environment tools.
+2. Select the Watering valve device type, give it a name and add it.
+3. In the farm builder, select a greenhouse and assign the new valve to its Watering slot in place of the pump.
+4. Open manual watering, select the valve and start a one-minute run. Wait for completion and check the watering history entry.
+5. Configure watering for that greenhouse in Automations, then change its sensor's soil moisture through the demo tools to try the scenario's response.
+
+The valve uses the same pages, scenarios and history as the pump. Every action in the demo operates on virtual devices. Save the demo farm to your account to continue later.
 
 ## When a valve is preferable to a pump
 
