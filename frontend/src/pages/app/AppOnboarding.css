@@ -126,6 +126,7 @@
   color: var(--text-1);
   background: var(--surface-2);
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
 }
 

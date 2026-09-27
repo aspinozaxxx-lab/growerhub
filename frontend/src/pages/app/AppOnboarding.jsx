@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import TelegramContactLink from '../../components/TelegramContactLink';
+import DemoStartLink from '../../components/DemoStartLink';
 import Button from '../../components/ui/Button';
 import PushokPilot from '../../components/PushokPilot';
 import { GITHUB_RELEASES_URL, ZIGBEE_CONNECTOR_DOWNLOAD_URL } from '../../domain/siteConfig';
@@ -389,8 +390,11 @@ function AppOnboarding() {
         <section className="onboarding-card">
           <h2>{translateApp("Что у вас уже есть?")}</h2>
           <PushokPilot />
-          <p>{translateApp("Для начала хватит одного датчика или розетки. Выберите свой вариант — покажем нужную инструкцию.")}</p>
+          <p>{translateApp("Выберите свой вариант — подскажем следующий шаг.")}</p>
           <div className="onboarding-choice-grid" role="group" aria-label={translateApp("Способ подключения")}>
+            <DemoStartLink placement="onboarding_no_equipment" className="choice-card">
+              <strong>{translateApp("Хочу попробовать без оборудования")}</strong><span>{translateApp("Откройте демоферму: датчики, растения и сценарии уже настроены.")}</span>
+            </DemoStartLink>
             <button type="button" aria-pressed={connectionMode === CONNECTION_MODES.BRIDGE} className={connectionMode === CONNECTION_MODES.BRIDGE ? 'choice-card is-selected' : 'choice-card'} onClick={() => setConnectionMode(CONNECTION_MODES.BRIDGE)}>
               <strong>{translateApp("Уже работает Zigbee2MQTT")}</strong><span>{translateApp("Отдельно или внутри Home Assistant. Подключим существующие устройства через модуль связи.")}</span>
             </button>
