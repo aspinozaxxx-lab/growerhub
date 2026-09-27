@@ -1,13 +1,12 @@
 ---
 translation_of: gotovyy-zigbee-hub-dlya-growerhub
 slug: ready-zigbee-hub-for-growerhub-when-it-is-more-convenient-than-self-assembly
-title: 'Ready Zigbee Hub for GrowerHub: when it is more convenient than self-assembly'
+title: 'A ready-made Zigbee hub for GrowerHub: starting without a separate computer'
 summary: >-
-  When is it worth choosing a ready-made Zigbee Hub, how does it differ from a
-  DIY coordinator and what requirements are important for a greenhouse, box and
-  automatic watering.
+  Start with one sensor: existing Zigbee2MQTT, the PushOk pilot and SMLIGHT
+  SMHUB Nano. Connection options and what to check before buying hardware.
 created_at: '2026-07-23'
-updated_at: '2026-07-23'
+updated_at: '2026-09-27'
 cluster: zigbee-hub-i-ustroystva
 tags:
   - GrowerHub
@@ -29,32 +28,52 @@ hero_alt: >-
 ---
 ![Illustration GrowerHub: ready Zigbee Hub, plant sensors and local network](/content/articles/illustrations/gotovyy-zigbee-hub-dlya-growerhub.webp)
 
-The ready-made Zigbee Hub is convenient when the user needs a working network of sensors without setting up Linux, Docker, MQTT and coordinator firmware. This is especially noticeable for plants: the owner wants to see humidity, temperature, leakage and the state of the outlet, and not figure out why the container does not start after updating.
+One temperature sensor beside your plants is enough for a first setup. You can start by [opening the demo farm without hardware](/app/demo/?lang=en), exploring charts and trying virtual watering before buying a pump or a complete greenhouse kit.
 
-A DIY coordinator with Zigbee2MQTT gives more flexibility, but requires technical discipline. A ready-made hub removes some of the maintenance and may be better for a home, a small greenhouse, or a client who does not want to administer the infrastructure. The choice depends on who will be responsible for the system in a month, and not just on the price of the device.
+GrowerHub already receives physical sensor data through Zigbee2MQTT. A Zigbee logo alone does not establish compatibility: the hub's software and connection method matter.
 
-## When a ready-made hub is appropriate
+## Choose a starting point
 
-The ready-made hub is suitable for scenarios where simple connection, clear support and minimal manual configuration are important. For example, a user has 10-20 Zigbee devices: temperature and humidity sensors, leaks, sockets, several relays. He needs to link them to GrowerHub, receive notifications and see history.
+- **Zigbee2MQTT already runs, perhaps alongside Home Assistant.** Keep your hub and connect the existing network through a [local MQTT bridge](/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/). Having Home Assistant does not necessarily mean you use Zigbee2MQTT.
+- **An always-on computer is available.** Use a [USB coordinator and one compatible sensor](/en/equipment/zigbee-coordinators/). Zigbee2MQTT runs on that computer; new readings stop reaching GrowerHub when it is off.
+- **You want one box without a separate computer.** Consider a hub that runs Zigbee2MQTT internally. The candidate below needs a trial connection before we can recommend it as a tested GrowerHub setup.
+- **You already own PushOk.** You can request a pilot. The GrowerHub integration is not ready yet.
 
-If the installation is for a mini-farm or client, a ready-made hub reduces the risk of dependence on a single enthusiast. The system is easier to transfer to another person: there is a clear interface, update rules and fewer homemade connections.
+## SMLIGHT SMHUB Nano: the computer is inside
 
-## When is it better to DIY
+According to [SMLIGHT's product documentation](https://smlight.tech/products/smhub-nano-mg24), **SMHUB Nano MG24** runs Zigbee2MQTT on the hub and is configured in a browser. A separate Home Assistant installation or Raspberry Pi is unnecessary. SMLIGHT documents [connecting it to an external MQTT broker](https://smlight.tech/support/manuals/books/smhub/page/connecting-zigbee2mqtt-on-smhub-to-home-assistant).
 
-The DIY approach is appropriate if you need non-standard devices, deep integration with Home Assistant, direct access to MQTT, custom scripts Node-RED or debugging exposes. A technical user will be able to quickly find the problem, look at the logs, change the configuration and connect a rare model.
+That makes it a promising candidate for GrowerHub's existing Zigbee2MQTT connection. **We have not tested a physical SMHUB Nano with GrowerHub.** Encrypted connectivity and settings persistence after a restart still need device testing. [Discuss your proposed kit and trial connection](/en/getting-started/) before purchasing.
 
-But DIY requires responsibility: backups, updates, compatibility control, network key storage, availability checking and careful work with pairing. If no one does this, flexibility becomes a source of instability. The general role of Zigbee2MQTT is described in the article [Zigbee2MQTT in simple words](/articles/zigbee2mqtt-prostymi-slovami).
+As a price reference, [Domadoo lists the hub at €55.99](https://www.domadoo.fr/en/smart-home-products/8664-smlight-smhub-nano-mg24-hub-running-linux-zigbee2mqtt-node-red-and-matterbridge.html), checked on 27 September 2026. This is a retailer's hub price, not a delivered kit quote for your country. Check the sensor, power supply, cables and shipping separately.
 
-## Requirements for plants
+### The proposed first connection
 
-For GrowerHub, it is not the marketing functions of the hub that are important, but practical things: local operation of basic scenarios, support for the necessary sensors, freshness of data, clear availability events, load management taking into account safety and the ability to link the device to a plant zone.
+This sequence is for a **new, separate SMHUB network** and remains to be verified in a pilot:
 
-If the hub hides too many details, it's harder to figure out why a sensor went missing or an outlet didn't switch. If the hub is too technical, the user may not be able to handle the support. Therefore, a good option lies between simplicity and diagnostics.
+1. Connect power and your home network, then open the hub's page in a browser.
+2. Create a connection in GrowerHub. Copy its MQTT server, username, password, base topic and Client ID into the hub's Zigbee2MQTT settings. The server address alone is not enough.
+3. Pair one sensor using its manufacturer's instructions.
+4. Assign the readings to a greenhouse or home growing area in GrowerHub. Check that measurement times advance and history appears.
 
-## Connection with local automation
+Transfer only the MQTT settings. Replacing the entire hub configuration with a USB-coordinator template can overwrite its radio and web-interface settings. Keep the encrypted connection: [Zigbee2MQTT supports MQTT over TLS](https://www.zigbee2mqtt.io/guide/configuration/mqtt.html).
 
-For automatic watering and accidents, the basic logic must work locally. The cloud can be convenient for remote access, but should not be the only point that decides to turn off the pump when there is a leak. An approach to such scenarios is described in the article [local automation without cloud](/articles/lokalnaya-avtomatizatsiya-bez-oblaka).
+If the SMHUB already serves Home Assistant or other systems, plan a local bridge first: changing its MQTT server may interrupt existing integrations. A GrowerHub connection forwards the selected network's device list and readings and permits commands back to it. There is currently no separate read-only mode limited to one sensor. Automations are enabled separately by the user.
 
-## Conclusion
+## PushOk: request a pilot first
 
-A ready-made Zigbee Hub is worth choosing when the system must be understandable and maintainable without constant manual configuration. DIY is better for those who want complete control and are ready to be responsible for the infrastructure. For GrowerHub, the right hub is one that reliably transmits plant data, shows communication problems and does not interfere with local security.
+PushOk owners can [register interest in a pilot](/en/getting-started/#pushok). In the app, open **Settings → Connections → Connect PushOk**, choose to participate and leave your preferred contact method.
+
+Submitting the request does not connect or change your hub. We will review its model, sensors and connection options together. A phone-only setup without a separate server is still being investigated; do not buy PushOk expecting an already available GrowerHub integration.
+
+## Distinguish the different types of hub
+
+**SMHUB Nano and SLZB-06 are different products.** The standalone Zigbee Hub mode on SLZB uses [its own MQTT API](https://smlight.tech/support/manuals/books/slzb-os/page/mqtt-api), rather than Zigbee2MQTT's format. Its documentation also specifies TCP-only connections. Entering the GrowerHub address in that mode is not sufficient.
+
+For Tuya, Aqara and other hubs, check the exact model and available integration. Labels such as Zigbee 3.0, MQTT or works with Home Assistant do not replace this check. Verify the sensor's exact model in the [Zigbee2MQTT device catalogue](https://www.zigbee2mqtt.io/supported-devices/) as well.
+
+## From a first chart to automation
+
+Start by observing temperature or humidity. Once readings arrive reliably, choose one useful automation and verify its operation. GrowerHub automations run on the server and require connectivity to it; a hub's local capabilities do not make GrowerHub automations run locally.
+
+For watering, separately check the specific valve or pump and how it stops after a connection failure. Read the [automatic watering safety guide](/en/articles/safe-automatic-watering-water-limits-pauses-and-emergency-stop/) before enabling it. If you do not own hardware yet, try the [demo farm](/app/demo/?lang=en) and choose a kit around one useful task.

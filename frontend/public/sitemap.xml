@@ -10,7 +10,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-09-25</lastmod>
+    <lastmod>2026-09-27</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/avtomatizatsiya-mini-fermy/</loc>
@@ -50,7 +50,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zigbee-hub-i-ustroystva/</loc>
-    <lastmod>2026-09-20</lastmod>
+    <lastmod>2026-09-27</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/mini-ferma-i-neskolko-boksov/</loc>
@@ -59,6 +59,10 @@
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
     <lastmod>2026-09-25</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/gotovyy-zigbee-hub-dlya-growerhub/</loc>
+    <lastmod>2026-09-27</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/zigbee-klapan-poliva-home-assistant/</loc>
@@ -158,10 +162,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/foto-dnevnik-rosta-rasteniy/</loc>
-    <lastmod>2026-06-30</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/gotovyy-zigbee-hub-dlya-growerhub/</loc>
     <lastmod>2026-06-30</lastmod>
   </url>
   <url>
@@ -294,7 +294,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-09-25</lastmod>
+    <lastmod>2026-09-27</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/farm-automation/</loc>
@@ -334,7 +334,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/zigbee-hubs-and-devices/</loc>
-    <lastmod>2026-09-20</lastmod>
+    <lastmod>2026-09-27</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/small-farms-and-multiple-grow-boxes/</loc>
@@ -343,6 +343,10 @@
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/home-assistant-and-diy/</loc>
     <lastmod>2026-09-25</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/ready-zigbee-hub-for-growerhub-when-it-is-more-convenient-than-self-assembly/</loc>
+    <lastmod>2026-09-27</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/zigbee-irrigation-valve-home-assistant-growerhub/</loc>
@@ -486,10 +490,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/plant-dashboard-in-home-assistant-what-to-show-first/</loc>
-    <lastmod>2026-07-23</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/ready-zigbee-hub-for-growerhub-when-it-is-more-convenient-than-self-assembly/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>
