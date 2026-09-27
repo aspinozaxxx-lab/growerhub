@@ -152,6 +152,11 @@
   gap: 12px;
 }
 
+.connection-list h3,
+.connection-list p {
+  overflow-wrap: anywhere;
+}
+
 .compact-form {
   display: flex;
   align-items: end;

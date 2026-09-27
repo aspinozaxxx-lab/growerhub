@@ -74,12 +74,12 @@ function GettingStartedPage() {
         <h2>{pushok.title}</h2>
         <p>{pushok.intro}</p>
         <p><strong>{pushok.availability}</strong></p>
-        <h3>{pushok.path_title}</h3>
-        <ol className="steps-list">{pushok.steps.map((step) => <li key={step.title}><strong>{step.title}</strong><span>{step.text}</span></li>)}</ol>
-        <p>{pushok.invitation}</p>
         <div className="cta-row">
           <Link className="hero-cta" to={pilotTarget} onClick={() => { rememberLocale(locale); if (demoActive) leaveDemo(); }}>{pushok.cta}</Link>
         </div>
+        <h3>{pushok.path_title}</h3>
+        <ol className="steps-list">{pushok.steps.map((step) => <li key={step.title}><strong>{step.title}</strong><span>{step.text}</span></li>)}</ol>
+        <p>{pushok.invitation}</p>
         <p className="equipment-disclaimer">{pushok.purchase_note}</p>
         <div className="cta-row">{pushok.links.map((link) => <a key={link.href} className="secondary-link" href={link.href} target="_blank" rel="noreferrer">{link.label}</a>)}</div>
       </section>
