@@ -76,6 +76,14 @@ describe('AppOnboarding', () => {
     expect(screen.queryByRole('button', { name: 'Разрешить подключение на 3 минуты' })).not.toBeInTheDocument();
     expect(api.createCoordinator).toHaveBeenCalledExactlyOnceWith('Моя ферма');
     expect(trackProductGoal).toHaveBeenCalledWith('coordinator_created', { step: 'credentials_shown', connection_mode: 'bridge' });
+    for (const value of ['synthetic-user', 'synthetic-secret', 'gh/z2m/synthetic-user']) {
+      expect(screen.getByText(value).closest('.ym-hide-content')).not.toBeNull();
+    }
+    for (const label of ['Адрес', 'Порт', 'Базовая тема Zigbee2MQTT', 'Имя пользователя', 'Пароль']) {
+      expect(screen.getByLabelText(label).closest('.ym-hide-content')).not.toBeNull();
+    }
+    fireEvent.change(screen.getByLabelText('Адрес'), { target: { value: '192.0.2.10' } });
+    expect(screen.getByRole('button', { name: 'Скачать личный bridge.conf' })).toBeEnabled();
   });
 
   it('posle vozvrata ne predlagaet pryamoje podklyuchenie ili rotaciyu bez vybora sposoba', async () => {

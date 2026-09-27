@@ -93,7 +93,7 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
         <p>{translateApp("Пароль не хранится в GrowerHub и не появится снова после перезагрузки страницы. При утрате выпустите новые данные подключения.")}</p>
       </div>
 
-      <dl className="onboarding-credentials">
+      <dl className="onboarding-credentials ym-hide-content">
         <div><dt>{translateApp("MQTT-сервер")}</dt><dd>{setup.server}</dd></div>
         <div><dt>{translateApp("Имя пользователя")}</dt><dd>{setup.username}</dd></div>
         <div><dt>{translateApp("Пароль")}</dt><dd>{setup.password}</dd></div>
@@ -122,7 +122,7 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
           <h3>{translateApp("Локальный MQTT")}</h3>
           <p>{translateApp("Укажите LAN-адрес MQTT-брокера и mqtt.base_topic из Zigbee2MQTT. Если брокер работает на том же компьютере с Docker Desktop, используйте host.docker.internal. Адрес 127.0.0.1 внутри модуля связи не ведёт к вашему брокеру.")}</p>
           <p>{translateApp("Эти значения используются только для создания файла в браузере и не отправляются GrowerHub.")}</p>
-          <div className="onboarding-fields">
+          <div className="onboarding-fields ym-hide-content">
             <label>{translateApp("Адрес")}<input value={localMqtt.host} onChange={(event) => setLocalMqtt((value) => ({ ...value, host: event.target.value }))} placeholder="192.168.1.10" /></label>
             <label>{translateApp("Порт")}<input value={localMqtt.port} onChange={(event) => setLocalMqtt((value) => ({ ...value, port: event.target.value }))} inputMode="numeric" /></label>
             <label>{translateApp("Базовая тема Zigbee2MQTT")}<input value={localMqtt.baseTopic ?? 'zigbee2mqtt'} onChange={(event) => setLocalMqtt((value) => ({ ...value, baseTopic: event.target.value }))} /></label>

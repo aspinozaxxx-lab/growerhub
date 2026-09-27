@@ -101,7 +101,7 @@ function AppConnections() {
       {setup ? (
         <section className="secret-card">
           <div><span>{translateApp("Одноразовые данные")}</span><h2>{translateApp("Сохраните конфигурацию сейчас")}</h2><p>{translateApp("После закрытия страницы пароль восстановить нельзя — только выпустить новый.")}</p></div>
-          <dl><div><dt>{translateApp("Имя пользователя")}</dt><dd>{setup.username}</dd></div><div><dt>{translateApp("Пароль")}</dt><dd>{setup.password}</dd></div><div><dt>{translateApp("Базовый топик")}</dt><dd>{setup.base_topic}</dd></div></dl>
+          <dl className="ym-hide-content"><div><dt>{translateApp("Имя пользователя")}</dt><dd>{setup.username}</dd></div><div><dt>{translateApp("Пароль")}</dt><dd>{setup.password}</dd></div><div><dt>{translateApp("Базовый топик")}</dt><dd>{setup.base_topic}</dd></div></dl>
           <div className="inline-actions"><Button variant="primary" onClick={() => downloadTextFile('configuration.yaml', setup.configuration_yaml)}>configuration.yaml</Button><Button onClick={() => downloadTextFile('secret.yaml', setup.secret_yaml)}>secret.yaml</Button><Button onClick={() => setSetup(null)}>{translateApp("Скрыть навсегда")}</Button></div>
         </section>
       ) : null}
