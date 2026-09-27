@@ -716,7 +716,8 @@ const renderGettingStartedPage = (template, assets, platformContent) => {
           ${leadCta('getting_started_bottom')}`;
 
   return pageShell(template, {
-    title: `${start.title} — Zigbee2MQTT`,
+    renderWithReact: true,
+    title: `${start.title} — Zigbee2MQTT, PushOk`,
     description: start.description,
     canonical,
     jsonLd: [
@@ -813,6 +814,7 @@ ${category.items.map((item) => renderEquipmentCard(item, 'ru')).join('\n')}
           ${leadCta(`equipment_${category.slug}_bottom`)}`;
 
   return pageShell(template, {
+    renderWithReact: categoryKey === 'coordinators',
     title: `${category.title} — GrowerHub`,
     description: category.description,
     canonical,
@@ -890,6 +892,7 @@ const renderLegalPage = (template, assets, legal, type) => {
 
   return pageShell(template, {
     title,
+    renderWithReact: isPrivacy,
     description: `${title} для пользователей платформы GrowerHub.`,
     canonical: toCanonicalUrl(routePath),
     robots: 'noindex,follow',
@@ -1127,7 +1130,8 @@ const renderEnglishGettingStartedPage = (template, assets, data) => {
   const routePath = getPublicPath('gettingStarted', 'en');
   const canonical = toCanonicalUrl(routePath);
   return pageShell(template, {
-    title: `${start.title} — Zigbee2MQTT`,
+    renderWithReact: true,
+    title: `${start.title} — Zigbee2MQTT, PushOk`,
     description: start.description,
     canonical,
     locale: 'en',
@@ -1244,6 +1248,7 @@ const renderEnglishEquipmentCategoryPage = (
   const routePath = getPublicPath(routeIds[categoryKey], 'en');
   const canonical = toCanonicalUrl(routePath);
   return pageShell(template, {
+    renderWithReact: categoryKey === 'coordinators',
     title: `${category.title} — GrowerHub`,
     description: category.description,
     canonical,
@@ -1347,6 +1352,7 @@ const renderEnglishLegalPage = (template, assets, legal, type) => {
           <h2>Support</h2><p>If you need help, message us on Telegram. We can help with setup, devices, and platform features in Russian or English.</p>`;
   return pageShell(template, {
     title,
+    renderWithReact: privacy,
     description: `${title} for GrowerHub platform users.`,
     canonical,
     robots: 'noindex,follow',

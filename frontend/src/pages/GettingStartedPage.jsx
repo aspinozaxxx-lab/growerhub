@@ -1,16 +1,20 @@
 import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
 import TelegramContactLink from '../components/TelegramContactLink';
-import { platformContent } from '../content/pages';
+import { getPageContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
 import { DEMO_PUBLIC_ENABLED, SITE_NAME, SITE_URL } from '../domain/siteConfig';
-import { getCurrentLocale, translatePublic } from '../locales/i18n';
+import { getCurrentLocale, rememberLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
+import { useAuth } from '../features/auth/AuthContext';
 
 function GettingStartedPage() {
   const locale = getCurrentLocale();
+  const { platformContent } = getPageContent(locale);
+  const { demoActive, leaveDemo } = useAuth();
   const path = getPublicPath('gettingStarted', locale);
-  const { start, minimum, early_access_text: earlyAccessText } = platformContent;
+  const { start, minimum, pushok, early_access_text: earlyAccessText } = platformContent;
+  const pilotTarget = `/app/login/?lang=${locale}&redirect=${encodeURIComponent(`/app/settings/connections/?pilot=pushok&lang=${locale}`)}`;
   const jsonLd = [{
     '@context': 'https://schema.org',
     '@type': 'HowTo',
@@ -28,7 +32,7 @@ function GettingStartedPage() {
   }];
 
   useSeoMeta({
-    title: `${start.title} — Zigbee2MQTT`,
+    title: `${start.title} — Zigbee2MQTT, PushOk`,
     description: start.description,
     path,
     jsonLd,
@@ -52,14 +56,32 @@ function GettingStartedPage() {
 
       <section className="content-section">
         <h2>{start.paths_title}</h2>
-        <div className="card-grid">{start.paths.filter((item) => !item.demo || DEMO_PUBLIC_ENABLED).map((item) => <article className="card" key={item.href}><h3><Link to={item.href}>{item.title}</Link></h3><p>{item.text}</p></article>)}</div>
+        <div className="card-grid">{start.paths.filter((item) => !item.demo || DEMO_PUBLIC_ENABLED).map((item) => <article className="card" key={item.href}>
+          <h3>{item.href.includes('#') ? <a href={item.href}>{item.title}</a> : <Link to={item.href}>{item.title}</Link>}</h3>
+          <p>{item.text}</p>
+        </article>)}</div>
       </section>
 
       <section className="content-section">
-        <h2>{translatePublic('Семь коротких шагов')}</h2>
+        <h2>{start.steps_title}</h2>
         <ol className="steps-list">
           {start.steps.map((step) => <li key={step.title}><strong>{step.title}</strong><span>{step.text}</span></li>)}
         </ol>
+      </section>
+
+      <section className="content-section info-block" id="pushok">
+        <div className="badge">{pushok.status}</div>
+        <h2>{pushok.title}</h2>
+        <p>{pushok.intro}</p>
+        <p><strong>{pushok.availability}</strong></p>
+        <h3>{pushok.path_title}</h3>
+        <ol className="steps-list">{pushok.steps.map((step) => <li key={step.title}><strong>{step.title}</strong><span>{step.text}</span></li>)}</ol>
+        <p>{pushok.invitation}</p>
+        <div className="cta-row">
+          <Link className="hero-cta" to={pilotTarget} onClick={() => { rememberLocale(locale); if (demoActive) leaveDemo(); }}>{pushok.cta}</Link>
+        </div>
+        <p className="equipment-disclaimer">{pushok.purchase_note}</p>
+        <div className="cta-row">{pushok.links.map((link) => <a key={link.href} className="secondary-link" href={link.href} target="_blank" rel="noreferrer">{link.label}</a>)}</div>
       </section>
 
       <section className="content-section split-section">

@@ -1,0 +1,11 @@
+.pushok-pilot__entry, .pushok-pilot__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.pushok-pilot__entry > span, .pushok-pilot__hint { color: var(--text-3); font-size: 13px; line-height: 1.5; }
+.pushok-pilot__form { display: grid; gap: 14px; }
+.pushok-pilot__form p { margin: 0; }
+.pushok-pilot__form textarea { resize: vertical; font-size: 16px; }
+.pushok-pilot__contact { overflow-wrap: anywhere; }

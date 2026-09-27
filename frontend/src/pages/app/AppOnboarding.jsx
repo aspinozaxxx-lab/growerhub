@@ -4,6 +4,7 @@ import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import TelegramContactLink from '../../components/TelegramContactLink';
 import Button from '../../components/ui/Button';
+import PushokPilot from '../../components/PushokPilot';
 import { GITHUB_RELEASES_URL, ZIGBEE_CONNECTOR_DOWNLOAD_URL } from '../../domain/siteConfig';
 import { getPublicPath } from '../../domain/localizedRoutes';
 import {
@@ -387,6 +388,7 @@ function AppOnboarding() {
       ) : (
         <section className="onboarding-card">
           <h2>{translateApp("Что у вас уже есть?")}</h2>
+          <PushokPilot />
           <p>{translateApp("Для начала хватит одного датчика или розетки. Выберите свой вариант — покажем нужную инструкцию.")}</p>
           <div className="onboarding-choice-grid" role="group" aria-label={translateApp("Способ подключения")}>
             <button type="button" aria-pressed={connectionMode === CONNECTION_MODES.BRIDGE} className={connectionMode === CONNECTION_MODES.BRIDGE ? 'choice-card is-selected' : 'choice-card'} onClick={() => setConnectionMode(CONNECTION_MODES.BRIDGE)}>

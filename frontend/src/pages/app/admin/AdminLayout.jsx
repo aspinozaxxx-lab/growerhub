@@ -9,6 +9,7 @@ import './AdminPages.css';
 const adminNavItems = [
   { to: '/app/admin/product-analytics/', label: 'Воронка' },
   { to: '/app/admin/users/', label: 'Пользователи' },
+  { to: '/app/admin/pushok-pilots/', label: 'Пилот ПушОк' },
   { to: '/app/admin/devices/', label: 'Устройства' },
   { to: '/app/admin/plants/', label: 'Растения' },
   { to: '/app/admin/mqtt/', label: 'MQTT' },

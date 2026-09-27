@@ -1,4 +1,4 @@
-import { legalContent } from '../content/pages';
+import { getPageContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
 import { getCurrentLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
@@ -6,6 +6,7 @@ import useSeoMeta from '../utils/useSeoMeta';
 function LegalPage({ type }) {
   const isPrivacy = type === 'privacy';
   const locale = getCurrentLocale();
+  const { legalContent } = getPageContent(locale);
   const title = isPrivacy ? legalContent.privacy_title : legalContent.terms_title;
   const path = getPublicPath(isPrivacy ? 'privacy' : 'terms', locale);
   useSeoMeta({
@@ -37,6 +38,7 @@ function LegalPage({ type }) {
           <h2>{translatePublic('Секреты подключения')}</h2><p>{translatePublic('Одноразовый MQTT-пароль показывается при создании или ротации и не хранится в базе GrowerHub в открытом виде. Локальные данные доступа Home Assistant вводятся только в браузере для скачиваемого файла.')}</p>
           <h2>{translatePublic('Веб-аналитика')}</h2><p>{translatePublic('Яндекс Метрика и Google Analytics 4 помогают понимать посещаемость и этапы запуска платформы. В события передаются адрес страницы, язык интерфейса и неперсональные параметры сценария. Email, внутренние идентификаторы, IEEE и реквизиты MQTT в аналитику не передаются.')}</p>
           <h2>{translatePublic('Обращения')}</h2><p>{translatePublic('По вопросам данных и удаления аккаунта используйте контакт оператора.')}</p>
+          <h2>{legalContent.pilot_privacy.title}</h2><p>{legalContent.pilot_privacy.text}</p>
         </>
       ) : (
         <>

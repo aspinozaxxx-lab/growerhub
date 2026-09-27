@@ -1,9 +1,31 @@
 {
-  "updated_at": "2026-09-13",
+  "updated_at": "2026-09-27",
+  "pushok": {
+    "status": "Pilot · accepting requests",
+    "title": "PushOk: a simpler start without Home Assistant",
+    "intro": "We want to make your first sensor easier to connect: a small Zigbee hub, a phone app and GrowerHub. No separate computer or server setup. We are starting with PushOk owners willing to try the connection together with us.",
+    "availability": "The PushOk integration with GrowerHub has not been implemented yet. We are collecting requests and will verify the connection method and compatibility with pilot participants.",
+    "path_title": "The path we want to build",
+    "steps": [
+      { "title": "Leave a request", "text": "Tell us how to contact you and, if you know, your hub and sensor models. If you have no equipment yet, say so: that also helps us choose a suitable starter kit." },
+      { "title": "Check the equipment together", "text": "The starting point is a PushOk hub and one compatible air or soil sensor. The hub itself is set up in the Upravlyator phone app. Check the exact sensor model in the manufacturer’s compatibility list." },
+      { "title": "Test the GrowerHub connection", "text": "We will get in touch shortly and agree on a trial connection. Our goal is to avoid Home Assistant and an always-on computer. Exact steps will follow testing on a real hub." },
+      { "title": "Start with readings", "text": "Our first pilot goal is fresh readings from one sensor and a chart. Smart plug control and watering will be discussed separately, after equipment checks and with your agreement." }
+    ],
+    "invitation": "Already using PushOk? Help us make setup easier: tell us what you grow and what you would like to automate. A request does not connect your hub or change your devices. We do not ask for passwords or access keys.",
+    "cta": "Try PushOk with GrowerHub",
+    "purchase_note": "If you do not own a hub yet, leave a request and try the demo farm first. It is too early to buy equipment specifically for this pilot. This is a GrowerHub initiative; we do not claim a partnership with the manufacturer.",
+    "links": [
+      { "label": "Explore PushOk hubs", "href": "https://pushok.io/devices/pok100" },
+      { "label": "Devices compatible with PushOk", "href": "https://pushok.io/supported-devices" },
+      { "label": "Explore soil sensors", "href": "https://pushok.io/devices/pok002" }
+    ]
+  },
   "early_access_text": "The main functions of GrowerHub are already available for free and without a card. Connect equipment, assemble zones and customize controls at your own pace. If you need help, the GrowerHub team is nearby on Telegram.",
   "start": {
     "title": "How to get started with GrowerHub",
-    "description": "A short self-service path from a Zigbee coordinator to your first device, zone and GrowerHub dashboard.",
+    "description": "How to start with GrowerHub: a demo farm without equipment, Zigbee2MQTT connections and the upcoming PushOk hub pilot.",
+    "steps_title": "Available now: connect through Zigbee2MQTT",
     "intro": "Explore a prepared farm or connect one of your own sensors first. You can start monitoring before adding every plant or configuring automation.",
     "steps": [
       {
@@ -11,12 +33,12 @@
         "text": "Use Yandex or Google. No card needed."
       },
       {
-        "title": "Create a connection",
-        "text": "Give the coordinator any clear name."
+        "title": "Select mode",
+        "text": "Choose whether Zigbee2MQTT is already running or this is a new setup with a USB coordinator."
       },
       {
-        "title": "Select mode",
-        "text": "The new installation is connected directly; existing Home Assistant retains local MQTT via local bridge."
+        "title": "Create a connection",
+        "text": "Name the coordinator and save your personal configuration. For an existing Zigbee2MQTT installation, the wizard will prepare a local bridge."
       },
       {
         "title": "Run package",
@@ -38,6 +60,11 @@
     "paths_title": "Choose your first step",
     "paths": [
       {
+        "title": "I have PushOk or want a simple hub",
+        "text": "Join the pilot waiting list. The integration is not live yet: leave a request to discuss your first sensor.",
+        "href": "/en/getting-started/#pushok"
+      },
+      {
         "title": "Try it without equipment",
         "text": "Open a prepared demo farm with charts, watering and scenarios. No registration is required.",
         "href": "/app/demo/?lang=en",
@@ -57,7 +84,7 @@
     "help": "Tell us your coordinator model, Windows or Linux, whether you use Home Assistant and the step where you stopped. We can help get your first sensor reporting in the dashboard."
   },
   "minimum": {
-    "title": "Minimum to start",
+    "title": "Minimum setup for Zigbee2MQTT",
     "monitoring": "Always-on computer or Raspberry Pi, supported Zigbee coordinator and one temperature/humidity sensor.",
     "control": "For control, add a Zigbee smart plug. Soil sensors, leak sensors and other equipment can be connected later.",
     "existing": "If Zigbee2MQTT and Home Assistant are already running, the local bridge will leave MQTT in place and transfer only the necessary topics to GrowerHub."

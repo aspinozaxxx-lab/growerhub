@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import Button from '../../components/ui/Button';
+import PushokPilot from '../../components/PushokPilot';
 import {
   archiveCoordinator,
   createCoordinator,
@@ -122,6 +123,7 @@ function AppConnections() {
 
       <section className="self-service-section">
         <h2>{translateApp("Добавить координатор")}</h2>
+        <PushokPilot />
         <p>{translateApp("В одном пространстве можно использовать несколько координаторов и подключать оборудование в удобном темпе.")}</p>
         <form className="compact-form" onSubmit={handleCreate}><label>{translateApp("Название")}<input value={name} onChange={(event) => setName(event.target.value)} required maxLength="120" /></label><Button type="submit" variant="primary" isLoading={busy === 'create'}>{translateApp("Создать")}</Button></form>
       </section>

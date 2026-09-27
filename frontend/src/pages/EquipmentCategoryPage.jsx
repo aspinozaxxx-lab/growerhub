@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
-import { equipmentContent } from '../content/pages';
+import { getPageContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
 import { SITE_NAME, SITE_URL } from '../domain/siteConfig';
 import { getCurrentLocale, getIntlLocale, translatePublic } from '../locales/i18n';
@@ -8,6 +8,7 @@ import useSeoMeta from '../utils/useSeoMeta';
 
 function EquipmentCategoryPage({ categoryKey }) {
   const locale = getCurrentLocale();
+  const { equipmentContent, platformContent } = getPageContent(locale);
   const category = equipmentContent.categories[categoryKey];
   const routeIds = {
     coordinators: 'equipmentCoordinators',
@@ -53,6 +54,11 @@ function EquipmentCategoryPage({ categoryKey }) {
       <h1>{category.title}</h1>
       <p className="article-lead">{category.intro}</p>
       <p className="equipment-disclaimer">{equipmentContent.purchase_note}</p>
+      {categoryKey === 'coordinators' ? <section className="content-section info-block">
+        <h2>{platformContent.pushok.title}</h2>
+        <p>{platformContent.pushok.availability}</p>
+        <a className="secondary-link" href={`${getPublicPath('gettingStarted', locale)}#pushok`}>{platformContent.pushok.cta}</a>
+      </section> : null}
       <section className="content-section info-block">
         <h2>{translatePublic('Как читать наши рекомендации')}</h2>
         <p>{translatePublic('В карточках отдельно указано, что работало в установке GrowerHub, а что рекомендовано по официальной совместимости Zigbee2MQTT. Проверка не является гарантией для всех white-label ревизий одной модели.')}</p>

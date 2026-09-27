@@ -1,5 +1,9 @@
 {
-  "updated_at": "2026-09-13",
+  "updated_at": "2026-09-27",
+  "pilot_privacy": {
+    "title": "Pilot connection requests",
+    "text": "At your request, we store your preferred contact method, contact details, optional equipment description and request date in your account. You and GrowerHub administrators can access this information to discuss the pilot; it is not sent in web analytics events. Use “Withdraw request” in the PushOk connection dialog to remove the request and contact details. They are also removed when your account is deleted."
+  },
   "operator_name": "GrowerHub",
   "operator_contact": "https://t.me/growerhub_info",
   "reviewed": true,
