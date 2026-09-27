@@ -185,6 +185,10 @@ app:
 user:
   # Chasovoj pojas novogo polzovatelja.
   defaultTimezone: "Europe/Moscow"
+  # Maksimal'naya dlina kontakta v zajavke na pilot.
+  pilot-contact-max-length: 254
+  # Maksimal'naya dlina opisanija oborudovanija v zajavke na pilot.
+  pilot-equipment-max-length: 500
 
 zigbee:
   watering:

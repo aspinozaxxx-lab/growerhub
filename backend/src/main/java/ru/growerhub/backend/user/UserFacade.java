@@ -19,6 +19,8 @@ import ru.growerhub.backend.demo.DemoFacade;
 import ru.growerhub.backend.user.contract.AuthUser;
 import ru.growerhub.backend.user.contract.ProductAnalyticsSnapshot;
 import ru.growerhub.backend.user.contract.UserProfile;
+import ru.growerhub.backend.user.contract.PushokPilot;
+import ru.growerhub.backend.user.engine.PushokPilotService;
 import ru.growerhub.backend.user.jpa.UserEntity;
 import ru.growerhub.backend.user.jpa.UserRepository;
 
@@ -30,6 +32,7 @@ public class UserFacade {
     private final DeviceFacade deviceFacade;
     private final DemoFacade demoFacade;
     private final UserSettings settings;
+    private final PushokPilotService pushokPilot;
 
     public UserFacade(
             UserRepository userRepository,
@@ -37,7 +40,8 @@ public class UserFacade {
             @Lazy AuthFacade authFacade,
             @Lazy DeviceFacade deviceFacade,
             @Lazy DemoFacade demoFacade,
-            UserSettings settings
+            UserSettings settings,
+            PushokPilotService pushokPilot
     ) {
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
@@ -45,7 +49,25 @@ public class UserFacade {
         this.deviceFacade = deviceFacade;
         this.demoFacade = demoFacade;
         this.settings = settings;
+        this.pushokPilot = pushokPilot;
     }
+
+    @Transactional(readOnly = true)
+    public PushokPilot.Request getPushokPilot(Integer userId) { return pushokPilot.get(userId); }
+
+    @Transactional
+    public PushokPilot.Request savePushokPilot(Integer userId, PushokPilot.ContactMethod method, String contact, String equipment) {
+        return pushokPilot.save(userId, method, contact, equipment);
+    }
+
+    @Transactional
+    public void withdrawPushokPilot(Integer userId) { pushokPilot.withdraw(userId); }
+
+    @Transactional(readOnly = true)
+    public List<PushokPilot.Entry> listPushokPilots() { return pushokPilot.list(); }
+
+    @Transactional
+    public PushokPilot.Request markPushokPilotContacted(Integer userId) { return pushokPilot.markContacted(userId); }
 
     @Transactional(readOnly = true)
     public List<UserProfile> listUsers() {

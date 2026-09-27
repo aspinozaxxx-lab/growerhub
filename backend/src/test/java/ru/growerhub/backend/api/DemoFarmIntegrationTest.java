@@ -254,6 +254,10 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         var space = spaces.findById(UUID.fromString(session.path("space.id"))).orElseThrow();
         var simulated = devices.findAllByUserId(space.dataUserId).getFirst();
         for (String path : List.of("/api/auth/me", "/api/admin/users")) request(token).get(path).then().statusCode(403);
+        request(token).get("/api/users/me/pushok-pilot").then().statusCode(403);
+        request(token).body(Map.of("contact_method", "EMAIL", "contact", "demo@example.test"))
+                .put("/api/users/me/pushok-pilot").then().statusCode(403);
+        request(token).get("/api/admin/pushok-pilots").then().statusCode(403);
         request(token).body(Map.of("device_id", physical.getDeviceId())).post("/api/devices/claim").then().statusCode(403);
         request(token).get("/api/device/" + physical.getDeviceId() + "/settings").then().statusCode(anyOf(is(403), is(404)));
         Response other = start(); String otherToken = other.path("access_token");

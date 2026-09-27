@@ -45,6 +45,21 @@ public class UserEntity {
     @Column(name = "onboarding_completed_at")
     private LocalDateTime onboardingCompletedAt;
 
+    @Column(name = "pushok_pilot_contact_method", length = 16)
+    private String pilotContactMethod;
+
+    @Column(name = "pushok_pilot_contact", length = 254)
+    private String pilotContact;
+
+    @Column(name = "pushok_pilot_equipment", length = 500)
+    private String pilotEquipment;
+
+    @Column(name = "pushok_pilot_requested_at")
+    private LocalDateTime pilotRequestedAt;
+
+    @Column(name = "pushok_pilot_contacted_at")
+    private LocalDateTime pilotContactedAt;
+
     @Column(name = "created_at", nullable = true)
     private LocalDateTime createdAt;
 
@@ -150,6 +165,17 @@ public class UserEntity {
         return createdAt;
     }
 
+    public String getPilotContactMethod() { return pilotContactMethod; }
+    public void setPilotContactMethod(String value) { pilotContactMethod = value; }
+    public String getPilotContact() { return pilotContact; }
+    public void setPilotContact(String value) { pilotContact = value; }
+    public String getPilotEquipment() { return pilotEquipment; }
+    public void setPilotEquipment(String value) { pilotEquipment = value; }
+    public LocalDateTime getPilotRequestedAt() { return pilotRequestedAt; }
+    public void setPilotRequestedAt(LocalDateTime value) { pilotRequestedAt = value; }
+    public LocalDateTime getPilotContactedAt() { return pilotContactedAt; }
+    public void setPilotContactedAt(LocalDateTime value) { pilotContactedAt = value; }
+
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
@@ -163,7 +189,6 @@ public class UserEntity {
     }
 
 }
-
 
 
 
