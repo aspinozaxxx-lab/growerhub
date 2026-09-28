@@ -38,6 +38,13 @@ hero_alt: "Иллюстрация GrowerHub: готовый Zigbee Hub, датч
 
 <h2 id="zs-eht">ZS-EHT-54P2 / 54P7: недорогой координатор, которому нужен компьютер</h2>
 
+<div class="hub-photos">
+  <div class="hub-photos__grid">
+    <figure><a href="https://zigbee-shop.ru/catalog/goods/2257"><img src="/content/equipment/zs-eht-54p.png" alt="Сетевой координатор ZS-EHT с двумя антеннами и Ethernet" width="1000" height="782" loading="lazy" decoding="async" /></a><figcaption>ZS-EHT-54P2 / 54P7</figcaption></figure>
+  </div>
+  <p class="hub-photos__caption">В карточках 54P2 и 54P7 одинаковое изображение. Точный чип и ревизию проверяйте по маркировке. <a href="https://zigbee-shop.ru/catalog/goods/2257">Источник: ZigBee-Shop</a>.</p>
+</div>
+
 **По описанию — подходящий кандидат для пути через Zigbee2MQTT. Физическую совместимость с GrowerHub мы ещё не проверили.** Главное отличие от SMHUB Nano: это сетевой радиоадаптер, а не компьютер со встроенным Zigbee2MQTT.
 
 | Версия | Чип по карточке продавца | Цена на 28 сентября 2026 |
@@ -81,6 +88,15 @@ hero_alt: "Иллюстрация GrowerHub: готовый Zigbee Hub, датч
 Если SMHUB уже обслуживает Home Assistant или другие системы, сначала нужна схема с локальным мостом: смена его MQTT-сервера может прервать действующие интеграции. Подключение GrowerHub передаёт список и показания устройств выбранной сети и допускает обратные команды; отдельного режима «только чтение одного датчика» сейчас нет. Сценарии пользователь включает отдельно.
 
 ## ПушОк: сначала заявка на пилот
+
+<div class="hub-photos">
+  <div class="hub-photos__grid">
+    <figure><a href="https://pushok.io/devices/pok100"><img src="/content/equipment/pushok-pok101.jpg" alt="ПушОк POK101 Mini" width="1020" height="1360" loading="lazy" decoding="async" /></a><figcaption>POK101 · Mini</figcaption></figure>
+    <figure><a href="https://pushok.io/devices/pok100"><img src="/content/equipment/pushok-pok100.jpg" alt="ПушОк POK100 White" width="1020" height="1360" loading="lazy" decoding="async" /></a><figcaption>POK100 · White</figcaption></figure>
+    <figure><a href="https://pushok.io/devices/pok100"><img src="/content/equipment/pushok-pok102.jpg" alt="ПушОк POK102 Макс" width="1086" height="1448" loading="lazy" decoding="async" /></a><figcaption>POK102 · Макс</figcaption></figure>
+  </div>
+  <p class="hub-photos__caption">Изображения из карточек производителя. Корпус может отличаться у разных ревизий — уточняйте модель по маркировке или в «Управляторе». <a href="https://pushok.io/devices/pok100">Источник: ПушОк</a>.</p>
+</div>
 
 Владельцам ПушОк предлагаем [обсудить пилотное подключение](/kak-nachat/#pushok). В приложении откройте **«Настройки» → «Подключения» → «Подключить ПушОк»**, выберите участие и оставьте удобный способ связи.
 

@@ -3,6 +3,7 @@ import { getPageContent } from '../content/pages';
 import TelegramContactLink from './TelegramContactLink';
 import Button from './ui/Button';
 import Modal from './ui/Modal';
+import HubPhotos from './HubPhotos';
 
 function NetworkCoordinatorPilot({ placement }) {
   const { networkCoordinator: pilot } = getPageContent().platformContent;
@@ -14,6 +15,7 @@ function NetworkCoordinatorPilot({ placement }) {
     <Modal isOpen={step !== null} title={pilot.dialog_title} closeLabel={pilot.close}
       onClose={close} presentation="sheet" size="sm">
       {step === 'intent' ? <>
+        <HubPhotos type="networkCoordinator" compact />
         <p>{pilot.question}</p>
         <p>{pilot.requirement}</p>
         <div className="cta-row">

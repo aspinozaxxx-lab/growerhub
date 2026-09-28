@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
 import TelegramContactLink from '../components/TelegramContactLink';
 import NetworkCoordinatorPilot from '../components/NetworkCoordinatorPilot';
+import HubPhotos from '../components/HubPhotos';
 import { getPageContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
 import { DEMO_PUBLIC_ENABLED, SITE_NAME, SITE_URL } from '../domain/siteConfig';
@@ -73,6 +74,7 @@ function GettingStartedPage() {
       <section className="content-section info-block" id="pushok">
         <div className="badge">{pushok.status}</div>
         <h2>{pushok.title}</h2>
+        <HubPhotos type="pushok" />
         <p>{pushok.intro}</p>
         <p><strong>{pushok.availability}</strong></p>
         <div className="cta-row">
@@ -88,6 +90,7 @@ function GettingStartedPage() {
       <section className="content-section info-block" id="zs-eht">
         <div className="badge">{networkCoordinator.status}</div>
         <h2>{networkCoordinator.title}</h2>
+        <HubPhotos type="networkCoordinator" />
         <p>{networkCoordinator.intro}</p>
         <p><strong>{networkCoordinator.requirement}</strong></p>
         <p>{networkCoordinator.path}</p>

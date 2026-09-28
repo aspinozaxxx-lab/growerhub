@@ -42,6 +42,13 @@ GrowerHub already receives physical sensor data through Zigbee2MQTT. A Zigbee lo
 
 <h2 id="zs-eht">ZS-EHT-54P2 / 54P7: an affordable coordinator that needs a computer</h2>
 
+<div class="hub-photos">
+  <div class="hub-photos__grid">
+    <figure><a href="https://zigbee-shop.ru/catalog/goods/2257"><img src="/content/equipment/zs-eht-54p.png" alt="ZS-EHT network coordinator with two antennas and Ethernet" width="1000" height="782" loading="lazy" decoding="async" /></a><figcaption>ZS-EHT-54P2 / 54P7</figcaption></figure>
+  </div>
+  <p class="hub-photos__caption">The seller uses the same image for 54P2 and 54P7. Check the label for the exact chip and revision. <a href="https://zigbee-shop.ru/catalog/goods/2257">Source: ZigBee-Shop</a>.</p>
+</div>
+
 **Its documentation makes it a candidate for the Zigbee2MQTT path; we have not physically tested it with GrowerHub.** Unlike SMHUB Nano, it is a network radio adapter, not a computer with Zigbee2MQTT inside.
 
 | Version | Chip listed by the seller | Price checked on 28 September 2026 |
@@ -85,6 +92,15 @@ Transfer only the MQTT settings. Replacing the entire hub configuration with a U
 If the SMHUB already serves Home Assistant or other systems, plan a local bridge first: changing its MQTT server may interrupt existing integrations. A GrowerHub connection forwards the selected network's device list and readings and permits commands back to it. There is currently no separate read-only mode limited to one sensor. Automations are enabled separately by the user.
 
 ## PushOk: request a pilot first
+
+<div class="hub-photos">
+  <div class="hub-photos__grid">
+    <figure><a href="https://pushok.io/devices/pok100"><img src="/content/equipment/pushok-pok101.jpg" alt="PushOk POK101 Mini" width="1020" height="1360" loading="lazy" decoding="async" /></a><figcaption>POK101 · Mini</figcaption></figure>
+    <figure><a href="https://pushok.io/devices/pok100"><img src="/content/equipment/pushok-pok100.jpg" alt="PushOk POK100 White" width="1020" height="1360" loading="lazy" decoding="async" /></a><figcaption>POK100 · White</figcaption></figure>
+    <figure><a href="https://pushok.io/devices/pok100"><img src="/content/equipment/pushok-pok102.jpg" alt="PushOk POK102 Max" width="1086" height="1448" loading="lazy" decoding="async" /></a><figcaption>POK102 · Max</figcaption></figure>
+  </div>
+  <p class="hub-photos__caption">Product images from the manufacturer's listings. Cases may vary between revisions; check the label or the Upravlyator app for the exact model. <a href="https://pushok.io/devices/pok100">Source: PushOk</a>.</p>
+</div>
 
 PushOk owners can [register interest in a pilot](/en/getting-started/#pushok). In the app, open **Settings → Connections → Connect PushOk**, choose to participate and leave your preferred contact method.
 

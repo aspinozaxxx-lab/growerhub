@@ -3,6 +3,12 @@
   "networkCoordinator": {
     "status": "Pilot · documentation review only",
     "title": "ZS-EHT-54P2 / 54P7: a coordinator on your home network",
+    "photos": [
+      { "src": "/content/equipment/zs-eht-54p.png", "alt": "ZS-EHT network coordinator in a black case with two antennas and Ethernet", "label": "ZS-EHT-54P2 / 54P7", "width": 1000, "height": 782 }
+    ],
+    "photos_caption": "The seller uses the same image for 54P2 and 54P7. Check the label for the exact revision and chip; the case alone does not identify it.",
+    "photos_source_label": "Source: ZigBee-Shop",
+    "photos_source_url": "https://zigbee-shop.ru/catalog/goods/2257",
     "intro": "An inexpensive option if you already have a computer for Zigbee2MQTT and want the radio closer to your plants. Its documentation makes it a candidate for GrowerHub's existing Zigbee2MQTT path. We have not tested a physical unit with GrowerHub.",
     "requirement": "An always-on computer running Zigbee2MQTT is required. The coordinator and an MQTT server address alone are not enough; Home Assistant is optional.",
     "path": "Start the pilot with a coordinator on your home network and one sensor. We will check fresh readings, history and recovery after a restart. If Zigbee2MQTT already serves your setup, first discuss a local bridge that preserves your network.",
@@ -25,6 +31,14 @@
   "pushok": {
     "status": "Pilot · accepting requests",
     "title": "PushOk: a simpler start without Home Assistant",
+    "photos": [
+      { "src": "/content/equipment/pushok-pok101.jpg", "alt": "PushOk POK101 Mini: compact white hub with two buttons on top", "label": "POK101 · Mini", "width": 1020, "height": 1360 },
+      { "src": "/content/equipment/pushok-pok100.jpg", "alt": "PushOk POK100 White: white hub with two front buttons", "label": "POK100 · White", "width": 1020, "height": 1360 },
+      { "src": "/content/equipment/pushok-pok102.jpg", "alt": "PushOk POK102 Max: hub with two front buttons", "label": "POK102 · Max", "width": 1086, "height": 1448 }
+    ],
+    "photos_caption": "Product images supplied by the manufacturer. Cases may vary between revisions; find the exact model on its label or in the Upravlyator app.",
+    "photos_source_label": "Source: PushOk",
+    "photos_source_url": "https://pushok.io/devices/pok100",
     "intro": "We want to make your first sensor easier to connect: a small Zigbee hub, a phone app and GrowerHub. No separate computer or server setup. We are starting with PushOk owners willing to try the connection together with us.",
     "availability": "The PushOk integration with GrowerHub has not been implemented yet. We are collecting requests and will verify the connection method and compatibility with pilot participants.",
     "path_title": "The path we want to build",

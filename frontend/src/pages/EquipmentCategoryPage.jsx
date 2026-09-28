@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
+import HubPhotos from '../components/HubPhotos';
 import { getPageContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
 import { SITE_NAME, SITE_URL } from '../domain/siteConfig';
@@ -56,6 +57,7 @@ function EquipmentCategoryPage({ categoryKey }) {
       <p className="equipment-disclaimer">{equipmentContent.purchase_note}</p>
       {categoryKey === 'coordinators' ? <section className="content-section info-block">
         <h2>{platformContent.pushok.title}</h2>
+        <HubPhotos type="pushok" />
         <p>{platformContent.pushok.availability}</p>
         <a className="secondary-link" href={`${getPublicPath('gettingStarted', locale)}#pushok`}>{platformContent.pushok.cta}</a>
       </section> : null}

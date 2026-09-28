@@ -6,6 +6,7 @@ import { getCurrentLocale, translateApp as t } from '../locales/i18n';
 import Button from './ui/Button';
 import FormField from './ui/FormField';
 import Modal from './ui/Modal';
+import HubPhotos from './HubPhotos';
 import './PushokPilot.css';
 
 function PushokPilot() {
@@ -86,6 +87,7 @@ function PushokPilot() {
         {error ? <p role="alert">{error}</p> : null}
         {!loading && !loaded ? <Button onClick={() => setRetry((value) => value + 1)}>{t('Повторить')}</Button> : null}
         {!loading && loaded && step === 'intent' ? <>
+          <HubPhotos type="pushok" compact />
           <p>{t('Хотите подключить свой ПушОк к GrowerHub или пока просто смотрите?')}</p>
           <p className="pushok-pilot__hint">{t('Интеграция ещё не запущена. Ищем первых участников, чтобы вместе отработать подключение. Заявка не меняет настройки хаба.')}</p>
           <div className="pushok-pilot__actions">
