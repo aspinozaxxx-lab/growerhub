@@ -3,10 +3,10 @@ translation_of: gotovyy-zigbee-hub-dlya-growerhub
 slug: ready-zigbee-hub-for-growerhub-when-it-is-more-convenient-than-self-assembly
 title: 'A ready-made Zigbee hub for GrowerHub: starting without a separate computer'
 summary: >-
-  Start with one sensor: existing Zigbee2MQTT, the PushOk pilot and SMLIGHT
-  SMHUB Nano. Connection options and what to check before buying hardware.
+  Compare Zigbee2MQTT, the PushOk pilot, SMHUB Nano and ZS-EHT-54P2/54P7
+  network coordinators. Which options need a computer and what to check before buying.
 created_at: '2026-07-23'
-updated_at: '2026-09-27'
+updated_at: '2026-09-28'
 cluster: zigbee-hub-i-ustroystva
 tags:
   - GrowerHub
@@ -38,6 +38,30 @@ GrowerHub already receives physical sensor data through Zigbee2MQTT. A Zigbee lo
 - **An always-on computer is available.** Use a [USB coordinator and one compatible sensor](/en/equipment/zigbee-coordinators/). Zigbee2MQTT runs on that computer; new readings stop reaching GrowerHub when it is off.
 - **You want one box without a separate computer.** Consider a hub that runs Zigbee2MQTT internally. The candidate below needs a trial connection before we can recommend it as a tested GrowerHub setup.
 - **You already own PushOk.** You can request a pilot. The GrowerHub integration is not ready yet.
+- **You own ZS-EHT-54P2 or 54P7.** Join a trial connection. It replaces the USB radio, but still needs a computer running Zigbee2MQTT.
+
+<h2 id="zs-eht">ZS-EHT-54P2 / 54P7: an affordable coordinator that needs a computer</h2>
+
+**Its documentation makes it a candidate for the Zigbee2MQTT path; we have not physically tested it with GrowerHub.** Unlike SMHUB Nano, it is a network radio adapter, not a computer with Zigbee2MQTT inside.
+
+| Version | Chip listed by the seller | Price checked on 28 September 2026 |
+| --- | --- | --- |
+| [ZS-EHT-54P2](https://zigbee-shop.ru/catalog/goods/2257) | CC2652P2 | RUB 2,999 |
+| [ZS-EHT-54P7](https://zigbee-shop.ru/catalog/goods/2258) | CC2652P7 | RUB 3,250 |
+
+These prices exclude the computer, sensor and shipping. The difference is RUB 251; check the exact revision and firmware before choosing.
+
+The [seller's guide](https://teletype.media/@zigbeeshop/ZS-EHT-54P) describes Ethernet, Wi-Fi and USB, USB-C power, the `zs-eth.local` web console and an external ZHA or Zigbee2MQTT installation. It shows a **separate splitter** for PoE; built-in PoE is not confirmed. Standalone MQTT sensor reporting is not documented.
+
+The proposed first connection:
+
+1. Connect the coordinator to your home network, preferably over Ethernet, and provide power.
+2. Run Zigbee2MQTT on an always-on computer. Home Assistant is optional. Its `serial` section points to the radio; the MQTT section contains GrowerHub settings. Zigbee2MQTT supports [network adapters](https://www.zigbee2mqtt.io/guide/configuration/adapter-settings.html) and the [Z-Stack adapter type `zstack`](https://www.zigbee2mqtt.io/guide/adapters/zstack.html). Read the actual TCP port from your device settings. GrowerHub's USB package does not automatically configure this network coordinator.
+3. Check one compatible sensor, fresh readings, history and restart recovery together.
+
+If Zigbee2MQTT already runs, start with the existing [local MQTT bridge](/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/). Preserve its broker and paired sensors. The bridge permits commands back to devices; it is not a separate read-only mode. Automations are enabled separately.
+
+**Already own ZS-EHT?** Choose “Connect ZS-EHT” on the [getting-started page](/en/getting-started/#zs-eht) or in connection settings. It opens an invitation to discuss the pilot in Telegram; a request arrives only after you send a message. Discuss a purchase first, and check other chips or revisions separately.
 
 ## SMLIGHT SMHUB Nano: the computer is inside
 

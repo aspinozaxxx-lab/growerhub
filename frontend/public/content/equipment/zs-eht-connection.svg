@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+  <rect width="640" height="420" rx="24" fill="#eef3ed"/>
+  <g fill="none" stroke="#4d7564" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M175 216h54m-10-9 10 9-10 9M414 216h54m-10-9 10 9-10 9"/>
+    <rect x="49" y="161" width="115" height="112" rx="15" fill="#fff"/>
+    <path d="M71 159v-38m70 38v-38"/>
+    <circle cx="77" cy="245" r="4" fill="#4d7564"/>
+    <rect x="247" y="151" width="151" height="108" rx="10" fill="#fff"/>
+    <path d="M237 276h170l-9 10H246z" fill="#dce7df"/>
+    <path d="M491 240h79a28 28 0 0 0 1-56 38 38 0 0 0-74-3 30 30 0 0 0-6 59z" fill="#fff"/>
+  </g>
+  <g font-family="Arial, sans-serif" text-anchor="middle" fill="#244638">
+    <text x="320" y="65" font-size="28" font-weight="700">ZS-EHT + Zigbee2MQTT</text>
+    <text x="106" y="216" font-size="19" font-weight="700">ZS-EHT</text>
+    <text x="322" y="213" font-size="20" font-weight="700">Zigbee2MQTT</text>
+    <text x="535" y="276" font-size="19" font-weight="700">GrowerHub</text>
+    <text x="203" y="324" font-size="17">Ethernet / USB</text>
+    <text x="443" y="324" font-size="17">MQTT / TLS</text>
+    <text x="320" y="379" font-size="16" fill="#647c6f">54P2 · CC2652P2   /   54P7 · CC2652P7</text>
+  </g>
+</svg>

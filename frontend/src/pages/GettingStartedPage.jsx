@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
 import TelegramContactLink from '../components/TelegramContactLink';
+import NetworkCoordinatorPilot from '../components/NetworkCoordinatorPilot';
 import { getPageContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
 import { DEMO_PUBLIC_ENABLED, SITE_NAME, SITE_URL } from '../domain/siteConfig';
@@ -13,7 +14,7 @@ function GettingStartedPage() {
   const { platformContent } = getPageContent(locale);
   const { demoActive, leaveDemo } = useAuth();
   const path = getPublicPath('gettingStarted', locale);
-  const { start, minimum, pushok, early_access_text: earlyAccessText } = platformContent;
+  const { start, minimum, pushok, networkCoordinator, early_access_text: earlyAccessText } = platformContent;
   const pilotTarget = `/app/login/?lang=${locale}&redirect=${encodeURIComponent(`/app/settings/connections/?pilot=pushok&lang=${locale}`)}`;
   const jsonLd = [{
     '@context': 'https://schema.org',
@@ -82,6 +83,17 @@ function GettingStartedPage() {
         <p>{pushok.invitation}</p>
         <p className="equipment-disclaimer">{pushok.purchase_note}</p>
         <div className="cta-row">{pushok.links.map((link) => <a key={link.href} className="secondary-link" href={link.href} target="_blank" rel="noreferrer">{link.label}</a>)}</div>
+      </section>
+
+      <section className="content-section info-block" id="zs-eht">
+        <div className="badge">{networkCoordinator.status}</div>
+        <h2>{networkCoordinator.title}</h2>
+        <p>{networkCoordinator.intro}</p>
+        <p><strong>{networkCoordinator.requirement}</strong></p>
+        <p>{networkCoordinator.path}</p>
+        <p>{networkCoordinator.purchase_note}</p>
+        <div className="cta-row"><NetworkCoordinatorPilot placement="getting_started_zs_eht_pilot" /></div>
+        <div className="cta-row">{networkCoordinator.links.map((link) => <a key={link.href} className="secondary-link" href={link.href}>{link.label}</a>)}</div>
       </section>
 
       <section className="content-section split-section">

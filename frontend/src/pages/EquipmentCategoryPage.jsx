@@ -59,6 +59,11 @@ function EquipmentCategoryPage({ categoryKey }) {
         <p>{platformContent.pushok.availability}</p>
         <a className="secondary-link" href={`${getPublicPath('gettingStarted', locale)}#pushok`}>{platformContent.pushok.cta}</a>
       </section> : null}
+      {categoryKey === 'coordinators' ? <section className="content-section info-block">
+        <h2>{platformContent.networkCoordinator.title}</h2>
+        <p>{platformContent.networkCoordinator.requirement}</p>
+        <a className="secondary-link" href={`${getPublicPath('gettingStarted', locale)}#zs-eht`}>{platformContent.networkCoordinator.button}</a>
+      </section> : null}
       <section className="content-section info-block">
         <h2>{translatePublic('Как читать наши рекомендации')}</h2>
         <p>{translatePublic('В карточках отдельно указано, что работало в установке GrowerHub, а что рекомендовано по официальной совместимости Zigbee2MQTT. Проверка не является гарантией для всех white-label ревизий одной модели.')}</p>
@@ -86,10 +91,10 @@ function EquipmentCategoryPage({ categoryKey }) {
             <div><span className="status-chip">{item.status}</span><h2>{item.model}</h2><h3>{item.name}</h3><p>{item.summary}</p></div>
             <ul className="check-list">{item.notes.map((note) => <li key={note}>{note}</li>)}</ul>
             <div className="cta-row">
-              <a className="secondary-link" href={item.official_url} target="_blank" rel="noreferrer">{translatePublic('Совместимость Zigbee2MQTT')}</a>
-              {locale === 'ru' && item.example_url ? <a className="secondary-link" href={item.example_url} target="_blank" rel="nofollow noreferrer">{translatePublic('Пример на Ozon')}</a> : null}
+              <a className="secondary-link" href={item.official_url} target="_blank" rel="noreferrer">{item.official_label || translatePublic('Совместимость Zigbee2MQTT')}</a>
+              {(locale === 'ru' || item.example_label) && item.example_url ? <a className="secondary-link" href={item.example_url} target="_blank" rel="nofollow noreferrer">{item.example_label || translatePublic('Пример на Ozon')}</a> : null}
               <a className="secondary-link" href={item.shop_search_url} target="_blank" rel="nofollow noreferrer">
-                {translatePublic(locale === 'ru' ? 'Найти на Ozon' : 'Найти модель')}
+                {item.shop_label || translatePublic(locale === 'ru' ? 'Найти на Ozon' : 'Найти модель')}
               </a>
             </div>
           </article>

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-07-23",
+  "updated_at": "2026-09-28",
   "checked_at": "2026-07-23",
   "purchase_note": "You do not need an expensive branded kit to get started. Choose an option that suits your budget and make sure the listing says Zigbee rather than Wi-Fi or Bluetooth. Search links are neutral, have no affiliate tags, and availability varies by country and seller.",
   "zigbee_note": "For most common sensors and smart plugs, a Zigbee or Zigbee 3.0 label is enough: Zigbee2MQTT discovers the device and it then appears in GrowerHub. Check the exact model ID in the Zigbee2MQTT catalogue when possible to see available metrics and commands, but there is no need to buy only expensive brands.",
@@ -8,9 +8,31 @@
     "coordinators": {
       "slug": "zigbee-coordinators",
       "title": "Zigbee coordinators for GrowerHub",
-      "description": "Proven USB coordinators for Zigbee2MQTT: affordable CC2652P sticks and SONOFF options.",
-      "intro": "A particular brand is not required: affordable CC2652P USB sticks and other adapters from the Zigbee2MQTT list work well with GrowerHub. SONOFF remains a common branded option.",
+      "description": "USB coordinators for Zigbee2MQTT and ZS-EHT-54P2/54P7 network coordinators for a pilot: options, limitations and device links.",
+      "intro": "Choose USB beside the computer or a network radio closer to your plants. Both need Zigbee2MQTT running. Each card states its evidence level; ZS-EHT has only been reviewed through documentation.",
       "items": [
+        {
+          "model": "ZS-EHT-54P2 / 54P7",
+          "name": "Network coordinator for a trial connection",
+          "status": "Pilot · documentation only",
+          "image": "/content/equipment/zs-eht-connection.svg",
+          "image_alt": "ZS-EHT connects to a computer running Zigbee2MQTT, which connects to GrowerHub",
+          "image_caption": "Connection diagram, not a product photo. A separate Zigbee2MQTT computer is required.",
+          "image_source_url": "https://growerhub.ru/en/articles/ready-zigbee-hub-for-growerhub-when-it-is-more-convenient-than-self-assembly/#zs-eht",
+          "image_license": "Original GrowerHub diagram",
+          "summary": "A candidate for GrowerHub's existing Zigbee2MQTT path. A physical trial has not been completed. A separate always-on computer is still needed.",
+          "official_url": "https://teletype.media/@zigbeeshop/ZS-EHT-54P",
+          "official_label": "Seller's guide",
+          "example_url": "https://zigbee-shop.ru/catalog/goods/2257",
+          "example_label": "View 54P2",
+          "shop_search_url": "https://zigbee-shop.ru/catalog/goods/2258",
+          "shop_label": "View 54P7",
+          "notes": [
+            "28 September 2026: 54P2 / CC2652P2 — RUB 2,999; 54P7 / CC2652P7 — RUB 3,250, excluding computer, sensor and shipping",
+            "Ethernet lets you position the radio away from the computer; MQTT settings belong in Zigbee2MQTT",
+            "If you already own one, choose Connect ZS-EHT on the getting-started page"
+          ]
+        },
         {
           "model": "CC2652P USB Dongle",
           "name": "Budget coordinator with external antenna",

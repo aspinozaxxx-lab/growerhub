@@ -1,5 +1,27 @@
 {
-  "updated_at": "2026-09-27",
+  "updated_at": "2026-09-28",
+  "networkCoordinator": {
+    "status": "Pilot · documentation review only",
+    "title": "ZS-EHT-54P2 / 54P7: a coordinator on your home network",
+    "intro": "An inexpensive option if you already have a computer for Zigbee2MQTT and want the radio closer to your plants. Its documentation makes it a candidate for GrowerHub's existing Zigbee2MQTT path. We have not tested a physical unit with GrowerHub.",
+    "requirement": "An always-on computer running Zigbee2MQTT is required. The coordinator and an MQTT server address alone are not enough; Home Assistant is optional.",
+    "path": "Start the pilot with a coordinator on your home network and one sensor. We will check fresh readings, history and recovery after a restart. If Zigbee2MQTT already serves your setup, first discuss a local bridge that preserves your network.",
+    "purchase_note": "Already own ZS-EHT? Join a trial connection. If not, discuss the complete kit first: this coordinator does not replace the computer. This is a GrowerHub initiative, without a claimed partnership with the seller.",
+    "button": "Connect ZS-EHT",
+    "dialog_title": "ZS-EHT-54P2 / 54P7 pilot",
+    "question": "Would you like to try your coordinator with GrowerHub, or are you just looking?",
+    "interested": "I'd like to try",
+    "browsing": "Just looking",
+    "close": "Close",
+    "contact_intro": "Let's discuss a trial connection in the GrowerHub channel's direct messages. We will reply there and agree on the next steps together.",
+    "contact_details": "Write 'ZS-EHT pilot', your coordinator model, whether you have a computer running Zigbee2MQTT and which sensor you want to connect. Include a different contact method if you prefer. Do not send passwords or access keys.",
+    "contact_note": "The button opens Telegram. We receive your request only after you send a message. Opening this dialog does not connect or change any devices.",
+    "contact_button": "Discuss the pilot in Telegram",
+    "links": [
+      { "label": "Models and costs explained", "href": "/en/articles/ready-zigbee-hub-for-growerhub-when-it-is-more-convenient-than-self-assembly/#zs-eht" },
+      { "label": "Seller's guide", "href": "https://teletype.media/@zigbeeshop/ZS-EHT-54P" }
+    ]
+  },
   "pushok": {
     "status": "Pilot · accepting requests",
     "title": "PushOk: a simpler start without Home Assistant",
@@ -59,6 +81,11 @@
     ],
     "paths_title": "Choose your first step",
     "paths": [
+      {
+        "title": "I have a ZS-EHT network coordinator",
+        "text": "Try a connection together. A separate computer running Zigbee2MQTT is required; Home Assistant is optional.",
+        "href": "/en/getting-started/#zs-eht"
+      },
       {
         "title": "I have PushOk or want a simple hub",
         "text": "Join the pilot waiting list. The integration is not live yet: leave a request to discuss your first sensor.",

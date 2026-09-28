@@ -6,6 +6,7 @@ import TelegramContactLink from '../../components/TelegramContactLink';
 import DemoStartLink from '../../components/DemoStartLink';
 import Button from '../../components/ui/Button';
 import PushokPilot from '../../components/PushokPilot';
+import NetworkCoordinatorPilot from '../../components/NetworkCoordinatorPilot';
 import { GITHUB_RELEASES_URL, ZIGBEE_CONNECTOR_DOWNLOAD_URL } from '../../domain/siteConfig';
 import { getPublicPath } from '../../domain/localizedRoutes';
 import {
@@ -390,6 +391,7 @@ function AppOnboarding() {
         <section className="onboarding-card">
           <h2>{translateApp("Что у вас уже есть?")}</h2>
           <PushokPilot />
+          <div className="onboarding-actions"><NetworkCoordinatorPilot placement="onboarding_zs_eht_pilot" /></div>
           <p>{translateApp("Выберите свой вариант — подскажем следующий шаг.")}</p>
           <div className="onboarding-choice-grid" role="group" aria-label={translateApp("Способ подключения")}>
             <DemoStartLink placement="onboarding_no_equipment" className="choice-card">
