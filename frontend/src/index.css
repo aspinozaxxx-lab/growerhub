@@ -640,7 +640,9 @@ main {
   margin-top: 14px;
 }
 
-.equipment-page #pushok {
+.equipment-page #pushok,
+.equipment-page #zs-eht,
+.article-body #zs-eht {
   scroll-margin-top: 100px;
 }
 
