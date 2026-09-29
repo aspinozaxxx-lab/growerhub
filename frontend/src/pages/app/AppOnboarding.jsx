@@ -5,7 +5,8 @@ import AppPageState from '../../components/layout/AppPageState';
 import TelegramContactLink from '../../components/TelegramContactLink';
 import DemoStartLink from '../../components/DemoStartLink';
 import Button from '../../components/ui/Button';
-import PushokPilot from '../../components/PushokPilot';
+import PushokConnect from '../../components/PushokConnect';
+import { pushokError } from '../../utils/pushokConnection';
 import NetworkCoordinatorPilot from '../../components/NetworkCoordinatorPilot';
 import { ZIGBEE_COORDINATOR_DOWNLOAD_URLS, ZIGBEE_CONNECTOR_DOWNLOAD_URL } from '../../domain/siteConfig';
 import { getPublicPath } from '../../domain/localizedRoutes';
@@ -283,6 +284,13 @@ function AppOnboarding() {
   const writableSwitches = useMemo(() => getWritableSwitches(overview), [overview]);
   const showConnectionHelp = selectedCoordinator && !status?.coordinator_connected
     && Date.now() - waitStartedAt >= CONNECTION_HELP_DELAY_MS;
+  const isPushok = selectedCoordinator?.transport === 'PUSHOK_CLOUD';
+  const handlePushokCreated = (coordinator) => {
+    setSelectedCoordinatorId(coordinator.id);
+    setSetup(null);
+    setWaitStartedAt(Date.now());
+    refresh({ quiet: true });
+  };
 
   const handleCreateCoordinator = async (event) => {
     event.preventDefault();
@@ -422,6 +430,7 @@ function AppOnboarding() {
           <h2>{translateApp("Что у вас уже есть?")}</h2>
           <p>{translateApp("Выберите свой вариант — подскажем следующий шаг.")}</p>
           <div className="onboarding-choice-grid" role="group" aria-label={translateApp("Способ подключения")}>
+            <PushokConnect card onCreated={handlePushokCreated} />
             <DemoStartLink placement="onboarding_no_equipment" className="choice-card">
               <strong>{translateApp("Хочу попробовать без оборудования")}</strong><span>{translateApp("Откройте демоферму: датчики, растения и сценарии уже настроены.")}</span>
             </DemoStartLink>
@@ -442,13 +451,12 @@ function AppOnboarding() {
           <p>{translateApp("Оборудование ещё не выбрано?")}{' '}<Link to={getPublicPath('equipment', getCurrentLocale())}>{translateApp("Посмотреть совместимые устройства")}</Link></p>
           <div className="onboarding-pilots">
             <h3>{translateApp("Пилотные подключения")}</h3>
-            <PushokPilot />
             <div className="onboarding-actions"><NetworkCoordinatorPilot placement="onboarding_zs_eht_pilot" /></div>
           </div>
         </section>
       )}
 
-      {!setupComplete && connectionMode && (!selectedCoordinator ? (
+      {!setupComplete && (connectionMode || isPushok) && (!selectedCoordinator ? (
         <section className="onboarding-card">
           <div className="onboarding-kicker">{translateApp("Шаг 1")}</div>
           <h2>{translateApp("Создайте подключение")}</h2>
@@ -471,7 +479,7 @@ function AppOnboarding() {
               localMqtt={localMqtt}
               setLocalMqtt={setLocalMqtt}
             />
-          ) : !status?.coordinator_connected ? (
+          ) : !status?.coordinator_connected && !isPushok ? (
             <section className="onboarding-card">
               <h2>{translateApp("Нужна новая копия конфигурации?")}</h2>
               <p>{translateApp("Секрет уже был показан и не хранится на сервере. Ротация сразу отзовёт прежний MQTT-пароль.")}</p>
@@ -479,7 +487,14 @@ function AppOnboarding() {
             </section>
           ) : null}
 
-          {!status?.coordinator_connected ? (
+          {isPushok && !status?.coordinator_connected ? (
+            <section className="onboarding-card" role="status"><h2>{translateApp('Подключение ПушОк')}</h2>
+              <p>{selectedCoordinator.connection_error ? pushokError(selectedCoordinator.connection_error)
+                : translateApp('Ждём связь со шлюзом через интернет. Проверьте, что он доступен в Управляторе.')}</p>
+              {selectedCoordinator.connection_status === 'ERROR' ? <PushokConnect coordinator={selectedCoordinator} onCreated={handlePushokCreated} /> : null}
+            </section>
+          ) : null}
+          {!status?.coordinator_connected && !isPushok ? (
             <section className="onboarding-card onboarding-wait">
               <span className="status-pulse" aria-hidden="true" />
               <div><h2>{translateApp("Ждём координатор")}</h2><p>{connectionMode === CONNECTION_MODES.BRIDGE
@@ -508,7 +523,9 @@ function AppOnboarding() {
             <section className="onboarding-card">
               <div className="onboarding-kicker">{translateApp("Шаг 3")}</div>
               <h2>{connectionMode === CONNECTION_MODES.BRIDGE ? translateApp("Импортируем существующие устройства") : translateApp("Добавьте первое устройство")}</h2>
-              {connectionMode === CONNECTION_MODES.BRIDGE ? (
+              {isPushok ? (
+                <p>{translateApp('Добавьте датчик или розетку в Управляторе. В течение минуты устройство появится здесь автоматически.')}</p>
+              ) : connectionMode === CONNECTION_MODES.BRIDGE ? (
                 <p>{translateApp("GrowerHub ждёт список устройств от вашего Zigbee2MQTT. Обычно они появляются автоматически после подключения модуля связи.")}</p>
               ) : (
                 <><p>{translateApp("Разрешите подключение на три минуты, затем переведите датчик или розетку в режим сопряжения.")}</p><Button variant="primary" onClick={handlePermitJoin} isLoading={busy === 'permit-join'}>{translateApp("Разрешить подключение на 3 минуты")}</Button></>

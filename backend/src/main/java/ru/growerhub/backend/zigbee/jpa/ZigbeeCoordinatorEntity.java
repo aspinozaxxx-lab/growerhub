@@ -23,6 +23,12 @@ import ru.growerhub.backend.zigbee.contract.ZigbeeCoordinatorStatus;
         }
 )
 public class ZigbeeCoordinatorEntity {
+    @org.hibernate.annotations.ColumnDefault("'ZIGBEE2MQTT'")
+    @Column(name = "transport_kind", nullable = false)
+    private String transportKind = "ZIGBEE2MQTT";
+    public String getTransportKind() { return transportKind; }
+    public boolean isPushok() { return "PUSHOK_CLOUD".equals(transportKind); }
+    public void initializePushok() { transportKind = "PUSHOK_CLOUD"; }
     @org.hibernate.annotations.ColumnDefault("'PHYSICAL'")
     @Column(name = "execution_kind", nullable = false)
     private String executionKind = "PHYSICAL";

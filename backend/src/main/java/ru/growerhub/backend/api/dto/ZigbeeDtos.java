@@ -20,7 +20,11 @@ public class ZigbeeDtos {
             @JsonProperty("connected_at") LocalDateTime connectedAt,
             @JsonProperty("first_device_seen_at") LocalDateTime firstDeviceSeenAt,
             @JsonProperty("created_at") LocalDateTime createdAt,
-            @JsonProperty("updated_at") LocalDateTime updatedAt
+            @JsonProperty("updated_at") LocalDateTime updatedAt,
+            @JsonProperty("transport") String transport,
+            @JsonProperty("hub_id") String hubId,
+            @JsonProperty("connection_status") String connectionStatus,
+            @JsonProperty("connection_error") String connectionError
     ) {
     }
 

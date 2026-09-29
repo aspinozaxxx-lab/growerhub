@@ -99,7 +99,7 @@ class ArchitectureRulesTest {
         }
     }
 
-    // pravilo: domen ne zavisit ot adapterov (api/mqtt)
+    // pravilo: domen ne zavisit ot adapterov (api/mqtt/pushok)
     @Test
     void noAdapterDependencyFromDomain() {
         for (String domain : DOMAINS) {
@@ -111,6 +111,9 @@ class ArchitectureRulesTest {
                     .should().dependOnClassesThat().resideInAPackage("ru.growerhub.backend.mqtt..");
             apiRule.allowEmptyShould(true).check(CLASSES);
             mqttRule.allowEmptyShould(true).check(CLASSES);
+            noClasses().that().resideInAPackage("ru.growerhub.backend." + domain + "..")
+                    .should().dependOnClassesThat().resideInAPackage("ru.growerhub.backend.pushok..")
+                    .allowEmptyShould(true).check(CLASSES);
         }
     }
 

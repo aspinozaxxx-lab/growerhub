@@ -255,6 +255,10 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         var simulated = devices.findAllByUserId(space.dataUserId).getFirst();
         for (String path : List.of("/api/auth/me", "/api/admin/users")) request(token).get(path).then().statusCode(403);
         request(token).get("/api/users/me/pushok-pilot").then().statusCode(403);
+        request(token).get("/api/zigbee/pushok/availability").then().statusCode(403);
+        request(token).body(Map.of("name", "Demo", "hub_id", "pushok-A1B2C3-1234", "confirm_access", true))
+                .post("/api/zigbee/pushok").then().statusCode(403);
+        request(token).post("/api/zigbee/pushok/" + java.util.UUID.randomUUID() + "/pair").then().statusCode(403);
         request(token).body(Map.of("contact_method", "EMAIL", "contact", "demo@example.test"))
                 .put("/api/users/me/pushok-pilot").then().statusCode(403);
         request(token).get("/api/admin/pushok-pilots").then().statusCode(403);

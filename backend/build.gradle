@@ -45,6 +45,8 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // Polnyj nabor Spring-kontekstov ne pomeshchaetsya v standartnye 512 MiB.
+    maxHeapSize = '2g'
 }
 
 def bomStrippedMainDir = layout.buildDirectory.dir("bom-stripped/main")

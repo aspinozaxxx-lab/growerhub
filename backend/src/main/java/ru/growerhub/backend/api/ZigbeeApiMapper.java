@@ -36,7 +36,11 @@ final class ZigbeeApiMapper {
                 data.connectedAt(),
                 data.firstDeviceSeenAt(),
                 data.createdAt(),
-                data.updatedAt()
+                data.updatedAt(),
+                data.transport(),
+                data.hubId(),
+                data.connectionStatus(),
+                data.connectionError()
         );
     }
 

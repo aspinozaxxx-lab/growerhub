@@ -12,6 +12,8 @@
 - `wateringCapabilities`, `resolveWateringExecutor`, `wateringState`
 - `startWatering`, `stopWatering`, `isSimulatedCoordinator`
 - `createCoordinator(AuthenticatedUser user, String name)`
+- `isPushokAvailable`, `createPushokCoordinator`, `retryPushokPairing`
+- `getPushokConnections`, `reportPushokPairing` — внутренний контракт технического worker; результат устаревшей попытки не принимается.
 - `listCoordinators(AuthenticatedUser user)`
 - `getCoordinator(AuthenticatedUser user, UUID coordinatorPublicId)`
 - `rotateCoordinatorCredentials(AuthenticatedUser user, UUID coordinatorPublicId)`
@@ -39,6 +41,7 @@
 
 - `ZigbeeBridgeData`
 - `ZigbeeBrokerCredentialGateway`
+- `PushokCredentialGateway`, `PushokConnection` — создание зашифрованного доступа и конфигурация облачного worker.
 - `ZigbeeCommandGateway`
 - `ZigbeeCommandPublishResult`
 - `ZigbeeCommandResponseData`
@@ -68,6 +71,7 @@
 
 - REST adapter `api`
 - MQTT adapter `mqtt`
+- технический adapter `pushok`
 - домен `maintenance`
 - домены `automation`, `pump`, `demo`
 
@@ -77,4 +81,4 @@ MQTT передаёт координатор, payload и RETAIN. Raw snapshot о
 
 ## Ограничения
 
-Frontend не подключается к MQTT напрямую. Переименование выполняется только через Zigbee2MQTT. В history индексируются только осмысленные примитивные свойства верхнего уровня; сложные значения остаются в raw JSON snapshot. Текущее состояние и вход автоматизаций не зависят от частоты history. MQTT-пароль не хранится и возвращается один раз. Чужой UUID или IEEE возвращает тот же `404`, что неизвестный объект.
+Frontend не подключается к MQTT напрямую. Для ПушОка добавление и переименование выполняются в «Управляторе». В history индексируются примитивные свойства; сложные значения остаются в raw snapshot. Zigbee2MQTT получает MQTT-пароль один раз; серверный мост ПушОка хранит его вместе с отдельным ключом хаба только в AES-GCM ciphertext (ADR-008). Подтверждённый хаб принадлежит одному аккаунту. Неудачная непривязанная попытка не резервирует чужой ID бессрочно. Demo не создаёт внешний доступ. Чужой UUID или IEEE возвращает тот же `404`, что неизвестный объект.

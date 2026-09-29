@@ -14,6 +14,10 @@ public record ZigbeeCoordinatorSummary(
         LocalDateTime connectedAt,
         LocalDateTime firstDeviceSeenAt,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        String transport,
+        String hubId,
+        String connectionStatus,
+        String connectionError
 ) {
 }

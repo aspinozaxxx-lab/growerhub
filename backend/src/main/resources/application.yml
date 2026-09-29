@@ -191,6 +191,29 @@ user:
   pilot-equipment-max-length: 500
 
 zigbee:
+  pushok:
+    # Oblachnyj most PushOk vklyuchaetsya posle fizicheskoj proverki.
+    enabled: ${PUSHOK_ENABLED:false}
+    # Edinstvennyj razreshennyj WSS endpoint proizvoditelya.
+    cloud-url: "wss://iotgate.pushok.net"
+    # Otdelnyj 256-bitnyj klyuch AES-GCM v Base64; ne hranitsya v BD.
+    encryption-key: ${PUSHOK_ENCRYPTION_KEY:}
+    # ID iz Upravlyatora; proizvolnye URL i lokalnye IP zapreshcheny.
+    hub-id-pattern: '^pushok-[A-F0-9]{6}-[A-Za-z0-9]{4,12}$'
+    # Ozhidanie otveta huba.
+    request-timeout-seconds: 8
+    # Interval sverki podklyuchenij s BD.
+    reconcile-seconds: 3
+    # Obnovlenie sostava ustrojstv i proverka zhivoj svyazi.
+    refresh-seconds: 30
+    # Maksimalnoe chislo hubov odnogo polzovatelya.
+    max-connections-per-user: 5
+    # Pauza pered avtomaticheskim vosstanovleniem svyazi.
+    retry-seconds: 30
+    # Ogranichenie razmera WebSocket soobshcheniya.
+    max-message-bytes: 1048576
+    # Nepodtverzhdennaya privyazka ne rezerviruet chuzhoj ID bessrochno.
+    pairing-reservation-seconds: 300
   watering:
     # Dopusk Zigbee-poliva posle proverki modeli i avtonomnogo tajmera.
     enabled: ${ZIGBEE_WATERING_ENABLED:false}

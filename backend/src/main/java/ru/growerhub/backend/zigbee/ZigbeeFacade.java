@@ -33,6 +33,11 @@ import ru.growerhub.backend.common.config.ZigbeeSettings;
 import ru.growerhub.backend.common.config.mqtt.MqttTopicSettings;
 import ru.growerhub.backend.common.config.zigbee.ZigbeeHistorySettings;
 import ru.growerhub.backend.common.config.zigbee.ZigbeeSelfServiceSettings;
+import ru.growerhub.backend.common.config.zigbee.PushokSettings;
+import ru.growerhub.backend.zigbee.contract.PushokConnection;
+import ru.growerhub.backend.zigbee.contract.PushokCredentialGateway;
+import ru.growerhub.backend.zigbee.jpa.PushokConnectionEntity;
+import ru.growerhub.backend.zigbee.jpa.PushokConnectionRepository;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.zigbee.contract.ZigbeeBridgeData;
@@ -94,6 +99,9 @@ public class ZigbeeFacade {
     private final EntityManager entityManager;
     private final ru.growerhub.backend.user.UserFacade userFacade;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final PushokSettings pushokSettings;
+    private final PushokConnectionRepository pushokRepository;
+    private final PushokCredentialGateway pushokCredentials;
     private final ru.growerhub.backend.zigbee.engine.ZigbeeWateringService wateringService;
     private final ru.growerhub.backend.pump.PumpFacade pumpFacade;
 
@@ -115,7 +123,10 @@ public class ZigbeeFacade {
             @org.springframework.context.annotation.Lazy ru.growerhub.backend.user.UserFacade userFacade,
             EntityManager entityManager,
             ru.growerhub.backend.zigbee.engine.ZigbeeWateringService wateringService,
-            @org.springframework.context.annotation.Lazy ru.growerhub.backend.pump.PumpFacade pumpFacade
+            @org.springframework.context.annotation.Lazy ru.growerhub.backend.pump.PumpFacade pumpFacade,
+            PushokSettings pushokSettings,
+            PushokConnectionRepository pushokRepository,
+            PushokCredentialGateway pushokCredentials
     ) {
         this.bridgeRepository = bridgeRepository;
         this.deviceRepository = deviceRepository;
@@ -135,6 +146,9 @@ public class ZigbeeFacade {
         this.entityManager = entityManager;
         this.wateringService = wateringService;
         this.pumpFacade = pumpFacade;
+        this.pushokSettings = pushokSettings;
+        this.pushokRepository = pushokRepository;
+        this.pushokCredentials = pushokCredentials;
     }
 
     @Transactional(readOnly = true)
@@ -336,6 +350,99 @@ public class ZigbeeFacade {
                 .toList();
     }
 
+    public boolean isPushokAvailable(AuthenticatedUser user) {
+        return user != null && !user.isDemo() && selfServiceSettings.isEnabled() && pushokSettings.isEnabled();
+    }
+
+    @Transactional
+    public ZigbeeCoordinatorSummary createPushokCoordinator(AuthenticatedUser user, String name, String hubId) {
+        requireSelfService(user);
+        if (!isPushokAvailable(user) || userFacade.isDemoOwner(user.id()))
+            throw new DomainException("forbidden", "Подключение ПушОк сейчас недоступно");
+        String normalizedHub = hubId == null ? "" : hubId.strip();
+        if (!normalizedHub.matches(pushokSettings.getHubIdPattern()))
+            throw new DomainException("bad_request", "Введите ID шлюза вида pushok-A1B2C3-1234 из Управлятора");
+        var existing = pushokRepository.findByHubId(normalizedHub);
+        if (existing.isPresent()) {
+            var owner = coordinatorRepository.findByIdAndArchivedAtIsNull(existing.get().getCoordinatorId()).orElseThrow();
+            if (owner.getUserId().equals(user.id())) return toCoordinatorSummary(owner);
+            var previous = existing.get();
+            var now = LocalDateTime.now(clock);
+            if (previous.getHubPublicKey() != null || (!"ERROR".equals(previous.getStatus())
+                    && previous.getAttemptAt().plusSeconds(pushokSettings.getPairingReservationSeconds()).isAfter(now)))
+                throw new DomainException("conflict", "Этот шлюз уже подключён или проходит привязку в GrowerHub");
+            // Nepodtverzhdennyj ID ne dolzhen navsegda blokirovat nastoyashchego vladelca.
+            brokerCredentialGateway.revoke(owner.getMqttUsername(), selfServiceSettings.getBrokerRole());
+            owner.setArchivedAt(now);
+            owner.setStatus(ZigbeeCoordinatorStatus.ARCHIVED);
+            pushokRepository.delete(previous);
+            pushokRepository.flush();
+        }
+        long count = coordinatorRepository.findAllByUserIdAndArchivedAtIsNullOrderByCreatedAtAsc(user.id()).stream()
+                .filter(ZigbeeCoordinatorEntity::isPushok).count();
+        if (count >= pushokSettings.getMaxConnectionsPerUser())
+            throw new DomainException("conflict", "Достигнут лимит подключений ПушОк");
+        var created = createCoordinator(user, name);
+        try {
+            var coordinator = findOwnedCoordinator(user, created.coordinator().id());
+            coordinator.initializePushok();
+            String encrypted = pushokCredentials.createEncryptedCredentials(coordinator.getPublicId(), created.setup().password());
+            pushokRepository.saveAndFlush(new PushokConnectionEntity(coordinator.getId(), normalizedHub, encrypted, LocalDateTime.now(clock)));
+            return toCoordinatorSummary(coordinator);
+        } catch (RuntimeException error) {
+            try { brokerCredentialGateway.revoke(created.coordinator().mqttUsername(), selfServiceSettings.getBrokerRole()); }
+            catch (RuntimeException ignored) { /* Otkat ne raskryvaet credentials. */ }
+            throw error;
+        }
+    }
+
+    @Transactional
+    public ZigbeeCoordinatorSummary retryPushokPairing(AuthenticatedUser user, UUID publicId) {
+        requireSelfService(user);
+        if (!isPushokAvailable(user)) throw new DomainException("forbidden", "Подключение ПушОк сейчас недоступно");
+        var coordinator = findOwnedCoordinator(user, publicId);
+        var connection = pushokRepository.findById(coordinator.getId())
+                .orElseThrow(() -> new DomainException("not_found", "Подключение не найдено"));
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (connection.getAttemptAt().plusSeconds(selfServiceSettings.getCredentialCooldownSeconds()).isAfter(now))
+            throw new DomainException("too_many_requests", "Подождите немного перед повторным подключением");
+        connection.requestPairing(now);
+        coordinator.setStatus(ZigbeeCoordinatorStatus.PROVISIONING);
+        return toCoordinatorSummary(coordinator);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PushokConnection> getPushokConnections() {
+        if (!pushokSettings.isEnabled()) return List.of();
+        List<PushokConnection> result = new ArrayList<>();
+        for (var connection : pushokRepository.findAll()) {
+            if (!Set.of("PAIRING", "ACTIVE").contains(connection.getStatus())) continue;
+            var coordinator = coordinatorRepository.findByIdAndArchivedAtIsNull(connection.getCoordinatorId()).orElse(null);
+            if (coordinator == null || coordinator.isSimulated() || !coordinator.isPushok()) continue;
+            result.add(new PushokConnection(coordinator.getId(), coordinator.getPublicId(), connection.getHubId(),
+                    coordinator.getMqttUsername(), coordinator.getBaseTopic(), selfServiceSettings.getMqttServer(),
+                    connection.getEncryptedCredentials(), connection.getHubPublicKey(), connection.getStatus(), connection.getAttemptAt()));
+        }
+        return List.copyOf(result);
+    }
+
+    @Transactional
+    public boolean reportPushokPairing(Integer coordinatorId, LocalDateTime attemptAt, String publicKey, String errorCode) {
+        var coordinator = coordinatorRepository.findByIdAndArchivedAtIsNull(coordinatorId).orElse(null);
+        var connection = pushokRepository.findById(coordinatorId).orElse(null);
+        if (coordinator == null || coordinator.isSimulated() || !coordinator.isPushok() || connection == null
+                || !Objects.equals(connection.getAttemptAt(), attemptAt)) return false;
+        if (errorCode == null) connection.paired(publicKey);
+        else {
+            String safeCode = Set.of("PAIRING_REQUIRED", "CLOUD_UNAVAILABLE", "HUB_IDENTITY_CHANGED", "HUB_PROTOCOL_ERROR", "HUB_COMMAND_REJECTED")
+                    .contains(errorCode) ? errorCode : "CLOUD_UNAVAILABLE";
+            connection.fail(safeCode);
+            coordinator.setStatus(ZigbeeCoordinatorStatus.ERROR);
+        }
+        coordinator.setUpdatedAt(LocalDateTime.now(clock));
+        return true;
+    }
+
     @Transactional(readOnly = true)
     public ZigbeeProductAnalytics getProductAnalytics() {
         List<ZigbeeCoordinatorEntity> all = coordinatorRepository.findAll().stream().filter(c -> !c.isSimulated()).toList();
@@ -426,6 +533,7 @@ public class ZigbeeFacade {
         requireSelfService(user);
         ZigbeeCoordinatorEntity coordinator = findOwnedCoordinator(user, coordinatorPublicId);
         requireWateringIdle(coordinator);
+        if (coordinator.isPushok()) throw new DomainException("bad_request", "Доступ ПушОк обновляется через повторное сопряжение");
         LocalDateTime now = LocalDateTime.now(clock);
         requirePhysicalBaseTopic(coordinator.getBaseTopic());
         enforceCoordinatorCredentialCooldown(coordinator, now);
@@ -445,6 +553,7 @@ public class ZigbeeFacade {
         requireWateringIdle(coordinator);
         requirePhysicalBaseTopic(coordinator.getBaseTopic());
         brokerCredentialGateway.revoke(coordinator.getMqttUsername(), selfServiceSettings.getBrokerRole());
+        if (coordinator.isPushok()) pushokRepository.deleteById(coordinator.getId());
         LocalDateTime now = LocalDateTime.now(clock);
         coordinator.setArchivedAt(now);
         coordinator.setStatus(ZigbeeCoordinatorStatus.ARCHIVED);
@@ -488,6 +597,7 @@ public class ZigbeeFacade {
     ) {
         requireSelfService(user);
         ZigbeeCoordinatorEntity coordinator = findOwnedCoordinator(user, coordinatorPublicId);
+        if (coordinator.isPushok()) throw new DomainException("bad_request", "Добавляйте устройства в Управляторе — GrowerHub получит их автоматически");
         return permitJoin(coordinator.getBaseTopic(), seconds);
     }
 
@@ -533,6 +643,7 @@ public class ZigbeeFacade {
     ) {
         requireSelfService(user);
         ZigbeeCoordinatorEntity coordinator = findOwnedCoordinator(user, coordinatorPublicId);
+        if (coordinator.isPushok()) throw new DomainException("bad_request", "Переименуйте устройство в Управляторе — имя обновится автоматически");
         return renameDevice(coordinator.getId(), coordinator.getBaseTopic(), ieeeAddress, friendlyName);
     }
 
@@ -1874,6 +1985,7 @@ public class ZigbeeFacade {
 
     private ZigbeeCoordinatorSummary toCoordinatorSummary(ZigbeeCoordinatorEntity coordinator) {
         long deviceCount = deviceRepository.countByCoordinatorIdAndCoordinatorFalse(coordinator.getId());
+        var connection = coordinator.isPushok() ? pushokRepository.findById(coordinator.getId()).orElse(null) : null;
         return new ZigbeeCoordinatorSummary(
                 coordinator.getPublicId(),
                 coordinator.getName(),
@@ -1885,7 +1997,11 @@ public class ZigbeeFacade {
                 coordinator.getConnectedAt(),
                 coordinator.getFirstDeviceSeenAt(),
                 coordinator.getCreatedAt(),
-                coordinator.getUpdatedAt()
+                coordinator.getUpdatedAt(),
+                coordinator.getTransportKind(),
+                connection == null ? null : connection.getHubId(),
+                connection == null ? null : connection.getStatus(),
+                connection == null ? null : connection.getLastError()
         );
     }
 

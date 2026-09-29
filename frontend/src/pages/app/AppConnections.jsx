@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import Button from '../../components/ui/Button';
-import PushokPilot from '../../components/PushokPilot';
+import PushokConnect from '../../components/PushokConnect';
+import { pushokError } from '../../utils/pushokConnection';
 import NetworkCoordinatorPilot from '../../components/NetworkCoordinatorPilot';
 import {
   archiveCoordinator,
@@ -39,18 +40,18 @@ function AppConnections() {
   const [busy, setBusy] = useState('loading');
   const [error, setError] = useState('');
 
-  const load = async () => {
+  const load = async (background = false) => {
     try {
       setCoordinators(await fetchCoordinators());
-      setError('');
+      if (!background) setError('');
     } catch (requestError) {
-      setError(requestError.message);
+      if (!background) setError(requestError.message);
     } finally {
-      setBusy('');
+      if (!background) setBusy('');
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); const timer = window.setInterval(() => load(true), 5000); return () => window.clearInterval(timer); }, []);
 
   const handleCreate = async (event) => {
     event.preventDefault();
@@ -80,7 +81,9 @@ function AppConnections() {
   };
 
   const handleArchive = async (coordinator) => {
-    if (!window.confirm(translateApp("Архивировать «{{value1}}» и отозвать его доступ к MQTT?", { value1: coordinator.name }))) return;
+    if (!window.confirm(coordinator.transport === 'PUSHOK_CLOUD'
+      ? translateApp('Отключить ПушОк от GrowerHub? Доступ в Управляторе сохранится.')
+      : translateApp("Архивировать «{{value1}}» и отозвать его доступ к MQTT?", { value1: coordinator.name }))) return;
     setBusy(coordinator.id);
     try {
       await archiveCoordinator(coordinator.id);
@@ -112,10 +115,14 @@ function AppConnections() {
         <div className="connection-list">
           {coordinators.map((coordinator) => (
             <article key={coordinator.id}>
-              <div><h3>{coordinator.name}</h3><p>{coordinator.base_topic}</p></div>
+              <div><h3>{coordinator.name}</h3><p>{coordinator.transport === 'PUSHOK_CLOUD' ? coordinator.hub_id : coordinator.base_topic}</p>
+                {coordinator.connection_error ? <p role="alert">{pushokError(coordinator.connection_error)}</p> : null}</div>
               <span className={coordinator.status === 'ONLINE' ? 'status-chip is-online' : 'status-chip'}>{STATUS_LABELS[coordinator.status] || translateApp("Статус неизвестен")}</span>
               <div className="connection-meta"><span>{translateApp('device_count', { count: coordinator.device_count })}</span><span>{coordinator.last_seen_at ? translateApp("Связь: {{value1}}", { value1: formatDateTimeDDMMYYYY(coordinator.last_seen_at) }) : translateApp("Ещё не подключался")}</span></div>
-              <div className="inline-actions"><Button onClick={() => handleRotate(coordinator)} isLoading={busy === coordinator.id}>{translateApp("Новые данные доступа")}</Button><Button variant="danger" onClick={() => handleArchive(coordinator)} disabled={busy === coordinator.id}>{translateApp("Архивировать")}</Button></div>
+              <div className="inline-actions">{coordinator.transport === 'PUSHOK_CLOUD'
+                ? (coordinator.connection_status === 'ERROR' ? <PushokConnect coordinator={coordinator} onCreated={() => load()} /> : null)
+                : <Button onClick={() => handleRotate(coordinator)} isLoading={busy === coordinator.id}>{translateApp("Новые данные доступа")}</Button>}
+                <Button variant="danger" onClick={() => handleArchive(coordinator)} disabled={busy === coordinator.id}>{translateApp("Архивировать")}</Button></div>
             </article>
           ))}
           {coordinators.length === 0 ? <AppPageState kind="empty" title={translateApp("Координаторов пока нет")} /> : null}
@@ -124,7 +131,7 @@ function AppConnections() {
 
       <section className="self-service-section">
         <h2>{translateApp("Добавить координатор")}</h2>
-        <PushokPilot />
+        <PushokConnect onCreated={() => load()} />
         <div className="inline-actions"><NetworkCoordinatorPilot placement="connections_zs_eht_pilot" /></div>
         <p>{translateApp("В одном пространстве можно использовать несколько координаторов и подключать оборудование в удобном темпе.")}</p>
         <form className="compact-form" onSubmit={handleCreate}><label>{translateApp("Название")}<input value={name} onChange={(event) => setName(event.target.value)} required maxLength="120" /></label><Button type="submit" variant="primary" isLoading={busy === 'create'}>{translateApp("Создать")}</Button></form>

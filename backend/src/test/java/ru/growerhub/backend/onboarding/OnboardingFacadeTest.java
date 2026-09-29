@@ -76,7 +76,8 @@ class OnboardingFacadeTest {
                 now,
                 now,
                 now,
-                now
+                now,
+                "ZIGBEE2MQTT", null, null, null
         );
     }
 
