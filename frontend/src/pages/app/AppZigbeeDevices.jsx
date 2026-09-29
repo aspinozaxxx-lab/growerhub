@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
@@ -37,22 +37,40 @@ function AppZigbeeDevices({ embedded = false }) {
   const [overview, setOverview] = useState(null);
   const [busy, setBusy] = useState('loading');
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [query, setQuery] = useState('');
   const [availability, setAvailability] = useState('all');
+  const mounted = useRef(false);
+  const refreshing = useRef(false);
 
   const load = useCallback(async () => {
+    if (refreshing.current) return;
+    refreshing.current = true;
     try {
-      setOverview(await fetchFarmsOverview());
-      setError('');
+      const next = await fetchFarmsOverview();
+      if (mounted.current) {
+        setOverview(next);
+        setLoadError('');
+      }
     } catch (requestError) {
-      setError(requestError?.message || translateApp("Не удалось загрузить устройства"));
+      if (mounted.current) setLoadError(requestError?.message || translateApp("Не удалось загрузить устройства"));
     } finally {
-      setBusy('');
+      refreshing.current = false;
+      if (mounted.current) setBusy((current) => current === 'loading' ? '' : current);
     }
   }, []);
 
   useEffect(() => {
+    mounted.current = true;
     load();
+    const refreshVisible = () => { if (!document.hidden) load(); };
+    const timer = window.setInterval(refreshVisible, 5000);
+    document.addEventListener('visibilitychange', refreshVisible);
+    return () => {
+      mounted.current = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refreshVisible);
+    };
   }, [load]);
 
   const setProperty = async (device, feature, value) => {
@@ -66,10 +84,11 @@ function AppZigbeeDevices({ embedded = false }) {
         feature.property,
         value,
       );
-      window.setTimeout(load, 800);
+      if (mounted.current) load();
     } catch (requestError) {
-      setError(requestError?.message || translateApp("Не удалось изменить состояние устройства"));
-      setBusy('');
+      if (mounted.current) setError(requestError?.message || translateApp("Не удалось изменить состояние устройства"));
+    } finally {
+      if (mounted.current) setBusy((current) => current === key ? '' : current);
     }
   };
 
@@ -97,7 +116,7 @@ function AppZigbeeDevices({ embedded = false }) {
           </Link>
         )}
       />
-      {error ? <AppPageState kind="error" title={error} /> : null}
+      {error || loadError ? <AppPageState kind="error" title={error || loadError} /> : null}
 
       <div className="farm-device-filters">
         <label>

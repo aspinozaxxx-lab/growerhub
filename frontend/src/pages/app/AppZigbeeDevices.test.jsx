@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   cleanup,
+  act,
   fireEvent,
   render,
   screen,
@@ -83,6 +84,8 @@ describe('AppZigbeeDevices', () => {
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
+    vi.restoreAllMocks();
     vi.clearAllMocks();
   });
 
@@ -130,5 +133,42 @@ describe('AppZigbeeDevices', () => {
       target: { value: 'online' },
     });
     expect(screen.getByText('По заданным условиям устройств нет')).toBeInTheDocument();
+  });
+
+  it('poluchaet pozdnee podtverzhdenie bez povtora komandy i sbrosa poiska', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    let view;
+    await act(async () => { view = render(<MemoryRouter><AppZigbeeDevices /></MemoryRouter>); });
+    const card = screen.getByRole('heading', { name: 'Датчик климата' }).closest('article');
+    const query = screen.getByPlaceholderText('Название, модель или IEEE-адрес');
+    fireEvent.change(query, { target: { value: 'Aqara' } });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Включить' })); });
+    expect(card.querySelector('.farm-device-card__state > strong')).toHaveTextContent('OFF');
+
+    const confirmed = structuredClone(overview);
+    confirmed.resource_catalog.zigbee_devices[0].controls[0].value = 'ON';
+    fetchFarmsOverview.mockResolvedValue(confirmed);
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(card.querySelector('.farm-device-card__state > strong')).toHaveTextContent('ON');
+    expect(query).toHaveValue('Aqara');
+    expect(setZigbeeProperty).toHaveBeenCalledTimes(1);
+
+    view.unmount();
+    const requests = fetchFarmsOverview.mock.calls.length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+    expect(fetchFarmsOverview).toHaveBeenCalledTimes(requests);
+  });
+
+  it('fonovoe chtenie ne skryvaet oshibku komandy i ne povtoryaet ee', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    await act(async () => { render(<MemoryRouter><AppZigbeeDevices /></MemoryRouter>); });
+    setZigbeeProperty.mockRejectedValue(new Error('Нет связи с координатором'));
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Включить' })); });
+    expect(screen.getByText('Нет связи с координатором')).toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(screen.getByText('Нет связи с координатором')).toBeInTheDocument();
+    expect(setZigbeeProperty).toHaveBeenCalledTimes(1);
   });
 });

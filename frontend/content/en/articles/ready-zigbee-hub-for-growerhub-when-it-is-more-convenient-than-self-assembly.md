@@ -3,10 +3,10 @@ translation_of: gotovyy-zigbee-hub-dlya-growerhub
 slug: ready-zigbee-hub-for-growerhub-when-it-is-more-convenient-than-self-assembly
 title: 'A ready-made Zigbee hub for GrowerHub: starting without a separate computer'
 summary: >-
-  Compare Zigbee2MQTT, the PushOk pilot, SMHUB Nano and ZS-EHT-54P2/54P7
-  network coordinators. Which options need a computer and what to check before buying.
+  Connect PushOk to GrowerHub over the internet using its ID and pairing button.
+  Compare it with Zigbee2MQTT, SMHUB Nano and ZS-EHT, including hardware checks.
 created_at: '2026-07-23'
-updated_at: '2026-09-28'
+updated_at: '2026-09-29'
 cluster: zigbee-hub-i-ustroystva
 tags:
   - GrowerHub
@@ -30,14 +30,14 @@ hero_alt: >-
 
 One temperature sensor beside your plants is enough for a first setup. You can start by [opening the demo farm without hardware](/app/demo/?lang=en), exploring charts and trying virtual watering before buying a pump or a complete greenhouse kit.
 
-GrowerHub already receives physical sensor data through Zigbee2MQTT. A Zigbee logo alone does not establish compatibility: the hub's software and connection method matter.
+Physical devices can use Zigbee2MQTT or the PushOk cloud pilot. A Zigbee logo alone does not establish compatibility: the hub's software and connection method matter.
 
 ## Choose a starting point
 
 - **Zigbee2MQTT already runs, perhaps alongside Home Assistant.** Keep your hub and connect the existing network through a [local MQTT bridge](/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/). Having Home Assistant does not necessarily mean you use Zigbee2MQTT.
 - **An always-on computer is available.** Use a [USB coordinator and one compatible sensor](/en/equipment/zigbee-coordinators/). Zigbee2MQTT runs on that computer; new readings stop reaching GrowerHub when it is off.
 - **You want one box without a separate computer.** Consider a hub that runs Zigbee2MQTT internally. The candidate below needs a trial connection before we can recommend it as a tested GrowerHub setup.
-- **You already own PushOk.** You can request a pilot. The GrowerHub integration is not ready yet.
+- **You already own PushOk.** Connect it over the internet using the hub ID and pairing button. No separate computer or Home Assistant is needed. We are starting with POK100v2; see the steps and limits below.
 - **You own ZS-EHT-54P2 or 54P7.** Join a trial connection. It replaces the USB radio, but still needs a computer running Zigbee2MQTT.
 
 <h2 id="zs-eht">ZS-EHT-54P2 / 54P7: an affordable coordinator that needs a computer</h2>
@@ -91,7 +91,7 @@ Transfer only the MQTT settings. Replacing the entire hub configuration with a U
 
 If the SMHUB already serves Home Assistant or other systems, plan a local bridge first: changing its MQTT server may interrupt existing integrations. A GrowerHub connection forwards the selected network's device list and readings and permits commands back to it. There is currently no separate read-only mode limited to one sensor. Automations are enabled separately by the user.
 
-## PushOk: request a pilot first
+<h2 id="pushok">PushOk: connect over the internet without a separate computer</h2>
 
 <div class="hub-photos">
   <div class="hub-photos__grid">
@@ -102,9 +102,33 @@ If the SMHUB already serves Home Assistant or other systems, plan a local bridge
   <p class="hub-photos__caption">Product images from the manufacturer's listings. Cases may vary between revisions; check the label or the Upravlyator app for the exact model. <a href="https://pushok.io/devices/pok100">Source: PushOk</a>.</p>
 </div>
 
-PushOk owners can [register interest in a pilot](/en/getting-started/#pushok). In the app, open **Settings → Connections → Connect PushOk**, choose to participate and leave your preferred contact method.
+The cloud pilot is available in GrowerHub. On **POK100v2 with firmware 95 and a Zbeacon TS011F plug**, we verified initial pairing directly from the app over the internet, readings, on/off commands confirmed by the device, and recorded history. After an induced cloud connection interruption, it reconnected automatically in about 35 seconds using the same access, with the plug remaining off. This was one test, not a guaranteed recovery time for every outage. Mini, Max, other revisions and sensor models require separate checks. The images above help identify hubs; they do not mean every pictured model has been tested.
 
-Submitting the request does not connect or change your hub. We will review its model, sensors and connection options together. A phone-only setup without a separate server is still being investigated; do not buy PushOk expecting an already available GrowerHub integration.
+### Prepare it in Upravlyator
+
+1. Set up the hub's Wi-Fi and pair one device using [PushOk's instructions](https://pushok.io/docs/instrukciya-po-podklyucheniyu-shlyuza). No firmware replacement is needed.
+2. Turn off Wi-Fi on your phone and check that fresh readings arrive over mobile data. You can then turn Wi-Fi back on.
+3. Tap the hub name at the top of Upravlyator, then the **gear beside it**. On the **hub information** screen, copy the **hub ID** with its copy button. Example: `pushok-A1B2C3-1234`. A display name such as `PuxZB`, MAC address or home IP address is not the ID GrowerHub needs.
+
+### Connect to GrowerHub
+
+1. Sign in and open **Settings → Connections → Connect PushOk**. The first-connection wizard offers the same option.
+2. Paste the ID, give it a recognizable name and confirm access. All devices on this hub will appear in your account; GrowerHub can read their values and send supported commands. Automations do not start automatically.
+3. **Briefly press the hub's pairing button with the indicator twice.** While it flashes, press **Button pressed — connect** in GrowerHub. You do not need to copy phone keys, Wi-Fi passwords or router settings.
+4. Wait for the success message and open **Settings → Devices**. Check the state and last-update time. Add and rename Zigbee devices in Upravlyator; GrowerHub refreshes its list automatically.
+5. Assign available sensor readings to a growing area in the **farm builder**. GrowerHub history starts accumulating after connection; earlier Upravlyator history is not imported. Confirm fresh readings before choosing an automation.
+
+If the pairing window expires, press the hub button twice again and select **Retry PushOk pairing**. You do not need to create a new connection for every attempt. For help, use **PushOk help and my request** in connection settings to leave contact details, edit or withdraw an earlier request.
+
+### Before enabling automation
+
+- The hub needs internet access and PushOk's cloud service. GrowerHub's server does not access your home network. Its automations do not run locally on PushOk during an outage; queued commands are not sent after reconnection.
+- Keep automation for a particular appliance in one system to avoid conflicting commands.
+- A sensor being supported by the hub does not confirm every function in GrowerHub. Unknown parameters are not presented as available controls.
+- **The test TS011F is not approved for automatic watering.** Valves and pumps require separate checks of their local timer and safe stopping after connection loss.
+- To disconnect, archive the coordinator in GrowerHub. The server stops connecting and deletes its key; recorded history remains. You can remove GrowerHub's separate access on the hub itself through Upravlyator.
+
+**Already own PushOk?** [Try connecting](/en/getting-started/#pushok) one device and tell us how it went. If you have not bought a hub, discuss the exact model and intended use first. This is an independent GrowerHub integration; no manufacturer partnership is claimed.
 
 ## Distinguish the different types of hub
 

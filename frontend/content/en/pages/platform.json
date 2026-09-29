@@ -29,7 +29,7 @@
     ]
   },
   "pushok": {
-    "status": "Pilot · accepting requests",
+    "status": "Cloud connection · pilot",
     "title": "PushOk: a simpler start without Home Assistant",
     "photos": [
       { "src": "/content/equipment/pushok-pok101.jpg", "alt": "PushOk POK101 Mini: compact white hub with two buttons on top", "label": "POK101 · Mini", "width": 1020, "height": 1360 },
@@ -39,18 +39,30 @@
     "photos_caption": "Product images supplied by the manufacturer. Cases may vary between revisions; find the exact model on its label or in the Upravlyator app.",
     "photos_source_label": "Source: PushOk",
     "photos_source_url": "https://pushok.io/devices/pok100",
-    "intro": "We want to make your first sensor easier to connect: a small Zigbee hub, a phone app and GrowerHub. No separate computer or server setup. We are starting with PushOk owners willing to try the connection together with us.",
-    "availability": "The PushOk integration with GrowerHub has not been implemented yet. We are collecting requests and will verify the connection method and compatibility with pilot participants.",
-    "path_title": "The path we want to build",
+    "intro": "Connect PushOk to GrowerHub over the internet. You need a hub already set up in Upravlyator, its ID and two short pairing-button presses. No separate computer, Home Assistant or MQTT setup is needed.",
+    "availability": "The pilot is available in the app. Cloud pairing, readings, on/off control and reconnection were verified on POK100v2 with firmware 95 and a Zbeacon TS011F plug. Other hubs, sensors and functions need separate checks; we do not claim support for every Zigbee device.",
+    "path_title": "Connect your PushOk",
     "steps": [
-      { "title": "Leave a request", "text": "Tell us how to contact you and, if you know, your hub and sensor models. If you have no equipment yet, say so: that also helps us choose a suitable starter kit." },
-      { "title": "Check the equipment together", "text": "The starting point is a PushOk hub and one compatible air or soil sensor. The hub itself is set up in the Upravlyator phone app. Check the exact sensor model in the manufacturer’s compatibility list." },
-      { "title": "Test the GrowerHub connection", "text": "We will get in touch shortly and agree on a trial connection. Our goal is to avoid Home Assistant and an always-on computer. Exact steps will follow testing on a real hub." },
-      { "title": "Start with readings", "text": "Our first pilot goal is fresh readings from one sensor and a chart. Smart plug control and watering will be discussed separately, after equipment checks and with your agreement." }
+      {
+        "title": "Prepare the hub",
+        "text": "Set up Wi-Fi and pair one sensor or test plug in Upravlyator. Check for fresh readings with your phone using mobile data."
+      },
+      {
+        "title": "Copy the hub ID",
+        "text": "In Upravlyator, tap the hub name at the top, then the gear beside it. On the hub information screen, copy the hub ID, such as pushok-A1B2C3-1234. Its display name and IP address are different."
+      },
+      {
+        "title": "Connect in GrowerHub",
+        "text": "Open Settings → Connections → Connect PushOk, paste the ID and confirm device access. Press the hub pairing button twice briefly. While its indicator flashes, press the connection button in GrowerHub."
+      },
+      {
+        "title": "Check the first readings",
+        "text": "After connection, open Settings → Devices. Add new devices in Upravlyator; GrowerHub refreshes the list automatically. Assign available sensors to a growing area in the farm builder. Automations stay off until you enable them."
+      }
     ],
-    "invitation": "Already using PushOk? Help us make setup easier: tell us what you grow and what you would like to automate. A request does not connect your hub or change your devices. We do not ask for passwords or access keys.",
+    "invitation": "Already own PushOk? Start with one device and tell us what is missing. For another model or setup help, use “PushOk help and my request” in connection settings. No Wi-Fi password or key export from your phone is needed.",
     "cta": "Try PushOk with GrowerHub",
-    "purchase_note": "If you do not own a hub yet, leave a request and try the demo farm first. It is too early to buy equipment specifically for this pilot. This is a GrowerHub initiative; we do not claim a partnership with the manufacturer.",
+    "purchase_note": "Connectivity depends on the internet and PushOk’s cloud. GrowerHub automations run on its server and do not run locally on the hub when disconnected. This plug is not approved for automatic watering. If you have no equipment yet, discuss the exact model and intended use first. This is a GrowerHub integration; no manufacturer partnership is claimed.",
     "links": [
       { "label": "Explore PushOk hubs", "href": "https://pushok.io/devices/pok100" },
       { "label": "Devices compatible with PushOk", "href": "https://pushok.io/supported-devices" },
@@ -60,7 +72,7 @@
   "early_access_text": "The main functions of GrowerHub are already available for free and without a card. Connect equipment, assemble zones and customize controls at your own pace. If you need help, the GrowerHub team is nearby on Telegram.",
   "start": {
     "title": "How to get started with GrowerHub",
-    "description": "How to start with GrowerHub: a demo farm without equipment, Zigbee2MQTT connections and the upcoming PushOk hub pilot.",
+    "description": "Start with GrowerHub: a hardware-free demo farm, Zigbee2MQTT connections or the PushOk cloud pilot without a separate computer.",
     "steps_title": "Available now: connect through Zigbee2MQTT",
     "intro": "Explore a prepared farm or connect one of your own sensors first. You can start monitoring before adding every plant or configuring automation.",
     "steps": [
@@ -102,7 +114,7 @@
       },
       {
         "title": "I have PushOk or want a simple hub",
-        "text": "Join the pilot waiting list. The integration is not live yet: leave a request to discuss your first sensor.",
+        "text": "Connect over the internet using the hub ID and pairing button. Start with one device; no separate computer is needed.",
         "href": "/en/getting-started/#pushok"
       },
       {
