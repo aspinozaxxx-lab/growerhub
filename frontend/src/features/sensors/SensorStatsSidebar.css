@@ -30,6 +30,13 @@
   padding: 12px 10px;
 }
 
+.sensor-sidebar__demo-note {
+  margin: 0;
+  color: #c7d7ef;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .sensor-sidebar__state {
   padding: 18px;
   text-align: center;

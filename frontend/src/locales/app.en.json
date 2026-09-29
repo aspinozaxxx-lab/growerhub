@@ -1,4 +1,5 @@
 {
+  "Демо приостанавливается без активности. Если за сутки мало данных, посмотрите неделю или месяц.": "The demo pauses when inactive. If there is little data for the day, try the week or month view.",
   "Ожидается открытие клапана": "Waiting for the valve to open",
   "Команда полива отправлена": "Watering command sent",
   "Клапан закроется по локальному таймеру. Импульсный режим для этой модели недоступен.": "The valve closes using its local timer. Pulse mode is unavailable for this model.",

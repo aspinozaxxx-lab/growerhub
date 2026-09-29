@@ -145,7 +145,7 @@ export function useSensorStats({
   zigbeeHistoryScope,
   chartKind,
 }) {
-  const { token } = useAuth();
+  const { token, demoActive } = useAuth();
   const [activeRange, setActiveRange] = useState('day');
   const [dataByRange, setDataByRange] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -405,6 +405,7 @@ export function useSensorStats({
   }, []);
 
   return {
+    demoActive,
     activeRange,
     setRange,
     chartData,

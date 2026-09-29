@@ -326,6 +326,7 @@ function SensorStatsSidebar() {
   );
   const requestedChartKind = chartKind || (mode === 'pump' ? 'binary' : 'numeric');
   const {
+    demoActive,
     activeRange,
     setRange,
     chartData,
@@ -380,6 +381,12 @@ function SensorStatsSidebar() {
           </button>
         ))}
       </div>
+
+      {demoActive && (
+        <p className="sensor-sidebar__demo-note">
+          {translateApp("Демо приостанавливается без активности. Если за сутки мало данных, посмотрите неделю или месяц.")}
+        </p>
+      )}
 
       <div className="sensor-sidebar__chart">
         {isLoading ? (
