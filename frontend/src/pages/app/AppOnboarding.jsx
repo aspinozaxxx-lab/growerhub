@@ -7,7 +7,7 @@ import DemoStartLink from '../../components/DemoStartLink';
 import Button from '../../components/ui/Button';
 import PushokPilot from '../../components/PushokPilot';
 import NetworkCoordinatorPilot from '../../components/NetworkCoordinatorPilot';
-import { GITHUB_RELEASES_URL, ZIGBEE_CONNECTOR_DOWNLOAD_URL } from '../../domain/siteConfig';
+import { ZIGBEE_COORDINATOR_DOWNLOAD_URLS, ZIGBEE_CONNECTOR_DOWNLOAD_URL } from '../../domain/siteConfig';
 import { getPublicPath } from '../../domain/localizedRoutes';
 import {
   createCoordinator,
@@ -110,6 +110,7 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
         ].map(([value, title, text]) => (
           <button
             type="button"
+            aria-pressed={platform === value}
             className={platform === value ? 'choice-card is-selected' : 'choice-card'}
             key={value}
             onClick={() => setPlatform(value)}
@@ -146,11 +147,40 @@ function SecretPanel({ setup, connectionMode, platform, setPlatform, localMqtt, 
         {connectionMode === CONNECTION_MODES.BRIDGE ? (
           <a className="gh-btn gh-btn--secondary gh-btn--md" href={ZIGBEE_CONNECTOR_DOWNLOAD_URL}>{translateApp("Скачать модуль связи")}</a>
         ) : platform !== SETUP_PLATFORMS.MANUAL ? (
-          <a className="gh-btn gh-btn--secondary gh-btn--md" href={GITHUB_RELEASES_URL} target="_blank" rel="noreferrer">{translateApp("Открыть пакеты установки")}</a>
+          <a className="gh-btn gh-btn--secondary gh-btn--md" href={ZIGBEE_COORDINATOR_DOWNLOAD_URLS[platform]}>
+            {platform === SETUP_PLATFORMS.WINDOWS ? translateApp("Скачать пакет для Windows") : translateApp("Скачать пакет для Raspberry Pi / Linux")}
+          </a>
         ) : null}
       </div>
+      {connectionMode === CONNECTION_MODES.DIRECT && platform !== SETUP_PLATFORMS.MANUAL ? (
+        <div className="onboarding-install-steps">
+          <h3>{translateApp("После скачивания")}</h3>
+          {platform === SETUP_PLATFORMS.WINDOWS ? (
+            <>
+              <p>{translateApp("Для запуска нужны Node.js и Corepack.")}{' '}<a href="https://www.zigbee2mqtt.io/guide/installation/05_windows.html" target="_blank" rel="noreferrer">{translateApp("Как подготовить Windows")}</a></p>
+              <ol>
+                <li>{translateApp("Распакуйте ZIP в постоянную папку на компьютере.")}</li>
+                <li>{translateApp("Положите скачанные configuration.yaml и secret.yaml в подпапку data.")}</li>
+                <li>{translateApp("Подключите USB-координатор и запустите setup-coordinator.bat: выберите порт и тип адаптера по модели устройства.")}</li>
+                <li>{translateApp("Запустите start-coordinator.bat и вернитесь сюда — статус подключения обновится автоматически.")}</li>
+              </ol>
+            </>
+          ) : (
+            <>
+              <p>{translateApp("Нужен компьютер с Docker Compose и подключённым USB-координатором.")}</p>
+              <ol>
+                <li>{translateApp("Распакуйте ZIP и откройте README.md: в нём показано, как указать USB-порт и тип адаптера.")}</li>
+                <li>{translateApp("Создайте подпапку data и положите туда скачанные configuration.yaml и secret.yaml.")}</li>
+                <li>{translateApp("Откройте терминал в этой папке и выполните:")} <code>docker compose up -d</code>.</li>
+                <li>{translateApp("Вернитесь сюда — статус подключения обновится автоматически.")}</li>
+              </ol>
+            </>
+          )}
+          <p>{translateApp("Компьютер должен оставаться включённым: во время сна новые показания не поступают.")}</p>
+        </div>
+      ) : null}
       {connectionMode === CONNECTION_MODES.BRIDGE ? (
-        <div className="onboarding-bridge-steps">
+        <div className="onboarding-install-steps">
           <h3>{translateApp("Запустите модуль связи")}</h3>
           <p>{translateApp("Нужен постоянно включённый компьютер с Docker Compose: Linux/Raspberry Pi или Windows с Docker Desktop в режиме Linux containers.")}</p>
           <ol>

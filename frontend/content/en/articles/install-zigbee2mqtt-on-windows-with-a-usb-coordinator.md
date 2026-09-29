@@ -4,7 +4,7 @@ slug: "install-zigbee2mqtt-on-windows-usb-coordinator"
 title: "Install Zigbee2MQTT on Windows with a USB coordinator"
 summary: "A step-by-step Zigbee2MQTT setup for Windows: USB coordinator, COM port, Z-Stack or Ember, GrowerHub configuration, startup and troubleshooting."
 created_at: "2026-08-16"
-updated_at: "2026-09-20"
+updated_at: "2026-09-29"
 cluster: "zigbee-hub-i-ustroystva"
 tags:
   - "GrowerHub"
@@ -58,7 +58,7 @@ An inexpensive CC2652P stick is suitable when it contains coordinator firmware. 
 2. Select “New installation”.
 3. Enter a clear name and select “Create connection”.
 4. Select Windows and immediately download `configuration.yaml` and `secret.yaml`; the MQTT password is displayed once.
-5. Open the installation packages and download the latest Windows ZIP from [GitHub Releases](https://github.com/aspinozaxxx-lab/growerhub/releases).
+5. Select “Download Windows package” to get the correct ZIP directly. Startup steps appear below the download buttons.
 
 The ZIP contains no personal credentials. Do not publish `secret.yaml` or send it in chat. If it is lost, rotate the credentials in the dashboard.
 

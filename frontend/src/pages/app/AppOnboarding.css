@@ -185,12 +185,12 @@
   align-items: center;
 }
 
-.onboarding-bridge-steps {
+.onboarding-install-steps {
   display: grid;
   gap: 10px;
 }
 
-.onboarding-bridge-steps ol {
+.onboarding-install-steps ol {
   margin: 0;
   padding-left: 22px;
 }
