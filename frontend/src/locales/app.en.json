@@ -943,6 +943,7 @@
   "Разрешите исходящие подключения к growerhub.ru:8883.": "Allow outbound connections to growerhub.ru:8883.",
   "Посмотрите причину ошибки:": "Check the error details:",
   "Выберите свой вариант — подскажем следующий шаг.": "Choose your situation and we will show you the next step.",
+  "Пилотные подключения": "Pilot connections",
   "Хочу попробовать без оборудования": "I want to try without equipment",
   "Откройте демоферму: датчики, растения и сценарии уже настроены.": "Open the demo farm with sensors, plants and automations already set up.",
   "Подключить ПушОк": "Connect PushOk",

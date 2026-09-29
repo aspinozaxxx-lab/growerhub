@@ -418,10 +418,8 @@ function AppOnboarding() {
           <p className="onboarding-help"><TelegramContactLink placement="onboarding_complete">{translateApp("Помощь в Telegram")}</TelegramContactLink></p>
         </section>
       ) : (
-        <section className="onboarding-card">
+        <section className="onboarding-card onboarding-choices">
           <h2>{translateApp("Что у вас уже есть?")}</h2>
-          <PushokPilot />
-          <div className="onboarding-actions"><NetworkCoordinatorPilot placement="onboarding_zs_eht_pilot" /></div>
           <p>{translateApp("Выберите свой вариант — подскажем следующий шаг.")}</p>
           <div className="onboarding-choice-grid" role="group" aria-label={translateApp("Способ подключения")}>
             <DemoStartLink placement="onboarding_no_equipment" className="choice-card">
@@ -442,6 +440,11 @@ function AppOnboarding() {
             </>
           ) : null}
           <p>{translateApp("Оборудование ещё не выбрано?")}{' '}<Link to={getPublicPath('equipment', getCurrentLocale())}>{translateApp("Посмотреть совместимые устройства")}</Link></p>
+          <div className="onboarding-pilots">
+            <h3>{translateApp("Пилотные подключения")}</h3>
+            <PushokPilot />
+            <div className="onboarding-actions"><NetworkCoordinatorPilot placement="onboarding_zs_eht_pilot" /></div>
+          </div>
         </section>
       )}
 

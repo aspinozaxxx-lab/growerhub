@@ -190,6 +190,13 @@
   gap: 10px;
 }
 
+.onboarding-pilots {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-1);
+}
+
 .onboarding-install-steps ol {
   margin: 0;
   padding-left: 22px;
@@ -248,8 +255,44 @@
 }
 
 @media (max-width: 720px) {
+  .app-onboarding {
+    gap: 14px;
+  }
+
   .onboarding-progress {
     grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .onboarding-progress li {
+    gap: 6px;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .onboarding-progress li span {
+    flex-basis: 20px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .onboarding-card {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .onboarding-choices h2 {
+    font-size: 20px;
+  }
+
+  .onboarding-choices .choice-card {
+    gap: 4px;
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .onboarding-choices .choice-card span {
+    line-height: 1.4;
   }
 
   .onboarding-credentials,
