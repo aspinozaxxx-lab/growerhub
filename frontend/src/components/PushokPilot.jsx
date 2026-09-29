@@ -9,9 +9,9 @@ import Modal from './ui/Modal';
 import HubPhotos from './HubPhotos';
 import './PushokPilot.css';
 
-function PushokPilot() {
+function PushokPilot({ support = false }) {
   const [params, setParams] = useSearchParams();
-  const [open, setOpen] = useState(() => params.get('pilot') === 'pushok');
+  const [open, setOpen] = useState(() => !support && params.get('pilot') === 'pushok');
   const [step, setStep] = useState('intent');
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -79,24 +79,24 @@ function PushokPilot() {
   return (
     <div className="pushok-pilot">
       <div className="pushok-pilot__entry">
-        <Button onClick={() => setOpen(true)}>{t('Подключить ПушОк')}</Button>
-        <span>{t('Набираем участников пилота')}</span>
+        <Button onClick={() => setOpen(true)}>{t(support ? 'Помощь с ПушОк и моя заявка' : 'Подключить ПушОк')}</Button>
+        {!support ? <span>{t('Набираем участников пилота')}</span> : null}
       </div>
-      <Modal isOpen={open} title={t('Пилот подключения ПушОк')} onClose={close} presentation="sheet" size="sm" disableOverlayClose={busy}>
+      <Modal isOpen={open} title={t(support ? 'Помощь с ПушОк' : 'Пилот подключения ПушОк')} onClose={close} presentation="sheet" size="sm" disableOverlayClose={busy}>
         {loading ? <p role="status">{t('Проверяем заявку…')}</p> : null}
         {error ? <p role="alert">{error}</p> : null}
         {!loading && !loaded ? <Button onClick={() => setRetry((value) => value + 1)}>{t('Повторить')}</Button> : null}
         {!loading && loaded && step === 'intent' ? <>
           <HubPhotos type="pushok" compact />
-          <p>{t('Хотите подключить свой ПушОк к GrowerHub или пока просто смотрите?')}</p>
-          <p className="pushok-pilot__hint">{t('Интеграция ещё не запущена. Ищем первых участников, чтобы вместе отработать подключение. Заявка не меняет настройки хаба.')}</p>
+          <p>{t(support ? 'Нужна помощь с подключением или хотите проверить другую модель? Оставьте контакт — разберёмся вместе. Заявка сама по себе не подключает шлюз.' : 'Хотите подключить свой ПушОк к GrowerHub или пока просто смотрите?')}</p>
+          {!support ? <p className="pushok-pilot__hint">{t('Самостоятельное подключение сейчас недоступно. Оставьте заявку — поможем разобраться. Заявка не меняет настройки хаба.')}</p> : null}
           <div className="pushok-pilot__actions">
-            <Button variant="primary" autoFocus onClick={() => setStep('form')}>{t('Хочу участвовать')}</Button>
+            <Button variant="primary" autoFocus onClick={() => setStep('form')}>{t(support ? 'Оставить контакт' : 'Хочу участвовать')}</Button>
             <Button onClick={close}>{t('Просто смотрю')}</Button>
           </div>
         </> : null}
         {!loading && loaded && step === 'form' ? <form className="pushok-pilot__form ym-hide-content" onSubmit={submit}>
-          <p>{t('Оставьте удобный способ связи. Свяжемся с вами в ближайшее время и обсудим пилотное подключение.')}</p>
+          <p>{t(support ? 'Оставьте удобный способ связи и опишите, с чем нужна помощь.' : 'Оставьте удобный способ связи. Свяжемся с вами в ближайшее время и обсудим пилотное подключение.')}</p>
           <FormField label={t('Как с вами связаться')} htmlFor="pushok-contact-method">
             <select id="pushok-contact-method" autoFocus value={form.contact_method} onChange={(event) => change('contact_method', event.target.value)} disabled={busy}>
               <option value="TELEGRAM">Telegram</option>
@@ -120,7 +120,7 @@ function PushokPilot() {
         </form> : null}
         {!loading && loaded && step === 'sent' ? <>
           <p role="status"><strong>{t('Заявка сохранена')}</strong></p>
-          <p>{t('Спасибо! Свяжемся с вами в ближайшее время, чтобы вместе отработать пилотное подключение ПушОк.')}</p>
+          <p>{t(support ? 'Спасибо! Свяжемся с вами, чтобы помочь с подключением ПушОк.' : 'Спасибо! Свяжемся с вами в ближайшее время, чтобы вместе отработать пилотное подключение ПушОк.')}</p>
           <p className="pushok-pilot__contact ym-hide-content">{saved?.contact_method === 'OTHER' ? t('Другой способ') : saved?.contact_method === 'EMAIL' ? 'Email' : 'Telegram'}: {saved?.contact}</p>
           <div className="pushok-pilot__actions">
             <Button autoFocus onClick={() => { setError(''); setStep('form'); }} disabled={busy}>{t('Изменить заявку')}</Button>

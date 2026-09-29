@@ -1,8 +1,12 @@
 {
-  "updated_at": "2026-09-27",
+  "updated_at": "2026-09-29",
+  "pushok_privacy": {
+    "title": "PushOk cloud connection",
+    "text": "After your confirmation and physical pairing, GrowerHub uses the PushOk cloud to receive the hub's device list, names, readings and states, and can send commands. A separate access key is created; this key and the server MQTT bridge password are stored encrypted in the database and are not sent to web analytics. GrowerHub does not request your home Wi-Fi password or an access export from Upravlyator. Archiving the connection stops communication and deletes the saved server keys; collected history remains in your account. You can remove the separate hub user in Upravlyator. Communication depends on internet access and PushOk cloud availability."
+  },
   "pilot_privacy": {
     "title": "Pilot connection requests",
-    "text": "At your request, we store your preferred contact method, contact details, optional equipment description and request date in your account. You and GrowerHub administrators can access this information to discuss the pilot; it is not sent in web analytics events. Use “Withdraw request” in the PushOk connection dialog to remove the request and contact details. They are also removed when your account is deleted."
+    "text": "At your request, we store your preferred contact method, contact details, optional equipment description and request date in your account. You and GrowerHub administrators can access this information to discuss the pilot and help with setup; it is not sent in web analytics events. In connection settings, open “PushOk help and my request”, then “Withdraw request” to remove the request and contact details. They are also removed when your account is deleted."
   },
   "operator_name": "GrowerHub",
   "operator_contact": "https://t.me/growerhub_info",

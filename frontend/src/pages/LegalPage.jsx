@@ -39,6 +39,7 @@ function LegalPage({ type }) {
           <h2>{translatePublic('Веб-аналитика')}</h2><p>{translatePublic('Яндекс Метрика и Google Analytics 4 помогают понимать посещаемость и этапы запуска платформы. В события передаются адрес страницы, язык интерфейса и неперсональные параметры сценария. Email, внутренние идентификаторы, IEEE и реквизиты MQTT в аналитику не передаются.')}</p>
           <h2>{translatePublic('Обращения')}</h2><p>{translatePublic('По вопросам данных и удаления аккаунта используйте контакт оператора.')}</p>
           <h2>{legalContent.pilot_privacy.title}</h2><p>{legalContent.pilot_privacy.text}</p>
+          <h2>{legalContent.pushok_privacy.title}</h2><p>{legalContent.pushok_privacy.text}</p>
         </>
       ) : (
         <>

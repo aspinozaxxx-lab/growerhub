@@ -1,4 +1,8 @@
 {
+  "В Управляторе нажмите имя шлюза сверху, затем шестерёнку рядом с ним. В «Информации о шлюзе» скопируйте «ID шлюза». Название шлюза и IP-адрес не подходят.": "In Upravlyator, tap the hub name at the top, then the gear beside it. In Hub information, copy the Hub ID. The display name and IP address will not work.",
+  "Помощь с ПушОк и моя заявка": "PushOk help and my request",
+  "Помощь с ПушОк": "PushOk help",
+  "Нужна помощь с подключением или хотите проверить другую модель? Оставьте контакт — разберёмся вместе. Заявка сама по себе не подключает шлюз.": "Need help connecting or want to test another model? Leave your contact details and we will work through it together. The request itself does not connect the hub.",
   "Есть шлюз ПушОк": "I have a PushOk hub",
   "Подключите через интернет: ID шлюза и кнопка сопряжения. Компьютер и Home Assistant не нужны.": "Connect over the internet using the hub ID and pairing button. No computer or Home Assistant needed.",
   "Повторить привязку ПушОк": "Retry PushOk pairing",
@@ -40,7 +44,6 @@
   "Сценарии включаются отдельно. Для каждого устройства используйте автоматизацию в одной системе — Home Assistant или GrowerHub, чтобы их команды не мешали друг другу.": "Automations are enabled separately. Use one system for each device's automation — Home Assistant or GrowerHub — so their commands do not conflict.",
   "Оборудование ещё не выбрано?": "Still choosing your equipment?",
   "Посмотреть совместимые устройства": "See compatible devices",
-  "Название подключения": "Connection name",
   "Создать подключение": "Create connection",
   "0 мин": "0 min",
   ": управление пока недоступно в простом интерфейсе": ": Controls are not yet available in the simple interface",
@@ -995,5 +998,9 @@
   "Спасибо! Свяжемся с вами в ближайшее время, чтобы вместе отработать пилотное подключение ПушОк.": "Thank you! We will get in touch shortly to test a pilot PushOk connection together.",
   "Изменить заявку": "Edit request",
   "Отозвать заявку": "Withdraw request",
-  "Заявка отозвана, контакт удалён из списка пилота.": "Request withdrawn. Your contact details have been removed from the pilot list."
+  "Заявка отозвана, контакт удалён из списка пилота.": "Request withdrawn. Your contact details have been removed from the pilot list.",
+  "Оставить контакт": "Leave contact details",
+  "Оставьте удобный способ связи и опишите, с чем нужна помощь.": "Leave your preferred contact method and describe what you need help with.",
+  "Спасибо! Свяжемся с вами, чтобы помочь с подключением ПушОк.": "Thank you! We will contact you to help connect PushOk.",
+  "Самостоятельное подключение сейчас недоступно. Оставьте заявку — поможем разобраться. Заявка не меняет настройки хаба.": "Self-service connection is currently unavailable. Leave a request and we will help. A request does not change the hub settings."
 }

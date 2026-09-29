@@ -3,6 +3,7 @@ import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import Button from '../../components/ui/Button';
 import PushokConnect from '../../components/PushokConnect';
+import PushokPilot from '../../components/PushokPilot';
 import { pushokError } from '../../utils/pushokConnection';
 import NetworkCoordinatorPilot from '../../components/NetworkCoordinatorPilot';
 import {
@@ -115,7 +116,7 @@ function AppConnections() {
         <div className="connection-list">
           {coordinators.map((coordinator) => (
             <article key={coordinator.id}>
-              <div><h3>{coordinator.name}</h3><p>{coordinator.transport === 'PUSHOK_CLOUD' ? coordinator.hub_id : coordinator.base_topic}</p>
+              <div><h3>{coordinator.name}</h3><p className="ym-hide-content">{coordinator.transport === 'PUSHOK_CLOUD' ? coordinator.hub_id : coordinator.base_topic}</p>
                 {coordinator.connection_error ? <p role="alert">{pushokError(coordinator.connection_error)}</p> : null}</div>
               <span className={coordinator.status === 'ONLINE' ? 'status-chip is-online' : 'status-chip'}>{STATUS_LABELS[coordinator.status] || translateApp("Статус неизвестен")}</span>
               <div className="connection-meta"><span>{translateApp('device_count', { count: coordinator.device_count })}</span><span>{coordinator.last_seen_at ? translateApp("Связь: {{value1}}", { value1: formatDateTimeDDMMYYYY(coordinator.last_seen_at) }) : translateApp("Ещё не подключался")}</span></div>
@@ -132,6 +133,7 @@ function AppConnections() {
       <section className="self-service-section">
         <h2>{translateApp("Добавить координатор")}</h2>
         <PushokConnect onCreated={() => load()} />
+        <PushokPilot support />
         <div className="inline-actions"><NetworkCoordinatorPilot placement="connections_zs_eht_pilot" /></div>
         <p>{translateApp("В одном пространстве можно использовать несколько координаторов и подключать оборудование в удобном темпе.")}</p>
         <form className="compact-form" onSubmit={handleCreate}><label>{translateApp("Название")}<input value={name} onChange={(event) => setName(event.target.value)} required maxLength="120" /></label><Button type="submit" variant="primary" isLoading={busy === 'create'}>{translateApp("Создать")}</Button></form>

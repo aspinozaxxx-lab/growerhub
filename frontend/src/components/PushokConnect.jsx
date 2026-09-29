@@ -87,6 +87,7 @@ export default function PushokConnect({ coordinator = null, onCreated, card = fa
               {connection?.connection_error ? <p role="alert">{pushokError(connection.connection_error)}</p> : null}
               <label>{translateApp('ID шлюза из Управлятора')}
                 <input value={hubId} onChange={(event) => setHubId(event.target.value)} placeholder="pushok-A1B2C3-1234" autoCapitalize="off" spellCheck={false} maxLength={80} required disabled={Boolean(connection?.id)} /></label>
+              <p>{translateApp('В Управляторе нажмите имя шлюза сверху, затем шестерёнку рядом с ним. В «Информации о шлюзе» скопируйте «ID шлюза». Название шлюза и IP-адрес не подходят.')}</p>
               <label>{translateApp('Название подключения')}<input value={name} onChange={(event) => setName(event.target.value)} maxLength={120} required disabled={Boolean(connection?.id)} /></label>
               <label className="pushok-connect__consent"><input type="checkbox" checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
                 <span>{translateApp('Это мой шлюз. Разрешаю GrowerHub получать показания и управлять его устройствами.')}</span></label>

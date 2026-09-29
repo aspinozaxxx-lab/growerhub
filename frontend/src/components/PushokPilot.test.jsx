@@ -8,7 +8,7 @@ import PushokPilot from './PushokPilot';
 vi.mock('../api/pushokPilot', () => ({ fetchPushokPilot: vi.fn(), savePushokPilot: vi.fn(), withdrawPushokPilot: vi.fn() }));
 
 const saved = { contact_method: 'TELEGRAM', contact: '@pilot_user', equipment: 'POK100', requested_at: '2026-09-27T09:00:00' };
-const show = (path = '/app/settings/connections/') => render(<MemoryRouter initialEntries={[path]}><PushokPilot /></MemoryRouter>);
+const show = (path = '/app/settings/connections/', support = false) => render(<MemoryRouter initialEntries={[path]}><PushokPilot support={support} /></MemoryRouter>);
 
 describe('PushokPilot', () => {
   beforeEach(async () => {
@@ -42,9 +42,14 @@ describe('PushokPilot', () => {
     expect(savePushokPilot).toHaveBeenCalledExactlyOnceWith({ contact_method: 'TELEGRAM', contact: '@pilot_user', equipment: 'POK100' });
   });
 
-  it('vosstanavlivaet zajavku s servera i pozvolyaet otozvat kontakt', async () => {
+  it.each([false, true])('vosstanavlivaet zajavku i pozvolyaet otozvat kontakt, support=%s', async (support) => {
     fetchPushokPilot.mockResolvedValue({ request: saved });
-    show('/app/settings/connections/?pilot=pushok');
+    show('/app/settings/connections/?pilot=pushok', support);
+    if (support) {
+      expect(fetchPushokPilot).not.toHaveBeenCalled();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Помощь с ПушОк и моя заявка' }));
+    }
     expect(await screen.findByText('Telegram: @pilot_user')).toHaveClass('ym-hide-content');
     fireEvent.click(screen.getByRole('button', { name: 'Отозвать заявку' }));
     expect(await screen.findByText('Заявка отозвана, контакт удалён из списка пилота.')).toBeInTheDocument();
