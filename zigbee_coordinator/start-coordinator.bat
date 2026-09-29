@@ -1,8 +1,9 @@
 @echo off
 chcp 65001 >nul
-setlocal EnableExtensions EnableDelayedExpansion
+setlocal EnableExtensions DisableDelayedExpansion
 
 set "ROOT=%~dp0"
+set "GH_COORDINATOR_ROOT=%~dp0"
 set "Z2M_DIR=%ROOT%zigbee2mqtt"
 set "Z2M_DATA=%ROOT%data"
 set "FRONTEND_PORT=8080"
@@ -45,13 +46,13 @@ if not exist "%Z2M_DIR%\node_modules\source-map-support" (
     echo Устанавливаются зависимости Zigbee2MQTT...
     pushd "%Z2M_DIR%"
     call corepack pnpm install --frozen-lockfile --no-optional
-    set "INSTALL_EXITCODE=!ERRORLEVEL!"
-    popd
-    if not "!INSTALL_EXITCODE!"=="0" (
+    if errorlevel 1 (
+        popd
         echo Не удалось установить зависимости Zigbee2MQTT.
         pause
-        exit /b !INSTALL_EXITCODE!
+        exit /b 1
     )
+    popd
 )
 
 set "ZIGBEE2MQTT_DATA=%Z2M_DATA%"
@@ -67,9 +68,10 @@ if errorlevel 1 (
 echo Запускается координатор Zigbee2MQTT...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$ErrorActionPreference = 'Stop';" ^
-  "$env:ZIGBEE2MQTT_DATA = '%Z2M_DATA%';" ^
-  "$env:PATH = '%ROOT%bin;' + $env:PATH;" ^
-  "$process = Start-Process -FilePath 'node.exe' -ArgumentList @('%Z2M_DIR%\index.js') -WorkingDirectory '%Z2M_DIR%' -WindowStyle Hidden -PassThru;" ^
+  "$listeners = @(Get-NetTCPConnection -LocalPort %FRONTEND_PORT% -State Listen -ErrorAction SilentlyContinue);" ^
+  "if ($listeners.Count -gt 0) { throw 'Порт интерфейса %FRONTEND_PORT% занят другим приложением. Координатор не запущен; другие процессы не остановлены.'; }" ^
+  "$entry = Join-Path $env:GH_COORDINATOR_ROOT 'zigbee2mqtt\index.js';" ^
+  "$process = Start-Process -FilePath (Get-Command node.exe).Source -ArgumentList ([char]34 + $entry + [char]34) -WorkingDirectory (Split-Path -Parent $entry) -WindowStyle Hidden -PassThru;" ^
   "Write-Host ('Zigbee2MQTT запущен, PID ' + $process.Id);"
 if errorlevel 1 (
     echo Не удалось запустить координатор Zigbee2MQTT.

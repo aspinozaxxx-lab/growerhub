@@ -29,6 +29,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Test Windows launcher process isolation
+        shell: pwsh
+        run: ./zigbee_coordinator/test-windows-launchers.ps1
+
       - name: Build packages
         shell: pwsh
         run: |

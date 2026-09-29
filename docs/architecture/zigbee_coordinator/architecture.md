@@ -50,9 +50,8 @@ zigbee_coordinator/data/secret.example.yaml
 
 ## Запуск
 
-- `start-coordinator.bat` проверяет конфиг, выбранный COM-порт и adapter, затем запускает Zigbee2MQTT отдельным процессом.
-- `status-coordinator.bat` проверяет процесс Zigbee2MQTT и frontend port `8080`, выводит `running` или `stopped`.
-- `stop-coordinator.bat` останавливает процесс Zigbee2MQTT по frontend port `8080` и по команде `zigbee2mqtt/index.js`.
+- `start-coordinator.bat` проверяет конфиг и свободный frontend port `8080`, затем запускает Zigbee2MQTT отдельным процессом по абсолютному пути в кавычках. COM-порт и adapter выбираются в `setup-coordinator.bat`.
+- `status-coordinator.bat` и `stop-coordinator.bat` распознают только Node.js с абсолютным путём `zigbee2mqtt/index.js` текущей установки. Чужой процесс на `8080` или другая установка Zigbee2MQTT не считаются своими и не останавливаются; занятый порт блокирует новый запуск.
 - Linux-пакет запускается через Docker Compose, имеет явный USB mapping и постоянный volume.
 
 ## Обновление Zigbee2MQTT
