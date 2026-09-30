@@ -4,7 +4,7 @@ slug: "zigbee2mqtt-in-simple-words-how-the-sensor-coordinator-and-mqtt-are-conne
 title: "What is Zigbee2MQTT? How it works and what you need"
 summary: "Understand Zigbee2MQTT, coordinators and MQTT brokers. A practical first-sensor checklist, with Home Assistant and GrowerHub dashboard examples."
 created_at: "2026-07-23"
-updated_at: "2026-09-17"
+updated_at: "2026-09-30"
 cluster: "zigbee-hub-i-ustroystva"
 tags:
   - "GrowerHub"
@@ -29,7 +29,12 @@ Zigbee2MQTT is software that connects a Zigbee network to MQTT. A sensor talks o
 
 Start with a supported Zigbee coordinator, a computer running Zigbee2MQTT, an MQTT broker and a Zigbee device. An ordinary Wi-Fi router does not replace the coordinator. Home Assistant is one consumer of the data, rather than a requirement for Zigbee2MQTT. See the [official getting-started guide](https://www.zigbee2mqtt.io/guide/getting-started/) for prerequisites and installation options.
 
-To explore readings and history first, [open the GrowerHub demo farm](/app/demo/?lang=en&view=overview). Its virtual devices let you try the dashboard; they do not validate support for your physical model.
+## Choose your next step
+
+- **Zigbee2MQTT is already running.** Connect the existing network to GrowerHub through the [local MQTT bridge](/articles/growerhub-i-home-assistant-cherez-mqtt/). Keep your coordinator and paired devices. The bridge forwards the device list and readings from the selected network and permits return commands; it has no separate read-only mode. Automation scenarios are enabled separately.
+- **You have a USB coordinator and a computer.** Follow the [Windows installation guide](/articles/ustanovka-zigbee2mqtt-na-windows/) or choose Raspberry Pi / Linux in the [setup guide](/kak-nachat/). The computer must stay on for readings to reach GrowerHub. Home Assistant is not required for this route.
+- **You prefer no separate computer.** GrowerHub also has a separate connection route through the PushOk cloud: enter the hub ID and confirm access using the hub button. Tested hardware is POK100v2, firmware 95, with a Zbeacon TS011F smart plug; other models need verification. You do not install Zigbee2MQTT for this route. See the [PushOk connection guide](/articles/gotovyy-zigbee-hub-dlya-growerhub/#pushok) for the steps and internet dependency.
+- **You are still choosing equipment.** [Open the demo farm without registration](/app/demo/?lang=en&view=overview), select a soil-moisture reading and explore its daily history. Devices are virtual: the demo helps you evaluate the interface, but does not validate support for a physical model. Choose a useful task before buying equipment.
 
 ![Zigbee2MQTT data path from a device through a coordinator and MQTT to GrowerHub](/content/articles/illustrations/zigbee2mqtt-prostymi-slovami.webp)
 
