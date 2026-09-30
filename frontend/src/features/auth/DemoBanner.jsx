@@ -5,7 +5,8 @@ import Modal from '../../components/ui/Modal';
 import TelegramContactLink from '../../components/TelegramContactLink';
 import useCompactLayout from '../../components/layout/useCompactLayout';
 import { useAuth } from './AuthContext';
-import { translateApp as t } from '../../locales/i18n';
+import { getCurrentLocale, translateApp as t } from '../../locales/i18n';
+import { getPublicPath } from '../../domain/localizedRoutes';
 import { trackProductGoal } from '../../utils/analytics';
 import '../../pages/app/AppDemo.css';
 
@@ -38,6 +39,7 @@ export default function DemoBanner() {
       <div className="demo-actions">
         <Link className="demo-link" to="/app/demo-tools/">{t('Устройства и условия среды')}</Link>
         {!demoSession?.saved ? <Link className="demo-link demo-link--primary" to="/app/demo/?save=1">{t('Сохранить демоферму')}</Link> : null}
+        <Link className="demo-link" to={getPublicPath('gettingStarted', getCurrentLocale())}>{t('Оборудование и способы подключения')}</Link>
         <button className="demo-link" onClick={connect}>{t('Подключить свои устройства')}</button>
         {accountUser ? <button className="demo-link" onClick={() => { trackProductGoal('demo_exit'); leaveDemo(); navigate('/app/'); }}>{t('Моя ферма')}</button> : null}
         <TelegramContactLink className="demo-link" placement={compact ? 'demo_menu_feedback' : 'demo_banner_feedback'}><MessageCircle size={16} aria-hidden="true" />{t('Вопрос или отзыв в Telegram')}</TelegramContactLink>

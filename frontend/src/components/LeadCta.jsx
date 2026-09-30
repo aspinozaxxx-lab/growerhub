@@ -14,7 +14,7 @@ function LeadCta({
   showChannel = false,
 }) {
   const localizedTitle = title || translatePublic('Начните с первого устройства');
-  const localizedText = text || translatePublic('Войдите, подключите Zigbee2MQTT и соберите первую зону самостоятельно. GrowerHub доступен бесплатно и без карты.');
+  const localizedText = text || translatePublic('Попробуйте готовую демоферму или подключите своё устройство через ПушОк либо Zigbee2MQTT. Бесплатно, без банковской карты.');
 
   return (
     <section className={compact ? 'lead-cta lead-cta--compact' : 'lead-cta'}>

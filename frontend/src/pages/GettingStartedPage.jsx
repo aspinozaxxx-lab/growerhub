@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
+import DemoStartLink from '../components/DemoStartLink';
+import PlatformStartLink from '../components/PlatformStartLink';
 import TelegramContactLink from '../components/TelegramContactLink';
 import NetworkCoordinatorPilot from '../components/NetworkCoordinatorPilot';
 import HubPhotos from '../components/HubPhotos';
@@ -48,7 +50,10 @@ function GettingStartedPage() {
           <div className="badge">{translatePublic('Самостоятельный запуск')}</div>
           <h1>{start.title}</h1>
           <p>{start.intro}</p>
-          <LeadCta placement="getting_started_hero" compact />
+          <div className="cta-row">
+            <DemoStartLink placement="getting_started_hero_demo" />
+            <PlatformStartLink placement="getting_started_hero" className="secondary-link" />
+          </div>
         </div>
         <aside className="landing-summary">
           <strong>{translatePublic('Ранний доступ открыт')}</strong>
@@ -62,13 +67,6 @@ function GettingStartedPage() {
           <h3>{item.href.includes('#') ? <a href={item.href}>{item.title}</a> : <Link to={item.href}>{item.title}</Link>}</h3>
           <p>{item.text}</p>
         </article>)}</div>
-      </section>
-
-      <section className="content-section">
-        <h2>{start.steps_title}</h2>
-        <ol className="steps-list">
-          {start.steps.map((step) => <li key={step.title}><strong>{step.title}</strong><span>{step.text}</span></li>)}
-        </ol>
       </section>
 
       <section className="content-section info-block" id="pushok">
@@ -97,6 +95,13 @@ function GettingStartedPage() {
         <p>{networkCoordinator.purchase_note}</p>
         <div className="cta-row"><NetworkCoordinatorPilot placement="getting_started_zs_eht_pilot" /></div>
         <div className="cta-row">{networkCoordinator.links.map((link) => <a key={link.href} className="secondary-link" href={link.href}>{link.label}</a>)}</div>
+      </section>
+
+      <section className="content-section">
+        <h2>{start.steps_title}</h2>
+        <ol className="steps-list">
+          {start.steps.map((step) => <li key={step.title}><strong>{step.title}</strong><span>{step.text}</span></li>)}
+        </ol>
       </section>
 
       <section className="content-section split-section">

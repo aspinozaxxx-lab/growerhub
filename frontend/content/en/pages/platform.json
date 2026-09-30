@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-28",
+  "updated_at": "2026-09-30",
   "networkCoordinator": {
     "status": "Pilot · documentation review only",
     "title": "ZS-EHT-54P2 / 54P7: a coordinator on your home network",
@@ -73,7 +73,7 @@
   "start": {
     "title": "How to get started with GrowerHub",
     "description": "Start with GrowerHub: a hardware-free demo farm, Zigbee2MQTT connections or the PushOk cloud pilot without a separate computer.",
-    "steps_title": "Available now: connect through Zigbee2MQTT",
+    "steps_title": "Connect through Zigbee2MQTT",
     "intro": "Explore a prepared farm or connect one of your own sensors first. You can start monitoring before adding every plant or configuring automation.",
     "steps": [
       {
@@ -108,20 +108,15 @@
     "paths_title": "Choose your first step",
     "paths": [
       {
-        "title": "I have a ZS-EHT network coordinator",
-        "text": "Try a connection together. A separate computer running Zigbee2MQTT is required; Home Assistant is optional.",
-        "href": "/en/getting-started/#zs-eht"
+        "title": "Try it without equipment",
+        "text": "Open a prepared demo farm with charts, watering and scenarios. No registration is required.",
+        "href": "/app/demo/?lang=en",
+        "demo": true
       },
       {
         "title": "I have PushOk or want a simple hub",
         "text": "Connect over the internet using the hub ID and pairing button. Start with one device; no separate computer is needed.",
         "href": "/en/getting-started/#pushok"
-      },
-      {
-        "title": "Try it without equipment",
-        "text": "Open a prepared demo farm with charts, watering and scenarios. No registration is required.",
-        "href": "/app/demo/?lang=en",
-        "demo": true
       },
       {
         "title": "Already using Home Assistant / Zigbee2MQTT",
@@ -132,9 +127,14 @@
         "title": "Start with a USB coordinator on Windows",
         "text": "Check the COM port and adapter type, download your personal configuration and start the package.",
         "href": "/en/articles/install-zigbee2mqtt-on-windows-usb-coordinator/"
+      },
+      {
+        "title": "I have a ZS-EHT network coordinator",
+        "text": "Try a connection together. A separate computer running Zigbee2MQTT is required; Home Assistant is optional.",
+        "href": "/en/getting-started/#zs-eht"
       }
     ],
-    "help": "Tell us your coordinator model, Windows or Linux, whether you use Home Assistant and the step where you stopped. We can help get your first sensor reporting in the dashboard."
+    "help": "Tell us what you grow and which equipment you have. If you have none yet, we can help you choose where to start. If you are already connecting devices, tell us which step you reached."
   },
   "minimum": {
     "title": "Minimum setup for Zigbee2MQTT",

@@ -15,7 +15,7 @@
   "Продолжить настройку": "Continue setup",
   "Помощь в Telegram": "Telegram support",
   "Начните с первого устройства": "Start with your first device",
-  "Войдите, подключите Zigbee2MQTT и соберите первую зону самостоятельно. GrowerHub доступен бесплатно и без карты.": "Sign in, connect Zigbee2MQTT and create your first zone. GrowerHub is free to use and does not require a card.",
+  "Попробуйте готовую демоферму или подключите своё устройство через ПушОк либо Zigbee2MQTT. Бесплатно, без банковской карты.": "Explore the demo farm or connect a device through PushOk or Zigbee2MQTT. Free to use, with no bank card required.",
   "Переключить меню": "Toggle menu",
   "home.title": "GrowerHub — small farm management platform",
   "home.description": "GrowerHub brings extensive greenhouse automation experience together in one platform: Zigbee devices, zones, sensor history and control scenarios.",
