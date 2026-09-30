@@ -6,6 +6,7 @@
   "Есть шлюз ПушОк": "I have a PushOk hub",
   "Подключите через интернет: ID шлюза и кнопка сопряжения. Компьютер и Home Assistant не нужны.": "Connect over the internet using the hub ID and pairing button. No computer or Home Assistant needed.",
   "Повторить привязку ПушОк": "Retry PushOk pairing",
+  "Продолжить подключение ПушОк": "Continue PushOk connection",
   "Шлюз уже должен быть подключён к Wi-Fi и доступен в Управляторе через интернет.": "Your hub must already be connected to Wi-Fi and accessible over the internet in Upravlyator.",
   "ПушОк подключён": "PushOk connected",
   "Устройства появятся в GrowerHub автоматически. Новые датчики и розетки добавляйте в Управляторе.": "Your devices will appear in GrowerHub automatically. Add new sensors and sockets in Upravlyator.",

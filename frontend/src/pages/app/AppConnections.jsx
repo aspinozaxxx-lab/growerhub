@@ -119,7 +119,7 @@ function AppConnections() {
               <span className={coordinator.status === 'ONLINE' ? 'status-chip is-online' : 'status-chip'}>{STATUS_LABELS[coordinator.status] || translateApp("Статус неизвестен")}</span>
               <div className="connection-meta"><span>{translateApp('device_count', { count: coordinator.device_count })}</span><span>{coordinator.last_seen_at ? translateApp("Связь: {{value1}}", { value1: formatDateTimeDDMMYYYY(coordinator.last_seen_at) }) : translateApp("Ещё не подключался")}</span></div>
               <div className="inline-actions">{coordinator.transport === 'PUSHOK_CLOUD'
-                ? (coordinator.connection_status === 'ERROR' ? <PushokConnect coordinator={coordinator} onCreated={() => load()} /> : null)
+                ? <PushokConnect coordinator={coordinator} onCreated={() => load()} />
                 : <Button onClick={() => handleRotate(coordinator)} isLoading={busy === coordinator.id}>{translateApp("Новые данные доступа")}</Button>}
                 <Button variant="danger" onClick={() => handleArchive(coordinator)} disabled={busy === coordinator.id}>{translateApp("Архивировать")}</Button></div>
             </article>

@@ -1,8 +1,9 @@
 import { Blob as NodeBlob } from 'node:buffer';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as api from '../../api/selfService';
+import * as pushokApi from '../../api/pushokConnection';
 import { trackProductGoal } from '../../utils/analytics';
 import { changeLocale, loadAppTranslations } from '../../locales/i18n';
 import AppConnections from './AppConnections';
@@ -12,6 +13,10 @@ vi.mock('../../utils/analytics', () => ({ trackProductGoal: vi.fn() }));
 vi.mock('../../api/selfService', () => ({
   archiveCoordinator: vi.fn(), createCoordinator: vi.fn(),
   fetchCoordinators: vi.fn(), rotateCoordinatorCredentials: vi.fn(),
+}));
+vi.mock('../../api/pushokConnection', () => ({
+  fetchPushokAvailability: vi.fn(), fetchPushokConnection: vi.fn(),
+  connectPushok: vi.fn(), retryPushokPairing: vi.fn(),
 }));
 
 const coordinator = { id: 'synthetic-coordinator', name: 'Test connection', status: 'OFFLINE' };
@@ -25,6 +30,7 @@ const renderPage = () => render(<MemoryRouter><AppConnections /></MemoryRouter>)
 beforeEach(() => {
   api.fetchCoordinators.mockResolvedValue([]);
   api.createCoordinator.mockResolvedValue({ coordinator, setup });
+  pushokApi.fetchPushokAvailability.mockResolvedValue({ available: true });
 });
 afterEach(async () => {
   cleanup();
@@ -35,6 +41,36 @@ afterEach(async () => {
 });
 
 describe('AppConnections', () => {
+  it('ne zakryvaet okno povtornoj privyazki pri obnovlenii spiska i daet vozobnovit ee', async () => {
+    const pending = { id: 'synthetic-pushok', name: 'Test PushOk', hub_id: 'pushok-A1B2C3-1234', status: 'OFFLINE', transport: 'PUSHOK_CLOUD', device_count: 0, connection_status: 'PAIRING' };
+    api.fetchCoordinators.mockResolvedValue([{ ...pending, connection_status: 'ERROR', connection_error: 'PAIRING_REQUIRED' }]);
+    pushokApi.retryPushokPairing.mockResolvedValue(pending);
+    pushokApi.fetchPushokConnection.mockResolvedValue(pending);
+    renderPage();
+    const retry = await screen.findByRole('button', { name: 'Повторить привязку ПушОк' });
+    await waitFor(() => expect(retry).toBeEnabled());
+    fireEvent.click(retry);
+    api.fetchCoordinators.mockResolvedValue([pending]);
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Кнопка нажата — подключить' }));
+    await waitFor(() => expect(api.fetchCoordinators.mock.calls.length).toBeGreaterThan(1));
+    expect(await screen.findByText(/Подключаемся к шлюзу через облако/)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Закрыть' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Продолжить подключение ПушОк' }));
+    expect(screen.getByText(/Подключаемся к шлюзу через облако/)).toBeVisible();
+    expect(pushokApi.retryPushokPairing).toHaveBeenCalledExactlyOnceWith(pending.id);
+    expect(pushokApi.connectPushok).not.toHaveBeenCalled();
+    const active = { ...pending, connection_status: 'ACTIVE', status: 'ONLINE' };
+    pushokApi.fetchPushokConnection.mockResolvedValue(active);
+    api.fetchCoordinators.mockResolvedValue([active]);
+    await screen.findByRole('heading', { name: 'ПушОк подключён' }, { timeout: 4000 });
+    await screen.findByText('В сети', {}, { timeout: 6500 });
+    expect(screen.getByRole('heading', { name: 'ПушОк подключён' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Готово' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Продолжить подключение ПушОк' })).not.toBeInTheDocument();
+  }, 10000);
+
   it('trebuet yavnyj vybor sposoba do sozdaniya novogo podklyucheniya', async () => {
     renderPage();
     const bridge = await screen.findByRole('button', { name: /Уже работает Zigbee2MQTT/u });

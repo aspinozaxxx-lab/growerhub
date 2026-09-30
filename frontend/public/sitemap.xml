@@ -10,7 +10,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-09-30</lastmod>
+    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/avtomatizatsiya-mini-fermy/</loc>
@@ -50,7 +50,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zigbee-hub-i-ustroystva/</loc>
-    <lastmod>2026-09-30</lastmod>
+    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/mini-ferma-i-neskolko-boksov/</loc>
@@ -61,12 +61,12 @@
     <lastmod>2026-09-25</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/articles/zigbee2mqtt-prostymi-slovami/</loc>
-    <lastmod>2026-09-30</lastmod>
+    <loc>https://growerhub.ru/articles/gotovyy-zigbee-hub-dlya-growerhub/</loc>
+    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/articles/gotovyy-zigbee-hub-dlya-growerhub/</loc>
-    <lastmod>2026-09-29</lastmod>
+    <loc>https://growerhub.ru/articles/zigbee2mqtt-prostymi-slovami/</loc>
+    <lastmod>2026-09-30</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/ustanovka-zigbee2mqtt-na-windows/</loc>
@@ -294,7 +294,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-09-30</lastmod>
+    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/farm-automation/</loc>
@@ -334,7 +334,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/zigbee-hubs-and-devices/</loc>
-    <lastmod>2026-09-30</lastmod>
+    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/small-farms-and-multiple-grow-boxes/</loc>
@@ -345,15 +345,15 @@
     <lastmod>2026-09-25</lastmod>
   </url>
   <url>
+    <loc>https://growerhub.ru/en/articles/ready-zigbee-hub-for-growerhub-when-it-is-more-convenient-than-self-assembly/</loc>
+    <lastmod>2026-10-01</lastmod>
+  </url>
+  <url>
     <loc>https://growerhub.ru/en/articles/zigbee2mqtt-in-simple-words-how-the-sensor-coordinator-and-mqtt-are-connected/</loc>
     <lastmod>2026-09-30</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/install-zigbee2mqtt-on-windows-usb-coordinator/</loc>
-    <lastmod>2026-09-29</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/ready-zigbee-hub-for-growerhub-when-it-is-more-convenient-than-self-assembly/</loc>
     <lastmod>2026-09-29</lastmod>
   </url>
   <url>

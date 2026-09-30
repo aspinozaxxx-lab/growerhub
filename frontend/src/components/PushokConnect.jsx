@@ -37,7 +37,7 @@ export default function PushokConnect({ coordinator = null, onCreated, card = fa
     const timer = window.setInterval(async () => {
       try {
         const current = await fetchPushokConnection(connection.id);
-        if (active) setConnection(current);
+        if (active) { setConnection(current); setError(''); }
       } catch (requestError) { if (active) setError(requestError.message); }
     }, 2000);
     return () => { active = false; window.clearInterval(timer); };
@@ -56,21 +56,29 @@ export default function PushokConnect({ coordinator = null, onCreated, card = fa
     finally { setBusy(false); }
   };
   const show = () => {
-    if (!coordinator) {
+    if (coordinator) {
+      setConnection(coordinator); setHubId(coordinator.hub_id || '');
+      setName(coordinator.name || 'ПушОк'); setConfirmed(false); setError('');
+    } else if (!connection?.id || connection.connection_status === 'ACTIVE') {
       setConnection(null); setHubId(''); setName('ПушОк'); setConfirmed(false); setError('');
     }
     setOpen(true);
   };
   if (available === false && !coordinator) return <PushokPilot />;
-  const pairing = connection?.connection_status === 'PAIRING';
-  const connected = connection?.connection_status === 'ACTIVE';
+  const displayedConnection = open ? connection : coordinator || connection;
+  const pairing = displayedConnection?.connection_status === 'PAIRING';
+  const connected = displayedConnection?.connection_status === 'ACTIVE';
+  if (coordinator && connected && !open) return null;
+  const entryLabel = pairing ? 'Продолжить подключение ПушОк'
+    : displayedConnection?.connection_status === 'ERROR' ? 'Повторить привязку ПушОк'
+      : card ? 'Есть шлюз ПушОк' : 'Подключить ПушОк';
   return (
     <>
       {card ? (
         <button type="button" className="choice-card" disabled={!available} onClick={show}>
-          <strong>{translateApp('Есть шлюз ПушОк')}</strong><span>{translateApp('Подключите через интернет: ID шлюза и кнопка сопряжения. Компьютер и Home Assistant не нужны.')}</span>
+          <strong>{translateApp(entryLabel)}</strong><span>{translateApp('Подключите через интернет: ID шлюза и кнопка сопряжения. Компьютер и Home Assistant не нужны.')}</span>
         </button>
-      ) : <Button onClick={show} disabled={!available}>{translateApp(coordinator ? 'Повторить привязку ПушОк' : 'Подключить ПушОк')}</Button>}
+      ) : <Button onClick={show} disabled={!available}>{translateApp(entryLabel)}</Button>}
       <Modal isOpen={open} onClose={() => setOpen(false)} title={translateApp('Подключить ПушОк')} presentation="sheet">
         <div className="pushok-connect">
           <div className="pushok-connect__intro"><img src="/content/equipment/pushok-pok100.jpg" alt="ПушОк POK100" width="88" height="88" />

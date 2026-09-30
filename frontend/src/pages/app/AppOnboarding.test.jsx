@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as api from '../../api/selfService';
+import * as pushokApi from '../../api/pushokConnection';
 import { trackProductGoal } from '../../utils/analytics';
 import { changeLocale, loadAppTranslations } from '../../locales/i18n';
 import AppOnboarding from './AppOnboarding';
@@ -21,6 +22,10 @@ vi.mock('../../api/selfService', () => ({
   replaceGreenhouseSlots: vi.fn(), rotateCoordinatorCredentials: vi.fn(),
   fetchManualWateringGreenhouseStatistics: vi.fn(), stopManualWatering: vi.fn(),
 }));
+vi.mock('../../api/pushokConnection', () => ({
+  fetchPushokAvailability: vi.fn(), fetchPushokConnection: vi.fn(),
+  connectPushok: vi.fn(), retryPushokPairing: vi.fn(),
+}));
 
 const coordinator = { id: 'synthetic-coordinator', name: 'Test connection' };
 const freshStatus = {
@@ -35,6 +40,7 @@ describe('AppOnboarding', () => {
     api.fetchOnboardingStatus.mockResolvedValue(freshStatus);
     api.fetchCoordinators.mockResolvedValue([]);
     api.fetchCoordinatorOverview.mockResolvedValue({ devices: [] });
+    pushokApi.fetchPushokAvailability.mockResolvedValue({ available: true });
     loadCurrentUser.mockResolvedValue({});
   });
   afterEach(async () => {
@@ -49,6 +55,22 @@ describe('AppOnboarding', () => {
     expect(await screen.findByRole('heading', { name: 'What do you already have?' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'See compatible devices' })).toHaveAttribute('href', '/en/equipment/');
     expect(document.body.textContent).not.toMatch(/[\u0400-\u04ff]/u);
+  });
+
+  it('posle vozvrata prodolzhaet privyazku Pushok iz masters bez sozdaniya drugogo podklyucheniya', async () => {
+    const pending = { id: 'synthetic-pushok', name: 'Test PushOk', hub_id: 'pushok-A1B2C3-1234', transport: 'PUSHOK_CLOUD', connection_status: 'PAIRING' };
+    api.fetchCoordinators.mockResolvedValue([pending]);
+    api.fetchOnboardingStatus.mockResolvedValue({ ...freshStatus, step: 'CONNECT_COORDINATOR', coordinator_count: 1 });
+    pushokApi.fetchPushokConnection.mockResolvedValue(pending);
+    renderPage();
+    const resume = await screen.findByRole('button', { name: /Продолжить подключение ПушОк/u });
+    await waitFor(() => expect(resume).toBeEnabled());
+    fireEvent.click(resume);
+    expect(screen.getByText(/Подключаемся к шлюзу через облако/)).toBeVisible();
+    expect(screen.queryByLabelText('ID шлюза из Управлятора')).not.toBeInTheDocument();
+    expect(pushokApi.connectPushok).not.toHaveBeenCalled();
+    expect(pushokApi.retryPushokPairing).not.toHaveBeenCalled();
+    expect(api.createCoordinator).not.toHaveBeenCalled();
   });
 
   it('snachala vybiraet sushchestvuyushchuyu set, zatem sozdaet bridge bez instrukcii perepodklyucheniya', async () => {

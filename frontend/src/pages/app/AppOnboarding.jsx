@@ -295,7 +295,7 @@ function AppOnboarding() {
           <h2>{translateApp("Что у вас уже есть?")}</h2>
           <p>{translateApp("Выберите свой вариант — подскажем следующий шаг.")}</p>
           <CoordinatorConnectionMode value={connectionMode} onChange={setConnectionMode}>
-            <PushokConnect card onCreated={handlePushokCreated} />
+            <PushokConnect card coordinator={isPushok ? selectedCoordinator : null} onCreated={handlePushokCreated} />
             <DemoStartLink placement="onboarding_no_equipment" className="choice-card">
               <strong>{translateApp("Хочу попробовать без оборудования")}</strong><span>{translateApp("Откройте демоферму: датчики, растения и сценарии уже настроены.")}</span>
             </DemoStartLink>
@@ -339,7 +339,6 @@ function AppOnboarding() {
             <section className="onboarding-card" role="status"><h2>{translateApp('Подключение ПушОк')}</h2>
               <p>{selectedCoordinator.connection_error ? pushokError(selectedCoordinator.connection_error)
                 : translateApp('Ждём связь со шлюзом через интернет. Проверьте, что он доступен в Управляторе.')}</p>
-              {selectedCoordinator.connection_status === 'ERROR' ? <PushokConnect coordinator={selectedCoordinator} onCreated={handlePushokCreated} /> : null}
             </section>
           ) : null}
           {!status?.coordinator_connected && !isPushok ? (

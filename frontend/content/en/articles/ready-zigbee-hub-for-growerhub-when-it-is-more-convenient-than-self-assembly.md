@@ -6,7 +6,7 @@ summary: >-
   Connect PushOk to GrowerHub over the internet using its ID and pairing button.
   Compare it with Zigbee2MQTT, SMHUB Nano and ZS-EHT, including hardware checks.
 created_at: '2026-07-23'
-updated_at: '2026-09-29'
+updated_at: '2026-10-01'
 cluster: zigbee-hub-i-ustroystva
 tags:
   - GrowerHub
@@ -118,7 +118,9 @@ The cloud pilot is available in GrowerHub. On **POK100v2 with firmware 95 and a 
 4. Wait for the success message and open **Settings → Devices**. Check the state and last-update time. Add and rename Zigbee devices in Upravlyator; GrowerHub refreshes its list automatically.
 5. Assign available sensor readings to a growing area in the **farm builder**. GrowerHub history starts accumulating after connection; earlier Upravlyator history is not imported. Confirm fresh readings before choosing an automation.
 
-If the pairing window expires, press the hub button twice again and select **Retry PushOk pairing**. You do not need to create a new connection for every attempt. For help, use **PushOk help and my request** in connection settings to leave contact details, edit or withdraw an earlier request.
+You can close the GrowerHub window: pairing continues on the server. To check its status again, select **Continue PushOk connection** in the setup wizard or beside this hub in connection settings. You do not need to enter the ID again or create another connection.
+
+If the hub's pairing window expires and an error appears, press its button twice again and select **Retry PushOk pairing**. You do not need to create a new connection for every attempt. For help, use **PushOk help and my request** in connection settings to leave contact details, edit or withdraw an earlier request.
 
 ### Before enabling automation
 

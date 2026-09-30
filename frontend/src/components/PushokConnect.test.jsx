@@ -42,4 +42,22 @@ describe('PushokConnect', () => {
     await waitFor(() => expect(retryPushokPairing).toHaveBeenCalledExactlyOnceWith('test'));
     expect(connectPushok).not.toHaveBeenCalled();
   });
+  it('posle zakrytiya vozobnovlyaet tekuschuyu privyazku bez novogo dostupa', async () => {
+    fetchPushokConnection.mockResolvedValue(pending);
+    show({}, '/app/start/?connect=pushok');
+    await screen.findByRole('dialog');
+    fireEvent.change(screen.getByLabelText('ID шлюза из Управлятора'), { target: { value: pending.hub_id } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: 'Кнопка нажата — подключить' }));
+    await screen.findByText(/Подключаемся к шлюзу через облако/);
+    fireEvent.click(screen.getByRole('button', { name: 'Закрыть' }));
+    fireEvent.click(screen.getByRole('button', { name: /^(Подключить|Продолжить подключение) ПушОк$/u }));
+    expect(screen.getByText(/Подключаемся к шлюзу через облако/)).toBeVisible();
+    expect(screen.queryByLabelText('ID шлюза из Управлятора')).not.toBeInTheDocument();
+    expect(connectPushok).toHaveBeenCalledTimes(1);
+    expect(retryPushokPairing).not.toHaveBeenCalled();
+    fetchPushokConnection.mockResolvedValue({ ...pending, connection_status: 'ACTIVE' });
+    await screen.findByRole('heading', { name: 'ПушОк подключён' }, { timeout: 4000 });
+    expect(connectPushok).toHaveBeenCalledTimes(1);
+  });
 });
