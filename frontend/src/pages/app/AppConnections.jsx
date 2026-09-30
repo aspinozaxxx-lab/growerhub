@@ -6,6 +6,7 @@ import PushokConnect from '../../components/PushokConnect';
 import PushokPilot from '../../components/PushokPilot';
 import { pushokError } from '../../utils/pushokConnection';
 import NetworkCoordinatorPilot from '../../components/NetworkCoordinatorPilot';
+import CoordinatorSetup, { CoordinatorConnectionMode } from '../../components/CoordinatorSetup';
 import {
   archiveCoordinator,
   createCoordinator,
@@ -13,6 +14,7 @@ import {
   rotateCoordinatorCredentials,
 } from '../../api/selfService';
 import { trackProductGoal } from '../../utils/analytics';
+import { CONNECTION_MODES } from '../../domain/coordinatorSetup';
 import './SelfServicePages.css';
 import { translateApp } from '../../locales/i18n';
 import { formatDateTimeDDMMYYYY } from '../../utils/formatters';
@@ -25,19 +27,11 @@ const STATUS_LABELS = {
   ARCHIVED: translateApp("В архиве"),
 };
 
-const downloadTextFile = (name, content) => {
-  const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = name;
-  anchor.click();
-  URL.revokeObjectURL(url);
-};
-
 function AppConnections() {
   const [coordinators, setCoordinators] = useState([]);
   const [name, setName] = useState(translateApp("Дополнительный координатор"));
   const [setup, setSetup] = useState(null);
+  const [connectionMode, setConnectionMode] = useState(null);
   const [busy, setBusy] = useState('loading');
   const [error, setError] = useState('');
 
@@ -56,11 +50,12 @@ function AppConnections() {
 
   const handleCreate = async (event) => {
     event.preventDefault();
+    if (!Object.values(CONNECTION_MODES).includes(connectionMode) || setup) return;
     setBusy('create');
     try {
       const result = await createCoordinator(name.trim());
       setSetup({ coordinatorId: result.coordinator.id, ...result.setup });
-      trackProductGoal('coordinator_created', { placement: 'connections', step: 'credentials_shown' });
+      trackProductGoal('coordinator_created', { placement: 'connections', step: 'credentials_shown', connection_mode: connectionMode });
       await load();
     } catch (requestError) {
       setError(requestError.message);
@@ -73,6 +68,7 @@ function AppConnections() {
     setBusy(coordinator.id);
     try {
       const nextSetup = await rotateCoordinatorCredentials(coordinator.id);
+      setConnectionMode(null);
       setSetup({ coordinatorId: coordinator.id, ...nextSetup });
     } catch (requestError) {
       setError(requestError.message);
@@ -104,11 +100,13 @@ function AppConnections() {
       {error ? <AppPageState kind="error" title={error} /> : null}
 
       {setup ? (
-        <section className="secret-card">
-          <div><span>{translateApp("Одноразовые данные")}</span><h2>{translateApp("Сохраните конфигурацию сейчас")}</h2><p>{translateApp("После закрытия страницы пароль восстановить нельзя — только выпустить новый.")}</p></div>
-          <dl className="ym-hide-content"><div><dt>{translateApp("Имя пользователя")}</dt><dd>{setup.username}</dd></div><div><dt>{translateApp("Пароль")}</dt><dd>{setup.password}</dd></div><div><dt>{translateApp("Базовый топик")}</dt><dd>{setup.base_topic}</dd></div></dl>
-          <div className="inline-actions"><Button variant="primary" onClick={() => downloadTextFile('configuration.yaml', setup.configuration_yaml)}>configuration.yaml</Button><Button onClick={() => downloadTextFile('secret.yaml', setup.secret_yaml)}>secret.yaml</Button><Button onClick={() => setSetup(null)}>{translateApp("Скрыть навсегда")}</Button></div>
-        </section>
+        <CoordinatorSetup
+          key={setup.coordinatorId}
+          setup={setup}
+          connectionMode={connectionMode}
+          onConnectionModeChange={setConnectionMode}
+          onHide={() => { setSetup(null); setConnectionMode(null); }}
+        />
       ) : null}
 
       <section className="self-service-section">
@@ -136,7 +134,10 @@ function AppConnections() {
         <PushokPilot support />
         <div className="inline-actions"><NetworkCoordinatorPilot placement="connections_zs_eht_pilot" /></div>
         <p>{translateApp("В одном пространстве можно использовать несколько координаторов и подключать оборудование в удобном темпе.")}</p>
-        <form className="compact-form" onSubmit={handleCreate}><label>{translateApp("Название")}<input value={name} onChange={(event) => setName(event.target.value)} required maxLength="120" /></label><Button type="submit" variant="primary" isLoading={busy === 'create'}>{translateApp("Создать")}</Button></form>
+        {!setup ? <>
+          <CoordinatorConnectionMode value={connectionMode} onChange={setConnectionMode} />
+          {connectionMode ? <form className="compact-form" onSubmit={handleCreate}><label>{translateApp("Название")}<input value={name} onChange={(event) => setName(event.target.value)} required maxLength="120" /></label><Button type="submit" variant="primary" isLoading={busy === 'create'}>{translateApp("Создать")}</Button></form> : null}
+        </> : null}
       </section>
     </div>
   );
