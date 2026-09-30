@@ -14,9 +14,12 @@ import {
 } from '../../api/selfService';
 import AppOverview from './AppOverview';
 
-const { openSensorStats } = vi.hoisted(() => ({ openSensorStats: vi.fn() }));
+const { openSensorStats, authState } = vi.hoisted(() => ({
+  openSensorStats: vi.fn(),
+  authState: { demoActive: false },
+}));
 
-vi.mock('../../features/auth/AuthContext', () => ({ useAuth: () => ({ demoActive: false }) }));
+vi.mock('../../features/auth/AuthContext', () => ({ useAuth: () => authState }));
 
 vi.mock('../../api/selfService', () => ({
   fetchFarmsOverview: vi.fn(),
@@ -32,6 +35,7 @@ describe('AppOverview', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    authState.demoActive = false;
   });
 
   it('pokazyvaet v teplicah tolko privyazannye resursy bez rasteniy i aktivnogo statusa', async () => {
@@ -110,6 +114,8 @@ describe('AppOverview', () => {
     );
 
     const activeHeading = await screen.findByRole('heading', { name: 'Активная теплица' });
+    expect(screen.queryByRole('button', { name: 'График почвы' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Пробный полив' })).not.toBeInTheDocument();
     const activeGreenhouse = activeHeading.closest('.farm-dashboard-box');
     const farmCard = activeHeading.closest('.farm-dashboard-room');
     const equipment = activeGreenhouse.querySelector('.farm-dashboard-box__equipment');
@@ -163,6 +169,57 @@ describe('AppOverview', () => {
       mode: 'equipment', equipmentResourceId: 11, subtitle: 'Северная',
       equipmentStatsScope: 'self-service',
     }));
+  });
+
+  it('demo otkryvaet grafik pervogo privyazannogo datchika pochvy v svoem kontekste', async () => {
+    authState.demoActive = true;
+    fetchFarmsOverview.mockResolvedValue({
+      farms: [{
+        id: 1, name: 'Демоферма', enabled: true, greenhouses: [{
+          id: 2, name: 'Без датчика', enabled: true,
+          slots: [{ id: 10, role: 'SOIL_MOISTURE_SENSOR' }],
+        }, {
+          id: 3, name: 'Рассада', enabled: true,
+          slots: [{
+            id: 11, role: 'AIR_TEMPERATURE_SENSOR', source_type: 'NATIVE_SENSOR',
+            native_sensor_id: 51, ready: true, current_value: 24.6,
+          }, {
+            id: 12, role: 'SOIL_MOISTURE_SENSOR', source_type: 'ZIGBEE_DEVICE',
+            zigbee_coordinator_id: 'demo-public-uuid', zigbee_ieee_address: 'demo-soil',
+            zigbee_property: 'soil_moisture', ready: true, current_value: 45,
+          }],
+        }],
+      }],
+    });
+    render(<MemoryRouter><AppOverview /></MemoryRouter>);
+
+    const chartButton = await screen.findByRole('button', { name: 'График почвы' });
+    expect(openSensorStats).not.toHaveBeenCalled();
+    fireEvent.click(chartButton);
+    expect(openSensorStats).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({
+      mode: 'zigbee', zigbeeCoordinatorId: 'demo-public-uuid',
+      zigbeeIeeeAddress: 'demo-soil', zigbeeProperty: 'soil_moisture',
+      metric: 'soil_moisture', subtitle: 'Рассада',
+      zigbeeHistoryScope: 'self-service', equipmentStatsScope: 'self-service',
+    }));
+    expect(screen.getByRole('link', { name: 'Пробный полив' })).toHaveAttribute('href', '/app/manual-watering/');
+  });
+
+  it('demo bez datchika ne otkryvaet grafik no sohranyaet dostup k podskazke', async () => {
+    authState.demoActive = true;
+    fetchFarmsOverview.mockResolvedValue({ farms: [] });
+    render(<MemoryRouter><AppOverview /></MemoryRouter>);
+
+    const chartButton = await screen.findByRole('button', { name: 'График почвы' });
+    expect(chartButton).toBeDisabled();
+    fireEvent.click(chartButton);
+    expect(openSensorStats).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Что попробовать за две минуты' }));
+    const help = screen.getByRole('dialog', { name: 'Что попробовать за две минуты' });
+    expect(within(help).getByRole('link', { name: 'Откройте ручной полив' })).toHaveAttribute('href', '/app/manual-watering/');
+    fireEvent.click(within(help).getByRole('button', { name: 'Закрыть' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(openSensorStats).not.toHaveBeenCalled();
   });
 
   it('otkryvaet ruchnoy poliv i zhurnal nasosa iz plashki poliva', async () => {

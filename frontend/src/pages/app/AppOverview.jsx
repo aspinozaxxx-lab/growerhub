@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Droplets, RefreshCw } from 'lucide-react';
+import { ChartNoAxesCombined, Droplets, RefreshCw } from 'lucide-react';
 import { fetchFarmsOverview } from '../../api/selfService';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
+import Modal from '../../components/ui/Modal';
 import { useSensorStatsContext } from '../../features/sensors/SensorStatsContext';
 import BoxWateringStatsPanel from '../../features/manual-watering/BoxWateringStatsPanel';
 import {
@@ -12,7 +13,7 @@ import {
   overviewGreenhouses,
 } from '../../features/farm/farmModel';
 import { FarmDashboardRooms } from '../../features/dashboard/FarmDashboard';
-import { formatDateTime } from '../../features/dashboard/dashboardModel';
+import { buildResourceStatsPayload, formatDateTime, RESOURCE_ROLES } from '../../features/dashboard/dashboardModel';
 import { formatTimeHHMM } from '../../utils/formatters';
 import { trackProductGoal } from '../../utils/analytics';
 import { translateApp } from '../../locales/i18n';
@@ -29,6 +30,7 @@ function AppOverview() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [wateringStatsTarget, setWateringStatsTarget] = useState(null);
+  const [demoHelpOpen, setDemoHelpOpen] = useState(false);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -65,6 +67,14 @@ function AppOverview() {
     () => farmOverviewToDashboardRooms(overview),
     [overview],
   );
+  const demoSoilStats = useMemo(() => {
+    if (!demoActive) return null;
+    return rooms.flatMap((room) => room.boxes)
+      .flatMap((box) => box.resources
+        .filter((resource) => resource.role === RESOURCE_ROLES.SOIL_MOISTURE_SENSOR)
+        .map((resource) => buildResourceStatsPayload(resource, resource.role, box.name)))
+      .find(Boolean) || null;
+  }, [demoActive, rooms]);
   const updatedLabel = lastUpdatedAt
     ? formatDateTime(lastUpdatedAt.toISOString())
     : translateApp("Ожидает обновления");
@@ -111,18 +121,27 @@ function AppOverview() {
         )}
       />
 
-      {demoActive ? <details className="demo-welcome" onToggle={(event) => {
-        if (event.currentTarget.open) {
-          trackProductGoal('demo_explore', { placement: 'overview', action: 'quickstart' });
-        }
-      }}>
-        <summary>{translateApp("Что попробовать за две минуты")}</summary>
-        <ol>
-          <li>{translateApp("Нажмите на влажность почвы в карточке теплицы и посмотрите историю.")}</li>
-          <li><Link to="/app/manual-watering/">{translateApp("Откройте ручной полив")}</Link> — {translateApp("нажмите «Начать полив», выберите «По времени», задайте 1 минуту и нажмите «Запустить».")}</li>
-          <li>{translateApp("Журнал раскроется на той же карточке. Дождитесь остановки и проверьте длительность, расчётный объём и причину завершения полива.")}</li>
-        </ol>
-      </details> : null}
+      {demoActive ? <section className="demo-welcome" aria-label={translateApp("Что попробовать за две минуты")}>
+        <div className="demo-welcome__actions">
+          <button type="button" className="demo-welcome__action" disabled={!demoSoilStats} onClick={() => handleOpenStats(demoSoilStats)}>
+            <ChartNoAxesCombined size={16} aria-hidden="true" />{translateApp("График почвы")}
+          </button>
+          <Link className="demo-welcome__action" to="/app/manual-watering/">
+            <Droplets size={16} aria-hidden="true" />{translateApp("Пробный полив")}
+          </Link>
+          <button type="button" className="demo-welcome__action demo-welcome__help" aria-label={translateApp("Что попробовать за две минуты")} onClick={() => {
+            setDemoHelpOpen(true);
+            trackProductGoal('demo_explore', { placement: 'overview', action: 'quickstart' });
+          }}>?</button>
+        </div>
+        <Modal isOpen={demoHelpOpen} title={translateApp("Что попробовать за две минуты")} presentation="sheet" onClose={() => setDemoHelpOpen(false)}>
+          <ol>
+            <li>{translateApp("Нажмите на влажность почвы в карточке теплицы и посмотрите историю.")}</li>
+            <li><Link to="/app/manual-watering/">{translateApp("Откройте ручной полив")}</Link> — {translateApp("нажмите «Начать полив», выберите «По времени», задайте 1 минуту и нажмите «Запустить».")}</li>
+            <li>{translateApp("Журнал раскроется на той же карточке. Дождитесь остановки и проверьте длительность, расчётный объём и причину завершения полива.")}</li>
+          </ol>
+        </Modal>
+      </section> : null}
       {error ? <AppPageState kind="error" title={error} /> : null}
 
       {!error && farms.length === 0 ? (
