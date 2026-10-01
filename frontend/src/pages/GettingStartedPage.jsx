@@ -82,7 +82,7 @@ function GettingStartedPage() {
         <ol className="steps-list">{pushok.steps.map((step) => <li key={step.title}><strong>{step.title}</strong><span>{step.text}</span></li>)}</ol>
         <p>{pushok.invitation}</p>
         <p className="equipment-disclaimer">{pushok.purchase_note}</p>
-        <div className="cta-row">{pushok.links.map((link) => <a key={link.href} className="secondary-link" href={link.href} target="_blank" rel="noreferrer">{link.label}</a>)}</div>
+        <div className="cta-row">{pushok.links.map((link) => <a key={link.href} className="secondary-link" href={link.href} target={link.href.startsWith('/') ? undefined : '_blank'} rel={link.href.startsWith('/') ? undefined : 'noreferrer'}>{link.label}</a>)}</div>
       </section>
 
       <section className="content-section info-block" id="zs-eht">

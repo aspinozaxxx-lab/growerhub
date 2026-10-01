@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
-import HubPhotos from '../components/HubPhotos';
 import { getPageContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
 import { SITE_NAME, SITE_URL } from '../domain/siteConfig';
@@ -50,14 +49,13 @@ function EquipmentCategoryPage({ categoryKey }) {
         ← {translatePublic('Всё оборудование')}
       </Link>
       <div className="badge">
-        {translatePublic('Проверено')} {new Date(equipmentContent.checked_at).toLocaleDateString(getIntlLocale(locale))}
+        {translatePublic('Обновлено')} {new Date(equipmentContent.updated_at).toLocaleDateString(getIntlLocale(locale))}
       </div>
       <h1>{category.title}</h1>
       <p className="article-lead">{category.intro}</p>
       <p className="equipment-disclaimer">{equipmentContent.purchase_note}</p>
       {categoryKey === 'coordinators' ? <section className="content-section info-block">
         <h2>{platformContent.pushok.title}</h2>
-        <HubPhotos type="pushok" />
         <p>{platformContent.pushok.availability}</p>
         <a className="secondary-link" href={`${getPublicPath('gettingStarted', locale)}#pushok`}>{platformContent.pushok.cta}</a>
       </section> : null}
@@ -90,14 +88,14 @@ function EquipmentCategoryPage({ categoryKey }) {
                 {item.image_caption ? <figcaption>{item.image_caption}</figcaption> : null}
               </figure>
             ) : null}
-            <div><span className="status-chip">{item.status}</span><h2>{item.model}</h2><h3>{item.name}</h3><p>{item.summary}</p></div>
+            <div><span className="status-chip">{item.status}</span><h2>{item.model}</h2><h3>{item.name}</h3>{item.price_note ? <p><strong>{item.price_note}</strong></p> : null}<p>{item.summary}</p></div>
             <ul className="check-list">{item.notes.map((note) => <li key={note}>{note}</li>)}</ul>
             <div className="cta-row">
               <a className="secondary-link" href={item.official_url} target="_blank" rel="noreferrer">{item.official_label || translatePublic('Совместимость Zigbee2MQTT')}</a>
               {(locale === 'ru' || item.example_label) && item.example_url ? <a className="secondary-link" href={item.example_url} target="_blank" rel="nofollow noreferrer">{item.example_label || translatePublic('Пример на Ozon')}</a> : null}
-              <a className="secondary-link" href={item.shop_search_url} target="_blank" rel="nofollow noreferrer">
+              {item.shop_search_url ? <a className="secondary-link" href={item.shop_search_url} target="_blank" rel="nofollow noreferrer">
                 {item.shop_label || translatePublic(locale === 'ru' ? 'Найти на Ozon' : 'Найти модель')}
-              </a>
+              </a> : null}
             </div>
           </article>
         ))}

@@ -36,7 +36,7 @@ Physical devices can use Zigbee2MQTT or the PushOk cloud pilot. A Zigbee logo al
 
 - **Zigbee2MQTT already runs, perhaps alongside Home Assistant.** Keep your hub and connect the existing network through a [local MQTT bridge](/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/). Having Home Assistant does not necessarily mean you use Zigbee2MQTT.
 - **An always-on computer is available.** Use a [USB coordinator and one compatible sensor](/en/equipment/zigbee-coordinators/). Zigbee2MQTT runs on that computer; new readings stop reaching GrowerHub when it is off.
-- **You want one box without a separate computer.** Consider a hub that runs Zigbee2MQTT internally. The candidate below needs a trial connection before we can recommend it as a tested GrowerHub setup.
+- **You want one box without a separate computer.** The [cloud route](#pushok) was tested on PushOk POK100v2. See the [hub and first-purchase checklist](/en/equipment/zigbee-coordinators/). A hub with built-in Zigbee2MQTT, such as SMHUB Nano, is another option, not yet physically tested with GrowerHub.
 - **You already own PushOk.** Connect it over the internet using the hub ID and pairing button. No separate computer or Home Assistant is needed. We are starting with POK100v2; see the steps and limits below.
 - **You own ZS-EHT-54P2 or 54P7.** Join a trial connection. It replaces the USB radio, but still needs a computer running Zigbee2MQTT.
 

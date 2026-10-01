@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-30",
+  "updated_at": "2026-10-01",
   "networkCoordinator": {
     "status": "Pilot · documentation review only",
     "title": "ZS-EHT-54P2 / 54P7: a coordinator on your home network",
@@ -64,7 +64,7 @@
     "cta": "Try PushOk with GrowerHub",
     "purchase_note": "Connectivity depends on the internet and PushOk’s cloud. GrowerHub automations run on its server and do not run locally on the hub when disconnected. This plug is not approved for automatic watering. If you have no equipment yet, discuss the exact model and intended use first. This is a GrowerHub integration; no manufacturer partnership is claimed.",
     "links": [
-      { "label": "Explore PushOk hubs", "href": "https://pushok.io/devices/pok100" },
+      { "label": "Hub and first-purchase checklist", "href": "/en/equipment/zigbee-coordinators/" },
       { "label": "Devices compatible with PushOk", "href": "https://pushok.io/supported-devices" },
       { "label": "Explore soil sensors", "href": "https://pushok.io/devices/pok002" }
     ]

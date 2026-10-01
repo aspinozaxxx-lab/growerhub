@@ -51,6 +51,7 @@ function EquipmentIndexPage() {
       <section className="content-section start-kit">
         <h2>{translatePublic('Минимальный старт')}</h2>
         <div className="card-grid">
+          <article className="card"><h3>{platformContent.pushok.title}</h3><p>{platformContent.pushok.intro}</p><a className="secondary-link" href={`${getPublicPath('gettingStarted', locale)}#pushok`}>{platformContent.pushok.cta}</a></article>
           <article className="card"><h3>{translatePublic('Для мониторинга')}</h3><p>{platformContent.minimum.monitoring}</p></article>
           <article className="card"><h3>{translatePublic('Для управления')}</h3><p>{platformContent.minimum.control}</p></article>
           <article className="card"><h3>{translatePublic('Если всё уже работает')}</h3><p>{platformContent.minimum.existing}</p></article>

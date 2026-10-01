@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-28",
+  "updated_at": "2026-10-01",
   "checked_at": "2026-07-23",
   "purchase_note": "You do not need an expensive branded kit to get started. Choose an option that suits your budget and make sure the listing says Zigbee rather than Wi-Fi or Bluetooth. Search links are neutral, have no affiliate tags, and availability varies by country and seller.",
   "zigbee_note": "For most common sensors and smart plugs, a Zigbee or Zigbee 3.0 label is enough: Zigbee2MQTT discovers the device and it then appears in GrowerHub. Check the exact model ID in the Zigbee2MQTT catalogue when possible to see available metrics and commands, but there is no need to buy only expensive brands.",
@@ -7,10 +7,29 @@
   "categories": {
     "coordinators": {
       "slug": "zigbee-coordinators",
-      "title": "Zigbee coordinators for GrowerHub",
-      "description": "USB coordinators for Zigbee2MQTT and ZS-EHT-54P2/54P7 network coordinators for a pilot: options, limitations and device links.",
-      "intro": "Choose USB beside the computer or a network radio closer to your plants. Both need Zigbee2MQTT running. Each card states its evidence level; ZS-EHT has only been reviewed through documentation.",
+      "title": "Zigbee hubs and coordinators for GrowerHub",
+      "description": "PushOk without a separate computer, USB coordinators and network ZS-EHT models: first-device options and what has been tested.",
+      "intro": "Without a separate computer, start with PushOk and one device. The cloud route was tested on POK100v2. USB coordinators and ZS-EHT need an always-on computer running Zigbee2MQTT. If that network already exists, keep your hub.",
       "items": [
+        {
+          "model": "PushOk POK100v2",
+          "name": "Start without a separate computer",
+          "price_note": "1 October 2026: POK100 — RUB 2,505; POK100X1 with SD card, battery and power supply — RUB 3,560. Manufacturer listings; sensor and delivery are extra. Check availability in your country.",
+          "status": "Cloud pilot · one unit tested",
+          "image": "/content/equipment/pushok-pok100.jpg",
+          "image_alt": "White PushOk POK100 Zigbee hub with two front buttons",
+          "image_caption": "Manufacturer image. Confirm the POK100v2 revision before buying; check the label or Upravlyator.",
+          "image_source_url": "https://pushok.io/devices/pok100",
+          "image_license": "PushOk product image; rights belong to the manufacturer",
+          "summary": "You need a phone with Upravlyator, home Wi-Fi with internet and one device. Connect in GrowerHub using the hub ID and two button presses. No Home Assistant, separate computer or MQTT setup is needed.",
+          "official_url": "https://pushok.io/devices/pok100",
+          "official_label": "Manufacturer models and prices",
+          "notes": [
+            "For a first chart, add one temperature/humidity sensor. Discuss its exact model before buying: sensors still need a separate trial through this cloud route. Check the hub power supply and sensor battery in the listing.",
+            "GrowerHub was tested on POK100v2, firmware 95 and a Zbeacon TS011F plug for readings, on/off control and reconnection. This does not establish support for every revision or approval for automatic watering.",
+            "Mini POK101 is cheaper at RUB 1,630 on the same date, but its GrowerHub connection has not been tested separately. Existing owners can discuss a pilot without buying another hub."
+          ]
+        },
         {
           "model": "ZS-EHT-54P2 / 54P7",
           "name": "Network coordinator for a trial connection",

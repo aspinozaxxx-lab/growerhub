@@ -34,6 +34,8 @@ const assert = (condition, message) => {
 };
 
 const exactEquipmentModels = new Set([
+  'ПушОк POK100v2',
+  'PushOk POK100v2',
   'SONOFF ZBDongle-P',
   'SONOFF ZBDongle-E',
   'SONOFF SNZB-02P',
@@ -47,7 +49,7 @@ const exactEquipmentModels = new Set([
 const equipmentByLocale = { ru: ruEquipment, en: enEquipment };
 for (const [locale, catalog] of Object.entries(equipmentByLocale)) {
   const items = Object.values(catalog.categories).flatMap((category) => category.items);
-  assert(items.length === 15, `Equipment ${locale}: expected 15 items, got ${items.length}`);
+  assert(items.length === 16, `Equipment ${locale}: expected 16 items, got ${items.length}`);
   assert(!items.some((item) => item.model === 'TS011F'), `Equipment ${locale}: TS011F returned`);
   for (const item of items) {
     assert(Boolean(item.image), `Equipment ${locale}: no image for ${item.model}`);
