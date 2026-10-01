@@ -45,10 +45,12 @@ public class ZigbeeWateringService {
     }
 
     public List<ZigbeeWateringData.Capability> capabilities(Integer coordinatorId, String ieee) {
-        if (coordinatorId == null || ieee == null) return List.of();
+        if (coordinatorId == null || ieee == null || ieee.isBlank()) return List.of();
         ZigbeeCoordinatorEntity coordinator = coordinators.findByIdAndArchivedAtIsNull(coordinatorId).orElse(null);
         if (coordinator == null) return List.of();
-        ZigbeeDeviceSnapshotEntity device = device(new ZigbeeWateringData.Target(coordinatorId, ieee, null), false);
+        ZigbeeDeviceSnapshotEntity device = devices.findByCoordinatorIdAndIeeeAddress(coordinatorId, ieee)
+                .filter(snapshot -> !snapshot.isCoordinator()).orElse(null);
+        if (device == null) return List.of();
         List<ZigbeeWateringData.Capability> result = new ArrayList<>();
         for (JsonNode feature : features(definition(device).path("exposes"))) {
             if (!"binary".equals(feature.path("type").asText()) || (feature.path("access").asInt() & 3) != 3) continue;

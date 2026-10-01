@@ -76,6 +76,23 @@ class ZigbeeWateringServiceTest {
     }
 
     @Test
+    void coordinatorSnapshotHasNoWateringCapabilitiesAndCannotBeStarted() {
+        device.setCoordinator(true);
+        assertThat(service.capabilities(1, target.ieeeAddress())).isEmpty();
+        assertThatThrownBy(() -> service.start(target, 30, owner)).isInstanceOf(DomainException.class);
+        verifyNoInteractions(commands);
+    }
+
+    @Test
+    void missingSnapshotDoesNotBreakCatalogButCannotBeStarted() {
+        when(devices.findByCoordinatorIdAndIeeeAddress(1, target.ieeeAddress())).thenReturn(Optional.empty());
+        when(devices.lockWateringDevice(1, target.ieeeAddress())).thenReturn(Optional.empty());
+        assertThat(service.capabilities(1, target.ieeeAddress())).isEmpty();
+        assertThatThrownBy(() -> service.start(target, 30, owner)).isInstanceOf(DomainException.class);
+        verifyNoInteractions(commands);
+    }
+
+    @Test
     void verifiedFixtureUsesOneBoundedCommandAndKeepsStopAfterFlagRevocation() {
         approve(publicId, "fixture-v1", definitionHash, true);
         service.start(target, 30, owner);

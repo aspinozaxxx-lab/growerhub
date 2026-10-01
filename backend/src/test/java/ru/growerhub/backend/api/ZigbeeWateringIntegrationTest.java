@@ -336,6 +336,24 @@ class ZigbeeWateringIntegrationTest extends IntegrationTestBase {
         verifyNoInteractions(publisher);
     }
 
+    @Test
+    void coordinatorSnapshotDoesNotBreakDeviceCatalogFarmOrDashboard() {
+        Fixture f = fixture();
+        jdbc.update("insert into zigbee_device_snapshots (coordinator_id, ieee_address, friendly_name, coordinator, updated_at, bridge_device_json) values (?,?,?,?,?,?)",
+                f.target.coordinatorId(), "0x000000000000c001", "Coordinator", true,
+                LocalDateTime.ofInstant(time, ZoneOffset.UTC), "{}");
+        var coordinator = zigbee.getSimulationCoordinator(f.owner.id());
+        var overview = zigbee.getOverview(f.owner, coordinator.publicId());
+        var coordinatorDevice = overview.devices().stream().filter(d -> d.coordinator()).findFirst().orElseThrow();
+        assertThat(coordinatorDevice.watering()).isEmpty();
+        var valve = overview.devices().stream().filter(d -> f.target.ieeeAddress().equals(d.ieeeAddress())).findFirst().orElseThrow();
+        assertThat(valve.watering().getFirst().ready()).isTrue();
+        var farm = automation.getFarmsOverview(f.owner);
+        assertThat(farm.farms().getFirst().greenhouses().getFirst().slots()).anyMatch(slot -> slot.id().equals(f.bindingId));
+        assertThat(automation.getOverview(f.owner)).isNotNull();
+        verifyNoInteractions(publisher);
+    }
+
     private Fixture fixture(DemoData.Space space) {
         var owner = new AuthenticatedUser(space.dataUserId(), "demo");
         var valve = demo.addDevice(owner, new DemoData.AddDevice("valve", "Проверяемый клапан"));
