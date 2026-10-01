@@ -300,6 +300,42 @@ class ZigbeeWateringIntegrationTest extends IntegrationTestBase {
         return fixture(space);
     }
 
+    @Test
+    void unverifiedValveCannotBypassWateringThroughLightAndStillAllowsClosing() throws Exception {
+        Fixture f = fixture();
+        // Metadata tolko dlya testa zashchity; ne dokazatelstvo sovmestimosti fizicheskogo SWV.
+        String metadata = mapper.writeValueAsString(Map.of(
+                "software_build_id", "unverified-fixture",
+                "definition", Map.of("model", "SWV", "vendor", "SONOFF", "exposes", List.of(
+                        Map.of("type", "binary", "property", "state", "access", 3, "value_on", "ON", "value_off", "OFF"),
+                        Map.of("type", "composite", "property", "cyclic_timed_irrigation", "access", 3,
+                                "features", List.of(Map.of("type", "numeric", "property", "irrigation_duration", "access", 3)))))));
+        jdbc.update("update zigbee_device_snapshots set bridge_device_json=? where coordinator_id=? and ieee_address=?",
+                metadata, f.target.coordinatorId(), f.target.ieeeAddress());
+        var coordinator = zigbee.getSimulationCoordinator(f.owner.id());
+        var overview = zigbee.getOverview(f.owner, coordinator.publicId());
+        var device = overview.devices().stream().filter(d -> f.target.ieeeAddress().equals(d.ieeeAddress())).findFirst().orElseThrow();
+        assertThat(device.watering()).hasSize(1);
+        assertThat(device.watering().getFirst().ready()).isFalse();
+        assertThat(device.watering().getFirst().maxDurationS()).isNull();
+        var response = mapper.readTree(mapper.writeValueAsString(ZigbeeApiMapper.toOverview(overview)));
+        var responseDevice = java.util.stream.StreamSupport.stream(response.path("devices").spliterator(), false)
+                .filter(d -> f.target.ieeeAddress().equals(d.path("ieee_address").asText())).findFirst().orElseThrow();
+        assertThat(responseDevice.path("watering").get(0).path("ready").asBoolean()).isFalse();
+        assertThat(responseDevice.path("watering").get(0).path("max_duration_s").isNull()).isTrue();
+        for (String role : List.of("LIGHT_SWITCH", "EXHAUST_SWITCH", "AC_SWITCH")) {
+            var binding = new AutomationData.ResourceBindingRequest(role, "ZIGBEE_DEVICE", null, null,
+                    coordinator.publicId(), f.target.ieeeAddress(), "state", "state", "ON", "OFF");
+            assertThatThrownBy(() -> automation.replaceGreenhouseSlots(f.owner, f.boxId,
+                    new AutomationData.SaveZoneSlotsRequest(List.of(binding), false)))
+                    .isInstanceOf(DomainException.class).hasMessage("Назначьте клапан в слот полива");
+        }
+        assertThatThrownBy(() -> zigbee.setDeviceProperty(f.owner, coordinator.publicId(), f.target.ieeeAddress(), "state", "ON"))
+                .isInstanceOf(DomainException.class).hasMessage("Запускайте клапан через полив с ограничением времени");
+        zigbee.setDeviceProperty(f.owner, coordinator.publicId(), f.target.ieeeAddress(), "state", "OFF");
+        verifyNoInteractions(publisher);
+    }
+
     private Fixture fixture(DemoData.Space space) {
         var owner = new AuthenticatedUser(space.dataUserId(), "demo");
         var valve = demo.addDevice(owner, new DemoData.AddDevice("valve", "Проверяемый клапан"));

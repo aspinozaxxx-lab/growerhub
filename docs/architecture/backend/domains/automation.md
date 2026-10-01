@@ -91,7 +91,7 @@ REST строит farms → greenhouses по владельцу; zone_id рас�
 ферме. Кондиционер допустим на обоих уровнях, остальные роли — на теплице.
 Физический канал занимает один слот. Чужой id выглядит отсутствующим даже для
 администратора в обычном кабинете. `WATER_PUMP` принимает native pump либо допущенный Zigbee-клапан,
-switch-роли — Zigbee writable state, `LEAK_SENSOR` — readable property.
+switch-роли — Zigbee writable state без известных поливных каналов, `LEAK_SENSOR` — readable property.
 Статистика оборудования разрешена только Zigbee-ролям `LIGHT_SWITCH`,
 `EXHAUST_SWITCH` и `AC_SWITCH`; admin может читать чужую привязку только через
 admin endpoint. Frontend не вычисляет readiness. Automation не пишет журнал

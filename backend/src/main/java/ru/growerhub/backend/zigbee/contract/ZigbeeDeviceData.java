@@ -20,6 +20,7 @@ public record ZigbeeDeviceData(
         Object state,
         String availability,
         LocalDateTime lastStateAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        List<ZigbeeWateringData.Capability> watering
 ) {
 }

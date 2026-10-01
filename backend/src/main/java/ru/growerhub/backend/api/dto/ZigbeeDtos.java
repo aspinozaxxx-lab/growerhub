@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import ru.growerhub.backend.zigbee.contract.ZigbeeWateringData;
 
 public class ZigbeeDtos {
     public record CreateCoordinatorRequest(@JsonProperty("name") String name) {
@@ -88,7 +89,8 @@ public class ZigbeeDtos {
             @JsonProperty("state") Object state,
             @JsonProperty("availability") String availability,
             @JsonProperty("last_state_at") LocalDateTime lastStateAt,
-            @JsonProperty("updated_at") LocalDateTime updatedAt
+            @JsonProperty("updated_at") LocalDateTime updatedAt,
+            @JsonProperty("watering") List<ZigbeeWateringData.Capability> watering
     ) {
     }
 

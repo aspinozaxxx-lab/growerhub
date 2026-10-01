@@ -119,7 +119,8 @@ final class ZigbeeApiMapper {
                 data.state(),
                 data.availability(),
                 data.lastStateAt(),
-                data.updatedAt()
+                data.updatedAt(),
+                data.watering()
         );
     }
 

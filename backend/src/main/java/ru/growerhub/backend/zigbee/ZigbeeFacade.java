@@ -1434,7 +1434,8 @@ public class ZigbeeFacade {
                 state,
                 device.getAvailability(),
                 device.getLastStateAt(),
-                device.getUpdatedAt()
+                device.getUpdatedAt(),
+                wateringService.capabilities(device.getCoordinatorId(), device.getIeeeAddress())
         );
     }
 

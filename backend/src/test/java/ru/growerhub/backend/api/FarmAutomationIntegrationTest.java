@@ -1147,7 +1147,8 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                         Map.of("state", currentState),
                         "online",
                         now,
-                        now
+                        now,
+                        List.of()
                 )
         );
     }

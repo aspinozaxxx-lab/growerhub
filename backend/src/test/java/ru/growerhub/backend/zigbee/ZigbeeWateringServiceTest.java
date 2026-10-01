@@ -52,7 +52,10 @@ class ZigbeeWateringServiceTest {
         device.setBridgeDeviceJson("""
                 {"software_build_id":"fixture-v1","definition":{"model":"Test only","exposes":[
                   {"type":"binary","property":"state","access":3,"value_on":"ON","value_off":"OFF"},
-                  {"type":"numeric","property":"duration","access":2,"value_min":1,"value_max":600,"value_step":1}
+                  {"type":"numeric","property":"duration","access":2,"value_min":1,"value_max":600,"value_step":1},
+                  {"type":"composite","property":"cyclic_timed_irrigation","access":3,"features":[
+                    {"type":"numeric","property":"irrigation_duration","access":3}
+                  ]}
                 ]}}
                 """);
         definitionHash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(
@@ -122,6 +125,54 @@ class ZigbeeWateringServiceTest {
         assertThatThrownBy(() -> service.requireGenericCommandAllowed(1, device, "state", "ON")).isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> service.requireGenericCommandAllowed(1, device, "duration", 60)).isInstanceOf(DomainException.class);
         service.requireGenericCommandAllowed(1, device, "state", "OFF");
+        verifyNoInteractions(commands);
+    }
+
+    @Test
+    void unverifiedIrrigationExposesBlockGenericOnAndTimerButKeepOff() {
+        var capability = service.capabilities(1, target.ieeeAddress()).getFirst();
+        assertThat(capability.ready()).isFalse();
+        assertThat(capability.maxDurationS()).isNull();
+        assertThatThrownBy(() -> service.requireGenericCommandAllowed(1, device, "state", "ON"))
+                .isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> service.requireGenericCommandAllowed(1, device, "cyclic_timed_irrigation", Map.of("irrigation_duration", 60)))
+                .isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> service.requireGenericCommandAllowed(1, device, "irrigation_duration", 60))
+                .isInstanceOf(DomainException.class);
+        service.requireGenericCommandAllowed(1, device, "state", "OFF");
+        verifyNoInteractions(commands);
+    }
+
+    @Test
+    void revokedFirmwareApprovalStillIdentifiesTheConfiguredWateringChannel() {
+        device.setBridgeDeviceJson("""
+                {"software_build_id":"changed","definition":{"exposes":[
+                  {"type":"binary","property":"state","access":3,"value_on":"ON","value_off":"OFF"},
+                  {"type":"numeric","property":"duration","access":2}
+                ]}}
+                """);
+        approve(publicId, "fixture-v1", definitionHash, true);
+        assertThat(service.capabilities(1, target.ieeeAddress()).getFirst().ready()).isFalse();
+        assertThatThrownBy(() -> service.requireGenericCommandAllowed(1, device, "state", "ON"))
+                .isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> service.requireGenericCommandAllowed(1, device, "duration", 60))
+                .isInstanceOf(DomainException.class);
+        service.requireGenericCommandAllowed(1, device, "state", "OFF");
+        verifyNoInteractions(commands);
+    }
+
+    @Test
+    void ordinaryRelayRemainsAvailableAndAnotherCoordinatorsProfileDoesNotClassifyIt() {
+        device.setBridgeDeviceJson("""
+                {"definition":{"exposes":[
+                  {"type":"binary","property":"state","access":3,"value_on":"ON","value_off":"OFF"},
+                  {"type":"numeric","property":"duration","access":2}
+                ]}}
+                """);
+        approve(UUID.randomUUID(), "fixture-v1", definitionHash, true);
+        assertThat(service.capabilities(1, target.ieeeAddress())).isEmpty();
+        service.requireGenericCommandAllowed(1, device, "state", "ON");
+        service.requireGenericCommandAllowed(1, device, "duration", 60);
         verifyNoInteractions(commands);
     }
 }

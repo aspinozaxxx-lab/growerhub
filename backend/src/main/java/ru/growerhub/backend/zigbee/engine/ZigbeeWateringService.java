@@ -25,6 +25,8 @@ import ru.growerhub.backend.zigbee.jpa.ZigbeeDeviceSnapshotRepository;
 
 @Service
 public class ZigbeeWateringService {
+    private static final List<String> IRRIGATION_PROPERTIES = List.of(
+            "watering_duration", "cyclic_timed_irrigation", "cyclic_quantitative_irrigation");
     private final ZigbeeCoordinatorRepository coordinators;
     private final ZigbeeDeviceSnapshotRepository devices;
     private final ZigbeeCommandGateway commands;
@@ -51,7 +53,9 @@ public class ZigbeeWateringService {
         for (JsonNode feature : features(definition(device).path("exposes"))) {
             if (!"binary".equals(feature.path("type").asText()) || (feature.path("access").asInt() & 3) != 3) continue;
             String property = feature.path("property").asText();
-            if (!property.isBlank()) result.add(capability(coordinator, device, property));
+            if (!property.isBlank() && isKnownWateringChannel(coordinator, device, property)) {
+                result.add(capability(coordinator, device, property));
+            }
         }
         return List.copyOf(result);
     }
@@ -123,13 +127,47 @@ public class ZigbeeWateringService {
     public void requireGenericCommandAllowed(Integer coordinatorId, ZigbeeDeviceSnapshotEntity device, String property, Object value) {
         ZigbeeCoordinatorEntity coordinator = coordinators.findByIdAndArchivedAtIsNull(coordinatorId).orElse(null);
         if (coordinator == null) return;
-        for (var capability : capabilities(coordinatorId, device.getIeeeAddress())) {
-            var profile = profile(coordinator, device, capability.property());
-            if (profile != null && (Objects.equals(property, profile.durationProperty())
-                    || (Objects.equals(property, profile.stateProperty()) && !Objects.equals(String.valueOf(value), profile.offValue())))) {
+        for (JsonNode exposed : features(definition(device).path("exposes"))) {
+            String stateProperty = exposed.path("property").asText();
+            if (!isKnownWateringChannel(coordinator, device, stateProperty)) continue;
+            String offValue = exposed.path("value_off").asText(null);
+            if (offValue == null) {
+                offValue = declaredProfiles(coordinator, device).stream()
+                        .filter(p -> Objects.equals(stateProperty, p.stateProperty()))
+                        .map(ZigbeeWateringSettings.VerifiedDevice::offValue).filter(Objects::nonNull).findFirst().orElse(null);
+            }
+            if (isIrrigationSetting(definition(device), property)
+                    || declaredProfiles(coordinator, device).stream().anyMatch(p -> Objects.equals(property, p.durationProperty()))
+                    || (Objects.equals(property, stateProperty) && !Objects.equals(String.valueOf(value), offValue))) {
                 throw new DomainException("bad_request", "Запускайте клапан через полив с ограничением времени");
             }
         }
+    }
+
+    private boolean isKnownWateringChannel(ZigbeeCoordinatorEntity coordinator,
+            ZigbeeDeviceSnapshotEntity device, String property) {
+        if (declaredProfiles(coordinator, device).stream().anyMatch(p -> Objects.equals(property, p.stateProperty()))) return true;
+        if (!"state".equals(property)) return false;
+        if (coordinator.isSimulated() && "Demo valve".equals(definition(device).path("model").asText())) return true;
+        // Priznak poliva ne yavlyaetsya dopuskom: neproverennyj klapan dolzhen byt zashchishchen tozhe.
+        return features(definition(device).path("exposes")).stream()
+                .anyMatch(node -> IRRIGATION_PROPERTIES.contains(node.path("property").asText()));
+    }
+
+    private boolean isIrrigationSetting(JsonNode definition, String property) {
+        return features(definition.path("exposes")).stream()
+                .filter(node -> IRRIGATION_PROPERTIES.contains(node.path("property").asText()))
+                .anyMatch(node -> Objects.equals(property, node.path("property").asText())
+                        || features(node.path("features")).stream()
+                                .anyMatch(child -> Objects.equals(property, child.path("property").asText())));
+    }
+
+    private List<ZigbeeWateringSettings.VerifiedDevice> declaredProfiles(ZigbeeCoordinatorEntity coordinator,
+            ZigbeeDeviceSnapshotEntity device) {
+        // Otzyv dopuska po firmware/hash ne prevrashchaet klapan v obychnyj vyklyuchatel.
+        return settings.verifiedDevices().stream()
+                .filter(p -> Objects.equals(p.coordinatorId(), coordinator.getPublicId())
+                        && Objects.equals(p.ieeeAddress(), device.getIeeeAddress())).toList();
     }
 
     private ZigbeeWateringData.Capability capability(ZigbeeCoordinatorEntity coordinator,

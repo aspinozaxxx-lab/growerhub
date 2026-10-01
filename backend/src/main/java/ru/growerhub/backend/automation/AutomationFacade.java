@@ -2304,6 +2304,10 @@ public class AutomationFacade {
                 var capability = device.watering().stream().filter(c -> Objects.equals(c.property(), binding.getZigbeeProperty())).findFirst().orElse(null);
                 if (capability == null || !capability.ready()) return ResourceStatus.notReady(capability != null ? capability.reason() : "Таймер клапана не проверен");
             }
+            if (isSwitchRole(binding.getRole()) && device.watering().stream().anyMatch(c ->
+                    Objects.equals(c.property(), defaultCommandProperty(binding.getRole(), binding.getCommandProperty())))) {
+                return ResourceStatus.notReady("Назначьте клапан в слот полива");
+            }
             Object value = readZigbeeFeatureValue(device, binding.getZigbeeProperty());
             LocalDateTime ts = device.lastStateAt();
             return new ResourceStatus(
@@ -2398,8 +2402,7 @@ public class AutomationFacade {
             }
             String property = defaultCommandProperty(role, item.commandProperty());
             var device = requireZigbeeDeviceReference(catalog, item.zigbeeCoordinatorId(), item.zigbeeIeeeAddress());
-            if (device.watering().stream().anyMatch(capability -> Objects.equals(property, capability.property())
-                    && capability.maxDurationS() != null)) {
+            if (device.watering().stream().anyMatch(capability -> Objects.equals(property, capability.property()))) {
                 throw new DomainException("bad_request", "Назначьте клапан в слот полива");
             }
             if (!zigbeeHasWritableProperty(
@@ -3280,7 +3283,7 @@ public class AutomationFacade {
                 device.controls().stream().map(this::toZigbeeFeatureData).toList(),
                 device.availability(),
                 device.lastStateAt(),
-                zigbeeFacade.wateringCapabilities(ownedDevice.coordinatorInternalId(), device.ieeeAddress())
+                device.watering()
         );
     }
 
