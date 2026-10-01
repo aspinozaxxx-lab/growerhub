@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import Button from './ui/Button';
 import { ZIGBEE_COORDINATOR_DOWNLOAD_URLS, ZIGBEE_CONNECTOR_DOWNLOAD_URL } from '../domain/siteConfig';
-import { buildBridgeConfig, CONNECTION_MODES, SETUP_PLATFORMS } from '../domain/coordinatorSetup';
-import { getCurrentLocale, translateApp } from '../locales/i18n';
+import { buildConnectorConfig, CONNECTION_MODES, SETUP_PLATFORMS } from '../domain/coordinatorSetup';
+import { translateApp } from '../locales/i18n';
 import './CoordinatorSetup.css';
 
 const downloadTextFile = (name, content) => {
@@ -43,10 +43,9 @@ export function CoordinatorConnectionMode({ value, onChange, children }) {
 function CoordinatorSetup({ setup, connectionMode, onConnectionModeChange, onHide }) {
   const [platform, setPlatform] = useState(SETUP_PLATFORMS.WINDOWS);
   const [localMqtt, setLocalMqtt] = useState({ host: '', port: '1883', username: '', password: '', baseTopic: 'zigbee2mqtt' });
-  const locale = getCurrentLocale();
-  const bridgeConfig = useMemo(
-    () => buildBridgeConfig({ setup, local: localMqtt, locale }),
-    [setup, localMqtt, locale],
+  const connectorConfig = useMemo(
+    () => buildConnectorConfig({ setup, local: localMqtt }),
+    [setup, localMqtt],
   );
 
   if (!setup) return null;
@@ -108,7 +107,7 @@ function CoordinatorSetup({ setup, connectionMode, onConnectionModeChange, onHid
                 <Button onClick={() => downloadTextFile('secret.yaml', setup.secret_yaml)}>{translateApp("Скачать secret.yaml")}</Button>
               </>
             ) : (
-              <Button variant="primary" disabled={!bridgeConfig} onClick={() => downloadTextFile('bridge.conf', bridgeConfig)}>{translateApp("Скачать личный bridge.conf")}</Button>
+              <Button variant="primary" disabled={!connectorConfig} onClick={() => downloadTextFile('connector.json', connectorConfig)}>{translateApp("Скачать личный connector.json")}</Button>
             )}
             {connectionMode === CONNECTION_MODES.BRIDGE ? (
               <a className="gh-btn gh-btn--secondary gh-btn--md" href={ZIGBEE_CONNECTOR_DOWNLOAD_URL}>{translateApp("Скачать модуль связи")}</a>
@@ -151,10 +150,11 @@ function CoordinatorSetup({ setup, connectionMode, onConnectionModeChange, onHid
               <p>{translateApp("Нужен постоянно включённый компьютер с Docker Compose: Linux/Raspberry Pi или Windows с Docker Desktop в режиме Linux containers.")}</p>
               <ol>
                 <li>{translateApp("Распакуйте скачанный модуль связи.")}</li>
-                <li>{translateApp("Положите личный bridge.conf рядом с docker-compose.yml.")}</li>
-                <li>{translateApp("Откройте терминал в этой папке и выполните:")} <code>docker compose up -d</code>.</li>
+                <li>{translateApp("Положите личный connector.json рядом с docker-compose.yml.")}</li>
+                <li>{translateApp("Откройте терминал в этой папке и выполните:")} <code>docker compose up -d --build</code>.</li>
                 <li>{translateApp("Дождитесь статуса «В сети» и появления уже сопряжённых устройств.")}</li>
               </ol>
+              <p>{translateApp("После запуска дождитесь нового сообщения датчика. Сохранённое показание не добавляет точку истории и не подтверждает живую связь.")}</p>
               <p>{translateApp("Для Home Assistant OS запустите модуль связи на другом компьютере с Docker в той же сети. USB-координатор и настройки Zigbee2MQTT остаются на прежнем месте.")}</p>
             </div>
           ) : null}

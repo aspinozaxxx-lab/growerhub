@@ -224,6 +224,9 @@ function AppZigbeeDevices({ embedded = false }) {
                 </div>
               ) : null}
 
+              {!device.last_state_at && [...(device.metrics || []), ...(device.controls || [])].some((feature) => feature.value != null) ? (
+                <p>{translateApp("Сохранённые показания. Ожидаем новое сообщение устройства.")}</p>
+              ) : null}
               <details className="farm-device-card__details">
                 <summary>{translateApp("Подробнее")}</summary>
                 <dl>

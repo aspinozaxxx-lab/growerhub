@@ -35,16 +35,15 @@ Already running Home Assistant, Zigbee2MQTT and sensors? Keep that installation 
 | Zigbee2MQTT and a local MQTT broker | A connector with a separate TLS connection to GrowerHub |
 | Home Assistant entities and dashboards | GrowerHub greenhouse zones, plants, history and scenarios |
 
-Run the connector on an always-on computer with Docker Compose: Linux/Raspberry Pi, or Windows with Docker Desktop using Linux containers. This package is not a Home Assistant OS add-on; for that installation, use a separate Docker computer on the same network. Connector v0.2.2 uses regular Docker networking and does not require host networking.
+Run the connector on an always-on computer with Docker Compose: 64-bit Linux/Raspberry Pi, or Windows with Docker Desktop using Linux containers. This package is not a Home Assistant OS add-on; for that installation, use a separate Docker computer on the same network. Connector v0.2.4 uses regular Docker networking and does not require host networking.
 
 This connects **Zigbee2MQTT devices**. If your Zigbee network uses ZHA in Home Assistant, this connector does not support it yet. GrowerHub does not automatically import arbitrary Home Assistant entities, ESPHome native API sensors, MQTT discovery definitions or old HA history. A sensor appearing in HA does not by itself make it compatible with GrowerHub.
 
-**Before connecting, check these connector v0.2.2 limitations:**
+**Connector v0.2.4 supports full device names**, including `greenhouse/temperature`. Additions and renames update routes automatically. Cached values remain last-known snapshots; they do not create new history measurements or refresh live connection time, including after MQTT reconnection.
 
-- Device names containing `/`, such as `greenhouse/temperature`, are currently unsupported. A device can appear in the inventory while its readings, availability and commands do not pass through. Keep working Home Assistant device names unchanged and ask us for help with that connection.
-- At startup or after reconnecting, the broker can deliver a saved reading that appears new in GrowerHub. ONLINE status, inventory and an updated timestamp alone do not prove a new measurement. Wait for a sensor publication in Zigbee2MQTT after starting the connector and compare it with GrowerHub.
+Transport checks passed on an isolated Mosquitto 2.0.22 testbed with TLS, two connections and disconnects on both sides. These tests do not qualify a physical valve model for watering. Wait for a fresh publication from your real sensor and compare it with GrowerHub.
 
-Until these limitations are resolved, test readings and history while keeping your working automation in Home Assistant. Leave GrowerHub scenarios disabled during this stage. The connector itself shares the inventory and readings of the entire selected Zigbee2MQTT network and allows commands back to it; it has no separate read-only mode or single-device filter.
+The connector shares inventory and readings of the entire selected Zigbee2MQTT network and allows commands back. There is no separate read-only or single-device mode. Keep your working Home Assistant automation during initial checks.
 
 ## 1. Keep your working Zigbee network
 
@@ -59,25 +58,29 @@ Keep Home Assistant’s MQTT integration, the coordinator’s USB connection and
 2. Select “Zigbee2MQTT is already running”. This also applies to Zigbee2MQTT running inside Home Assistant.
 3. Enter a clear name and select “Create connection” in the wizard or “Create” in Settings.
 4. Under Local MQTT, enter the address, port, Zigbee2MQTT base topic, username and password.
-5. Download your personal `bridge.conf` before refreshing the page. Local broker credentials are used in the browser to generate the file and are not sent to GrowerHub.
+5. Download your personal `connector.json` before refreshing the page. Local broker credentials are used in the browser to generate the file and are not sent to GrowerHub.
+
+![GrowerHub connector.json setup form with fictional connection details](/screenshots/en/mqtt-connector-setup.jpg)
+
+The screenshot shows example values. Use your own broker settings and the personal credentials issued by GrowerHub.
 
 Inside the container, `localhost` or `127.0.0.1` refers to the connector itself. Use your MQTT server's LAN address reachable from Docker. If the broker runs on the same Docker Desktop computer, use `host.docker.internal`, as explained in the [Docker documentation](https://docs.docker.com/desktop/features/networking/networking-how-tos/). An HA add-on container hostname may not resolve outside HA. The generated local connection uses TCP; the GrowerHub connection uses TLS on port 8883.
 
 ## 3. Start the connector
 
-Download and extract the [connector v0.2.2 ZIP](https://github.com/aspinozaxxx-lab/growerhub/releases/download/coordinator-v0.2.2/growerhub-zigbee-connector-v0.2.2.zip). Keep `docker-compose.yml`, `mosquitto.conf` and your `bridge.conf` together. The example file is not your personal configuration. An existing Zigbee2MQTT installation needs this connector, rather than the package for starting a new coordinator.
+Download and extract the [connector v0.2.4 ZIP](https://github.com/aspinozaxxx-lab/growerhub/releases/download/coordinator-v0.2.4/growerhub-zigbee-connector-v0.2.4.zip). The directory contains `docker-compose.yml`, `Dockerfile` and connector sources; place your personal `connector.json` there. The example file is not your personal configuration. An existing Zigbee2MQTT installation needs this connector, rather than the package for starting a new coordinator.
 
-Use a separate personal `bridge.conf` for each connection. Version 0.2.2 fixes a conflict between two connectors sharing a local MQTT broker; the archive README explains how to update an older configuration without rotating its password.
+Use a separate personal `connector.json` per connection. Unique client IDs let connectors share a local broker. Old v0.2.2/v0.2.3 packages using `bridge.conf` are not upgraded automatically and retain their limitations. For voluntary migration, stop the old connector, extract the new ZIP separately and prepare JSON. The README covers copying existing credentials locally without password rotation and rolling back. Do not run both versions with one client ID.
 
 Run these commands in that directory:
 
 ```sh
-docker compose up -d
+docker compose up -d --build
 docker compose ps
 docker compose logs --tail=80 connector
 ```
 
-Check the logs for successful connections to both brokers. If a connection fails, check the local broker address, access from Docker and outbound access to `growerhub.ru:8883`. For authentication failures, check local broker access separately from GrowerHub credentials. If the cloud password was lost, issue replacement connection credentials in GrowerHub and update the connector file. After editing it, run `docker compose restart connector`. Do not share passwords or the contents of `bridge.conf`.
+The first start downloads dependencies and builds the module. Look for `local_connected`, `cloud_connected` and `ready` after inventory arrives. If a connection fails, check the local broker address, access from Docker and outbound access to `growerhub.ru:8883`. For authentication failures, check local broker access separately from GrowerHub credentials. If the cloud password was lost, issue replacement connection credentials in GrowerHub and update the file. After editing it, run `docker compose restart connector`. Do not share passwords or the contents of `connector.json`.
 
 ## 4. Verify the first useful result
 
@@ -90,9 +93,9 @@ Check the logs for successful connections to both brokers. If a connection fails
 
 ## Choose which system controls the equipment
 
-The connector forwards state, availability, inventory and Zigbee2MQTT responses to GrowerHub. It forwards `/set`, `/get` and `bridge/request/*` commands back. It does not forward the whole MQTT tree indiscriminately. The directions are defined in the [connector configuration](https://github.com/aspinozaxxx-lab/growerhub/blob/main/zigbee_coordinator/connector/mosquitto-bridge.conf.example).
+The connector shares known devices’ state and availability, inventory, bridge state, sanitized version/coordinator information and supported command responses. Broker configuration, passwords, Zigbee network keys, logs, discovery and command echoes are excluded. Return commands are `/set`, `/get`, pairing and renaming. Ambiguous device names are rejected with diagnostics. Commands are not queued or repeated after a disconnect; check actual state if their result is unknown. See the [connector README](https://github.com/aspinozaxxx-lab/growerhub/blob/main/zigbee_coordinator/connector/README.md).
 
-Use one automatic controller per actuator. For the current pilot, keep that controller in HA until the connector limitations are resolved and fresh readings are verified. An ON/OFF command alone does not qualify a Zigbee valve for GrowerHub irrigation: it needs a verified model and an autonomous timer that closes it when connectivity is lost. No physical Zigbee irrigation models have passed that verification yet. A valve can provide state and history without being a supported watering actuator.
+Use one automatic controller per actuator. For the current pilot, keep that controller in HA until fresh readings are verified and you choose which automation to migrate. An ON/OFF command alone does not qualify a Zigbee valve for GrowerHub irrigation: it needs a verified model and an autonomous timer that closes it when connectivity is lost. No physical Zigbee irrigation models have passed that verification yet. A valve can provide state and history without being a supported watering actuator.
 
 GrowerHub server scenarios need connectivity to the equipment. Local HA rules can operate without the cloud when that is the chosen control arrangement.
 

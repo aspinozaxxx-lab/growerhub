@@ -352,7 +352,7 @@ function AppOnboarding() {
                   <strong>{translateApp("Что проверить")}</strong>
                   {connectionMode === CONNECTION_MODES.BRIDGE ? (
                     <ul>
-                      <li>{translateApp("Проверьте, что Docker работает, а bridge.conf находится рядом с docker-compose.yml.")}</li>
+                      <li>{translateApp("Проверьте, что Docker работает, а connector.json находится рядом с docker-compose.yml.")}</li>
                       <li>{translateApp("Проверьте адрес, порт, базовую тему и учётные данные локального MQTT-брокера.")}</li>
                       <li>{translateApp("Разрешите исходящие подключения к growerhub.ru:8883.")}</li>
                       <li>{translateApp("Посмотрите причину ошибки:")} <code>docker compose logs --tail=50 connector</code>.</li>

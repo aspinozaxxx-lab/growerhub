@@ -12,7 +12,7 @@ export const ZIGBEE_COORDINATOR_DOWNLOAD_URLS = {
   windows: `${GITHUB_RELEASES_URL}/download/coordinator-v0.2.3/growerhub-coordinator-windows-v0.2.3.zip`,
   linux: `${GITHUB_RELEASES_URL}/download/coordinator-v0.2.3/growerhub-coordinator-linux-v0.2.3.zip`,
 };
-export const ZIGBEE_CONNECTOR_DOWNLOAD_URL = `${GITHUB_RELEASES_URL}/download/coordinator-v0.2.2/growerhub-zigbee-connector-v0.2.2.zip`;
+export const ZIGBEE_CONNECTOR_DOWNLOAD_URL = `${GITHUB_RELEASES_URL}/download/coordinator-v0.2.4/growerhub-zigbee-connector-v0.2.4.zip`;
 export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 export const PLATFORM_START_PATH = '/app/login/?lang=ru&redirect=%2Fapp%2Fonboarding%2F';
 

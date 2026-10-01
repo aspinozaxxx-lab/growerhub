@@ -93,7 +93,7 @@ describe('AppOnboarding', () => {
     fireEvent.click(bridge);
     fireEvent.click(await screen.findByRole('button', { name: 'Создать подключение' }));
     expect(await screen.findByRole('heading', { name: 'Локальный MQTT' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Скачать личный bridge.conf' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Скачать личный connector.json' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Скачать configuration.yaml' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Разрешить подключение на 3 минуты' })).not.toBeInTheDocument();
     expect(api.createCoordinator).toHaveBeenCalledExactlyOnceWith('Моя ферма');
@@ -105,7 +105,7 @@ describe('AppOnboarding', () => {
       expect(screen.getByLabelText(label).closest('.ym-hide-content')).not.toBeNull();
     }
     fireEvent.change(screen.getByLabelText('Адрес'), { target: { value: '192.0.2.10' } });
-    expect(screen.getByRole('button', { name: 'Скачать личный bridge.conf' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Скачать личный connector.json' })).toBeEnabled();
   });
 
   it('posle vozvrata ne predlagaet pryamoje podklyuchenie ili rotaciyu bez vybora sposoba', async () => {

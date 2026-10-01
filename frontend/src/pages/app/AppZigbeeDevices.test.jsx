@@ -115,6 +115,17 @@ describe('AppZigbeeDevices', () => {
     });
   });
 
+  it('shows cached values without claiming a fresh measurement', async () => {
+    fetchFarmsOverview.mockResolvedValue({ ...overview, resource_catalog: { zigbee_devices: [
+      { ...overview.resource_catalog.zigbee_devices[0], last_state_at: null, availability: null },
+    ] } });
+    render(<MemoryRouter><AppZigbeeDevices embedded /></MemoryRouter>);
+    expect(await screen.findByText('Сохранённые показания. Ожидаем новое сообщение устройства.')).toBeVisible();
+    const card = screen.getByRole('heading', { name: 'Датчик климата' }).closest('article');
+    expect(card).toHaveTextContent('24');
+    expect(card).not.toHaveTextContent('В сети');
+  });
+
   it('filtruet kartochki po strochke i sostoyaniyu', async () => {
     render(
       <MemoryRouter>

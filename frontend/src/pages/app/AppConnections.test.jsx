@@ -119,7 +119,7 @@ describe('AppConnections', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Уже работает Zigbee2MQTT/u }));
     fireEvent.click(screen.getByRole('button', { name: 'Создать', exact: true }));
     await screen.findByRole('heading', { name: 'Локальный MQTT' });
-    const download = screen.getByRole('button', { name: 'Скачать личный bridge.conf' });
+    const download = screen.getByRole('button', { name: 'Скачать личный connector.json' });
     expect(download).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Скачать configuration.yaml' })).not.toBeInTheDocument();
     for (const label of ['Адрес', 'Порт', 'Базовая тема Zigbee2MQTT', 'Имя пользователя', 'Пароль']) {
@@ -130,13 +130,11 @@ describe('AppConnections', () => {
     fireEvent.change(screen.getByLabelText('Имя пользователя'), { target: { value: 'local-test-user' } });
     fireEvent.change(screen.getByLabelText('Пароль'), { target: { value: 'local-test-secret' } });
     fireEvent.click(download);
-    expect(downloads).toEqual(['bridge.conf']);
+    expect(downloads).toEqual(['connector.json']);
     const config = await DownloadURL.createObjectURL.mock.calls[0][0].text();
-    expect(config).toContain('address 192.0.2.10:1883');
-    expect(config).toContain('remote_password local-test-secret');
-    expect(config).toContain('topic + in 1 relay/from-local/ plants/z2m/');
-    expect(config).toContain('remote_clientid synthetic-user-local');
-    expect(config).not.toContain('topic #');
+    expect(JSON.parse(config).local).toEqual({ host: '192.0.2.10', port: 1883,
+      base_topic: 'plants/z2m', username: 'local-test-user', password: 'local-test-secret' });
+    expect(JSON.parse(config).cloud.client_id).toBe('synthetic-user');
     expect(api.createCoordinator).toHaveBeenCalledExactlyOnceWith('Дополнительный координатор');
     expect(api.rotateCoordinatorCredentials).not.toHaveBeenCalled();
     expect(trackProductGoal).toHaveBeenCalledExactlyOnceWith('coordinator_created', {
@@ -153,7 +151,7 @@ describe('AppConnections', () => {
     await screen.findByRole('heading', { name: 'Сохраните конфигурацию подключения' });
     expect(api.rotateCoordinatorCredentials).toHaveBeenCalledExactlyOnceWith(coordinator.id);
     expect(screen.queryByRole('button', { name: 'Скачать configuration.yaml' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Скачать личный bridge.conf' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Скачать личный connector.json' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Уже работает Zigbee2MQTT/u }));
     expect(screen.getByRole('heading', { name: 'Локальный MQTT' })).toBeInTheDocument();
     expect(api.createCoordinator).not.toHaveBeenCalled();
