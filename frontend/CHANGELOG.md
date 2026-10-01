@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-10-01
+- Onboarding: slot temperatury vozduha nazvan yavno; podskazka na RU/EN poyasnyaet vybor pri nalichii temperatury pochvy.
+
 ## 2026-08-01
 - Devices: kartochka Grovika pokazyvaet tekushchuyu i poslednyuyu versii proshivki, knopku obnovleniya i hod OTA.
 - Devices: uspeshnyj fw_ver, oshibka, timeout i povtornyj zapusk otobrazhayutsya bez perezagruzki stranicy.

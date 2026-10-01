@@ -203,7 +203,7 @@ describe('AppOnboarding', () => {
     await screen.findByRole('heading', { name: 'Создайте первую теплицу' });
     expect(screen.queryByLabelText('Розетка или реле для света')).not.toBeInTheDocument();
     if (!properties.includes('temperature')) {
-      expect(screen.queryByLabelText('Датчик температуры')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Температура воздуха')).not.toBeInTheDocument();
     }
     for (const choice of choices) {
       const select = screen.getByLabelText(choice.label);

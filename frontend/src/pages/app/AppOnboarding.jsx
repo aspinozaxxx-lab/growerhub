@@ -392,16 +392,20 @@ function AppOnboarding() {
                 <input id="zone-name" value={zoneName} onChange={(event) => setZoneName(event.target.value)} maxLength="120" required />
 
                 {[
-                  { label: 'Датчик температуры', features: temperatureFeatures, value: temperatureChoice, setValue: setTemperatureChoice },
+                  { label: 'Температура воздуха', helpId: 'onboarding-air-temperature-help', features: temperatureFeatures, value: temperatureChoice, setValue: setTemperatureChoice },
                   { label: 'Влажность воздуха', features: humidityFeatures, value: humidityChoice, setValue: setHumidityChoice },
                   { label: 'Влажность почвы', features: soilMoistureFeatures, value: soilMoistureChoice, setValue: setSoilMoistureChoice },
-                ].filter(({ features }) => features.length > 0).map(({ label, features, value, setValue }) => (
-                  <label key={label}>{translateApp(label)}<select value={value} onChange={(event) => setValue(event.target.value)}>
+                ].filter(({ features }) => features.length > 0).map(({ label, helpId, features, value, setValue }) => (
+                  <label key={label}>{translateApp(label)}<select value={value} aria-describedby={helpId} onChange={(event) => setValue(event.target.value)}>
                       <option value="">{translateApp("Назначить позже")}</option>
                       {features.map(({ device, feature }) => <option key={`${device.ieee_address}-${feature.property}`} value={encodeFeatureChoice(device, feature)}>{device.friendly_name} · {feature.label || feature.property}</option>)}
                     </select>
                   </label>
                 ))}
+
+                {temperatureFeatures.length > 0 ? (
+                  <p id="onboarding-air-temperature-help">{translateApp('Выберите датчик, который измеряет температуру воздуха. Если датчик измеряет температуру почвы, оставьте этот слот пустым.')}</p>
+                ) : null}
 
                 {writableSwitches.length > 0 ? (
                   <label>{translateApp("Розетка или реле для света")}<select value={lightChoice} onChange={(event) => setLightChoice(event.target.value)}>

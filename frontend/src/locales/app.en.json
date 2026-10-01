@@ -504,6 +504,7 @@
   "Текущие показания назначенных устройств.": "Current readings of assigned devices.",
   "Текущий пароль": "Current password",
   "Температура воздуха": "Air temperature",
+  "Выберите датчик, который измеряет температуру воздуха. Если датчик измеряет температуру почвы, оставьте этот слот пустым.": "Choose a sensor that measures air temperature. If the sensor measures soil temperature, leave this slot empty.",
   "Тип записи": "Record type",
   "Тип растения": "Plant type",
   "Точно удалить растение?": "Delete this plant?",
