@@ -72,7 +72,6 @@ public class PushokCloudBridge {
         private volatile Thread worker;
         private long nextRefresh;
         private long nextPing;
-        private boolean authenticated;
 
         Session(PushokConnection connection) { this.connection = connection; }
         @Override public void run() {
@@ -83,7 +82,6 @@ public class PushokCloudBridge {
                 cloud = new PushokCloudClient(mapper, settings);
                 cloud.connect(connection.hubId(), secrets, connection.hubPublicKey(), "PAIRING".equals(connection.status()));
                 if (!facade.reportPushokPairing(connection.coordinatorId(), connection.attemptAt(), cloud.hubPublicKey(), null)) return;
-                authenticated = true;
                 if (!active || stopping) return;
                 connectMqtt(secrets);
                 refresh();
@@ -104,8 +102,7 @@ public class PushokCloudBridge {
             } catch (Exception error) {
                 String code = error instanceof PushokCloudClient.Failure failure ? failure.code() : "CLOUD_UNAVAILABLE";
                 log.warn("PushOk {}: {}", connection.publicId(), code);
-                if ((!authenticated && "PAIRING".equals(connection.status())) || !"CLOUD_UNAVAILABLE".equals(code))
-                    facade.reportPushokPairing(connection.coordinatorId(), connection.attemptAt(), null, code);
+                facade.reportPushokPairing(connection.coordinatorId(), connection.attemptAt(), null, code);
             } finally {
                 close();
                 retries.put(connection.coordinatorId(), System.currentTimeMillis() + settings.getRetrySeconds() * 1000L);

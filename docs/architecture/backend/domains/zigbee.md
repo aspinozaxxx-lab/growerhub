@@ -13,7 +13,7 @@
 - `startWatering`, `stopWatering`, `isSimulatedCoordinator`
 - `createCoordinator(AuthenticatedUser user, String name)`
 - `isPushokAvailable`, `createPushokCoordinator`, `retryPushokPairing`
-- `getPushokConnections`, `reportPushokPairing` — внутренний контракт технического worker; результат устаревшей попытки не принимается.
+- `getPushokConnections`, `reportPushokPairing` — внутренний контракт технического worker; результат устаревшей попытки не принимается. Временный обрыв подтверждённого хаба переводит координатор в `OFFLINE`, сохраняя `ACTIVE` и доступ для восстановления; ошибки ключа требуют повторной привязки.
 - `listCoordinators(AuthenticatedUser user)`
 - `getCoordinator(AuthenticatedUser user, UUID coordinatorPublicId)`
 - `rotateCoordinatorCredentials(AuthenticatedUser user, UUID coordinatorPublicId)`

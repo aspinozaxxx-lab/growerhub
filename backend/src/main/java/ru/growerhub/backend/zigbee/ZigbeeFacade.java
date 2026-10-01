@@ -436,14 +436,20 @@ public class ZigbeeFacade {
         var connection = pushokRepository.findById(coordinatorId).orElse(null);
         if (coordinator == null || coordinator.isSimulated() || !coordinator.isPushok() || connection == null
                 || !Objects.equals(connection.getAttemptAt(), attemptAt)) return false;
+        LocalDateTime now = LocalDateTime.now(clock);
         if (errorCode == null) connection.paired(publicKey);
         else {
             String safeCode = Set.of("PAIRING_REQUIRED", "CLOUD_UNAVAILABLE", "HUB_IDENTITY_CHANGED", "HUB_PROTOCOL_ERROR", "HUB_COMMAND_REJECTED")
                     .contains(errorCode) ? errorCode : "CLOUD_UNAVAILABLE";
             connection.fail(safeCode);
-            coordinator.setStatus(ZigbeeCoordinatorStatus.ERROR);
+            coordinator.setStatus("ACTIVE".equals(connection.getStatus())
+                    ? ZigbeeCoordinatorStatus.OFFLINE : ZigbeeCoordinatorStatus.ERROR);
+            bridgeRepository.findById(coordinatorId).ifPresent(bridge -> {
+                bridge.setState("offline");
+                bridge.setUpdatedAt(now);
+            });
         }
-        coordinator.setUpdatedAt(LocalDateTime.now(clock));
+        coordinator.setUpdatedAt(now);
         return true;
     }
 

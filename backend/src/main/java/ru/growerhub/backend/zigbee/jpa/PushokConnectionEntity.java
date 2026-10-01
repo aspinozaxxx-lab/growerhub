@@ -30,5 +30,9 @@ public class PushokConnectionEntity {
     public LocalDateTime getAttemptAt() { return attemptAt; }
     public void requestPairing(LocalDateTime now) { status = "PAIRING"; lastError = null; attemptAt = now; }
     public void paired(String publicKey) { hubPublicKey = publicKey; status = "ACTIVE"; lastError = null; }
-    public void fail(String code) { status = "ERROR"; lastError = code; }
+    public void fail(String code) {
+        // Vremennyj obryv podtverzhdennogo huba sohranyaet dostup dlya avtomaticheskogo vosstanovleniya.
+        if (!"CLOUD_UNAVAILABLE".equals(code) || !"ACTIVE".equals(status) || hubPublicKey == null) status = "ERROR";
+        lastError = code;
+    }
 }

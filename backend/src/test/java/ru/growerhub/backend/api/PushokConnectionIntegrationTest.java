@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
@@ -27,6 +28,8 @@ import ru.growerhub.backend.device.contract.DeviceBrokerCredentialGateway;
 import ru.growerhub.backend.pushok.PushokCloudBridge;
 import ru.growerhub.backend.zigbee.ZigbeeFacade;
 import ru.growerhub.backend.zigbee.contract.ZigbeeBrokerCredentialGateway;
+import ru.growerhub.backend.zigbee.contract.ZigbeeMqttMessageType;
+import ru.growerhub.backend.zigbee.contract.ZigbeeMqttSnapshotMessage;
 import ru.growerhub.backend.zigbee.jpa.PushokConnectionRepository;
 import ru.growerhub.backend.zigbee.jpa.ZigbeeCoordinatorRepository;
 import ru.growerhub.backend.user.jpa.UserEntity;
@@ -85,10 +88,68 @@ class PushokConnectionIntegrationTest extends IntegrationTestBase {
         var retry = connections.findByHubId(hub).orElseThrow();
         assertThat(retry.getEncryptedCredentials()).isEqualTo(encrypted);
         facade.reportPushokPairing(initial.getCoordinatorId(), initial.getAttemptAt(), "old-key", null);
+        assertThat(facade.reportPushokPairing(initial.getCoordinatorId(), initial.getAttemptAt(), null, "CLOUD_UNAVAILABLE")).isFalse();
         assertThat(connections.findByHubId(hub).orElseThrow().getStatus()).isEqualTo("PAIRING");
         facade.reportPushokPairing(retry.getCoordinatorId(), retry.getAttemptAt(), "pinned-key", null);
         request(owner).get("/api/zigbee/coordinators/" + id).then().body("connection_status", equalTo("ACTIVE")).body("connection_error", nullValue());
         verify(broker, times(1)).provision(anyString(), anyString(), anyString(), anyString());
+    }
+    @Test void temporaryDisconnectKeepsTheBindingAndRestoresOnlyAfterLiveTraffic() {
+        String id = create();
+        var connection = connections.findByHubId(hub).orElseThrow();
+        var coordinator = coordinators.findByPublicIdAndArchivedAtIsNull(UUID.fromString(id)).orElseThrow();
+        String encrypted = connection.getEncryptedCredentials();
+        LocalDateTime seenAt = LocalDateTime.now(ZoneOffset.UTC).minusMinutes(1).truncatedTo(ChronoUnit.MICROS);
+        var online = new ZigbeeMqttSnapshotMessage(coordinator.getMqttUsername(), coordinator.getBaseTopic(),
+                ZigbeeMqttMessageType.BRIDGE_STATE, coordinator.getBaseTopic() + "/bridge/state", "bridge/state", null,
+                "{\"state\":\"online\"}", Map.of("state", "online"), seenAt, false);
+        facade.reportPushokPairing(connection.getCoordinatorId(), connection.getAttemptAt(), "pinned-key", null);
+        facade.handleMqttSnapshot(online);
+        request(owner).get("/api/zigbee/coordinators/" + id).then().body("status", equalTo("ONLINE"));
+
+        facade.reportPushokPairing(connection.getCoordinatorId(), connection.getAttemptAt(), null, "CLOUD_UNAVAILABLE");
+        request(owner).get("/api/zigbee/coordinators/" + id).then()
+                .body("status", equalTo("OFFLINE")).body("connection_status", equalTo("ACTIVE"))
+                .body("connection_error", equalTo("CLOUD_UNAVAILABLE"));
+        var offline = coordinators.findByPublicIdAndArchivedAtIsNull(UUID.fromString(id)).orElseThrow();
+        assertThat(offline.getLastSeenAt()).isEqualTo(seenAt);
+        var preserved = connections.findByHubId(hub).orElseThrow();
+        assertThat(preserved.getEncryptedCredentials()).isEqualTo(encrypted);
+        assertThat(preserved.getHubPublicKey()).isEqualTo("pinned-key");
+        assertThat(preserved.getAttemptAt()).isEqualTo(connection.getAttemptAt());
+        assertThat(facade.getPushokConnections()).anyMatch(item -> item.publicId().toString().equals(id) && item.status().equals("ACTIVE"));
+        assertThat(facade.getOverview(new ru.growerhub.backend.common.contract.AuthenticatedUser(owner.getId(), "user"), UUID.fromString(id))
+                .bridge().state()).isEqualTo("offline");
+
+        facade.reportPushokPairing(connection.getCoordinatorId(), connection.getAttemptAt(), "pinned-key", null);
+        request(owner).get("/api/zigbee/coordinators/" + id).then()
+                .body("status", equalTo("OFFLINE")).body("connection_error", nullValue());
+        facade.handleMqttSnapshot(new ZigbeeMqttSnapshotMessage(online.mqttUsername(), online.baseTopic(), online.type(),
+                online.topic(), online.relativeTopic(), null, online.rawPayload(), online.payload(), seenAt.plusSeconds(1), true));
+        request(owner).get("/api/zigbee/coordinators/" + id).then().body("status", equalTo("OFFLINE"));
+        facade.handleMqttSnapshot(new ZigbeeMqttSnapshotMessage(online.mqttUsername(), online.baseTopic(), online.type(),
+                online.topic(), online.relativeTopic(), null, online.rawPayload(), online.payload(), seenAt.plusSeconds(2), false));
+        request(owner).get("/api/zigbee/coordinators/" + id).then()
+                .body("status", equalTo("ONLINE")).body("connection_status", equalTo("ACTIVE"));
+        verify(broker, times(1)).provision(anyString(), anyString(), anyString(), anyString());
+        verify(broker, never()).revoke(anyString(), anyString());
+    }
+    @Test void firstConnectionFailureAndChangedHubIdentityStillRequireExplicitRetry() {
+        String id = create();
+        var initial = connections.findByHubId(hub).orElseThrow();
+        facade.reportPushokPairing(initial.getCoordinatorId(), initial.getAttemptAt(), null, "CLOUD_UNAVAILABLE");
+        request(owner).get("/api/zigbee/coordinators/" + id).then()
+                .body("status", equalTo("ERROR")).body("connection_status", equalTo("ERROR"));
+        assertThat(facade.getPushokConnections()).noneMatch(item -> item.publicId().toString().equals(id));
+        request(owner).post("/api/zigbee/pushok/" + id + "/pair").then().statusCode(202);
+        var retry = connections.findByHubId(hub).orElseThrow();
+        facade.reportPushokPairing(retry.getCoordinatorId(), retry.getAttemptAt(), "pinned-key", null);
+        facade.reportPushokPairing(retry.getCoordinatorId(), retry.getAttemptAt(), null, "HUB_IDENTITY_CHANGED");
+        request(owner).get("/api/zigbee/coordinators/" + id).then()
+                .body("status", equalTo("ERROR")).body("connection_status", equalTo("ERROR"))
+                .body("connection_error", equalTo("HUB_IDENTITY_CHANGED"));
+        assertThat(facade.getPushokConnections()).noneMatch(item -> item.publicId().toString().equals(id));
+        assertThat(connections.findByHubId(hub).orElseThrow().getHubPublicKey()).isEqualTo("pinned-key");
     }
     @Test void unverifiedFailedAttemptCannotReserveSomeoneElsesHubForever() {
         String abandoned = create();

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-01
+- PushOk: pri vremennom obryve oblaka, v tom chisle posle restarta backend, koordinator stanovitsya OFFLINE i sohranyaet privyazku dlya avtomaticheskogo vosstanovleniya.
+- Testy: proveren otkaz bez obnuleniya credentials, vosstanovlenie tolko po zhivomu MQTT i ignorirovanie ustarevshej popytki.
+
 ## 2026-08-02
 - Device: dlya Grovika prinimaetsya tolko soil channel 0, legacy channel 1 ignoriruetsya.
 - DB: migraciya V23 udalyaet vtoroj soil-sensor Grovika i ego ustarevshie automation bindings.
