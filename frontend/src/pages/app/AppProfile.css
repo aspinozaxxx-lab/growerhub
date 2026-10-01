@@ -103,3 +103,18 @@
   color: #b6e4c1;
   font-size: 14px;
 }
+
+@media (max-width: 680px) {
+  .app-profile { gap: 9px; min-width: 0; }
+  .profile-card { gap: 8px; padding: 12px; min-width: 0; border-radius: 12px; }
+  .profile-card h3 { font-size: 16px; }
+  .profile-row { gap: 8px; font-size: 13px; align-items: baseline; min-width: 0; }
+  .profile-row > :last-child { min-width: 0; text-align: right; overflow-wrap: anywhere; }
+  .profile-label { font-size: 12px; flex-shrink: 0; }
+  .profile-auth-row { gap: 8px; align-items: center; }
+  .profile-auth-row > :first-child { min-width: 0; overflow-wrap: anywhere; }
+  .profile-auth-status { font-size: 12px; }
+  .profile-auth-actions { gap: 5px; }
+  .profile-auth-actions .gh-btn { font-size: 11px; padding: 6px 8px; white-space: normal; }
+  .profile-timezone-select { max-width: 100%; min-width: 0; font-size: 16px; }
+}

@@ -147,6 +147,7 @@ describe('AppConnections', () => {
     api.rotateCoordinatorCredentials.mockResolvedValue(setup);
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     renderPage();
+    fireEvent.click(await screen.findByText('Настройки подключения'));
     fireEvent.click(await screen.findByRole('button', { name: 'Новые данные доступа' }));
     await screen.findByRole('heading', { name: 'Сохраните конфигурацию подключения' });
     expect(api.rotateCoordinatorCredentials).toHaveBeenCalledExactlyOnceWith(coordinator.id);
@@ -161,6 +162,7 @@ describe('AppConnections', () => {
     api.fetchCoordinators.mockResolvedValue([coordinator]);
     vi.spyOn(window, 'confirm').mockReturnValue(false);
     renderPage();
+    fireEvent.click(await screen.findByText('Настройки подключения'));
     fireEvent.click(await screen.findByRole('button', { name: 'Новые данные доступа' }));
     expect(api.rotateCoordinatorCredentials).not.toHaveBeenCalled();
     expect(api.createCoordinator).not.toHaveBeenCalled();

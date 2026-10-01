@@ -4,20 +4,24 @@ import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
 import Button from '../../components/ui/Button';
 import TelegramContactLink from '../../components/TelegramContactLink';
+import DeviceFilters from '../../components/devices/DeviceFilters';
 import { fetchFarmsOverview, setZigbeeProperty } from '../../api/selfService';
 import {
   SLOT_ROLE_LABELS,
+  EMPTY_DEVICE_FILTERS,
   assignmentsForZigbeeDevice,
   filterZigbeeDevices,
   priorityDeviceMetrics,
 } from '../../features/farm/farmModel';
 import { formatDateTime } from '../../features/dashboard/dashboardModel';
-import { translateApp } from '../../locales/i18n';
+import { getIntlLocale, translateApp } from '../../locales/i18n';
 import './SelfServicePages.css';
 
 const displayValue = (value, unit) => {
   if (value === null || value === undefined || value === '') return '—';
-  return `${String(value)}${unit ? ` ${unit}` : ''}`;
+  const formatted = typeof value === 'number'
+    ? value.toLocaleString(getIntlLocale(), { maximumFractionDigits: 3 }) : String(value);
+  return `${formatted}${unit ? ` ${unit}` : ''}`;
 };
 
 const availabilityLabel = (availability) => {
@@ -33,13 +37,13 @@ function deviceModel(device) {
   return [definition.vendor, definition.model].filter(Boolean).join(' · ');
 }
 
-function AppZigbeeDevices({ embedded = false }) {
+function AppZigbeeDevices({ embedded = false, filters: externalFilters, onOverviewChange }) {
   const [overview, setOverview] = useState(null);
   const [busy, setBusy] = useState('loading');
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState('');
-  const [query, setQuery] = useState('');
-  const [availability, setAvailability] = useState('all');
+  const [localFilters, setLocalFilters] = useState(EMPTY_DEVICE_FILTERS);
+  const filters = externalFilters || localFilters;
   const mounted = useRef(false);
   const refreshing = useRef(false);
 
@@ -50,6 +54,7 @@ function AppZigbeeDevices({ embedded = false }) {
       const next = await fetchFarmsOverview();
       if (mounted.current) {
         setOverview(next);
+        onOverviewChange?.(next);
         setLoadError('');
       }
     } catch (requestError) {
@@ -58,7 +63,7 @@ function AppZigbeeDevices({ embedded = false }) {
       refreshing.current = false;
       if (mounted.current) setBusy((current) => current === 'loading' ? '' : current);
     }
-  }, []);
+  }, [onOverviewChange]);
 
   useEffect(() => {
     mounted.current = true;
@@ -97,8 +102,8 @@ function AppZigbeeDevices({ embedded = false }) {
     [overview],
   );
   const visibleDevices = useMemo(
-    () => filterZigbeeDevices(devices, query, availability),
-    [availability, devices, query],
+    () => filterZigbeeDevices(devices, filters.query, filters.availability, { ...filters, overview }),
+    [devices, filters, overview],
   );
 
   if (busy === 'loading') {
@@ -118,25 +123,8 @@ function AppZigbeeDevices({ embedded = false }) {
       />
       {error || loadError ? <AppPageState kind="error" title={error || loadError} /> : null}
 
-      <div className="farm-device-filters">
-        <label>
-          <span>{translateApp("Поиск")}</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={translateApp("Название, модель или IEEE-адрес")}
-          />
-        </label>
-        <label>
-          <span>{translateApp("Состояние")}</span>
-          <select value={availability} onChange={(event) => setAvailability(event.target.value)}>
-            <option value="all">{translateApp("Все устройства")}</option>
-            <option value="online">{translateApp("В сети")}</option>
-            <option value="offline">{translateApp("Не в сети")}</option>
-          </select>
-        </label>
-      </div>
+      {!externalFilters ? <DeviceFilters overview={overview} filters={localFilters} onChange={setLocalFilters}
+        shown={visibleDevices.length} total={devices.length} /> : null}
 
       {devices.length === 0 ? (
         <AppPageState
@@ -145,7 +133,7 @@ function AppZigbeeDevices({ embedded = false }) {
           hint={translateApp("Откройте «Подключения» или продолжите первое подключение.")}
         />
       ) : null}
-      {devices.length > 0 && visibleDevices.length === 0 ? (
+      {!embedded && devices.length > 0 && visibleDevices.length === 0 ? (
         <AppPageState kind="empty" title={translateApp("По заданным условиям устройств нет")} />
       ) : null}
 
@@ -187,7 +175,7 @@ function AppZigbeeDevices({ embedded = false }) {
                   <div>
                     {assignments.map((assignment) => (
                       <Link
-                        key={`${assignment.zoneId}:${assignment.role}`}
+                        key={`${assignment.scopeType}:${assignment.zoneId}:${assignment.role}`}
                         to="/app/farm/"
                         title={translateApp("Изменить назначение в Конструкторе фермы")}
                       >

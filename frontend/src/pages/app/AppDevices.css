@@ -2,7 +2,15 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
 }
+
+.app-devices__add { display: flex; }
+.app-devices > .app-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.device-claim-details > summary { width: fit-content; min-height: 44px; display: flex; align-items: center; gap: 8px; color: var(--accent); cursor: pointer; }
+.device-claim-details > summary::before { content: '+'; font-size: 20px; }
+.device-claim-details[open] > summary::before { content: '−'; }
+.device-claim-card__intro > h3 { display: none; }
 
 .device-claim-card {
   display: grid;
@@ -42,8 +50,17 @@
   color: var(--text-2);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1180px) {
+  .app-devices > .app-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+  .app-devices { gap: 10px; }
+  .app-devices > .app-grid { grid-template-columns: minmax(0, 1fr); }
+  .device-claim-card { gap: 10px; padding: 12px; }
   .device-claim-form {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
   }
+  .device-claim-form .gh-btn { max-width: 112px; white-space: normal; }
 }

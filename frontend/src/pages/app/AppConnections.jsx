@@ -114,14 +114,19 @@ function AppConnections() {
         <div className="connection-list">
           {coordinators.map((coordinator) => (
             <article key={coordinator.id}>
-              <div><h3>{coordinator.name}</h3><p className="ym-hide-content">{coordinator.transport === 'PUSHOK_CLOUD' ? coordinator.hub_id : coordinator.base_topic}</p>
+              <div><h3>{coordinator.name}</h3>
                 {coordinator.connection_error ? <p role="alert">{pushokError(coordinator.connection_error)}</p> : null}</div>
               <span className={coordinator.status === 'ONLINE' ? 'status-chip is-online' : 'status-chip'}>{STATUS_LABELS[coordinator.status] || translateApp("Статус неизвестен")}</span>
               <div className="connection-meta"><span>{translateApp('device_count', { count: coordinator.device_count })}</span><span>{coordinator.last_seen_at ? translateApp("Связь: {{value1}}", { value1: formatDateTimeDDMMYYYY(coordinator.last_seen_at) }) : translateApp("Ещё не подключался")}</span></div>
-              <div className="inline-actions">{coordinator.transport === 'PUSHOK_CLOUD'
-                ? <PushokConnect coordinator={coordinator} onCreated={() => load()} />
-                : <Button onClick={() => handleRotate(coordinator)} isLoading={busy === coordinator.id}>{translateApp("Новые данные доступа")}</Button>}
-                <Button variant="danger" onClick={() => handleArchive(coordinator)} disabled={busy === coordinator.id}>{translateApp("Архивировать")}</Button></div>
+              {coordinator.transport === 'PUSHOK_CLOUD' ? <div className="inline-actions"><PushokConnect coordinator={coordinator} onCreated={() => load()} /></div> : null}
+              <details className="connection-settings">
+                <summary>{translateApp('Настройки подключения')}</summary>
+                <p className="ym-hide-content">{coordinator.transport === 'PUSHOK_CLOUD' ? coordinator.hub_id : coordinator.base_topic}</p>
+                <div className="inline-actions">
+                  {coordinator.transport !== 'PUSHOK_CLOUD' ? <Button onClick={() => handleRotate(coordinator)} isLoading={busy === coordinator.id}>{translateApp("Новые данные доступа")}</Button> : null}
+                  <Button variant="danger" onClick={() => handleArchive(coordinator)} disabled={busy === coordinator.id}>{translateApp("Архивировать")}</Button>
+                </div>
+              </details>
             </article>
           ))}
           {coordinators.length === 0 ? <AppPageState kind="empty" title={translateApp("Координаторов пока нет")} /> : null}

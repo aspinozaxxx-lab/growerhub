@@ -85,15 +85,32 @@
 
 .farm-zones-settings__greenhouses article {
   display: grid;
+  min-width: 0;
+  border: 1px solid var(--border-1);
+  border-radius: 11px;
+  background: var(--surface-2);
+}
+
+.farm-zones-settings__editor-fields {
+  display: grid;
   grid-template-columns: minmax(180px, 1fr) minmax(180px, 0.8fr) auto auto;
   align-items: end;
   gap: 9px;
   min-width: 0;
   padding: 12px;
-  border: 1px solid var(--border-1);
-  border-radius: 11px;
-  background: var(--surface-2);
 }
+
+.farm-zones-settings__editor > summary { display: flex; align-items: center; gap: 8px; padding: 10px 12px; min-height: 44px; cursor: pointer; }
+.farm-zones-settings__editor > summary strong { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.farm-zones-settings__editor > summary::after { content: '+'; color: var(--accent); font-size: 20px; }
+.farm-zones-settings__editor[open] > summary::after { content: '−'; }
+.farm-zones-settings__editor[open] > summary { border-bottom: 1px solid var(--border-1); }
+.farm-zones-settings__create-panel > summary,
+.farm-zones-settings__add-panel > summary { min-height: 44px; display: flex; align-items: center; gap: 7px; color: var(--accent); cursor: pointer; }
+.farm-zones-settings__create-panel > summary::before,
+.farm-zones-settings__add-panel > summary::before { content: '+'; font-size: 20px; }
+.farm-zones-settings__create-panel[open] > summary::before,
+.farm-zones-settings__add-panel[open] > summary::before { content: '−'; }
 
 .farm-zones-settings__actions {
   display: flex;
@@ -106,22 +123,32 @@
 }
 
 @media (max-width: 860px) {
-  .farm-zones-settings__greenhouses article {
+  .farm-zones-settings__editor-fields {
     grid-template-columns: 1fr 1fr;
   }
 }
 
-@media (max-width: 560px) {
-  .farm-zones-settings__greenhouses article {
-    grid-template-columns: 1fr;
+@media (max-width: 680px) {
+  .farm-zones-settings { gap: 8px; }
+  .farm-zones-settings__intro { font-size: 12px; line-height: 1.4; }
+  .farm-zones-settings__editor-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 10px;
+    gap: 8px;
   }
-
-  .farm-zones-settings__actions,
-  .farm-zones-settings__actions .gh-btn {
-    width: 100%;
-  }
-
-  .farm-zones-settings__farm {
-    padding: 13px;
-  }
+  .farm-zones-settings__farm { padding: 10px; gap: 8px; border-radius: 12px; }
+  .farm-zones-settings__farm-fields { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; }
+  .farm-zones-settings__farm-fields > .gh-btn { width: 100%; }
+  .farm-zones-settings__farm-fields > .gh-btn:last-child { min-width: 84px; }
+  .farm-zones-settings__create,
+  .farm-zones-settings__add-greenhouse { padding: 10px; gap: 8px; }
+  .farm-zones-settings__greenhouses { gap: 5px; }
+  .farm-zones-settings__editor > summary { padding: 7px 9px; font-size: 13px; }
+  .farm-zones-settings__editor .status-chip { font-size: 10px; flex-shrink: 0; }
+  .farm-zones-settings__actions { gap: 5px; justify-content: flex-end; }
+  .farm-zones-settings__actions .gh-btn { font-size: 11px; padding: 6px 8px; }
+  .farm-zones-settings label { font-size: 11px; }
+  .farm-zones-settings input,
+  .farm-zones-settings select { font-size: 16px; min-height: 44px; padding: 6px 8px; }
+  .farm-zones-settings__toggle input { min-height: 17px; }
 }

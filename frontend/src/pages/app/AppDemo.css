@@ -61,4 +61,13 @@
   .demo-banner .demo-actions { display: grid; gap: 4px; }
   .demo-banner .demo-link { min-height: 44px; }
   .demo-banner .demo-reset { margin-left: 0; }
+  .demo-tools { min-width: 0; }
+  .demo-tools__grid { gap: 10px; margin-top: 12px; }
+  .demo-tool-card { min-width: 0; padding: 12px; border-radius: 12px; }
+  .demo-tool-card h2 { font-size: 17px; margin-bottom: 10px; }
+  .demo-tool-card form { gap: 7px; }
+  .demo-tool-card label { font-size: 12px; }
+  .demo-tool-card p { font-size: 12px; line-height: 1.4; }
+  .demo-tool-card input:not([type=checkbox]), .demo-tool-card select { min-width: 0; font-size: 16px; padding: 7px 9px; }
+  .demo-tool-card button { min-height: 44px; margin-top: 4px; }
 }

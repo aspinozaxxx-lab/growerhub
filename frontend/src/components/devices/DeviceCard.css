@@ -2,7 +2,16 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
 }
+.device-card__header > div { min-width: 0; overflow-wrap: anywhere; }
+.device-card__status { flex-shrink: 0; }
+.device-card__subtitle { overflow-wrap: anywhere; }
+.device-card__details { border-top: 1px solid var(--border-1); padding-top: 8px; }
+.device-card__details > summary { color: var(--accent); cursor: pointer; }
+.device-card__details .device-card__body { margin-top: 8px; }
+.device-card__roles a { display: grid; gap: 3px; }
+.device-card__roles a span { color: var(--text-2); font-size: 12px; }
 
 .device-card__header {
   display: flex;
@@ -165,4 +174,31 @@
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+@media (max-width: 680px) {
+  .device-card.gh-surface { padding: 12px; border-radius: 12px; gap: 9px; }
+  .device-card__title { font-size: 15px; }
+  .device-card__status { font-size: 11px; }
+  .device-card__roles { gap: 4px; font-size: 12px; }
+  .device-card__roles > span { display: none; }
+  .device-card__roles a span { font-size: 11px; line-height: 1.35; }
+  .device-card__section { gap: 5px; }
+  .device-card__section--sensors { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .device-card__section--sensors > .device-card__section-title,
+  .device-card__section--sensors > .device-card__empty { grid-column: 1 / -1; }
+  .device-card__section-title { font-size: 10px; }
+  .device-card__item { padding: 6px; border-radius: 8px; gap: 5px; min-width: 0; background: var(--surface-2); }
+  .device-card__item-main { min-width: 0; gap: 4px; width: 100%; }
+  .device-card__item-title { font-size: 10px; line-height: 1.25; overflow-wrap: anywhere; }
+  .device-card__section--sensors .device-card__item-main { height: 100%; justify-content: space-between; }
+  .device-card__section--sensors .sensor-pill { min-height: 44px; padding: 4px; gap: 3px; flex-wrap: wrap; }
+  .device-card__section--sensors .sensor-pill__icon { width: 16px; height: 16px; }
+  .device-card__section--sensors .sensor-pill__value { font-size: 12px; gap: 2px; flex-wrap: wrap; }
+  .device-card__section--sensors .sensor-pill__indicator { width: 14px; height: 14px; }
+  .device-card__details > summary { min-height: 36px; font-size: 12px; display: flex; align-items: center; }
+  .device-card__details > summary::after { content: '+'; margin-left: auto; font-size: 18px; }
+  .device-card__details[open] > summary::after { content: '−'; }
+  .device-card__section--pumps > .device-card__section-title { display: none; }
+  .device-card__section--pumps .device-card__item--idle .device-card__item-main { flex-direction: row; align-items: center; justify-content: space-between; gap: 7px; min-height: 28px; }
 }

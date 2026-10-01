@@ -171,3 +171,17 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 680px) {
+  .onboarding-card { gap: 10px; padding: 12px; min-width: 0; }
+  .onboarding-card h2 { font-size: 18px; }
+  .onboarding-card p, .onboarding-card li { font-size: 13px; line-height: 1.45; }
+  .onboarding-choice-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .choice-card { min-width: 0; padding: 10px; gap: 5px; font-size: 13px; overflow-wrap: anywhere; }
+  .choice-card span { font-size: 11px; line-height: 1.4; }
+  .onboarding-form label, .onboarding-fields label { font-size: 12px; }
+  .onboarding-local-mqtt { padding: 10px; }
+  .onboarding-actions { gap: 7px; }
+  .onboarding-actions .gh-btn { min-height: 44px; max-width: 100%; white-space: normal; font-size: 12px; }
+  .onboarding-form :is(input, select), .onboarding-fields input { min-width: 0; font-size: 16px; min-height: 44px; }
+}

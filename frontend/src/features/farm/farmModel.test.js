@@ -5,6 +5,7 @@ import {
   buildSlotOccupancy,
   createScenarioDrafts,
   filterZigbeeDevices,
+  filterNativeDevices,
   farmOverviewToDashboardRooms,
   findUnassignedFarmPlants,
   findSlotConflicts,
@@ -192,6 +193,8 @@ describe('farm model', () => {
     })).toEqual([{
       zoneId: 2,
       zoneName: 'Ферма · Теплица 2',
+      farmId: 1,
+      scopeType: 'greenhouse',
       role: 'LIGHT_SWITCH',
     }]);
   });
@@ -230,11 +233,15 @@ describe('farm model', () => {
       {
         zoneId: 2,
         zoneName: 'Ферма · Теплица 2',
+        farmId: 1,
+        scopeType: 'greenhouse',
         role: 'SOIL_MOISTURE_SENSOR',
       },
       {
         zoneId: 2,
         zoneName: 'Ферма · Теплица 2',
+        farmId: 1,
+        scopeType: 'greenhouse',
         role: 'WATER_PUMP',
       },
     ]);
@@ -275,5 +282,41 @@ describe('farm model', () => {
     expect(filterZigbeeDevices(devices, '', 'online')).toHaveLength(1);
     expect(filterZigbeeDevices(devices, 'zbmini', 'all')[0].friendly_name).toBe('Реле света');
     expect(filterZigbeeDevices(devices, '0x01', 'all')[0].friendly_name).toBe('Датчик климата');
+  });
+
+  it('ne smeshivaet odinakovye ID zon i IEEE raznyh podklyuchenij pri filtracii', () => {
+    const devices = [
+      { coordinator_id: 'a', ieee_address: '0x01', availability: 'online' },
+      { coordinator_id: 'b', ieee_address: '0x01', availability: 'online' },
+      { coordinator_id: 'a', ieee_address: '0x02', availability: 'online' },
+    ];
+    const overview = { farms: [{ id: 1, name: 'Ферма', slots: [{
+      source_type: 'ZIGBEE_DEVICE', zigbee_coordinator_id: 'a', zigbee_ieee_address: '0x02', role: 'AC_SWITCH',
+    }], greenhouses: [{ id: 1, name: 'Теплица', slots: [{
+      source_type: 'ZIGBEE_DEVICE', zigbee_coordinator_id: 'a', zigbee_ieee_address: '0x01', role: 'SOIL_MOISTURE_SENSOR',
+    }] }] }] };
+    expect(filterZigbeeDevices(devices, '', 'all', { overview, placement: 'greenhouse:1' })).toEqual([devices[0]]);
+    expect(filterZigbeeDevices(devices, '', 'all', { overview, placement: 'farm:1' })).toEqual([devices[0], devices[2]]);
+    expect(filterZigbeeDevices(devices, '', 'all', { overview, placement: 'unassigned' })).toEqual([devices[1]]);
+    expect(filterZigbeeDevices(devices, '', 'online', { overview, placement: 'unassigned', source: 'a' })).toEqual([]);
+    expect(filterZigbeeDevices(devices, '', 'all', { overview, source: 'native' })).toEqual([]);
+  });
+
+  it('primenyaet te zhe filtry k native ustrojstvam bez izmeneniya naznachenij', () => {
+    const devices = [
+      { id: 10, name: 'Рассада', device_id: 'GROVIKA_123ABC', is_online: true, sensors: [{ id: 21 }] },
+      { id: 11, name: 'Томаты', device_id: 'GROVIKA_456DEF', is_online: false, pumps: [{ id: 31 }] },
+      { id: 12, name: 'Новое устройство', is_online: true },
+    ];
+    const overview = { farms: [{ id: 1, greenhouses: [{ id: 2, slots: [
+      { source_type: 'NATIVE_SENSOR', native_sensor_id: 21 },
+      { source_type: 'NATIVE_PUMP', native_pump_id: 31 },
+    ] }] }] };
+    const before = structuredClone({ devices, overview });
+    expect(filterNativeDevices(devices, overview, { placement: 'greenhouse:2', availability: 'online' })).toEqual([devices[0]]);
+    expect(filterNativeDevices(devices, overview, { query: '456def', source: 'native' })).toEqual([devices[1]]);
+    expect(filterNativeDevices(devices, overview, { placement: 'unassigned' })).toEqual([devices[2]]);
+    expect(filterNativeDevices(devices, overview, { source: 'a' })).toEqual([]);
+    expect({ devices, overview }).toEqual(before);
   });
 });

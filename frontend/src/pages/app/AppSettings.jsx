@@ -11,7 +11,7 @@ function AppSettings() {
   return (
     <div className="app-settings">
       <AppPageHeader title={translateApp("Настройки")} />
-      <nav className="app-settings__tabs" aria-label={translateApp("Разделы настроек")}>
+      <nav className="app-settings__tabs" style={{ '--settings-tab-count': tabs.length }} aria-label={translateApp("Разделы настроек")}>
         {tabs.map((tab) => (
           <NavLink
             key={tab.to}

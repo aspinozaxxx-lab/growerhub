@@ -201,4 +201,25 @@ describe('AppDevices', () => {
     expect(await screen.findByTestId('device-card'))
       .toHaveTextContent('Ферма · Теплица · WATER_PUMP');
   });
+
+  it('obshchij filtr zon rabotaet i dlya Grovika, schitaet Zigbee i sbros ne menyaet ustrojstva', async () => {
+    fetchMyDevices.mockResolvedValue([{ id: 7, name: 'Рассада', device_id: 'GROVIKA_040AB1', is_online: true, sensors: [{ id: 21 }] }]);
+    fetchFarmsOverview.mockResolvedValue({ farms: [{ id: 1, name: 'Ферма', greenhouses: [{ id: 2, name: 'Рассада', slots: [{
+      role: 'SOIL_MOISTURE_SENSOR', source_type: 'NATIVE_SENSOR', native_sensor_id: 21,
+    }] }] }], resource_catalog: { zigbee_devices: [{ coordinator_id: 'test-coordinator', friendly_name: 'Реле', ieee_address: '0x01', availability: 'online' }] } });
+    render(<AppDevices />);
+    await screen.findByTestId('device-card');
+    expect(screen.getByText('Показано 2 из 2')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Размещение'), { target: { value: 'greenhouse:2' } });
+    expect(screen.getByTestId('device-card')).toBeInTheDocument();
+    expect(screen.getByText('Показано 1 из 2')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Размещение'), { target: { value: 'unassigned' } });
+    expect(screen.queryByTestId('device-card')).not.toBeInTheDocument();
+    expect(screen.getByText('Показано 1 из 2')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Сбросить фильтры' }));
+    expect(screen.getByTestId('device-card')).toBeInTheDocument();
+    expect(screen.getByText('Показано 2 из 2')).toBeInTheDocument();
+    expect(claimDevice).not.toHaveBeenCalled();
+    expect(triggerDeviceFirmwareUpdate).not.toHaveBeenCalled();
+  });
 });

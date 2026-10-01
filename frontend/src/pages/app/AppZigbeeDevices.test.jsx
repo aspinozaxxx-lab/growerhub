@@ -134,13 +134,13 @@ describe('AppZigbeeDevices', () => {
     );
 
     await screen.findByRole('heading', { name: 'Датчик климата' });
-    fireEvent.change(screen.getByPlaceholderText('Название, модель или IEEE-адрес'), {
+    fireEvent.change(screen.getByPlaceholderText('Название, модель или ID'), {
       target: { value: 'ZBMINI' },
     });
     expect(screen.queryByRole('heading', { name: 'Датчик климата' })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Реле света' })).toBeInTheDocument();
 
-    fireEvent.change(screen.getByDisplayValue('Все устройства'), {
+    fireEvent.change(screen.getByLabelText('Состояние'), {
       target: { value: 'online' },
     });
     expect(screen.getByText('По заданным условиям устройств нет')).toBeInTheDocument();
@@ -152,7 +152,7 @@ describe('AppZigbeeDevices', () => {
     let view;
     await act(async () => { view = render(<MemoryRouter><AppZigbeeDevices /></MemoryRouter>); });
     const card = screen.getByRole('heading', { name: 'Датчик климата' }).closest('article');
-    const query = screen.getByPlaceholderText('Название, модель или IEEE-адрес');
+    const query = screen.getByPlaceholderText('Название, модель или ID');
     fireEvent.change(query, { target: { value: 'Aqara' } });
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Включить' })); });
     expect(card.querySelector('.farm-device-card__state > strong')).toHaveTextContent('OFF');
@@ -169,6 +169,24 @@ describe('AppZigbeeDevices', () => {
     const requests = fetchFarmsOverview.mock.calls.length;
     await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
     expect(fetchFarmsOverview).toHaveBeenCalledTimes(requests);
+  });
+
+  it('sohranyaet filtr teplicy pri obnovlenii i sbros ne otpravlyaet komandy', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    await act(async () => { render(<MemoryRouter><AppZigbeeDevices /></MemoryRouter>); });
+    fireEvent.change(screen.getByLabelText('Размещение'), { target: { value: 'greenhouse:2' } });
+    expect(screen.getByRole('heading', { name: 'Датчик климата' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Реле света' })).not.toBeInTheDocument();
+    expect(screen.getByText('Показано 1 из 2')).toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(screen.getByLabelText('Размещение')).toHaveValue('greenhouse:2');
+    fireEvent.change(screen.getByLabelText('Размещение'), { target: { value: 'unassigned' } });
+    expect(screen.getByRole('heading', { name: 'Реле света' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Сбросить фильтры' }));
+    expect(screen.getByRole('heading', { name: 'Датчик климата' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Размещение')).toHaveValue('all');
+    expect(setZigbeeProperty).not.toHaveBeenCalled();
   });
 
   it('fonovoe chtenie ne skryvaet oshibku komandy i ne povtoryaet ee', async () => {

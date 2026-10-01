@@ -1,4 +1,13 @@
 {
+  "Название, модель или ID": "Name, model or ID",
+  "Без назначения": "Unassigned",
+  "Вся ферма: {{value1}}": "Whole farm: {{value1}}",
+  "Любое состояние": "Any status",
+  "Все подключения": "All connections",
+  "Показано {{value1}} из {{value2}}": "Showing {{value1}} of {{value2}}",
+  "Сбросить фильтры": "Reset filters",
+  "Информация об устройстве": "Device information",
+  "Настройки подключения": "Connection settings",
   "В Управляторе нажмите имя шлюза сверху, затем шестерёнку рядом с ним. В «Информации о шлюзе» скопируйте «ID шлюза». Название шлюза и IP-адрес не подходят.": "In Upravlyator, tap the hub name at the top, then the gear beside it. In Hub information, copy the Hub ID. The display name and IP address will not work.",
   "Помощь с ПушОк и моя заявка": "PushOk help and my request",
   "Помощь с ПушОк": "PushOk help",

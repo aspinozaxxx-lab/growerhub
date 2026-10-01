@@ -61,6 +61,7 @@ const SCENARIO_DEFAULTS = {
 };
 
 export const listOrEmpty = (value) => (Array.isArray(value) ? value : []);
+export const EMPTY_DEVICE_FILTERS = { query: '', availability: 'all', placement: 'all', source: 'all' };
 
 export const overviewFarms = (overview) => listOrEmpty(overview?.farms);
 
@@ -224,10 +225,12 @@ export function listFarmWarnings(overview) {
 
 function assignmentScopes(overview) {
   return overviewFarms(overview).flatMap((farm) => [
-    { ...farm, assignmentName: farm.name },
+    { ...farm, assignmentName: farm.name, assignmentFarmId: farm.id, assignmentScopeType: 'farm' },
     ...listOrEmpty(farm.greenhouses).map((greenhouse) => ({
       ...greenhouse,
       assignmentName: `${farm.name} · ${greenhouse.name}`,
+      assignmentFarmId: farm.id,
+      assignmentScopeType: 'greenhouse',
     })),
   ]);
 }
@@ -248,6 +251,8 @@ export function assignmentsForZigbeeDevice(overview, device) {
       .map((slot) => ({
         zoneId: scope.id,
         zoneName: scope.assignmentName,
+        farmId: scope.assignmentFarmId,
+        scopeType: scope.assignmentScopeType,
         role: slot.role,
       }))
   ));
@@ -277,6 +282,8 @@ export function assignmentsForNativeDevice(overview, device) {
       .map((slot) => ({
         zoneId: scope.id,
         zoneName: scope.assignmentName,
+        farmId: scope.assignmentFarmId,
+        scopeType: scope.assignmentScopeType,
         role: slot.role,
       }))
   ));
@@ -305,10 +312,36 @@ export function priorityDeviceMetrics(device, limit = 6) {
   return result.slice(0, limit);
 }
 
-export function filterZigbeeDevices(devices, query = '', availability = 'all') {
+export function matchesDevicePlacement(assignments, placement = 'all') {
+  if (placement === 'all') return true;
+  if (placement === 'unassigned') return assignments.length === 0;
+  const [scopeType, id] = placement.split(':');
+  return assignments.some((assignment) => (scopeType === 'farm'
+    ? String(assignment.farmId) === id
+    : assignment.scopeType === 'greenhouse' && String(assignment.zoneId) === id));
+}
+
+export function filterNativeDevices(devices, overview, filters = {}) {
+  const { query = '', availability = 'all', placement = 'all', source = 'all' } = filters;
+  if (source !== 'all' && source !== 'native') return [];
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  return listOrEmpty(devices).filter((device) => {
+    const status = device.is_online === true ? 'online' : device.is_online === false ? 'offline' : 'unknown';
+    return (availability === 'all' || availability === status)
+      && [device.name, device.device_id, device.hw_profile].filter(Boolean)
+        .join(' ').toLocaleLowerCase().includes(normalizedQuery)
+      && matchesDevicePlacement(assignmentsForNativeDevice(overview, device), placement);
+  });
+}
+
+export function filterZigbeeDevices(devices, query = '', availability = 'all', options = {}) {
+  const { overview, placement = 'all', source = 'all' } = options;
+  if (source === 'native') return [];
   const normalizedQuery = String(query).trim().toLocaleLowerCase();
   return listOrEmpty(devices).filter((device) => {
-    if (availability !== 'all' && device?.availability !== availability) {
+    if (source !== 'all' && String(device?.coordinator_id) !== source) return false;
+    if (!matchesDevicePlacement(assignmentsForZigbeeDevice(overview, device), placement)) return false;
+    if (availability !== 'all' && (device?.availability || 'unknown') !== availability) {
       return false;
     }
     if (!normalizedQuery) {

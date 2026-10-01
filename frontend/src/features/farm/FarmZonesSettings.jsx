@@ -159,25 +159,28 @@ function FarmZonesSettings() {
       {error ? <AppPageState kind="error" title={error} /> : null}
       {notice ? <div className="farm-zones-settings__notice" role="status">{notice}</div> : null}
 
-      <form className="farm-zones-settings__create" onSubmit={addFarm}>
-        <label>
-          <span>{translateApp('Новая ферма')}</span>
-          <input
-            value={newFarmName}
-            onChange={(event) => setNewFarmName(event.target.value)}
-            placeholder={translateApp('Например, Основное помещение')}
-            maxLength="120"
-          />
-        </label>
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={!newFarmName.trim()}
-          isLoading={busy === 'farm:create'}
-        >
-          {translateApp('Добавить ферму')}
-        </Button>
-      </form>
+      <details className="farm-zones-settings__create-panel" open={farms.length === 0}>
+        <summary>{translateApp('Добавить ферму')}</summary>
+        <form className="farm-zones-settings__create" onSubmit={addFarm}>
+          <label>
+            <span>{translateApp('Новая ферма')}</span>
+            <input
+              value={newFarmName}
+              onChange={(event) => setNewFarmName(event.target.value)}
+              placeholder={translateApp('Например, Основное помещение')}
+              maxLength="120"
+            />
+          </label>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={!newFarmName.trim()}
+            isLoading={busy === 'farm:create'}
+          >
+            {translateApp('Добавить ферму')}
+          </Button>
+        </form>
+      </details>
 
       {farms.length === 0 ? (
         <AppPageState kind="empty" title={translateApp('Ферм пока нет')} />
@@ -241,101 +244,114 @@ function FarmZonesSettings() {
                     };
                     return (
                       <article key={greenhouse.id}>
-                        <label>
-                          <span>{translateApp('Название теплицы')}</span>
-                          <input
-                            value={draft.name}
-                            onChange={(event) => patchGreenhouse(
-                              greenhouse.id,
-                              { name: event.target.value },
-                            )}
-                            maxLength="120"
-                          />
-                        </label>
-                        <label>
-                          <span>{translateApp('Ферма')}</span>
-                          <select
-                            value={draft.farm_id}
-                            onChange={(event) => patchGreenhouse(
-                              greenhouse.id,
-                              { farm_id: Number(event.target.value) },
-                            )}
-                          >
-                            {farms.map((targetFarm) => (
-                              <option key={targetFarm.id} value={targetFarm.id}>
-                                {targetFarm.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="farm-zones-settings__toggle">
-                          <input
-                            type="checkbox"
-                            checked={draft.enabled}
-                            onChange={(event) => patchGreenhouse(
-                              greenhouse.id,
-                              { enabled: event.target.checked },
-                            )}
-                          />
-                          <span>{translateApp('Активна')}</span>
-                        </label>
-                        <div className="farm-zones-settings__actions">
-                          <Button
-                            size="sm"
-                            disabled={!draft.name.trim()}
-                            isLoading={busy === `greenhouse:${greenhouse.id}:save`}
-                            onClick={() => runAction(
-                              `greenhouse:${greenhouse.id}:save`,
-                              () => updateGreenhouse(greenhouse.id, {
-                                farm_id: draft.farm_id,
-                                name: draft.name.trim(),
-                                enabled: draft.enabled,
-                              }),
-                              translateApp('Теплица сохранена'),
-                            )}
-                          >
-                            {translateApp('Сохранить')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                            isLoading={busy === `greenhouse:${greenhouse.id}:delete`}
-                            onClick={() => removeGreenhouse(greenhouse)}
-                          >
-                            {translateApp('Удалить')}
-                          </Button>
-                        </div>
+                        <details className="farm-zones-settings__editor">
+                          <summary>
+                            <strong>{greenhouse.name}</strong>
+                            <span className={greenhouse.enabled !== false ? 'status-chip is-online' : 'status-chip'}>
+                              {translateApp(greenhouse.enabled !== false ? 'Активна' : 'Отключена')}
+                            </span>
+                          </summary>
+                          <div className="farm-zones-settings__editor-fields">
+                            <label>
+                              <span>{translateApp('Название теплицы')}</span>
+                              <input
+                                value={draft.name}
+                                onChange={(event) => patchGreenhouse(
+                                  greenhouse.id,
+                                  { name: event.target.value },
+                                )}
+                                maxLength="120"
+                              />
+                            </label>
+                            <label>
+                              <span>{translateApp('Ферма')}</span>
+                              <select
+                                value={draft.farm_id}
+                                onChange={(event) => patchGreenhouse(
+                                  greenhouse.id,
+                                  { farm_id: Number(event.target.value) },
+                                )}
+                              >
+                                {farms.map((targetFarm) => (
+                                  <option key={targetFarm.id} value={targetFarm.id}>
+                                    {targetFarm.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <label className="farm-zones-settings__toggle">
+                              <input
+                                type="checkbox"
+                                checked={draft.enabled}
+                                onChange={(event) => patchGreenhouse(
+                                  greenhouse.id,
+                                  { enabled: event.target.checked },
+                                )}
+                              />
+                              <span>{translateApp('Активна')}</span>
+                            </label>
+                            <div className="farm-zones-settings__actions">
+                              <Button
+                                size="sm"
+                                disabled={!draft.name.trim()}
+                                isLoading={busy === `greenhouse:${greenhouse.id}:save`}
+                                onClick={() => runAction(
+                                  `greenhouse:${greenhouse.id}:save`,
+                                  () => updateGreenhouse(greenhouse.id, {
+                                    farm_id: draft.farm_id,
+                                    name: draft.name.trim(),
+                                    enabled: draft.enabled,
+                                  }),
+                                  translateApp('Теплица сохранена'),
+                                )}
+                              >
+                                {translateApp('Сохранить')}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                isLoading={busy === `greenhouse:${greenhouse.id}:delete`}
+                                onClick={() => removeGreenhouse(greenhouse)}
+                              >
+                                {translateApp('Удалить')}
+                              </Button>
+                            </div>
+                          </div>
+                        </details>
                       </article>
                     );
                   })}
                 </div>
 
-                <form
-                  className="farm-zones-settings__add-greenhouse"
-                  onSubmit={(event) => addGreenhouse(event, farm)}
-                >
-                  <label>
-                    <span>{translateApp('Новая теплица')}</span>
-                    <input
-                      value={newGreenhouseNames[farm.id] || ''}
-                      onChange={(event) => setNewGreenhouseNames((current) => ({
-                        ...current,
-                        [farm.id]: event.target.value,
-                      }))}
-                      placeholder={translateApp('Например, Южная теплица')}
-                      maxLength="120"
-                    />
-                  </label>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    variant="secondary"
-                    disabled={!String(newGreenhouseNames[farm.id] || '').trim()}
-                    isLoading={busy === `farm:${farm.id}:greenhouse:create`}
+                <details className="farm-zones-settings__add-panel">
+                  <summary>{translateApp('Добавить теплицу')}</summary>
+                  <form
+                    className="farm-zones-settings__add-greenhouse"
+                    onSubmit={(event) => addGreenhouse(event, farm)}
                   >
-                    {translateApp('Добавить теплицу')}
-                  </Button>
-                </form>
+                    <label>
+                      <span>{translateApp('Новая теплица')}</span>
+                      <input
+                        value={newGreenhouseNames[farm.id] || ''}
+                        onChange={(event) => setNewGreenhouseNames((current) => ({
+                          ...current,
+                          [farm.id]: event.target.value,
+                        }))}
+                        placeholder={translateApp('Например, Южная теплица')}
+                        maxLength="120"
+                      />
+                    </label>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      variant="secondary"
+                      disabled={!String(newGreenhouseNames[farm.id] || '').trim()}
+                      isLoading={busy === `farm:${farm.id}:greenhouse:create`}
+                    >
+                      {translateApp('Добавить теплицу')}
+                    </Button>
+                  </form>
+                </details>
               </section>
             );
           })}

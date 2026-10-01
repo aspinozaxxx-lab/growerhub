@@ -157,6 +157,10 @@
   overflow-wrap: anywhere;
 }
 
+.connection-settings { grid-column: 1 / -1; min-width: 0; color: var(--text-3); font-size: 12px; }
+.connection-settings > summary { width: fit-content; min-height: 44px; align-content: center; color: var(--accent); cursor: pointer; }
+.connection-settings > p { margin: 5px 0 8px; }
+
 .compact-form {
   display: flex;
   align-items: end;
@@ -252,9 +256,13 @@
 
 .farm-device-filters {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(170px, 230px);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
 }
+
+.device-filters { display: grid; gap: 5px; min-width: 0; }
+.device-filters__summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--text-3); font-size: 12px; }
+.device-filters__summary button { border: 0; background: transparent; color: var(--accent); font: inherit; padding: 5px; cursor: pointer; min-height: 36px; }
 
 .farm-device-filters label {
   display: grid;
@@ -453,23 +461,56 @@
 }
 
 @media (max-width: 680px) {
-  .connection-list > article,
   .automation-card {
     grid-template-columns: 1fr;
-  }
-
-  .connection-meta,
-  .connection-list .inline-actions {
-    grid-column: auto;
   }
 
   .secret-card dl {
     grid-template-columns: 1fr;
   }
 
-  .farm-device-filters,
   .farm-device-grid {
     grid-template-columns: 1fr;
   }
+
+  .farm-device-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .farm-device-filters label { gap: 3px; font-size: 11px; }
+  .farm-device-filters input,
+  .farm-device-filters select { min-height: 44px; padding: 6px 8px; font-size: 16px; }
+  .self-service-page { gap: 10px; min-width: 0; }
+  .self-service-section { padding: 12px; gap: 10px; border-radius: 12px; min-width: 0; }
+  .self-service-section h2 { font-size: 16px; }
+  .self-service-section > p { font-size: 12px; line-height: 1.4; }
+  .connection-list { gap: 8px; min-width: 0; }
+  .connection-list > article { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 8px; padding: 10px; border-radius: 10px; }
+  .connection-list h3 { font-size: 14px; }
+  .connection-list .status-chip { align-self: start; font-size: 11px; white-space: nowrap; }
+  .connection-meta { gap: 4px 10px; font-size: 11px; }
+  .connection-list .inline-actions { gap: 6px; }
+  .connection-list .inline-actions .gh-btn { font-size: 11px; padding: 6px 8px; white-space: normal; }
+  .connection-list .inline-actions:empty { display: none; }
+  .compact-form { min-width: 0; }
+  .compact-form label { min-width: 0; flex: 1 1 170px; }
+  .compact-form input { width: 100%; min-width: 0; font-size: 16px; }
+  .farm-device-grid { gap: 9px; }
+  .farm-device-card { padding: 11px; gap: 8px; border-radius: 12px; }
+  .farm-device-card__header { gap: 7px; }
+  .farm-device-card__header h2 { font-size: 14px; }
+  .farm-device-card__header p,
+  .farm-device-card .status-chip { font-size: 10px; }
+  .farm-device-card__header .status-chip { flex-shrink: 0; max-width: 105px; }
+  .farm-device-card__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .farm-device-card__metrics > div { padding: 6px; gap: 2px; }
+  .farm-device-card__metrics strong { font-size: 13px; }
+  .farm-device-card__roles { padding-top: 7px; gap: 4px; }
+  .farm-device-card__roles > span { display: none; }
+  .farm-device-card__roles a { border-radius: 7px; padding: 4px 6px; font-size: 11px; }
+  .farm-device-card__state { padding-top: 6px; grid-template-columns: auto minmax(0, 1fr) auto; gap: 5px; }
+  .farm-device-card__state > div { grid-column: auto; justify-content: flex-end; gap: 5px; }
+  .farm-device-card__state > div .gh-btn { min-height: 44px; padding: 5px 8px; font-size: 11px; }
+  .farm-device-card__details { padding-top: 4px; font-size: 12px; }
+  .farm-device-card__details > summary { min-height: 36px; display: flex; align-items: center; }
+  .farm-device-card__details > summary::after { content: '+'; margin-left: auto; font-size: 18px; }
+  .farm-device-card__details[open] > summary::after { content: '−'; }
 
 }

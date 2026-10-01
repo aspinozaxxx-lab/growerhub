@@ -34,9 +34,9 @@ function StatusBadge({ isOnline }) {
   );
 }
 
-function buildSensorTitle(sensor) {
+function buildSensorTitle(sensor, showChannel = true) {
   const base = sensor?.label || SENSOR_TITLE_MAP[sensor?.type] || sensor?.type || translateApp("Датчик");
-  if (sensor?.channel === null || sensor?.channel === undefined) {
+  if (!showChannel || sensor?.channel === null || sensor?.channel === undefined) {
     return base;
   }
   return translateApp("{{value1}} · канал {{value2}}", { value1: base, value2: sensor.channel });
@@ -65,7 +65,7 @@ function DevicePumpRow({ pump, isOnline }) {
         ? translateApp("Выполняется")
         : translateApp("Остановлен"));
   return (
-    <div className="device-card__item">
+    <div className={isWatering ? 'device-card__item' : 'device-card__item device-card__item--idle'}>
       <div className="device-card__item-main">
         <div className="device-card__item-title">{buildPumpTitle(pump)}</div>
         <div className="device-card__item-status">
@@ -185,6 +185,12 @@ function DeviceCard({
 
   const sensors = Array.isArray(device.sensors) ? device.sensors : [];
   const pumps = Array.isArray(device.pumps) ? device.pumps : [];
+  const assignmentGroups = [...assignments.reduce((groups, assignment) => {
+    const key = `${assignment.scopeType}:${assignment.zoneId}`;
+    if (!groups.has(key)) groups.set(key, { zoneName: assignment.zoneName, roles: [] });
+    groups.get(key).roles.push(translateApp(SLOT_ROLE_LABELS[assignment.role] || assignment.role));
+    return groups;
+  }, new Map()).entries()];
 
   const handleSensorStats = (sensor) => {
     const kind = SENSOR_KIND_MAP[sensor.type] || 'soil_moisture';
@@ -202,36 +208,23 @@ function DeviceCard({
       <div className="device-card__header">
         <div>
           <Title level={3} className="device-card__title">{displayName}</Title>
-          <Text tone="muted" className="device-card__subtitle">{device.device_id}</Text>
-          <StatusBadge isOnline={device.is_online} />
         </div>
-      </div>
-
-      <div className="device-card__body">
-        <div className="device-card__avatar" aria-hidden="true">
-          <img src={avatarSrc} alt="device avatar" />
-        </div>
-        <div className="device-card__info">
-          <FirmwarePanel
-            device={device}
-            firmwareStatus={firmwareStatus}
-            isUpdating={isFirmwareUpdating}
-            onUpdate={onFirmwareUpdate}
-          />
-        </div>
+        <StatusBadge isOnline={device.is_online} />
       </div>
 
       <div className="device-card__roles">
         <span>{translateApp("Роли в ферме")}</span>
         {assignments.length > 0 ? (
           <div>
-            {assignments.map((assignment) => (
+            {assignmentGroups.map(([key, group]) => (
               <Link
-                key={`${assignment.zoneId}:${assignment.role}`}
+                key={key}
                 to="/app/farm/"
                 title={translateApp("Изменить назначение в Конструкторе фермы")}
+                aria-label={`${group.zoneName} · ${group.roles.join(' · ')}`}
               >
-                {assignment.zoneName} · {translateApp(SLOT_ROLE_LABELS[assignment.role] || assignment.role)}
+                <strong>{group.zoneName}</strong>
+                <span>{group.roles.join(' · ')}</span>
               </Link>
             ))}
           </div>
@@ -240,7 +233,7 @@ function DeviceCard({
         )}
       </div>
 
-      <div className="device-card__section">
+      <div className="device-card__section device-card__section--sensors">
         <div className="device-card__section-title">{translateApp("Датчики")}</div>
         {sensors.length === 0 && <div className="device-card__empty">{translateApp("Нет датчиков")}</div>}
         {sensors.map((sensor) => {
@@ -248,7 +241,7 @@ function DeviceCard({
           return (
             <div key={sensor.id} className="device-card__item">
               <div className="device-card__item-main">
-                <div className="device-card__item-title">{buildSensorTitle(sensor)}</div>
+                <div className="device-card__item-title">{buildSensorTitle(sensor, sensors.filter((item) => item.type === sensor.type).length > 1)}</div>
                 <SensorPill
                   kind={kind}
                   value={sensor.last_value}
@@ -262,13 +255,26 @@ function DeviceCard({
         })}
       </div>
 
-      <div className="device-card__section">
+      <div className="device-card__section device-card__section--pumps">
         <div className="device-card__section-title">{translateApp("Насосы")}</div>
         {pumps.length === 0 && <div className="device-card__empty">{translateApp("Нет насосов")}</div>}
         {pumps.map((pump) => (
           <DevicePumpRow key={pump.id} pump={pump} isOnline={Boolean(device.is_online)} />
         ))}
       </div>
+      <details className="device-card__details" open={Boolean(firmwareStatus?.update_available
+        || firmwareStatus?.action_error || firmwareStatus?.error || firmwareStatus?.load_error
+        || ['QUEUED', 'DOWNLOADING', 'RESTARTING'].includes(firmwareStatus?.status))}>
+        <summary>{translateApp('Информация об устройстве')}</summary>
+        <Text tone="muted" className="device-card__subtitle">{device.device_id}</Text>
+        <div className="device-card__body">
+          <div className="device-card__avatar" aria-hidden="true"><img src={avatarSrc} alt="device avatar" /></div>
+          <div className="device-card__info">
+            <FirmwarePanel device={device} firmwareStatus={firmwareStatus}
+              isUpdating={isFirmwareUpdating} onUpdate={onFirmwareUpdate} />
+          </div>
+        </div>
+      </details>
     </Surface>
   );
 }

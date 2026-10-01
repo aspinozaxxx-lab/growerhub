@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-10-01
+- Settings: obshchie filtry Grovika i Zigbee po razmeshcheniyu, podklyucheniyu, sostoyaniyu i poisku; schetchik i sbros.
+- Mobile: kompaktnye kartochki s pokazaniyami, raskryvaemye redaktory zon i svedeniya podklyuchenij; vkladki nastroek v odnu stroku i setki bez perepolneniya na uzkih ekranah.
 - Onboarding: slot temperatury vozduha nazvan yavno; podskazka na RU/EN poyasnyaet vybor pri nalichii temperatury pochvy.
 
 ## 2026-08-01

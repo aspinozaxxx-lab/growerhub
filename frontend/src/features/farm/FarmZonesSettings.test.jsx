@@ -76,6 +76,7 @@ describe('FarmZonesSettings', () => {
     const greenhouseName = await screen.findByDisplayValue('Северная теплица');
     const greenhouse = greenhouseName.closest('article');
     expect(greenhouse).not.toBeNull();
+    fireEvent.click(greenhouse.querySelector('summary'));
     expect(screen.getByText(
       'Ферма — это помещение. В каждой ферме можно создать несколько теплиц и переносить их между помещениями.',
     )).toBeInTheDocument();

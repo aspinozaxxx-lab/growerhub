@@ -1,6 +1,7 @@
 ﻿import { Link } from 'react-router-dom';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import DeviceCard from '../../components/devices/DeviceCard';
+import DeviceFilters from '../../components/devices/DeviceFilters';
 import {
   claimDevice,
   fetchDeviceFirmware,
@@ -19,7 +20,7 @@ import FormField from '../../components/ui/FormField';
 import Surface from '../../components/ui/Surface';
 import { Text, Title } from '../../components/ui/Typography';
 import AppZigbeeDevices from './AppZigbeeDevices';
-import { assignmentsForNativeDevice } from '../../features/farm/farmModel';
+import { EMPTY_DEVICE_FILTERS, assignmentsForNativeDevice, filterNativeDevices, filterZigbeeDevices } from '../../features/farm/farmModel';
 import './AppDevices.css';
 import { translateApp } from '../../locales/i18n';
 
@@ -42,6 +43,13 @@ function AppDevices() {
   const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const [firmwareByDevice, setFirmwareByDevice] = useState({});
   const [updatingFirmware, setUpdatingFirmware] = useState({});
+  const [filters, setFilters] = useState(EMPTY_DEVICE_FILTERS);
+
+  const visibleDevices = useMemo(() => filterNativeDevices(devices, farmOverview, filters), [devices, farmOverview, filters]);
+  const zigbeeDevices = farmOverview?.resource_catalog?.zigbee_devices || [];
+  const shown = visibleDevices.length + filterZigbeeDevices(zigbeeDevices, filters.query, filters.availability,
+    { ...filters, overview: farmOverview }).length;
+  const total = devices.length + zigbeeDevices.length;
 
   useEffect(() => {
     if (retryAfterSeconds <= 0) return undefined;
@@ -219,66 +227,72 @@ function AppDevices() {
   return (
     <div className="app-devices">
       <AppPageHeader title={translateApp("Устройства")} />
-      {demoActive ? <p><Link className="gh-btn gh-btn--primary gh-btn--md" to="/app/demo-tools/">{translateApp("Добавить виртуальное устройство")}</Link></p> : <Surface variant="card" padding="md" className="device-claim-card">
-        <div className="device-claim-card__intro">
-          <Title level={3}>{translateApp('Добавить Grovika')}</Title>
-          <Text tone="muted">
-            {translateApp('Введите ID, напечатанный на коробке и указанный в веб-интерфейсе устройства.')}
-          </Text>
-        </div>
-        <form className="device-claim-form" onSubmit={handleClaim}>
-          <FormField
-            label={translateApp('ID устройства')}
-            htmlFor="device-claim-id"
-            hint={translateApp('Формат: GROVIKA_XXXXXX')}
-          >
-            <input
-              id="device-claim-id"
-              type="text"
-              value={claimId}
-              onChange={(event) => {
-                setClaimId(event.target.value.toUpperCase());
-                setClaimStatus(null);
-              }}
-              placeholder="GROVIKA_040AB1"
-              autoComplete="off"
-              autoCapitalize="characters"
-              maxLength={14}
-              pattern="GROVIKA_[0-9A-Fa-f]{6}"
-              required
-              disabled={isClaiming || retryAfterSeconds > 0}
-            />
-          </FormField>
-          <Button
-            type="submit"
-            variant="primary"
-            isLoading={isClaiming}
-            disabled={!claimId.trim() || retryAfterSeconds > 0}
-          >
-            {translateApp('Добавить устройство')}
-          </Button>
-        </form>
-        {claimStatus ? (
-          <div
-            className={`device-claim-message device-claim-message--${claimStatus.kind}`}
-            role={claimStatus.kind === 'error' ? 'alert' : 'status'}
-          >
-            <Text>{claimStatus.message}</Text>
+      {!isLoading && farmOverview ? <DeviceFilters overview={farmOverview} nativeDevices={devices} filters={filters}
+        onChange={setFilters} shown={shown} total={total} /> : null}
+      {demoActive ? <div className="app-devices__add"><Link className="gh-btn gh-btn--primary gh-btn--sm" to="/app/demo-tools/">{translateApp("Добавить виртуальное устройство")}</Link></div> : <details className="device-claim-details" open={devices.length === 0 && zigbeeDevices.length === 0}>
+        <summary>{translateApp('Добавить Grovika')}</summary>
+        <Surface variant="card" padding="md" className="device-claim-card">
+          <div className="device-claim-card__intro">
+            <Title level={3}>{translateApp('Добавить Grovika')}</Title>
+            <Text tone="muted">
+              {translateApp('Введите ID, напечатанный на коробке и указанный в веб-интерфейсе устройства.')}
+            </Text>
           </div>
-        ) : null}
-        {retryMessage ? (
-          <div className="device-claim-retry" role="status"><Text>{retryMessage}</Text></div>
-        ) : null}
-      </Surface>}
+          <form className="device-claim-form" onSubmit={handleClaim}>
+            <FormField
+              label={translateApp('ID устройства')}
+              htmlFor="device-claim-id"
+              hint={translateApp('Формат: GROVIKA_XXXXXX')}
+            >
+              <input
+                id="device-claim-id"
+                type="text"
+                value={claimId}
+                onChange={(event) => {
+                  setClaimId(event.target.value.toUpperCase());
+                  setClaimStatus(null);
+                }}
+                placeholder="GROVIKA_040AB1"
+                autoComplete="off"
+                autoCapitalize="characters"
+                maxLength={14}
+                pattern="GROVIKA_[0-9A-Fa-f]{6}"
+                required
+                disabled={isClaiming || retryAfterSeconds > 0}
+              />
+            </FormField>
+            <Button
+              type="submit"
+              variant="primary"
+              isLoading={isClaiming}
+              disabled={!claimId.trim() || retryAfterSeconds > 0}
+            >
+              {translateApp('Добавить устройство')}
+            </Button>
+          </form>
+          {claimStatus ? (
+            <div
+              className={`device-claim-message device-claim-message--${claimStatus.kind}`}
+              role={claimStatus.kind === 'error' ? 'alert' : 'status'}
+            >
+              <Text>{claimStatus.message}</Text>
+            </div>
+          ) : null}
+          {retryMessage ? (
+            <div className="device-claim-retry" role="status"><Text>{retryMessage}</Text></div>
+          ) : null}
+        </Surface>
+      </details>}
       {isLoading && <AppPageState kind="loading" title={translateApp("Загрузка...")} />}
       {error && <AppPageState kind="error" title={error} />}
 
-      {!isLoading && !error && devices.length === 0 && (
+      {!isLoading && !error && total === 0 && (
         <AppPageState kind="empty" title={translateApp("Пока нет ваших устройств.")} />
       )}
 
+      {!isLoading && total > 0 && shown === 0 ? <AppPageState kind="empty" title={translateApp('По заданным условиям устройств нет')} /> : null}
       <AppGrid min={280}>
-        {devices.map((device) => (
+        {visibleDevices.map((device) => (
           <DeviceCard
             key={device.id}
             device={device}
@@ -289,7 +303,7 @@ function AppDevices() {
           />
         ))}
       </AppGrid>
-      <AppZigbeeDevices embedded />
+      <AppZigbeeDevices embedded filters={filters} onOverviewChange={setFarmOverview} />
     </div>
   );
 }
