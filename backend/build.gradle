@@ -45,6 +45,9 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    testLogging {
+        exceptionFormat = 'full'
+    }
     // Polnyj nabor Spring-kontekstov ne pomeshchaetsya v standartnye 512 MiB.
     maxHeapSize = '2g'
 }
