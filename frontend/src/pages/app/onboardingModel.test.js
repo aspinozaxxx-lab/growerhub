@@ -36,4 +36,15 @@ describe('onboardingModel', () => {
       expect.objectContaining({ role: 'LIGHT_SWITCH', command_property: 'state' }),
     ]);
   });
+  it('ne naznachaet klapan svetom, v tom chisle iz ustarevshego vybora', () => {
+    const valve = { ...overview.devices[0], watering: [{ property: 'state', ready: false, max_duration_s: null }] };
+    const valveOverview = { devices: [valve] };
+    expect(getWritableSwitches(valveOverview)).toEqual([]);
+    expect(buildSectionResources({
+      coordinatorId: 'coordinator-public-id',
+      lightChoice: encodeFeatureChoice(valve, { property: 'state' }),
+      overview: valveOverview,
+    })).toEqual([]);
+    expect(getReadableFeatures(valveOverview, 'temperature')).toHaveLength(1);
+  });
 });

@@ -183,7 +183,7 @@ export function optionsForRole(role, catalog) {
   if (SWITCH_ROLES.has(role)) {
     zigbeeDevices
       .filter((device) => hasWritableState(device)
-        && !listOrEmpty(device.watering).some((capability) => capability.property === 'state' && capability.max_duration_s))
+        && !listOrEmpty(device.watering).some((capability) => capability.property === 'state'))
       .forEach((device) => {
         options.push({
           value: optionValue({

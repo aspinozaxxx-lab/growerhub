@@ -70,6 +70,13 @@ describe('farm resource options', () => {
       zigbee_coordinator_id: valve.coordinator_id, zigbee_property: 'state', command_property: 'state',
     });
   });
+  it('ne predlagaet neproverennyj polivnoj kanal kak svet ili klimat', () => {
+    const valve = { ...smartplug2, watering: [{ property: 'state', ready: false, max_duration_s: null }] };
+    for (const role of ['LIGHT_SWITCH', 'EXHAUST_SWITCH', 'AC_SWITCH', 'WATER_PUMP']) {
+      expect(optionsForRole(role, { zigbee_devices: [valve] })).toEqual([]);
+    }
+    expect(optionsForRole('LIGHT_SWITCH', { zigbee_devices: [valve, smartplug2] })).toHaveLength(1);
+  });
   it('uses the same option value for saved Zigbee switch bindings and catalog options', () => {
     const catalog = { zigbee_devices: [smartplug2] };
 

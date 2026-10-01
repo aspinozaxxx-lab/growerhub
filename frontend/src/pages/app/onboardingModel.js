@@ -5,7 +5,8 @@ export const getReadableFeatures = (overview, property) => (overview?.devices ||
 
 export const getWritableSwitches = (overview) => (overview?.devices || [])
   .flatMap((device) => (device.controls || [])
-    .filter((feature) => feature.property === 'state')
+    .filter((feature) => feature.property === 'state'
+      && !(device.watering || []).some((capability) => capability.property === feature.property))
     .map((feature) => ({ device, feature })));
 
 export const encodeFeatureChoice = (device, feature) => JSON.stringify({
@@ -49,7 +50,7 @@ export const buildSectionResources = ({ coordinatorId, temperatureChoice, humidi
     const match = getWritableSwitches(overview).find(({ device, feature }) => (
       device.ieee_address === light.ieee_address && feature.property === light.property
     ));
-    resources.push({
+    if (match) resources.push({
       role: 'LIGHT_SWITCH',
       source_type: 'ZIGBEE_DEVICE',
       zigbee_coordinator_id: coordinatorId,
