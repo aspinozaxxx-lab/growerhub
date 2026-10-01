@@ -1114,6 +1114,7 @@ public class ZigbeeFacade {
             return;
         }
         if (context.coordinator() != null && context.coordinator().isSimulated()) return;
+        if (message.type() == ZigbeeMqttMessageType.BRIDGE_DEVICES && !(message.payload() instanceof List<?>)) return;
         if (message.type() == ZigbeeMqttMessageType.DEVICE_TOPIC) {
             message = resolveDeviceTopic(context, message);
             if (message == null) return;
@@ -1305,7 +1306,7 @@ public class ZigbeeFacade {
                     continue;
                 }
                 String friendlyName = asString(valueFromMap(item, "friendly_name"));
-                if (friendlyName == null || friendlyName.isBlank()) {
+                if (!validDeviceName(friendlyName)) {
                     continue;
                 }
                 String ieeeAddress = asString(valueFromMap(item, "ieee_address"));
@@ -1472,7 +1473,7 @@ public class ZigbeeFacade {
 
     private ZigbeeDeviceData toDeviceData(ZigbeeDeviceSnapshotEntity device) {
         Object bridgeDevice = readJson(device.getBridgeDeviceJson());
-        Object state = readJson(device.getStateJson());
+        Object state = readJson(device.getLiveStateJson() != null ? device.getLiveStateJson() : device.getStateJson());
         Object definition = valueFromMap(bridgeDevice, "definition");
         List<ZigbeeFeatureData> features = buildFeatures(valueFromMap(definition, "exposes"), state);
         return new ZigbeeDeviceData(
@@ -1490,8 +1491,8 @@ public class ZigbeeFacade {
                 features.stream().filter(feature -> hasFeatureAccess(feature, ACCESS_STATE)).toList(),
                 features.stream().filter(feature -> hasFeatureAccess(feature, ACCESS_SET)).toList(),
                 state,
-                device.getAvailability(),
-                device.getLastStateAt(),
+                device.getLastLiveStateAt() != null ? device.getAvailability() : null,
+                device.getLastLiveStateAt(),
                 device.getUpdatedAt(),
                 wateringService.capabilities(device.getCoordinatorId(), device.getIeeeAddress())
         );

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 import java.time.LocalDateTime;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,7 @@ import ru.growerhub.backend.zigbee.jpa.ZigbeeDeviceStateEventRepository;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "MQTT_HOST="
+        properties = {"MQTT_HOST=", "SELF_SERVICE_ENABLED=true"}
 )
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ZigbeeMqttSnapshotIntegrationTest extends IntegrationTestBase {
@@ -94,7 +95,7 @@ class ZigbeeMqttSnapshotIntegrationTest extends IntegrationTestBase {
                 .orElse(null);
         Assertions.assertNotNull(plug);
         Assertions.assertEquals("0xa4c13895af2c1df3", plug.ieeeAddress());
-        Assertions.assertEquals("online", plug.availability());
+        Assertions.assertEquals(retained ? null : "online", plug.availability());
         Assertions.assertTrue(plug.state() instanceof Map<?, ?>);
         Assertions.assertEquals("ON", ((Map<?, ?>) plug.state()).get("state"));
         Assertions.assertEquals(12.5, ((Number) ((Map<?, ?>) plug.state()).get("power")).doubleValue());
@@ -143,6 +144,9 @@ class ZigbeeMqttSnapshotIntegrationTest extends IntegrationTestBase {
         var storedCoordinator = coordinatorRepository.findById(coordinator.getId()).orElseThrow();
         Assertions.assertEquals(retained, storedCoordinator.getLastSeenAt() == null);
         Assertions.assertEquals(retained ? "PROVISIONING" : "ONLINE", storedCoordinator.getStatus().name());
+        var publicDevice = zigbeeFacade.getOverview(new AuthenticatedUser(901, "user"), coordinator.getPublicId()).devices().getFirst();
+        Assertions.assertEquals(device.getLastLiveStateAt(), publicDevice.lastStateAt());
+        Assertions.assertEquals(retained ? null : "online", publicDevice.availability());
     }
 
     @Test
@@ -162,6 +166,9 @@ class ZigbeeMqttSnapshotIntegrationTest extends IntegrationTestBase {
         Assertions.assertEquals(lastSeen, coordinatorRepository.findById(coordinator.getId()).orElseThrow().getLastSeenAt());
         Assertions.assertEquals(readings, readingRepository.count());
         Assertions.assertEquals(events, eventRepository.count());
+        var publicDevice = zigbeeFacade.getOverview(new AuthenticatedUser(901, "user"), coordinator.getPublicId()).devices().getFirst();
+        Assertions.assertEquals(before.getLastLiveStateAt(), publicDevice.lastStateAt());
+        Assertions.assertEquals(23, ((Map<?, ?>) publicDevice.state()).get("temperature"));
     }
 
     @Test
@@ -229,6 +236,18 @@ class ZigbeeMqttSnapshotIntegrationTest extends IntegrationTestBase {
     private ZigbeeCoordinatorEntity coordinator(String username) {
         return coordinatorRepository.save(ZigbeeCoordinatorEntity.create(UUID.randomUUID(), 901, "Test", username,
                 "gh/z2m/" + username, LocalDateTime.now()));
+    }
+
+    @Test
+    void malformedInventoryCannotRemoveKnownRoutesAndCreateUnknownDevices() throws Exception {
+        var coordinator = coordinator("inventory-a");
+        inventory(coordinator, "soil");
+        inject(coordinator.getBaseTopic() + "/bridge/devices", "{}", false);
+        inject(coordinator.getBaseTopic() + "/unknown", "{\"temperature\":99}", false);
+        Assertions.assertEquals(1, deviceRepository.count());
+        Assertions.assertNull(coordinatorRepository.findById(coordinator.getId()).orElseThrow().getLastSeenAt());
+        inject(coordinator.getBaseTopic() + "/soil", "{\"temperature\":26}", false);
+        Assertions.assertEquals(1, readingRepository.count());
     }
 
     private void inventory(ZigbeeCoordinatorEntity coordinator, String name) throws Exception {

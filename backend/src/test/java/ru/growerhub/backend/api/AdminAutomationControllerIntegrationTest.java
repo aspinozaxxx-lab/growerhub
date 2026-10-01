@@ -349,7 +349,7 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
         Integer roomId = createRoom(token, "Room Equipment Stale");
         Integer boxId = createBox(token, roomId, "Box Equipment Stale");
         jdbcTemplate.update(
-                "UPDATE zigbee_device_snapshots SET last_state_at=? WHERE friendly_name='smartplug1'",
+                "UPDATE zigbee_device_snapshots SET last_live_state_at=? WHERE friendly_name='smartplug1'",
                 LocalDateTime.now(ZoneOffset.UTC).minusMinutes(10)
         );
 
