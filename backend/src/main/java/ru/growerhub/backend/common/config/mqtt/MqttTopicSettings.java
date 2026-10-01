@@ -13,6 +13,7 @@ public class MqttTopicSettings {
     private String events = "gh/dev/+/events";
     private String zigbeeBase = "zigbee2growerhub";
     private String zigbeeUserPrefix = "gh/z2m";
+    private int zigbeeRelayMaxBytes = 1048576;
     private String stateSuffix = "/state";
     private String ackSuffix = "/state/ack";
     private String eventsSuffix = "/events";
@@ -91,6 +92,14 @@ public class MqttTopicSettings {
 
     public String getEventsSuffix() {
         return eventsSuffix;
+    }
+
+    public int getZigbeeRelayMaxBytes() {
+        return zigbeeRelayMaxBytes;
+    }
+
+    public void setZigbeeRelayMaxBytes(int zigbeeRelayMaxBytes) {
+        this.zigbeeRelayMaxBytes = zigbeeRelayMaxBytes;
     }
 
     public void setEventsSuffix(String eventsSuffix) {

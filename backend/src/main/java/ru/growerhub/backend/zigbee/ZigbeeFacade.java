@@ -29,6 +29,8 @@ import org.hibernate.query.TypedParameterValue;
 import org.hibernate.type.StandardBasicTypes;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.growerhub.backend.common.config.ZigbeeSettings;
 import ru.growerhub.backend.common.config.mqtt.MqttTopicSettings;
 import ru.growerhub.backend.common.config.zigbee.ZigbeeHistorySettings;
@@ -54,6 +56,7 @@ import ru.growerhub.backend.zigbee.contract.ZigbeeDeviceData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeFeatureData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeHistoryPoint;
 import ru.growerhub.backend.zigbee.contract.ZigbeeMqttSnapshotMessage;
+import ru.growerhub.backend.zigbee.contract.ZigbeeMqttMessageType;
 import ru.growerhub.backend.zigbee.contract.ZigbeeOverviewData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeOwnedDeviceData;
 import ru.growerhub.backend.zigbee.contract.ZigbeePowerStatistics;
@@ -73,6 +76,7 @@ import ru.growerhub.backend.zigbee.jpa.ZigbeeDeviceStateEventRepository;
 
 @Service
 public class ZigbeeFacade {
+    private static final Logger logger = LoggerFactory.getLogger(ZigbeeFacade.class);
     private static final int ACCESS_STATE = 0b001;
     private static final int ACCESS_SET = 0b010;
     private static final String DEVICE_IMAGE_BASE_URL = "https://www.zigbee2mqtt.io/images/devices/";
@@ -1110,7 +1114,61 @@ public class ZigbeeFacade {
             return;
         }
         if (context.coordinator() != null && context.coordinator().isSimulated()) return;
+        if (message.type() == ZigbeeMqttMessageType.DEVICE_TOPIC) {
+            message = resolveDeviceTopic(context, message);
+            if (message == null) return;
+        }
         applySnapshot(context, message);
+    }
+
+    private ZigbeeMqttSnapshotMessage resolveDeviceTopic(CoordinatorContext context, ZigbeeMqttSnapshotMessage message) {
+        String relativeTopic = message.relativeTopic();
+        Object inventory = bridgeRepository.findById(context.coordinatorId())
+                .map(bridge -> readJson(bridge.getDevicesJson())).orElse(null);
+        String friendlyName = relativeTopic;
+        ZigbeeMqttMessageType type = ZigbeeMqttMessageType.DEVICE_STATE;
+        Set<String> names = inventory instanceof List<?> list ? unambiguousDeviceNames(list) : null;
+        if ((names == null || !names.contains(relativeTopic)) && relativeTopic.endsWith("/availability")) {
+            friendlyName = relativeTopic.substring(0, relativeTopic.length() - "/availability".length());
+            type = ZigbeeMqttMessageType.DEVICE_AVAILABILITY;
+        }
+        if (names != null) {
+            if (!names.contains(friendlyName)) return null;
+        } else if (!validDeviceName(friendlyName) || friendlyName.contains("/")) {
+            return null;
+        }
+        return new ZigbeeMqttSnapshotMessage(message.mqttUsername(), message.baseTopic(), type,
+                message.topic(), relativeTopic, friendlyName, message.rawPayload(), message.payload(),
+                message.receivedAt(), message.retained());
+    }
+
+    private Set<String> unambiguousDeviceNames(List<?> inventory) {
+        Set<String> names = new HashSet<>();
+        Set<String> ambiguous = new HashSet<>();
+        for (Object item : inventory) {
+            String name = asString(valueFromMap(item, "friendly_name"));
+            if (validDeviceName(name) && !names.add(name)) ambiguous.add(name);
+        }
+        Map<String, String> owners = new HashMap<>();
+        for (String name : names) {
+            for (String suffix : List.of("", "/availability", "/set", "/get")) {
+                String previous = owners.putIfAbsent(name + suffix, name);
+                if (previous != null && !previous.equals(name)) {
+                    ambiguous.add(previous);
+                    ambiguous.add(name);
+                }
+            }
+        }
+        if (!ambiguous.isEmpty()) logger.warn("Neodnoznachnye MQTT imena: otkloneno {}", ambiguous.size());
+        names.removeAll(ambiguous);
+        return names;
+    }
+
+    private boolean validDeviceName(String name) {
+        return name != null && !name.isBlank() && name.length() <= zigbeeSettings.getFriendlyNameMaxChars()
+                && !"bridge".equals(name) && !name.startsWith("bridge/")
+                && name.chars().noneMatch(character -> character < 32 || character == 127
+                || character == '#' || character == '+');
     }
 
     private void applySnapshot(CoordinatorContext context, ZigbeeMqttSnapshotMessage message) {
@@ -1296,7 +1354,7 @@ public class ZigbeeFacade {
 
     private void recordDeviceState(ZigbeeDeviceSnapshotEntity device, ZigbeeMqttSnapshotMessage message,
             List<ZigbeeDevicePropertyReadingEntity> batch) {
-        String previousStateJson = device.getStateJson();
+        String previousStateJson = device.getLiveStateJson();
         device.setStateJson(message.rawPayload());
         device.setLastStateAt(message.receivedAt());
         if (!message.retained()) {
@@ -1305,7 +1363,7 @@ public class ZigbeeFacade {
         }
         device.setUpdatedAt(message.receivedAt());
         deviceRepository.save(device);
-        recordDeviceStateHistory(device, message, previousStateJson, batch);
+        if (!message.retained()) recordDeviceStateHistory(device, message, previousStateJson, batch);
     }
 
     private void handleDeviceAvailability(CoordinatorContext context, ZigbeeMqttSnapshotMessage message) {
@@ -1940,7 +1998,7 @@ public class ZigbeeFacade {
 
     private void touchCoordinator(CoordinatorContext context, ZigbeeMqttSnapshotMessage message) {
         ZigbeeCoordinatorEntity coordinator = context.coordinator();
-        if (coordinator == null) {
+        if (coordinator == null || message.retained()) {
             return;
         }
         LocalDateTime now = message.receivedAt();
@@ -2136,11 +2194,7 @@ public class ZigbeeFacade {
         if (normalized.isBlank()) {
             throw new DomainException("bad_request", "Поле friendly_name обязательно");
         }
-        if (normalized.length() > 100
-                || normalized.contains("/")
-                || normalized.contains("+")
-                || normalized.contains("#")
-                || normalized.chars().anyMatch(Character::isISOControl)) {
+        if (!validDeviceName(normalized)) {
             throw new DomainException("bad_request", "Поле friendly_name содержит недопустимые символы");
         }
         return normalized;

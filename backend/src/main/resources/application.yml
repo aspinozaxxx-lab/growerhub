@@ -171,6 +171,8 @@ mqtt:
     zigbeeBase: "zigbee2growerhub"
     # Bazovyj topic pol'zovatel'skih Zigbee2MQTT namespace.
     zigbeeUserPrefix: "gh/z2m"
+    # Predel razmera konverta napravlennogo connector.
+    zigbeeRelayMaxBytes: 1048576
     # Suffiks dlya state.
     stateSuffix: "/state"
     # Suffiks dlya ack.
@@ -240,6 +242,8 @@ zigbee:
     writableProperties: [state, brightness, color_temp]
   # Vremja otkrytogo soprjazhenija po umolchaniju (sek).
   permitJoinDefaultSeconds: 254
+  # Maksimalnaja dlina friendly name v hranilishche snapshot.
+  friendlyNameMaxChars: 255
   history:
     # Maksimal'noe kolichestvo tochek Zigbee-svojstva.
     maxPoints: 200

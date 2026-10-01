@@ -2,6 +2,11 @@
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.JsonParser;
+import java.nio.ByteBuffer;
+import java.nio.charset.CodingErrorAction;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -224,8 +229,37 @@ public class MqttMessageHandler {
         }
 
         String relativeTopic = topic.substring(resolvedBaseTopic.length() + 1);
+        String rawPayload;
+        if (relativeTopic.startsWith("bridge/relay/")) {
+            if (payload == null || payload.length > topicSettings.getZigbeeRelayMaxBytes()) {
+                logger.warn("Otklonen MQTT relay: nedopustimyj razmer");
+                return true;
+            }
+            try {
+                String envelopeJson = StandardCharsets.UTF_8.newDecoder()
+                        .onMalformedInput(CodingErrorAction.REPORT)
+                        .onUnmappableCharacter(CodingErrorAction.REPORT)
+                        .decode(ByteBuffer.wrap(payload)).toString();
+                JsonNode envelope = objectMapper.reader()
+                        .with(JsonParser.Feature.STRICT_DUPLICATE_DETECTION).readTree(envelopeJson);
+                if (!envelope.isObject() || envelope.size() != 3
+                        || !envelope.path("v").isIntegralNumber() || !envelope.path("v").canConvertToInt()
+                        || envelope.path("v").intValue() != 1
+                        || !envelope.path("payload").isTextual() || !envelope.path("retained").isBoolean()) {
+                    logger.warn("Otklonen MQTT relay: nedopustimyj format");
+                    return true;
+                }
+                rawPayload = envelope.get("payload").textValue();
+                retained = retained || envelope.get("retained").booleanValue();
+                relativeTopic = relativeTopic.substring("bridge/relay/".length());
+            } catch (Exception ex) {
+                logger.warn("Otklonen MQTT relay: oshibka razbora");
+                return true;
+            }
+        } else {
+            rawPayload = safePayload(payload);
+        }
         ZigbeeMqttMessageType type = null;
-        String friendlyName = null;
 
         if ("bridge/state".equals(relativeTopic)) {
             type = ZigbeeMqttMessageType.BRIDGE_STATE;
@@ -235,21 +269,15 @@ public class MqttMessageHandler {
             type = ZigbeeMqttMessageType.BRIDGE_DEVICES;
         } else if (relativeTopic.startsWith("bridge/response/")) {
             type = ZigbeeMqttMessageType.COMMAND_RESPONSE;
-        } else if (!relativeTopic.startsWith("bridge/")) {
-            if (relativeTopic.endsWith("/availability")) {
-                friendlyName = relativeTopic.substring(0, relativeTopic.length() - "/availability".length());
-                type = ZigbeeMqttMessageType.DEVICE_AVAILABILITY;
-            } else if (!relativeTopic.contains("/")) {
-                friendlyName = relativeTopic;
-                type = ZigbeeMqttMessageType.DEVICE_STATE;
-            }
+        } else if (!relativeTopic.isBlank() && !"bridge".equals(relativeTopic)
+                && !relativeTopic.startsWith("bridge/")) {
+            type = ZigbeeMqttMessageType.DEVICE_TOPIC;
         }
 
         if (type == null) {
             return true;
         }
 
-        String rawPayload = safePayload(payload);
         Object parsedPayload = parseJson(rawPayload);
         zigbeeFacade.handleMqttSnapshot(new ZigbeeMqttSnapshotMessage(
                 mqttUsername,
@@ -257,7 +285,7 @@ public class MqttMessageHandler {
                 type,
                 topic,
                 relativeTopic,
-                friendlyName,
+                null,
                 rawPayload,
                 parsedPayload,
                 LocalDateTime.now(clock),
