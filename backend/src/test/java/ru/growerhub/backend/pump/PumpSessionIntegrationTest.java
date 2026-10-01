@@ -244,7 +244,7 @@ class PumpSessionIntegrationTest extends IntegrationTestBase {
                 List.of()
         );
         when(commandGateway.getAck(started.correlationId()))
-                .thenReturn(new PumpAck(started.correlationId(), "declined", "relay error", "idle"));
+                .thenReturn(new PumpAck(started.correlationId(), "declined", "relay error", "idle", negativeAck.device().getDeviceId()));
         PumpSessionData.View rejected = advance(started, 0, true, false, List.of());
         assertEquals(PumpSessionData.PHASE_FAILED, rejected.phase());
         assertEquals(PumpSessionData.REASON_COMMAND_ERROR, rejected.completionReason());
@@ -434,7 +434,7 @@ class PumpSessionIntegrationTest extends IntegrationTestBase {
         assertTrue(pumpFacade.currentSession(fixture.pump().getId()) != null);
 
         when(commandGateway.getAck(stillBlocked.correlationId()))
-                .thenReturn(new PumpAck(stillBlocked.correlationId(), "accepted", null, "idle"));
+                .thenReturn(new PumpAck(stillBlocked.correlationId(), "accepted", null, "idle", fixture.device().getDeviceId()));
         PumpSessionData.View confirmed = advance(stillBlocked, 1, false, false, List.of());
         assertEquals(PumpSessionData.PHASE_FAILED, confirmed.phase());
         assertNull(pumpFacade.currentSession(fixture.pump().getId()));

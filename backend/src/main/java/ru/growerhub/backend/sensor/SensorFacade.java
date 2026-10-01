@@ -136,12 +136,10 @@ public class SensorFacade {
         if (user == null) {
             throw new DomainException("forbidden", "nedostatochno prav dlya etogo sensora");
         }
-        if (!user.isAdmin()) {
-            DeviceSummary summary = deviceFacade.getDeviceSummary(sensor.getDeviceId());
-            Integer ownerId = summary != null ? summary.userId() : null;
-            if (ownerId == null || !ownerId.equals(user.id())) {
-                throw new DomainException("forbidden", "nedostatochno prav dlya etogo sensora");
-            }
+        DeviceSummary summary = deviceFacade.getDeviceSummary(sensor.getDeviceId());
+        Integer ownerId = summary != null ? summary.userId() : null;
+        if (ownerId == null || !ownerId.equals(user.id())) {
+            throw new DomainException("not_found", "sensor ne naiden");
         }
         return sensor;
     }

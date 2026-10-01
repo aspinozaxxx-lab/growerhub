@@ -164,7 +164,7 @@ public class FirmwareController {
     }
 
     private void requireUserDeviceAccess(String deviceId, AuthenticatedUser user) {
-        boolean allowed = user != null && deviceFacade.canUserAccessDevice(deviceId, user.id(), user.isAdmin());
+        boolean allowed = user != null && deviceFacade.canUserAccessDevice(deviceId, user.id());
         if (!allowed) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Ustrojstvo ne naideno");
         }

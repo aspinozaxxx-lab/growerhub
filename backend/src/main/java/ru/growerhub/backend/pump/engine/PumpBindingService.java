@@ -42,12 +42,10 @@ public class PumpBindingService {
         if (pump == null) {
             throw new DomainException("not_found", "nasos ne naiden");
         }
-        if (!isAdmin(user)) {
-            DeviceSummary deviceSummary = deviceFacade.getDeviceSummary(pump.getDeviceId());
-            Integer ownerId = deviceSummary != null ? deviceSummary.userId() : null;
-            if (ownerId == null || !ownerId.equals(user.id())) {
-                throw new DomainException("forbidden", "nedostatochno prav dlya etogo nasosa");
-            }
+        DeviceSummary deviceSummary = deviceFacade.getDeviceSummary(pump.getDeviceId());
+        Integer ownerId = deviceSummary != null ? deviceSummary.userId() : null;
+        if (user == null || ownerId == null || !ownerId.equals(user.id())) {
+            throw new DomainException("not_found", "nasos ne naiden");
         }
 
         Map<Integer, Integer> nextRates = new HashMap<>();
@@ -131,9 +129,6 @@ public class PumpBindingService {
         }
     }
 
-    private boolean isAdmin(AuthenticatedUser user) {
-        return user != null && user.isAdmin();
-    }
 
     public record PumpBindingItem(Integer plantId, Integer rateMlPerHour) {
     }

@@ -81,7 +81,7 @@ class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
         device.setFirmwareHardwareProfile("esp32dev");
         device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         deviceRepository.save(device);
-        String adminToken = createAdminToken();
+        String adminToken = createAdminToken(device);
 
         given()
                 .header("Authorization", "Bearer " + adminToken)
@@ -94,7 +94,7 @@ class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
                 .body("detail", equalTo("MQTT publisher unavailable"));
     }
 
-    private String createAdminToken() {
+    private String createAdminToken(DeviceEntity device) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         UserEntity admin = userRepository.save(UserEntity.create(
                 "firmware-no-publisher-admin@example.com",
@@ -104,6 +104,8 @@ class FirmwareNoPublisherIntegrationTest extends IntegrationTestBase {
                 now,
                 now
         ));
+        device.setUserId(admin.getId());
+        deviceRepository.save(device);
         Map<String, Object> claims = new HashMap<>();
         claims.put("user_id", admin.getId());
         return Jwts.builder()

@@ -10,7 +10,7 @@
 
 - `findDeviceId(String deviceId)`
 - `authenticateDevice(String deviceId, String rawToken)`
-- `canUserAccessDevice(String deviceId, Integer userId, boolean admin)`
+- `canUserAccessDevice(String deviceId, Integer userId)`
 - `rotateDeviceCredential(Integer devicePk, Integer userId, boolean admin)`
 - `provisionMqttDevice(String requestedDeviceId, boolean rotate)`
 - `reconcileMqttBrokerAccess()`
@@ -34,8 +34,8 @@
 - `listMyDevices(Integer userId)`
 - `listAdminDevices()`
 - `listRecentServiceEventsByDeviceIds(List<Integer> deviceIds, int limitPerDevice)`
-- `unassignForUser(Integer deviceId, Integer userId, boolean isAdmin)`
-- `unassignForUserAggregate(Integer deviceId, Integer userId, boolean isAdmin)`
+- `unassignForUser(Integer deviceId, Integer userId)`
+- `unassignForUserAggregate(Integer deviceId, Integer userId)`
 - `adminAssign(Integer deviceId, Integer userId)`
 - `adminUnassign(Integer deviceId)`
 - `deleteDevice(String deviceId)`
@@ -84,4 +84,4 @@ execution_kind неизменяем: PHYSICAL для существующих у
 
 ## Ограничения
 
-Device не должен напрямую владеть JPA других доменов. MQTT parsing и Dynamic Security transport остаются в adapter. Формат shadow является контрактом. Настройки устройства и интервалы online должны приходить из конфигурации. Пользовательские операции требуют JWT и владения; provisioning и выдача нового device token доступны только администратору. Открытый MQTT-пароль не хранится и не возвращается повторно.
+Device не должен напрямую владеть JPA других доменов. MQTT parsing и Dynamic Security transport остаются в adapter. Формат shadow является контрактом. Настройки устройства и интервалы online должны приходить из конфигурации. Пользовательские операции требуют JWT и владения также для admin; чужое устройство возвращает тот же 404, что неизвестное. Общий список и переназначение доступны только через административные операции. Provisioning и выдача нового device token доступны только администратору. Открытый MQTT-пароль не хранится и не возвращается повторно.

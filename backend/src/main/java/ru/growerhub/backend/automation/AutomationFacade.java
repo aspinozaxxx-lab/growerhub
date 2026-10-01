@@ -1161,8 +1161,9 @@ public class AutomationFacade {
                     "Укажите water_volume_l или duration_s для запуска полива"
             );
         }
-        Catalog catalog = buildCatalog();
-        List<PumpSessionData.BoxTarget> targets = buildWateringTopology(catalog)
+        Catalog catalog = buildOwnedCatalog(user);
+        requireOwnedPump(pumpId, catalog);
+        List<PumpSessionData.BoxTarget> targets = buildOwnedWateringTopology(user, catalog)
                 .targetsByPump
                 .getOrDefault(pumpId, List.of());
         if (targets.isEmpty()) {

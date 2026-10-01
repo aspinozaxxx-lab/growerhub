@@ -157,7 +157,7 @@ public class PumpController {
         if (user == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
-        PumpAck ack = pumpFacade.getAck(correlationId);
+        PumpAck ack = pumpFacade.getAck(correlationId, user);
         if (ack == null) {
             throw new ApiException(HttpStatus.NOT_FOUND, "ACK eshche ne poluchen ili udalen po TTL");
         }
@@ -186,7 +186,7 @@ public class PumpController {
         }
         long deadline = System.nanoTime() + resolvedTimeout * 1_000_000_000L;
         while (true) {
-            PumpAck ack = pumpFacade.getAck(correlationId);
+            PumpAck ack = pumpFacade.getAck(correlationId, user);
             if (ack != null) {
                 return new PumpDtos.PumpWateringAckResponse(
                         ack.correlationId(),

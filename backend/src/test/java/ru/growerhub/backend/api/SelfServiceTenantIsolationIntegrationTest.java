@@ -5,6 +5,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -18,6 +20,8 @@ import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -71,9 +75,10 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
         clearDatabase();
     }
 
-    @Test
-    void sameIeeeAndFriendlyNameStayInsideCoordinatorNamespace() {
-        UserEntity first = createUser("tenant-one@example.com");
+    @ParameterizedTest
+    @ValueSource(strings = {"user", "admin"})
+    void sameIeeeAndFriendlyNameStayInsideCoordinatorNamespace(String role) {
+        UserEntity first = createUser("tenant-one@example.com", role);
         UserEntity second = createUser("tenant-two@example.com");
         String firstToken = buildToken(first.getId());
         String secondToken = buildToken(second.getId());
@@ -128,9 +133,10 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
         verify(commandGateway, never()).publishSet(secondCoordinator.baseTopic(), SHARED_NAME, Map.of("state", "ON"));
     }
 
-    @Test
-    void foreignCoordinatorAndZoneAlwaysLookMissing() {
-        UserEntity first = createUser("owner-one@example.com");
+    @ParameterizedTest
+    @ValueSource(strings = {"user", "admin"})
+    void foreignCoordinatorAndZoneAlwaysLookMissing(String role) {
+        UserEntity first = createUser("owner-one@example.com", role);
         UserEntity second = createUser("owner-two@example.com");
         String firstToken = buildToken(first.getId());
         String secondToken = buildToken(second.getId());
@@ -138,6 +144,7 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
         Coordinator secondCoordinator = createCoordinator(secondToken, "Second");
         seedPlug(firstCoordinator, "OFF", 1.0);
         seedPlug(secondCoordinator, "OFF", 2.0);
+        clearInvocations(commandGateway, credentialGateway);
 
         assertNotFound(firstToken, "/api/zigbee/coordinators/" + secondCoordinator.id());
         assertNotFound(firstToken, "/api/zigbee/coordinators/" + secondCoordinator.id() + "/overview");
@@ -151,6 +158,32 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(404)
                 .body("detail", equalTo("Координатор не найден"));
+
+        for (var request : Map.of(
+                "/permit-join", "{\"seconds\":60}",
+                "/credentials/rotate", "{}",
+                "/devices/" + SHARED_IEEE + "/set", "{\"property\":\"state\",\"value\":\"ON\"}",
+                "/devices/" + SHARED_IEEE + "/rename", "{\"friendly_name\":\"stolen\"}"
+        ).entrySet()) {
+            given()
+                    .header("Authorization", "Bearer " + firstToken)
+                    .contentType("application/json")
+                    .body(request.getValue())
+                    .when()
+                    .post("/api/zigbee/coordinators/" + secondCoordinator.id() + request.getKey())
+                    .then()
+                    .statusCode(404)
+                    .body("detail", equalTo("Координатор не найден"));
+        }
+
+        given()
+                .header("Authorization", "Bearer " + firstToken)
+                .when()
+                .delete("/api/zigbee/coordinators/" + secondCoordinator.id())
+                .then()
+                .statusCode(404)
+                .body("detail", equalTo("Координатор не найден"));
+        verifyNoInteractions(commandGateway, credentialGateway);
 
         given()
                 .header("Authorization", "Bearer " + firstToken)
@@ -203,6 +236,75 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
                 .put("/api/automation/farm/zones/" + firstZone + "/slots")
                 .then()
                 .statusCode(404);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"user", "admin"})
+    void personalCatalogExcludesForeignPhysicalAndSimulatedDevices(String role) {
+        UserEntity owner = createUser("catalog-owner@example.com", role);
+        UserEntity foreign = createUser("catalog-foreign@example.com");
+        String token = buildToken(owner.getId());
+        String foreignToken = buildToken(foreign.getId());
+        Coordinator own = createCoordinator(token, "Own coordinator");
+        Coordinator other = createCoordinator(foreignToken, "Foreign coordinator");
+        Coordinator simulated = createCoordinator(foreignToken, "Foreign demo coordinator");
+        seedPlug(own, "OFF", 12.5);
+        seedPlug(other, "ON", 42.0);
+        seedPlug(simulated, "ON", 100.0);
+        jdbcTemplate.update("UPDATE zigbee_coordinators SET execution_kind='SIMULATED' WHERE public_id=?",
+                java.util.UUID.fromString(simulated.id()));
+
+        given()
+                .header("Authorization", "Bearer " + token)
+                .when()
+                .get("/api/zigbee/coordinators")
+                .then()
+                .statusCode(200)
+                .body("$", hasSize(1))
+                .body("[0].id", equalTo(own.id()));
+
+        for (String path : java.util.List.of("/api/automation/farms", "/api/automation/farm")) {
+            given()
+                    .header("Authorization", "Bearer " + token)
+                    .when()
+                    .get(path)
+                    .then()
+                    .statusCode(200)
+                    .body("resource_catalog.zigbee_devices", hasSize(1))
+                    .body("resource_catalog.zigbee_devices[0].coordinator_id", equalTo(own.id()))
+                    .body("resource_catalog.zigbee_devices[0].coordinator_name", equalTo("Own coordinator"))
+                    .body("resource_catalog.zigbee_devices[0].ieee_address", equalTo(SHARED_IEEE))
+                    .body("resource_catalog.zigbee_devices[0].metrics.find { it.property == 'power' }.value", equalTo(12.5f));
+        }
+
+        var adminHistory = given()
+                .header("Authorization", "Bearer " + token)
+                .queryParam("property", "power")
+                .when()
+                .get("/api/admin/zigbee/coordinators/" + other.id() + "/devices/" + SHARED_IEEE + "/history")
+                .then()
+                .statusCode("admin".equals(role) ? 200 : 403);
+        if ("admin".equals(role)) {
+            adminHistory.body("$", hasSize(1)).body("[0].value", equalTo(42.0f));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"user", "admin"})
+    void personalCatalogIsEmptyWithoutOwnedCoordinator(String role) {
+        UserEntity owner = createUser("empty-owner@example.com", role);
+        UserEntity foreign = createUser("empty-foreign@example.com");
+        Coordinator other = createCoordinator(buildToken(foreign.getId()), "Foreign coordinator");
+        seedPlug(other, "ON", 42.0);
+
+        given()
+                .header("Authorization", "Bearer " + buildToken(owner.getId()))
+                .when()
+                .get("/api/automation/farms")
+                .then()
+                .statusCode(200)
+                .body("farms", hasSize(0))
+                .body("resource_catalog.zigbee_devices", hasSize(0));
     }
 
     @Test
@@ -317,8 +419,12 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
     }
 
     private UserEntity createUser(String email) {
+        return createUser(email, "user");
+    }
+
+    private UserEntity createUser(String email, String role) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        return userRepository.save(UserEntity.create(email, null, "user", true, now, now));
+        return userRepository.save(UserEntity.create(email, null, role, true, now, now));
     }
 
     private String buildToken(int userId) {

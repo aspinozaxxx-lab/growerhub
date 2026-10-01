@@ -151,7 +151,7 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         device.setCurrentVersion("grovika-old");
         device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         deviceRepository.save(device);
-        String adminToken = createAdminToken("firmware-profile-admin@example.com");
+        String adminToken = createAdminToken("firmware-profile-admin@example.com", device);
 
         given()
                 .header("Authorization", "Bearer " + adminToken)
@@ -195,6 +195,7 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
 
         DeviceEntity device = DeviceEntity.create();
         device.setDeviceId("fw-dev-1");
+        device.setUserId(userRepository.findByEmail("firmware-flow-admin@example.com").orElseThrow().getId());
         device.setCurrentVersion("1.0.0");
         device.setFirmwareHardwareProfile("esp32dev");
         device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
@@ -330,7 +331,7 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         device.setFirmwareHardwareProfile("esp32c3_supermini");
         device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         deviceRepository.save(device);
-        String adminToken = createAdminToken("firmware-latest-admin@example.com");
+        String adminToken = createAdminToken("firmware-latest-admin@example.com", device);
 
         given()
                 .header("Authorization", "Bearer " + adminToken)
@@ -410,7 +411,7 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         device.setFirmwareHardwareProfile("esp32dev");
         device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         deviceRepository.save(device);
-        String adminToken = createAdminToken("firmware-trigger-file-admin@example.com");
+        String adminToken = createAdminToken("firmware-trigger-file-admin@example.com", device);
 
         given()
                 .header("Authorization", "Bearer " + adminToken)
@@ -429,7 +430,7 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         device.setDeviceId("fw-validate");
         device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         deviceRepository.save(device);
-        String adminToken = createAdminToken("firmware-validate-admin@example.com");
+        String adminToken = createAdminToken("firmware-validate-admin@example.com", device);
 
         given()
                 .header("Authorization", "Bearer " + adminToken)
@@ -455,7 +456,7 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         device.setFirmwareHardwareProfile("esp32dev");
         device.setLastSeen(LocalDateTime.now(ZoneOffset.UTC));
         deviceRepository.save(device);
-        String adminToken = createAdminToken("firmware-publish-admin@example.com");
+        String adminToken = createAdminToken("firmware-publish-admin@example.com", device);
 
         testPublisher.failNext();
 
@@ -528,9 +529,13 @@ class FirmwareIntegrationTest extends IntegrationTestBase {
         return credential.token();
     }
 
-    private String createAdminToken(String email) {
+    private String createAdminToken(String email, DeviceEntity... ownedDevices) {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         UserEntity admin = userRepository.save(UserEntity.create(email, null, "admin", true, now, now));
+        for (DeviceEntity device : ownedDevices) {
+            device.setUserId(admin.getId());
+            deviceRepository.save(device);
+        }
         Map<String, Object> claims = new HashMap<>();
         claims.put("user_id", admin.getId());
         return Jwts.builder()

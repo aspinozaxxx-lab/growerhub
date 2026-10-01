@@ -53,11 +53,7 @@ public class MqttPumpCommandGateway implements PumpCommandGateway {
 
     @Override
     public PumpAck getAck(String correlationId) {
-        ManualWateringAck ack = ackStore.get(correlationId);
-        if (ack == null) {
-            return null;
-        }
-        return new PumpAck(ack.correlationId(), ack.result(), ack.reason(), ack.status());
+        return ackStore.get(correlationId);
     }
 
     private boolean simulate(String deviceId, String correlationId, String action, Integer durationS) {

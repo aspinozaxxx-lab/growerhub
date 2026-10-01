@@ -176,8 +176,8 @@ public class PumpFacade {
     }
 
     @Transactional(readOnly = true)
-    public PumpAck getAck(String correlationId) {
-        return wateringService.getAck(correlationId);
+    public PumpAck getAck(String correlationId, AuthenticatedUser user) {
+        return wateringService.getAck(correlationId, user);
     }
 
     @Transactional

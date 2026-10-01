@@ -29,6 +29,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -390,6 +392,126 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .statusCode(401)
                 .header("WWW-Authenticate", "Bearer")
                 .body("detail", equalTo("Not authenticated"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"user", "admin"})
+    void personalDeviceApiNeverExposesOrChangesForeignDevices(String role) {
+        UserEntity owner = createUser("private-device-owner@example.com", role);
+        UserEntity foreign = createUser("private-device-foreign@example.com", "user");
+        DeviceEntity own = createDevice("private-own", owner);
+        DeviceEntity other = createDevice("private-foreign", foreign);
+        String token = buildToken(owner.getId());
+
+        for (String path : java.util.List.of("/api/devices", "/api/devices/my")) {
+            given().header("Authorization", "Bearer " + token)
+                    .when().get(path)
+                    .then().statusCode(200)
+                    .body("size()", equalTo(1))
+                    .body("[0].device_id", equalTo(own.getDeviceId()));
+        }
+        given().header("Authorization", "Bearer " + token)
+                .when().get("/api/device/" + own.getDeviceId() + "/settings")
+                .then().statusCode(200);
+
+        for (String suffix : java.util.List.of("/settings", "/firmware")) {
+            given().header("Authorization", "Bearer " + token)
+                    .when().get("/api/device/" + other.getDeviceId() + suffix)
+                    .then().statusCode(404);
+        }
+        given().header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body(Map.of("target_moisture", 60, "watering_duration", 10,
+                        "watering_timeout", 60, "light_on_hour", 8, "light_off_hour", 20,
+                        "light_duration", 12))
+                .when().put("/api/device/" + other.getDeviceId() + "/settings")
+                .then().statusCode(404);
+        given().header("Authorization", "Bearer " + token)
+                .when().post("/api/device/" + other.getDeviceId() + "/firmware/update")
+                .then().statusCode(404);
+        given().header("Authorization", "Bearer " + token)
+                .when().delete("/api/device/" + other.getDeviceId())
+                .then().statusCode(404);
+        given().header("Authorization", "Bearer " + token)
+                .when().post("/api/devices/" + other.getId() + "/unassign")
+                .then().statusCode(404);
+        Assertions.assertEquals(foreign.getId(), deviceRepository.findById(other.getId()).orElseThrow().getUserId());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"user", "admin"})
+    void foreignNativeSensorsAndPumpsLookMissing(String role) {
+        UserEntity owner = createUser("private-components-owner@example.com", role);
+        UserEntity foreign = createUser("private-components-foreign@example.com", "user");
+        DeviceEntity device = createDevice("private-components", foreign);
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        SensorEntity sensor = SensorEntity.create();
+        sensor.setDeviceId(device.getId());
+        sensor.setType(SensorType.AIR_TEMPERATURE);
+        sensor.setChannel(0);
+        sensor.setDetected(true);
+        sensor.setCreatedAt(now);
+        sensor.setUpdatedAt(now);
+        sensorRepository.save(sensor);
+        PumpEntity pump = PumpEntity.create();
+        pump.setDeviceId(device.getId());
+        pump.setChannel(0);
+        pump.setCreatedAt(now);
+        pump.setUpdatedAt(now);
+        pumpRepository.save(pump);
+        String token = buildToken(owner.getId());
+
+        given().header("Authorization", "Bearer " + token)
+                .when().get("/api/sensors/" + sensor.getId() + "/history")
+                .then().statusCode(404);
+        given().header("Authorization", "Bearer " + token)
+                .contentType("application/json").body(Map.of("plant_ids", java.util.List.of()))
+                .when().put("/api/sensors/" + sensor.getId() + "/bindings")
+                .then().statusCode(404);
+        given().header("Authorization", "Bearer " + token)
+                .contentType("application/json").body(Map.of("items", java.util.List.of()))
+                .when().put("/api/pumps/" + pump.getId() + "/bindings")
+                .then().statusCode(404);
+        given().header("Authorization", "Bearer " + token)
+                .when().get("/api/pumps/" + pump.getId() + "/watering/status")
+                .then().statusCode(404);
+        for (String action : java.util.List.of("stop", "reboot")) {
+            given().header("Authorization", "Bearer " + token)
+                    .when().post("/api/pumps/" + pump.getId() + "/watering/" + action)
+                    .then().statusCode(404);
+        }
+        given().header("Authorization", "Bearer " + token)
+                .contentType("application/json").body(Map.of("duration_s", 10))
+                .when().post("/api/pumps/" + pump.getId() + "/watering/start")
+                .then().statusCode(404);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"user", "admin"})
+    void wateringAcknowledgementsRequireCurrentDeviceOwnership(String role) {
+        UserEntity owner = createUser("private-ack-owner@example.com", role);
+        UserEntity foreign = createUser("private-ack-foreign@example.com", "user");
+        DeviceEntity own = createDevice("private-own-ack", owner);
+        DeviceEntity other = createDevice("private-foreign-ack", foreign);
+        ackStore.put(own.getDeviceId(), new ManualWateringAck("own-ack", "accepted", null, "done"));
+        ackStore.put(other.getDeviceId(), new ManualWateringAck("foreign-ack", "accepted", null, "done"));
+        String token = buildToken(owner.getId());
+        for (String path : java.util.List.of("/api/pumps/watering/ack", "/api/pumps/watering/wait-ack")) {
+            given().header("Authorization", "Bearer " + token)
+                    .queryParam("correlation_id", "own-ack")
+                    .when().get(path)
+                    .then().statusCode(200).body("correlation_id", equalTo("own-ack"));
+            given().header("Authorization", "Bearer " + token)
+                    .queryParam("correlation_id", "foreign-ack").queryParam("timeout_s", 1)
+                    .when().get(path)
+                    .then().statusCode(path.endsWith("/wait-ack") ? 408 : 404);
+        }
+        own.setUserId(foreign.getId());
+        deviceRepository.save(own);
+        given().header("Authorization", "Bearer " + token)
+                .queryParam("correlation_id", "own-ack")
+                .when().get("/api/pumps/watering/ack")
+                .then().statusCode(404);
     }
 
     @Test
@@ -998,7 +1120,7 @@ class DevicesIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void unassignDeviceForbiddenForStranger() {
+    void unassignDeviceLooksMissingForStranger() {
         UserEntity owner = createUser("owner2@example.com", "user");
         UserEntity other = createUser("other2@example.com", "user");
         DeviceEntity device = createDevice("dev-10", owner);
@@ -1009,8 +1131,8 @@ class DevicesIntegrationTest extends IntegrationTestBase {
                 .when()
                 .post("/api/devices/" + device.getId() + "/unassign")
                 .then()
-                .statusCode(403)
-                .body("detail", equalTo("nedostatochno prav dlya otvyazki etogo ustrojstva"));
+                .statusCode(404)
+                .body("detail", equalTo("ustrojstvo ne najdeno"));
     }
 
     @Test

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import ru.growerhub.backend.common.config.AckSettings;
 import ru.growerhub.backend.device.contract.DeviceAckStore;
 import ru.growerhub.backend.mqtt.model.ManualWateringAck;
+import ru.growerhub.backend.pump.contract.PumpAck;
 
 @Component
 public class AckStore implements DeviceAckStore {
@@ -24,7 +25,7 @@ public class AckStore implements DeviceAckStore {
         storage.put(ack.correlationId(), new AckEntry(deviceId, ack, LocalDateTime.now(clock)));
     }
 
-    public ManualWateringAck get(String correlationId) {
+    public PumpAck get(String correlationId) {
         AckEntry entry = storage.get(correlationId);
         if (entry == null) {
             return null;
@@ -33,7 +34,8 @@ public class AckStore implements DeviceAckStore {
             storage.remove(correlationId);
             return null;
         }
-        return entry.ack();
+        ManualWateringAck ack = entry.ack();
+        return new PumpAck(ack.correlationId(), ack.result(), ack.reason(), ack.status(), entry.deviceId());
     }
 
     public void clear() {

@@ -508,10 +508,14 @@ public class ZigbeeFacade {
 
     @Transactional(readOnly = true)
     public List<ZigbeeOwnedDeviceData> getDevicesForUser(AuthenticatedUser user) {
-        requireSelfService(user);
-        List<ZigbeeCoordinatorEntity> coordinators = user.isAdmin()
-                ? coordinatorRepository.findAllByArchivedAtIsNullOrderByCreatedAtAsc()
-                : coordinatorRepository.findAllByUserIdAndArchivedAtIsNullOrderByCreatedAtAsc(user.id());
+        if (user == null || user.id() == null) {
+            throw new DomainException("unauthorized", "Необходимо войти в аккаунт");
+        }
+        if (!selfServiceSettings.isEnabled() && !user.isDemo()) {
+            return List.of();
+        }
+        List<ZigbeeCoordinatorEntity> coordinators = coordinatorRepository
+                .findAllByUserIdAndArchivedAtIsNullOrderByCreatedAtAsc(user.id());
         return collectCoordinatorDevices(coordinators);
     }
 

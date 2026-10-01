@@ -227,11 +227,9 @@ public class DevicesController {
             @PathVariable("device_id") Integer deviceId,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        boolean isAdmin = user != null && user.isAdmin();
         DeviceAggregate aggregate = deviceFacade.unassignForUserAggregate(
                 deviceId,
-                user != null ? user.id() : null,
-                isAdmin
+                user != null ? user.id() : null
         );
         return toDeviceResponse(aggregate);
     }
@@ -516,7 +514,7 @@ public class DevicesController {
     }
 
     private void requireUserDeviceAccess(String deviceId, AuthenticatedUser user) {
-        boolean allowed = user != null && deviceFacade.canUserAccessDevice(deviceId, user.id(), user.isAdmin());
+        boolean allowed = user != null && deviceFacade.canUserAccessDevice(deviceId, user.id());
         if (!allowed) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Ustrojstvo ne naideno");
         }

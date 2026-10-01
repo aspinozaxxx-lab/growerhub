@@ -160,8 +160,12 @@ public class PumpWateringService {
         return view;
     }
 
-    public PumpAck getAck(String correlationId) {
-        return commandGateway.getAck(correlationId);
+    public PumpAck getAck(String correlationId, AuthenticatedUser user) {
+        PumpAck ack = commandGateway.getAck(correlationId);
+        if (ack == null || user == null || !deviceFacade.canUserAccessDevice(ack.deviceId(), user.id())) {
+            return null;
+        }
+        return ack;
     }
 
     public void finalizeWateringByDeviceId(String deviceId, LocalDateTime now) {
@@ -436,12 +440,10 @@ public class PumpWateringService {
         if (user == null) {
             throw new DomainException("forbidden", "nedostatochno prav dlya etogo nasosa");
         }
-        if (!user.isAdmin()) {
-            DeviceSummary summary = resolveDeviceSummary(pump);
-            Integer ownerId = summary != null ? summary.userId() : null;
-            if (ownerId == null || !ownerId.equals(user.id())) {
-                throw new DomainException("forbidden", "nedostatochno prav dlya etogo nasosa");
-            }
+        DeviceSummary summary = resolveDeviceSummary(pump);
+        Integer ownerId = summary != null ? summary.userId() : null;
+        if (ownerId == null || !ownerId.equals(user.id())) {
+            throw new DomainException("not_found", "nasos ne naiden");
         }
         return pump;
     }

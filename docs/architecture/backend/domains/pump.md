@@ -29,7 +29,7 @@
 - `advanceSession(Long sessionId, PumpSessionData.LeakProbe probe, LocalDateTime now)`
 - `syncAutomationBindings(Integer pumpId, List<PumpSessionData.BoxTarget> targets)`
 - `recordStateByDeviceId(Integer devicePk, DeviceShadowState state, LocalDateTime now)`
-- `getAck(String correlationId)`
+- `getAck(String correlationId, AuthenticatedUser user)`
 - `finalizeWateringByDeviceId(String deviceId, LocalDateTime now)`
 - `listByDeviceId(Integer deviceId, DeviceShadowState state)`
 - `listByPlantId(Integer plantId)`
@@ -42,7 +42,7 @@
 ## Публичные контракты
 
 - `PumpSessionData`
-- `PumpAck`
+- `PumpAck` — результат команды с идентификатором устройства для проверки владельца; REST не раскрывает это поле.
 - `PumpBoundPlantView`
 - `PumpCommandGateway`
 - `PumpHistoryPoint`
@@ -76,4 +76,4 @@ Start проверяет владельца, растения и единств�
 
 ## Ограничения
 
-Pump не читает automation JPA и не публикует MQTT напрямую. Одновременно на физическом устройстве активна одна сессия. Новый start не прерывает текущую сессию. Паузы pulse не входят в длительность. При неизвестной скорости объём остаётся `null`; метрика объёма не создаётся. Переходы состояния не удаляются. Defaults и лимиты задаются конфигурацией.
+Pump не читает automation JPA и не публикует MQTT напрямую. Пользовательские команды, статус и привязки требуют владения также для admin; чужой насос возвращает 404. ACK проверяется по текущему владельцу устройства и скрывается как отсутствующий. Административная история и внутренний worker сохраняют отдельный доступ. Одновременно на устройстве активна одна сессия; новый start не прерывает её. Паузы pulse не входят в длительность. При неизвестной скорости объём остаётся `null`; метрика объёма не создаётся. Переходы состояния не удаляются. Defaults и лимиты задаются конфигурацией.

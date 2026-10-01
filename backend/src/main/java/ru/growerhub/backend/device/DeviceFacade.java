@@ -214,12 +214,12 @@ public class DeviceFacade {
     }
 
     @Transactional(readOnly = true)
-    public boolean canUserAccessDevice(String deviceId, Integer userId, boolean admin) {
+    public boolean canUserAccessDevice(String deviceId, Integer userId) {
         if (deviceId == null || userId == null) {
             return false;
         }
         DeviceEntity device = deviceRepository.findByDeviceId(deviceId).orElse(null);
-        return device != null && (admin || userId.equals(device.getUserId()));
+        return device != null && userId.equals(device.getUserId());
     }
 
     @Transactional
@@ -567,23 +567,21 @@ public class DeviceFacade {
     }
 
     @Transactional
-    public DeviceSummary unassignForUser(Integer deviceId, Integer userId, boolean isAdmin) {
+    public DeviceSummary unassignForUser(Integer deviceId, Integer userId) {
         DeviceEntity device = requireDevice(deviceId);
-        requirePhysicalTarget(device.getDeviceId());
-        if (!isAdmin) {
-            Integer ownerId = device.getUserId();
-            if (ownerId == null || !ownerId.equals(userId)) {
-                throw new DomainException("forbidden", "nedostatochno prav dlya otvyazki etogo ustrojstva");
-            }
+        Integer ownerId = device.getUserId();
+        if (ownerId == null || !ownerId.equals(userId)) {
+            throw new DomainException("not_found", "ustrojstvo ne najdeno");
         }
+        requirePhysicalTarget(device.getDeviceId());
         device.setUserId(null);
         deviceRepository.save(device);
         return deviceQueryService.buildDeviceSummary(device);
     }
 
     @Transactional
-    public DeviceAggregate unassignForUserAggregate(Integer deviceId, Integer userId, boolean isAdmin) {
-        DeviceSummary summary = unassignForUser(deviceId, userId, isAdmin);
+    public DeviceAggregate unassignForUserAggregate(Integer deviceId, Integer userId) {
+        DeviceSummary summary = unassignForUser(deviceId, userId);
         if (summary != null) {
             pumpFacade.ensureDefaultPump(summary.id());
         }

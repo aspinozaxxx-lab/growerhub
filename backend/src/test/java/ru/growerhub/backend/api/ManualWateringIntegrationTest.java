@@ -464,8 +464,8 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .when()
                 .post("/api/pumps/" + pump.getId() + "/watering/start")
                 .then()
-                .statusCode(403)
-                .body("detail", equalTo("nedostatochno prav dlya etogo nasosa"));
+                .statusCode(404)
+                .body("detail", equalTo("Насос не найден"));
     }
 
     @Test
@@ -484,7 +484,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
                 .post("/api/pumps/99999/watering/start")
                 .then()
                 .statusCode(404)
-                .body("detail", equalTo("nasos ne naiden"));
+                .body("detail", equalTo("Насос не найден"));
     }
 
     @Test
@@ -667,6 +667,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     @Test
     void ackReturnsExisting() {
         UserEntity user = createUser("owner-ack@example.com", "user");
+        createDevice("dev-ack", user);
         String token = buildToken(user.getId());
 
         ManualWateringAck ack = new ManualWateringAck("ack-1", "accepted", null, "ok");
@@ -702,6 +703,7 @@ class ManualWateringIntegrationTest extends IntegrationTestBase {
     @Test
     void waitAckReturnsExisting() {
         UserEntity user = createUser("owner-wait@example.com", "user");
+        createDevice("dev-wait", user);
         String token = buildToken(user.getId());
 
         ManualWateringAck ack = new ManualWateringAck("ack-wait", "accepted", "ok", "done");

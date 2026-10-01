@@ -239,7 +239,7 @@ public class DemoFacade {
         state.put("pump_running", running); state.put("correlation_id", correlationId);
         device.stopAt = running ? now().plusSeconds(durationS) : null;
         persist(device, state, now()); publish(device, state, now());
-        return new PumpAck(correlationId, "accepted", null, running ? "running" : "stopped");
+        return new PumpAck(correlationId, "accepted", null, running ? "running" : "stopped", target);
     }
 
     public void commandZigbee(String base, String name, Map<String, Object> payload) {

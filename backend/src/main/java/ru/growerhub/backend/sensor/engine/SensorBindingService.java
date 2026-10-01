@@ -42,12 +42,10 @@ public class SensorBindingService {
         if (sensor == null) {
             throw new DomainException("not_found", "sensor ne naiden");
         }
-        if (!isAdmin(user)) {
-            DeviceSummary summary = deviceFacade.getDeviceSummary(sensor.getDeviceId());
-            Integer ownerId = summary != null ? summary.userId() : null;
-            if (ownerId == null || !ownerId.equals(user.id())) {
-                throw new DomainException("forbidden", "nedostatochno prav dlya etogo sensora");
-            }
+        DeviceSummary summary = deviceFacade.getDeviceSummary(sensor.getDeviceId());
+        Integer ownerId = summary != null ? summary.userId() : null;
+        if (user == null || ownerId == null || !ownerId.equals(user.id())) {
+            throw new DomainException("not_found", "sensor ne naiden");
         }
 
         Set<Integer> nextIds = plantIds != null ? new HashSet<>(plantIds) : Set.of();
@@ -104,9 +102,6 @@ public class SensorBindingService {
         return result;
     }
 
-    private boolean isAdmin(AuthenticatedUser user) {
-        return user != null && user.isAdmin();
-    }
 }
 
 
