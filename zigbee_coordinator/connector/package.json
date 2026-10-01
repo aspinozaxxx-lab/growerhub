@@ -1,0 +1,9 @@
+{
+  "name": "growerhub-zigbee-connector",
+  "version": "0.2.4",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": { "test": "node --test connector.test.mjs", "start": "node connector.mjs" },
+  "dependencies": { "mqtt": "5.16.0" }
+}

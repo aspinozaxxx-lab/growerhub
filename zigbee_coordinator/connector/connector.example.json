@@ -1,0 +1,22 @@
+{
+  "v": 1,
+  "local": {
+    "host": "host.docker.internal",
+    "port": 1883,
+    "base_topic": "zigbee2mqtt"
+  },
+  "cloud": {
+    "host": "growerhub.ru",
+    "port": 8883,
+    "base_topic": "gh/z2m/z2m_example",
+    "username": "z2m_example",
+    "password": "REPLACE_WITH_PERSONAL_DOWNLOAD",
+    "client_id": "z2m_example"
+  },
+  "limits": {
+    "max_message_bytes": 1048576,
+    "reconnect_ms": 5000,
+    "connect_timeout_ms": 30000,
+    "keepalive_seconds": 30
+  }
+}

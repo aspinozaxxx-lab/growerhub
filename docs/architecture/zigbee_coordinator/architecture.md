@@ -27,16 +27,18 @@ Backend строит отображение устройств из metadata Zig
 Пользовательский namespace задаётся одноразовым конфигом из кабинета и имеет вид `gh/z2m/<mqtt_username>`:
 
 - `<base_topic>/bridge/state` — состояние Zigbee2MQTT bridge.
-- `<base_topic>/bridge/info` — сведения о bridge, координаторе и конфиге.
+- `<base_topic>/bridge/info` — сведения о bridge и координаторе.
 - `<base_topic>/bridge/devices` — список Zigbee-устройств.
 - `<base_topic>/<friendly_name>` — состояние устройства.
 - `<base_topic>/<friendly_name>/set` — команда устройству.
 
-Connector передаёт из локального broker в GrowerHub только state, availability и `bridge/state|info|devices|response`; обратно — только `<device>/set`, `<device>/get` и `bridge/request/*`. Каждое направление имеет отдельный allowlist; сообщение не публикуется обратно в источник.
+Connector 0.2.4 — процесс Node.js с двумя MQTT-соединениями по ADR-009. Полные имена из `bridge/devices` определяют точные маршруты state, availability и команд; неоднозначные имена исключаются. Наружу идут также `bridge/state|info|devices` и ответы на поддерживаемые bridge-команды. `bridge/info` очищается от конфигурации и секретов. Исходящие данные помещаются в `<base_topic>/bridge/relay/<исходный относительный topic>` с конвертом v1, исходным payload и признаком сохранённой доставки. Прямой Z2M-маршрут не меняется.
+
+Обратные команды идут только известным устройствам через `/set|/get` и через `bridge/request/permit_join|device/rename`. Облачная подписка MQTT 5 сохраняет RETAIN отправителя и не получает retained-команды при подписке; такие команды отклоняются. Чистые сессии, QoS 0 и выключенная очередь QoS 0 исключают накопление и автоматический повтор после обрыва. После восстановления исходные retained snapshot запрашиваются повторной подпиской локальному broker; живые сообщения из памяти не воспроизводятся.
 
 ## Конфигурация и секреты
 
-В git хранятся только шаблоны без MQTT credentials и Zigbee network key. Одноразовый `secret.yaml` скачивается отдельно из кабинета и хранится локально в ignored runtime-каталоге. Credentials локального broker для connector вводятся только на машине пользователя и не отправляются GrowerHub.
+В git хранятся только шаблоны без MQTT credentials и Zigbee network key. Одноразовые `secret.yaml` и `connector.json` скачиваются из кабинета и остаются в ignored runtime-каталогах. Credentials локального broker для connector вводятся только на машине пользователя и не отправляются GrowerHub. Новый пакет собирается Docker Compose из зафиксированных зависимостей; старые установки `bridge.conf` автоматически не изменяются.
 
 Client ID соединения connector с локальным broker равен `<GrowerHub client ID>-local`; он постоянен для координатора и различается у разных подключений, в том числе при общем локальном broker. Облачное соединение сохраняет выданный backend client ID.
 

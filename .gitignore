@@ -85,6 +85,7 @@ zigbee_coordinator/zigbee2mqtt/.git/
 zigbee_coordinator/zigbee2mqtt/dist/
 zigbee_coordinator/zigbee2mqtt/tsconfig.tsbuildinfo
 zigbee_coordinator/connector/bridge.conf
+zigbee_coordinator/connector/connector.json
 zigbee_coordinator/connector/.env
 zigbee_coordinator/packages/linux/.env
 zigbee_coordinator/packages/linux/data/

@@ -31,6 +31,7 @@ function Assert-NoSecrets([string]$Path) {
         $_.Name -match '^secret\.ya?ml$' `
             -or $_.Name -eq '.env' `
             -or $_.Name -eq 'bridge.conf' `
+            -or $_.Name -eq 'connector.json' `
             -or $_.Name -match 'credentials'
     }
     if ($forbidden) {
@@ -86,7 +87,7 @@ Compress-Release $linuxStage $linuxName
 
 $connectorName = "growerhub-zigbee-connector"
 $connectorStage = Reset-Stage (Join-Path $outputRoot "$connectorName-$Version")
-foreach ($source in @("docker-compose.yml", "mosquitto.conf", "mosquitto-bridge.conf.example", "README.md")) {
+foreach ($source in @("docker-compose.yml", "Dockerfile", ".dockerignore", "package.json", "package-lock.json", "connector.mjs", "connector.example.json", "connector.test.mjs", "connector.integration.mjs", "README.md")) {
     Copy-Item -LiteralPath (Join-Path $root "connector/$source") -Destination $connectorStage
 }
 Compress-Release $connectorStage $connectorName

@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!package.json
+!package-lock.json
+!connector.mjs
+!connector.test.mjs
+!connector.integration.mjs

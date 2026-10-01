@@ -1,8 +1,10 @@
 services:
   connector:
-    image: eclipse-mosquitto:2.0.22
+    build: .
     container_name: growerhub-zigbee-connector
+    user: "${CONNECTOR_UID:-1000}:${CONNECTOR_GID:-1000}"
     restart: unless-stopped
     volumes:
-      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-      - ./bridge.conf:/mosquitto/config/conf.d/bridge.conf:ro
+      - ./connector.json:/app/connector.json:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
