@@ -65,6 +65,57 @@ class AuthMeIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void expiredAccessTokenReturns401() {
+        insertUser(10, "expired@example.com", null, "user", true, null, null);
+        String token = Jwts.builder()
+                .setClaims(Map.of("user_id", 10))
+                .setExpiration(Date.from(Instant.now().minusSeconds(60)))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)), SignatureAlgorithm.HS256)
+                .compact();
+
+        given().header("Authorization", "Bearer " + token)
+                .when().get("/api/auth/me")
+                .then().statusCode(401);
+    }
+
+    @Test
+    void tokenSignedWithAnotherKeyReturns401() {
+        insertUser(11, "wrong-key@example.com", null, "user", true, null, null);
+        String token = Jwts.builder()
+                .setClaims(Map.of("user_id", 11, "role", "admin"))
+                .setExpiration(Date.from(Instant.now().plusSeconds(60)))
+                .signWith(Keys.hmacShaKeyFor((SECRET + "-foreign").getBytes(StandardCharsets.UTF_8)), SignatureAlgorithm.HS256)
+                .compact();
+
+        given().header("Authorization", "Bearer " + token)
+                .when().get("/api/admin/devices")
+                .then().statusCode(401);
+    }
+
+    @Test
+    void unsignedTokenReturns401() {
+        insertUser(12, "unsigned@example.com", null, "admin", true, null, null);
+        String token = Jwts.builder()
+                .setClaims(Map.of("user_id", 12, "role", "admin"))
+                .setExpiration(Date.from(Instant.now().plusSeconds(60)))
+                .compact();
+
+        given().header("Authorization", "Bearer " + token)
+                .when().get("/api/admin/devices")
+                .then().statusCode(401);
+    }
+
+    @Test
+    void claimedAdminRoleCannotOverrideCurrentUserRole() {
+        insertUser(13, "ordinary@example.com", null, "user", true, null, null);
+        String token = buildToken(Map.of("user_id", 13, "role", "admin"));
+
+        given().header("Authorization", "Bearer " + token)
+                .when().get("/api/admin/devices")
+                .then().statusCode(403);
+    }
+
+    @Test
     void missingUserIdClaimReturns401() {
         String token = buildToken(Map.of("sub", "test"));
 

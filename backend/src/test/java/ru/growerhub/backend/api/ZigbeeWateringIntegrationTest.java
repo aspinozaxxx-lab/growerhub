@@ -53,7 +53,7 @@ class ZigbeeWateringIntegrationTest extends IntegrationTestBase {
     @Autowired ObjectMapper mapper;
     @Autowired org.springframework.test.web.servlet.MockMvc mvc;
     @Autowired ru.growerhub.backend.auth.AuthFacade auth;
-    @SpyBean Clock clock;
+    @MockBean Clock clock;
     @MockBean MqttPublisher publisher;
     @MockBean DemoWorker demoWorker;
     @MockBean AutomationWorker automationWorker;
@@ -65,6 +65,7 @@ class ZigbeeWateringIntegrationTest extends IntegrationTestBase {
     void setup() {
         time = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
         doAnswer(call -> time).when(clock).instant();
+        doReturn(ZoneOffset.UTC).when(clock).getZone();
         jdbc.update("MERGE INTO demo_capacity (id) KEY(id) VALUES (1)");
         clearInvocations(publisher);
     }
