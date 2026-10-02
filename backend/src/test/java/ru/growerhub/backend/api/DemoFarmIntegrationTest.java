@@ -74,6 +74,7 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
     @MockBean MqttPublisher publisher;
     @MockBean DemoWorker demoWorker;
     @MockBean AutomationWorker automationWorker;
+    @MockBean ru.growerhub.backend.automation.contract.WeatherForecastGateway weatherGateway;
 
     @BeforeEach
     void setUp() {
@@ -681,6 +682,31 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         response.then().log().ifError().statusCode(200).body("space.saved", equalTo(false));
         assertThat(response.getHeader("Set-Cookie")).contains("HttpOnly").contains("SameSite=Lax");
         return response;
+    }
+
+    @Test
+    void modeledRainUsesOrdinaryPlanAndIsIsolatedWithoutExternalForecastOrPhysicalCommands() {
+        Response session = start(); String token = session.path("access_token");
+        var space = spaces.findById(UUID.fromString(session.path("space.id"))).orElseThrow();
+        var actor = new AuthenticatedUser(space.dataUserId, "demo");
+        var greenhouse = automation.getFarmsOverview(actor).farms().getFirst().greenhouses().getFirst();
+        var cfg = new HashMap<String, Object>();
+        cfg.putAll(Map.of("trigger_mode", "schedule", "observe_only", true, "run_seconds", 30,
+                "stop_mode", "fixed_duration", "weather_enabled", true, "rain_exposure", "outdoors"));
+        automation.replaceGreenhouseScenarios(actor, greenhouse.id(), new ru.growerhub.backend.automation.contract.AutomationData.SaveScenariosRequest(
+                List.of(new ru.growerhub.backend.automation.contract.AutomationData.ScenarioConfigRequest("WATERING", true, cfg))));
+        clearInvocations(publisher, weatherGateway);
+        request(token).body(Map.of("kind", "rain")).post("/api/demo/weather").then().statusCode(200).body("weather", equalTo("rain"));
+        request(token).get("/api/automation/greenhouses/" + greenhouse.id() + "/watering-plan").then().statusCode(200)
+                .body("weather.source", equalTo("SIMULATED")).body("weather.status", equalTo("postponed"))
+                .body("weather.expected_mm", equalTo(6.0f)).body("due", equalTo(false));
+        var other = start(); String otherToken = other.path("access_token");
+        request(otherToken).get("/api/demo/status").then().statusCode(200).body("weather", equalTo("sunny"));
+        request(otherToken).get("/api/automation/greenhouses/" + greenhouse.id() + "/watering-plan").then().statusCode(404);
+        request(token).body(Map.of("kind", "sunny")).post("/api/demo/weather").then().statusCode(200);
+        request(token).get("/api/automation/greenhouses/" + greenhouse.id() + "/watering-plan").then().statusCode(200)
+                .body("weather.status", equalTo("clear")).body("due", equalTo(false));
+        verifyNoInteractions(publisher, weatherGateway);
     }
     private io.restassured.specification.RequestSpecification request(String token) {
         var request = given().baseUri("http://localhost").port(port).header("Origin", "https://growerhub.ru").contentType("application/json");

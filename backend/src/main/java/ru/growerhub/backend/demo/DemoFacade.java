@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.auth.AuthFacade;
 import ru.growerhub.backend.automation.AutomationFacade;
 import ru.growerhub.backend.automation.contract.AutomationData;
+import ru.growerhub.backend.automation.contract.WeatherForecastData;
+import ru.growerhub.backend.common.config.automation.WeatherSettings;
 import ru.growerhub.backend.common.config.DemoSettings;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.common.contract.DomainException;
@@ -50,17 +52,19 @@ public class DemoFacade {
     private final ObjectMapper mapper;
     private final Clock clock;
     private final DemoTemplate template;
+    private final WeatherSettings weatherSettings;
 
     public DemoFacade(DemoSpaceRepository spaces, DemoDeviceRepository devices, DemoCapacityRepository capacity,
             @Lazy UserFacade users, @Lazy DeviceFacade nativeDevices, @Lazy ZigbeeFacade zigbee,
             @Lazy AutomationFacade automation, @Lazy PlantFacade plants, @Lazy PumpFacade pumps,
             @Lazy AuthFacade auth, DemoSettings settings, ObjectMapper mapper, Clock clock, ResourceLoader resources,
-            ru.growerhub.backend.common.config.zigbee.ZigbeeWateringSettings wateringSettings) {
+            ru.growerhub.backend.common.config.zigbee.ZigbeeWateringSettings wateringSettings, WeatherSettings weatherSettings) {
         this.spaces = spaces; this.devices = devices; this.capacity = capacity; this.users = users;
         this.nativeDevices = nativeDevices; this.zigbee = zigbee; this.automation = automation;
         this.plants = plants; this.pumps = pumps; this.auth = auth; this.settings = settings;
         this.mapper = mapper; this.clock = clock;
         this.wateringSettings = wateringSettings;
+        this.weatherSettings = weatherSettings;
         try (var stream = resources.getResource(settings.templatePath()).getInputStream()) {
             this.template = mapper.readValue(stream, DemoTemplate.class);
         } catch (Exception ex) { throw new IllegalStateException("Cannot load demo farm template", ex); }
@@ -169,7 +173,7 @@ public class DemoFacade {
         }
         space.resetsInWindow++;
         clearResources(space);
-        space.generation++; space.templateVersion = template.version(); space.lastActiveAt = now(); space.paused = false;
+        space.generation++; space.templateVersion = template.version(); space.lastActiveAt = now(); space.paused = false; space.weatherKind = null;
         spaces.saveAndFlush(space); seed(space, now());
         return view(space);
     }
@@ -178,8 +182,33 @@ public class DemoFacade {
     public DemoData.Status status(AuthenticatedUser user) {
         DemoSpaceEntity space = owned(user);
         return new DemoData.Status(space.id, space.accountUserId != null, space.locale, timezone(space), space.expiresAt,
-                devices.findBySpaceId(space.id).stream().map(this::deviceView).toList());
+                devices.findBySpaceId(space.id).stream().map(this::deviceView).toList(), weatherKind(space));
     }
+
+    public DemoData.Status weather(AuthenticatedUser user, DemoData.Weather request) {
+        var space = owned(user);
+        if (request == null || request.kind() == null || !List.of("sunny", "rain", "unavailable").contains(request.kind()))
+            throw new DomainException("bad_request", "Выберите условия погоды в демо");
+        space = spaces.lockById(space.id).orElseThrow();
+        space.weatherKind = request.kind(); spaces.save(space);
+        return status(user);
+    }
+
+    @Transactional(readOnly = true)
+    public WeatherForecastData.Forecast weatherForecast(AuthenticatedUser user, LocalDateTime now) {
+        String kind = weatherKind(owned(user));
+        if ("unavailable".equals(kind)) return new WeatherForecastData.Forecast("SIMULATED", now, now, List.of(), "Прогноз недоступен (симуляция)");
+        List<WeatherForecastData.Period> periods = new ArrayList<>();
+        LocalDateTime from = now.withMinute(0).withSecond(0).withNano(0);
+        for (int i = 0; i < weatherSettings.demoHorizonHours(); i++) {
+            periods.add(new WeatherForecastData.Period(from.plusHours(i), from.plusHours(i + 1),
+                    "rain".equals(kind) ? weatherSettings.demoRainMm() : 0,
+                    "rain".equals(kind) ? 90.0 : 0.0, "rain".equals(kind) ? "rain" : "clearsky_day"));
+        }
+        return new WeatherForecastData.Forecast("SIMULATED", now, now, List.copyOf(periods), null);
+    }
+
+    private String weatherKind(DemoSpaceEntity space) { return space.weatherKind == null ? weatherSettings.demoDefaultKind() : space.weatherKind; }
 
     @Transactional(readOnly = true)
     public List<DemoData.Profile> catalog(AuthenticatedUser user) {

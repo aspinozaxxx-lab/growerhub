@@ -73,6 +73,13 @@ public class AutomationController {
         return new CommonDtos.MessageResponse("Farm deleted");
     }
 
+    @PutMapping("/farms/{farm_id}/weather-location")
+    public AutomationData.FarmsOverview updateWeatherLocation(@AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("farm_id") Integer farmId,
+            @RequestBody ru.growerhub.backend.automation.contract.WeatherForecastData.Location request) {
+        return automationFacade.updateFarmWeatherLocation(user, farmId, request);
+    }
+
     @PostMapping("/farms/{farm_id}/greenhouses")
     public AutomationData.FarmsOverview createGreenhouse(
             @AuthenticationPrincipal AuthenticatedUser user,

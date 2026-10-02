@@ -23,4 +23,5 @@ public class DemoSpaceEntity {
     @Column(name = "resets_in_window", nullable = false) public int resetsInWindow;
     @Column(name = "expires_at") public LocalDateTime expiresAt;
     @Column(nullable = false) public boolean paused;
+    @Column(name = "weather_kind") public String weatherKind;
 }

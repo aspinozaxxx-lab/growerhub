@@ -114,6 +114,9 @@ class ArchitectureRulesTest {
             noClasses().that().resideInAPackage("ru.growerhub.backend." + domain + "..")
                     .should().dependOnClassesThat().resideInAPackage("ru.growerhub.backend.pushok..")
                     .allowEmptyShould(true).check(CLASSES);
+            noClasses().that().resideInAPackage("ru.growerhub.backend." + domain + "..")
+                    .should().dependOnClassesThat().resideInAPackage("ru.growerhub.backend.weather..")
+                    .allowEmptyShould(true).check(CLASSES);
         }
     }
 
@@ -130,6 +133,14 @@ class ArchitectureRulesTest {
                     .should().dependOnClassesThat().resideInAnyPackage(otherJpaPackages.toArray(new String[0]));
             jpaIsolationRule.allowEmptyShould(true).check(CLASSES);
         }
+    }
+
+    @Test
+    void forecastAdapterHasNoJpaOrCommandDependencies() {
+        noClasses().that().resideInAPackage("ru.growerhub.backend.weather..")
+                .should().dependOnClassesThat().resideInAnyPackage("ru.growerhub.backend..jpa..",
+                        "ru.growerhub.backend.pump..", "ru.growerhub.backend.mqtt..", "ru.growerhub.backend.zigbee..")
+                .check(CLASSES);
     }
 
     // pravilo: @Transactional tolko na facade

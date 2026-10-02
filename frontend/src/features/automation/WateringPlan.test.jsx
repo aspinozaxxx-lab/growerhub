@@ -1,8 +1,9 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { fetchWateringPlan } from '../../api/selfService';
 import WateringPlan from './WateringPlan';
 import WateringScenarioFields from './WateringScenarioFields';
+import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../../api/selfService', () => ({ fetchWateringPlan: vi.fn() }));
 afterEach(() => { cleanup(); vi.resetAllMocks(); });
@@ -42,6 +43,29 @@ it('raspisanie ne trebuet polya absolyutnogo procenta pochvy', () => {
     daily_max_seconds: 100, schedule_days: [1, 3, 5] }} onChange={() => {}} />);
   expect(screen.queryByLabelText('Порог почвы, %')).not.toBeInTheDocument();
   expect(screen.getByLabelText('Время полива')).toBeInTheDocument();
-  expect(screen.getByLabelText('Пн')).toBeChecked();
-  expect(screen.getByLabelText('Вт')).not.toBeChecked();
+  const days = within(screen.getByRole('group', { name: 'Дни полива' })).getAllByRole('checkbox');
+  expect(days[0]).toBeChecked();
+  expect(days[1]).not.toBeChecked();
+});
+
+it('pokazyvaet neizvestnuyu veroyatnost i predel perenosa bez sobstvennogo prognoza', async () => {
+  fetchWateringPlan.mockResolvedValue({ observe_only: true, reasons: ['Ожидается дождь'], run_seconds: 30,
+    weather: { source: 'SIMULATED', status: 'postponed', expected_mm: 6, max_period_probability: null,
+      pending: { originalAt: '2026-10-03T07:00:00', deadline: '2026-10-04T07:00:00' } } });
+  render(<WateringPlan greenhouseId={7} revision="1" />);
+  expect(await screen.findByText('Ожидание погоды')).toBeInTheDocument();
+  expect(screen.getByText('Не предоставлена')).toBeInTheDocument();
+  expect(screen.getByText(/Предел ожидания/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Обновить план' }));
+  await waitFor(() => expect(fetchWateringPlan).toHaveBeenCalledTimes(2));
+});
+
+it('uchet dozhdya ne vklyuchaet upravlenie i ne trebuet absolyutnogo procenta pochvy', () => {
+  const onChange = vi.fn();
+  render(<MemoryRouter><WateringScenarioFields config={{ trigger_mode: 'schedule', observe_only: true, weather_enabled: true,
+    rain_exposure: 'outdoors', rain_threshold_mm: 2, rain_max_delay_hours: 24, run_seconds: 30 }} onChange={onChange} /></MemoryRouter>);
+  fireEvent.change(screen.getByLabelText('Если прогноз недоступен'), { target: { value: 'base' } });
+  expect(onChange).toHaveBeenCalledWith({ weather_unavailable_policy: 'base' });
+  expect(onChange.mock.calls[0][0]).not.toHaveProperty('enabled');
+  expect(onChange.mock.calls[0][0]).not.toHaveProperty('observe_only');
 });

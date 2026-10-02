@@ -7,6 +7,7 @@ import {
   fetchFarmsOverview,
   updateGreenhouse,
   updateUserFarm,
+  updateFarmWeatherLocation,
 } from '../../api/selfService';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
@@ -14,6 +15,7 @@ import Button from '../../components/ui/Button';
 import { listOrEmpty, overviewFarms } from './farmModel';
 import { translateApp } from '../../locales/i18n';
 import './FarmZonesSettings.css';
+import FarmWeatherLocation from './FarmWeatherLocation';
 
 function FarmZonesSettings() {
   const [overview, setOverview] = useState(null);
@@ -235,6 +237,9 @@ function FarmZonesSettings() {
                   </Button>
                 </div>
 
+                <FarmWeatherLocation key={`${farm.id}:${farm.weather_location?.latitude}:${farm.weather_location?.longitude}:${farm.weather_location?.label}`}
+                  farm={farm} disabled={Boolean(busy)} onSave={(location) => runAction(`farm:${farm.id}:weather`,
+                    () => updateFarmWeatherLocation(farm.id, location), translateApp('Место для прогноза сохранено'))} />
                 <div className="farm-zones-settings__greenhouses">
                   {listOrEmpty(farm.greenhouses).map((greenhouse) => {
                     const draft = greenhouseDrafts[greenhouse.id] || {

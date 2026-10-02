@@ -19,7 +19,7 @@ public final class DemoAccessPolicy {
                     || path.matches("/api/zigbee/coordinators(?:/[0-9a-fA-F-]+(?:/overview|/devices/[^/]+/history)?)?");
         }
         if ("POST".equals(method)) {
-            return path.matches("/api/demo/(devices|environment|reset)")
+            return path.matches("/api/demo/(devices|environment|weather|reset)")
                     || path.equals("/api/plants")
                     || path.matches("/api/plants/\\d+/(journal|harvest)")
                     || path.matches("/api/automation/farms(?:/\\d+/greenhouses)?")
@@ -29,6 +29,7 @@ public final class DemoAccessPolicy {
         }
         if ("PUT".equals(method)) {
             return path.equals("/api/automation/scenarios/enabled")
+                    || path.matches("/api/automation/farms/\\d+/weather-location")
                     || path.matches("/api/automation/(?:farms|greenhouses)/\\d+(?:/(slots|scenarios|plants))?")
                     || path.matches("/api/device/[^/]+/settings")
                     || path.matches("/api/(sensors|pumps)/\\d+/bindings");

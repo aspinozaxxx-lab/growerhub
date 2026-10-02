@@ -150,6 +150,11 @@ export const updateUserFarm = (farmId, payload) => requestJson(
   { method: 'PUT', body: JSON.stringify(payload) },
 );
 
+export const updateFarmWeatherLocation = (farmId, location) => requestJson(
+  `/api/automation/farms/${encodeURIComponent(farmId)}/weather-location`,
+  { method: 'PUT', body: JSON.stringify(location) },
+);
+
 export const deleteUserFarm = (farmId) => requestJson(
   `/api/automation/farms/${encodeURIComponent(farmId)}`,
   { method: 'DELETE' },

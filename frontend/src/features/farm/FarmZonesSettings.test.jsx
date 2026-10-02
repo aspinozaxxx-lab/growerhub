@@ -16,6 +16,7 @@ import {
   fetchFarmsOverview,
   updateGreenhouse,
   updateUserFarm,
+  updateFarmWeatherLocation,
 } from '../../api/selfService';
 import FarmZonesSettings from './FarmZonesSettings';
 
@@ -27,6 +28,7 @@ vi.mock('../../api/selfService', () => ({
   fetchFarmsOverview: vi.fn(),
   updateGreenhouse: vi.fn(),
   updateUserFarm: vi.fn(),
+  updateFarmWeatherLocation: vi.fn(),
 }));
 
 const overview = {
@@ -68,6 +70,19 @@ describe('FarmZonesSettings', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it('sohranyaet mesto tolko vybrannoj fermy s okruglennymi koordinatami bez avtomaticheskogo GPS', async () => {
+    updateFarmWeatherLocation.mockResolvedValue(overview);
+    render(<FarmZonesSettings />);
+    const farm = (await screen.findAllByLabelText('Название фермы'))[0].closest('section');
+    const view = within(farm);
+    fireEvent.click(view.getByText('Место для прогноза'));
+    fireEvent.change(view.getByLabelText('Широта'), { target: { value: '51.50741' } });
+    fireEvent.change(view.getByLabelText('Долгота'), { target: { value: '-0.12789' } });
+    fireEvent.click(view.getByRole('button', { name: 'Сохранить место' }));
+    await waitFor(() => expect(updateFarmWeatherLocation).toHaveBeenCalledWith(1, { latitude: 51.51, longitude: -0.13, label: null }));
+    expect(updateUserFarm).not.toHaveBeenCalled();
   });
 
   it('upravlyaet imenami i perenosom teplic otdelno ot konstruktora', async () => {

@@ -1,5 +1,6 @@
 import { translateApp as t } from '../../locales/i18n';
 import Button from '../../components/ui/Button';
+import { Link } from 'react-router-dom';
 
 export default function WateringScenarioFields({ config, onChange, disabled }) {
   const mode = config.trigger_mode || 'legacy';
@@ -32,7 +33,7 @@ export default function WateringScenarioFields({ config, onChange, disabled }) {
             <input type="checkbox" checked={(config.schedule_days ?? [1, 2, 3, 4, 5, 6, 7]).includes(i + 1)}
               onChange={(e) => onChange({ schedule_days: e.target.checked
                 ? [...(config.schedule_days ?? [1, 2, 3, 4, 5, 6, 7]), i + 1].filter((v, n, a) => a.indexOf(v) === n)
-                : (config.schedule_days ?? [1, 2, 3, 4, 5, 6, 7]).filter((v) => v !== i + 1) })} />{t(day)}</label>)}
+                : (config.schedule_days ?? [1, 2, 3, 4, 5, 6, 7]).filter((v) => v !== i + 1) })} />{t(`День недели: ${day}`)}</label>)}
         </div>
         <p className="watering-field-wide">{t('Датчик не обязателен. Время — по часовому поясу профиля; пропущенный полив не догоняется.')}</p>
       </> : <>
@@ -48,6 +49,30 @@ export default function WateringScenarioFields({ config, onChange, disabled }) {
           {t(config.calibration_request ? 'Подтверждение будет сохранено' : 'Подтвердить ориентиры для этого положения')}
         </Button>
       </>}
+      <label className="watering-checkbox watering-field-wide"><input type="checkbox" checked={config.weather_enabled === true}
+        onChange={(e) => onChange({ weather_enabled: e.target.checked })} />{t('Учитывать ожидаемый дождь')}</label>
+      {config.weather_enabled ? <>
+        <label className="watering-field-wide">{t('Дождь на участке')}<select value={config.rain_exposure ?? 'roof'}
+          onChange={(e) => onChange({ rain_exposure: e.target.value })}>
+          <option value="roof">{t('Под крышей — не отменять полив')}</option>
+          <option value="outdoors">{t('Дождь попадает на почву')}</option>
+        </select></label>
+        {config.rain_exposure === 'outdoors' ? <>
+          {mode === 'schedule' ? <>
+            <label>{t('Переносы: с')}<input type="time" required value={config.window_start ?? '07:00'} onChange={(e) => onChange({ window_start: e.target.value })} /></label>
+            <label>{t('Переносы: до')}<input type="time" required value={config.window_end ?? '10:00'} onChange={(e) => onChange({ window_end: e.target.value })} /></label>
+            <p className="watering-field-wide">{t('Время расписания должно попадать в это окно. Ожидание дождя не запускает полив вне разрешённых часов. Одинаковые начало и конец разрешают любое время.')}</p>
+          </> : null}
+          {number('rain_threshold_mm', 'Ожидаемые осадки для переноса, мм', 0.1)}
+          {number('rain_max_delay_hours', 'Предельное ожидание, ч', 1, 72)}
+          <label className="watering-field-wide">{t('Если прогноз недоступен')}<select value={config.weather_unavailable_policy ?? 'pause'}
+            onChange={(e) => onChange({ weather_unavailable_policy: e.target.value })}>
+            <option value="pause">{t('Ждать до предела, затем пропустить слот')}</option>
+            <option value="base">{t('Продолжать по основному правилу')}</option>
+          </select></label>
+          <p className="watering-field-wide">{t('Порог — ваш выбор для этого участка. Прогноз проверяется перед запуском; после предельного срока полив пропускается, а не догоняется.')} <Link to="/app/settings/zones/">{t('Указать место фермы')}</Link></p>
+        </> : <p className="watering-field-wide">{t('Под крышей дождь не заменяет полив. Прогноз для этого участка не запрашивается.')}</p>}
+      </> : null}
     </>}
     {number('run_seconds', 'Длительность, сек')}
     {number('min_interval_hours', 'Минимальная пауза, ч', mode === 'legacy' ? 0 : 1)}

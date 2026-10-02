@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, expect, it, vi } from 'vitest';
 import AppDemoTools from './AppDemoTools';
-import { changeDemoEnvironment } from '../../api/demo';
+import { changeDemoEnvironment, changeDemoWeather } from '../../api/demo';
 
 vi.mock('../../features/auth/AuthContext', () => ({ useAuth: () => ({ demoActive: true }) }));
 vi.mock('../../api/demo', () => ({
@@ -10,6 +10,7 @@ vi.mock('../../api/demo', () => ({
   fetchDemoCatalog: vi.fn().mockResolvedValue([{ key: 'controller', name: 'Контроллер' }]),
   changeDemoEnvironment: vi.fn().mockResolvedValue({ devices: [{ id: 'sensor', name: 'Рассада', profile: 'controller', state: { temperature: 34, moisture: 81.5 } }] }),
   addDemoDevice: vi.fn(),
+  changeDemoWeather: vi.fn().mockResolvedValue({ weather: 'rain', devices: [] }),
 }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 it('prinimaet drobnye pokazaniya posle simuljacii i menjaet tolko vybrannye uslovija', async () => {
@@ -25,4 +26,13 @@ it('prinimaet drobnye pokazaniya posle simuljacii i menjaet tolko vybrannye uslo
   fireEvent.click(screen.getByRole('button', { name: 'Применить условия' }));
   await waitFor(() => expect(changeDemoEnvironment).toHaveBeenCalledWith({ device_id: 'sensor', temperature: 34, moisture: 81.5 }));
   expect(await screen.findByRole('status')).toHaveTextContent('Показания изменены');
+});
+
+it('pogoda izmenyaetsya tolko v demo i ne posylaet pokazaniya realnogo datchika', async () => {
+  render(<MemoryRouter><AppDemoTools /></MemoryRouter>);
+  await screen.findByLabelText('Температура воздуха, °C');
+  fireEvent.change(screen.getByLabelText('Условия прогноза'), { target: { value: 'rain' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Применить погоду' }));
+  await waitFor(() => expect(changeDemoWeather).toHaveBeenCalledWith('rain'));
+  expect(changeDemoEnvironment).not.toHaveBeenCalled();
 });

@@ -36,5 +36,6 @@ public final class WateringPlanData {
             @JsonProperty("used_today_seconds") long usedTodaySeconds,
             @JsonProperty("timezone") String timezone,
             @JsonProperty("soil") Soil soil,
+            @JsonProperty("weather") WeatherForecastData.Decision weather,
             @JsonProperty("reasons") List<String> reasons) {}
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { fetchDemoStatus, fetchDemoCatalog, addDemoDevice, changeDemoEnvironment } from '../../api/demo';
+import { fetchDemoStatus, fetchDemoCatalog, addDemoDevice, changeDemoEnvironment, changeDemoWeather } from '../../api/demo';
 import { useAuth } from '../../features/auth/AuthContext';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import { translateApp as t } from '../../locales/i18n';
@@ -16,6 +16,7 @@ export default function AppDemoTools() {
   const [temperature, setTemperature] = useState(25);
   const [moisture, setMoisture] = useState(60);
   const [leak, setLeak] = useState(false);
+  const [weather, setWeather] = useState('sunny');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -26,7 +27,7 @@ export default function AppDemoTools() {
     if (!demoActive) return;
     let cancelled = false;
     Promise.all([fetchDemoStatus(), fetchDemoCatalog()]).then(([next, profiles]) => {
-      if (!cancelled) { setStatus(next); setCatalog(profiles); }
+      if (!cancelled) { setStatus(next); setCatalog(profiles); setWeather(next.weather || 'sunny'); }
     }).catch((failure) => { if (!cancelled && failure.name !== 'AbortError') setError(failure.message); });
     return () => { cancelled = true; };
   }, [demoActive]);
@@ -71,6 +72,24 @@ export default function AppDemoTools() {
       {error ? <p className="demo-message demo-message--error" role="alert">{error}</p> : null}
       {notice ? <p className="demo-message" role="status">{notice}</p> : null}
       <div className="demo-tools__grid">
+        <section className="demo-tool-card">
+          <h2>{t('Погода за окном')}</h2>
+          <form onSubmit={async (event) => {
+            event.preventDefault(); setBusy(true); setError(''); setNotice('');
+            try { setStatus(await changeDemoWeather(weather)); setNotice(t('Погода в демо изменена. План полива будет пересчитан по общим правилам.')); }
+            catch (failure) { setError(failure.message); }
+            finally { setBusy(false); }
+          }}>
+            <label htmlFor="demo-weather">{t('Условия прогноза')}</label>
+            <select id="demo-weather" value={weather} onChange={(event) => setWeather(event.target.value)} disabled={busy || !status}>
+              <option value="sunny">{t('Без дождя')}</option>
+              <option value="rain">{t('Ожидается дождь')}</option>
+              <option value="unavailable">{t('Прогноз недоступен')}</option>
+            </select>
+            <button className="gh-btn gh-btn--primary gh-btn--md" disabled={busy || !status}>{t('Применить погоду')}</button>
+          </form>
+          <p>{t('В сценарии полива включите учёт дождя и отметьте открытый участок. Переключите дождь и сухую погоду, чтобы увидеть перенос и отмену ожидания. Данные моделируются, реальный прогноз и оборудование не используются.')}</p>
+        </section>
         <section className="demo-tool-card">
           <h2>{t('Добавить виртуальное устройство')}</h2>
           <form onSubmit={add}>

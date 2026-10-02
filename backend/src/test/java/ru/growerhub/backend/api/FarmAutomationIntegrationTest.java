@@ -150,6 +150,28 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void weatherLocationIsRoundedAndOrdinaryCabinetCannotChangeForeignFarmEvenForAdmin() {
+        var admin = createUser("weather-admin@example.com", "admin");
+        var other = createUser("weather-other@example.com", "user");
+        String token = buildToken(admin.getId()), foreignToken = buildToken(other.getId());
+        int own = createFarm(token, "Моя ферма"), foreign = createFarm(foreignToken, "Другая ферма");
+        var body = Map.of("latitude", 51.50741, "longitude", -0.12789, "label", "Тестовое место");
+        given().header("Authorization", "Bearer " + token).contentType("application/json").body(body)
+                .when().put("/api/automation/farms/" + foreign + "/weather-location").then().statusCode(404);
+        given().contentType("application/json").body(body).when()
+                .put("/api/automation/farms/" + own + "/weather-location").then().statusCode(401);
+        given().header("Authorization", "Bearer " + token).contentType("application/json").body(body)
+                .when().put("/api/automation/farms/" + own + "/weather-location").then().statusCode(200)
+                .body("farms[0].weather_location.latitude", equalTo(51.51f))
+                .body("farms[0].weather_location.longitude", equalTo(-0.13f));
+        given().header("Authorization", "Bearer " + foreignToken).when().get("/api/automation/farms").then()
+                .statusCode(200).body("farms[0].weather_location", nullValue());
+        given().header("Authorization", "Bearer " + token).contentType("application/json")
+                .body(Map.of("latitude", 91, "longitude", 12)).when()
+                .put("/api/automation/farms/" + own + "/weather-location").then().statusCode(400);
+    }
+
+    @Test
     void resourceStatisticsChecksOwnerAdminAndRole() {
         UserEntity owner = createUser("statistics-owner@example.com", "user");
         UserEntity other = createUser("statistics-other@example.com", "user");

@@ -12,7 +12,8 @@ public final class DemoData {
     public record Space(UUID id, @JsonIgnore Integer dataUserId, @JsonIgnore int generation,
             boolean saved, String locale, String timezone, @JsonProperty("expires_at") LocalDateTime expiresAt) {}
     public record Status(UUID id, boolean saved, String locale, String timezone,
-            @JsonProperty("expires_at") LocalDateTime expiresAt, List<Device> devices) {}
+            @JsonProperty("expires_at") LocalDateTime expiresAt, List<Device> devices, String weather) {}
+    public record Weather(String kind) {}
     public record Device(UUID id, String profile, String name, Map<String, Object> state) {}
     public record Profile(String key, String name, String description) {}
     public record Tick(Integer ownerId, boolean telemetry) {}

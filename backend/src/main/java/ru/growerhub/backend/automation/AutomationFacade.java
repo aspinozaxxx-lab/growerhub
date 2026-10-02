@@ -25,6 +25,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.automation.contract.AutomationData;
 import ru.growerhub.backend.automation.contract.WateringPlanData;
+import ru.growerhub.backend.automation.contract.WeatherForecastData;
+import ru.growerhub.backend.automation.contract.WeatherForecastGateway;
+import ru.growerhub.backend.common.config.automation.WeatherSettings;
+import ru.growerhub.backend.demo.DemoFacade;
+import org.springframework.beans.factory.ObjectProvider;
 import ru.growerhub.backend.automation.engine.WateringPlanEngine;
 import ru.growerhub.backend.common.config.automation.WateringPlanSettings;
 import ru.growerhub.backend.automation.jpa.AutomationActionLogEntity;
@@ -135,6 +140,9 @@ public class AutomationFacade {
     private final ObjectMapper objectMapper;
     private final WateringPlanEngine wateringPlans;
     private final WateringPlanSettings wateringPlanSettings;
+    private final WeatherSettings weatherSettings;
+    private final WeatherForecastGateway weatherForecast;
+    private final ObjectProvider<DemoFacade> demos;
 
     public AutomationFacade(
             AutomationRoomRepository roomRepository,
@@ -155,7 +163,8 @@ public class AutomationFacade {
             ObjectMapper objectMapper,
             java.time.Clock clock,
             WateringPlanEngine wateringPlans,
-            WateringPlanSettings wateringPlanSettings
+            WateringPlanSettings wateringPlanSettings,
+            WeatherSettings weatherSettings, WeatherForecastGateway weatherForecast, ObjectProvider<DemoFacade> demos
     ) {
         this.roomRepository = roomRepository;
         this.boxRepository = boxRepository;
@@ -176,6 +185,7 @@ public class AutomationFacade {
         this.clock = clock;
         this.wateringPlans = wateringPlans;
         this.wateringPlanSettings = wateringPlanSettings;
+        this.weatherSettings = weatherSettings; this.weatherForecast = weatherForecast; this.demos = demos;
     }
 
     @Transactional(readOnly = true)
@@ -402,6 +412,25 @@ public class AutomationFacade {
 
     public void deleteUserFarm(AuthenticatedUser user, Integer farmId) {
         deleteRoomWithResources(requireOwnedFarm(user, farmId));
+    }
+
+    public AutomationData.FarmsOverview updateFarmWeatherLocation(AuthenticatedUser user, Integer farmId,
+            WeatherForecastData.Location request) {
+        var farm = requireOwnedFarm(user, farmId);
+        Double latitude = request == null ? null : request.latitude();
+        Double longitude = request == null ? null : request.longitude();
+        if (latitude == null && longitude == null) farm.setWeatherLocation(null, null, null);
+        else {
+            if (latitude == null || longitude == null || !Double.isFinite(latitude) || !Double.isFinite(longitude)
+                    || Math.abs(latitude) > 90 || Math.abs(longitude) > 180)
+                throw new DomainException("bad_request", "Укажите корректное место фермы");
+            double scale = Math.pow(10, weatherSettings.coordinateDecimals());
+            String label = request.label() == null ? null : request.label().trim();
+            if (label != null && label.length() > 120) throw new DomainException("bad_request", "Слишком длинное название места");
+            farm.setWeatherLocation(Math.rint(latitude * scale) / scale, Math.rint(longitude * scale) / scale, label);
+        }
+        farm.setUpdatedAt(nowUtc()); roomRepository.save(farm);
+        return buildFarmsOverview(user);
     }
 
     public AutomationData.FarmsOverview createGreenhouse(
@@ -2014,10 +2043,29 @@ public class AutomationFacade {
         }
         var previous = stateRepository.findByScopeTypeAndScopeIdAndScenarioType(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING).orElse(null);
         String consumed = blankToNull(String.valueOf(runtimeMap(previous).getOrDefault("watering_consumed_key", "")));
+        WeatherForecastData.Input weather = null;
+        if (Boolean.TRUE.equals(cfg.get("weather_enabled")) && "outdoors".equals(cfg.get("rain_exposure"))) {
+            var location = weatherLocation(box.getRoom());
+            String fingerprint;
+            try {
+                fingerprint = java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                        .digest((config.getConfigJson() + "|" + config.getUpdatedAt() + "|" + timezone + "|" + location
+                                + "|" + soilBindingKey(soil) + "|" + (binding == null ? null : binding.getId()))
+                                .getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+            } catch (java.security.NoSuchAlgorithmException ex) { throw new IllegalStateException(ex); }
+            WeatherForecastData.Pending pending = null;
+            Object saved = runtimeMap(previous).get("watering_plan");
+            if (saved != null) {
+                var prior = objectMapper.convertValue(saved, WateringPlanData.Plan.class);
+                if (prior.weather() != null) pending = prior.weather().pending();
+            }
+            var forecast = owner.isDemo() ? demos.getObject().weatherForecast(owner, now) : weatherForecast.forecast(location, now);
+            weather = new WeatherForecastData.Input(forecast, pending, fingerprint);
+        }
         return wateringPlans.evaluate(box.getId(), cfg, now, timezone, config.isEnabled() && box.isEnabled() && box.getRoom().isEnabled(),
                 equipmentIssue, soilBindingKey(soil), history, pumpFacade.lastCompletedSessionForBox(box.getId()),
                 pumpFacade.boxStatistics(box.getId(), "day", 1, null, timezone).activeDurationS(),
-                binding != null && currentWatering(binding) != null, consumed);
+                binding != null && currentWatering(binding) != null, consumed, weather);
     }
 
     private String soilBindingKey(AutomationResourceBindingEntity binding) {
@@ -2740,6 +2788,7 @@ public class AutomationFacade {
                 room.id(),
                 room.name(),
                 room.enabled(),
+                weatherLocation(farm),
                 room.resources(),
                 room.scenarios(),
                 room.states(),
@@ -2748,6 +2797,11 @@ public class AutomationFacade {
                 room.createdAt(),
                 room.updatedAt()
         );
+    }
+
+    private WeatherForecastData.Location weatherLocation(AutomationRoomEntity farm) {
+        return farm.getWeatherLatitude() == null ? null : new WeatherForecastData.Location(
+                farm.getWeatherLatitude(), farm.getWeatherLongitude(), farm.getWeatherLabel());
     }
 
     private AutomationData.FarmOverview buildFarmOverview(AuthenticatedUser user) {

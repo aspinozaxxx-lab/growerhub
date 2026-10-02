@@ -11,6 +11,7 @@ Backend построен вокруг доменов. Адаптеры REST и M
 - `config` - общая конфигурация приложения.
 - `diagnostics` - техническая диагностика.
 - `llm` - внешний шлюз для advisor.
+- `weather` — технический HTTP-кеш MET Norway, реализация `automation.contract.WeatherForecastGateway` без JPA и команд полива.
 - доменные пакеты - `advisor`, `auth`, `automation`, `demo`, `device`, `firmware`, `journal`, `maintenance`, `onboarding`, `plant`, `pump`, `sensor`, `user`, `zigbee`.
 
 ## Домены
@@ -40,7 +41,7 @@ Backend построен вокруг доменов. Адаптеры REST и M
 
 Внутренние пакеты `engine` и `jpa` принадлежат только своему домену. Другие домены и адаптеры не импортируют чужие `engine` и `jpa`.
 
-Домен не импортирует `api`, `mqtt` и `pushok`. Адаптеры не импортируют JPA entity и repository.
+Домен не импортирует `api`, `mqtt`, `pushok` и `weather`. Адаптеры не импортируют JPA entity и repository.
 
 `common` не содержит JPA entity и не владеет бизнес-данными.
 

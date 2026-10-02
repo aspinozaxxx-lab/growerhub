@@ -62,6 +62,7 @@ public final class AutomationData {
             @JsonProperty("id") Integer id,
             @JsonProperty("name") String name,
             @JsonProperty("enabled") boolean enabled,
+            @JsonProperty("weather_location") WeatherForecastData.Location weatherLocation,
             @JsonProperty("slots") List<ResourceBinding> slots,
             @JsonProperty("scenarios") List<ScenarioConfig> scenarios,
             @JsonProperty("states") List<ScenarioState> states,

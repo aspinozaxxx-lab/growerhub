@@ -17,3 +17,4 @@ export const fetchDemoStatus = () => data('status');
 export const fetchDemoCatalog = () => data('catalog');
 export const addDemoDevice = (body) => data('devices', body);
 export const changeDemoEnvironment = (body) => data('environment', body);
+export const changeDemoWeather = (kind) => data('weather', { kind });

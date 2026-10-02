@@ -100,6 +100,7 @@ class OnboardingFacadeTest {
                 10,
                 "Farm",
                 true,
+                null,
                 List.of(),
                 List.of(),
                 List.of(),

@@ -60,6 +60,11 @@ public class DemoController {
         return demo.environment(user, request);
     }
 
+    @PostMapping("/weather")
+    public DemoData.Status weather(@AuthenticationPrincipal AuthenticatedUser user, @RequestBody DemoData.Weather request) {
+        return demo.weather(user, request);
+    }
+
     public record Start(String locale, String timezone) {}
     public record Save(boolean replace) {}
 }

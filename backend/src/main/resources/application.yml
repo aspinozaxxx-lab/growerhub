@@ -324,6 +324,46 @@ history:
     # Period povtornoj proverki backlog posle starta (ms).
     catchUpPeriodMs: 86400000
 
+weather:
+  # Besplatnyj prognoz MET Norway; koordinaty tolko posle vybora polzovatelya.
+  url: https://api.met.no/weatherapi/locationforecast/2.0/complete
+  # Identifikaciya prilozheniya dlya provajdera, bez lichnyh dannyh polzovatelya.
+  user-agent: GrowerHub/1.0 (https://growerhub.ru)
+  # Predel vremeni zaprosa prognoza.
+  timeout-seconds: 15
+  # Predel raspakovannogo otveta prognoza.
+  maximum-body-bytes: 2000000
+  # Predel keshiruemyh mest v odnom processe.
+  maximum-locations: 64
+  # Minimalnyj interval mezhdu novymi HTTP-zaprosami.
+  minimum-request-millis: 1500
+  # Pauza posle oshibki bez bolee pozdnego Retry-After.
+  retry-seconds: 3600
+  # Maksimalnyj vozrast modeli, a ne vremeni povtornogo chteniya kesha.
+  maximum-forecast-age-hours: 12
+  # Gorizont proverki dozhdya pered polivom.
+  horizon-hours: 6
+  # Nachalnyj porog prognoziruemyh osadkov, ne agronomicheskaya rekomendaciya.
+  default-rain-mm: 2
+  # Nachalnyj predel otlozhennogo slota.
+  default-delay-hours: 24
+  # Verhnij predel vybiraemoj otsrochki.
+  maximum-delay-hours: 72
+  # Koordinaty okruglyayutsya do etoj tochnosti pered hraneniem i otpravkoj.
+  coordinate-decimals: 2
+  # Dlina modeliruemogo prognoza v demo.
+  demo-horizon-hours: 240
+  # Modeliruemoe kolichestvo dozhdya v chas v demo.
+  demo-rain-mm: 1
+  # Novyj uchet pogody ne vklyuchaetsya v sushchestvuyushchih scenariyah.
+  default-enabled: false
+  # Bez yavnogo vybora uchastka dozhd ne zamenyaet poliv.
+  default-exposure: roof
+  # Bez yavnogo soglasiya nedostupnyj prognoz priostanavlivaet slot.
+  default-unavailable-policy: pause
+  # Nachalnaya modeliruemaya pogoda i sostoyanie posle sbrosa demo.
+  demo-default-kind: sunny
+
 automation:
   watering-plan:
     # Okno starta raspisaniya; propushchennyj poliv ne dogonyaetsya.

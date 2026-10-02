@@ -25,6 +25,13 @@ public class AutomationRoomEntity {
     @Column(name = "enabled", nullable = false)
     private boolean enabled;
 
+    @Column(name = "weather_latitude")
+    private Double weatherLatitude;
+    @Column(name = "weather_longitude")
+    private Double weatherLongitude;
+    @Column(name = "weather_label")
+    private String weatherLabel;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -74,6 +81,13 @@ public class AutomationRoomEntity {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public Double getWeatherLatitude() { return weatherLatitude; }
+    public Double getWeatherLongitude() { return weatherLongitude; }
+    public String getWeatherLabel() { return weatherLabel; }
+    public void setWeatherLocation(Double latitude, Double longitude, String label) {
+        weatherLatitude = latitude; weatherLongitude = longitude; weatherLabel = label;
     }
 
     public LocalDateTime getUpdatedAt() {

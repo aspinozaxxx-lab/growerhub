@@ -4,7 +4,7 @@ slug: "drying-forecast-watering-plan-growerhub"
 title: "The next watering: a plan with clear reasons"
 summary: "The drying forecast uses local anchors, moisture history and the last watering. It gives a provisional time or explains which data is missing."
 created_at: "2026-10-02"
-updated_at: "2026-10-02"
+updated_at: "2026-10-03"
 cluster: "avtopoliv-i-kontroller-vyrashchivaniya"
 related: ["poliv-po-mestnym-orientiram-growerhub","poliv-po-raspisaniyu-growerhub"]
 hero_image: "/screenshots/news/drying-plan-en.webp"
@@ -34,6 +34,6 @@ Observation does not deliver water. Control is explicit and retains equipment an
 
 The plan is revised with fresh data and checked before execution. Stale readings, an unreliable trend, missing response confirmation or reached limits cause waiting with a reason. No response does not start endless top-ups.
 
-**The dose remains fixed by the user. Weather adjustment is not applied at this stage.** A sensor line cannot replace evaluating the water your plants need.
+**The dose remains fixed by the user.** For outdoor beds, you can separately enable [forecast-rain handling](/articles/poliv-s-uchetom-dozhdya-growerhub/). The plan explains delays, their deadline and the chosen unavailable-forecast policy. Rain does not replace watering under a roof. A sensor line cannot replace evaluating the water your plants need.
 
 Without a sensor, use [scheduled watering](/articles/poliv-po-raspisaniyu-growerhub/). Explore the shared demo farm without equipment.

@@ -4,6 +4,14 @@
   min-width: 0;
 }
 
+.farm-weather-location__coordinates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.farm-weather-location p { margin: 0; font-size: 12px; line-height: 1.45; }
+.farm-weather-location .farm-zones-settings__editor-fields { grid-template-columns: minmax(0, 1fr); }
+
 .farm-zones-settings__intro {
   max-width: 820px;
   margin: 0;
