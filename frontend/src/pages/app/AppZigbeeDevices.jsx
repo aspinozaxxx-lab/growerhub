@@ -144,6 +144,7 @@ function AppZigbeeDevices({ embedded = false, filters: externalFilters, onOvervi
           const keyPrefix = `${device.coordinator_id}:${device.ieee_address}`;
           const stateControl = (device.controls || [])
             .find((feature) => feature.property === 'state');
+          const wateringControl = (device.watering || []).find((feature) => feature.property === stateControl?.property);
           const assignments = assignmentsForZigbeeDevice(overview, device);
           const priorityMetrics = priorityDeviceMetrics(device);
           const technicalFeatures = [
@@ -195,13 +196,13 @@ function AppZigbeeDevices({ embedded = false, filters: externalFilters, onOvervi
                   <span>{stateControl.label || translateApp("Питание")}</span>
                   <strong>{displayValue(stateControl.value, stateControl.unit)}</strong>
                   <div>
-                    <Button
+                    {wateringControl ? <Link to="/app/farm/">{translateApp('Полив — через слот теплицы')}</Link> : <Button
                       size="sm"
                       onClick={() => setProperty(device, stateControl, stateControl.value_on || 'ON')}
                       isLoading={busy === `${keyPrefix}:${stateControl.property}`}
                     >
                       {translateApp("Включить")}
-                    </Button>
+                    </Button>}
                     <Button
                       size="sm"
                       variant="secondary"
@@ -211,6 +212,7 @@ function AppZigbeeDevices({ embedded = false, filters: externalFilters, onOvervi
                       {translateApp("Выключить")}
                     </Button>
                   </div>
+                  {wateringControl && !wateringControl.ready ? <small>{translateApp(wateringControl.reason)}</small> : null}
                 </div>
               ) : null}
 

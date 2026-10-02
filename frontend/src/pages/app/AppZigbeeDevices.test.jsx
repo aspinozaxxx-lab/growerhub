@@ -89,6 +89,20 @@ describe('AppZigbeeDevices', () => {
     vi.clearAllMocks();
   });
 
+  it('klapan ne zapuskaetsya obshchim ON a zakrytie ostayotsya dostupnym', async () => {
+    const valveOverview = structuredClone(overview);
+    valveOverview.resource_catalog.zigbee_devices[0].watering = [{ property: 'state', ready: false,
+      reason: 'Не подтверждено автономное закрытие' }];
+    fetchFarmsOverview.mockResolvedValue(valveOverview);
+    render(<MemoryRouter><AppZigbeeDevices embedded /></MemoryRouter>);
+    await screen.findByText('Полив — через слот теплицы');
+    expect(screen.queryByRole('button', { name: 'Включить' })).not.toBeInTheDocument();
+    expect(screen.getByText('Не подтверждено автономное закрытие')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Выключить' }));
+    await waitFor(() => expect(setZigbeeProperty).toHaveBeenCalledWith('coordinator-1', '0x01', 'state', 'OFF'));
+    expect(setZigbeeProperty).toHaveBeenCalledTimes(1);
+  });
+
   it('pokazyvaet kompaktnuyu kartochku, roli i upravlenie state', async () => {
     render(
       <MemoryRouter>

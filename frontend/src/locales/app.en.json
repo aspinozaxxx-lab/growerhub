@@ -1056,6 +1056,7 @@
   "Ещё не подтверждён": "Not yet confirmed",
   "Предварительный расчёт пересматривается перед запуском. Погодная поправка на этом этапе не применяется.": "The preliminary calculation is reviewed before starting. Weather adjustments are not applied at this stage.",
   "Учёт воды": "Water usage",
+  "Полив — через слот теплицы": "Water through a greenhouse slot",
   "Не удалось загрузить учёт воды": "Could not load water usage",
   "Для этого устройства учёт воды пока недоступен": "Water usage is not yet available for this device",
   "Демонстрационные показания": "Simulated readings",
