@@ -59,6 +59,12 @@ public class PlantJournalWateringDetailsEntity {
     @Column(name = "completion_reason")
     private String completionReason;
 
+    @Column(name = "volume_source")
+    private String volumeSource;
+
+    public String getVolumeSource() { return volumeSource; }
+    public void setVolumeSource(String value) { volumeSource = value; }
+
     protected PlantJournalWateringDetailsEntity() {
     }
 

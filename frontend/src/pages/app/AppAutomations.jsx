@@ -10,6 +10,8 @@ import { ClimateScenarioFields } from '../../features/farm/ClimateScenarioFields
 import { FARM_SCENARIO_TYPES, SCENARIO_LABELS, listOrEmpty } from '../../features/farm/farmModel';
 import LightScheduleRange from '../../features/automation/LightScheduleRange';
 import useAutomations from '../../features/automation/useAutomations';
+import WateringScenarioFields from '../../features/automation/WateringScenarioFields';
+import WateringPlan from '../../features/automation/WateringPlan';
 import { lightDuration, timeToMinutes } from '../../features/automation/lightSchedule';
 import { getUiTimeZone } from '../../utils/formatters';
 import { translateApp as t } from '../../locales/i18n';
@@ -18,13 +20,6 @@ import './AppAutomations.css';
 const LIGHT = 'LIGHT_SCHEDULE';
 const CLIMATE = 'BOX_CLIMATE';
 const WATERING = 'WATERING';
-const WATERING_FIELDS = [
-  ['soil_threshold_percent', 'Порог почвы, %', 0, 100],
-  ['min_interval_hours', 'Минимальная пауза, ч', 0],
-  ['max_interval_hours', 'Максимальная пауза, ч', 0],
-  ['run_seconds', 'Длительность, сек', 1],
-  ['daily_max_seconds', 'Лимит в сутки, сек', 1],
-];
 
 function readinessFor(greenhouse, type) {
   if (greenhouse.farmEnabled === false) return { ready: false, reason: t('Ферма выключена') };
@@ -90,6 +85,8 @@ function AppAutomations() {
   const duration = start !== null && end !== null ? lightDuration(start, end) : null;
   const climate = selected ? automation.configFor(selected, CLIMATE) : {};
   const watering = selected ? automation.configFor(selected, WATERING) : {};
+  const savedWatering = selected ? automation.scenarioFor(selected, WATERING) : null;
+  const wateringRevision = savedWatering ? JSON.stringify([savedWatering.enabled, savedWatering.config]) : '';
   const display = (value) => value === '' || value === null || value === undefined ? '—' : value;
   const masterStatus = anyEnabled ? (allEnabled ? t('Включены') : t('Частично включены')) : t('Выключены');
 
@@ -134,12 +131,9 @@ function AppAutomations() {
               <div><h2>{t('Полив')}<span> · {selected.name}</span></h2><SettingsState greenhouse={selected} type={WATERING} automation={automation} /></div>
               {!compact ? <ScenarioSwitch greenhouse={selected} type={WATERING} automation={automation} /> : null}
             </header>
-            <fieldset className="automations-watering-fields" disabled={Boolean(busy)}>
-              {WATERING_FIELDS.map(([field, label, min, max]) => <label key={field}>{t(label)}
-                <input type="number" required min={min} max={max} step="any" value={automation.configFor(selected, WATERING)[field] ?? ''}
-                  onChange={(event) => automation.patchConfig(selected, WATERING, { [field]: event.target.value === '' ? '' : Number(event.target.value) })} />
-              </label>)}
-            </fieldset>
+            <WateringScenarioFields config={watering} disabled={Boolean(busy)} onChange={(patch) => automation.patchConfig(selected, WATERING, patch)} />
+            {savedWatering.config.trigger_mode ? <WateringPlan key={selected.id}
+              greenhouseId={selected.id} revision={wateringRevision} /> : null}
             <footer><Button type="submit" variant="secondary" size="sm" disabled={Boolean(busy) || !automation.isDirty(selected, WATERING)}
               isLoading={busy === `${selected.id}:${WATERING}`}>{t('Сохранить полив')}</Button></footer>
           </form>) : null;
@@ -256,12 +250,15 @@ function AppAutomations() {
               </button><ScenarioSwitch greenhouse={selected} type={WATERING} automation={automation} /></header>
               <button type="button" className="automations-compact-values" onClick={() => setEditorType(WATERING)}
                 aria-label={t('Настроить полив: {{name}}', { name: selected.name })}>
-                <span>{t('Почва')} &lt; <strong>{display(watering.soil_threshold_percent)}%</strong></span>
+                <span>{watering.trigger_mode ? t(watering.trigger_mode === 'schedule' ? 'По расписанию' : watering.trigger_mode === 'drying' ? 'По высыханию' : 'Прогноз высыхания')
+                  : <>{t('Почва')} &lt; <strong>{display(watering.soil_threshold_percent)}%</strong></>}</span>
                 <span>{t('Полив')} <strong>{display(watering.run_seconds)} {t('с')}</strong></span>
-                <span>{t('Пауза')} <strong>{display(watering.min_interval_hours)}–{display(watering.max_interval_hours)} {t('ч')}</strong></span>
+                <span>{t('Пауза')} <strong>{display(watering.min_interval_hours)}{!watering.trigger_mode ? `–${display(watering.max_interval_hours)}` : ''} {t('ч')}</strong></span>
                 <span>{t('Лимит')} <strong>{display(watering.daily_max_seconds)} {t('с/сут')}</strong></span>
               </button>
               <SettingsState greenhouse={selected} type={WATERING} automation={automation} pendingOnly />
+              {savedWatering.config.trigger_mode ? <WateringPlan key={selected.id}
+                greenhouseId={selected.id} revision={wateringRevision} /> : null}
             </section>
           </> : <>{climateEditor}{wateringEditor}</>}
         </div>

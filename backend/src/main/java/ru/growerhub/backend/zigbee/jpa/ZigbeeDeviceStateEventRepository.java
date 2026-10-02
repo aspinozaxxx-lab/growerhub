@@ -7,6 +7,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface ZigbeeDeviceStateEventRepository extends JpaRepository<ZigbeeDeviceStateEventEntity, Integer> {
+    java.util.List<ZigbeeDeviceStateEventEntity>
+            findByCoordinatorIdAndIeeeAddressAndTsGreaterThanEqualAndTsLessThanEqualOrderByTsAscIdAsc(
+                    Integer coordinatorId, String ieeeAddress, LocalDateTime from, LocalDateTime to,
+                    org.springframework.data.domain.Pageable pageable);
+
     @Query("SELECT MIN(event.ts) FROM ZigbeeDeviceStateEventEntity event")
     LocalDateTime findOldestTimestamp();
 

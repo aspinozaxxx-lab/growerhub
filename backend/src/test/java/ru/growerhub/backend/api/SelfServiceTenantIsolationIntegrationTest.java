@@ -356,6 +356,40 @@ class SelfServiceTenantIsolationIntegrationTest extends IntegrationTestBase {
         );
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"user", "admin"})
+    void waterStatisticsKeepRepeatedReportsAndSameIeeeInsideOwner(String role) {
+        UserEntity first = createUser("water-one@example.com", role);
+        UserEntity second = createUser("water-two@example.com");
+        String token = buildToken(first.getId());
+        Coordinator own = createCoordinator(token, "Own water");
+        Coordinator foreign = createCoordinator(buildToken(second.getId()), "Other water");
+        long end = java.time.Instant.now().minusSeconds(30).getEpochSecond();
+        for (var entry : Map.of(own, 42, foreign, 250).entrySet()) {
+            mqttMessageHandler.handleInboundMessage(entry.getKey().baseTopic() + "/bridge/devices", """
+                    [{"friendly_name":"shared_plug","ieee_address":"%s","type":"Router","definition":{
+                    "model":"SWV","vendor":"SONOFF","exposes":[
+                    {"type":"numeric","property":"real_time_irrigation_volume","access":1,"unit":"L"},
+                    {"type":"numeric","property":"irrigation_start_time","access":1},
+                    {"type":"numeric","property":"irrigation_end_time","access":1},
+                    {"type":"numeric","property":"flow","access":1,"unit":"m³/h"}]}}]
+                    """.formatted(SHARED_IEEE).getBytes(StandardCharsets.UTF_8), false);
+            byte[] report = """
+                    {"state":"OFF","flow":0,"real_time_irrigation_volume":%s,
+                    "irrigation_start_time":%s,"irrigation_end_time":%s}
+                    """.formatted(entry.getValue(), end - 60, end).getBytes(StandardCharsets.UTF_8);
+            mqttMessageHandler.handleInboundMessage(entry.getKey().baseTopic() + "/" + SHARED_NAME, report, false);
+            mqttMessageHandler.handleInboundMessage(entry.getKey().baseTopic() + "/" + SHARED_NAME, report, false);
+        }
+        clearInvocations(commandGateway);
+        String path = "/api/manual-watering/coordinators/" + own.id() + "/devices/" + SHARED_IEEE + "/water-statistics";
+        given().header("Authorization", "Bearer " + token).when().get(path).then().statusCode(200)
+                .body("known_volume_l", equalTo(42f)).body("operations", hasSize(1)).body("partial_volume", equalTo(true));
+        assertNotFound(token, "/api/manual-watering/coordinators/" + foreign.id() + "/devices/" + SHARED_IEEE + "/water-statistics");
+        given().when().get(path).then().statusCode(401);
+        verifyNoInteractions(commandGateway);
+    }
+
     private void createFarm(String token, String name) {
         given()
                 .header("Authorization", "Bearer " + token)

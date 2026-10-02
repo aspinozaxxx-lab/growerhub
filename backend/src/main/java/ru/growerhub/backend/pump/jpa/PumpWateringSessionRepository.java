@@ -16,6 +16,8 @@ public interface PumpWateringSessionRepository extends JpaRepository<PumpWaterin
 
     Optional<PumpWateringSessionEntity> findByActiveDeviceKey(String activeDeviceKey);
 
+    Optional<PumpWateringSessionEntity> findByExecutionKey(String executionKey);
+
     List<PumpWateringSessionEntity> findByZigbeeCoordinatorId(Integer coordinatorId);
     boolean existsByZigbeeCoordinatorIdAndActiveDeviceKeyIsNotNull(Integer coordinatorId);
 

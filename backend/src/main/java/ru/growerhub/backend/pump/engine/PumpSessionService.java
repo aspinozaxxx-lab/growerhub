@@ -78,6 +78,7 @@ public class PumpSessionService {
     private final AutomationSettings automationSettings;
     private final ZigbeeFacade zigbeeFacade;
     private final ZigbeeWateringSettings zigbeeSettings;
+    private final ru.growerhub.backend.common.config.pump.WaterMeterSettings meterSettings;
     private final java.time.Clock clock;
 
     public PumpSessionService(
@@ -96,6 +97,7 @@ public class PumpSessionService {
             AutomationSettings automationSettings,
             @Lazy ZigbeeFacade zigbeeFacade,
             ZigbeeWateringSettings zigbeeSettings,
+            ru.growerhub.backend.common.config.pump.WaterMeterSettings meterSettings,
             java.time.Clock clock
     ) {
         this.pumpRepository = pumpRepository;
@@ -113,6 +115,7 @@ public class PumpSessionService {
         this.automationSettings = automationSettings;
         this.zigbeeFacade = zigbeeFacade;
         this.zigbeeSettings = zigbeeSettings;
+        this.meterSettings = meterSettings;
         this.clock = clock;
     }
 
@@ -135,7 +138,9 @@ public class PumpSessionService {
         var executor = zigbeeFacade.resolveWateringExecutor(request.zigbeeTarget(), user, true);
         if (!executor.capability().ready()) throw new DomainException("bad_request", executor.capability().reason());
         ResolvedStart resolved = resolveStart(request);
-        if (resolved.pulseEnabled() || !PumpSessionData.MODE_TIMED.equals(resolved.mode())) {
+        PumpSessionData.View repeated = repeatedExecution(request, executor.target().key(), nowUtc());
+        if (repeated != null) return repeated;
+        if (resolved.pulseEnabled() && !executor.capability().pulse() || !PumpSessionData.MODE_TIMED.equals(resolved.mode())) {
             throw new DomainException("bad_request", "Для этого клапана доступен только полив по времени без импульсов");
         }
         if (resolved.durationS() > executor.capability().maxDurationS()) {
@@ -175,7 +180,7 @@ public class PumpSessionService {
         sessionRepository.saveAndFlush(session);
         try {
             session.setLastCommandAt(now);
-            publishStart(session, session.getCorrelationId(), now, resolved.durationS());
+            publishStart(session, session.getCorrelationId(), now, currentRunDurationS(session));
             sessionRepository.saveAndFlush(session);
         } catch (RuntimeException ex) {
             compensateStartAttempt(session, ex, now);
@@ -225,6 +230,8 @@ public class PumpSessionService {
         PumpEntity pump = requirePumpAccess(request.pumpId(), user);
         DeviceSummary device = requireDevice(pump);
         pumpRepository.lockAllByDeviceId(pump.getDeviceId());
+        PumpSessionData.View repeated = repeatedExecution(request, "native:" + pump.getId(), nowUtc());
+        if (repeated != null) return repeated;
         validateDeviceReady(device, pump, requireOnline);
         ResolvedStart resolved = resolveStart(request);
         validateTargets(resolved.mode(), resolved.boxes());
@@ -274,6 +281,7 @@ public class PumpSessionService {
             LocalDateTime now, String correlationId) {
         session.setUserId(user != null && user.id() != null && user.id() > 0 ? user.id() : null);
         session.setSource(resolved.source());
+        session.setExecutionKey(request.executionKey());
         session.setMode(resolved.mode());
         session.setPhase(PumpSessionData.PHASE_RUNNING);
         session.setPlannedDurationS(resolved.durationS());
@@ -294,6 +302,17 @@ public class PumpSessionService {
         saveTargets(session, resolved.boxes());
 
         return session;
+    }
+
+    private PumpSessionData.View repeatedExecution(PumpSessionData.Start request, String executorKey, LocalDateTime now) {
+        if (request.executionKey() == null) return null;
+        if (!PumpSessionData.SOURCE_AUTOMATION.equals(request.source()) || request.executionKey().isBlank()
+                || request.executionKey().length() > 200) throw new DomainException("bad_request", "Некорректный ключ исполнения");
+        var existing = sessionRepository.findByExecutionKey(request.executionKey()).orElse(null);
+        if (existing == null) return null;
+        if (!java.util.Objects.equals(existing.getExecutorKey(), executorKey))
+            throw new DomainException("conflict", "План уже использован другим исполнителем");
+        return toView(existing, now);
     }
 
     public void seedSimulatedHistory(PumpSessionData.Start request, AuthenticatedUser user, LocalDateTime startedAt) {
@@ -569,6 +588,8 @@ public class PumpSessionService {
         double knownVolume = 0.0;
         boolean hasKnownVolume = false;
         boolean partialVolume = false;
+        Double measuredTotal = null;
+        Double estimatedTotal = null;
         Map<String, Long> modeCounts = new HashMap<>();
         Map<String, Long> reasonCounts = new HashMap<>();
         for (PumpWateringSessionEntity session : distinct.values()) {
@@ -578,12 +599,19 @@ public class PumpSessionService {
                 reasonCounts.merge(statisticsReason(session.getCompletionReason()), 1L, Long::sum);
             }
             PumpWateringSessionBoxEntity sessionBox = findBox(session.getId(), boxId);
+            if (session.getMeasuredWaterVolumeL() != null && boxRepository.findAllBySession_IdOrderById(session.getId()).size() == 1) {
+                knownVolume += session.getMeasuredWaterVolumeL();
+                measuredTotal = (measuredTotal == null ? 0 : measuredTotal) + session.getMeasuredWaterVolumeL();
+                hasKnownVolume = true;
+                continue;
+            }
             if (sessionBox != null) {
                 for (PumpWateringSessionPlantEntity plant : sessionPlantRepository.findAllBySessionBox_IdOrderById(sessionBox.getId())) {
                     if (plant.getWaterVolumeL() == null) {
                         partialVolume = true;
                     } else {
                         knownVolume += plant.getWaterVolumeL();
+                        estimatedTotal = (estimatedTotal == null ? 0 : estimatedTotal) + plant.getWaterVolumeL();
                         hasKnownVolume = true;
                     }
                 }
@@ -620,7 +648,9 @@ public class PumpSessionService {
                 Map.copyOf(reasonCounts),
                 sessions,
                 nextBeforeId,
-                active
+                active,
+                measuredTotal,
+                estimatedTotal
         );
     }
 
@@ -647,6 +677,21 @@ public class PumpSessionService {
 
     private void advanceRunning(PumpWateringSessionEntity session, LocalDateTime now) {
         if (session.isZigbee()) {
+            if (session.isPulseEnabled() && session.getRunConfirmedAt() != null
+                    && elapsedS(session.getLastCommandAt(), now) >= currentRunDurationS(session)) {
+                commitRunningTime(session, now);
+                if (session.getActiveDurationS() >= targetActiveDurationS(session)) {
+                    enterStopping(session, terminalTimeReason(session), now);
+                } else {
+                    session.setPhase(PumpSessionData.PHASE_STOPPING);
+                    session.setStoppingTargetPhase(PumpSessionData.PHASE_PAUSE);
+                    session.setPhaseStartedAt(now);
+                    publishStop(session, correlationId(), now);
+                    session.setLastCommandAt(now);
+                    sessionRepository.save(session);
+                }
+                return;
+            }
             if (elapsedS(session.getLastCommandAt(), now) >= targetActiveDurationS(session)) {
                 enterStopping(session, terminalTimeReason(session), now);
             }
@@ -686,6 +731,10 @@ public class PumpSessionService {
         if (elapsedS(session.getPhaseStartedAt(), now) < session.getPulsePauseS()) {
             return;
         }
+        if (session.isZigbee() && elapsedS(session.getPhaseStartedAt(), now) > session.getPulsePauseS() + settings.getStoppingTimeoutS()) {
+            finishConfirmedPause(session, PumpSessionData.REASON_RECOVERY, now);
+            return;
+        }
         int durationS = currentRunDurationS(session);
         String correlationId = correlationId();
         try {
@@ -693,6 +742,7 @@ public class PumpSessionService {
             session.setCorrelationId(correlationId);
             session.setLastCommandAt(now);
             session.setPhase(PumpSessionData.PHASE_RUNNING);
+            if (session.isZigbee()) session.setRunConfirmedAt(null);
             session.setPhaseStartedAt(now);
             session.setUpdatedAt(now);
             sessionRepository.saveAndFlush(session);
@@ -833,6 +883,7 @@ public class PumpSessionService {
     }
 
     private void confirmStopTransition(PumpWateringSessionEntity session, LocalDateTime now) {
+        recordPulseMeter(session, now);
         if (PumpSessionData.PHASE_PAUSE.equals(session.getStoppingTargetPhase())
                 && session.getActiveDurationS() < targetActiveDurationS(session)) {
             session.setPhase(PumpSessionData.PHASE_PAUSE);
@@ -863,11 +914,27 @@ public class PumpSessionService {
             return;
         }
         commitRunningTime(session, now);
+        recordPulseMeter(session, now);
+        if (session.isZigbee() && session.isPulseEnabled()
+                && (session.getConfirmedPulseCount() == 0 || session.getConfirmedPulseCount() != session.getMeteredPulseCount()))
+            session.setMeasuredWaterVolumeL(null);
+        if (session.isZigbee() && !session.isPulseEnabled()) {
+            var measured = zigbeeFacade.waterMeterState(zigbeeTarget(session));
+            if (measured != null && measured.complete()
+                    && !measured.receivedAt().isAfter(now)
+                    && !measured.startedAt().isBefore(session.getStartedAt().minusSeconds(meterSettings.clockToleranceSeconds()))
+                    && !measured.startedAt().isAfter(session.getStartedAt().plusSeconds(meterSettings.clockToleranceSeconds()))
+                    && !measured.finishedAt().isBefore(session.getStartedAt())) {
+                session.setMeasuredWaterVolumeL(measured.volumeL());
+                session.setWaterMeterObservedAt(measured.receivedAt());
+            }
+        }
         int durationS = session.getActiveDurationS();
         List<PumpWateringSessionPlantEntity> plants = sessionPlantRepository.findAllBySession_IdOrderById(session.getId());
         List<JournalFacade.SessionWateringTarget> journalTargets = new ArrayList<>();
         for (PumpWateringSessionPlantEntity plant : plants) {
-            Double volumeL = calculateVolume(plant.getRateMlPerHour(), durationS);
+            Double volumeL = session.getMeasuredWaterVolumeL() == null ? calculateVolume(plant.getRateMlPerHour(), durationS)
+                    : plants.size() == 1 ? session.getMeasuredWaterVolumeL() : null;
             plant.setDurationS(durationS);
             plant.setWaterVolumeL(volumeL);
             sessionPlantRepository.save(plant);
@@ -879,7 +946,8 @@ public class PumpSessionService {
                         durationS,
                         volumeL,
                         session.getMode(),
-                        session.getCompletionReason()
+                        session.getCompletionReason(),
+                        volumeL == null ? "unknown" : session.getMeasuredWaterVolumeL() != null ? "measured" : "estimated"
                 ));
             }
         }
@@ -1180,6 +1248,11 @@ public class PumpSessionService {
         String status = session.getActiveDeviceKey() != null
                 ? PumpSessionData.STATUS_ACTIVE
                 : PumpSessionData.STATUS_TERMINAL;
+        if (session.getMeasuredWaterVolumeL() != null) {
+            knownVolume = session.getMeasuredWaterVolumeL();
+            hasKnownVolume = true;
+            partialVolume = session.isPulseEnabled() && session.getActiveDeviceKey() != null;
+        }
         return new PumpSessionData.View(
                 session.getId(),
                 session.getPumpId(),
@@ -1213,7 +1286,8 @@ public class PumpSessionService {
                 session.getErrorMessage(),
                 boxes,
                 session.getExecutorType(),
-                zigbeeTarget(session)
+                zigbeeTarget(session),
+                session.getMeasuredWaterVolumeL() != null ? "measured" : hasKnownVolume ? "estimated" : "unknown"
         );
     }
 
@@ -1290,6 +1364,15 @@ public class PumpSessionService {
             sessionRepository.save(session);
         }
         if (fresh && Boolean.FALSE.equals(probe.pumpRunning()) && session.getRunConfirmedAt() != null) {
+            if (session.isPulseEnabled() && elapsedS(session.getLastCommandAt(), probe.pumpObservedAt()) >= currentRunDurationS(session)) {
+                session.setActiveDurationS(Math.min(targetActiveDurationS(session), session.getActiveDurationS() + currentRunDurationS(session)));
+                session.setPhase(PumpSessionData.PHASE_STOPPING);
+                session.setStoppingTargetPhase(session.getActiveDurationS() < targetActiveDurationS(session) ? PumpSessionData.PHASE_PAUSE : null);
+                session.setCompletionReason(session.getStoppingTargetPhase() == null ? PumpSessionData.REASON_DURATION : null);
+                session.setPhaseStartedAt(probe.pumpObservedAt());
+                confirmStopTransition(session, probe.pumpObservedAt());
+                return true;
+            }
             session.setCompletionReason(elapsedS(session.getLastCommandAt(), probe.pumpObservedAt()) >= targetActiveDurationS(session)
                     ? PumpSessionData.REASON_DURATION : PumpSessionData.REASON_MANUAL);
             finish(session, probe.pumpObservedAt());
@@ -1302,6 +1385,20 @@ public class PumpSessionService {
             return true;
         }
         return false;
+    }
+
+    private void recordPulseMeter(PumpWateringSessionEntity session, LocalDateTime now) {
+        if (!session.isZigbee() || !session.isPulseEnabled() || session.getRunConfirmedAt() == null) return;
+        var measured = zigbeeFacade.waterMeterState(zigbeeTarget(session));
+        session.setConfirmedPulseCount(session.getConfirmedPulseCount() + 1);
+        if (measured != null && measured.complete() && !measured.receivedAt().isAfter(now)
+                && !measured.startedAt().isBefore(session.getRunConfirmedAt().minusSeconds(meterSettings.clockToleranceSeconds()))
+                && !measured.startedAt().isAfter(session.getRunConfirmedAt().plusSeconds(meterSettings.clockToleranceSeconds()))) {
+            session.setMeteredPulseCount(session.getMeteredPulseCount() + 1);
+            session.setMeasuredWaterVolumeL((session.getMeasuredWaterVolumeL() == null ? 0 : session.getMeasuredWaterVolumeL()) + measured.volumeL());
+            session.setWaterMeterObservedAt(measured.receivedAt());
+        }
+        session.setRunConfirmedAt(null);
     }
 
     private ZigbeeWateringData.Target zigbeeTarget(PumpWateringSessionEntity session) {

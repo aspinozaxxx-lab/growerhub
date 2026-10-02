@@ -10,6 +10,7 @@
 
 - `getOverview()`
 - `wateringCapabilities`, `resolveWateringExecutor`, `wateringState`
+- `hasWaterMeter`, `waterMeterState`, `waterMeterHistory` — нормализация SWV/виртуального клапана; история проверяет владельца UUID и IEEE.
 - `startWatering`, `stopWatering`, `isSimulatedCoordinator`
 - `createCoordinator(AuthenticatedUser user, String name)`
 - `isPushokAvailable`, `createPushokCoordinator`, `retryPushokPairing`
@@ -38,6 +39,8 @@
 - `compactHistoryDay(LocalDateTime fromTs, LocalDateTime toTs)`
 
 ## Публичные контракты
+
+- `ZigbeeWaterMeterData`: происхождение, времена операции и получения, литры, л/мин, дневной счётчик и проблемы отчёта. Дневные границы и точность ещё требуют проверки.
 
 - `ZigbeeBridgeData`
 - `ZigbeeBrokerCredentialGateway`

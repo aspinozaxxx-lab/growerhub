@@ -17,9 +17,19 @@ import ru.growerhub.backend.pump.contract.PumpSessionData;
 @Validated
 public class ManualWateringController {
     private final AutomationFacade automationFacade;
+    private final ru.growerhub.backend.pump.PumpFacade pumpFacade;
 
-    public ManualWateringController(AutomationFacade automationFacade) {
+    public ManualWateringController(AutomationFacade automationFacade, ru.growerhub.backend.pump.PumpFacade pumpFacade) {
         this.automationFacade = automationFacade;
+        this.pumpFacade = pumpFacade;
+    }
+
+    @GetMapping("/api/manual-watering/coordinators/{coordinator_id}/devices/{ieee}/water-statistics")
+    public ru.growerhub.backend.pump.contract.WaterMeterStatistics waterStatistics(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("coordinator_id") java.util.UUID coordinatorId, @PathVariable("ieee") String ieee,
+            @RequestParam(value = "month", required = false) String month) {
+        return pumpFacade.waterMeterStatistics(user, coordinatorId, ieee, month);
     }
 
     @GetMapping("/api/manual-watering")

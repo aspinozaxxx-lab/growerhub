@@ -84,6 +84,10 @@ public class ZigbeeWateringService {
         JsonNode value = json(device.getLiveStateJson()).path(target.property());
         Boolean running = value.isValueNode() && Objects.equals(value.asText(), onValue) ? Boolean.TRUE
                 : value.isValueNode() && Objects.equals(value.asText(), offValue) ? Boolean.FALSE : null;
+        if (Boolean.FALSE.equals(running) && ZigbeeWaterMeter.supports(definition(device), coordinator(target.coordinatorId()).isSimulated())) {
+            var meter = ZigbeeWaterMeter.normalize(definition(device), json(device.getLiveStateJson()), observedAt);
+            if ("flow_after_closed_state".equals(meter.issue())) running = null;
+        }
         return new ZigbeeWateringData.State(fresh && !Boolean.TRUE.equals(device.getDisabled())
                 && !"offline".equalsIgnoreCase(device.getAvailability()), running, observedAt);
     }
@@ -175,11 +179,11 @@ public class ZigbeeWateringService {
     private ZigbeeWateringData.Capability capability(ZigbeeCoordinatorEntity coordinator,
             ZigbeeDeviceSnapshotEntity device, String property) {
         var profile = profile(coordinator, device, property);
-        String reason = !settings.enabled() ? "Полив Zigbee пока выключен"
+        String reason = !settings.enabled() && !coordinator.isSimulated() ? "Полив Zigbee пока выключен"
                 : profile == null ? "Для этого клапана не проверено автономное закрытие по таймеру"
                 : Boolean.TRUE.equals(device.getDisabled()) ? "Устройство выключено в Zigbee2MQTT" : null;
         return new ZigbeeWateringData.Capability(property, reason == null, reason,
-                profile != null ? profile.maxDurationSeconds() : null, false, false);
+                profile != null ? profile.maxDurationSeconds() : null, coordinator.isSimulated() && profile != null, false);
     }
 
     private ZigbeeWateringSettings.VerifiedDevice profile(ZigbeeCoordinatorEntity coordinator,

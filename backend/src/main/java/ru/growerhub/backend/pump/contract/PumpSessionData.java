@@ -55,8 +55,16 @@ public final class PumpSessionData {
             @JsonProperty("water_volume_l") Double waterVolumeL,
             @JsonProperty("ph") Double ph,
             @JsonProperty("fertilizers_per_liter") String fertilizersPerLiter,
-            @JsonProperty("zigbee_target") ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target zigbeeTarget
+            @JsonProperty("zigbee_target") ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target zigbeeTarget,
+            @JsonProperty("execution_key") String executionKey
     ) {
+        public Start(Integer pumpId, String source, String mode, Integer durationS, Integer maxActiveDurationS,
+                Boolean pulseEnabled, Integer pulseRunS, Integer pulsePauseS, List<BoxTarget> boxes,
+                Double waterVolumeL, Double ph, String fertilizersPerLiter,
+                ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target zigbeeTarget) {
+            this(pumpId, source, mode, durationS, maxActiveDurationS, pulseEnabled, pulseRunS, pulsePauseS,
+                    boxes, waterVolumeL, ph, fertilizersPerLiter, zigbeeTarget, null);
+        }
         public Start(Integer pumpId, String source, String mode, Integer durationS, Integer maxActiveDurationS,
                 Boolean pulseEnabled, Integer pulseRunS, Integer pulsePauseS, List<BoxTarget> boxes,
                 Double waterVolumeL, Double ph, String fertilizersPerLiter) {
@@ -66,7 +74,12 @@ public final class PumpSessionData {
 
         public Start withZigbeeTarget(ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target target) {
             return new Start(null, source, mode, durationS, maxActiveDurationS, pulseEnabled, pulseRunS, pulsePauseS,
-                    boxes, waterVolumeL, ph, fertilizersPerLiter, target);
+                    boxes, waterVolumeL, ph, fertilizersPerLiter, target, executionKey);
+        }
+
+        public Start withExecutionKey(String key) {
+            return new Start(pumpId, source, mode, durationS, maxActiveDurationS, pulseEnabled, pulseRunS, pulsePauseS,
+                    boxes, waterVolumeL, ph, fertilizersPerLiter, zigbeeTarget, key);
         }
         public Start(
                 Integer pumpId,
@@ -213,7 +226,8 @@ public final class PumpSessionData {
             @JsonProperty("error_message") String errorMessage,
             @JsonProperty("boxes") List<BoxSnapshot> boxes,
             @JsonProperty("executor_type") String executorType,
-            @JsonProperty("zigbee_target") ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target zigbeeTarget
+            @JsonProperty("zigbee_target") ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target zigbeeTarget,
+            @JsonProperty("volume_source") String volumeSource
     ) {
     }
 
@@ -236,7 +250,9 @@ public final class PumpSessionData {
             @JsonProperty("reason_counts") Map<String, Long> reasonCounts,
             @JsonProperty("sessions") List<View> sessions,
             @JsonProperty("next_before_id") Long nextBeforeId,
-            @JsonProperty("active_session") View activeSession
+            @JsonProperty("active_session") View activeSession,
+            @JsonProperty("measured_volume_l") Double measuredVolumeL,
+            @JsonProperty("estimated_volume_l") Double estimatedVolumeL
     ) {
     }
 }

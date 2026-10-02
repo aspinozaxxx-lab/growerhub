@@ -343,7 +343,8 @@ public final class AutomationData {
             @JsonProperty("controls") List<ZigbeeFeature> controls,
             @JsonProperty("availability") String availability,
             @JsonProperty("last_state_at") LocalDateTime lastStateAt,
-            @JsonProperty("watering") List<ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Capability> watering
+            @JsonProperty("watering") List<ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Capability> watering,
+            @JsonProperty("water_meter") boolean waterMeter
     ) {
     }
 

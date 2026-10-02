@@ -34,6 +34,7 @@ public class SensorFacade {
     private final SensorReadingRepository sensorReadingRepository;
     private final DeviceFacade deviceFacade;
     private final SensorHistorySettings historySettings;
+    private final java.time.Clock clock;
 
     public SensorFacade(
             SensorBindingService bindingService,
@@ -42,7 +43,8 @@ public class SensorFacade {
             SensorRepository sensorRepository,
             SensorReadingRepository sensorReadingRepository,
             @Lazy DeviceFacade deviceFacade,
-            SensorHistorySettings historySettings
+            SensorHistorySettings historySettings,
+            java.time.Clock clock
     ) {
         this.bindingService = bindingService;
         this.historyService = historyService;
@@ -51,6 +53,7 @@ public class SensorFacade {
         this.sensorReadingRepository = sensorReadingRepository;
         this.deviceFacade = deviceFacade;
         this.historySettings = historySettings;
+        this.clock = clock;
     }
 
     @Transactional
@@ -62,7 +65,7 @@ public class SensorFacade {
     public List<SensorHistoryPoint> getHistory(Integer sensorId, Integer hours, AuthenticatedUser user) {
         SensorEntity sensor = requireSensorAccess(sensorId, user);
         int defaultHours = historySettings.getDefaultHours();
-        LocalDateTime since = LocalDateTime.now(ZoneOffset.UTC).minusHours(hours != null ? hours : defaultHours);
+        LocalDateTime since = LocalDateTime.now(clock).minusHours(hours != null ? hours : defaultHours);
         List<SensorReadingEntity> rows = sensorReadingRepository
                 .findBucketedHistory(sensor.getId(), since, Math.max(1, historySettings.getMaxPoints()));
         List<SensorHistoryPoint> payload = new ArrayList<>();

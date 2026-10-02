@@ -184,7 +184,7 @@ public class DemoFacade {
     @Transactional(readOnly = true)
     public List<DemoData.Profile> catalog(AuthenticatedUser user) {
         DemoSpaceEntity space = owned(user);
-        return template.profiles().stream().filter(profile -> !"valve".equals(profile.kind()) || wateringSettings.enabled())
+        return template.profiles().stream()
                 .map(profile -> new DemoData.Profile(profile.key(),
                 label(profile.name(), space.locale), label(profile.description(), space.locale))).toList();
     }
@@ -193,13 +193,13 @@ public class DemoFacade {
         DemoSpaceEntity space = owned(user); users.lockDemoOwner(space.dataUserId);
         if (request == null) throw new DomainException("bad_request", "Device profile required");
         DemoTemplate.Profile profile = profile(request.profile());
-        if ("valve".equals(profile.kind()) && !wateringSettings.enabled()) throw new DomainException("bad_request", "Zigbee watering disabled");
         String name = request.name() == null || request.name().isBlank() ? label(profile.name(), space.locale) : request.name().strip();
         if (name.length() > 80 || name.contains("/") || name.contains("+") || name.contains("#")) {
             throw new DomainException("bad_request", "Invalid device name");
         }
         DemoDeviceEntity device = add(space, profile, name, now());
         if (device.coordinatorId != null) publishInventory(space, now());
+        if ("valve".equals(profile.kind())) seedValveMeterHistory(device, now());
         publish(device, state(device), now());
         return deviceView(device);
     }
@@ -251,6 +251,8 @@ public class DemoFacade {
                 throw new DomainException("bad_request", "Unsupported valve command");
             }
             boolean running = "ON".equals(payload.get("state"));
+            Map<String, Object> state = state(device);
+            integrateWater(device, state, now());
             if (running) {
                 Object duration = payload.get("watering_duration");
                 if (payload.size() != 2 || !(duration instanceof Number number) || number.doubleValue() != number.intValue()
@@ -259,11 +261,17 @@ public class DemoFacade {
                 }
                 if (device.stopAt != null) throw new DomainException("conflict", "Valve already running");
                 device.stopAt = now().plusSeconds(((Number) duration).intValue());
+                state.put("irrigation_start_time", now().toEpochSecond(ZoneOffset.UTC));
+                state.put("irrigation_end_time", 0L);
+                state.put("real_time_irrigation_duration", 0.0);
+                state.put("real_time_irrigation_volume", 0.0);
+                state.put("flow", profile(device.profileKey).waterFlowLMin());
             } else {
                 if (payload.size() != 1) throw new DomainException("bad_request", "Unsupported valve stop");
+                if ("ON".equals(state.get("state"))) state.put("irrigation_end_time", now().toEpochSecond(ZoneOffset.UTC));
+                state.put("flow", 0.0);
                 device.stopAt = null;
             }
-            Map<String, Object> state = state(device);
             state.put("state", running ? "ON" : "OFF");
             persist(device, state, now()); publish(device, state, now());
             return;
@@ -330,9 +338,14 @@ public class DemoFacade {
                         + pumpSeconds * template.physics().pumpMoisturePerSecond() - seconds / 3600 * drying)));
             }
             integrateEnergy(device, state, now);
+            integrateWater(device, state, now);
             if (deadline) {
                 state.put("pump_running", false);
-                if ("valve".equals(profile.kind())) state.put("state", "OFF");
+                if ("valve".equals(profile.kind())) {
+                    state.put("state", "OFF");
+                    state.put("flow", 0.0);
+                    state.put("irrigation_end_time", device.stopAt.toEpochSecond(ZoneOffset.UTC));
+                }
                 device.stopAt = null;
             }
             persist(device, state, now); publish(device, state, now);
@@ -362,6 +375,11 @@ public class DemoFacade {
     private void pause(DemoSpaceEntity space, LocalDateTime now) {
         for (DemoDeviceEntity device : devices.findBySpaceId(space.id)) {
             Map<String, Object> state = state(device); integrateEnergy(device, state, now);
+            integrateWater(device, state, now);
+            if ("valve".equals(profile(device.profileKey).kind()) && "ON".equals(state.get("state"))) {
+                state.put("irrigation_end_time", (device.stopAt != null && device.stopAt.isBefore(now) ? device.stopAt : now).toEpochSecond(ZoneOffset.UTC));
+                state.put("flow", 0.0);
+            }
             state.put("pump_running", false); state.put("state", "OFF"); state.put("power", 0.0); device.stopAt = null;
             persist(device, state, now); publish(device, state, now);
             if (device.nativeDeviceId != null) pumps.pauseSimulatedDevice(device.targetId, now);
@@ -536,6 +554,12 @@ public class DemoFacade {
             result.add(Map.of("type", "binary", "name", "state", "property", "state", "access", 7, "value_on", "ON", "value_off", "OFF"));
             result.add(Map.of("type", "numeric", "name", "watering_duration", "property", "watering_duration", "access", 2,
                     "unit", "s", "value_min", 1, "value_max", wateringSettings.simulatedMaxDurationSeconds()));
+            result.add(metric("flow", "L/min"));
+            result.add(metric("real_time_irrigation_volume", "L"));
+            result.add(metric("real_time_irrigation_duration", "s"));
+            result.add(metric("irrigation_start_time", ""));
+            result.add(metric("irrigation_end_time", ""));
+            result.add(metric("daily_irrigation_volume", "L"));
         }
         if ("switch".equals(profile.kind())) {
             result.add(Map.of("type", "switch", "features", List.of(Map.of("type", "binary", "name", "state", "property", "state",
@@ -582,7 +606,13 @@ public class DemoFacade {
         Map<String, Object> payload = new LinkedHashMap<>();
         switch (profile(device.profileKey).kind()) {
             case "switch" -> { payload.put("state", state.get("state")); payload.put("power", state.get("power")); payload.put("energy", state.get("energy")); }
-            case "valve" -> payload.put("state", state.get("state"));
+            case "valve" -> {
+                payload.put("state", state.get("state"));
+                for (String property : List.of("flow", "real_time_irrigation_volume", "real_time_irrigation_duration",
+                        "irrigation_start_time", "irrigation_end_time", "daily_irrigation_volume")) {
+                    if (state.containsKey(property)) payload.put(property, state.get(property));
+                }
+            }
             case "leak" -> payload.put("water_leak", state.get("water_leak"));
             case "air" -> { payload.put("temperature", state.get("temperature")); payload.put("humidity", state.get("humidity")); }
             case "soil" -> payload.put("soil_moisture", state.get("moisture"));
@@ -720,6 +750,50 @@ public class DemoFacade {
         if (!"switch".equals(profile(device.profileKey).kind())) return;
         double hours = Math.max(0, Duration.between(device.updatedAt, now).toMillis()) / 3_600_000.0;
         state.put("energy", number(state, "energy") + number(state, "power") * hours / 1000);
+    }
+
+    private void seedValveMeterHistory(DemoDeviceEntity device, LocalDateTime now) {
+        Map<String, Object> state = state(device);
+        Map<LocalDateTime, Map<String, Object>> history = new LinkedHashMap<>();
+        ZoneId zone = ZoneId.of(users.getTimezone(required(device.spaceId).dataUserId));
+        for (var start : historyWaterings(null, now, zone)) {
+            var finish = start.plusSeconds(template.physics().historyWateringSeconds());
+            if (finish.isAfter(now)) continue;
+            state.put("state", "OFF");
+            state.put("flow", 0.0);
+            state.put("irrigation_start_time", start.toEpochSecond(ZoneOffset.UTC));
+            state.put("irrigation_end_time", finish.toEpochSecond(ZoneOffset.UTC));
+            state.put("real_time_irrigation_duration", template.physics().historyWateringSeconds());
+            double liters = template.physics().historyWateringSeconds() * profile(device.profileKey).waterFlowLMin() / 60;
+            state.put("real_time_irrigation_volume", liters);
+            state.put("daily_irrigation_volume", liters);
+            history.put(finish, zigbeePayload(device, state));
+        }
+        zigbee.seedSimulatedHistory(device.coordinatorId, String.valueOf(state.get("friendly_name")), history);
+        state.put("daily_irrigation_volume", 0.0);
+        state.put("daily_water_date", now.atOffset(ZoneOffset.UTC).atZoneSameInstant(zone).toLocalDate().toString());
+        persist(device, state, now);
+    }
+
+    private void integrateWater(DemoDeviceEntity device, Map<String, Object> state, LocalDateTime now) {
+        if (!"valve".equals(profile(device.profileKey).kind())) return;
+        ZoneId zone = ZoneId.of(users.getTimezone(required(device.spaceId).dataUserId));
+        var today = now.atOffset(ZoneOffset.UTC).atZoneSameInstant(zone).toLocalDate();
+        if (!today.toString().equals(state.get("daily_water_date"))) {
+            state.put("daily_water_date", today.toString());
+            state.put("daily_irrigation_volume", 0.0);
+        }
+        if (!"ON".equals(state.get("state"))) return;
+        LocalDateTime until = device.stopAt != null && device.stopAt.isBefore(now) ? device.stopAt : now;
+        double seconds = Math.max(0, Duration.between(device.updatedAt, until).toMillis() / 1000.0);
+        double liters = seconds * profile(device.profileKey).waterFlowLMin() / 60;
+        state.put("real_time_irrigation_duration", number(state, "real_time_irrigation_duration") + seconds);
+        state.put("real_time_irrigation_volume", number(state, "real_time_irrigation_volume") + liters);
+        // Dnevnoj otchet informativnyj; kalendarnaya statistika stroitsya po operaciyam.
+        var dayStart = today.atStartOfDay(zone).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
+        var dayFrom = device.updatedAt.isAfter(dayStart) ? device.updatedAt : dayStart;
+        double daySeconds = Math.max(0, Duration.between(dayFrom, until).toMillis() / 1000.0);
+        state.put("daily_irrigation_volume", number(state, "daily_irrigation_volume") + daySeconds * profile(device.profileKey).waterFlowLMin() / 60);
     }
 
     private void persist(DemoDeviceEntity device, Map<String, Object> state, LocalDateTime now) {

@@ -91,6 +91,11 @@ export const fetchResourceStatistics = (resourceId, hours = 24) => requestJson(
 
 export const fetchManualWateringOverview = () => requestJson('/api/manual-watering');
 
+export const fetchWaterMeterStatistics = (coordinatorId, ieee, month = '') => requestJson(
+  `/api/manual-watering/coordinators/${encodeURIComponent(coordinatorId)}/devices/${encodeURIComponent(ieee)}/water-statistics`
+    + (month ? `?month=${encodeURIComponent(month)}` : ''),
+);
+
 function wateringPath(key) {
   const match = /^resource:(\d+)$/.exec(String(key));
   return match ? `/api/manual-watering/resources/${match[1]}`
@@ -262,3 +267,6 @@ export const replaceFarmZoneScenarios = (zoneId, scenarios) => requestJson(
     body: JSON.stringify({ scenarios }),
   },
 );
+export function fetchWateringPlan(greenhouseId) {
+  return requestJson(`/api/automation/greenhouses/${encodeURIComponent(greenhouseId)}/watering-plan`);
+}

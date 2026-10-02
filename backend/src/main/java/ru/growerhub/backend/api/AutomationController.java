@@ -228,4 +228,10 @@ public class AutomationController {
     ) {
         return automationFacade.replaceFarmZoneScenarios(user, zoneId, request);
     }
+    @GetMapping("/greenhouses/{greenhouse_id}/watering-plan")
+    public ru.growerhub.backend.automation.contract.WateringPlanData.Plan wateringPlan(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable("greenhouse_id") Integer greenhouseId) {
+        return automationFacade.getWateringPlan(user, greenhouseId);
+    }
 }

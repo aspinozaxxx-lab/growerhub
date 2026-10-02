@@ -72,6 +72,9 @@ export default function useAutomations() {
   const saveSettings = (greenhouse, type) => {
     const key = keyFor(greenhouse, type);
     const scenario = scenarioFor(greenhouse, type);
+    if (type === 'WATERING' && scenario.enabled && configFor(greenhouse, type).trigger_mode
+        && configFor(greenhouse, type).observe_only === false && scenario.config.observe_only !== false
+        && !wateringConfirmation()) return;
     return run(key, () => replaceGreenhouseScenarios(greenhouse.id, [{
       ...scenario, config: configFor(greenhouse, type),
     }]), () => {

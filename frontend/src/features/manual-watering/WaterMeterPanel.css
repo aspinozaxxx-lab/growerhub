@@ -1,0 +1,16 @@
+.water-meter-panel { display: grid; gap: 12px; min-width: 0; }
+.water-meter-panel__month { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.water-meter-panel__month input { min-width: 0; padding: 8px; border: 1px solid var(--border-2); border-radius: var(--radius-sm); color: var(--text-1); background: var(--surface-2); }
+.water-meter-panel__summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.water-meter-panel__summary > div { display: grid; gap: 5px; padding: 10px; border-radius: var(--radius-sm); background: var(--surface-2); }
+.water-meter-panel__summary span, .water-meter-panel small { color: var(--text-3); font-size: 12px; }
+.water-meter-panel__summary strong { font-size: 23px; }
+.water-meter-panel__note, .water-meter-panel__details { margin: 0; font-size: 12px; line-height: 1.5; color: var(--text-2); }
+.water-meter-panel__details { padding: 9px; background: var(--surface-2); border-radius: var(--radius-sm); }
+.water-meter-panel__details summary { cursor: pointer; }
+.water-meter-panel h3 { margin: 3px 0 8px; font-size: 14px; }
+.water-meter-panel__days { display: grid; gap: 2px; }
+.water-meter-panel__days > div { display: grid; grid-template-columns: 50px minmax(0, 1fr) 80px; gap: 7px; padding: 6px 8px; border-bottom: 1px solid var(--border-2); font-size: 12px; }
+.water-meter-panel__days strong { font-weight: 500; }
+.water-meter-panel__operation { display: grid; gap: 4px; padding: 9px 0; border-bottom: 1px solid var(--border-2); font-size: 12px; }
+.water-meter-panel__operation > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 7px; }

@@ -18,6 +18,20 @@ import java.time.LocalDateTime;
         }
 )
 public class PumpWateringSessionEntity {
+    @Column(name = "execution_key", length = 200, unique = true)
+    private String executionKey;
+
+    public String getExecutionKey() { return executionKey; }
+    public void setExecutionKey(String value) { executionKey = value; }
+
+    @Column(name = "confirmed_pulse_count", nullable = false)
+    private int confirmedPulseCount;
+    @Column(name = "metered_pulse_count", nullable = false)
+    private int meteredPulseCount;
+    public int getConfirmedPulseCount() { return confirmedPulseCount; }
+    public void setConfirmedPulseCount(int value) { confirmedPulseCount = value; }
+    public int getMeteredPulseCount() { return meteredPulseCount; }
+    public void setMeteredPulseCount(int value) { meteredPulseCount = value; }
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
@@ -121,6 +135,11 @@ public class PumpWateringSessionEntity {
     @Column(name = "planned_water_volume_l")
     private Double plannedWaterVolumeL;
 
+    @Column(name = "measured_water_volume_l")
+    private Double measuredWaterVolumeL;
+    @Column(name = "water_meter_observed_at")
+    private LocalDateTime waterMeterObservedAt;
+
     @Column(name = "ph")
     private Double ph;
 
@@ -205,6 +224,10 @@ public class PumpWateringSessionEntity {
     public String getErrorMessage() { return errorMessage; }
     public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
     public Double getPlannedWaterVolumeL() { return plannedWaterVolumeL; }
+    public Double getMeasuredWaterVolumeL() { return measuredWaterVolumeL; }
+    public void setMeasuredWaterVolumeL(Double value) { measuredWaterVolumeL = value; }
+    public LocalDateTime getWaterMeterObservedAt() { return waterMeterObservedAt; }
+    public void setWaterMeterObservedAt(LocalDateTime value) { waterMeterObservedAt = value; }
     public void setPlannedWaterVolumeL(Double plannedWaterVolumeL) { this.plannedWaterVolumeL = plannedWaterVolumeL; }
     public Double getPh() { return ph; }
     public void setPh(Double ph) { this.ph = ph; }

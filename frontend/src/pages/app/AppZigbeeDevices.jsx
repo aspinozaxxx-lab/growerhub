@@ -5,6 +5,7 @@ import AppPageState from '../../components/layout/AppPageState';
 import Button from '../../components/ui/Button';
 import TelegramContactLink from '../../components/TelegramContactLink';
 import DeviceFilters from '../../components/devices/DeviceFilters';
+import WaterMeterPanel from '../../features/manual-watering/WaterMeterPanel';
 import { fetchFarmsOverview, setZigbeeProperty } from '../../api/selfService';
 import {
   SLOT_ROLE_LABELS,
@@ -39,6 +40,7 @@ function deviceModel(device) {
 
 function AppZigbeeDevices({ embedded = false, filters: externalFilters, onOverviewChange }) {
   const [overview, setOverview] = useState(null);
+  const [waterMeterDevice, setWaterMeterDevice] = useState(null);
   const [busy, setBusy] = useState('loading');
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState('');
@@ -215,6 +217,9 @@ function AppZigbeeDevices({ embedded = false, filters: externalFilters, onOvervi
               {!device.last_state_at && [...(device.metrics || []), ...(device.controls || [])].some((feature) => feature.value != null) ? (
                 <p>{translateApp("Сохранённые показания. Ожидаем новое сообщение устройства.")}</p>
               ) : null}
+              {device.water_meter ? <Button size="sm" variant="secondary" onClick={() => setWaterMeterDevice(device)}>
+                {translateApp('Учёт воды')}
+              </Button> : null}
               <details className="farm-device-card__details">
                 <summary>{translateApp("Подробнее")}</summary>
                 <dl>
@@ -253,6 +258,8 @@ function AppZigbeeDevices({ embedded = false, filters: externalFilters, onOvervi
           );
         })}
       </div>
+      {waterMeterDevice ? <WaterMeterPanel key={`${waterMeterDevice.coordinator_id}:${waterMeterDevice.ieee_address}`}
+        device={waterMeterDevice} onClose={() => setWaterMeterDevice(null)} /> : null}
     </div>
   );
 }

@@ -149,6 +149,8 @@ export function JournalEntryCard({ entry, onEdit, photoCache, setPhotoCache, tok
             </span>
             <div className="journal-entry__watering-facts">
               {duration ? <span>{translateApp("Длительность:")} {duration}</span> : null}
+              {details?.volume_source === 'measured' ? <span>{translateApp('По расходомеру')}</span> : null}
+              {details?.volume_source === 'estimated' ? <span>{translateApp('Расчётный объём')}</span> : null}
               {wateringMode ? <span>{translateApp("Режим:")} {wateringMode}</span> : null}
               {completionReason ? <span>{completionReason}</span> : null}
               {fertilizers ? <span>{translateApp("Удобрения: {{value1}}", { value1: fertilizers })}</span> : null}

@@ -71,7 +71,8 @@ function SessionSummary({ session }) {
         <div className="manual-watering-session__error">{session.error_message}</div>
       ) : null}
       {session.executor_type === 'ZIGBEE_DEVICE' && session.known_volume_l !== null && session.known_volume_l !== undefined
-        ? <small>{translateApp("Объём рассчитан по заданной скорости полива.")}</small> : null}
+        ? <small>{translateApp(session.volume_source === 'measured'
+          ? 'Объём получен из отчёта расходомера.' : 'Объём рассчитан по заданной скорости полива.')}</small> : null}
     </article>
   );
 }

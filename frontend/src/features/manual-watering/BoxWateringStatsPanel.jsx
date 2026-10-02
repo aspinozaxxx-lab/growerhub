@@ -216,8 +216,10 @@ function BoxWateringStatsPanel({ target, onClose }) {
             <div><span>{translateApp("Сессии")}</span><strong>{statistics.session_count ?? 0}</strong></div>
             <div><span>{translateApp("Активное время")}</span><strong>{formatDurationSeconds(statistics.active_duration_s)}</strong></div>
             <div>
-              <span>{translateApp("Рассчитанный объём")}</span>
+              <span>{translateApp(statistics.measured_volume_l != null ? 'Учтённый объём' : 'Рассчитанный объём')}</span>
               <strong>{formatVolumeLiters(statistics.known_volume_l)}</strong>
+              {statistics.measured_volume_l != null ? <small>{translateApp('По расходомеру')}: {formatVolumeLiters(statistics.measured_volume_l)}</small> : null}
+              {statistics.measured_volume_l != null && statistics.estimated_volume_l != null ? <small>{translateApp('Расчётный')}: {formatVolumeLiters(statistics.estimated_volume_l)}</small> : null}
               {statistics.partial_volume ? <small>{translateApp("Есть растения без указанной скорости")}</small> : null}
             </div>
           </section>

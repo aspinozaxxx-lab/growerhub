@@ -86,7 +86,14 @@ class ZigbeeWateringIntegrationTest extends IntegrationTestBase {
         var last = pumps.listSessions(f.target, 10, null).items().getFirst();
         assertThat(last.phase()).isEqualTo("completed");
         assertThat(last.activeDurationS()).isEqualTo(30);
-        assertThat(last.knownVolumeL()).isPositive();
+        assertThat(last.knownVolumeL()).isEqualTo(3.0);
+        assertThat(last.volumeSource()).isEqualTo("measured");
+        assertThat(pumps.boxStatistics(f.boxId, "day", 10, null, "UTC").measuredVolumeL()).isEqualTo(3.0);
+        if (started.boxes().stream().mapToInt(box -> box.plants().size()).sum() > 1) {
+            assertThat(last.boxes().stream().flatMap(box -> box.plants().stream())).allMatch(plant -> plant.waterVolumeL() == null);
+            assertThat(jdbc.queryForObject("select count(*) from plant_journal_watering_details where pump_session_id=? and water_volume_l is not null",
+                    Long.class, started.id())).isZero();
+        }
         long entries = journalCount(started.id());
         assertThat(entries).isEqualTo(started.boxes().stream().mapToLong(box -> box.plants().size()).sum());
         pumps.advanceSession(started.id(), null, LocalDateTime.ofInstant(time, ZoneOffset.UTC));
@@ -118,6 +125,7 @@ class ZigbeeWateringIntegrationTest extends IntegrationTestBase {
             assertThatThrownBy(() -> automation.startResourceWatering(f.bindingId, request(30), user)).isInstanceOf(DomainException.class);
             assertThatThrownBy(() -> automation.stopResourceWatering(f.bindingId, user)).isInstanceOf(DomainException.class);
             assertThatThrownBy(() -> automation.resourceWateringSessions(f.bindingId, 10, null, user)).isInstanceOf(DomainException.class);
+            assertThatThrownBy(() -> automation.getWateringPlan(user, f.boxId)).isInstanceOf(DomainException.class);
         }
         verifyNoInteractions(publisher);
     }
@@ -125,8 +133,6 @@ class ZigbeeWateringIntegrationTest extends IntegrationTestBase {
     @Test
     void staleStateAndUnsupportedModesDoNotPublishOrCreateSessions() {
         Fixture f = fixture();
-        assertThatThrownBy(() -> automation.startResourceWatering(f.bindingId,
-                new AutomationData.ManualWateringStartRequest("timed", 30, null, true, 5, 5), f.owner)).isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> automation.startResourceWatering(f.bindingId,
                 new AutomationData.ManualWateringStartRequest("until_leak", null, 30, false, null, null), f.owner)).isInstanceOf(DomainException.class);
         time = time.plusSeconds(121);
@@ -201,7 +207,7 @@ class ZigbeeWateringIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void featureFlagRevocationBlocksNewStartsButKeepsStopAvailable() {
+    void physicalFeatureFlagDoesNotDisableSandboxOrItsStop() {
         Fixture f = fixture();
         start(f, 30);
         automation.evaluateDemoWatering(f.owner.id());
@@ -210,6 +216,7 @@ class ZigbeeWateringIntegrationTest extends IntegrationTestBase {
         automation.stopResourceWatering(f.bindingId, f.owner);
         automation.evaluateDemoWatering(f.owner.id());
         assertThat(pumps.currentSession(f.target)).isNull();
+        assertThat(start(f, 30).phase()).isEqualTo("starting");
         verifyNoInteractions(publisher);
     }
 
@@ -277,6 +284,20 @@ class ZigbeeWateringIntegrationTest extends IntegrationTestBase {
         Fixture f = fixture(tokens.space());
         String route = "/api/manual-watering/resources/" + f.bindingId;
         String bearer = "Bearer " + tokens.accessToken();
+        automation.replaceGreenhouseScenarios(f.owner, f.boxId, new AutomationData.SaveScenariosRequest(List.of(
+                new AutomationData.ScenarioConfigRequest("WATERING", true, Map.of(
+                        "trigger_mode", "schedule", "observe_only", true, "run_seconds", 30,
+                        "stop_mode", "fixed_duration")))));
+        String publicId = zigbee.getSimulationCoordinator(f.owner.id()).publicId().toString();
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                "/api/automation/greenhouses/" + f.boxId + "/watering-plan").header("Authorization", bearer))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.observe_only").value(true));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(
+                "/api/manual-watering/coordinators/" + publicId + "/devices/" + f.target.ieeeAddress() + "/water-statistics")
+                .header("Authorization", bearer))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.supported").value(true));
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(route + "/start")
                 .header("Authorization", bearer).contentType("application/json")
                 .content("{\"mode\":\"timed\",\"duration_s\":30}"))
@@ -289,6 +310,13 @@ class ZigbeeWateringIntegrationTest extends IntegrationTestBase {
                 .header("Authorization", bearer))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
         var other = fixture();
+        String otherPublicId = zigbee.getSimulationCoordinator(other.owner.id()).publicId().toString();
+        for (String foreignRoute : List.of("/api/automation/greenhouses/" + other.boxId + "/watering-plan",
+                "/api/manual-watering/coordinators/" + otherPublicId + "/devices/" + other.target.ieeeAddress() + "/water-statistics")) {
+            mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(foreignRoute)
+                    .header("Authorization", bearer))
+                    .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
+        }
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(
                 "/api/manual-watering/resources/" + other.bindingId + "/start")
                 .header("Authorization", bearer).contentType("application/json").content("{\"duration_s\":30}"))
@@ -352,6 +380,92 @@ class ZigbeeWateringIntegrationTest extends IntegrationTestBase {
         var farm = automation.getFarmsOverview(f.owner);
         assertThat(farm.farms().getFirst().greenhouses().getFirst().slots()).anyMatch(slot -> slot.id().equals(f.bindingId));
         assertThat(automation.getOverview(f.owner)).isNotNull();
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
+    void pulseSessionWaitsForClosureAndCountsEachMeterOperationOnlyOnce() {
+        Fixture f = fixture();
+        var session = automation.startResourceWatering(f.bindingId,
+                new AutomationData.ManualWateringStartRequest("timed", 20, null, true, 10, 5), f.owner);
+        automation.evaluateDemoWatering(f.owner.id());
+        time = time.plusSeconds(10);
+        demo.tick(f.space.id());
+        automation.evaluateDemoWatering(f.owner.id());
+        assertThat(pumps.currentSession(f.target).phase()).isEqualTo("pause");
+        assertThat(pumps.currentSession(f.target).activeDurationS()).isEqualTo(10);
+        automation.evaluateDemoWatering(f.owner.id());
+        verify(gateway, times(1)).publishWateringStart(anyString(), anyString(), anyMap());
+        time = time.plusSeconds(5);
+        demo.tick(f.space.id());
+        automation.evaluateDemoWatering(f.owner.id());
+        automation.evaluateDemoWatering(f.owner.id());
+        verify(gateway, times(2)).publishWateringStart(anyString(), anyString(), anyMap());
+        time = time.plusSeconds(10);
+        demo.tick(f.space.id());
+        automation.evaluateDemoWatering(f.owner.id());
+        var completed = pumps.listSessions(f.target, 10, null).items().getFirst();
+        assertThat(completed.id()).isEqualTo(session.id());
+        assertThat(completed.phase()).isEqualTo("completed");
+        assertThat(completed.activeDurationS()).isEqualTo(20);
+        assertThat(completed.knownVolumeL()).isEqualTo(2.0);
+        assertThat(completed.volumeSource()).isEqualTo("measured");
+        assertThat(journalCount(session.id())).isGreaterThan(0);
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
+    void positiveFlowAfterOffBlocksPauseAndNextPulse() {
+        Fixture f = fixture();
+        automation.startResourceWatering(f.bindingId,
+                new AutomationData.ManualWateringStartRequest("timed", 20, null, true, 10, 5), f.owner);
+        automation.evaluateDemoWatering(f.owner.id());
+        time = time.plusSeconds(10);
+        zigbee.recordSimulatedSnapshot(f.target.coordinatorId(), ZigbeeMqttMessageType.DEVICE_STATE, f.name,
+                Map.of("state", "OFF", "flow", 1), LocalDateTime.ofInstant(time, ZoneOffset.UTC));
+        automation.evaluateDemoWatering(f.owner.id());
+        assertThat(pumps.currentSession(f.target).phase()).isEqualTo("stopping");
+        time = time.plusSeconds(6);
+        automation.evaluateDemoWatering(f.owner.id());
+        verify(gateway, times(1)).publishWateringStart(anyString(), anyString(), anyMap());
+        assertThat(pumps.currentSession(f.target).finishedAt()).isNull();
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
+    void scheduleNeedsNoSoilAndDurableExecutionKeyPreventsSecondStart() {
+        Fixture f = fixture();
+        var box = automation.getFarmsOverview(f.owner).farms().getFirst().greenhouses().stream().filter(b -> b.id().equals(f.boxId)).findFirst().orElseThrow();
+        var slots = box.slots().stream().filter(s -> !"SOIL_MOISTURE_SENSOR".equals(s.role())).map(s -> new AutomationData.ResourceBindingRequest(
+                s.role(), s.sourceType(), s.nativeSensorId(), s.nativePumpId(), s.zigbeeCoordinatorId(), s.zigbeeIeeeAddress(),
+                s.zigbeeProperty(), s.commandProperty(), s.onValue(), s.offValue())).toList();
+        automation.replaceGreenhouseSlots(f.owner, f.boxId, new AutomationData.SaveZoneSlotsRequest(slots, false));
+        time = time.plusSeconds(7200);
+        demo.authorize(f.space.id(), f.space.generation(), false);
+        demo.tick(f.space.id());
+        String schedule = time.atZone(java.time.ZoneId.of("UTC")).toLocalTime().withSecond(0).withNano(0).toString();
+        var cfg = Map.<String, Object>of("trigger_mode", "schedule", "schedule_time", schedule, "observe_only", false,
+                "stop_mode", "fixed_duration", "run_seconds", 10, "min_interval_hours", 1);
+        automation.replaceGreenhouseScenarios(f.owner, f.boxId, new AutomationData.SaveScenariosRequest(List.of(
+                new AutomationData.ScenarioConfigRequest("WATERING", true, cfg))));
+        var plan = automation.getWateringPlan(f.owner, f.boxId);
+        assertThat(plan.due()).as("%s", plan).isTrue();
+        automation.evaluateDemoOwner(f.owner.id());
+        automation.evaluateDemoWatering(f.owner.id());
+        var first = pumps.currentSession(f.target);
+        assertThat(first).isNotNull();
+        time = time.plusSeconds(10);
+        demo.tick(f.space.id());
+        automation.evaluateDemoWatering(f.owner.id());
+        jdbc.update("update automation_scenario_states set runtime_json='{}' where scope_type='BOX' and scope_id=? and scenario_type='WATERING'", f.boxId);
+        // Emuliruem otkat runtime posle komandy; sessiya s klyuchom uzhe ustojchiva.
+        automation.evaluateDemoOwner(f.owner.id());
+        verify(gateway, times(1)).publishWateringStart(anyString(), anyString(), anyMap());
+        assertThat(pumps.listSessions(f.target, 10, null).items()).hasSize(1);
+        var repeated = pumps.startSession(new PumpSessionData.Start(null, "automation", "timed", 10, null,
+                false, null, null, List.of(), null, null).withZigbeeTarget(f.target).withExecutionKey(plan.executionKey()), f.owner);
+        assertThat(repeated.id()).isEqualTo(first.id());
+        verify(gateway, times(1)).publishWateringStart(anyString(), anyString(), anyMap());
         verifyNoInteractions(publisher);
     }
 

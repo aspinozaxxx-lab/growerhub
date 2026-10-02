@@ -187,6 +187,49 @@ public class ZigbeeFacade {
     @Transactional(readOnly = true)
     public boolean isSimulatedCoordinator(Integer id) { return wateringService.simulated(id); }
 
+    @Transactional(readOnly = true)
+    public boolean hasWaterMeter(Integer coordinatorId, Object definition) {
+        return ru.growerhub.backend.zigbee.engine.ZigbeeWaterMeter.supports(objectMapper.valueToTree(definition),
+                coordinatorRepository.findByIdAndArchivedAtIsNull(coordinatorId).map(ZigbeeCoordinatorEntity::isSimulated).orElse(false));
+    }
+
+    @Transactional(readOnly = true)
+    public ru.growerhub.backend.zigbee.contract.ZigbeeWaterMeterData.Observation waterMeterState(
+            ru.growerhub.backend.zigbee.contract.ZigbeeWateringData.Target target) {
+        var coordinator = coordinatorRepository.findByIdAndArchivedAtIsNull(target.coordinatorId()).orElse(null);
+        var device = deviceRepository.findByCoordinatorIdAndIeeeAddress(target.coordinatorId(), target.ieeeAddress()).orElse(null);
+        if (coordinator == null || device == null || device.getLastLiveStateAt() == null) return null;
+        var definition = objectMapper.valueToTree(readJson(device.getBridgeDeviceJson())).path("definition");
+        if (!ru.growerhub.backend.zigbee.engine.ZigbeeWaterMeter.supports(definition, coordinator.isSimulated())) return null;
+        return ru.growerhub.backend.zigbee.engine.ZigbeeWaterMeter.normalize(definition,
+                objectMapper.valueToTree(readJson(device.getLiveStateJson())), device.getLastLiveStateAt());
+    }
+
+    @Transactional(readOnly = true)
+    public ru.growerhub.backend.zigbee.contract.ZigbeeWaterMeterData.History waterMeterHistory(
+            AuthenticatedUser user, UUID coordinatorPublicId, String ieeeAddress,
+            LocalDateTime from, LocalDateTime to, int maxEvents) {
+        requireSelfService(user);
+        var coordinator = findOwnedCoordinator(user, coordinatorPublicId);
+        var device = deviceRepository.findByCoordinatorIdAndIeeeAddress(coordinator.getId(), ieeeAddress)
+                .filter(value -> !value.isCoordinator())
+                .orElseThrow(() -> new DomainException("not_found", "Устройство не найдено"));
+        var definition = objectMapper.valueToTree(readJson(device.getBridgeDeviceJson())).path("definition");
+        boolean supported = ru.growerhub.backend.zigbee.engine.ZigbeeWaterMeter.supports(definition, coordinator.isSimulated());
+        var latest = device.getLastLiveStateAt() == null ? null
+                : ru.growerhub.backend.zigbee.engine.ZigbeeWaterMeter.normalize(definition,
+                        objectMapper.valueToTree(readJson(device.getLiveStateJson())), device.getLastLiveStateAt());
+        if (!supported) return new ru.growerhub.backend.zigbee.contract.ZigbeeWaterMeterData.History(
+                false, coordinator.isSimulated(), device.getFriendlyName(), null, List.of(), false);
+        var events = stateEventRepository.findByCoordinatorIdAndIeeeAddressAndTsGreaterThanEqualAndTsLessThanEqualOrderByTsAscIdAsc(
+                coordinator.getId(), ieeeAddress, from, to, org.springframework.data.domain.PageRequest.of(0, maxEvents + 1));
+        var observations = events.stream().limit(maxEvents).map(event ->
+                ru.growerhub.backend.zigbee.engine.ZigbeeWaterMeter.normalize(definition,
+                        objectMapper.valueToTree(readJson(event.getRawStateJson())), event.getTs())).toList();
+        return new ru.growerhub.backend.zigbee.contract.ZigbeeWaterMeterData.History(
+                true, coordinator.isSimulated(), device.getFriendlyName(), latest, observations, events.size() > maxEvents);
+    }
+
     @Transactional
     public ru.growerhub.backend.zigbee.contract.ZigbeeSimulationCoordinator createSimulatedCoordinator(
             Integer ownerId, String name) {

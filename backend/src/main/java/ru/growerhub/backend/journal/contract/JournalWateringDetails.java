@@ -7,6 +7,7 @@ public record JournalWateringDetails(
         String fertilizersPerLiter,
         Long pumpSessionId,
         String mode,
-        String completionReason
+        String completionReason,
+        String volumeSource
 ) {
 }

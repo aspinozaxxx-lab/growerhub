@@ -24,6 +24,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.automation.contract.AutomationData;
+import ru.growerhub.backend.automation.contract.WateringPlanData;
+import ru.growerhub.backend.automation.engine.WateringPlanEngine;
+import ru.growerhub.backend.common.config.automation.WateringPlanSettings;
 import ru.growerhub.backend.automation.jpa.AutomationActionLogEntity;
 import ru.growerhub.backend.automation.jpa.AutomationActionLogRepository;
 import ru.growerhub.backend.automation.jpa.AutomationBoxEntity;
@@ -130,6 +133,8 @@ public class AutomationFacade {
     private final AutomationSettings settings;
     private final DemoSettings demoSettings;
     private final ObjectMapper objectMapper;
+    private final WateringPlanEngine wateringPlans;
+    private final WateringPlanSettings wateringPlanSettings;
 
     public AutomationFacade(
             AutomationRoomRepository roomRepository,
@@ -148,7 +153,9 @@ public class AutomationFacade {
             AutomationSettings settings,
             DemoSettings demoSettings,
             ObjectMapper objectMapper,
-            java.time.Clock clock
+            java.time.Clock clock,
+            WateringPlanEngine wateringPlans,
+            WateringPlanSettings wateringPlanSettings
     ) {
         this.roomRepository = roomRepository;
         this.boxRepository = boxRepository;
@@ -167,6 +174,16 @@ public class AutomationFacade {
         this.demoSettings = demoSettings;
         this.objectMapper = objectMapper;
         this.clock = clock;
+        this.wateringPlans = wateringPlans;
+        this.wateringPlanSettings = wateringPlanSettings;
+    }
+
+    @Transactional(readOnly = true)
+    public WateringPlanData.Plan getWateringPlan(AuthenticatedUser user, Integer greenhouseId) {
+        var box = requireOwnedGreenhouse(user, greenhouseId);
+        var config = configFor(AutomationData.SCOPE_BOX, greenhouseId, AutomationData.SCENARIO_WATERING);
+        if (config == null || !wateringPlans.supports(configMap(config, AutomationData.SCENARIO_WATERING))) return null;
+        return calculateWateringPlan(box, config, buildOwnedCatalog(user), nowUtc(), userFacade.getTimezone(user.id()));
     }
 
     @Transactional(readOnly = true)
@@ -1106,7 +1123,7 @@ public class AutomationFacade {
 
     private void validateZigbeeWateringConfig(AutomationResourceBindingEntity binding, Map<String, Object> cfg) {
         var executor = zigbeeFacade.resolveWateringExecutor(zigbeeWateringTarget(binding), SYSTEM_ADMIN, false);
-        if (isUntilDrain(cfg) || pulseEnabled(cfg)) {
+        if (isUntilDrain(cfg) || pulseEnabled(cfg) && !executor.capability().pulse()) {
             throw new DomainException("bad_request", "Для этого клапана доступен полив по времени без импульсов");
         }
         Integer max = executor.capability().maxDurationS();
@@ -1469,6 +1486,23 @@ public class AutomationFacade {
                     .findByScopeTypeAndScopeIdAndScenarioType(scopeType, scopeId, scenarioType)
                     .orElseGet(() -> AutomationScenarioConfigEntity.create(scopeType, scopeId, scenarioType, now));
             Map<String, Object> mergedConfig = mergeDefaults(scenarioType, item.config());
+            if (AutomationData.SCENARIO_WATERING.equals(scenarioType) && wateringPlans.supports(mergedConfig)) {
+                var old = readJsonMap(entity.getConfigJson());
+                Object confirmation = mergedConfig.remove("calibration_request");
+                mergedConfig.remove("calibration_binding_key");
+                mergedConfig.remove("calibration_confirmed_at");
+                if (confirmation instanceof String text && !text.isBlank()) {
+                    var soil = resource(scopeType, scopeId, AutomationData.ROLE_SOIL_MOISTURE_SENSOR);
+                    String key = soilBindingKey(soil);
+                    if (key == null) throw new DomainException("bad_request", "Сначала назначьте датчик почвы");
+                    mergedConfig.put("calibration_binding_key", key);
+                    mergedConfig.put("calibration_confirmed_at", now.toString());
+                } else if (Objects.equals(asDouble(old.get("wet_anchor")), asDouble(mergedConfig.get("wet_anchor")))
+                        && Objects.equals(asDouble(old.get("dry_anchor")), asDouble(mergedConfig.get("dry_anchor")))) {
+                    if (old.get("calibration_binding_key") != null) mergedConfig.put("calibration_binding_key", old.get("calibration_binding_key"));
+                    if (old.get("calibration_confirmed_at") != null) mergedConfig.put("calibration_confirmed_at", old.get("calibration_confirmed_at"));
+                }
+            }
             validateScenarioConfig(scopeType, scopeId, scenarioType, Boolean.TRUE.equals(item.enabled()), mergedConfig);
             entity.setEnabled(Boolean.TRUE.equals(item.enabled()));
             entity.setConfigJson(writeJson(mergedConfig));
@@ -1530,6 +1564,7 @@ public class AutomationFacade {
         if (!AutomationData.SCOPE_BOX.equals(scopeType)) {
             return;
         }
+        wateringPlans.validate(cfg);
         String stopMode = String.valueOf(cfg.getOrDefault("stop_mode", STOP_MODE_FIXED_DURATION));
         if (!STOP_MODE_FIXED_DURATION.equals(stopMode) && !STOP_MODE_UNTIL_DRAIN.equals(stopMode)) {
             throw new DomainException("bad_request", "Некорректный режим остановки");
@@ -1798,6 +1833,10 @@ public class AutomationFacade {
     ) {
         AutomationScenarioConfigEntity config = configFor(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING);
         AutomationScenarioStateEntity state = stateFor(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, now);
+        if (config != null && wateringPlans.supports(configMap(config, AutomationData.SCENARIO_WATERING))) {
+            evaluatePlannedWatering(box, config, state, catalog, now, timezone);
+            return;
+        }
         AutomationData.Readiness readiness = wateringReadiness(box.getId(), catalog);
         if (hasActiveWateringSession(state)) {
             Map<String, Object> legacyRuntime = runtimeMap(state);
@@ -1881,7 +1920,7 @@ public class AutomationFacade {
         startAutomationWatering(box, state, cfg, pumpBinding, reason, untilDrain, requestedRunSeconds, now, topology);
     }
 
-    private void startAutomationWatering(
+    private boolean startAutomationWatering(
             AutomationBoxEntity box,
             AutomationScenarioStateEntity state,
             Map<String, Object> cfg,
@@ -1895,7 +1934,7 @@ public class AutomationFacade {
         try {
             if (isZigbeeWatering(pumpBinding) && resourceRepository.lockById(pumpBinding.getId()).isEmpty()) {
                 markState(state, "waiting", "Исполнитель полива переназначен", false, now);
-                return;
+                return false;
             }
             PumpSessionData.Start request = new PumpSessionData.Start(
                     pumpBinding.getNativePumpId(),
@@ -1911,16 +1950,80 @@ public class AutomationFacade {
                     null
             );
             if (isZigbeeWatering(pumpBinding)) request = request.withZigbeeTarget(zigbeeWateringTarget(pumpBinding));
-            pumpFacade.startSession(request, SYSTEM_ADMIN);
+            if (cfg.get("execution_key") instanceof String key) request = request.withExecutionKey(key);
+            var started = pumpFacade.startSession(request, SYSTEM_ADMIN);
+            if (request.executionKey() != null && PumpSessionData.STATUS_TERMINAL.equals(started.status())) {
+                markState(state, "waiting", "Этот план уже исполнен; повторного запуска нет", false, now);
+                return true;
+            }
             logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, pumpBinding,
                     "PUMP_START", reason, "published", requestedRunSeconds, now);
             state.setLastActionAt(now);
             markState(state, "active", null, false, now);
+            return true;
         } catch (RuntimeException ex) {
             logAction(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING, pumpBinding,
                     "PUMP_START", ex.getMessage(), "error", requestedRunSeconds, now);
             markState(state, "error", ex.getMessage(), false, now);
+            return false;
         }
+    }
+
+    private void evaluatePlannedWatering(AutomationBoxEntity box, AutomationScenarioConfigEntity config,
+            AutomationScenarioStateEntity state, Catalog catalog, LocalDateTime now, String timezone) {
+        WateringPlanData.Plan plan = calculateWateringPlan(box, config, catalog, now, timezone);
+        Map<String, Object> runtime = runtimeMap(state);
+        runtime.put("watering_plan", objectMapper.convertValue(plan, MAP_TYPE));
+        state.setRuntimeJson(writeJson(runtime));
+        markState(state, !plan.enabled() ? "disabled" : plan.observeOnly() ? "observing" : plan.status(),
+                String.join(" · ", plan.reasons()), false, now);
+        if (!plan.due()) return;
+        Map<String, Object> cfg = new LinkedHashMap<>(configMap(config, AutomationData.SCENARIO_WATERING));
+        cfg.put("execution_key", plan.executionKey());
+        var binding = resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_WATER_PUMP);
+        if (startAutomationWatering(box, state, cfg, binding, String.join(" · ", plan.reasons()), false,
+                plan.runSeconds(), now, buildWateringTopology(catalog))) {
+            runtime.put("watering_consumed_key", plan.executionKey());
+            state.setRuntimeJson(writeJson(runtime));
+        }
+    }
+
+    private WateringPlanData.Plan calculateWateringPlan(AutomationBoxEntity box, AutomationScenarioConfigEntity config,
+            Catalog catalog, LocalDateTime now, String timezone) {
+        Map<String, Object> cfg = configMap(config, AutomationData.SCENARIO_WATERING);
+        var binding = resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_WATER_PUMP);
+        var pump = resolveResourceStatus(binding, catalog);
+        String equipmentIssue = !pump.ready() ? "Нужен насос или клапан с проверенным таймером"
+                : pump.connectionWarning() || isStale(pump.ts(), now) ? "Исполнитель полива не подтверждает связь" : null;
+        var soil = resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_SOIL_MOISTURE_SENSOR);
+        List<WateringPlanData.Point> history = new ArrayList<>();
+        Integer ownerId = box.getRoom().getUserId();
+        var owner = new AuthenticatedUser(ownerId, userFacade.getDemoOwnerIds().contains(ownerId) ? "demo" : "user");
+        if (!"schedule".equals(cfg.get("trigger_mode")) && soil != null) {
+            var soilStatus = resolveResourceStatus(soil, catalog);
+            if (soilStatus.connectionWarning() || isStale(soilStatus.ts(), now)) equipmentIssue = "Датчик почвы не подтверждает свежие показания";
+            if (AutomationData.SOURCE_NATIVE_SENSOR.equals(soil.getSourceType())) {
+                history.addAll(sensorFacade.getHistory(soil.getNativeSensorId(), wateringPlanSettings.historyHours(), owner).stream()
+                        .map(p -> new WateringPlanData.Point(p.ts(), p.value())).toList());
+            } else if (AutomationData.SOURCE_ZIGBEE_DEVICE.equals(soil.getSourceType())) {
+                var device = findZigbeeDevice(soil, catalog);
+                if (device != null) history.addAll(zigbeeFacade.getHistory(owner, device.coordinatorId(), soil.getZigbeeIeeeAddress(),
+                        soil.getZigbeeProperty(), wateringPlanSettings.historyHours()).stream()
+                        .map(p -> new WateringPlanData.Point(p.ts(), p.value())).toList());
+            }
+        }
+        var previous = stateRepository.findByScopeTypeAndScopeIdAndScenarioType(AutomationData.SCOPE_BOX, box.getId(), AutomationData.SCENARIO_WATERING).orElse(null);
+        String consumed = blankToNull(String.valueOf(runtimeMap(previous).getOrDefault("watering_consumed_key", "")));
+        return wateringPlans.evaluate(box.getId(), cfg, now, timezone, config.isEnabled() && box.isEnabled() && box.getRoom().isEnabled(),
+                equipmentIssue, soilBindingKey(soil), history, pumpFacade.lastCompletedSessionForBox(box.getId()),
+                pumpFacade.boxStatistics(box.getId(), "day", 1, null, timezone).activeDurationS(),
+                binding != null && currentWatering(binding) != null, consumed);
+    }
+
+    private String soilBindingKey(AutomationResourceBindingEntity binding) {
+        if (binding == null) return null;
+        return binding.getScopeId() + ":" + binding.getSourceType() + ":" + binding.getNativeSensorId() + ":"
+                + binding.getZigbeeCoordinatorId() + ":" + binding.getZigbeeIeeeAddress() + ":" + binding.getZigbeeProperty();
     }
 
     private boolean sendSwitchIfNeeded(
@@ -2256,6 +2359,18 @@ public class AutomationFacade {
     }
 
     private AutomationData.Readiness wateringReadiness(Integer boxId, Catalog catalog) {
+        var cfg = configFor(AutomationData.SCOPE_BOX, boxId, AutomationData.SCENARIO_WATERING);
+        if (cfg != null && wateringPlans.supports(configMap(cfg, AutomationData.SCENARIO_WATERING))) {
+            var config = configMap(cfg, AutomationData.SCENARIO_WATERING);
+            if (!Boolean.FALSE.equals(config.get("observe_only"))) return new AutomationData.Readiness(true, null, List.of());
+            List<String> required = "schedule".equals(config.get("trigger_mode")) ? List.of(AutomationData.ROLE_WATER_PUMP)
+                    : List.of(AutomationData.ROLE_SOIL_MOISTURE_SENSOR, AutomationData.ROLE_WATER_PUMP);
+            for (String role : required) {
+                var status = resolveResourceStatus(resource(AutomationData.SCOPE_BOX, boxId, role), catalog);
+                if (!status.ready()) return new AutomationData.Readiness(false, status.reason(), required);
+            }
+            return new AutomationData.Readiness(true, null, required);
+        }
         List<String> roles = List.of(AutomationData.ROLE_SOIL_MOISTURE_SENSOR, AutomationData.ROLE_WATER_PUMP);
         ResourceStatus soil = resolveResourceStatus(
                 resource(AutomationData.SCOPE_BOX, boxId, AutomationData.ROLE_SOIL_MOISTURE_SENSOR),
@@ -3084,6 +3199,18 @@ public class AutomationFacade {
                     room.getId(),
                     catalog
             );
+            if (AutomationData.SCENARIO_WATERING.equals(scenarioType) && scenario.config() != null
+                    && wateringPlans.supports(scenario.config())) {
+                var candidate = mergeDefaults(scenarioType, scenario.config());
+                if (!Boolean.FALSE.equals(candidate.get("observe_only"))) readiness = new AutomationData.Readiness(true, null, List.of());
+                else {
+                    var pump = resolveResourceStatus(resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_WATER_PUMP), catalog);
+                    boolean soilReady = "schedule".equals(candidate.get("trigger_mode"))
+                            || resolveResourceStatus(resource(AutomationData.SCOPE_BOX, box.getId(), AutomationData.ROLE_SOIL_MOISTURE_SENSOR), catalog).ready();
+                    readiness = new AutomationData.Readiness(pump.ready() && soilReady,
+                            !pump.ready() ? pump.reason() : !soilReady ? "Нужен датчик почвы" : null, List.of(AutomationData.ROLE_WATER_PUMP));
+                }
+            }
             if (!readiness.ready()) {
                 throw new DomainException("conflict", readiness.reason());
             }
@@ -3284,7 +3411,8 @@ public class AutomationFacade {
                 device.controls().stream().map(this::toZigbeeFeatureData).toList(),
                 device.availability(),
                 device.lastStateAt(),
-                device.watering()
+                device.watering(),
+                zigbeeFacade.hasWaterMeter(ownedDevice.coordinatorInternalId(), device.definition())
         );
     }
 
@@ -3731,6 +3859,7 @@ public class AutomationFacade {
                 config.put("days", List.of(1, 2, 3, 4, 5, 6, 7));
             }
             case AutomationData.SCENARIO_WATERING -> {
+                config.putAll(wateringPlans.defaults());
                 config.put("soil_threshold_percent", 40.0);
                 config.put("max_interval_hours", 48);
                 config.put("stop_mode", STOP_MODE_FIXED_DURATION);

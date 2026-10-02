@@ -109,6 +109,15 @@ sensor:
     defaultHours: 24
 
 pump:
+  water-meter:
+    # Ogranichenie vygruzki pervichnyh otchetov pri nepolnom ohvate istorii.
+    max-history-events: 20000
+    # Okno ucheta otcheta o zavershenii proshedshego mesyaca.
+    late-report-hours: 48
+    # Glubina vybora kalendarnyh mesyacev bez obeshchaniya polnogo ohvata.
+    available-months: 12
+    # Dopusk okrugleniya vremeni operacii klapana pri privyazke k sessii.
+    clock-tolerance-seconds: 3
   history:
     # Maksimal'noe kolichestvo tochek sostoyaniya nasosa.
     maxPoints: 200
@@ -316,6 +325,37 @@ history:
     catchUpPeriodMs: 86400000
 
 automation:
+  watering-plan:
+    # Okno starta raspisaniya; propushchennyj poliv ne dogonyaetsya.
+    execution-window-seconds: 90
+    # Okno istorii dlya dinamiki i otklika (ch).
+    history-hours: 168
+    # Minimum tochek dlya dinamiki.
+    minimum-samples: 8
+    # Minimum vremeni nablyudeniya vysyhaniya (ch).
+    minimum-span-hours: 4
+    # Maksimalnyj razryv tochek i vozrast poslednej tochki (min).
+    maximum-gap-minutes: 120
+    # Minimum raznicy mestnyh orientirov v edinicah datchika.
+    minimum-anchor-range: 1
+    # Maksimalnyj skachok kak dolya diapazona orientirov.
+    maximum-jump-fraction: 0.5
+    # Minimalnyj podtverzhdennyj temp vysyhaniya v chas.
+    minimum-drying-per-hour: 0.001
+    # Ozhidanie vpityvaniya posle poliva (min).
+    soak-minutes: 45
+    # Okno proveryaemogo otklika na poliv (ch).
+    response-hours: 6
+    # Minimalnyj otklik kak dolya diapazona orientirov.
+    minimum-response-fraction: 0.05
+    # Nachalnyj minimalnyj interval novogo rezhima (ch).
+    default-min-interval-hours: 6
+    # Nachalnyj dnevnoj limit novogo rezhima (s).
+    default-daily-max-seconds: 1200
+    # Nachalnoe lokalnoe vremya raspisaniya i okna.
+    default-time: "07:00"
+    # Nachalnyj konec okna poliva.
+    default-window-end: "10:00"
   # Period worker avtomatizacii (ms).
   workerPeriodMs: 30000
   # Period aktivnyh sessij poliva (ms).

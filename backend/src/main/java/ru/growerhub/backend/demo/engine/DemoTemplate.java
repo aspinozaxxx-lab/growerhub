@@ -9,7 +9,7 @@ public record DemoTemplate(int version, Map<String, String> farmName, List<Profi
             double fanCooling, double acCooling, double pumpMoisturePerSecond, double dryingPerHour,
             int wateringRateMlPerHour, int historyWateringSeconds) {}
     public record Profile(String key, String kind, Map<String, String> name, Map<String, String> description,
-            double powerWatts, double temperature, double humidity, double moisture) {}
+            double powerWatts, double temperature, double humidity, double moisture, double waterFlowLMin) {}
     public record Environment(double temperature, double humidity, double moisture, double dailyTemperatureDelta,
             double dailyHumidityDelta, double temperaturePeakHour, double dryingPerHour,
             String historyWateringTime, int historyWateringSeconds) {}

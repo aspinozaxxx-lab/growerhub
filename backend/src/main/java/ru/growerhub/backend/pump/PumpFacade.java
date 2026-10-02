@@ -31,6 +31,7 @@ public class PumpFacade {
     private final PumpService pumpService;
     private final PumpStateHistoryService stateHistoryService;
     private final PumpSessionService sessionService;
+    private final ru.growerhub.backend.pump.engine.WaterMeterStatisticsService meterStatistics;
 
     public PumpFacade(
             PumpBindingService bindingService,
@@ -38,7 +39,8 @@ public class PumpFacade {
             PumpQueryService queryService,
             PumpService pumpService,
             PumpStateHistoryService stateHistoryService,
-            PumpSessionService sessionService
+            PumpSessionService sessionService,
+            ru.growerhub.backend.pump.engine.WaterMeterStatisticsService meterStatistics
     ) {
         this.bindingService = bindingService;
         this.wateringService = wateringService;
@@ -46,6 +48,13 @@ public class PumpFacade {
         this.pumpService = pumpService;
         this.stateHistoryService = stateHistoryService;
         this.sessionService = sessionService;
+        this.meterStatistics = meterStatistics;
+    }
+
+    @Transactional(readOnly = true)
+    public ru.growerhub.backend.pump.contract.WaterMeterStatistics waterMeterStatistics(
+            AuthenticatedUser user, java.util.UUID coordinatorId, String ieee, String month) {
+        return meterStatistics.statistics(user, coordinatorId, ieee, month);
     }
 
     @Transactional(readOnly = true)

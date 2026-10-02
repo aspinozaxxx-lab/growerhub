@@ -246,7 +246,8 @@ public class JournalFacade {
                     target.durationS(),
                     target.waterVolumeL(),
                     target.mode(),
-                    target.completionReason()
+                    target.completionReason(),
+                    target.volumeSource()
             ));
         }
         journalService.createSessionWateringEntries(mapped, eventAt, ph, fertilizersPerLiter);
@@ -279,7 +280,8 @@ public class JournalFacade {
                         details.getFertilizersPerLiter(),
                         details.getPumpSessionId(),
                         details.getMode(),
-                        details.getCompletionReason()
+                        details.getCompletionReason(),
+                        details.getVolumeSource()
                 );
             }
         }
@@ -363,6 +365,8 @@ public class JournalFacade {
         String volume = formatNumber(details.getWaterVolumeL(), english);
         if (volume != null) {
             parts.add(volume + (english ? " L" : " л"));
+            if ("measured".equals(details.getVolumeSource())) parts.add(english ? "meter report" : "по расходомеру");
+            else if ("estimated".equals(details.getVolumeSource())) parts.add(english ? "estimated volume" : "расчётный объём");
         }
         String ph = formatNumber(details.getPh(), english);
         if (ph != null) {
@@ -409,7 +413,13 @@ public class JournalFacade {
             int durationS,
             Double waterVolumeL,
             String mode,
-            String completionReason
+            String completionReason,
+            String volumeSource
     ) {
+        public SessionWateringTarget(Long sessionId, Integer plantId, Integer userId, int durationS,
+                Double waterVolumeL, String mode, String completionReason) {
+            this(sessionId, plantId, userId, durationS, waterVolumeL, mode, completionReason,
+                    waterVolumeL == null ? "unknown" : "estimated");
+        }
     }
 }

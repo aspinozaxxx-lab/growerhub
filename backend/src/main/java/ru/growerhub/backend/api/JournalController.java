@@ -135,7 +135,8 @@ public class JournalController {
                     info.fertilizersPerLiter(),
                     info.pumpSessionId(),
                     info.mode(),
-                    info.completionReason()
+                    info.completionReason(),
+                    info.volumeSource()
             );
         }
 

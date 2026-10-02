@@ -13,7 +13,9 @@ public final class DemoAccessPolicy {
                     || path.matches("/api/sensors/\\d+/history")
                     || path.matches("/api/pumps/\\d+/watering/status")
                     || path.matches("/api/manual-watering(?:/(?:pumps|resources)/\\d+/sessions|/greenhouses/\\d+/statistics)?")
+                    || path.matches("/api/manual-watering/coordinators/[0-9a-fA-F-]+/devices/[^/]+/water-statistics")
                     || path.matches("/api/automation/(?:farms|resources/\\d+/statistics)")
+                    || path.matches("/api/automation/greenhouses/\\d+/watering-plan")
                     || path.matches("/api/zigbee/coordinators(?:/[0-9a-fA-F-]+(?:/overview|/devices/[^/]+/history)?)?");
         }
         if ("POST".equals(method)) {

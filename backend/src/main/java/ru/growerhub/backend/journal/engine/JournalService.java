@@ -101,6 +101,7 @@ public class JournalService {
             details.setPlantId(target.plantId());
             details.setMode(target.mode());
             details.setCompletionReason(target.completionReason());
+            details.setVolumeSource(target.volumeSource());
             entry.setWateringDetails(details);
             entryRepository.save(entry);
         }
@@ -176,7 +177,8 @@ public class JournalService {
             int durationS,
             Double waterVolumeL,
             String mode,
-            String completionReason
+            String completionReason,
+            String volumeSource
     ) {
     }
 }
