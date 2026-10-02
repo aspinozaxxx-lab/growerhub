@@ -3,12 +3,14 @@ import homeContent from '../../content/pages/home.json';
 import miniFarmContent from '../../content/pages/mini-farm.json';
 import platformContent from '../../content/pages/platform.json';
 import legalContent from '../../content/pages/legal.json';
+import newsContent from '../../content/pages/news.json';
 import equipmentContent from '../../content/equipment/catalog.json';
 import aboutContentEn from '../../content/en/pages/about.json';
 import homeContentEn from '../../content/en/pages/home.json';
 import miniFarmContentEn from '../../content/en/pages/mini-farm.json';
 import platformContentEn from '../../content/en/pages/platform.json';
 import legalContentEn from '../../content/en/pages/legal.json';
+import newsContentEn from '../../content/en/pages/news.json';
 import equipmentContentEn from '../../content/en/equipment/catalog.json';
 import { getCurrentLocale } from '../locales/i18n';
 
@@ -18,6 +20,7 @@ const contentByLocale = {
     equipmentContent,
     homeContent,
     legalContent,
+    newsContent,
     miniFarmContent,
     platformContent,
   },
@@ -26,6 +29,7 @@ const contentByLocale = {
     equipmentContent: equipmentContentEn,
     homeContent: homeContentEn,
     legalContent: legalContentEn,
+    newsContent: newsContentEn,
     miniFarmContent: miniFarmContentEn,
     platformContent: platformContentEn,
   },

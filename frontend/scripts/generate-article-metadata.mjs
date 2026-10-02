@@ -7,7 +7,6 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RU_DIR = path.join(ROOT, 'content', 'articles');
 const EN_DIR = path.join(ROOT, 'content', 'en', 'articles');
 const OUTPUT_PATH = path.join(ROOT, 'src', 'content', 'articleMetadata.generated.json');
-const EXPECTED_ARTICLES = 56;
 
 const normalizeArray = (value) => {
   if (Array.isArray(value)) return value.map(String).map((item) => item.trim()).filter(Boolean);
@@ -55,8 +54,8 @@ const readLocale = (directory, locale) => {
 const ru = readLocale(RU_DIR, 'ru');
 const en = readLocale(EN_DIR, 'en');
 
-if (ru.length !== EXPECTED_ARTICLES || en.length !== EXPECTED_ARTICLES) {
-  throw new Error(`Expected ${EXPECTED_ARTICLES} articles per locale, got ru=${ru.length}, en=${en.length}`);
+if (!ru.length || ru.length !== en.length) {
+  throw new Error(`Article locales must be nonempty and have equal size, got ru=${ru.length}, en=${en.length}`);
 }
 
 const ruIds = new Set(ru.map((article) => article.id));
@@ -75,6 +74,51 @@ for (const localeArticles of [ru, en]) {
   if (new Set(slugs).size !== slugs.length) {
     throw new Error(`Duplicate ${localeArticles[0]?.locale || 'unknown'} article slugs`);
   }
+}
+
+const validDate = (value) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+};
+const newsByLocale = {};
+for (const [locale, localeArticles] of [['ru', ru], ['en', en]]) {
+  const newsPath = path.join(ROOT, 'content', ...(locale === 'en' ? ['en'] : []), 'pages', 'news.json');
+  const news = JSON.parse(fs.readFileSync(newsPath, 'utf8').replace(/^\ufeff/, ''));
+  const articleById = new Map(localeArticles.map((article) => [article.id, article]));
+  const ids = new Set();
+  if (!news.entries?.length) throw new Error(`News must be nonempty: ${locale}`);
+  for (const entry of news.entries) {
+    if (!entry.id || ids.has(entry.id) || !validDate(entry.published_at)) {
+      throw new Error(`Invalid news ID or date: ${locale}/${entry.id}`);
+    }
+    ids.add(entry.id);
+    const major = entry.kind === 'feature' || entry.kind === 'article';
+    if (!['feature', 'article', 'fix', 'article_update'].includes(entry.kind) || !news.labels?.[entry.kind]) {
+      throw new Error(`Invalid news kind: ${locale}/${entry.id}`);
+    }
+    const article = entry.article_id ? articleById.get(entry.article_id) : null;
+    if ((entry.article_id && !article) || (major && !article) || (entry.kind === 'article_update' && !article)) {
+      throw new Error(`Missing news article: ${locale}/${entry.id}`);
+    }
+    if (!major && !entry.text?.trim()) throw new Error(`Missing news text: ${locale}/${entry.id}`);
+    if (major && (!article.hero_image?.startsWith('/') || !article.hero_alt
+      || !fs.existsSync(path.join(ROOT, 'public', article.hero_image.slice(1))))) {
+      throw new Error(`Missing news image: ${locale}/${entry.id}`);
+    }
+    if (article && (!validDate(article.created_at) || !validDate(article.updated_at)
+      || article.created_at > article.updated_at || article.updated_at < entry.published_at)) {
+      throw new Error(`Invalid news article dates: ${locale}/${entry.id}`);
+    }
+  }
+  newsByLocale[locale] = new Map(news.entries.map((entry) => [entry.id, entry]));
+}
+if (newsByLocale.ru.size !== newsByLocale.en.size || [...newsByLocale.ru].some(([id, entry]) => {
+  const translation = newsByLocale.en.get(id);
+  return !translation || translation.kind !== entry.kind || translation.published_at !== entry.published_at
+    || translation.article_id !== entry.article_id;
+})) {
+  throw new Error('News translation mismatch');
 }
 
 const ruById = new Map(ru.map((article) => [article.id, article]));

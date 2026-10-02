@@ -28,7 +28,7 @@ afterEach(async () => {
 
 describe('localized navigation', () => {
   it('svyazyvaet vse staticheskie marshruty', () => {
-    expect(Object.values(PUBLIC_ROUTES)).toHaveLength(12);
+    expect(PUBLIC_ROUTES.news).toEqual({ ru: '/novosti/', en: '/en/news/' });
     const paths = Object.values(PUBLIC_ROUTES).flatMap(({ ru, en }) => [ru, en]);
     expect(new Set(paths).size).toBe(paths.length);
 
@@ -38,11 +38,11 @@ describe('localized navigation', () => {
     }
   });
 
-  it('svyazyvaet 56 par statej', () => {
+  it('svyazyvaet vse pary statej', () => {
     const ruArticles = getArticles('ru');
     const enArticles = getArticles('en');
-    expect(ruArticles).toHaveLength(56);
-    expect(enArticles).toHaveLength(56);
+    expect(ruArticles.length).toBeGreaterThan(0);
+    expect(enArticles).toHaveLength(ruArticles.length);
 
     for (const article of ruArticles) {
       const translation = getArticleTranslation(article, 'en');

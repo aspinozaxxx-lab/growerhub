@@ -4,7 +4,7 @@ slug: watering-log-volume-ph-fertilizers-and-date
 title: 'Plant watering log: example and free printable template'
 summary: 'Download a one-page A4 watering log. Record date, plant, water volume, reason and feeding; see a filled example and try a virtual watering history.'
 created_at: '2026-07-23'
-updated_at: '2026-09-18'
+updated_at: '2026-10-02'
 cluster: zhurnal-i-sovetnik-uhoda
 tags:
   - GrowerHub
@@ -27,6 +27,12 @@ download:
 ---
 
 A useful watering log needs one short entry after watering: **when, which plant, how much water, why you watered and what you noticed**. Add pH, EC and feeding details when you actually measure or use them. You can start with a notebook and a measuring jug.
+
+## Measured, estimated and unknown volume
+
+GrowerHub's electronic journal labels the source of litres. A supported meter report provides measured volume; runtime with configured pump flow gives an estimate. Missing reliable information remains unknown rather than zero. Shared irrigation volume must not be assigned in full to each plant.
+
+The [new daily and monthly water view](/articles/uchet-vody-rashodomer-growerhub/) counts repeated reports of one operation only once and shows missing coverage. This helps compare history without implying more precision than the data provides.
 
 ## Download the printable watering log
 

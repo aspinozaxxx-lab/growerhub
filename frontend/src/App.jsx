@@ -5,6 +5,7 @@ import AboutPage from './pages/AboutPage';
 import ArticleClusterPage from './pages/ArticleClusterPage';
 import ArticlePage from './pages/ArticlePage';
 import ArticlesListPage from './pages/ArticlesListPage';
+import NewsPage from './pages/NewsPage';
 import HomePage from './pages/HomePage';
 import EquipmentCategoryPage from './pages/EquipmentCategoryPage';
 import EquipmentIndexPage from './pages/EquipmentIndexPage';
@@ -79,6 +80,8 @@ function App({ initialArticle } = {}) {
         <Route path="/en/equipment/irrigation-pump/" element={<PumpEarlyAccessPage />} />
         <Route path="/articles/" element={<ArticlesListPage />} />
         <Route path="/en/articles/" element={<ArticlesListPage />} />
+        <Route path="/novosti/" element={<NewsPage />} />
+        <Route path="/en/news/" element={<NewsPage />} />
         <Route path="/articles/clusters/:clusterSlug/" element={<ArticleClusterPage />} />
         <Route path="/en/articles/clusters/:clusterSlug/" element={<ArticleClusterPage />} />
         <Route path="/articles/:slug/" element={<ArticlePage initialArticle={initialArticle} />} />

@@ -1,0 +1,25 @@
+{
+  "title": "GrowerHub news — new features and updates",
+  "heading": "GrowerHub news",
+  "description": "New app features, useful guides and fixes. See what changed and how to try it.",
+  "read_more": "Read the full story →",
+  "open_article": "Open the guide →",
+  "small_heading": "Fixes and small updates",
+  "labels": {
+    "feature": "New feature",
+    "article": "New guide",
+    "fix": "Fix",
+    "article_update": "Guide update"
+  },
+  "entries": [
+    { "id": "water-meter", "published_at": "2026-10-02", "kind": "feature", "article_id": "uchet-vody-rashodomer-growerhub" },
+    { "id": "watering-schedule", "published_at": "2026-10-02", "kind": "feature", "article_id": "poliv-po-raspisaniyu-growerhub" },
+    { "id": "soil-anchors", "published_at": "2026-10-02", "kind": "feature", "article_id": "poliv-po-mestnym-orientiram-growerhub", "preview_position": "50% 50%" },
+    { "id": "drying-plan", "published_at": "2026-10-02", "kind": "feature", "article_id": "prognoz-vysyhaniya-i-plan-poliva-growerhub", "preview_position": "50% 90%" },
+    { "id": "demo-water-valve", "published_at": "2026-10-02", "kind": "feature", "article_id": "demo-klapan-rashodomer-growerhub", "preview_position": "50% 40%" },
+    { "id": "plan-refresh", "published_at": "2026-10-02", "kind": "fix", "text": "The watering plan refreshes after settings are saved. The previous plan is no longer shown as current while the new one loads." },
+    { "id": "valve-watering-path", "published_at": "2026-10-02", "kind": "fix", "text": "Watering device cards direct you to a bounded session through the greenhouse. The off button remains available." },
+    { "id": "public-navigation-scroll", "published_at": "2026-10-02", "kind": "fix", "text": "A new page opens at the top when you follow a menu or article link. Back navigation and section links retain their usual behaviour." },
+    { "id": "watering-log-update", "published_at": "2026-10-02", "kind": "article_update", "article_id": "zhurnal-poliva-obem-ph-udobreniya", "text": "The watering log guide now explains measured, estimated and unknown water volumes." }
+  ]
+}

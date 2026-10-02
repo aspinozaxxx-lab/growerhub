@@ -9,6 +9,11 @@ import ruEquipment from '../content/equipment/catalog.json' with { type: 'json' 
 import ruHomeContent from '../content/pages/home.json' with { type: 'json' };
 import ruAboutContent from '../content/pages/about.json' with { type: 'json' };
 import ruMiniFarmContent from '../content/pages/mini-farm.json' with { type: 'json' };
+import articleMetadata from '../src/content/articleMetadata.generated.json' with { type: 'json' };
+import ruNews from '../content/pages/news.json' with { type: 'json' };
+import enNews from '../content/en/pages/news.json' with { type: 'json' };
+import { getArticleClusters } from '../src/content/articleClusters.js';
+import { PUBLIC_ROUTES, getPublicPath } from '../src/domain/localizedRoutes.js';
 import {
   GITHUB_REPOSITORY_URL,
   ORGANIZATION_ID,
@@ -72,9 +77,12 @@ const lastmods = [...sitemap.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((matc
 const urlSet = new Set(urls);
 const ruUrls = urls.filter((url) => !new URL(url).pathname.startsWith('/en/'));
 const enUrls = urls.filter((url) => new URL(url).pathname.startsWith('/en/'));
-assert(urls.length === 142, `Sitemap: expected 142 URLs, got ${urls.length}`);
-assert(ruUrls.length === 71, `Sitemap: expected 71 RU URLs, got ${ruUrls.length}`);
-assert(enUrls.length === 71, `Sitemap: expected 71 EN URLs, got ${enUrls.length}`);
+const publicRouteCount = Object.keys(PUBLIC_ROUTES).filter((id) => id !== 'privacy' && id !== 'terms').length;
+const expectedRu = publicRouteCount + getArticleClusters('ru').length + articleMetadata.ru.length;
+const expectedEn = publicRouteCount + getArticleClusters('en').length + articleMetadata.en.length;
+assert(urls.length === expectedRu + expectedEn, `Sitemap: expected ${expectedRu + expectedEn} URLs, got ${urls.length}`);
+assert(ruUrls.length === expectedRu, `Sitemap: expected ${expectedRu} RU URLs, got ${ruUrls.length}`);
+assert(enUrls.length === expectedEn, `Sitemap: expected ${expectedEn} EN URLs, got ${enUrls.length}`);
 assert(urlSet.size === urls.length, 'Sitemap: duplicate URLs found');
 assert(lastmods.length === urls.length, 'Sitemap: every URL must have lastmod');
 assert(
@@ -322,7 +330,31 @@ if (initialScript) {
 const articleUrls = urls.filter((url) => (
   new URL(url).pathname.match(/^\/(?:en\/)?articles\/[^/]+\/$/)
 ));
-assert(articleUrls.length === 112, `Expected 112 article pages, got ${articleUrls.length}`);
+for (const [locale, news] of [['ru', ruNews], ['en', enNews]]) {
+  const url = `${SITE_URL}${getPublicPath('news', locale)}`;
+  const html = read(urlToFile(url));
+  const localeArticles = articleMetadata[locale].map((row) => Object.fromEntries(
+    articleMetadata.fields.map((field, index) => [field, row[index]]),
+  ));
+  const articleById = new Map(localeArticles.map((article) => [article.id, article]));
+  assert(urlSet.has(url), `News missing from sitemap: ${locale}`);
+  assert(html.includes('data-react-ssr="1"'), `News must hydrate shared React markup: ${locale}`);
+  assert(html.includes(`<h1>${news.heading}</h1>`), `News heading missing in static HTML: ${locale}`);
+  assert(html.includes('"@type":"CollectionPage"'), `News collection metadata missing: ${locale}`);
+  assert((html.match(/data-news-id=/g) || []).length === news.entries.length, `News entry count mismatch: ${locale}`);
+  for (const entry of news.entries) {
+    assert(html.includes(`data-news-id="${entry.id}"`), `News not rendered: ${locale}/${entry.id}`);
+    if (!entry.article_id) continue;
+    const article = articleById.get(entry.article_id);
+    const articlePath = `${locale === 'en' ? '/en' : ''}/articles/${article.slug}/`;
+    assert(html.includes(`href="${articlePath}"`), `News link missing: ${locale}/${entry.id}`);
+    if (entry.kind === 'feature' || entry.kind === 'article') {
+      assert(html.includes(`src="${article.hero_image}"`), `News image missing: ${locale}/${entry.id}`);
+    }
+  }
+}
+const expectedArticles = articleMetadata.ru.length + articleMetadata.en.length;
+assert(articleUrls.length === expectedArticles, `Expected ${expectedArticles} article pages, got ${articleUrls.length}`);
 for (const url of articleUrls) {
   const html = read(urlToFile(url));
   assert(

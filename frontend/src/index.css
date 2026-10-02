@@ -276,6 +276,12 @@ main {
   margin-bottom: 14px;
 }
 
+.article-hero-image {
+  width: auto;
+  max-width: min(100%, 760px);
+  max-height: 860px;
+}
+
 .article-body a,
 .compact-link-list a {
   color: #9de8ba;

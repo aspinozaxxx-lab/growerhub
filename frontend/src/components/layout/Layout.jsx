@@ -1,5 +1,5 @@
-import { Link, NavLink, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { Link, NavLink, useLocation, useNavigationType } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import PlatformStartLink from '../PlatformStartLink';
 import DemoStartLink from '../DemoStartLink';
 import TelegramContactLink from '../TelegramContactLink';
@@ -14,16 +14,23 @@ const navLinks = [
   { routeId: 'gettingStarted', label: 'Как начать' },
   { routeId: 'equipment', label: 'Оборудование' },
   { routeId: 'articles', label: 'Статьи' },
+  { routeId: 'news', label: 'Новости' },
 ];
 
 function Layout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const navigationType = useNavigationType();
   const inApp = isAppPath(location.pathname);
   const publicLocale = inApp ? getCurrentLocale() : getPublicLocale(location.pathname);
   const pathPair = getLocalizedPathPair(location.pathname);
 
   const closeMenu = () => setMenuOpen(false);
+
+  useEffect(() => {
+    if (inApp || navigationType === 'POP' || location.hash) return;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [inApp, location.pathname, location.hash, navigationType]);
 
   return (
     <div className={`app-shell ${inApp ? 'app-shell--cabinet' : ''}`}>
@@ -96,6 +103,7 @@ function Layout({ children }) {
       <footer className="app-footer">
         <p>© {new Date().getFullYear()} GrowerHub. {translatePublic('Все права защищены.')}</p>
         <div className="footer-links">
+          <Link to={getPublicPath('news', publicLocale)}>{translatePublic('Новости')}</Link>
           <Link to={getPublicPath('about', publicLocale)}>{translatePublic('О проекте')}</Link>
           <Link to={getPublicPath('privacy', publicLocale)}>{translatePublic('Конфиденциальность')}</Link>
           <Link to={getPublicPath('terms', publicLocale)}>{translatePublic('Условия')}</Link>

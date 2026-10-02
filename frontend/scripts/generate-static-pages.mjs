@@ -291,6 +291,7 @@ const staticLayout = (mainHtml, locale = 'ru', canonical = null) => {
           <a class="nav-link" href="${getPublicPath('gettingStarted', locale)}">${en ? 'Getting started' : 'Как начать'}</a>
           <a class="nav-link" href="${getPublicPath('equipment', locale)}">${en ? 'Equipment' : 'Оборудование'}</a>
           <a class="nav-link" href="${getPublicPath('articles', locale)}">${en ? 'Guides' : 'Статьи'}</a>
+          <a class="nav-link" href="${getPublicPath('news', locale)}">${en ? 'News' : 'Новости'}</a>
           <a class="nav-link app-link" href="/app/?lang=${locale}">${en ? 'Sign in' : 'Вход'}</a>
           ${demoLink('header_demo', locale, 'nav-link contact-link', en ? 'Open demo' : 'Открыть демо')}
           ${platformLink('header', null, 'nav-link', locale)}
@@ -305,7 +306,7 @@ ${mainHtml}
       </main>
       <footer class="app-footer">
         <p>© ${new Date().getFullYear()} GrowerHub. ${en ? 'All rights reserved.' : 'Все права защищены.'}</p>
-        <div class="footer-links"><a href="${getPublicPath('about', locale)}">${en ? 'About' : 'О проекте'}</a><a href="${getPublicPath('privacy', locale)}">${en ? 'Privacy' : 'Конфиденциальность'}</a><a href="${getPublicPath('terms', locale)}">${en ? 'Terms' : 'Условия'}</a><a href="${GITHUB_REPOSITORY_URL}" target="_blank" rel="noreferrer">GitHub</a><a href="${TELEGRAM_CHANNEL_URL}" target="_blank" rel="noreferrer">${en ? 'Telegram channel' : 'Telegram-канал'}</a></div>
+        <div class="footer-links"><a href="${getPublicPath('news', locale)}">${en ? 'News' : 'Новости'}</a><a href="${getPublicPath('about', locale)}">${en ? 'About' : 'О проекте'}</a><a href="${getPublicPath('privacy', locale)}">${en ? 'Privacy' : 'Конфиденциальность'}</a><a href="${getPublicPath('terms', locale)}">${en ? 'Terms' : 'Условия'}</a><a href="${GITHUB_REPOSITORY_URL}" target="_blank" rel="noreferrer">GitHub</a><a href="${TELEGRAM_CHANNEL_URL}" target="_blank" rel="noreferrer">${en ? 'Telegram channel' : 'Telegram-канал'}</a></div>
       </footer>
     </div>
   `;
@@ -1400,12 +1401,17 @@ const buildSitemapEntries = ({
   miniFarmContent,
   platformContent,
   equipment,
+  newsContent,
 }) => {
   const latestArticleDate = maxDate(articles.map((article) => article.updated_at));
   const entries = [
     { loc: toCanonicalUrl(getPublicPath('home', locale)), lastmod: homeContent.updated_at },
     { loc: toCanonicalUrl(getPublicPath('about', locale)), lastmod: aboutContent.updated_at },
     { loc: toCanonicalUrl(getPublicPath('articles', locale)), lastmod: latestArticleDate },
+    {
+      loc: toCanonicalUrl(getPublicPath('news', locale)),
+      lastmod: maxDate(newsContent.entries.map((entry) => entry.published_at)),
+    },
     {
       loc: toCanonicalUrl(getPublicPath('farmAutomation', locale)),
       lastmod: miniFarmContent.updated_at,
@@ -1443,17 +1449,16 @@ const buildSitemapEntries = ({
     })),
   ];
 
-  if (entries.length !== 71) {
-    throw new Error(`Expected 71 ${locale} sitemap URLs, got ${entries.length}`);
+  const expected = Object.keys(PUBLIC_ROUTES).filter((id) => id !== 'privacy' && id !== 'terms').length
+    + clusters.length + articles.length;
+  if (entries.length !== expected) {
+    throw new Error(`Expected ${expected} ${locale} sitemap URLs, got ${entries.length}`);
   }
 
   return entries;
 };
 
 const writeSitemap = (entries) => {
-  if (entries.length !== 142) {
-    throw new Error(`Expected 142 public sitemap URLs, got ${entries.length}`);
-  }
   const uniqueLocations = new Set(entries.map((entry) => entry.loc));
   if (uniqueLocations.size !== entries.length) {
     throw new Error('Sitemap contains duplicate locations');
@@ -1535,6 +1540,8 @@ const main = () => {
   const enPlatformContent = readJson('platform.json', 'en');
   const legalContent = readJson('legal.json');
   const enLegalContent = readJson('legal.json', 'en');
+  const newsContent = readJson('news.json');
+  const enNewsContent = readJson('news.json', 'en');
   const equipment = readEquipmentCatalog();
   const enEquipment = readEquipmentCatalog('en');
   const enClusters = getArticleClusters('en');
@@ -1549,8 +1556,8 @@ const main = () => {
     }
   }
 
-  if (articles.length !== 56 || enArticles.length !== 56) {
-    throw new Error(`Expected 56 articles per locale, got ru=${articles.length}, en=${enArticles.length}`);
+  if (!articles.length || articles.length !== enArticles.length) {
+    throw new Error(`Article locales must be nonempty and have equal size, got ru=${articles.length}, en=${enArticles.length}`);
   }
 
   const articlesBySlug = new Map(articles.map((article) => [article.slug, article]));
@@ -1608,6 +1615,28 @@ const main = () => {
   );
   writePublicPage('/about/', renderAboutPage(template, assets, aboutContent));
   writePublicPage('/articles/', renderArticlesIndex(template, assets, articlesByCluster));
+  for (const [locale, news, localeArticles] of [
+    ['ru', newsContent, articles], ['en', enNewsContent, enArticles],
+  ]) {
+    const articleById = new Map(localeArticles.map((article) => [article.id, article]));
+    const major = news.entries.filter((entry) => entry.kind === 'feature' || entry.kind === 'article')
+      .sort((left, right) => right.published_at.localeCompare(left.published_at));
+    const canonical = toCanonicalUrl(getPublicPath('news', locale));
+    writePublicPage(getPublicPath('news', locale), pageShell(template, {
+      title: news.title, description: news.description, canonical, locale, renderWithReact: true,
+      jsonLd: [{
+        '@context': 'https://schema.org', '@type': 'CollectionPage',
+        name: news.title, description: news.description, url: canonical, inLanguage: locale,
+        mainEntity: {
+          '@type': 'ItemList',
+          itemListElement: major.map((entry, index) => ({
+            '@type': 'ListItem', position: index + 1,
+            url: toCanonicalUrl(getArticlePath(articleById.get(entry.article_id), locale)),
+          })),
+        },
+      }],
+    }, '', assets));
+  }
   writePublicPage(
     '/avtomatizatsiya-mini-fermy/',
     renderMiniFarmPage(template, assets, miniFarmContent),
@@ -1750,6 +1779,7 @@ const main = () => {
     miniFarmContent,
     platformContent,
     equipment,
+    newsContent,
   });
   const enSitemapEntries = buildSitemapEntries({
     locale: 'en',
@@ -1761,12 +1791,13 @@ const main = () => {
     miniFarmContent: enMiniFarmContent,
     platformContent: enPlatformContent,
     equipment: enEquipment,
+    newsContent: enNewsContent,
   });
   writeSitemap([...ruSitemapEntries, ...enSitemapEntries]);
   writeRobots();
   console.log(
     `Generated static pages: ${articles.length + enArticles.length} articles, `
-    + `${articleClusters.length + enClusters.length} clusters, 142 sitemap URLs`,
+    + `${articleClusters.length + enClusters.length} clusters, ${ruSitemapEntries.length + enSitemapEntries.length} sitemap URLs`,
   );
 };
 

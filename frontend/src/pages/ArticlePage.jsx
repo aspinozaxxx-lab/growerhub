@@ -56,6 +56,8 @@ function ArticlePage({ initialArticle } = {}) {
   const demoView = {
     'home-assistant-dlya-rasteniy': 'watering',
     'zhurnal-poliva-obem-ph-udobreniya': 'watering',
+    'uchet-vody-rashodomer-growerhub': 'farm',
+    'demo-klapan-rashodomer-growerhub': 'farm',
     'mqtt-discovery-home-assistant': 'overview',
     'datchik-vlazhnosti-pochvy-dlya-avtopoliva': 'overview',
     'esp32-datchik-vlazhnosti-home-assistant': 'overview',
@@ -66,6 +68,12 @@ function ArticlePage({ initialArticle } = {}) {
     'mini-ferma-i-neskolko-boksov': 'farm',
   }[article?.cluster] || 'overview';
   const demoHint = {
+    'uchet-vody-rashodomer-growerhub': translatePublic('Добавьте клапан в «Настройки → Демоустройства», затем откройте его учёт воды в списке устройств.'),
+    'demo-klapan-rashodomer-growerhub': translatePublic('Добавьте клапан в «Настройки → Демоустройства», затем назначьте его теплице в Конструкторе.'),
+    'poliv-po-raspisaniyu-growerhub': translatePublic('Откройте настройки полива теплицы и попробуйте новый режим с наблюдением без команд.'),
+    'poliv-po-mestnym-orientiram-growerhub': translatePublic('Откройте настройки полива теплицы и попробуйте новый режим с наблюдением без команд.'),
+    'prognoz-vysyhaniya-i-plan-poliva-growerhub': translatePublic('Откройте настройки полива теплицы и попробуйте новый режим с наблюдением без команд.'),
+  }[article?.id] || {
     watering: translatePublic('Запустите пробный полив на одну минуту и посмотрите результат в журнале.'),
     automations: translatePublic('Измените расписание света и параметры полива в готовой теплице.'),
     plants: translatePublic('Откройте растения, историю поливов и записи в журнале.'),

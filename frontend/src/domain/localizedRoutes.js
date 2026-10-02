@@ -24,6 +24,7 @@ export const PUBLIC_ROUTES = Object.freeze({
     en: '/en/equipment/irrigation-pump/',
   },
   articles: { ru: '/articles/', en: '/en/articles/' },
+  news: { ru: '/novosti/', en: '/en/news/' },
   about: { ru: '/about/', en: '/en/about/' },
   privacy: { ru: '/privacy/', en: '/en/privacy/' },
   terms: { ru: '/terms/', en: '/en/terms/' },

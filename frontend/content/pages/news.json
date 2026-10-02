@@ -1,0 +1,25 @@
+{
+  "title": "Новости GrowerHub — новые возможности и обновления",
+  "heading": "Новости GrowerHub",
+  "description": "Новые возможности приложения, полезные статьи и исправления. Показываем, что изменилось и как это попробовать.",
+  "read_more": "Читать статью →",
+  "open_article": "Открыть статью →",
+  "small_heading": "Исправления и небольшие обновления",
+  "labels": {
+    "feature": "Новая возможность",
+    "article": "Новая статья",
+    "fix": "Исправление",
+    "article_update": "Обновление статьи"
+  },
+  "entries": [
+    { "id": "water-meter", "published_at": "2026-10-02", "kind": "feature", "article_id": "uchet-vody-rashodomer-growerhub" },
+    { "id": "watering-schedule", "published_at": "2026-10-02", "kind": "feature", "article_id": "poliv-po-raspisaniyu-growerhub" },
+    { "id": "soil-anchors", "published_at": "2026-10-02", "kind": "feature", "article_id": "poliv-po-mestnym-orientiram-growerhub", "preview_position": "50% 50%" },
+    { "id": "drying-plan", "published_at": "2026-10-02", "kind": "feature", "article_id": "prognoz-vysyhaniya-i-plan-poliva-growerhub", "preview_position": "50% 58%" },
+    { "id": "demo-water-valve", "published_at": "2026-10-02", "kind": "feature", "article_id": "demo-klapan-rashodomer-growerhub", "preview_position": "50% 40%" },
+    { "id": "plan-refresh", "published_at": "2026-10-02", "kind": "fix", "text": "План полива обновляется после сохранения параметров; прежний план не показывается как актуальный во время загрузки." },
+    { "id": "valve-watering-path", "published_at": "2026-10-02", "kind": "fix", "text": "Карточка поливного устройства ведёт к ограниченному поливу через теплицу. Кнопка выключения остаётся доступной." },
+    { "id": "public-navigation-scroll", "published_at": "2026-10-02", "kind": "fix", "text": "Новая страница открывается с начала при переходе по меню или ссылке статьи. Возврат назад и ссылки на разделы сохраняют обычную навигацию." },
+    { "id": "watering-log-update", "published_at": "2026-10-02", "kind": "article_update", "article_id": "zhurnal-poliva-obem-ph-udobreniya", "text": "В руководство по журналу полива добавлено объяснение измеренных, расчётных и неизвестных объёмов воды." }
+  ]
+}
