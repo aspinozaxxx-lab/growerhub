@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    { "id": "live-publication-catalog-check", "published_at": "2026-10-04", "kind": "fix", "text": "Publication checks no longer report an error when new articles are added. Missing pages and translations are still detected." },
     { "id": "ha-watering-connection-route", "published_at": "2026-10-04", "kind": "article_update", "article_id": "home-assistant-dlya-rasteniy", "text": "The Home Assistant watering guide now explains MQTT connector compatibility, access scope and a first sensor check while existing HA automations stay in charge." },
     { "id": "manual-watering-leak-label", "published_at": "2026-10-03", "kind": "fix", "text": "Clarified the English label for manual watering until leak detection." },
     { "id": "connector-library-versions", "published_at": "2026-10-03", "kind": "fix", "text": "Zigbee2MQTT connector v0.2.5 preserves library version information for device command compatibility checks. Updating is optional and does not enable irrigation." },

@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { SITE_URL } from '../src/domain/siteConfig.js';
 
 const failures = [];
@@ -6,6 +7,19 @@ const origin = SITE_URL;
 const assert = (condition, message) => {
   if (!condition) failures.push(message);
 };
+
+const expectedSitemapPath = new URL('../dist/sitemap.xml', import.meta.url);
+if (!fs.existsSync(expectedSitemapPath)) {
+  throw new Error('Built sitemap is missing. Run npm run build before npm run verify:live.');
+}
+const expectedSitemap = fs.readFileSync(expectedSitemapPath, 'utf8');
+const expectedUrls = [...expectedSitemap.matchAll(/<loc>([^<]+)<\/loc>/g)]
+  .map((match) => match[1]);
+if (expectedUrls.length === 0) {
+  throw new Error('Built sitemap has no URLs. Run npm run build before npm run verify:live.');
+}
+const expectedUrlSet = new Set(expectedUrls);
+assert(expectedUrlSet.size === expectedUrls.length, 'Built sitemap contains duplicate URLs');
 
 const request = async (url, options = {}) => fetch(url, {
   redirect: 'manual',
@@ -23,14 +37,23 @@ const sitemap = await sitemapResponse.text();
 const urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]);
 const lastmods = [...sitemap.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((match) => match[1]);
 const urlSet = new Set(urls);
-assert(urls.length === 142, `Live sitemap: expected 142 URLs, got ${urls.length}`);
+assert(
+  urls.length === expectedUrls.length,
+  `Live sitemap: expected ${expectedUrls.length} URLs from built catalog, got ${urls.length}`,
+);
+for (const url of expectedUrls) {
+  assert(urlSet.has(url), `Missing live sitemap URL from built catalog: ${url}`);
+}
+for (const url of urls) {
+  assert(expectedUrlSet.has(url), `Unexpected live sitemap URL outside built catalog: ${url}`);
+}
 assert(urlSet.size === urls.length, 'Live sitemap contains duplicate URLs');
 assert(lastmods.length === urls.length, 'Live sitemap: every URL must have lastmod');
 assert(!/hreflang|xhtml:link/i.test(sitemap), 'Live sitemap must keep hreflang in HTML only');
-assert(
-  urls.filter((url) => new URL(url).pathname.startsWith('/en/')).length === 71,
-  'Live sitemap does not contain 71 English URLs',
-);
+const expectedEnglishCount = expectedUrls.filter((url) => new URL(url).pathname.startsWith('/en/')).length;
+const englishCount = urls.filter((url) => new URL(url).pathname.startsWith('/en/')).length;
+assert(englishCount === expectedEnglishCount,
+  `Live sitemap: expected ${expectedEnglishCount} English URLs from built catalog, got ${englishCount}`);
 
 const internalUrls = new Set();
 const checkPage = async (url) => {
