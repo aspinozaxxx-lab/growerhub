@@ -62,7 +62,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-03</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/growerhub-i-home-assistant-cherez-mqtt/</loc>
+    <lastmod>2026-10-03</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/poliv-s-uchetom-dozhdya-growerhub/</loc>
@@ -94,10 +98,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/gotovyy-zigbee-hub-dlya-growerhub/</loc>
-    <lastmod>2026-10-01</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/growerhub-i-home-assistant-cherez-mqtt/</loc>
     <lastmod>2026-10-01</lastmod>
   </url>
   <url>
@@ -374,10 +374,14 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/home-assistant-and-diy/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-03</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/drying-forecast-watering-plan-growerhub/</loc>
+    <lastmod>2026-10-03</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/</loc>
     <lastmod>2026-10-03</lastmod>
   </url>
   <url>
@@ -403,10 +407,6 @@
   <url>
     <loc>https://growerhub.ru/en/articles/watering-log-volume-ph-fertilizers-and-date/</loc>
     <lastmod>2026-10-02</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/</loc>
-    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/ready-zigbee-hub-for-growerhub-when-it-is-more-convenient-than-self-assembly/</loc>

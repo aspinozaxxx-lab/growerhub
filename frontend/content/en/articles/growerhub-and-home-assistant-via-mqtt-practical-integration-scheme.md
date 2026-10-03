@@ -4,7 +4,7 @@ slug: growerhub-and-home-assistant-via-mqtt-practical-integration-scheme
 title: 'GrowerHub and Home Assistant via MQTT: practical integration scheme'
 summary: "Connect an existing Zigbee2MQTT and Home Assistant installation to GrowerHub: MQTT bridge, first sensor, history, control ownership and disconnection."
 created_at: '2026-07-23'
-updated_at: "2026-10-01"
+updated_at: "2026-10-03"
 cluster: home-assistant-i-diy
 tags:
   - GrowerHub
@@ -35,11 +35,11 @@ Already running Home Assistant, Zigbee2MQTT and sensors? Keep that installation 
 | Zigbee2MQTT and a local MQTT broker | A connector with a separate TLS connection to GrowerHub |
 | Home Assistant entities and dashboards | GrowerHub greenhouse zones, plants, history and scenarios |
 
-Run the connector on an always-on computer with Docker Compose: 64-bit Linux/Raspberry Pi, or Windows with Docker Desktop using Linux containers. This package is not a Home Assistant OS add-on; for that installation, use a separate Docker computer on the same network. Connector v0.2.4 uses regular Docker networking and does not require host networking.
+Run the connector on an always-on computer with Docker Compose: 64-bit Linux/Raspberry Pi, or Windows with Docker Desktop using Linux containers. This package is not a Home Assistant OS add-on; for that installation, use a separate Docker computer on the same network. Connector v0.2.5 uses regular Docker networking and does not require host networking.
 
 This connects **Zigbee2MQTT devices**. If your Zigbee network uses ZHA in Home Assistant, this connector does not support it yet. GrowerHub does not automatically import arbitrary Home Assistant entities, ESPHome native API sensors, MQTT discovery definitions or old HA history. A sensor appearing in HA does not by itself make it compatible with GrowerHub.
 
-**Connector v0.2.4 supports full device names**, including `greenhouse/temperature`. Additions and renames update routes automatically. Cached values remain last-known snapshots; they do not create new history measurements or refresh live connection time, including after MQTT reconnection.
+**Connector v0.2.5 supports full device names**, including `greenhouse/temperature`. Additions and renames update routes automatically. Cached values remain last-known snapshots; they do not create new history measurements or refresh live connection time, including after MQTT reconnection.
 
 Transport checks passed on an isolated Mosquitto 2.0.22 testbed with TLS, two connections and disconnects on both sides. These tests do not qualify a physical valve model for watering. Wait for a fresh publication from your real sensor and compare it with GrowerHub.
 
@@ -68,9 +68,13 @@ Inside the container, `localhost` or `127.0.0.1` refers to the connector itself.
 
 ## 3. Start the connector
 
-Download and extract the [connector v0.2.4 ZIP](https://github.com/aspinozaxxx-lab/growerhub/releases/download/coordinator-v0.2.4/growerhub-zigbee-connector-v0.2.4.zip). The directory contains `docker-compose.yml`, `Dockerfile` and connector sources; place your personal `connector.json` there. The example file is not your personal configuration. An existing Zigbee2MQTT installation needs this connector, rather than the package for starting a new coordinator.
+Download and extract the [connector v0.2.5 ZIP](https://github.com/aspinozaxxx-lab/growerhub/releases/download/coordinator-v0.2.5/growerhub-zigbee-connector-v0.2.5.zip). The directory contains `docker-compose.yml`, `Dockerfile` and connector sources; place your personal `connector.json` there. The example file is not your personal configuration. An existing Zigbee2MQTT installation needs this connector, rather than the package for starting a new coordinator.
 
 Use a separate personal `connector.json` per connection. Unique client IDs let connectors share a local broker. Old v0.2.2/v0.2.3 packages using `bridge.conf` are not upgraded automatically and retain their limitations. For voluntary migration, stop the old connector, extract the new ZIP separately and prepare JSON. The README covers copying existing credentials locally without password rotation and rolling back. Do not run both versions with one client ID.
+
+If v0.2.4 is already running, updating is optional: extract v0.2.5 into a separate directory and copy your existing `connector.json`. Run `docker compose down` in the old directory, then start the new package using the commands below. Only the connector stops; Home Assistant and Zigbee2MQTT keep running. Keep the old directory for rollback and run only one version at a time. Your credentials need no changes.
+
+Version v0.2.5 preserves Zigbee2MQTT library version numbers when Zigbee2MQTT reports them. They help check device command compatibility; library configuration and secrets are excluded. Updating does not enable irrigation or qualify a physical valve model for watering.
 
 Run these commands in that directory:
 

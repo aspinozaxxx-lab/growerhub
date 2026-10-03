@@ -12,6 +12,8 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    { "id": "connector-library-versions", "published_at": "2026-10-03", "kind": "fix", "text": "Модуль связи Zigbee2MQTT v0.2.5 сохраняет сведения о версиях библиотек для проверки совместимости управления устройствами. Обновление добровольное и не включает полив." },
+    { "id": "connector-update-guide", "published_at": "2026-10-03", "kind": "article_update", "article_id": "growerhub-i-home-assistant-cherez-mqtt", "text": "В руководство добавлены актуальный архив модуля связи и шаги обновления с v0.2.4 с сохранением своего файла подключения." },
     { "id": "watering-weather", "published_at": "2026-10-03", "kind": "feature", "article_id": "poliv-s-uchetom-dozhdya-growerhub", "preview_position": "50% 45%" },
     { "id": "drying-plan-weather-update", "published_at": "2026-10-03", "kind": "article_update", "article_id": "prognoz-vysyhaniya-i-plan-poliva-growerhub", "text": "В статье о плане полива описана доступная погодная поправка: дождь на открытом участке, ограниченная отсрочка и отдельное правило при недоступном прогнозе." },
     { "id": "watering-weekday-labels", "published_at": "2026-10-03", "kind": "fix", "text": "В английском расписании полива дни недели отображаются понятными сокращениями; вторник больше не обозначается как единица мощности." },
