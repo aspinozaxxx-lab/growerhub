@@ -148,7 +148,7 @@
   "Длительность:": "Duration:",
   "Для запуска назначьте датчик влажности и насос. GrowerHub использует интервалы и лимиты длительности; дополнительно предусмотрите физическое аварийное отключение.": "Assign a moisture sensor and pump before starting. GrowerHub uses intervals and duration limits; also provide a physical emergency shut-off.",
   "Для уже установленного Zigbee2MQTT.": "For an existing Zigbee2MQTT installation.",
-  "До протечки": "Before the leak",
+  "До протечки": "Until leak is detected",
   "Добавить": "Add",
   "Добавить Grovika": "Add Grovika",
   "Добавить устройство": "Add device",

@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    { "id": "manual-watering-leak-label", "published_at": "2026-10-03", "kind": "fix", "text": "В английском интерфейсе уточнено название режима ручного полива до срабатывания датчика протечки." },
     { "id": "connector-library-versions", "published_at": "2026-10-03", "kind": "fix", "text": "Модуль связи Zigbee2MQTT v0.2.5 сохраняет сведения о версиях библиотек для проверки совместимости управления устройствами. Обновление добровольное и не включает полив." },
     { "id": "connector-update-guide", "published_at": "2026-10-03", "kind": "article_update", "article_id": "growerhub-i-home-assistant-cherez-mqtt", "text": "В руководство добавлены актуальный архив модуля связи и шаги обновления с v0.2.4 с сохранением своего файла подключения." },
     { "id": "watering-weather", "published_at": "2026-10-03", "kind": "feature", "article_id": "poliv-s-uchetom-dozhdya-growerhub", "preview_position": "50% 45%" },
