@@ -10,11 +10,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-10-03</lastmod>
+    <lastmod>2026-10-04</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/novosti/</loc>
-    <lastmod>2026-10-03</lastmod>
+    <lastmod>2026-10-04</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/avtomatizatsiya-mini-fermy/</loc>
@@ -62,7 +62,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
-    <lastmod>2026-10-03</lastmod>
+    <lastmod>2026-10-04</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/home-assistant-dlya-rasteniy/</loc>
+    <lastmod>2026-10-04</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/growerhub-i-home-assistant-cherez-mqtt/</loc>
@@ -119,10 +123,6 @@
   <url>
     <loc>https://growerhub.ru/articles/uvedomleniya-v-mini-ferme/</loc>
     <lastmod>2026-09-19</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/home-assistant-dlya-rasteniy/</loc>
-    <lastmod>2026-09-18</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/mini-ferma-iz-dvuh-grouboksov-dashboard/</loc>
@@ -322,11 +322,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-10-03</lastmod>
+    <lastmod>2026-10-04</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/news/</loc>
-    <lastmod>2026-10-03</lastmod>
+    <lastmod>2026-10-04</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/farm-automation/</loc>
@@ -374,7 +374,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/home-assistant-and-diy/</loc>
-    <lastmod>2026-10-03</lastmod>
+    <lastmod>2026-10-04</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/home-assistant-plant-watering-safe-step-by-step-setup/</loc>
+    <lastmod>2026-10-04</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/drying-forecast-watering-plan-growerhub/</loc>
@@ -431,10 +435,6 @@
   <url>
     <loc>https://growerhub.ru/en/articles/mini-farm-alerts-emergencies-risks-and-maintenance/</loc>
     <lastmod>2026-09-19</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/home-assistant-plant-watering-safe-step-by-step-setup/</loc>
-    <lastmod>2026-09-18</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/mini-farm-of-two-grow-boxes-how-to-organize-control-and-automation/</loc>

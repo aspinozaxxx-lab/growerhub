@@ -4,7 +4,7 @@ slug: "home-assistant-plant-watering-safe-step-by-step-setup"
 title: "Plant watering in Home Assistant: a safe step-by-step setup"
 summary: "How to set up plant watering in Home Assistant with a calibrated sensor, explicit conditions, pump runtime limits, leak protection, and useful history."
 created_at: "2026-07-23"
-updated_at: "2026-09-18"
+updated_at: "2026-10-04"
 cluster: "home-assistant-i-diy"
 tags:
   - "GrowerHub"
@@ -33,11 +33,17 @@ Begin with observation rather than automation. Water manually for several days, 
 
 [Open Manual watering in the GrowerHub demo](/app/demo/?lang=en&view=watering), click “Start watering” on the card for your greenhouse and start a one-minute cycle. The log opens automatically on the same card. It shows the current run, then its duration, estimated volume and completion reason when watering stops. Under Devices and environment, change soil moisture or trigger a virtual leak to inspect the scenario’s response.
 
-This is a server simulation in the regular application; it does not activate real pumps. Guest changes last 24 hours. Save the demo to an account to continue later. For an existing HA installation, follow the [MQTT connector guide](/articles/growerhub-i-home-assistant-cherez-mqtt/).
+This is a server simulation in the regular application; it does not activate real pumps. Guest changes last 24 hours. Save the demo to an account to continue later.
 
 ![Watering log in a saved GrowerHub demo farm with duration, estimated volume and completion reason](/screenshots/en/demo-watering.webp?v=20260918-mobile)
 
 This saved demo farm has Russian plant and greenhouse names. Switching the interface language keeps those names as entered.
+
+## If Home Assistant is already running
+
+The current GrowerHub MQTT connector adds **devices from an existing Zigbee2MQTT network**. It does not import ZHA devices, arbitrary Home Assistant entities or earlier HA history. It forwards the selected network's device list and readings and permits commands back to those devices. There is no separate read-only mode or single-device filter.
+
+If this route fits your setup, start with the [Zigbee2MQTT connector guide](/articles/growerhub-i-home-assistant-cherez-mqtt/): wait for a fresh sensor reading and open its graph in GrowerHub. Keep existing HA automations in charge during this check. Two systems must not automatically control the same pump or valve at the same time.
 
 ## Minimum setup
 
@@ -120,4 +126,4 @@ Home Assistant cannot inspect plumbing, tube connections, or relay load ratings.
 
 This approach produces fewer flashy rules but turns Home Assistant into an observable control system rather than a timer with a chart.
 
-If you want to keep an existing Home Assistant installation, use the [GrowerHub connection path](/kak-nachat/) and select the existing-system connector. For a first hardware setup, see the [sensor examples](/oborudovanie/datchiki/) and [Zigbee smart plugs](/oborudovanie/zigbee-rozetki/); these are options, not a mandatory kit.
+For a first hardware setup, see the [sensor examples](/oborudovanie/datchiki/) and [Zigbee smart plugs](/oborudovanie/zigbee-rozetki/); these are options, not a mandatory kit.

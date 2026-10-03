@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    { "id": "ha-watering-connection-route", "published_at": "2026-10-04", "kind": "article_update", "article_id": "home-assistant-dlya-rasteniy", "text": "The Home Assistant watering guide now explains MQTT connector compatibility, access scope and a first sensor check while existing HA automations stay in charge." },
     { "id": "manual-watering-leak-label", "published_at": "2026-10-03", "kind": "fix", "text": "Clarified the English label for manual watering until leak detection." },
     { "id": "connector-library-versions", "published_at": "2026-10-03", "kind": "fix", "text": "Zigbee2MQTT connector v0.2.5 preserves library version information for device command compatibility checks. Updating is optional and does not enable irrigation." },
     { "id": "connector-update-guide", "published_at": "2026-10-03", "kind": "article_update", "article_id": "growerhub-i-home-assistant-cherez-mqtt", "text": "The guide now links to the current connector ZIP and explains updating from v0.2.4 while keeping your personal configuration file." },
