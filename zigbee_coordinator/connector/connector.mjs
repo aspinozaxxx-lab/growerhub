@@ -51,6 +51,16 @@ export function bridgeInfo(payload) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error('invalid_bridge_info');
   const result = {};
   if (typeof payload.version === 'string') result.version = payload.version;
+  // Versii bibliotek nuzhny dlya proverki komandnogo profilya ADR-010, bez peredachi konfiguracii.
+  for (const key of ['zigbee_herdsman_converters', 'zigbee_herdsman']) {
+    const library = payload[key];
+    const version = library?.version;
+    if (library && typeof library === 'object' && !Array.isArray(library)
+        && typeof version === 'string' && version.length <= 64
+        && /^[0-9]{1,9}\.[0-9]{1,9}\.[0-9]{1,9}(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u.test(version)) {
+      result[key] = { version };
+    }
+  }
   if (typeof payload.permit_join === 'boolean') result.permit_join = payload.permit_join;
   if (payload.permit_join_end === null || Number.isFinite(payload.permit_join_end)) result.permit_join_end = payload.permit_join_end;
   const coordinator = payload.coordinator;

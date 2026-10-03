@@ -1,6 +1,6 @@
 # Модуль связи для существующего Zigbee2MQTT/Home Assistant
 
-Версия 0.2.4. Нужен постоянно включённый компьютер с Docker Compose: Windows с Docker Desktop в режиме Linux containers или Linux/Raspberry Pi с 64-битной системой. В Home Assistant OS запускайте модуль на отдельном компьютере с Docker в той же сети.
+Версия 0.2.5. Нужен постоянно включённый компьютер с Docker Compose: Windows с Docker Desktop в режиме Linux containers или Linux/Raspberry Pi с 64-битной системой. В Home Assistant OS запускайте модуль на отдельном компьютере с Docker в той же сети.
 
 ## Подключение
 
@@ -19,6 +19,8 @@
 
 Модуль передаёт список и показания всех устройств выбранного Zigbee2MQTT, availability, состояние bridge, безопасные сведения о версии/координаторе и ответы на поддерживаемые команды. Пароли, настройки broker, Zigbee network key, логи, discovery и эхо команд не пересылаются. Полные имена, включая `/` и Unicode, добавление, удаление и переименование обрабатываются автоматически. При конфликте имени с маршрутом другого устройства оно исключается; в логах появляется `ambiguous_names` без credentials.
 
+В сведениях о bridge сохраняются также версии `zigbee-herdsman-converters` и `zigbee-herdsman`, если Zigbee2MQTT передал их в корректном формате. Передаётся только номер версии, без остальных полей библиотек. Это нужно для проверки совместимости команд; отсутствующую версию нельзя определять по версии Zigbee2MQTT. Наличие этих сведений не означает физического допуска клапана.
+
 Обратно разрешены команды известных устройств `/set`, `/get`, сопряжение `bridge/request/permit_join` и переименование `bridge/request/device/rename`. Отдельного режима только чтения и выбора одного устройства нет. Для каждого исполнительного устройства выбирайте одну систему автоматизации: HA или GrowerHub.
 
 Оба соединения имеют чистую сессию и не накапливают команды или живую телеметрию при обрыве. Команды идут с QoS 0, без retain и повторов; сохранённые команды отклоняются. Если результат команды неизвестен, проверьте состояние устройства перед следующим действием. Облако всегда использует TLS с проверкой сертификата. Cloud client ID выдан GrowerHub, локальный — тот же ID с `-local`; два подключения к общему broker друг друга не вытесняют.
@@ -33,11 +35,13 @@
 
 Старые версии 0.2.2/0.2.3 с `bridge.conf` не обновляются автоматически: они имеют ограничения вложенных имён и происхождения сохранённых показаний. Для добровольного перехода остановите старый модуль командой `docker compose down` в его исходной папке. Распакуйте новый архив отдельно и подготовьте `connector.json`: скачайте его с новыми данными доступа либо перенесите локально прежние cloud/local credentials из своего `bridge.conf` в пример JSON. Не запускайте две версии с одним cloud client ID. После запуска нового модуля проверьте свежую публикацию датчика. Переход не пересчитывает старые точки истории.
 
-`docker compose down` останавливает только этот модуль; Zigbee2MQTT и Home Assistant продолжают работать. Для возврата к старому пакету сначала остановите новый, затем запустите сохранённый старый пакет с его конфигурацией.
+Для добровольного обновления 0.2.4 до 0.2.5 распакуйте новый архив в отдельную папку и скопируйте туда свой `connector.json`. В исходной папке остановите и удалите только контейнер старого модуля: `docker compose down`. В новой папке выполните `docker compose up -d --build`, затем проверьте `ready` и свежие показания датчика. Файл и данные доступа менять не требуется. Одновременно должна работать только одна версия с этим client ID. Старую папку сохраните для возврата. Обновление добавляет сведения о версиях библиотек и не включает сценарии полива.
+
+`docker compose down` останавливает только этот модуль; Zigbee2MQTT и Home Assistant продолжают работать. Для возврата к старому пакету выполните `docker compose down` в новой папке, затем запустите сохранённый старый пакет с его конфигурацией.
 
 ## English
 
-Version 0.2.4. Use an always-on Docker Compose computer: Windows with Docker Desktop in Linux containers mode, or 64-bit Linux/Raspberry Pi. This is not a Home Assistant OS add-on; use a separate Docker computer on that network.
+Version 0.2.5. Use an always-on Docker Compose computer: Windows with Docker Desktop in Linux containers mode, or 64-bit Linux/Raspberry Pi. This is not a Home Assistant OS add-on; use a separate Docker computer on that network.
 
 1. In the GrowerHub wizard or Settings → Connections, select “Zigbee2MQTT is already running”.
 2. Enter your broker address, port, Zigbee2MQTT `mqtt.base_topic` and local broker credentials. `host.docker.internal` reaches a broker on the same Docker Desktop host; container address `127.0.0.1` points to the connector itself.
@@ -49,6 +53,8 @@ Version 0.2.4. Use an always-on Docker Compose computer: Windows with Docker Des
 Your USB coordinator, device pairing and Home Assistant remain in place. ZHA, arbitrary HA entities and previous HA history are not imported. On Linux, protect the file with `chmod 600 connector.json`; if its owner UID is not 1000, use `CONNECTOR_UID="$(id -u)" CONNECTOR_GID="$(id -g)" docker compose up -d --build`.
 
 All devices of the selected Zigbee2MQTT network share inventory, state and availability. The connector also forwards bridge state, sanitized version/coordinator information and supported command responses. Broker settings, passwords, network keys, logs, discovery and command echoes are excluded. Full names with slashes and Unicode, additions, removals and renames update automatically. Ambiguous device routes are excluded with an `ambiguous_names` diagnostic.
+
+Bridge information also preserves the `zigbee-herdsman-converters` and `zigbee-herdsman` versions when Zigbee2MQTT reports them in a valid format. Only the version strings are forwarded; other library fields are excluded. They support command compatibility checks. Missing versions must not be inferred from the Zigbee2MQTT version. This metadata does not qualify a physical valve for irrigation.
 
 Return commands are limited to known devices’ `/set` and `/get`, plus `bridge/request/permit_join` and `bridge/request/device/rename`. There is no separate read-only or single-device mode. Use one automation controller per actuator.
 
@@ -62,4 +68,6 @@ For manual setup, edit `connector.example.json`: `local` contains broker setting
 
 Versions 0.2.2/0.2.3 using `bridge.conf` are not upgraded automatically and retain their hierarchical-name and cached-origin limitations. For voluntary migration, run `docker compose down` in the original directory, extract the new ZIP separately and prepare `connector.json`. Download newly issued credentials or locally copy the previous cloud/local credentials into the example JSON. Do not run both versions with the same cloud client ID. Verify a fresh sensor reading; previous history points are not rewritten.
 
-`docker compose down` stops only this connector. Zigbee2MQTT and Home Assistant keep running. To roll back, stop the new connector before restarting your saved old package.
+For a voluntary 0.2.4-to-0.2.5 update, extract the new ZIP into a separate directory and copy your existing `connector.json` there. Stop and remove only the old connector container in its original directory: `docker compose down`. Run `docker compose up -d --build` in the new directory, then check `ready` and a fresh sensor reading. Your file and credentials need no changes. Run only one version with that client ID and keep the old directory for rollback. This update adds library version information; it does not enable watering scenarios.
+
+`docker compose down` stops only this connector. Zigbee2MQTT and Home Assistant keep running. To roll back, run `docker compose down` in the new directory before restarting your saved old package.

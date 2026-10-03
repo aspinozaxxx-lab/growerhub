@@ -92,13 +92,23 @@ try {
   const inventory = names.map((friendly_name, index) => ({ friendly_name, ieee_address: `0xsame${index}`, type: 'EndDevice' }));
   await publish(source, 'greenhouse/z2m/bridge/devices', inventory, true);
   await publish(source, 'greenhouse/z2m/bridge/state', { state: 'online' }, true);
-  await publish(source, 'greenhouse/z2m/bridge/info', { version: '2.12.0', coordinator: { type: 'zstack',
-    meta: { revision: 1, network_key: 'NETWORK_SECRET' } }, config: { mqtt: { password: 'LOCAL_SECRET' } } }, true);
+  await publish(source, 'greenhouse/z2m/bridge/info', { version: '2.14.2',
+    zigbee_herdsman_converters: { version: '26.115.1', path: 'PRIVATE_LIBRARY_PATH' },
+    zigbee_herdsman: { version: '10.10.0', config: { password: 'PRIVATE_LIBRARY_SECRET' } },
+    coordinator: { type: 'zstack', meta: { revision: 1, network_key: 'NETWORK_SECRET' } },
+    config: { mqtt: { password: 'LOCAL_SECRET' } } }, true);
   for (const name of names) await publish(source, `greenhouse/z2m/${name}`, { temperature: 18 }, true);
   const first = connector('relay-a');
   const second = connector('relay-b');
   await waitFor(() => readyCount() >= 2 && stateEnvelopes(cloudMessages, 'теплица/почва').length >= 2, 'two connectors with Unicode snapshots');
   for (const username of ['relay-a', 'relay-b']) {
+    const infoTopic = `gh/z2m/${username}/bridge/relay/bridge/info`;
+    await waitFor(() => cloudMessages.some((entry) => entry.topic === infoTopic), 'library version snapshot');
+    const envelope = JSON.parse(cloudMessages.find((entry) => entry.topic === infoTopic).payload);
+    assert.equal(envelope.retained, true);
+    const info = JSON.parse(envelope.payload);
+    assert.deepEqual(info.zigbee_herdsman_converters, { version: '26.115.1' });
+    assert.deepEqual(info.zigbee_herdsman, { version: '10.10.0' });
     for (const name of names) {
       const cached = cloudMessages.find((entry) => entry.topic === `gh/z2m/${username}/bridge/relay/${name}`);
       assert(cached);
@@ -107,6 +117,7 @@ try {
   }
   assert(!JSON.stringify(cloudMessages).includes('LOCAL_SECRET'));
   assert(!JSON.stringify(cloudMessages).includes('NETWORK_SECRET'));
+  assert(!JSON.stringify(cloudMessages).includes('PRIVATE_LIBRARY'));
   const liveStart = cloudMessages.length;
   await publish(source, 'greenhouse/z2m/garden/nested', { temperature: 24 }, true);
   await waitFor(() => stateEnvelopes(cloudMessages.slice(liveStart), 'garden/nested').length === 2, 'fresh state');
@@ -187,7 +198,7 @@ try {
   assert(!deniedAuth.cloud.connected);
   assert(!logs.some((entry) => ['tls-denied', 'auth-denied'].includes(entry.username) && entry.code === 'ready'));
   console.log(JSON.stringify({ result: 'passed', broker: '2.0.22', node: process.version, network: 'none',
-    checks: ['flat_nested_unicode', 'metadata_secrets', 'namespace_isolation', 'add_rename_remove_ambiguity',
+    checks: ['flat_nested_unicode', 'metadata_secrets', 'library_versions_without_nested_fields', 'namespace_isolation', 'add_rename_remove_ambiguity',
       'cached_and_live_measurements', 'retained_command_rejected_live', 'one_command_no_echo',
       'local_and_cloud_disconnect_no_command_queue', 'no_live_state_replay', 'tls_verification', 'authentication'] }));
 } finally {

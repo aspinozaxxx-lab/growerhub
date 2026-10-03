@@ -59,6 +59,42 @@ test('bridge info never leaks nested configuration or credentials', () => {
   assert.deepEqual(bridgeInfo({ version: '2.12.0' }), { version: '2.12.0' });
 });
 
+test('library version diagnostics retain only bounded package versions and no nested data', () => {
+  const sanitized = bridgeInfo({ version: '2.14.2',
+    zigbee_herdsman_converters: { version: '26.115.1', config: { password: 'secret' }, path: '/private/data' },
+    zigbee_herdsman: { version: '10.10.0-dev.1+build.4', network_key: 'secret' },
+    mqtt: { password: 'secret' }, os: { hostname: 'private-host' } });
+  assert.deepEqual(sanitized, { version: '2.14.2',
+    zigbee_herdsman_converters: { version: '26.115.1' },
+    zigbee_herdsman: { version: '10.10.0-dev.1+build.4' } });
+  for (const version of [null, 261151, {}, [], 'https://private-host/secret', '26.115.1 password',
+    '1.2.3-' + 'x'.repeat(65), '26.115', '26.115.1\n']) {
+    assert.deepEqual(bridgeInfo({ version: '2.14.2',
+      zigbee_herdsman_converters: { version, secret: 'secret' },
+      zigbee_herdsman: { version, password: 'secret' } }), { version: '2.14.2' });
+  }
+  assert.deepEqual(bridgeInfo({ zigbee_herdsman_converters: ['26.115.1'], zigbee_herdsman: '10.10.0' }), {});
+});
+
+test('library versions cross the normal relay envelope with source retain and without secrets', () => {
+  const connector = setup();
+  connector.cloud.published.length = 0;
+  connector.local.message('greenhouse/z2m/bridge/info', JSON.stringify({ version: '2.14.2',
+    zigbee_herdsman_converters: { version: '26.115.1', password: 'secret' },
+    zigbee_herdsman: { version: '10.10.0' }, config: { mqtt: { password: 'secret' } } }), true);
+  assert.equal(connector.cloud.published.length, 1);
+  const delivered = connector.cloud.published[0];
+  assert.equal(delivered.topic, 'gh/z2m/relay_a/bridge/relay/bridge/info');
+  assert.equal(delivered.retain, true);
+  const envelope = JSON.parse(delivered.payload);
+  assert.equal(envelope.v, 1);
+  assert.equal(envelope.retained, true);
+  assert.deepEqual(JSON.parse(envelope.payload), { version: '2.14.2',
+    zigbee_herdsman_converters: { version: '26.115.1' }, zigbee_herdsman: { version: '10.10.0' } });
+  assert(!delivered.payload.includes('secret'));
+  assert.equal(connector.local.published.length, 0);
+});
+
 test('isolated identity, TLS, clean sessions and all client queues are explicit', () => {
   const connector = setup();
   const [cloud, local] = connector.options;
