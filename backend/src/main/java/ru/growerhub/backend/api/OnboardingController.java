@@ -27,6 +27,9 @@ public class OnboardingController {
         return toResponse(onboardingFacade.complete(user));
     }
 
+    @PostMapping("/api/onboarding/care")
+    public void startCare(@AuthenticationPrincipal AuthenticatedUser user) { onboardingFacade.startCare(user); }
+
     private OnboardingDtos.StatusResponse toResponse(OnboardingStatus status) {
         return new OnboardingDtos.StatusResponse(
                 status.step(),

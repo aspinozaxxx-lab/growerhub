@@ -55,6 +55,9 @@ public class OnboardingFacade {
         );
     }
 
+    @Transactional
+    public void startCare(AuthenticatedUser user) { requireAuthenticated(user); userFacade.startCare(user.id()); }
+
     private OnboardingStatus buildStatus(AuthenticatedUser user) {
         UserProfile profile = userFacade.getUser(user.id());
         if (profile == null) {

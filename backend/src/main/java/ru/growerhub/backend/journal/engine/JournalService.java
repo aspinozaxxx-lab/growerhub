@@ -1,6 +1,9 @@
 package ru.growerhub.backend.journal.engine;
 
 import java.time.LocalDateTime;
+import ru.growerhub.backend.journal.contract.JournalEntry;
+import ru.growerhub.backend.journal.contract.JournalPhoto;
+import ru.growerhub.backend.journal.contract.JournalWateringDetails;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -181,4 +184,39 @@ public class JournalService {
             String volumeSource
     ) {
     }
+    public JournalEntry view(PlantJournalEntryEntity entry) {
+        List<JournalPhoto> photoResponses = photoRepository.metadata(entry.getId());
+
+        JournalWateringDetails detailsResponse = null;
+        if ("watering".equals(entry.getType())) {
+            PlantJournalWateringDetailsEntity details = wateringDetailsRepository
+                    .findByJournalEntry_Id(entry.getId())
+                    .orElse(null);
+            if (details != null) {
+                detailsResponse = new JournalWateringDetails(
+                        details.getWaterVolumeL(),
+                        details.getDurationS(),
+                        details.getPh(),
+                        details.getFertilizersPerLiter(),
+                        details.getPumpSessionId(),
+                        details.getMode(),
+                        details.getCompletionReason(),
+                        details.getVolumeSource()
+                );
+            }
+        }
+
+        return new JournalEntry(
+                entry.getId(),
+                entry.getPlantId(),
+                entry.getUserId(),
+                entry.getType(),
+                entry.getText(),
+                entry.getEventAt(),
+                entry.getCreatedAt(),
+                photoResponses,
+                detailsResponse
+        );
+    }
+
 }

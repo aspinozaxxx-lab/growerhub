@@ -40,3 +40,11 @@ CI/CD сохраняет этот env. При повторном provisioning ч
 ## Правила
 
 Playbook должен быть идемпотентным. Секреты и host-specific значения хранятся в inventory vars или внешнем secret-хранилище, а не в задачах роли. Mosquitto использует запрет ACL по умолчанию, отдельные минимальные роли backend и provisioning, отдельную роль с буквальным namespace для каждого координатора и каждой серийной Grovika, а также certbot deploy hook с безопасным reload. Публичный `1883` не открывается; временный legacy-брокер Grovika удалён и при применении роли останавливается вместе со своим общим password file.
+
+## Telegram (ADR-011)
+
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_BOT_USERNAME` и
+`TELEGRAM_ENABLED` передаются в защищённый runtime env сервиса. CI/CD сохраняет
+его; повторный provisioning получает эти значения через `java_backend_env_extra`.
+Webhook настроен на точный HTTPS-адрес `/api/notifications/telegram/webhook`.
+По умолчанию доставка выключена, существующие аккаунты не подписываются.

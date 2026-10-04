@@ -465,3 +465,71 @@ demo:
   trusted-proxy-addresses: ${DEMO_TRUSTED_PROXY_ADDRESSES:127.0.0.1,::1,0:0:0:0:0:0:0:1}
   # Translitem: versionirovannyj shablon demonstracionnoj fermy.
   template-path: classpath:demo/farm-v2.json
+
+care:
+  # Kolichestvo zapisey na stranitse zhurnala.
+  page-size: 40
+  # Predel dliny zametki.
+  max-text-length: 8000
+  # Fotografii odnoy zapisi.
+  max-photos: 6
+  # Predel vhodnogo izobrazheniya v bajtah.
+  max-upload-bytes: 6291456
+  # Zashchita ot izobrazheniy s ogromnym razresheniem.
+  max-image-pixels: 24000000
+  # Maksimalnaya storona sohranyayemogo foto.
+  image-edge: 1600
+  # Predel napominaniy odnogo akkaunta.
+  max-reminders: 100
+  # Predel intervala povtora v dnyah.
+  max-repeat-days: 3650
+  # Predel zagruzhennyh fotografij akkaunta.
+  max-account-photos: 200
+
+telegram:
+  # Dostavka vklyuchaetsya posle konfiguracii bota.
+  enabled: ${TELEGRAM_ENABLED:false}
+  # Publichnoe imya bota.
+  bot-username: ${TELEGRAM_BOT_USERNAME:GrowerHubCareBot}
+  # Sekret iz zashchishchennogo okruzheniya.
+  bot-token: ${TELEGRAM_BOT_TOKEN:}
+  # Sekret zagolovka webhook.
+  webhook-secret: ${TELEGRAM_WEBHOOK_SECRET:}
+  # Oficialnyj adres Bot API.
+  api-url: https://api.telegram.org
+  # Publichnyj adres dnevnika.
+  site-url: https://growerhub.ru
+  # Srok odnorazovoj ssylki.
+  link-minutes: 15
+  # Ogranichennyj paket dostavok.
+  batch-size: 3
+  # Srok rezervacii dostavki.
+  lease-seconds: 120
+  # Setevoj tajmaut.
+  timeout-seconds: 10
+  # Maksimum popytok posle 429.
+  max-attempts: 3
+  # Minimalnaya pauza povtora i probnogo soobshcheniya.
+  retry-seconds: 60
+  # Srok hraneniya obrabotannyh sobytij i ocheredi.
+  retention-days: 30
+  # Srok aktualnosti soobshcheniya v ocheredi.
+  delivery-hours: 24
+  # Maksimum del s knopkami v odnom soobshchenii.
+  digest-size: 3
+  # Chas svodki v chasovom poyase akkaunta.
+  default-hour: 9
+  # Nachalo tihih chasov.
+  quiet-from: 22
+  # Konec tihih chasov.
+  quiet-until: 8
+  # Interval otdelnogo dostavshchika.
+  poll-ms: 30000
+
+spring:
+  servlet:
+    multipart:
+      # Razmer odnogo zagruzhaemogo fajla.
+      max-file-size: 6MB
+      # Verhnij razmer multipart zaprosa.
+      max-request-size: 7MB

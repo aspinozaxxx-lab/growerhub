@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.api;
+package ru.growerhub.backend.api;
 
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -114,7 +114,7 @@ public class UsersController {
                 user.timezone(),
                 user.onboardingCompletedAt() != null,
                 user.createdAt(),
-                user.updatedAt()
+                user.updatedAt(), user.careStartedAt() != null
         );
     }
 }

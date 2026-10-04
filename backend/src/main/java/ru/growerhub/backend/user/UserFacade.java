@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.user;
+package ru.growerhub.backend.user;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -308,6 +308,13 @@ public class UserFacade {
         userRepository.deleteById(userId);
     }
 
+    @Transactional
+    public void startCare(Integer userId) {
+        lockAccount(userId);
+        var user = userRepository.findById(userId).orElseThrow();
+        if (user.getCareStartedAt() == null) user.setCareStartedAt(LocalDateTime.now(ZoneOffset.UTC));
+    }
+
     private UserProfile toProfile(UserEntity user) {
         return new UserProfile(
                 user.getId(),
@@ -318,7 +325,7 @@ public class UserFacade {
                 resolvedTimezone(user),
                 user.getOnboardingCompletedAt(),
                 user.getCreatedAt(),
-                user.getUpdatedAt()
+                user.getUpdatedAt(), user.getCareStartedAt()
         );
     }
 

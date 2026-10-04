@@ -33,4 +33,26 @@ public interface PlantJournalEntryRepository extends JpaRepository<PlantJournalE
     Optional<PlantJournalEntryEntity> findByIdAndPlantIdAndUserId(Integer id, Integer plantId, Integer userId);
 
     void deleteAllByPlantId(Integer plantId);
+
+    Optional<PlantJournalEntryEntity> findByUserIdAndClientKey(Integer userId, String clientKey);
+
+    @Query("""
+            select e from PlantJournalEntryEntity e where e.userId = :owner
+            and (:plantId = -1 or e.plantId = :plantId)
+            and (lower(coalesce(e.text, '')) like :pattern escape '!' or e.plantId in :matching)
+            and (:action = '' or e.careAction = :action or (:action = 'automatic' and e.wateringDetails is not null))
+            and e.eventAt >= :since and e.eventAt < :until
+            order by e.eventAt desc, e.id desc
+            """)
+    org.springframework.data.domain.Slice<PlantJournalEntryEntity> searchCare(
+            @Param("owner") Integer owner, @Param("plantId") Integer plantId, @Param("pattern") String pattern,
+            @Param("action") String action, @Param("matching") List<Integer> matching,
+            @Param("since") LocalDateTime since, @Param("until") LocalDateTime until,
+            org.springframework.data.domain.Pageable pageable);
+
+    @Query("""
+            select e.plantId, max(case when e.type = 'watering' then e.eventAt else null end), max(e.eventAt), count(e)
+            from PlantJournalEntryEntity e where e.userId = :owner group by e.plantId
+            """)
+    List<Object[]> careSummaries(@Param("owner") Integer owner);
 }

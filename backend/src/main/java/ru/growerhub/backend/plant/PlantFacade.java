@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.plant;
+package ru.growerhub.backend.plant;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -42,6 +42,7 @@ public class PlantFacade {
     private final UserFacade userFacade;
     private final PlantHistorySettings historySettings;
     private final DemoSettings demoSettings;
+    private final ru.growerhub.backend.common.config.CareSettings careSettings;
 
     public PlantFacade(
             PlantRepository plantRepository,
@@ -50,7 +51,7 @@ public class PlantFacade {
             JournalFacade journalFacade,
             @Lazy UserFacade userFacade,
             PlantHistorySettings historySettings,
-            DemoSettings demoSettings
+            DemoSettings demoSettings, ru.growerhub.backend.common.config.CareSettings careSettings
     ) {
         this.plantRepository = plantRepository;
         this.plantMetricSampleRepository = plantMetricSampleRepository;
@@ -58,7 +59,7 @@ public class PlantFacade {
         this.journalFacade = journalFacade;
         this.userFacade = userFacade;
         this.historySettings = historySettings;
-        this.demoSettings = demoSettings;
+        this.demoSettings = demoSettings; this.careSettings = careSettings;
     }
 
     @Transactional(readOnly = true)
@@ -78,6 +79,8 @@ public class PlantFacade {
 
     @Transactional
     public PlantInfo createPlant(PlantCreateCommand command, AuthenticatedUser user) {
+        validateCareMetadata(command.name(), command.description(), command.locationLabel());
+        if (command.name() == null) throw new DomainException("unprocessable", "Укажите название растения");
         if (user != null && user.isDemo()) {
             userFacade.lockDemoOwner(user.id());
             if (plantRepository.findAllByUserId(user.id()).size() >= demoSettings.maxPlants()) {
@@ -85,9 +88,11 @@ public class PlantFacade {
             }
         }
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        LocalDateTime plantedAt = command.plantedAt() != null ? command.plantedAt() : now;
+        LocalDateTime plantedAt = command.dateUnknown() ? null : (command.plantedAt() != null ? command.plantedAt() : now);
         PlantEntity plant = PlantEntity.create();
-        plant.setName(command.name());
+        plant.setName(command.name().trim());
+        plant.setDescription(command.description());
+        plant.setLocationLabel(command.locationLabel());
         plant.setPlantedAt(plantedAt);
         plant.setUserId(requireUserId(user));
         plant.setPlantType(command.plantType());
@@ -107,6 +112,7 @@ public class PlantFacade {
 
     @Transactional
     public PlantInfo updatePlant(Integer plantId, PlantUpdateCommand command, AuthenticatedUser user) {
+        validateCareMetadata(command.name(), command.description(), command.locationLabel());
         PlantEntity plant = requireUserPlant(plantId, user);
         boolean changed = false;
 
@@ -114,7 +120,10 @@ public class PlantFacade {
             plant.setName(command.name());
             changed = true;
         }
-        if (command.plantedAt() != null) {
+        if (command.dateUnknown()) { plant.setPlantedAt(null); changed = true; }
+        if (command.description() != null) { plant.setDescription(command.description()); changed = true; }
+        if (command.locationLabel() != null) { plant.setLocationLabel(command.locationLabel()); changed = true; }
+        if (command.plantedAt() != null && !command.dateUnknown()) {
             plant.setPlantedAt(command.plantedAt());
             changed = true;
         }
@@ -137,6 +146,13 @@ public class PlantFacade {
         }
 
         return toPlantInfo(plant);
+    }
+
+    private void validateCareMetadata(String name, String description, String location) {
+        if ((name != null && (name.isBlank() || name.length() > 255)) || (location != null && location.length() > 255)
+                || (description != null && description.length() > careSettings.maxTextLength())) {
+            throw new DomainException("unprocessable", "Проверьте название, место и описание растения");
+        }
     }
 
     @Transactional
@@ -328,7 +344,7 @@ public class PlantFacade {
                 plant.getPlantType(),
                 plant.getStrain(),
                 plant.getGrowthStage(),
-                ownerId
+                ownerId, plant.getDescription(), plant.getLocationLabel()
         );
     }
 
@@ -375,21 +391,21 @@ public class PlantFacade {
     }
 
     public record PlantCreateCommand(
-            String name,
-            LocalDateTime plantedAt,
-            String plantType,
-            String strain,
-            String growthStage
+            String name, LocalDateTime plantedAt, String plantType, String strain, String growthStage,
+            String description, String locationLabel, boolean dateUnknown
     ) {
+        public PlantCreateCommand(String name, LocalDateTime plantedAt, String plantType, String strain, String growthStage) {
+            this(name, plantedAt, plantType, strain, growthStage, null, null, false);
+        }
     }
 
     public record PlantUpdateCommand(
-            String name,
-            LocalDateTime plantedAt,
-            String plantType,
-            String strain,
-            String growthStage
+            String name, LocalDateTime plantedAt, String plantType, String strain, String growthStage,
+            String description, String locationLabel, boolean dateUnknown
     ) {
+        public PlantUpdateCommand(String name, LocalDateTime plantedAt, String plantType, String strain, String growthStage) {
+            this(name, plantedAt, plantType, strain, growthStage, null, null, false);
+        }
     }
 
     public record PlantHarvestCommand(LocalDateTime harvestedAt, String text) {

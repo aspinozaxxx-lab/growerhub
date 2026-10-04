@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.journal;
+package ru.growerhub.backend.journal;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -48,6 +48,8 @@ public class JournalFacade {
     private final JournalService journalService;
     private final PlantFacade plantFacade;
     private final UserFacade userFacade;
+    private final ru.growerhub.backend.journal.engine.CareService care;
+    private final ru.growerhub.backend.journal.engine.CareReminderService reminders;
 
     public JournalFacade(
             PlantJournalEntryRepository entryRepository,
@@ -55,7 +57,9 @@ public class JournalFacade {
             PlantJournalWateringDetailsRepository wateringDetailsRepository,
             JournalService journalService,
             @Lazy PlantFacade plantFacade,
-            @Lazy UserFacade userFacade
+            @Lazy UserFacade userFacade,
+            ru.growerhub.backend.journal.engine.CareService care,
+            ru.growerhub.backend.journal.engine.CareReminderService reminders
     ) {
         this.entryRepository = entryRepository;
         this.photoRepository = photoRepository;
@@ -63,7 +67,41 @@ public class JournalFacade {
         this.journalService = journalService;
         this.plantFacade = plantFacade;
         this.userFacade = userFacade;
+        this.care = care; this.reminders = reminders;
     }
+
+    @Transactional(readOnly = true)
+    public ru.growerhub.backend.journal.contract.CareData.Page searchCare(AuthenticatedUser user, Integer plantId,
+            String query, String action, LocalDateTime from, LocalDateTime until, int page) {
+        return care.search(user, plantId, query, action, from, until, page);
+    }
+    @Transactional(readOnly = true)
+    public List<ru.growerhub.backend.journal.contract.CareData.Summary> careSummaries(AuthenticatedUser user) {
+        return care.summaries(user);
+    }
+    @Transactional
+    public ru.growerhub.backend.journal.contract.CareData.Item createCareEntry(Integer plantId, AuthenticatedUser user,
+            ru.growerhub.backend.journal.contract.CareData.EntryCommand command) { return care.create(plantId, user, command); }
+    @Transactional
+    public ru.growerhub.backend.journal.contract.CareData.Item updateCareEntry(Integer entryId, AuthenticatedUser user,
+            ru.growerhub.backend.journal.contract.CareData.EntryCommand command) { return care.update(entryId, user, command); }
+    @Transactional
+    public void deleteCareEntry(Integer entryId, AuthenticatedUser user) { care.delete(entryId, user); }
+    @Transactional
+    public JournalPhoto addCarePhoto(Integer entryId, AuthenticatedUser user, byte[] jpeg) { return care.addPhoto(entryId, user, jpeg); }
+    @Transactional
+    public void deleteCarePhoto(Integer photoId, AuthenticatedUser user) { care.deletePhoto(photoId, user); }
+
+    @Transactional(readOnly = true)
+    public List<ru.growerhub.backend.journal.contract.CareData.Reminder> careReminders(AuthenticatedUser user) { return reminders.list(user); }
+    @Transactional
+    public ru.growerhub.backend.journal.contract.CareData.Reminder saveCareReminder(Integer id, AuthenticatedUser user,
+            ru.growerhub.backend.journal.contract.CareData.ReminderCommand command) { return reminders.save(id, user, command); }
+    @Transactional
+    public void actCareReminder(Integer id, AuthenticatedUser user, String action,
+            ru.growerhub.backend.journal.contract.CareData.ReminderAction command) { reminders.act(id, user, action, command); }
+    @Transactional
+    public void deleteCareReminder(Integer id, AuthenticatedUser user) { reminders.delete(id, user); }
 
     @Transactional(readOnly = true)
     public List<JournalEntry> listEntries(Integer plantId, AuthenticatedUser user) {
@@ -162,6 +200,7 @@ public class JournalFacade {
         if (type != null) {
             validateJournalType(type);
         }
+        if (entry.getWateringDetails() != null) throw new DomainException("conflict", "Запись оборудования доступна только для чтения");
         PlantJournalEntryEntity updated = journalService.updateEntry(entry, type, text);
         return toJournalEntry(updated);
     }
@@ -175,6 +214,7 @@ public class JournalFacade {
         if (entry == null) {
             throw new DomainException("not_found", "zapis' ne naidena");
         }
+        if (entry.getWateringDetails() != null) throw new DomainException("conflict", "Историю работы оборудования удалять нельзя");
         entryRepository.delete(entry);
     }
 
@@ -254,49 +294,7 @@ public class JournalFacade {
     }
 
     private JournalEntry toJournalEntry(PlantJournalEntryEntity entry) {
-        List<PlantJournalPhotoEntity> photos =
-                photoRepository.findAllByJournalEntry_Id(entry.getId());
-        List<JournalPhoto> photoResponses = new ArrayList<>();
-        for (PlantJournalPhotoEntity photo : photos) {
-            boolean hasData = photo.getData() != null && photo.getData().length > 0;
-            photoResponses.add(new JournalPhoto(
-                    photo.getId(),
-                    photo.getUrl(),
-                    photo.getCaption(),
-                    hasData
-            ));
-        }
-
-        JournalWateringDetails detailsResponse = null;
-        if ("watering".equals(entry.getType())) {
-            PlantJournalWateringDetailsEntity details = wateringDetailsRepository
-                    .findByJournalEntry_Id(entry.getId())
-                    .orElse(null);
-            if (details != null) {
-                detailsResponse = new JournalWateringDetails(
-                        details.getWaterVolumeL(),
-                        details.getDurationS(),
-                        details.getPh(),
-                        details.getFertilizersPerLiter(),
-                        details.getPumpSessionId(),
-                        details.getMode(),
-                        details.getCompletionReason(),
-                        details.getVolumeSource()
-                );
-            }
-        }
-
-        return new JournalEntry(
-                entry.getId(),
-                entry.getPlantId(),
-                entry.getUserId(),
-                entry.getType(),
-                entry.getText(),
-                entry.getEventAt(),
-                entry.getCreatedAt(),
-                photoResponses,
-                detailsResponse
-        );
+        return journalService.view(entry);
     }
 
     private String buildJournalMarkdown(
@@ -330,9 +328,13 @@ public class JournalFacade {
                 currentDay = entryDay;
             }
             String timePart = localEvent.format(timeFormat);
-            String label = switch (entry.getType()) {
+            String label = switch (entry.getCareAction() == null ? entry.getType() : entry.getCareAction()) {
                 case "watering" -> english ? "Watering" : "Полив";
-                case "feeding" -> english ? "Care" : "Уход";
+                case "feeding", "fertilizing" -> english ? "Fertilizing" : "Подкормка";
+                case "repotting" -> english ? "Repotting" : "Пересадка";
+                case "pruning" -> english ? "Pruning" : "Обрезка";
+                case "treatment" -> english ? "Treatment" : "Обработка";
+                case "inspection" -> english ? "Inspection" : "Осмотр";
                 case "harvest" -> english ? "Harvest" : "Сбор";
                 case "photo" -> english ? "Photo" : "Фото";
                 default -> english ? "Observation" : "Наблюдение";

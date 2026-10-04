@@ -6,7 +6,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.OnDelete;
@@ -32,12 +31,16 @@ public class PlantJournalPhotoEntity {
     @Column(name = "caption", nullable = true)
     private String caption;
 
-    @Lob
     @Column(name = "data", nullable = true, columnDefinition = "bytea")
     private byte[] data;
 
     @Column(name = "content_type", nullable = true)
     private String contentType;
+
+    @Column(name = "content_hash", length = 64)
+    private String contentHash;
+    public String getContentHash() { return contentHash; }
+    public void setContentHash(String value) { contentHash = value; }
 
     protected PlantJournalPhotoEntity() {
     }

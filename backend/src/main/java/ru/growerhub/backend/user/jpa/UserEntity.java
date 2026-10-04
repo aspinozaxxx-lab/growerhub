@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.user.jpa;
+package ru.growerhub.backend.user.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,6 +17,11 @@ import java.time.LocalDateTime;
     }
 )
 public class UserEntity {
+    @jakarta.persistence.Column(name = "care_started_at")
+    private LocalDateTime careStartedAt;
+    public LocalDateTime getCareStartedAt() { return careStartedAt; }
+    public void setCareStartedAt(LocalDateTime value) { careStartedAt = value; }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

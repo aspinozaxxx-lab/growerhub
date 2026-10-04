@@ -20,6 +20,7 @@
 - `getTimezone(Integer userId)`
 - `getTimezones(Set<Integer> userIds)`
 - `markOnboardingCompleted(Integer userId)`
+- `startCare(Integer userId)`: независимое начало дневника.
 - `deleteUser(Integer userId)`
 - `getPushokPilot(Integer userId)`
 - `savePushokPilot(Integer userId, ContactMethod method, String contact, String equipment)`
@@ -36,7 +37,7 @@
 
 ## Владение данными
 
-Домен владеет таблицей пользователей. В ней хранится одна текущая заявка ПушОк на аккаунт: способ связи, контакт, необязательное описание оборудования, время заявки и отметка обработки. Auth identities и refresh tokens принадлежат домену `auth`; устройства принадлежат домену `device`.
+Домен владеет таблицей пользователей. `care_started_at` хранит начало дневника отдельно от завершения настройки оборудования; оно не учитывается как подключение. В ней хранится одна текущая заявка ПушОк на аккаунт: способ связи, контакт, необязательное описание оборудования, время заявки и отметка обработки. Auth identities и refresh tokens принадлежат домену `auth`; устройства принадлежат домену `device`.
 
 ## Используемые домены
 
@@ -48,7 +49,7 @@
 
 - REST adapter `api`
 - security filter в `common.config.security`
-- домены `auth`, `automation`, `journal`, `onboarding`, `plant`
+- домены `auth`, `automation`, `journal`, `onboarding`, `plant`, `notification`
 
 ## Алгоритм работы
 

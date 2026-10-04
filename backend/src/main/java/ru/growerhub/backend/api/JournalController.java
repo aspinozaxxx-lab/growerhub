@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.api;
+package ru.growerhub.backend.api;
 
 import java.util.List;
 import org.springframework.http.HttpHeaders;
@@ -110,6 +110,8 @@ public class JournalController {
         }
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.CONTENT_TYPE, photo.contentType());
+        headers.set(HttpHeaders.CACHE_CONTROL, "private, no-store");
+        headers.set("X-Content-Type-Options", "nosniff");
         return new ResponseEntity<>(photo.data(), headers, HttpStatus.OK);
     }
 

@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.api;
+package ru.growerhub.backend.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
@@ -109,7 +109,7 @@ public class PlantController {
                         request.plantedAt(),
                         request.plantType(),
                         request.strain(),
-                        request.growthStage()
+                        request.growthStage(), request.description(), request.locationLabel(), Boolean.TRUE.equals(request.dateUnknown())
                 ),
                 request.zoneId()
         );
@@ -198,7 +198,7 @@ public class PlantController {
                 plant.plantType(),
                 plant.strain(),
                 plant.growthStage(),
-                plant.userId(),
+                plant.userId(), plant.description(), plant.locationLabel(),
                 zoneResponse,
                 sensors,
                 pumps,
@@ -224,7 +224,7 @@ public class PlantController {
                 plant.plantType(),
                 plant.strain(),
                 plant.growthStage(),
-                plant.userId(),
+                plant.userId(), plant.description(), plant.locationLabel(),
                 toZoneResponse(zone),
                 sensors,
                 pumps
@@ -407,7 +407,10 @@ public class PlantController {
                         plantedAt,
                         plantType,
                         strain,
-                        growthStage
+                        growthStage,
+                        request.has("description") ? textValue(request.get("description")) : null,
+                        request.has("location_label") ? textValue(request.get("location_label")) : null,
+                        request.path("date_unknown").asBoolean(false)
                 ),
                 zoneProvided,
                 zoneId
@@ -433,7 +436,7 @@ public class PlantController {
             throw invalidFieldValue(fieldName);
         }
         try {
-            return OffsetDateTime.parse(value).toLocalDateTime();
+            return OffsetDateTime.parse(value).withOffsetSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime();
         } catch (DateTimeParseException ex) {
             try {
                 return LocalDateTime.parse(value);

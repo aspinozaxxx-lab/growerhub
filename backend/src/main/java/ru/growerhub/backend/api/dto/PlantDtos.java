@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.api.dto;
+package ru.growerhub.backend.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -21,7 +21,10 @@ public final class PlantDtos {
             @JsonProperty("zone_id") Integer zoneId,
             @JsonProperty("plant_type") String plantType,
             @JsonProperty("strain") String strain,
-            @JsonProperty("growth_stage") String growthStage
+            @JsonProperty("growth_stage") String growthStage,
+            @JsonProperty("description") String description,
+            @JsonProperty("location_label") String locationLabel,
+            @JsonProperty("date_unknown") Boolean dateUnknown
     ) {
     }
 
@@ -32,7 +35,10 @@ public final class PlantDtos {
             @JsonProperty("zone_id") Integer zoneId,
             @JsonProperty("plant_type") String plantType,
             @JsonProperty("strain") String strain,
-            @JsonProperty("growth_stage") String growthStage
+            @JsonProperty("growth_stage") String growthStage,
+            @JsonProperty("description") String description,
+            @JsonProperty("location_label") String locationLabel,
+            @JsonProperty("date_unknown") Boolean dateUnknown
     ) {
     }
 
@@ -53,6 +59,8 @@ public final class PlantDtos {
             @JsonProperty("strain") String strain,
             @JsonProperty("growth_stage") String growthStage,
             @JsonProperty("user_id") Integer userId,
+            @JsonProperty("description") String description,
+            @JsonProperty("location_label") String locationLabel,
             @JsonProperty("zone") ZoneResponse zone,
             @JsonProperty("sensors") List<SensorResponse> sensors,
             @JsonProperty("pumps") List<PumpResponse> pumps,
@@ -70,6 +78,8 @@ public final class PlantDtos {
             @JsonProperty("strain") String strain,
             @JsonProperty("growth_stage") String growthStage,
             @JsonProperty("user_id") Integer userId,
+            @JsonProperty("description") String description,
+            @JsonProperty("location_label") String locationLabel,
             @JsonProperty("zone") ZoneResponse zone,
             @JsonProperty("sensors") List<PlantListSensorResponse> sensors,
             @JsonProperty("pumps") List<PlantListPumpResponse> pumps

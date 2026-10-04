@@ -11,6 +11,8 @@ public record UserProfile(
         String timezone,
         LocalDateTime onboardingCompletedAt,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        LocalDateTime careStartedAt
 ) {
+    public UserProfile(Integer id, String email, String username, String role, boolean active, String timezone, LocalDateTime onboardingCompletedAt, LocalDateTime createdAt, LocalDateTime updatedAt) { this(id, email, username, role, active, timezone, onboardingCompletedAt, createdAt, updatedAt, null); }
 }

@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.common.util;
+package ru.growerhub.backend.common.util;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -21,7 +21,7 @@ public class FlexibleLocalDateTimeDeserializer extends JsonDeserializer<LocalDat
             throw InvalidFormatException.from(parser, "Invalid datetime", value, LocalDateTime.class);
         }
         try {
-            return OffsetDateTime.parse(value).toLocalDateTime();
+            return OffsetDateTime.parse(value).withOffsetSameInstant(java.time.ZoneOffset.UTC).toLocalDateTime();
         } catch (DateTimeParseException ex) {
             try {
                 return LocalDateTime.parse(value);

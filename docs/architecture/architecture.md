@@ -18,6 +18,7 @@ GrowerHub состоит из backend, frontend, firmware, zigbee_coordinator, a
 ## Компоненты и каналы
 
 - Frontend обращается к backend через REST.
+- Самостоятельный дневник растений и ручные напоминания работают без оборудования; Telegram доставляет сообщения через `notification` и технический адаптер `messaging` (ADR-011).
 - Необязательный прогноз MET Norway поступает через технический адаптер `weather` и контракт `automation`; решение полива остаётся в общем сценарии (ADR-010). Demo получает моделируемую погоду из `DemoFacade`.
 - Backend обращается к устройствам через MQTT.
 - Технический адаптер `pushok` внутри backend подключается к облаку ПушОка по WSS и переводит подтверждённые показания и команды в тот же изолированный MQTT-контракт (ADR-008). Доступ к домашней сети пользователя не нужен.
@@ -90,6 +91,7 @@ Grovika публикует единственный датчик почвы ка
 - `docs/architecture/backend/domains/firmware.md`
 - `docs/architecture/backend/domains/journal.md`
 - `docs/architecture/backend/domains/maintenance.md`
+- `docs/architecture/backend/domains/notification.md`
 - `docs/architecture/backend/domains/onboarding.md`
 - `docs/architecture/backend/domains/plant.md`
 - `docs/architecture/backend/domains/pump.md`

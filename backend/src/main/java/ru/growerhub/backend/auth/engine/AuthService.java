@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.auth.engine;
+package ru.growerhub.backend.auth.engine;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -386,7 +386,7 @@ public class AuthService {
                 user.timezone(),
                 user.onboardingCompletedAt() != null,
                 user.createdAt(),
-                user.updatedAt()
+                user.updatedAt(), user.careStartedAt() != null
         );
     }
 }

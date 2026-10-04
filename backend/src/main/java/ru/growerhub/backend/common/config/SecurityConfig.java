@@ -1,4 +1,4 @@
-﻿﻿﻿﻿package ru.growerhub.backend.common.config;
+package ru.growerhub.backend.common.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +27,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/health").permitAll()
                         .requestMatchers(
+                                "/api/notifications/telegram/webhook",
                                 "/api/auth/login",
                                 "/api/auth/refresh",
                                 "/api/auth/logout",

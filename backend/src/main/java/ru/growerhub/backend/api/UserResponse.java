@@ -12,5 +12,6 @@ public record UserResponse(
         @JsonProperty("timezone") String timezone,
         @JsonProperty("onboarding_completed") boolean onboardingCompleted,
         @JsonProperty("created_at") LocalDateTime createdAt,
-        @JsonProperty("updated_at") LocalDateTime updatedAt
+        @JsonProperty("updated_at") LocalDateTime updatedAt,
+        @JsonProperty("care_started") boolean careStarted
 ) {}

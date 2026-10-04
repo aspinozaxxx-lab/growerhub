@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.plant.jpa;
+package ru.growerhub.backend.plant.jpa;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,7 +23,7 @@ public class PlantEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "planted_at", nullable = false)
+    @Column(name = "planted_at", nullable = true)
     private LocalDateTime plantedAt;
 
     @Column(name = "plant_type", nullable = true, length = 255)
@@ -43,6 +43,17 @@ public class PlantEntity {
 
     @Column(name = "updated_at", nullable = true)
     private LocalDateTime updatedAt;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "location_label")
+    private String locationLabel;
+
+    public String getDescription() { return description; }
+    public void setDescription(String value) { description = value; }
+    public String getLocationLabel() { return locationLabel; }
+    public void setLocationLabel(String value) { locationLabel = value; }
 
     protected PlantEntity() {
     }

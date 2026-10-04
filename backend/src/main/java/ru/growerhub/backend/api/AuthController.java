@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.api;
+package ru.growerhub.backend.api;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -152,7 +152,7 @@ public class AuthController {
                 profile.timezone(),
                 profile.onboardingCompleted(),
                 profile.createdAt(),
-                profile.updatedAt()
+                profile.updatedAt(), profile.careStarted()
         );
     }
 

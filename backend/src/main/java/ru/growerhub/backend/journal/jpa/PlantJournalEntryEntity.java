@@ -52,6 +52,15 @@ public class PlantJournalEntryEntity {
     @OneToMany(mappedBy = "journalEntry")
     private List<PlantJournalPhotoEntity> photos;
 
+    @Column(name = "care_action", length = 32)
+    private String careAction;
+    @Column(name = "client_key", length = 128)
+    private String clientKey;
+    public String getCareAction() { return careAction; }
+    public void setCareAction(String value) { careAction = value; }
+    public String getClientKey() { return clientKey; }
+    public void setClientKey(String value) { clientKey = value; }
+
     protected PlantJournalEntryEntity() {
     }
 

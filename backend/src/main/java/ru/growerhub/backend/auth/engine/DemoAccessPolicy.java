@@ -4,6 +4,8 @@ public final class DemoAccessPolicy {
     private DemoAccessPolicy() {}
 
     public static boolean allows(String method, String path) {
+        if (path.matches("/api/care/(journal|summaries|reminders)") && "GET".equals(method)) return true;
+        if (path.startsWith("/api/care/") && !"GET".equals(method)) return true;
         if ("GET".equals(method)) {
             return path.matches("/api/demo/(status|catalog)")
                     || path.equals("/api/devices/my")

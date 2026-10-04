@@ -1,4 +1,4 @@
-﻿package ru.growerhub.backend.architecture;
+package ru.growerhub.backend.architecture;
 
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -34,6 +34,8 @@ class ArchitectureRulesTest {
             "firmware",
             "journal",
             "maintenance",
+            "notification",
+            "onboarding",
             "plant",
             "pump",
             "sensor",
@@ -109,6 +111,9 @@ class ArchitectureRulesTest {
             ArchRule mqttRule = noClasses()
                     .that().resideInAPackage("ru.growerhub.backend." + domain + "..")
                     .should().dependOnClassesThat().resideInAPackage("ru.growerhub.backend.mqtt..");
+            noClasses().that().resideInAPackage("ru.growerhub.backend." + domain + "..")
+                    .should().dependOnClassesThat().resideInAPackage("ru.growerhub.backend.messaging..")
+                    .allowEmptyShould(true).check(CLASSES);
             apiRule.allowEmptyShould(true).check(CLASSES);
             mqttRule.allowEmptyShould(true).check(CLASSES);
             noClasses().that().resideInAPackage("ru.growerhub.backend." + domain + "..")

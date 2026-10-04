@@ -5,6 +5,7 @@ Backend построен вокруг доменов. Адаптеры REST и M
 ## Пакеты
 
 - `api` - REST controllers, REST DTO и маппинг ошибок.
+- `messaging` — технический HTTP-шлюз Telegram и отдельный scheduler доставки, без MQTT и JPA.
 - `mqtt` - MQTT-издатель, подписчик, обработчики, шлюзы и модели сообщений.
 - `pushok` — технический WSS/MQTT-адаптер ПушОка, криптография доступа и преобразование metadata; доменные решения остаются в `zigbee` (ADR-008).
 - `common` - стабильные общие контракты, утилиты и конфигурационный wiring.
@@ -12,7 +13,7 @@ Backend построен вокруг доменов. Адаптеры REST и M
 - `diagnostics` - техническая диагностика.
 - `llm` - внешний шлюз для advisor.
 - `weather` — технический HTTP-кеш MET Norway, реализация `automation.contract.WeatherForecastGateway` без JPA и команд полива.
-- доменные пакеты - `advisor`, `auth`, `automation`, `demo`, `device`, `firmware`, `journal`, `maintenance`, `onboarding`, `plant`, `pump`, `sensor`, `user`, `zigbee`.
+- доменные пакеты - `advisor`, `auth`, `automation`, `demo`, `device`, `firmware`, `journal`, `maintenance`, `notification`, `onboarding`, `plant`, `pump`, `sensor`, `user`, `zigbee`.
 
 ## Домены
 
@@ -26,6 +27,7 @@ Backend построен вокруг доменов. Адаптеры REST и M
 - `firmware` - хранение и запуск обновлений прошивки.
 - `journal` - журнал растений и детали полива.
 - `maintenance` - технические фоновые сценарии обслуживания исторических данных.
+- `notification` — подтверждённые Telegram-чаты, предпочтения, дедупликация входящих событий и устойчивая очередь доставки (ADR-011).
 - `onboarding` - состояние и постоянное завершение первичной настройки пользователя.
 - `plant` - растения, жизненный цикл и метрики.
 - `pump` - насосы, привязки и ручной полив.
@@ -41,7 +43,7 @@ Backend построен вокруг доменов. Адаптеры REST и M
 
 Внутренние пакеты `engine` и `jpa` принадлежат только своему домену. Другие домены и адаптеры не импортируют чужие `engine` и `jpa`.
 
-Домен не импортирует `api`, `mqtt`, `pushok` и `weather`. Адаптеры не импортируют JPA entity и repository.
+Домен не импортирует `api`, `mqtt`, `pushok`, `weather` и `messaging`. Адаптеры не импортируют JPA entity и repository.
 
 `common` не содержит JPA entity и не владеет бизнес-данными.
 
