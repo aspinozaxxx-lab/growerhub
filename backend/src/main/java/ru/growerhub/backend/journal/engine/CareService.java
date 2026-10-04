@@ -29,7 +29,7 @@ import ru.growerhub.backend.user.UserFacade;
 @Service
 public class CareService {
     public static final Set<String> ACTIONS = Set.of("watering", "fertilizing", "repotting", "pruning",
-            "treatment", "inspection", "photo", "note");
+            "treatment", "inspection", "photo", "note", "harvest");
     private final PlantJournalEntryRepository entries;
     private final PlantJournalPhotoRepository photos;
     private final JournalService journal;
@@ -96,7 +96,7 @@ public class CareService {
             return item(value, plant.name());
         }
         String type = switch (command.action()) {
-            case "watering", "photo", "note" -> command.action();
+            case "watering", "photo", "note", "harvest" -> command.action();
             default -> "other";
         };
         var entry = journal.createEntry(plantId, user.id(), type, command.text(),
@@ -114,7 +114,7 @@ public class CareService {
         if (command.action() != null) {
             if (!ACTIONS.contains(command.action())) throw new DomainException("unprocessable", "Неизвестный вид ухода");
             entry.setCareAction(command.action());
-            entry.setType(Set.of("watering", "photo", "note").contains(command.action()) ? command.action() : "other");
+            entry.setType(Set.of("watering", "photo", "note", "harvest").contains(command.action()) ? command.action() : "other");
         }
         validateText(command.text());
         entry.setText(command.text());

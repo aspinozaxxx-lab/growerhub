@@ -330,7 +330,8 @@ public class JournalFacade {
             String timePart = localEvent.format(timeFormat);
             String label = switch (entry.getCareAction() == null ? entry.getType() : entry.getCareAction()) {
                 case "watering" -> english ? "Watering" : "Полив";
-                case "feeding", "fertilizing" -> english ? "Fertilizing" : "Подкормка";
+                case "feeding" -> english ? "Care" : "Уход";
+                case "fertilizing" -> english ? "Fertilizing" : "Подкормка";
                 case "repotting" -> english ? "Repotting" : "Пересадка";
                 case "pruning" -> english ? "Pruning" : "Обрезка";
                 case "treatment" -> english ? "Treatment" : "Обработка";
