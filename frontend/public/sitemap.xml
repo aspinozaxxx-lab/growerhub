@@ -50,7 +50,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zhurnal-i-sovetnik-uhoda/</loc>
-    <lastmod>2026-10-02</lastmod>
+    <lastmod>2026-10-04</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zigbee-hub-i-ustroystva/</loc>
@@ -66,6 +66,10 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/home-assistant-dlya-rasteniy/</loc>
+    <lastmod>2026-10-04</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/istoriya-mikroklimata-i-grafiki/</loc>
     <lastmod>2026-10-04</lastmod>
   </url>
   <url>
@@ -190,10 +194,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/foto-dnevnik-rosta-rasteniy/</loc>
-    <lastmod>2026-06-30</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/istoriya-mikroklimata-i-grafiki/</loc>
     <lastmod>2026-06-30</lastmod>
   </url>
   <url>
@@ -362,7 +362,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/plant-journal-and-care-guidance/</loc>
-    <lastmod>2026-10-02</lastmod>
+    <lastmod>2026-10-04</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/zigbee-hubs-and-devices/</loc>
@@ -378,6 +378,10 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/home-assistant-plant-watering-safe-step-by-step-setup/</loc>
+    <lastmod>2026-10-04</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/microclimate-history-and-charts-how-to-read-data-without-panic/</loc>
     <lastmod>2026-10-04</lastmod>
   </url>
   <url>
@@ -514,10 +518,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/microclimate-control-in-the-greenhouse-temperature-humidity-and-light/</loc>
-    <lastmod>2026-07-23</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/microclimate-history-and-charts-how-to-read-data-without-panic/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>

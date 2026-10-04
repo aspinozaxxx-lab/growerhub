@@ -6,7 +6,7 @@ summary: >-
   How to look at graphs of temperature, humidity, light and watering so that you
   find patterns, rather than reacting to every peak.
 created_at: '2026-07-23'
-updated_at: '2026-07-23'
+updated_at: '2026-10-04'
 cluster: zhurnal-i-sovetnik-uhoda
 tags:
   - GrowerHub
@@ -53,6 +53,18 @@ For a greenhouse, it is useful to compare weekdays and weekends, sunny and cloud
 Wireless sensors sometimes produce skips, spikes, or delays. This is not always a plant problem. First check the freshness of the data, battery charge, communication and sensor position. If the jump does not recur and does not coincide with the symptoms, it can be noted, but care should not be changed.
 
 It is not the charts themselves that are dangerous, but confidence without verification. If the advisor suggests action on one strange value, this is a risk. It is better when the system shows the reason: trend, latest events, data freshness and limitations.
+
+## Temperature history for seedlings in a small nursery
+
+Start with one practical question: “What happens to the temperature on the seedling rack between morning and evening checks?” Choose one zone and a measurement point at plant level. One sensor does not represent the entire nursery; the acceptable range depends on the crop and growth stage.
+
+The [greenhouse monitoring playbook](/articles/monitoring-playbook/) covers connecting and assigning a sensor. The first result is a fresh reading in your zone and incoming points on its chart. GrowerHub starts collecting history after connection; it does not automatically import a Home Assistant archive. You can begin before adding every plant or setting up control scenarios.
+
+After the first full day, compare the daytime and nighttime sections of the chart. Record when you watered, ventilated or moved the sensor, then compare those times with temperature changes. Revisit the history at your next inspection: does the deviation recur, and is it clearer what to check? A gap in readings calls for checking connectivity before drawing conclusions about the seedlings.
+
+One zone defines the scope of the usefulness check, rather than limiting connection access. The MQTT bridge transfers the device list and readings from the entire selected Zigbee2MQTT network and supports commands back to devices; it has no separate read-only mode or single-device filter. Review that access scope in the connection guide first. Start observation with GrowerHub scenarios disabled, retaining your existing hardware safeguards and notifications.
+
+If your nursery uses Modbus, industrial controllers or needs integration with business software, describe the equipment and task through the help option on the [getting started page](/kak-nachat/). Compatibility and project scope require a separate assessment.
 
 ## Conclusion
 
