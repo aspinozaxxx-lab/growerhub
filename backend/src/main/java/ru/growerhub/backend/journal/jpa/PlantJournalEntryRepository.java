@@ -40,7 +40,9 @@ public interface PlantJournalEntryRepository extends JpaRepository<PlantJournalE
             select e from PlantJournalEntryEntity e where e.userId = :owner
             and (:plantId = -1 or e.plantId = :plantId)
             and (lower(coalesce(e.text, '')) like :pattern escape '!' or e.plantId in :matching)
-            and (:action = '' or e.careAction = :action or (:action = 'automatic' and e.wateringDetails is not null))
+            and (:action = '' or e.careAction = :action
+                or (e.careAction is null and e.wateringDetails is null and (e.type = :action or (:action = 'note' and e.type = 'other')))
+                or (:action = 'automatic' and e.wateringDetails is not null))
             and e.eventAt >= :since and e.eventAt < :until
             order by e.eventAt desc, e.id desc
             """)

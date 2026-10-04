@@ -20,8 +20,9 @@ import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.user.UserFacade;
 import ru.growerhub.backend.user.jpa.*;
 
-@SpringBootTest(properties = {"telegram.enabled=true", "telegram.bot-token=test", "telegram.poll-ms=3600000", "telegram.webhook-secret=test-webhook"})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {"telegram.enabled=true", "telegram.bot-token=test", "telegram.poll-ms=3600000", "telegram.webhook-secret=test-webhook"})
 class CareJournalIntegrationTest extends IntegrationTestBase {
+    @org.springframework.boot.test.web.server.LocalServerPort int port;
     @Autowired JournalFacade journal;
     @Autowired PlantFacade plants;
     @Autowired UserRepository users;
@@ -62,6 +63,10 @@ class CareJournalIntegrationTest extends IntegrationTestBase {
         assertEquals(date, journal.updateCareEntry(created.entry().id(), owner, new CareData.EntryCommand("note", "Исправлено", date, null)).entry().eventAt());
         journal.deleteCareEntry(created.entry().id(), owner);
         assertTrue(journal.searchCare(owner, id, "", "", null, null, 0).items().isEmpty());
+        journal.createEntry(id, owner, "photo", "До обновления", date, List.of());
+        assertEquals(1, journal.searchCare(owner, id, "", "photo", null, null, 0).items().size());
+        var harvest = journal.createCareEntry(id, owner, new CareData.EntryCommand("harvest", "Первый сбор", date, "harvest-request"));
+        assertEquals("harvest", harvest.entry().type());
     }
     @Test void remindersCompleteOnceAndSnoozeIsNotCare() {
         var owner = account(); var id = plant(owner);
@@ -135,6 +140,10 @@ class CareJournalIntegrationTest extends IntegrationTestBase {
         notifications.disconnect(owner);
     }
     @Test void webhookRejectsMissingSecretAndGreetsUnlinkedPrivateUser() throws Exception {
+        String url = "http://127.0.0.1:" + port + "/api/notifications/telegram";
+        io.restassured.RestAssured.given().contentType("application/json").body("{}").post(url + "/webhook").then().statusCode(403);
+        io.restassured.RestAssured.given().header("X-Telegram-Bot-Api-Secret-Token", "test-webhook").contentType("application/json").body("{}").post(url + "/webhook").then().statusCode(200);
+        io.restassured.RestAssured.given().get(url).then().statusCode(401);
         var body = json.readTree("{\"update_id\":777777,\"message\":{\"chat\":{\"id\":777777,\"type\":\"private\"},\"from\":{\"id\":777777,\"first_name\":\"Test\"},\"text\":\"/start\"}}");
         assertThrows(ru.growerhub.backend.api.ApiException.class, () -> webhook.webhook("", body));
         var reply = webhook.webhook("test-webhook", body);

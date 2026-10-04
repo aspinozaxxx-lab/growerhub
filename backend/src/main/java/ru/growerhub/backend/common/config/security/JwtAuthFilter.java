@@ -1,4 +1,4 @@
-﻿﻿﻿package ru.growerhub.backend.common.config.security;
+package ru.growerhub.backend.common.config.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -24,6 +24,7 @@ import ru.growerhub.backend.user.contract.AuthUser;
 public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "bearer ";
     private static final Set<String> PUBLIC_PATHS = Set.of(
+            "/api/notifications/telegram/webhook",
             "/api/auth/login",
             "/api/auth/refresh",
             "/api/auth/logout",
