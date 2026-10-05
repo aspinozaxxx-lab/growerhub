@@ -10,7 +10,7 @@ export function sanitizeCart(value) {
     if (!Number.isInteger(quantity) || quantity < 1) return;
     combined.set(item.offerId, Math.min(MAX_QUANTITY, quantity + (combined.get(item.offerId) || 0)));
   });
-  return [...combined].slice(0, 3).map(([offerId, quantity]) => ({ offerId, quantity }));
+  return [...combined].slice(0, 6).map(([offerId, quantity]) => ({ offerId, quantity }));
 }
 
 export const newDraft = () => ({ name: '', phone: '', telegram: '', city: '', code: '', address: '', comment: '', consent: false, website: '' });

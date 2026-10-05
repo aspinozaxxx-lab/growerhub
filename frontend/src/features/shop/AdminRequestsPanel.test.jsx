@@ -18,6 +18,15 @@ describe('Admin shop requests', () => {
   });
   afterEach(cleanup);
 
+  it('pokazyvaet sohranennuyu komplektaciyu aksessuarov bez vymyshlennogo haba', async () => {
+    const accessories = { ...entry, totalMinor: 249900, items: [{ offerId: 'pump-drip-kit', quantity: 1, unitPriceMinor: 249900, hubModel: null, socketCount: 0, verification: 'PILOT', components: [{ id: 'zigbee-pump', quantity: 1 }, { id: 'dripper', quantity: 20 }, { id: 'hose-set', quantity: 1 }] }] };
+    fetchAdminShopRequests.mockResolvedValue({ requests: [accessories], page: 0, totalElements: 1, totalPages: 1 });
+    show('/app/admin/shop/requests/?request=1');
+    await screen.findByText('GH-12');
+    expect(screen.getByText(/Состав одной единицы: Насос GrowerHub × 1 · Капельница × 20 · Комплект шлангов × 1/u)).toBeVisible();
+    expect(screen.queryByText(/0 розеток/u)).not.toBeInTheDocument();
+  });
+
   it('raskryvaet zajavku iz Telegram i ne predlagaet slepoj povtor uncertain-uvedomleniya', async () => {
     show('/app/admin/shop/requests/?request=1');
     await screen.findByText('GH-12');

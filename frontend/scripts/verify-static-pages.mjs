@@ -57,9 +57,10 @@ for (const [locale, catalog] of Object.entries(equipmentByLocale)) {
   const items = Object.values(catalog.categories).flatMap((category) => category.items);
   assert(items.length === 18, `Equipment ${locale}: expected 18 items, got ${items.length}`);
   for (const offer of shopCatalog.offers) {
-    for (const id of [offer.hubEquipmentId, offer.socketEquipmentId]) {
+    for (const id of [offer.hubEquipmentId, offer.socketEquipmentId].filter((id) => id != null)) {
       assert(items.filter((item) => item.id === id).length === 1, `Shop offer ${offer.id}: missing or duplicate equipment ${id} in ${locale}`);
     }
+    assert(offer.hubEquipmentId || offer.components?.length, `Shop offer ${offer.id}: missing composition`);
   }
   assert(!items.some((item) => item.model === 'TS011F'), `Equipment ${locale}: TS011F returned`);
   for (const item of items) {

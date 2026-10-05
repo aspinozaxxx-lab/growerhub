@@ -1,52 +1,29 @@
+import { Sprout, Wifi } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import LeadCta from '../components/LeadCta';
-import TelegramContactLink from '../components/TelegramContactLink';
+import { NurseryProductDetail } from '../components/nursery/NurseryComponents';
 import { getPageContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
-import { getCurrentLocale, translatePublic } from '../locales/i18n';
+import { useShop } from '../features/shop';
+import { getCurrentLocale } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 
 function PumpEarlyAccessPage() {
   const locale = getCurrentLocale();
   const pump = getPageContent(locale).equipmentContent.pump;
+  const { catalog, openConsultation } = useShop();
+  const offers = ['pump', 'pump-drip-kit'].map((id) => catalog.offers.find((offer) => offer.id === id)).filter(Boolean);
   useSeoMeta({
-    title: `${pump.title} — GrowerHub`,
-    description: pump.description,
-    path: getPublicPath('equipmentPump', locale),
-    locale,
+    title: `${pump.title} — GrowerHub`, description: pump.description,
+    path: getPublicPath('equipmentPump', locale), image: '/content/nursery/pump-drip-kit.webp', locale,
   });
-
-  return (
-    <div className="section equipment-page">
-      <div className="badge">{pump.status}</div>
-      <h1>{pump.title}</h1>
-      <p className="article-lead">{pump.summary}</p>
-
-      <section className="content-section split-section">
-        <div className="info-block"><h2>{translatePublic('Два варианта связи')}</h2><p>{translatePublic('Проектируем два режима: Zigbee для общей сети устройств и Wi‑Fi с прямым MQTT GrowerHub. Оба варианта работают с единым кабинетом платформы.')}</p></div>
-        <div className="info-block"><h2>{translatePublic('Текущий этап')}</h2><p>{translatePublic('Прототип проходит испытания. Если хотите присоединиться к первым пользователям, напишите нам — обсудим оборудование и подходящий сценарий.')}</p></div>
-      </section>
-
-      <section className="content-section info-block">
-        <h2>{translatePublic('Откуда взялась разработка')}</h2>
-        <p>{translatePublic('Контур полива GrowerHub развивается с октября 2025 года: в Git видны первые MQTT-команды, а в production-журнале сохранились записи с 26 ноября. Нынешний Zigbee/Wi‑Fi-прототип — отдельное следующее поколение устройства, поэтому мы не выдаём весь этот период за испытание одной модели.')}</p>
-        <Link className="secondary-link" to={getPublicPath('about', locale)}>
-          {translatePublic('Хронология и эксплуатационные данные')}
-        </Link>
-      </section>
-
-      <section className="content-section">
-        <h2>{translatePublic('Что мы проверяем')}</h2>
-        <ul className="check-list limitations-list">{pump.limitations.map((item) => <li key={item}>{item}</li>)}</ul>
-      </section>
-
-      <section className="lead-cta">
-        <div><h2>{translatePublic('Стать одним из первых пользователей')}</h2><p>{translatePublic('Расскажите, где планируете использовать насос. Мы ответим на вопросы и подскажем, как подготовиться к первым испытаниям.')}</p></div>
-        <TelegramContactLink placement="pump_early_access" className="hero-cta">{translatePublic('Написать в Telegram')}</TelegramContactLink>
-      </section>
-      <LeadCta placement="pump_platform_bottom" title={translatePublic('Начать с готового оборудования')} text={translatePublic('Для мониторинга GrowerHub насос не нужен: достаточно координатора и одного Zigbee-датчика.')} />
-    </div>
-  );
+  return <div className="nursery-page nursery-pump">
+    <header className="nursery-page-heading"><p className="nursery-eyebrow"><Sprout aria-hidden="true" size={19} />{pump.status}</p><h1>{pump.title}</h1><p>{pump.summary}</p></header>
+    {offers.length > 0 && <NurseryProductDetail offers={offers} locale={locale} currency={catalog.currency} />}
+    <div className="nursery-info-grid">{pump.connections.map((connection) => <section className="nursery-info-panel" key={connection.title}><Wifi aria-hidden="true" size={28} /><h2>{connection.title}</h2><p>{connection.text}</p></section>)}</div>
+    <section className="nursery-info-panel"><h2>{pump.setup_title}</h2><ul>{pump.setup.map((step) => <li key={step}>{step}</li>)}</ul></section>
+    <div className="nursery-help-row"><div><h2>{locale === 'en' ? 'Let us choose together' : 'Давайте подберём вместе'}</h2><p>{locale === 'en' ? 'Tell us about your plants and we will help you choose a watering setup.' : 'Расскажите о своих растениях — поможем подобрать полив и способ подключения.'}</p></div><button type="button" className="nursery-button" onClick={openConsultation}>{locale === 'en' ? 'Help me choose' : 'Помогите выбрать'}</button></div>
+    <Link className="nursery-text-link" to={getPublicPath('equipment', locale)}>{locale === 'en' ? 'All kits and devices' : 'Все комплекты и устройства'}</Link>
+  </div>;
 }
 
 export default PumpEarlyAccessPage;

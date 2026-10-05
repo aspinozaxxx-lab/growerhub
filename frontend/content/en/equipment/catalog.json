@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-05",
+  "updated_at": "2026-10-06",
   "checked_at": "2026-07-23",
   "purchase_note": "You do not need an expensive branded kit to get started. Choose an option that suits your budget and make sure the listing says Zigbee rather than Wi-Fi or Bluetooth. Search links are neutral, have no affiliate tags, and availability varies by country and seller.",
   "zigbee_note": "For most common sensors and smart plugs, a Zigbee or Zigbee 3.0 label is enough: Zigbee2MQTT discovers the device and it then appears in GrowerHub. Check the exact model ID in the Zigbee2MQTT catalogue when possible to see available metrics and commands, but there is no need to buy only expensive brands.",
@@ -357,15 +357,25 @@
   },
   "pump": {
     "slug": "irrigation-pump",
-    "title": "GrowerHub irrigation pump — early access",
-    "description": "Our Zigbee and Wi-Fi MQTT pump is being tested with early GrowerHub users.",
-    "status": "In development at GrowerHub",
-    "summary": "We developed the pump because we could not find a ready-made option with the local control we needed. We are testing Zigbee and direct Wi-Fi MQTT operation before inviting the first users.",
-    "limitations": [
-      "We check physical isolation, protection from water and safe power connection.",
-      "We add a local emergency shutdown regardless of the command from the platform.",
-      "We check the safe state when the Internet or MQTT is lost.",
-      "We test TLS, failure scenarios and watering limits before connecting the first users."
+    "title": "GrowerHub watering pump",
+    "description": "A pump with Wi-Fi without a Zigbee hub, or a Zigbee connection. An optional drip kit includes 20 emitters and hoses.",
+    "status": "Watering with care",
+    "summary": "Choose the pump on its own or add 20 drip emitters and hoses. Connect over Wi-Fi without a Zigbee hub, or use a Zigbee network. We will help you choose a setup for your plants.",
+    "connections": [
+      {
+        "title": "Wi-Fi — without a separate hub",
+        "text": "The pump connects to your home Wi-Fi without a Zigbee hub. We will agree on network settings and how you will control it when confirming the order."
+      },
+      {
+        "title": "Zigbee — part of your device network",
+        "text": "If you already have a Zigbee network, you can connect the pump to it. We will help you choose a compatible coordinator and settings for your system."
+      }
+    ],
+    "setup_title": "Prepare watering for your plants",
+    "setup": [
+      "Tell us how many pots you have and where you keep the water container.",
+      "Already have emitters and hoses? Choose the pump only. Otherwise, add the optional drip kit.",
+      "We will call to agree on the contents, connection and first setup, then ship after confirming the order."
     ]
   }
 }

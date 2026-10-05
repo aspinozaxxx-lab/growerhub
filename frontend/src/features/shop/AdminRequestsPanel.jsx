@@ -13,7 +13,9 @@ const adminCopy = {
     saveError: 'Не удалось сохранить изменение. Предыдущее состояние сохранено.',
     retryError: 'Не удалось повторить уведомление. Обновите список и проверьте его состояние.',
     detailError: 'Заявка по ссылке не найдена или недоступна.', found: 'Всего заявок', previous: 'Назад', next: 'Далее', page: 'Страница',
-    order: 'Заказ комплекта', consultation: 'Консультация', total: 'Сумма комплектов', customer: 'Контакт', pickup: 'Пункт СДЭК',
+    order: 'Заказ', consultation: 'Консультация', total: 'Сумма товаров', customer: 'Контакт', pickup: 'Пункт СДЭК',
+    components: { 'soil-sensor': 'Датчик почвы', 'zigbee-pump': 'Насос GrowerHub', dripper: 'Капельница', 'hose-set': 'Комплект шлангов' },
+    perItem: 'Состав одной единицы',
     comment: 'Комментарий', notification: 'Уведомление Telegram', attempts: 'Попыток', notificationError: 'Код ошибки',
     adminOnly: 'Заявка сохранена. Пока обрабатываем заказы здесь, без уведомлений на почту или в Telegram.',
     uncertain: 'Результат отправки неизвестен. Не повторяем автоматически, чтобы не дублировать сообщение.',
@@ -30,7 +32,9 @@ const adminCopy = {
     saveError: 'Could not save the change. The previous status is unchanged.',
     retryError: 'Could not retry the notification. Refresh the list and check its status.',
     detailError: 'The linked request was not found or is unavailable.', found: 'Total requests', previous: 'Previous', next: 'Next', page: 'Page',
-    order: 'Kit order', consultation: 'Consultation', total: 'Kit total', customer: 'Contact', pickup: 'CDEK pickup point',
+    order: 'Order', consultation: 'Consultation', total: 'Product total', customer: 'Contact', pickup: 'CDEK pickup point',
+    components: { 'soil-sensor': 'Soil sensor', 'zigbee-pump': 'GrowerHub pump', dripper: 'Drip emitter', 'hose-set': 'Hose set' },
+    perItem: 'Contents per unit',
     comment: 'Comment', notification: 'Telegram notification', attempts: 'Attempts', notificationError: 'Error code',
     adminOnly: 'The request is saved. For now, orders are handled here, without email or Telegram notifications.',
     uncertain: 'The send result is unknown. We do not retry automatically to avoid a duplicate message.',
@@ -57,7 +61,9 @@ function RequestCard({ request, locale, busy, onStatus, onRetry, initiallyOpen =
         <section><h3>{t.customer}</h3><p>{request.customer.name}</p><p><a href={`tel:${request.customer.phone.replace(/[^+\d]/gu, '')}`}>{request.customer.phone}</a></p>{request.customer.telegram ? <p>Telegram: {request.customer.telegram}</p> : null}</section>
         {request.pickup ? <section><h3>{t.pickup}</h3><p>{request.pickup.city} · {request.pickup.code}</p><p>{request.pickup.address}</p></section> : null}
       </div>
-      {request.items?.length ? <section><ul>{request.items.map((item) => <li key={item.offerId}>{getOfferCopy(item.offerId, locale).title} × {item.quantity} — {formatShopMoney(item.unitPriceMinor * item.quantity, locale, request.currency)}<small>{item.hubModel} · {item.socketCount} {locale === 'en' ? 'plug(s) per kit' : 'розеток в комплекте'}{item.verification === 'PILOT' ? ` · ${t.verification}` : ''}</small></li>)}</ul><p><strong>{t.total}: {formatShopMoney(request.totalMinor, locale, request.currency)}</strong></p><p className="gh-shop-admin__hint">{t.noPayment}</p></section> : null}
+      {request.items?.length ? <section><ul>{request.items.map((item) => <li key={item.offerId}>{getOfferCopy(item.offerId, locale).title} × {item.quantity} — {formatShopMoney(item.unitPriceMinor * item.quantity, locale, request.currency)}<small>{item.components?.length
+        ? `${t.perItem}: ${item.components.map((component) => `${t.components[component.id] || component.id} × ${component.quantity}`).join(' · ')}`
+        : `${item.hubModel} · ${item.socketCount} ${locale === 'en' ? 'plug(s) per kit' : 'розеток в комплекте'}`}{item.verification === 'PILOT' ? ` · ${t.verification}` : ''}</small></li>)}</ul><p><strong>{t.total}: {formatShopMoney(request.totalMinor, locale, request.currency)}</strong></p><p className="gh-shop-admin__hint">{t.noPayment}</p></section> : null}
       {request.comment ? <section><h3>{t.comment}</h3><p className="gh-shop-admin__comment">{request.comment}</p></section> : null}
       {notification.lastError === 'NOT_CONFIGURED' ? <p className="gh-shop-admin__hint">{t.adminOnly}</p> : <section className="gh-shop-admin__notification"><h3>{t.notification}</h3><p>{t.notifications[notification.status] || '—'} · {t.attempts}: {notification.attempts ?? 0}</p>
         {notification.lastError ? <p className="gh-shop-admin__hint">{t.notificationError}: {notification.lastError}</p> : null}

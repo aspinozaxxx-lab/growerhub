@@ -8,10 +8,15 @@ import MiniFarmPage from './MiniFarmPage';
 import PumpEarlyAccessPage from './PumpEarlyAccessPage';
 import { getArticleClusters } from '../content/articleClusters';
 import { changeLocale } from '../locales/i18n';
+import catalog from '../../../backend/src/main/resources/shop/catalog.json';
 
 vi.mock('../components/LeadCta', () => ({ default: () => null }));
 vi.mock('../components/PlatformStartLink', () => ({ default: () => null }));
 vi.mock('../utils/analytics', () => ({ trackProductGoal: vi.fn() }));
+vi.mock('../features/shop', async () => ({
+  ...await import('../features/shop/copy'),
+  useShop: () => ({ catalog, cartLocked: false, addItem: vi.fn(), openConsultation: vi.fn() }),
+}));
 
 afterEach(async () => { cleanup(); await changeLocale('ru', { remember: false }); });
 

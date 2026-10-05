@@ -43,6 +43,21 @@ describe('Shop checkout', () => {
   });
   afterEach(cleanup);
 
+  it('sohranyaet vse shest pozicij i otpravlyaet varianty nasosa bez podmeny sostava', async () => {
+    const items = ['light-mini', 'light-white', 'light-three', 'soil-sensor', 'pump', 'pump-drip-kit'].map((offerId) => ({ offerId, quantity: 1 }));
+    window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+    show();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Оформить заказ' })).toBeEnabled());
+    expect(screen.getAllByLabelText('Количество')).toHaveLength(6);
+    expect(screen.getByLabelText('cart count')).toHaveTextContent('6');
+    expect(screen.getByText('18 267 ₽')).toBeVisible();
+    expect(JSON.parse(window.localStorage.getItem(CART_STORAGE_KEY))).toEqual(items);
+    fillOrder();
+    fireEvent.click(screen.getByRole('button', { name: 'Оформить заказ' }));
+    await screen.findByText('Заказ получен');
+    expect(createShopRequest.mock.calls[0][0].items).toEqual(items);
+  });
+
   it('vosstanavlivaet tolko sostav korziny i ne hranit postoronnie dannye', async () => {
     window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify([
       { offerId: 'light-mini', quantity: 2, name: 'Chuzhoe imya', phone: '1234567890' },

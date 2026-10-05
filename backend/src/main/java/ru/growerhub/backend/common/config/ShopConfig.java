@@ -20,12 +20,26 @@ public class ShopConfig {
                     || catalog.offers() == null || catalog.offers().isEmpty()) throw new IllegalStateException("Invalid shop catalog");
             for (var offer : catalog.offers()) {
                 if (offer.id() == null || offer.id().isBlank() || !identifiers.add(offer.id()) || offer.priceMinor() <= 0
-                        || offer.socketCount() < 1 || offer.verification() == null || offer.hubEquipmentId() == null
-                        || offer.socketEquipmentId() == null || offer.hubModel() == null) throw new IllegalStateException("Invalid shop offer");
+                        || offer.verification() == null) throw new IllegalStateException("Invalid shop offer");
+                boolean starter = present(offer.hubModel()) && present(offer.hubEquipmentId())
+                        && present(offer.socketEquipmentId()) && offer.socketCount() > 0;
+                boolean accessory = offer.hubModel() == null && offer.hubEquipmentId() == null
+                        && offer.socketEquipmentId() == null && offer.socketCount() == 0
+                        && offer.components() != null && !offer.components().isEmpty();
+                if (!starter && !accessory) throw new IllegalStateException("Invalid shop offer composition");
+                if (offer.components() != null) {
+                    var components = new HashSet<String>();
+                    for (var component : offer.components()) {
+                        if (component.id() == null || !component.id().matches("[a-z][a-z0-9-]*")
+                                || component.quantity() < 1 || !components.add(component.id()))
+                            throw new IllegalStateException("Invalid shop component");
+                    }
+                }
             }
             return new ShopData.Definition(catalog.version(), catalog.currency(), java.util.List.copyOf(catalog.offers()));
         }
     }
+    private boolean present(String value) { return value != null && !value.isBlank(); }
     @Bean
     public ThreadPoolTaskScheduler shopTaskScheduler() {
         var scheduler = new ThreadPoolTaskScheduler();

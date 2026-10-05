@@ -192,7 +192,7 @@ public class ShopService {
             var offer = definition.offers().stream().filter(o -> o.id().equals(item.offerId())).findFirst()
                     .orElseThrow(() -> invalid("Один из выбранных комплектов недоступен."));
             return new ShopData.SnapshotItem(offer.id(), item.quantity(), offer.priceMinor(), offer.hubModel(),
-                    offer.hubEquipmentId(), offer.socketEquipmentId(), offer.socketCount(), offer.verification());
+                    offer.hubEquipmentId(), offer.socketEquipmentId(), offer.socketCount(), offer.verification(), offer.components());
         }).toList();
     }
 

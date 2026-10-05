@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-10-05",
+  "updated_at": "2026-10-06",
   "title": "GrowerHub — more time for the plants you love",
-  "description": "Lighting schedules for a plant shelf or small nursery. Ready-to-order kits, CDEK delivery and help getting connected. Try GrowerHub without any hardware.",
+  "description": "Lighting, watering and ventilation for a small nursery. Smart plugs, soil sensors, automations and energy history. We will help you choose and connect your equipment.",
   "hero": {
     "badge": "For people who love growing",
     "title": "More time for the plants you love",
-    "subtitle": "Let the lights follow a schedule, leaving more time for cuttings, seedlings and the work you love. We will help you choose a kit and connect it.",
+    "subtitle": "Lighting, watering and ventilation in one app. Set up automations, follow soil conditions and see electricity use. We will help you choose and connect the equipment.",
     "cta": "Choose a kit",
     "demo_cta": "Try without hardware",
     "reassurance": "Explore the app without signing up or buying anything",
@@ -21,8 +21,8 @@
   "kits": {
     "title": "Start with the kit that suits you",
     "note": "Good plants start with care",
-    "all": "Compare all three kits",
-    "lamps_note": "For your existing lamps. Lamps are not included."
+    "all": "Explore all kits and devices",
+    "lamps_note": "Choose suitable plugs for your lamps, extractor fan and other appliances. Add a sensor or pump separately."
   },
   "help": {
     "title": "Not sure what to choose?",
@@ -33,7 +33,7 @@
   },
   "demo": {
     "title": "You can start without any hardware",
-    "text": "Open a ready-made demo farm: explore the plants, try a lighting schedule and get to know the app at your own pace.",
+    "text": "Open a ready-made demo farm: try automations, explore sensor history and see virtual devices working. Get to know the app at your own pace.",
     "cta": "Explore an example",
     "note": "Everything in the demo is virtual. Your actions cannot switch someone else's plug."
   },
@@ -41,10 +41,12 @@
   "faq": {
     "title": "A little reassurance before you start",
     "items": [
-      { "question": "I am not technical. Will I manage?", "answer": "We will help you choose and check your kit. At home, plug it in, connect the hub to your Wi-Fi using the Upravlyator app and link it to GrowerHub. A step-by-step guide and help with the first connection are included." },
-      { "question": "What happens after I place an order?", "answer": "We will contact you, confirm the kit and delivery, and check the devices before shipping. There is nothing to pay on the website at this stage. Enter the code and address of your chosen CDEK pickup point yourself." },
+      { "question": "I am not technical. Will I manage?", "answer": "We will help you choose equipment and discuss the first setup by phone. With a PushOk kit, connect the hub to your Wi-Fi using Upravlyator, then link it to GrowerHub. A step-by-step guide and connection help are included." },
+      { "question": "What happens after I place an order?", "answer": "We will call to discuss the contents, compatibility with your appliances, first setup and delivery. Kits are assembled after order confirmation. There is nothing to pay on the website. Enter the code and address of your chosen CDEK pickup point yourself." },
       { "question": "Do I need to buy hardware straight away?", "answer": "No. Open the demo farm without signing up to explore the app and change settings on virtual devices. You can choose your hardware whenever you are ready." },
-      { "question": "What can a kit do, and does it need the internet?", "answer": "These kits control lighting schedules through smart plugs. GrowerHub and the PushOk cloud need internet access. Lamps are supplied separately; these kits are not intended for automated watering." }
+      { "question": "What can I use smart plugs for?", "answer": "Lamps, extractor fans, compatible pumps and other appliances. Automations help manage their operation in one place. When confirming the order, we will match plugs to their loads and agree on water delivery and run limits for any watering setup. GrowerHub and the PushOk cloud need internet access." },
+      { "question": "Can I see electricity use?", "answer": "Yes, if the plug provides those measurements: GrowerHub can show power and energy history. This helps compare device use across days and notice changes. We will check the model's capabilities when choosing it with you." },
+      { "question": "Can I add a soil sensor and watering?", "answer": "Yes. A soil sensor costs 499 RUB, our pump on its own costs 1,999 RUB, and the pump with 20 drippers and tubing costs 2,499 RUB. Add them to your basket separately or with a kit. The pump supports Wi-Fi without a Zigbee coordinator or Zigbee. We will discuss the contents and first setup by phone; a coordinator is not included with the pump or watering kit." }
     ]
   }
 }

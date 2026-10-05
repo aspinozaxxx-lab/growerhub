@@ -799,37 +799,22 @@ ${category.items.map((item) => renderEquipmentCard(item, 'ru')).join('\n')}
   }, mainHtml, assets);
 };
 
-const renderPumpEarlyAccessPage = (template, assets, equipment) => {
+const renderPumpEarlyAccessPage = (template, assets, equipment, locale = 'ru') => {
   const pump = equipment.pump;
-  const canonical = toCanonicalUrl('/oborudovanie/nasos-dlya-poliva/');
-  const mainHtml = `
-          <div class="badge">${htmlEscape(pump.status)}</div><h1>${htmlEscape(pump.title)}</h1><p class="article-lead">${htmlEscape(pump.summary)}</p>
-          <section class="content-section split-section"><div class="info-block"><h2>Два варианта связи</h2><p>Проектируем два режима: Zigbee для общей сети устройств и Wi‑Fi с прямым MQTT GrowerHub. Оба варианта работают с единым кабинетом платформы.</p></div><div class="info-block"><h2>Текущий этап</h2><p>Прототип проходит испытания. Если хотите присоединиться к первым пользователям, напишите нам — обсудим оборудование и подходящий сценарий.</p></div></section>
-          <section class="content-section info-block"><h2>Откуда взялась разработка</h2><p>Контур полива GrowerHub развивается с октября 2025 года: в Git видны первые MQTT-команды, а в production-журнале сохранились записи с 26 ноября. Нынешний Zigbee/Wi‑Fi-прототип — отдельное следующее поколение устройства, поэтому мы не выдаём весь этот период за испытание одной модели.</p><a class="secondary-link" href="/about/">Хронология и эксплуатационные данные</a></section>
-          <section class="content-section"><h2>Что мы проверяем</h2><ul class="check-list limitations-list">${pump.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></section>
-          <section class="lead-cta"><div><h2>Стать одним из первых пользователей</h2><p>Расскажите, где планируете использовать насос. Мы ответим на вопросы и подскажем, как подготовиться к первым испытаниям.</p></div>${telegramLink('pump_early_access', 'Написать в Telegram', 'hero-cta')}</section>
-          ${leadCta('pump_platform_bottom', 'Начать с готового оборудования', 'Для мониторинга GrowerHub насос не нужен: достаточно координатора и одного Zigbee-датчика.')}`;
-
+  const canonical = toCanonicalUrl(getPublicPath('equipmentPump', locale));
   return pageShell(template, {
+    renderWithReact: true,
     title: `${pump.title} — GrowerHub`,
     description: pump.description,
     canonical,
-    jsonLd: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'WebPage',
-        name: pump.title,
-        description: pump.description,
-        url: canonical,
-        isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: HOME_URL },
-      },
-      breadcrumbLd([
-        { name: SITE_NAME, url: HOME_URL },
-        { name: 'Оборудование', url: toCanonicalUrl('/oborudovanie/') },
-        { name: pump.title, url: canonical },
-      ]),
-    ],
-  }, mainHtml, assets);
+    locale,
+    image: '/content/nursery/pump-drip-kit.webp',
+    jsonLd: [{
+      '@context': 'https://schema.org', '@type': 'WebPage', name: pump.title,
+      description: pump.description, url: canonical, inLanguage: locale,
+      isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: toCanonicalUrl(getPublicPath('home', locale)) },
+    }],
+  }, '', assets);
 };
 
 const renderLegalPage = (template, assets, legal, type) => {
@@ -1146,43 +1131,6 @@ ${category.items.map((item) => renderEquipmentCard(item, 'en')).join('\n')}
   )}`, assets);
 };
 
-const renderEnglishPumpEarlyAccessPage = (template, assets, equipment) => {
-  const pump = equipment.pump;
-  const routePath = getPublicPath('equipmentPump', 'en');
-  const canonical = toCanonicalUrl(routePath);
-  return pageShell(template, {
-    title: `${pump.title} — GrowerHub`,
-    description: pump.description,
-    canonical,
-    locale: 'en',
-    jsonLd: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'WebPage',
-        name: pump.title,
-        description: pump.description,
-        url: canonical,
-        isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: toCanonicalUrl('/en/') },
-      },
-      breadcrumbLd([
-        { name: SITE_NAME, url: toCanonicalUrl('/en/') },
-        { name: 'Equipment', url: toCanonicalUrl(getPublicPath('equipment', 'en')) },
-        { name: pump.title, url: canonical },
-      ]),
-    ],
-  }, `
-          <div class="badge">${htmlEscape(pump.status)}</div><h1>${htmlEscape(pump.title)}</h1><p class="article-lead">${htmlEscape(pump.summary)}</p>
-          <section class="content-section split-section"><div class="info-block"><h2>Two connection options</h2><p>We are designing Zigbee connectivity for the shared device mesh and Wi-Fi with direct GrowerHub MQTT. Both options use the same platform dashboard.</p></div><div class="info-block"><h2>Current stage</h2><p>The prototype is being tested. If you would like to join the first users, message us and we will discuss your equipment and a suitable scenario.</p></div></section>
-          <section class="content-section info-block"><h2>Where this development came from</h2><p>GrowerHub's irrigation path has been evolving since October 2025: Git contains the first MQTT commands, while the production journal retains entries from November 26. The current Zigbee/Wi-Fi prototype is a separate next generation, so we do not present that entire period as a test of one model.</p><a class="secondary-link" href="${getPublicPath('about', 'en')}">Timeline and operational data</a></section>
-          <section class="content-section"><h2>What we are testing</h2><ul class="check-list limitations-list">${pump.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></section>
-          <section class="lead-cta"><div><h2>Become an early user</h2><p>Tell us where you plan to use the pump. We will answer your questions and help you prepare for testing.</p></div>${telegramLink('pump_early_access', 'Message us on Telegram', 'hero-cta')}</section>
-          ${leadCta(
-    'pump_platform_bottom',
-    'Start with available equipment',
-    'You do not need a pump for monitoring: a coordinator and one Zigbee sensor are enough.',
-    'en',
-  )}`, assets);
-};
 
 const renderEnglishLegalPage = (template, assets, legal, type) => {
   const privacy = type === 'privacy';
@@ -1562,7 +1510,7 @@ const main = () => {
   );
   writePublicPage(
     getPublicPath('equipmentPump', 'en'),
-    renderEnglishPumpEarlyAccessPage(template, assets, enEquipment),
+    renderPumpEarlyAccessPage(template, assets, enEquipment, 'en'),
   );
   writePublicPage(
     getPublicPath('privacy', 'en'),

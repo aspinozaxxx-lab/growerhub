@@ -2,6 +2,7 @@ import { Sprout } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import DemoStartLink from '../components/DemoStartLink';
 import { NurseryDemoBanner, NurseryFootnote, NurseryHelpCard, NurseryKitCard, NurseryNote, NurseryServiceStrip } from '../components/nursery/NurseryComponents';
+import { getNurseryCopy } from '../components/nursery/copy';
 import { getPageContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
 import { DEMO_PUBLIC_ENABLED, GITHUB_REPOSITORY_URL, ORGANIZATION_ID, SITE_NAME, SITE_URL, TELEGRAM_CHANNEL_URL } from '../domain/siteConfig';
@@ -16,6 +17,8 @@ function HomePage() {
   const { hero, kits, help, demo, faq } = homeContent;
   const path = getPublicPath('home', locale);
   const featured = ['light-mini', 'light-three'].map((id) => catalog.offers.find((offer) => offer.id === id)).filter(Boolean);
+  const additions = ['soil-sensor', 'pump'].map((id) => catalog.offers.find((offer) => offer.id === id)).filter(Boolean);
+  const additionsCopy = getNurseryCopy(locale).catalogue;
 
   useSeoMeta({
     title: homeContent.title,
@@ -63,6 +66,10 @@ function HomePage() {
         <div className="nursery-kits-more"><Link className="nursery-text-link" to={getPublicPath('equipment', locale)}>{kits.all}</Link></div>
       </section>
 
+      {additions.length > 0 && <section className="nursery-section" aria-labelledby="nursery-additions-title">
+        <h2 id="nursery-additions-title">{additionsCopy.additionsTitle}</h2><p>{additionsCopy.additionsIntro}</p>
+        <div className="nursery-home-additions">{additions.map((offer) => <NurseryKitCard key={offer.id} offer={offer} locale={locale} />)}</div>
+      </section>}
       <NurseryDemoBanner content={demo} placement="home_example" />
       <NurseryFootnote connection>{homeContent.connection_note}</NurseryFootnote>
 

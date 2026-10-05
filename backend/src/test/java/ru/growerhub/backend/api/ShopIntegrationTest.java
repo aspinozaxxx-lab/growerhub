@@ -84,7 +84,7 @@ class ShopIntegrationTest extends IntegrationTestBase {
     @Test
     void guestCanReadCatalogAndSubmitWithServerPriceAndManualPickup() {
         request(null).get("/api/shop/catalog").then().statusCode(200)
-                .body("version", equalTo("2026-10-05.1"), "currency", equalTo("RUB"), "acceptingRequests", equalTo(true))
+                .body("version", equalTo("2026-10-06.1"), "currency", equalTo("RUB"), "acceptingRequests", equalTo(true))
                 .body("offers.find { it.id == 'light-mini' }.verification", equalTo("PILOT"));
         var body = order();
         body.put("items", List.of(Map.of("offerId", "light-white", "quantity", 2, "priceMinor", 1)));
@@ -103,6 +103,71 @@ class ShopIntegrationTest extends IntegrationTestBase {
                 .body("items[0].unitPriceMinor", equalTo(449000), "items[0].hubModel", equalTo("POK100"));
         assertThat(jdbc.queryForObject("select count(*) from devices", Long.class)).isEqualTo(devices);
         assertThat(jdbc.queryForObject("select count(*) from zigbee_coordinators", Long.class)).isEqualTo(coordinators);
+    }
+
+    @Test
+    void accessoriesShareCartWithStarterKitsAndKeepServerCompositionOnIdempotentRetry() {
+        request(null).get("/api/shop/catalog").then().statusCode(200)
+                .body("offers.size()", equalTo(6))
+                .body("offers.find { it.id == 'soil-sensor' }.priceMinor", equalTo(49900))
+                .body("offers.find { it.id == 'pump' }.priceMinor", equalTo(199900))
+                .body("offers.find { it.id == 'pump-drip-kit' }.priceMinor", equalTo(249900))
+                .body("offers.find { it.id == 'pump-drip-kit' }.hubModel", nullValue())
+                .body("offers.find { it.id == 'soil-sensor' }.verification", equalTo("PILOT"))
+                .body("offers.find { it.id == 'pump' }.verification", equalTo("PILOT"))
+                .body("offers.find { it.id == 'pump-drip-kit' }.verification", equalTo("PILOT"));
+        var body = order();
+        body.put("items", List.of(
+                Map.of("offerId", "light-mini", "quantity", 1),
+                Map.of("offerId", "light-white", "quantity", 1),
+                Map.of("offerId", "light-three", "quantity", 1),
+                Map.of("offerId", "pump", "quantity", 1),
+                Map.of("offerId", "soil-sensor", "quantity", 2, "unitPriceMinor", 1),
+                Map.of("offerId", "pump-drip-kit", "quantity", 1, "unitPriceMinor", 1,
+                        "components", List.of(Map.of("id", "dripper", "quantity", 999)))));
+        String first = request(null).body(body).post("/api/shop/requests").then().statusCode(200)
+                .body("totalMinor", equalTo(1876600), "currency", equalTo("RUB")).extract().asString();
+        assertThat(request(null).body(body).post("/api/shop/requests").then().statusCode(200).extract().asString()).isEqualTo(first);
+        assertThat(requests.count()).isEqualTo(1); assertThat(notifications.count()).isEqualTo(1);
+        var stored = requests.findAll().getFirst();
+        assertThat(stored.itemsJson).contains("\"id\":\"dripper\",\"quantity\":20", "\"id\":\"hose-set\",\"quantity\":1")
+                .doesNotContain("\"quantity\":999");
+        var response = request(admin).get("/api/admin/shop/requests/" + stored.id).then().statusCode(200)
+                .body("items.size()", equalTo(6));
+        response.body("items.find { it.offerId == 'soil-sensor' }.quantity", equalTo(2))
+                .body("items.find { it.offerId == 'soil-sensor' }.unitPriceMinor", equalTo(49900))
+                .body("items.find { it.offerId == 'soil-sensor' }.hubEquipmentId", nullValue())
+                .body("items.find { it.offerId == 'soil-sensor' }.components[0].id", equalTo("soil-sensor"))
+                .body("items.find { it.offerId == 'pump' }.unitPriceMinor", equalTo(199900))
+                .body("items.find { it.offerId == 'pump' }.hubModel", nullValue())
+                .body("items.find { it.offerId == 'pump' }.components.id", contains("zigbee-pump"))
+                .body("items.find { it.offerId == 'pump' }.components.quantity", contains(1))
+                .body("items.find { it.offerId == 'pump-drip-kit' }.unitPriceMinor", equalTo(249900))
+                .body("items.find { it.offerId == 'pump-drip-kit' }.hubModel", nullValue())
+                .body("items.find { it.offerId == 'pump-drip-kit' }.socketCount", equalTo(0))
+                .body("items.find { it.offerId == 'pump-drip-kit' }.components.id", contains("zigbee-pump", "dripper", "hose-set"))
+                .body("items.find { it.offerId == 'pump-drip-kit' }.components.quantity", contains(1, 20, 1))
+                .body("items.find { it.offerId == 'light-mini' }.unitPriceMinor", equalTo(329000))
+                .body("items.find { it.offerId == 'light-white' }.unitPriceMinor", equalTo(449000))
+                .body("items.find { it.offerId == 'light-three' }.unitPriceMinor", equalTo(549000));
+    }
+
+    @Test
+    void persistedSnapshotWithoutComponentsKeepsItsOriginalVersionAndPrice() {
+        request(null).body(order()).post("/api/shop/requests").then().statusCode(200);
+        var id = requests.findAll().getFirst().id;
+        String legacy = """
+                [{"offerId":"light-mini","quantity":1,"unitPriceMinor":329000,"hubModel":"POK101",
+                  "hubEquipmentId":"pushok-pok101","socketEquipmentId":"zbeacon-ts011f","socketCount":1,"verification":"PILOT"}]
+                """;
+        jdbc.update("update shop_requests set catalog_version = ?, items_json = ? where id = ?", "2026-10-05.1", legacy, id);
+        request(admin).get("/api/admin/shop/requests/" + id).then().statusCode(200)
+                .body("catalogVersion", equalTo("2026-10-05.1"), "totalMinor", equalTo(329000))
+                .body("items[0].hubModel", equalTo("POK101"), "items[0].socketCount", equalTo(1))
+                .body("items[0].components", nullValue(), "items[0].unitPriceMinor", equalTo(329000));
+        request(admin).get("/api/admin/shop/requests").then().statusCode(200)
+                .body("requests[0].items[0].components", nullValue(), "requests[0].items[0].hubModel", equalTo("POK101"));
+        assertThat(requests.findById(id).orElseThrow().itemsJson).isEqualTo(legacy);
     }
 
     @Test
@@ -264,7 +329,7 @@ class ShopIntegrationTest extends IntegrationTestBase {
 
     private Map<String, Object> order() {
         var body = new LinkedHashMap<String, Object>();
-        body.put("kind", "ORDER"); body.put("idempotencyKey", UUID.randomUUID().toString()); body.put("catalogVersion", "2026-10-05.1");
+        body.put("kind", "ORDER"); body.put("idempotencyKey", UUID.randomUUID().toString()); body.put("catalogVersion", "2026-10-06.1");
         body.put("items", List.of(Map.of("offerId", "light-mini", "quantity", 1)));
         body.put("customer", Map.of("name", " Test Buyer ", "phone", "+7 (999) 000-00-00", "telegram", "@qa_test"));
         body.put("pickup", Map.of("city", "Москва", "code", "TST-10", "address", "Test pickup address"));
