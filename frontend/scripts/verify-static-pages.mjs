@@ -12,6 +12,7 @@ import ruMiniFarmContent from '../content/pages/mini-farm.json' with { type: 'js
 import articleMetadata from '../src/content/articleMetadata.generated.json' with { type: 'json' };
 import ruNews from '../content/pages/news.json' with { type: 'json' };
 import enNews from '../content/en/pages/news.json' with { type: 'json' };
+import shopCatalog from '../../backend/src/main/resources/shop/catalog.json' with { type: 'json' };
 import { getArticleClusters } from '../src/content/articleClusters.js';
 import { PUBLIC_ROUTES, getPublicPath } from '../src/domain/localizedRoutes.js';
 import {
@@ -54,7 +55,12 @@ const exactEquipmentModels = new Set([
 const equipmentByLocale = { ru: ruEquipment, en: enEquipment };
 for (const [locale, catalog] of Object.entries(equipmentByLocale)) {
   const items = Object.values(catalog.categories).flatMap((category) => category.items);
-  assert(items.length === 16, `Equipment ${locale}: expected 16 items, got ${items.length}`);
+  assert(items.length === 18, `Equipment ${locale}: expected 18 items, got ${items.length}`);
+  for (const offer of shopCatalog.offers) {
+    for (const id of [offer.hubEquipmentId, offer.socketEquipmentId]) {
+      assert(items.filter((item) => item.id === id).length === 1, `Shop offer ${offer.id}: missing or duplicate equipment ${id} in ${locale}`);
+    }
+  }
   assert(!items.some((item) => item.model === 'TS011F'), `Equipment ${locale}: TS011F returned`);
   for (const item of items) {
     assert(Boolean(item.image), `Equipment ${locale}: no image for ${item.model}`);
@@ -77,7 +83,7 @@ const lastmods = [...sitemap.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((matc
 const urlSet = new Set(urls);
 const ruUrls = urls.filter((url) => !new URL(url).pathname.startsWith('/en/'));
 const enUrls = urls.filter((url) => new URL(url).pathname.startsWith('/en/'));
-const publicRouteCount = Object.keys(PUBLIC_ROUTES).filter((id) => id !== 'privacy' && id !== 'terms').length;
+const publicRouteCount = Object.keys(PUBLIC_ROUTES).filter((id) => !['privacy', 'terms', 'cart'].includes(id)).length;
 const expectedRu = publicRouteCount + getArticleClusters('ru').length + articleMetadata.ru.length;
 const expectedEn = publicRouteCount + getArticleClusters('en').length + articleMetadata.en.length;
 assert(urls.length === expectedRu + expectedEn, `Sitemap: expected ${expectedRu + expectedEn} URLs, got ${urls.length}`);
@@ -134,7 +140,7 @@ for (const url of urls) {
     `Non-reciprocal EN alternate: ${url}`,
   );
   assert(/<h1[ >]/i.test(html), `Missing H1: ${url}`);
-  assert(html.includes('data-platform-placement='), `Missing primary platform CTA: ${url}`);
+  assert(html.includes('data-platform-placement=') || html.includes('class="public-cart"'), `Missing platform or kit CTA: ${url}`);
   assert(
     html.includes(`property="og:locale" content="${locale === 'en' ? 'en_US' : 'ru_RU'}"`),
     `Open Graph locale mismatch: ${url}`,
@@ -245,12 +251,12 @@ for (const [locale, html, content] of [['ru', ruHomeHtml, ruHomeContent], ['en',
 assert(ruAboutHtml.includes(ruAboutContent.title), 'RU static about differs from shared content');
 assert(enAboutHtml.includes(enAboutContent.title), 'EN static about differs from shared content');
 assert(
-  ruHomeHtml.includes(ruHomeContent.evidence.text) && ruHomeHtml.includes('href="/about/"'),
-  'RU home has no operational evidence',
+  ruHomeHtml.includes(ruHomeContent.connection_note) && ruHomeHtml.includes('href="/about/"'),
+  'RU home has no connection conditions or about link',
 );
 assert(
-  enHomeHtml.includes(enHomeContent.evidence.text) && enHomeHtml.includes('href="/en/about/"'),
-  'EN home has no operational evidence',
+  enHomeHtml.includes(enHomeContent.connection_note) && enHomeHtml.includes('href="/en/about/"'),
+  'EN home has no connection conditions or about link',
 );
 for (const [locale, html] of [['RU', ruAboutHtml], ['EN', enAboutHtml]]) {
   assert(html.includes(ORGANIZATION_ID), `${locale} about has no stable Organization ID`);
@@ -273,6 +279,13 @@ assert(
 for (const pathname of ['/privacy/', '/terms/', '/en/privacy/', '/en/terms/']) {
   const html = read(urlToFile(`${SITE_URL}${pathname}`));
   assert(html.includes('noindex,follow'), `${pathname} is not noindex,follow`);
+  assert(!urlSet.has(`${SITE_URL}${pathname}`), `${pathname} must not be in sitemap`);
+}
+
+for (const pathname of ['/korzina/', '/en/cart/']) {
+  const html = read(urlToFile(`${SITE_URL}${pathname}`));
+  assert(html.includes('noindex,nofollow'), `${pathname} is not noindex,nofollow`);
+  assert(html.includes('data-react-ssr="1"'), `${pathname} must use shared React markup`);
   assert(!urlSet.has(`${SITE_URL}${pathname}`), `${pathname} must not be in sitemap`);
 }
 

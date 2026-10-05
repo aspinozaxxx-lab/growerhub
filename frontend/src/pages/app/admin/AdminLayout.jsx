@@ -7,6 +7,7 @@ import './AdminPages.css';
 
 // Translitem: punkty navigacii admin-razdela.
 const adminNavItems = [
+  { to: '/app/admin/shop/requests/', label: 'Заказы комплектов' },
   { to: '/app/admin/product-analytics/', label: 'Воронка' },
   { to: '/app/admin/users/', label: 'Пользователи' },
   { to: '/app/admin/pushok-pilots/', label: 'Пилот ПушОк' },

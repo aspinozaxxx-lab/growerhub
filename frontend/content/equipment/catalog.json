@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-01",
+  "updated_at": "2026-10-05",
   "checked_at": "2026-07-23",
   "purchase_note": "Для старта не нужен дорогой фирменный комплект. Выбирайте удобный вариант по бюджету и убедитесь, что в карточке указан именно Zigbee, а не Wi‑Fi или Bluetooth. Примеры на Ozon не являются партнёрскими, похожие устройства продают разные продавцы, а цены со временем меняются.",
   "zigbee_note": "Для большинства распространённых датчиков и розеток достаточно маркировки Zigbee или Zigbee 3.0: Zigbee2MQTT автоматически определяет устройство, после чего оно появляется в GrowerHub. Точный model ID полезно сверить в каталоге Zigbee2MQTT, чтобы заранее увидеть доступные показатели и команды, но покупать только дорогие бренды необязательно.",
@@ -32,6 +32,27 @@
             "Для первого графика добавьте один датчик температуры/влажности. Проверьте точную модель с нами до покупки: датчики через этот облачный путь ещё требуют отдельного испытания. Питание хаба и батарейку датчика сверяйте по комплектации.",
             "В GrowerHub испытаны POK100v2, прошивка 95 и розетка Zbeacon TS011F: показания, включение/выключение и восстановление связи. Это не подтверждение всех ревизий и не допуск к автополиву.",
             "У Mini POK101 цена ниже — 1 630 ₽ на ту же дату, но его подключение к GrowerHub отдельно ещё не испытано. Если он уже есть, обсудим пилот без покупки нового хаба."
+          ],
+          "id": "pushok-pok100"
+        },
+        {
+          "id": "pushok-pok101",
+          "model": "ПушОк Mini POK101",
+          "name": "Компактный хаб для первой зоны света",
+          "status": "Пилот · физическая проверка впереди",
+          "image": "/content/equipment/pushok-pok101.jpg",
+          "image_alt": "Плоский квадратный белый хаб ПушОк Mini POK101",
+          "image_caption": "Фото производителя. Mini отдельно ещё не испытан в GrowerHub.",
+          "image_source_url": "https://pushok.io/devices/pok100",
+          "image_license": "Изображение производителя; права принадлежат ПушОк",
+          "summary": "Самый доступный хаб в комплекте для первого стеллажа. Нужны телефон и домашний Wi-Fi с интернетом. Mini и конкретную ревизию розетки проверим до подтверждения поставки.",
+          "official_url": "https://pushok.io/devices/pok100",
+          "official_label": "Модели у производителя",
+          "shop_search_url": "https://pushok.io/devices/pok100",
+          "shop_label": "Посмотреть у производителя",
+          "notes": [
+            "У Mini нет усилителя сигнала White; реальная связь зависит от размещения.",
+            "В подготовленный комплект включены питание и кабель; лампы и доставка отдельно."
           ]
         },
         {
@@ -69,7 +90,11 @@
           "official_url": "https://www.zigbee2mqtt.io/guide/adapters/zstack.html",
           "example_url": "https://www.ozon.ru/product/zigbee-stik-cc2652p-usb-dongle-vneshnyaya-antenna-20-dbm-2767494114/",
           "shop_search_url": "https://www.ozon.ru/search/?text=Zigbee%20%D1%81%D1%82%D0%B8%D0%BA%20CC2652P%20USB%20Dongle%20%D0%B2%D0%BD%D0%B5%D1%88%D0%BD%D1%8F%D1%8F%20%D0%B0%D0%BD%D1%82%D0%B5%D0%BD%D0%BD%D0%B0",
-          "notes": ["В Zigbee2MQTT выбирается адаптер zstack", "Берите вариант с прошивкой координатора", "Внешняя антенна удобна для теплицы и нескольких помещений"]
+          "notes": [
+            "В Zigbee2MQTT выбирается адаптер zstack",
+            "Берите вариант с прошивкой координатора",
+            "Внешняя антенна удобна для теплицы и нескольких помещений"
+          ]
         },
         {
           "model": "SONOFF ZBDongle-P",
@@ -83,7 +108,10 @@
           "image_license": "Zigbee2MQTT documentation, GPL-3.0",
           "official_url": "https://www.zigbee2mqtt.io/guide/adapters/zstack.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=SONOFF%20ZBDongle-P",
-          "notes": ["В Zigbee2MQTT выбирается адаптер zstack", "USB-удлинитель помогает вынести координатор от радиопомех"]
+          "notes": [
+            "В Zigbee2MQTT выбирается адаптер zstack",
+            "USB-удлинитель помогает вынести координатор от радиопомех"
+          ]
         },
         {
           "model": "SONOFF ZBDongle-E",
@@ -97,7 +125,10 @@
           "image_license": "Zigbee2MQTT documentation, GPL-3.0",
           "official_url": "https://www.zigbee2mqtt.io/guide/adapters/emberznet.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=SONOFF%20ZBDongle-E",
-          "notes": ["В Zigbee2MQTT выбирается адаптер ember", "Версия E внешне похожа на ZBDongle-P — смотрите маркировку"]
+          "notes": [
+            "В Zigbee2MQTT выбирается адаптер ember",
+            "Версия E внешне похожа на ZBDongle-P — смотрите маркировку"
+          ]
         }
       ]
     },
@@ -120,7 +151,11 @@
           "official_url": "https://www.zigbee2mqtt.io/supported-devices/",
           "example_url": "https://www.ozon.ru/product/zigbee-3-0-umnyy-datchik-temperatury-i-vlazhnosti-s-alisoy-2-sht-2070768445/",
           "shop_search_url": "https://www.ozon.ru/search/?text=Zigbee%203.0%20%D0%B4%D0%B0%D1%82%D1%87%D0%B8%D0%BA%20%D1%82%D0%B5%D0%BC%D0%BF%D0%B5%D1%80%D0%B0%D1%82%D1%83%D1%80%D1%8B%20%D0%B2%D0%BB%D0%B0%D0%B6%D0%BD%D0%BE%D1%81%D1%82%D0%B8%20%D1%81%20%D1%8D%D0%BA%D1%80%D0%B0%D0%BD%D0%BE%D0%BC",
-          "notes": ["Экран позволяет быстро сравнить показания с кабинетом", "В карточке товара выбирайте вариант Zigbee 3.0", "Фактический model ID GrowerHub покажет после подключения"]
+          "notes": [
+            "Экран позволяет быстро сравнить показания с кабинетом",
+            "В карточке товара выбирайте вариант Zigbee 3.0",
+            "Фактический model ID GrowerHub покажет после подключения"
+          ]
         },
         {
           "model": "Zigbee 3-в-1 для почвы",
@@ -135,7 +170,11 @@
           "official_url": "https://www.zigbee2mqtt.io/supported-devices/",
           "example_url": "https://www.ozon.ru/product/intellektualnyy-izmeritel-vlazhnosti-pochvy-zigbee-datchik-temperatury-i-vlazhnosti-sada-v-gorshkah-2159847928/",
           "shop_search_url": "https://www.ozon.ru/search/?text=Zigbee%20%D0%B4%D0%B0%D1%82%D1%87%D0%B8%D0%BA%20%D0%B2%D0%BB%D0%B0%D0%B6%D0%BD%D0%BE%D1%81%D1%82%D0%B8%20%D0%BF%D0%BE%D1%87%D0%B2%D1%8B%20%D1%82%D0%B5%D0%BC%D0%BF%D0%B5%D1%80%D0%B0%D1%82%D1%83%D1%80%D1%8B%20%D0%B2%D0%BB%D0%B0%D0%B6%D0%BD%D0%BE%D1%81%D1%82%D0%B8",
-          "notes": ["Удобен как следующий шаг после датчика воздуха", "Набор показателей зависит от конкретной ревизии", "Для автоматического полива сначала сравните показания с ручной проверкой грунта"]
+          "notes": [
+            "Удобен как следующий шаг после датчика воздуха",
+            "Набор показателей зависит от конкретной ревизии",
+            "Для автоматического полива сначала сравните показания с ручной проверкой грунта"
+          ]
         },
         {
           "model": "SONOFF SNZB-02P",
@@ -149,7 +188,10 @@
           "image_license": "Zigbee2MQTT documentation, GPL-3.0",
           "official_url": "https://www.zigbee2mqtt.io/devices/SNZB-02P.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=SONOFF%20SNZB-02P",
-          "notes": ["Поддержка модели описана в Zigbee2MQTT", "Компактный корпус удобно размещать внутри зоны"]
+          "notes": [
+            "Поддержка модели описана в Zigbee2MQTT",
+            "Компактный корпус удобно размещать внутри зоны"
+          ]
         },
         {
           "model": "SONOFF SNZB-02D",
@@ -163,7 +205,10 @@
           "image_license": "Zigbee2MQTT documentation, GPL-3.0",
           "official_url": "https://www.zigbee2mqtt.io/devices/SNZB-02D.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=SONOFF%20SNZB-02D",
-          "notes": ["Экран удобен для проверки на месте", "Поддержка модели описана в Zigbee2MQTT"]
+          "notes": [
+            "Экран удобен для проверки на месте",
+            "Поддержка модели описана в Zigbee2MQTT"
+          ]
         },
         {
           "model": "Aqara WSDCGQ11LM",
@@ -177,7 +222,10 @@
           "image_license": "Zigbee2MQTT documentation, GPL-3.0",
           "official_url": "https://www.zigbee2mqtt.io/devices/WSDCGQ11LM.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=Aqara%20WSDCGQ11LM",
-          "notes": ["Поддержка модели описана в Zigbee2MQTT", "Хороший вариант для компактного размещения"]
+          "notes": [
+            "Поддержка модели описана в Zigbee2MQTT",
+            "Хороший вариант для компактного размещения"
+          ]
         },
         {
           "model": "Aqara SJCGQ11LM",
@@ -191,7 +239,10 @@
           "image_license": "Zigbee2MQTT documentation, GPL-3.0",
           "official_url": "https://www.zigbee2mqtt.io/devices/SJCGQ11LM.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=Aqara%20SJCGQ11LM",
-          "notes": ["Передаёт состояние протечки и заряд батареи", "Размещайте в самой низкой точке возможной протечки"]
+          "notes": [
+            "Передаёт состояние протечки и заряд батареи",
+            "Размещайте в самой низкой точке возможной протечки"
+          ]
         },
         {
           "model": "Zigbee-датчик протечки с выносным щупом",
@@ -206,7 +257,11 @@
           "official_url": "https://www.zigbee2mqtt.io/supported-devices/",
           "example_url": "https://www.ozon.ru/product/umnyy-datchik-protechki-vody-zigbee-s-alisoy-nastennyy-montazh-home-assistant-zigbee2mqtt-3338707808/",
           "shop_search_url": "https://www.ozon.ru/search/?text=Zigbee%20%D0%B4%D0%B0%D1%82%D1%87%D0%B8%D0%BA%20%D0%BF%D1%80%D0%BE%D1%82%D0%B5%D1%87%D0%BA%D0%B8%20%D0%B2%D0%BE%D0%B4%D1%8B%20%D1%81%20%D0%B2%D1%8B%D0%BD%D0%BE%D1%81%D0%BD%D1%8B%D0%BC%20%D1%89%D1%83%D0%BF%D0%BE%D0%BC",
-          "notes": ["Выносной контакт удобно закрепить у пола или под соединением", "В карточке товара выбирайте именно Zigbee-версию", "После подключения проверьте срабатывание небольшим количеством воды"]
+          "notes": [
+            "Выносной контакт удобно закрепить у пола или под соединением",
+            "В карточке товара выбирайте именно Zigbee-версию",
+            "После подключения проверьте срабатывание небольшим количеством воды"
+          ]
         }
       ]
     },
@@ -216,6 +271,26 @@
       "description": "Доступные Zigbee-розетки для света, вентиляции и другого оборудования в GrowerHub.",
       "intro": "Для управления достаточно обычной Zigbee-розетки с подходящей нагрузкой. Недорогие white-label модели часто работают не хуже фирменных, а GrowerHub покажет доступные команды после подключения.",
       "items": [
+        {
+          "id": "zbeacon-ts011f",
+          "model": "Zbeacon TS011F",
+          "name": "Умная розетка из проверки GrowerHub",
+          "status": "Испытан экземпляр с POK100v2",
+          "image": "/content/equipment/smart-plug-example.svg",
+          "image_alt": "Схематичная иллюстрация умной розетки",
+          "image_caption": "Схематичная иллюстрация, не фотография конкретной поставляемой ревизии.",
+          "summary": "С POK100v2 и прошивкой 95 проверены состояния, показания, переключение и восстановление связи. Конкретный экземпляр и допустимую нагрузку проверяем до подтверждения комплекта.",
+          "official_url": "https://www.zigbee2mqtt.io/supported-devices/",
+          "official_label": "Каталог совместимости устройств",
+          "shop_search_url": "https://www.zigbee2mqtt.io/supported-devices/",
+          "shop_label": "Сверить модель и ревизию",
+          "notes": [
+            "Одного названия TS011F недостаточно для гарантии одинаковых возможностей разных ревизий.",
+            "В комплектах используем для света, не для автоматического полива."
+          ],
+          "image_source_url": "https://growerhub.ru/content/equipment/smart-plug-example.svg",
+          "image_license": "Схематичная иллюстрация GrowerHub"
+        },
         {
           "model": "AOAT Zigbee 16A",
           "name": "Доступная розетка с таймером",
@@ -229,7 +304,11 @@
           "official_url": "https://www.zigbee2mqtt.io/supported-devices/",
           "example_url": "https://www.ozon.ru/product/umnaya-rozetka-aoat-s-alisoy-16a-tuya-zigbee-s-taymerom-i-golosovym-upravleniem-belaya-2096599570/",
           "shop_search_url": "https://www.ozon.ru/search/?text=AOAT%2016A%20Tuya%20Zigbee%20%D1%80%D0%BE%D0%B7%D0%B5%D1%82%D0%BA%D0%B0",
-          "notes": ["Проверена на реальной установке GrowerHub", "В карточке товара выбирайте именно Zigbee-версию", "Для света и другой нагрузки соблюдайте паспортную мощность"]
+          "notes": [
+            "Проверена на реальной установке GrowerHub",
+            "В карточке товара выбирайте именно Zigbee-версию",
+            "Для света и другой нагрузки соблюдайте паспортную мощность"
+          ]
         },
         {
           "model": "SONOFF S26R2ZB",
@@ -243,7 +322,10 @@
           "image_license": "Zigbee2MQTT documentation, GPL-3.0",
           "official_url": "https://www.zigbee2mqtt.io/devices/S26R2ZB.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=SONOFF%20S26R2ZB",
-          "notes": ["Сверьте тип вилки и розетки", "Не превышайте паспортную нагрузку"]
+          "notes": [
+            "Сверьте тип вилки и розетки",
+            "Не превышайте паспортную нагрузку"
+          ]
         },
         {
           "model": "SONOFF S60ZBTPF",
@@ -257,7 +339,10 @@
           "image_license": "Zigbee2MQTT documentation, GPL-3.0",
           "official_url": "https://www.zigbee2mqtt.io/devices/S60ZBTPF.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=SONOFF%20S60ZBTPF",
-          "notes": ["Проверьте европейскую версию TPF", "Метрики не заменяют электрическую защиту"]
+          "notes": [
+            "Проверьте европейскую версию TPF",
+            "Метрики не заменяют электрическую защиту"
+          ]
         },
         {
           "model": "Aqara SP-EUC01",
@@ -271,7 +356,10 @@
           "image_license": "Zigbee2MQTT documentation, GPL-3.0",
           "official_url": "https://www.zigbee2mqtt.io/devices/SP-EUC01.html",
           "shop_search_url": "https://www.ozon.ru/search/?text=Aqara%20SP-EUC01",
-          "notes": ["Поддержка команд и метрик описана в Zigbee2MQTT", "Подбирайте нагрузку по паспорту розетки"]
+          "notes": [
+            "Поддержка команд и метрик описана в Zigbee2MQTT",
+            "Подбирайте нагрузку по паспорту розетки"
+          ]
         }
       ]
     }

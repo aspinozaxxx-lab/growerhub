@@ -24,6 +24,8 @@ import ru.growerhub.backend.user.contract.AuthUser;
 public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "bearer ";
     private static final Set<String> PUBLIC_PATHS = Set.of(
+            "/api/shop/catalog",
+            "/api/shop/requests",
             "/api/notifications/telegram/webhook",
             "/api/auth/login",
             "/api/auth/refresh",

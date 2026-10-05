@@ -14,6 +14,8 @@ import LegalPage from './pages/LegalPage';
 import MiniFarmPage from './pages/MiniFarmPage';
 import NotFoundPage from './pages/NotFoundPage';
 import PumpEarlyAccessPage from './pages/PumpEarlyAccessPage';
+import ShopCartPage from './pages/ShopCartPage';
+import { ShopProvider } from './features/shop';
 import { loadAppTranslations, translateCommon } from './locales/i18n';
 import { trackPageView, trackProductGoalOnce } from './utils/analytics';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
@@ -59,6 +61,7 @@ function AnalyticsRouteTracker() {
 function App({ initialArticle } = {}) {
   return (
     <AuthProvider>
+      <ShopProvider>
       <Layout>
         <AnalyticsRouteTracker />
         <Routes>
@@ -70,6 +73,8 @@ function App({ initialArticle } = {}) {
         <Route path="/en/getting-started/" element={<GettingStartedPage />} />
         <Route path="/oborudovanie/" element={<EquipmentIndexPage />} />
         <Route path="/en/equipment/" element={<EquipmentIndexPage />} />
+        <Route path="/korzina/" element={<ShopCartPage />} />
+        <Route path="/en/cart/" element={<ShopCartPage />} />
         <Route path="/oborudovanie/zigbee-koordinator/" element={<EquipmentCategoryPage categoryKey="coordinators" />} />
         <Route path="/en/equipment/zigbee-coordinators/" element={<EquipmentCategoryPage categoryKey="coordinators" />} />
         <Route path="/oborudovanie/datchiki/" element={<EquipmentCategoryPage categoryKey="sensors" />} />
@@ -103,6 +108,7 @@ function App({ initialArticle } = {}) {
         <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Layout>
+      </ShopProvider>
     </AuthProvider>
   );
 }

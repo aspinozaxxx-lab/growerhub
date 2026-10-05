@@ -526,6 +526,62 @@ telegram:
   # Interval otdelnogo dostavshchika.
   poll-ms: 30000
 
+shop:
+  # Priem zayavok vklyuchaetsya posle proverki konfiguracii i dostavki.
+  accepting-requests: ${SHOP_ACCEPTING_REQUESTS:false}
+  # Edinstvennyj istochnik kommercheskogo kataloga.
+  catalog-path: classpath:shop/catalog.json
+  # Podtverzhdennyj chat vladelca dlya uvedomlenij, tolko iz okruzheniya.
+  telegram-chat-id: ${SHOP_TELEGRAM_CHAT_ID:}
+  # Ssylka na zakrytuyu admin-stranitsu zayavki.
+  admin-url: https://growerhub.ru/app/admin/shop/requests/
+  # HMAC-sekret dlya psevdonimnyh klyuchej rate-limit.
+  rate-secret: ${SHOP_RATE_SECRET:${JWT_SECRET_KEY:}}
+  # Tolko eti proksi mogut peredavat X-Real-IP.
+  trusted-proxy-addresses: ${SHOP_TRUSTED_PROXY_ADDRESSES:127.0.0.1,::1,0:0:0:0:0:0:0:1}
+  # Okno ucheta prinyatyh zayavok v minutah.
+  rate-window-minutes: 60
+  # Novye zayavki s odnogo adresa v okne.
+  max-requests-per-address: 5
+  # Novye zayavki s odnim telefonom v okne.
+  max-requests-per-phone: 3
+  # Raznye komplekty v odnoj korzine.
+  max-items: 3
+  # Kolichestvo odnogo komplekta.
+  max-quantity: 10
+  # Dlina imeni poluchatelya.
+  max-name-length: 100
+  # Dlina telefona do normalizacii.
+  max-phone-length: 32
+  # Minimalnoe kolichestvo cifr telefona.
+  min-phone-digits: 10
+  # Maksimalnoe kolichestvo cifr telefona.
+  max-phone-digits: 15
+  # Dlina neobyazatelnogo Telegram-kontakta.
+  max-telegram-length: 100
+  # Dlina kommentariya k zayavke.
+  max-comment-length: 2000
+  # Dlina goroda vydachi.
+  max-city-length: 120
+  # Dlina vvedennogo vruchnuyu nomera PVZ.
+  max-pickup-code-length: 40
+  # Dlina vvedennogo vruchnuyu adresa PVZ.
+  max-pickup-address-length: 300
+  # Dlina versii kataloga i identifikatora predlozheniya.
+  max-catalog-version-length: 50
+  # Verhnij predel stranicy admin-spiska.
+  max-page-size: 100
+  # Razmer paketa Telegram-uvedomlenij.
+  notification-batch-size: 3
+  # Srok rezervacii otpravki do uncertain.
+  notification-lease-seconds: 120
+  # Predel popytok dostavki posle yavnogo 429.
+  notification-max-attempts: 3
+  # Minimalnaya pauza posle yavnogo 429.
+  notification-retry-seconds: 60
+  # Interval otdelnogo worker, ne svyazannogo s avtomatizaciyami.
+  poll-ms: 30000
+
 spring:
   servlet:
     multipart:

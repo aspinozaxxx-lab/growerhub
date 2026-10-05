@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    { "id": "nursery-kits-and-orders", "published_at": "2026-10-05", "kind": "feature", "article_id": "komplekty-dlya-rasteniy-growerhub", "preview_position": "50% 52%" },
     { "id": "nursery-temperature-history-route", "published_at": "2026-10-04", "kind": "article_update", "article_id": "istoriya-mikroklimata-i-grafiki", "text": "В статье об истории микроклимата добавлен пример наблюдения за рассадой в небольшом питомнике: первая зона, суточный график, повторный осмотр и ограничения подключения." },
     { "id": "live-publication-catalog-check", "published_at": "2026-10-04", "kind": "fix", "text": "Проверка публикаций больше не сообщает об ошибке из-за появления новых статей. Отсутствующие страницы и переводы по-прежнему выявляются." },
     { "id": "ha-watering-connection-route", "published_at": "2026-10-04", "kind": "article_update", "article_id": "home-assistant-dlya-rasteniy", "text": "В статье об автополиве в Home Assistant уточнены совместимость MQTT-моста, объём доступа и первый шаг с одним датчиком без переноса действующих сценариев." },

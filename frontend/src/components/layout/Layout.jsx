@@ -8,6 +8,7 @@ import { getPublicLocale, getPublicPath, isAppPath } from '../../domain/localize
 import { getLocalizedPathPair } from '../../content/localizedNavigation';
 import { getCurrentLocale, translatePublic } from '../../locales/i18n';
 import './Layout.css';
+import PublicSiteLayout from './PublicSiteLayout';
 
 const navLinks = [
   { routeId: 'home', label: 'Главная' },
@@ -31,6 +32,8 @@ function Layout({ children }) {
     if (inApp || navigationType === 'POP' || location.hash) return;
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [inApp, location.pathname, location.hash, navigationType]);
+
+  if (!inApp) return <PublicSiteLayout>{children}</PublicSiteLayout>;
 
   return (
     <div className={`app-shell ${inApp ? 'app-shell--cabinet' : ''}`}>

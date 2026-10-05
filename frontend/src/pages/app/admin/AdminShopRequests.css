@@ -1,0 +1,26 @@
+.gh-shop-admin { color: var(--text-1); min-width: 0; }
+.gh-shop-admin__header, .gh-shop-admin__toolbar, .gh-shop-admin__pagination { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.gh-shop-admin__header h1 { font-size: clamp(24px, 4vw, 32px); margin: 0; }
+.gh-shop-admin :is(button, select) { color: var(--text-1); background: var(--surface-2); border: 1px solid var(--border-2); border-radius: 8px; padding: 10px 14px; min-height: 44px; font: inherit; font-size: 16px; }
+.gh-shop-admin button { cursor: pointer; }
+.gh-shop-admin button:disabled { opacity: .55; cursor: not-allowed; }
+.gh-shop-admin label { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.gh-shop-admin__request { border: 1px solid var(--border-2); border-radius: 12px; margin: 14px 0; background: var(--surface-1); }
+.gh-shop-admin__request summary { cursor: pointer; padding: 18px; display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+.gh-shop-admin__request summary small, .gh-shop-admin__details li small { display: block; font-size: 14px; color: var(--text-2); margin-top: 5px; }
+.gh-shop-admin__badge { border: 1px solid var(--border-2); border-radius: 99px; padding: 4px 10px; font-size: 14px; }
+.gh-shop-admin__details { border-top: 1px solid var(--border-1); padding: 18px; display: grid; gap: 20px; overflow-wrap: anywhere; }
+.gh-shop-admin__details :is(h3, p) { margin: 0 0 8px; }
+.gh-shop-admin__details h3 { font-size: 17px; }
+.gh-shop-admin__details ul { margin: 0; padding-left: 22px; }
+.gh-shop-admin__details li { margin-bottom: 12px; }
+.gh-shop-admin__columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.gh-shop-admin__hint { color: var(--text-2); font-size: 14px; }
+.gh-shop-admin__comment { white-space: pre-wrap; }
+.gh-shop-admin__notification { padding: 14px; border: 1px solid var(--border-1); border-radius: 10px; }
+.gh-shop-admin .gh-shop-admin__retry-confirm { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; margin: 12px 0; align-items: start; }
+.gh-shop-admin__retry-confirm input { width: 20px; height: 20px; margin: 3px 0 0; }
+.gh-shop-admin__status { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.gh-shop-admin__error { color: #ef9da8; }
+.gh-shop-admin :is(button, select, summary, a):focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 560px) { .gh-shop-admin__columns { grid-template-columns: minmax(0, 1fr); } .gh-shop-admin__request summary, .gh-shop-admin__details { padding: 14px; } .gh-shop-admin__pagination { justify-content: center; } }

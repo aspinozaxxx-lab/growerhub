@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-01",
+  "updated_at": "2026-10-05",
   "checked_at": "2026-07-23",
   "purchase_note": "You do not need an expensive branded kit to get started. Choose an option that suits your budget and make sure the listing says Zigbee rather than Wi-Fi or Bluetooth. Search links are neutral, have no affiliate tags, and availability varies by country and seller.",
   "zigbee_note": "For most common sensors and smart plugs, a Zigbee or Zigbee 3.0 label is enough: Zigbee2MQTT discovers the device and it then appears in GrowerHub. Check the exact model ID in the Zigbee2MQTT catalogue when possible to see available metrics and commands, but there is no need to buy only expensive brands.",
@@ -28,6 +28,27 @@
             "For a first chart, add one temperature/humidity sensor. Discuss its exact model before buying: sensors still need a separate trial through this cloud route. Check the hub power supply and sensor battery in the listing.",
             "GrowerHub was tested on POK100v2, firmware 95 and a Zbeacon TS011F plug for readings, on/off control and reconnection. This does not establish support for every revision or approval for automatic watering.",
             "Mini POK101 is cheaper at RUB 1,630 on the same date, but its GrowerHub connection has not been tested separately. Existing owners can discuss a pilot without buying another hub."
+          ],
+          "id": "pushok-pok100"
+        },
+        {
+          "id": "pushok-pok101",
+          "model": "PushOk Mini POK101",
+          "name": "Compact hub for one lighting zone",
+          "status": "Pilot · physical check pending",
+          "image": "/content/equipment/pushok-pok101.jpg",
+          "image_alt": "Flat square white PushOk Mini POK101 hub",
+          "image_caption": "Manufacturer photo. Mini has not yet been physically verified with GrowerHub.",
+          "image_source_url": "https://pushok.io/devices/pok100",
+          "image_license": "Manufacturer product image; rights belong to PushOk",
+          "summary": "The most affordable hub in our first-shelf kit. A phone and home Wi-Fi with internet are required. We test Mini and the specific plug revision before confirming supply.",
+          "official_url": "https://pushok.io/devices/pok100",
+          "official_label": "Models at the manufacturer",
+          "shop_search_url": "https://pushok.io/devices/pok100",
+          "shop_label": "View manufacturer listing",
+          "notes": [
+            "Mini does not have the White model’s signal amplifier. Actual coverage depends on placement.",
+            "The prepared kit includes a power supply and cable; lamps and shipping are separate."
           ]
         },
         {
@@ -242,6 +263,26 @@
       "description": "Accessible Zigbee smart plugs for lighting, ventilation and other equipment in GrowerHub.",
       "intro": "For basic control, a regular Zigbee smart plug rated for the connected load is enough. Affordable white-label models can work just as well as branded options, and GrowerHub shows the available commands after connection.",
       "items": [
+        {
+          "id": "zbeacon-ts011f",
+          "model": "Zbeacon TS011F",
+          "name": "Smart plug used in the GrowerHub check",
+          "status": "One unit tested with POK100v2",
+          "image": "/content/equipment/smart-plug-example.svg",
+          "image_alt": "Schematic smart plug illustration",
+          "image_caption": "Illustration, not a photograph of a specific supplied revision.",
+          "summary": "States, readings, switching and reconnection were checked with POK100v2 firmware 95. The exact unit and its permitted load are checked before kit confirmation.",
+          "official_url": "https://www.zigbee2mqtt.io/supported-devices/",
+          "official_label": "Device compatibility catalog",
+          "shop_search_url": "https://www.zigbee2mqtt.io/supported-devices/",
+          "shop_label": "Check model and revision",
+          "notes": [
+            "The TS011F name alone does not guarantee the same capabilities across revisions.",
+            "These kits are intended for lighting, not automatic watering."
+          ],
+          "image_source_url": "https://growerhub.ru/content/equipment/smart-plug-example.svg",
+          "image_license": "GrowerHub schematic illustration"
+        },
         {
           "model": "AOAT Zigbee 16A",
           "name": "Affordable smart plug with timer",

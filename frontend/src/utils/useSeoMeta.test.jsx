@@ -58,7 +58,7 @@ it('zamenyaet staticheskuyu razmetku pri gidratacii, vhode v kabinet i vozvrate 
   expect(document.head.querySelector('meta[property="og:type"]').content).toBe('website');
   expect(document.head.querySelector('meta[name="twitter:title"]').content).toBe(document.title);
   expect(document.head.querySelector('meta[name="twitter:description"]').content).toBe('Ручной полив');
-  expect(document.head.querySelector('meta[name="twitter:image"]').content).toBe('https://growerhub.ru/og-growerhub.svg');
+  expect(document.head.querySelector('meta[name="twitter:image"]').content).toBe('https://growerhub.ru/content/nursery/hero.webp');
   expect(document.getElementById('growerhub-article')).not.toBeNull();
 
   rerender({ ...article, title: 'Watering log — GrowerHub', path: '/en/articles/watering-log/', locale: 'en' });

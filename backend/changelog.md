@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-05
+- Shop: dobavlen servernyj katalog, gostevye zakazy i konsultacii, snimok cen, idempotentnost i ogranichenie chastoty.
+- Shop: PVZ SDEK vvodyatsya vruchnuyu; API dostavki i oplata ne podklyucheny.
+- Shop: admin obrabatyvaet zayavki i vidit sostoyanie otdelnoj ocheredi Telegram; uncertain ne povtoryaetsya avtomaticheski.
+- DB: dobavochnaya migraciya V33 ne menyaet fermy i ustrojstva.
+
 ## 2026-10-01
 - PushOk: pri vremennom obryve oblaka, v tom chisle posle restarta backend, koordinator stanovitsya OFFLINE i sohranyaet privyazku dlya avtomaticheskogo vosstanovleniya.
 - Testy: proveren otkaz bez obnuleniya credentials, vosstanovlenie tolko po zhivomu MQTT i ignorirovanie ustarevshej popytki.

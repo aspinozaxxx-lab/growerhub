@@ -1,14 +1,14 @@
 import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
 import TelegramContactLink from '../components/TelegramContactLink';
-import { equipmentContent } from '../content/pages';
+import { getPageContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
 import { getCurrentLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 
 function PumpEarlyAccessPage() {
   const locale = getCurrentLocale();
-  const pump = equipmentContent.pump;
+  const pump = getPageContent(locale).equipmentContent.pump;
   useSeoMeta({
     title: `${pump.title} — GrowerHub`,
     description: pump.description,

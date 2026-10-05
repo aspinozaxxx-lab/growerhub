@@ -73,6 +73,15 @@ Optional env:
 - `MQTT_PASSWORD`
 - `MQTT_TLS`
 
+Для приёма заказов после контрольной проверки задаются `SHOP_ACCEPTING_REQUESTS=true`
+и `SHOP_TELEGRAM_CHAT_ID` подтверждённого чата владельца. Доставка использует
+существующие `TELEGRAM_ENABLED` и `TELEGRAM_BOT_TOKEN`; токены остаются вне
+репозитория. Приём заявок по умолчанию выключен. `SHOP_RATE_SECRET` можно задать
+отдельно; иначе используется `JWT_SECRET_KEY`. `SHOP_TRUSTED_PROXY_ADDRESSES`
+ограничивает источники `X-Real-IP`, по умолчанию доверен только loopback.
+СДЭК API, карты и онлайн-оплата не требуются. Контракт и ограничения —
+[ADR-012](../docs/architecture/adr/ADR-012-shop-orders.md).
+
 On production server the env file is stored at:
 
 `/opt/growerhub/env/growerhub-java-backend.env`

@@ -70,9 +70,9 @@ it.each([
   ));
   expect(window.ym.mock.calls.filter((call) => call[2] === 'signup_complete')).toHaveLength(1);
   expect(window.gtag.mock.calls.filter((call) => call[1] === 'signup_complete')).toHaveLength(1);
-  expect(JSON.parse(screen.getByTestId('location').textContent)).toEqual({
+  await waitFor(() => expect(JSON.parse(screen.getByTestId('location').textContent)).toEqual({
     pathname, search: demo ? '?save=1&lang=en' : '?lang=en', hash: '#history', state,
-  });
+  }));
 });
 
 it('ne schitaet gostevuyu demosessiyu registraciej akkaunta', async () => {

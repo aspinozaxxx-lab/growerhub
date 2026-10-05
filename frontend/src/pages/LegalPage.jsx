@@ -40,12 +40,14 @@ function LegalPage({ type }) {
           <h2>{translatePublic('Обращения')}</h2><p>{translatePublic('По вопросам данных и удаления аккаунта используйте контакт оператора.')}</p>
           <h2>{legalContent.pilot_privacy.title}</h2><p>{legalContent.pilot_privacy.text}</p>
           <h2>{legalContent.pushok_privacy.title}</h2><p>{legalContent.pushok_privacy.text}</p>
+          <h2>{legalContent.shop_privacy.title}</h2><p>{legalContent.shop_privacy.text}</p>
         </>
       ) : (
         <>
           <h2>{translatePublic('Ранний доступ')}</h2><p>{translatePublic('GrowerHub доступен бесплатно и без карты. Основные функции уже работают, а каталог устройств и сценариев постоянно расширяется. О важных изменениях сообщим заранее.')}</p>
           <h2>{translatePublic('Подключение оборудования')}</h2><p>{translatePublic('Для оборудования с водой и сетевым питанием соблюдайте электробезопасность, проверяйте нагрузку и предусмотрите физическое аварийное отключение.')}</p>
           <h2>{translatePublic('Поддержка')}</h2><p>{translatePublic('Если понадобится помощь, напишите нам в Telegram — подскажем с подключением, устройствами и настройкой функций на русском или английском.')}</p>
+          <h2>{legalContent.shop_terms.title}</h2><p>{legalContent.shop_terms.text}</p>
         </>
       )}
       <h2>{(isPrivacy ? legalContent.demo_privacy : legalContent.demo_terms).title}</h2>

@@ -35,6 +35,7 @@ const AdminPlants = lazy(() => import('./admin/AdminPlants'));
 const AdminProductAnalytics = lazy(() => import('./admin/AdminProductAnalytics'));
 const AdminUsers = lazy(() => import('./admin/AdminUsers'));
 const AdminPushokPilots = lazy(() => import('./admin/AdminPushokPilots'));
+const AdminShopRequests = lazy(() => import('./admin/AdminShopRequests'));
 const AdminZigbee = lazy(() => import('./admin/AdminZigbee'));
 
 function ProtectedAppLayout() {
@@ -94,6 +95,7 @@ function AppSection() {
               <Route path="product-analytics/" element={<AdminProductAnalytics />} />
               <Route path="users/" element={<AdminUsers />} />
               <Route path="pushok-pilots/" element={<AdminPushokPilots />} />
+              <Route path="shop/requests/" element={<AdminShopRequests />} />
               <Route path="devices/" element={<AdminDevices />} />
               <Route path="plants/" element={<AdminPlants />} />
               <Route path="mqtt/" element={<AdminMqtt />} />

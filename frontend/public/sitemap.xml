@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://growerhub.ru/</loc>
-    <lastmod>2026-09-18</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/about/</loc>
@@ -10,11 +10,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-10-04</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/novosti/</loc>
-    <lastmod>2026-10-04</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/avtomatizatsiya-mini-fermy/</loc>
@@ -26,23 +26,23 @@
   </url>
   <url>
     <loc>https://growerhub.ru/oborudovanie/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/oborudovanie/zigbee-koordinator/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/oborudovanie/datchiki/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/oborudovanie/zigbee-rozetki/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/oborudovanie/nasos-dlya-poliva/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/avtopoliv-i-kontroller-vyrashchivaniya/</loc>
@@ -54,7 +54,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zigbee-hub-i-ustroystva/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/mini-ferma-i-neskolko-boksov/</loc>
@@ -63,6 +63,10 @@
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
     <lastmod>2026-10-04</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/komplekty-dlya-rasteniy-growerhub/</loc>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/home-assistant-dlya-rasteniy/</loc>
@@ -314,7 +318,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/</loc>
-    <lastmod>2026-09-18</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/about/</loc>
@@ -322,11 +326,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-10-04</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/news/</loc>
-    <lastmod>2026-10-04</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/farm-automation/</loc>
@@ -338,23 +342,23 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/equipment/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/equipment/zigbee-coordinators/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/equipment/sensors/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/equipment/zigbee-smart-plugs/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/equipment/irrigation-pump/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/automated-watering-and-grow-controllers/</loc>
@@ -366,7 +370,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/zigbee-hubs-and-devices/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/small-farms-and-multiple-grow-boxes/</loc>
@@ -375,6 +379,10 @@
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/home-assistant-and-diy/</loc>
     <lastmod>2026-10-04</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/plant-lighting-kits-growerhub/</loc>
+    <lastmod>2026-10-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/home-assistant-plant-watering-safe-step-by-step-setup/</loc>

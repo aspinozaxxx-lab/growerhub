@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
-import { articleClusters } from '../content/articleClusters';
+import { getArticleClusters } from '../content/articleClusters';
 import { getArticlesByCluster } from '../content/articles';
 import {
   getArticlePath,
@@ -12,6 +12,7 @@ import useSeoMeta from '../utils/useSeoMeta';
 
 function ArticlesListPage() {
   const locale = getCurrentLocale();
+  const articleClusters = getArticleClusters(locale);
   const description = translatePublic('articles.description');
   const path = getPublicPath('articles', locale);
 

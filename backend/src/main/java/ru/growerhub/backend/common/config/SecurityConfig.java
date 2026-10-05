@@ -27,6 +27,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/health").permitAll()
                         .requestMatchers(
+                                "/api/shop/catalog",
+                                "/api/shop/requests",
                                 "/api/notifications/telegram/webhook",
                                 "/api/auth/login",
                                 "/api/auth/refresh",

@@ -74,7 +74,7 @@ function EquipmentCategoryPage({ categoryKey }) {
 
       <div className="equipment-list content-section">
         {category.items.map((item) => (
-          <article className="equipment-card" key={item.model}>
+          <article className="equipment-card" key={item.model} id={item.id}>
             {item.image ? (
               <figure className="equipment-card__media">
                 <img

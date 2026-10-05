@@ -1,190 +1,75 @@
-import { useState } from 'react';
+import { Sprout } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import LeadCta from '../components/LeadCta';
-import PlatformStartLink from '../components/PlatformStartLink';
 import DemoStartLink from '../components/DemoStartLink';
-import { getArticleClusters } from '../content/articleClusters';
-import { getArticles } from '../content/articles';
+import { NurseryDemoBanner, NurseryFootnote, NurseryHelpCard, NurseryKitCard, NurseryNote, NurseryServiceStrip } from '../components/nursery/NurseryComponents';
 import { getPageContent } from '../content/pages';
-import { overviewScreenshotDimensions, overviewScreenshotVersion } from '../content/productScreenshots';
-import {
-  getArticlePath,
-  getClusterPath,
-  getPublicPath,
-} from '../domain/localizedRoutes';
-import {
-  GITHUB_REPOSITORY_URL,
-  DEMO_PUBLIC_ENABLED,
-  ORGANIZATION_ID,
-  SELF_SERVICE_PUBLIC_ENABLED,
-  SITE_NAME,
-  SITE_URL,
-  TELEGRAM_CHANNEL_URL,
-  toCanonicalUrl,
-} from '../domain/siteConfig';
-import { getCurrentLocale, getIntlLocale, translatePublic } from '../locales/i18n';
+import { getPublicPath } from '../domain/localizedRoutes';
+import { DEMO_PUBLIC_ENABLED, GITHUB_REPOSITORY_URL, ORGANIZATION_ID, SITE_NAME, SITE_URL, TELEGRAM_CHANNEL_URL } from '../domain/siteConfig';
+import { useShop } from '../features/shop';
+import { getCurrentLocale } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 
 function HomePage() {
-  const [videoOpen, setVideoOpen] = useState(false);
   const locale = getCurrentLocale();
   const { homeContent } = getPageContent(locale);
+  const { catalog } = useShop();
+  const { hero, kits, help, demo, faq } = homeContent;
   const path = getPublicPath('home', locale);
-  const pageDescription = homeContent.description;
-  const organizationLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    '@id': ORGANIZATION_ID,
-    name: SITE_NAME,
-    url: SITE_URL,
-    foundingDate: '2025-10-06',
-    sameAs: [GITHUB_REPOSITORY_URL, TELEGRAM_CHANNEL_URL],
-  };
-  const softwareApplicationLd = {
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: 'GrowerHub',
-    applicationCategory: 'BusinessApplication',
-    operatingSystem: 'Web',
-    url: toCanonicalUrl(path),
-    description: pageDescription,
-    inLanguage: locale,
-    areaServed: locale === 'en' ? 'Russia and CIS countries' : 'Россия и страны СНГ',
-    provider: { '@id': ORGANIZATION_ID },
-    ...(SELF_SERVICE_PUBLIC_ENABLED ? {
-      isAccessibleForFree: true,
-      offers: { '@type': 'Offer', price: '0', priceCurrency: locale === 'en' ? 'USD' : 'RUB' },
-    } : {}),
-  };
+  const featured = ['light-mini', 'light-three'].map((id) => catalog.offers.find((offer) => offer.id === id)).filter(Boolean);
 
   useSeoMeta({
     title: homeContent.title,
-    description: pageDescription,
+    description: homeContent.description,
     path,
-    jsonLd: [organizationLd, softwareApplicationLd],
+    image: hero.preview_image,
     locale,
+    jsonLd: [{
+      '@context': 'https://schema.org', '@type': 'Organization', '@id': ORGANIZATION_ID,
+      name: SITE_NAME, url: SITE_URL, foundingDate: '2025-10-06',
+      sameAs: [GITHUB_REPOSITORY_URL, TELEGRAM_CHANNEL_URL],
+    }, {
+      '@context': 'https://schema.org', '@type': 'FAQPage',
+      mainEntity: faq.items.map((item) => ({ '@type': 'Question', name: item.question, acceptedAnswer: { '@type': 'Answer', text: item.answer } })),
+    }],
   });
 
-  const { hero, secondary, features, demo_video: demoVideo } = homeContent;
-  const recentArticles = [...getArticles(locale)].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at) || a.slug.localeCompare(b.slug)).slice(0, 4);
-
   return (
-    <div className="section home-page">
-      <div className="hero">
-        <div>
-          <div className="badge">{hero.badge}</div>
-          <h1>{hero.title}</h1>
+    <div className="nursery-page nursery-home">
+      <section className="nursery-hero" aria-labelledby="nursery-hero-title">
+        <div className="nursery-hero__copy">
+          <p className="nursery-eyebrow"><Sprout aria-hidden="true" size={18} />{hero.badge}</p>
+          <h1 id="nursery-hero-title">{hero.title}</h1>
           <p>{hero.subtitle}</p>
-          <div className="cta-row">
-            <DemoStartLink placement="home_hero_demo">{hero.demo_cta}</DemoStartLink>
-            <PlatformStartLink placement="home_hero" className="secondary-link">
-              {SELF_SERVICE_PUBLIC_ENABLED ? hero.cta : translatePublic('Как начать')}
-            </PlatformStartLink>
+        </div>
+        <div className="nursery-hero__photo"><img src={hero.preview_image} alt={hero.preview_alt} width="1600" height="914" fetchPriority="high" /></div>
+        <div className="nursery-hero__actions">
+          <div className="nursery-actions">
+            <Link className="nursery-button" to={getPublicPath('equipment', locale)}>{hero.cta}</Link>
+            <DemoStartLink className="nursery-button nursery-button--outline" placement="home_hero_demo">{hero.demo_cta}</DemoStartLink>
           </div>
-          {DEMO_PUBLIC_ENABLED && <p className="hero-reassurance">{hero.reassurance}</p>}
+          {DEMO_PUBLIC_ENABLED && <p className="nursery-small">{hero.reassurance}</p>}
         </div>
-        <figure className="hero-product-preview">
-          <img src={`${hero.preview_image}?v=${overviewScreenshotVersion}`} srcSet={`${hero.preview_image.replace('.webp', '-640.webp')}?v=${overviewScreenshotVersion} 640w, ${hero.preview_image}?v=${overviewScreenshotVersion} 1280w`} sizes="(max-width: 800px) 100vw, 50vw" {...overviewScreenshotDimensions[locale]} fetchPriority="high" alt={hero.preview_alt} />
-          <figcaption>{hero.preview_caption}</figcaption>
-        </figure>
-      </div>
+        <NurseryNote className="nursery-hero__note">{hero.note}</NurseryNote>
+      </section>
+      <NurseryServiceStrip items={homeContent.service} />
 
-      <details className="home-demo-video" onToggle={(event) => setVideoOpen(event.currentTarget.open)}>
-        <summary>
-          <span>{demoVideo.title}</span>{' '}
-          <span className="home-demo-video__duration">{demoVideo.duration}</span>
-        </summary>
-        <div className="home-demo-video__content">
-          {videoOpen && <video key={demoVideo.src} controls playsInline autoPlay muted preload="none" width="720" height="1280" poster={demoVideo.poster} aria-label={demoVideo.title}>
-            <source src={demoVideo.src} type="video/mp4" />
-            <a href={demoVideo.src}>{demoVideo.fallback}</a>
-          </video>}
-          <div>
-            <h2>{demoVideo.heading}</h2>
-            <DemoStartLink placement="home_video_watering" view="watering">{demoVideo.cta}</DemoStartLink>
-            <ol>{demoVideo.steps.map((step) => <li key={step}>{step}</li>)}</ol>
-            <p>{demoVideo.note}</p>
-          </div>
+      <section aria-labelledby="nursery-kits-title">
+        <div className="nursery-section-heading"><h2 id="nursery-kits-title">{kits.title}</h2><NurseryNote>{kits.note}</NurseryNote></div>
+        <div className="nursery-home-kits">
+          {featured.map((offer) => <NurseryKitCard key={offer.id} offer={offer} locale={locale} />)}
+          <NurseryHelpCard content={help} />
         </div>
-      </details>
-
-      <section className="content-section">
-        <h2>{features.title}</h2>
-        <p>{features.text}</p>
-        <div className="card-grid demo-task-grid">
-          {features.items.map((item) => (
-            <div className="card demo-task-card" key={item.title}>
-              <h3>{item.title}</h3>
-              <p>{item.text}</p>
-              <DemoStartLink placement={`home_task_${item.view}`} view={item.view} className="secondary-link">{item.cta}</DemoStartLink>
-            </div>
-          ))}
-        </div>
+        <NurseryFootnote>{kits.lamps_note}</NurseryFootnote>
+        <div className="nursery-kits-more"><Link className="nursery-text-link" to={getPublicPath('equipment', locale)}>{kits.all}</Link></div>
       </section>
 
-      <section className="content-section">
-        <h2>{secondary.title}</h2><p>{secondary.text}</p>
-        <div className="card-grid">{secondary.points.map((point) => <div className="info-block" key={point.title}><strong>{point.title}</strong><p>{point.text}</p></div>)}</div>
-        <div className="cta-row">
-          <Link className="secondary-link" to={getPublicPath('gettingStarted', locale)}>{translatePublic('Путь подключения')}</Link>
-          <Link className="secondary-link" to={getPublicPath('equipment', locale)}>
-            {translatePublic('Какое оборудование подойдёт')}
-          </Link>
-        </div>
-      </section>
+      <NurseryDemoBanner content={demo} placement="home_example" />
+      <NurseryFootnote connection>{homeContent.connection_note}</NurseryFootnote>
 
-      <section className="content-section">
-        <h2>{homeContent.faq.title}</h2>
-        <div className="home-faq">{homeContent.faq.items.map((item) => <details key={item.question}><summary>{item.question}</summary><p>{item.answer}</p></details>)}</div>
+      <section className="nursery-faq" aria-labelledby="nursery-faq-title">
+        <h2 id="nursery-faq-title">{faq.title}</h2>
+        {faq.items.map((item) => <details key={item.question}><summary>{item.question}</summary><p>{item.answer}</p></details>)}
       </section>
-
-      <section className="content-section info-block">
-        <h2>{homeContent.evidence.title}</h2>
-        <p>{homeContent.evidence.text}</p>
-        <div className="cta-row">
-          <Link className="secondary-link" to={getPublicPath('about', locale)}>{translatePublic('История и методика')}</Link>
-          <a href={GITHUB_REPOSITORY_URL} target="_blank" rel="noreferrer">
-            {translatePublic('Исходный код на GitHub')}
-          </a>
-        </div>
-      </section>
-
-      <section className="content-section">
-        <h2>{translatePublic('Практические разделы')}</h2>
-        <div className="cluster-home-grid">
-          {getArticleClusters(locale).map((cluster) => (
-              <article className="article-card" key={cluster.slug}>
-                <Link to={getClusterPath(cluster, locale)}>{cluster.title}</Link>
-                <p>{cluster.description}</p>
-              </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="content-section">
-        <div className="cluster-block__header">
-          <div>
-            <h2>{translatePublic('Свежие статьи')}</h2>
-            <p>{translatePublic('Пошаговые материалы по Zigbee, Home Assistant, датчикам и безопасному поливу.')}</p>
-          </div>
-          <Link to={getPublicPath('articles', locale)} className="secondary-link">
-            {translatePublic('Все статьи')}
-          </Link>
-        </div>
-        <div className="articles-list">
-          {recentArticles.map((article) => (
-            <article className="article-card" key={article.slug}>
-              <div className="article-meta">
-                {translatePublic('Обновлено')} {new Date(article.updated_at).toLocaleDateString(getIntlLocale(locale), { timeZone: 'UTC' })}
-              </div>
-              <Link to={getArticlePath(article, locale)}>{article.title}</Link>
-              <p>{article.summary}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <LeadCta placement="home_bottom" title={homeContent.cta.title} text={homeContent.cta.text} showChannel />
     </div>
   );
 }
