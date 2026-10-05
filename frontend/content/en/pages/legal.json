@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-10-05",
+  "updated_at": "2026-10-06",
   "shop_privacy": {
     "title": "Kit orders and help choosing",
-    "text": "When you submit a request, we store your name, phone number, selected kits and their prices, and the city, code and address of your chosen CDEK pickup point. Telegram and comments are stored only if provided. GrowerHub administrators use these details to respond, check the kit and agree the order and delivery with you. The administrator's Telegram notification includes only the request number, total and a link to the protected order page. Contacts, addresses and form text are excluded from analytics and Webvisor form recording. A request key and a hash of the network address help prevent duplicates and abuse. Submitting a request does not subscribe you to marketing messages. Contact the operator to correct or delete your information."
+    "text": "When you submit a request, we store your name, phone number, selected kits and their prices, and the city, code and address of your chosen CDEK pickup point. Telegram and comments are stored only if provided. GrowerHub administrators use these details to respond, check the kit and agree the order and delivery with you. Requests are handled in the protected site administration area; automatic email and Telegram notifications are not sent at this stage. Contacts, addresses and form text are excluded from analytics and Webvisor form recording. A request key and a hash of the network address help prevent duplicates and abuse. Submitting a request does not subscribe you to marketing messages. Contact the operator to correct or delete your information."
   },
   "shop_terms": {
     "title": "Kit requests",

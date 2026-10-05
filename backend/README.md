@@ -73,9 +73,11 @@ Optional env:
 - `MQTT_PASSWORD`
 - `MQTT_TLS`
 
-Для приёма заказов после контрольной проверки задаются `SHOP_ACCEPTING_REQUESTS=true`
-и `SHOP_TELEGRAM_CHAT_ID` подтверждённого чата владельца. Доставка использует
-существующие `TELEGRAM_ENABLED` и `TELEGRAM_BOT_TOKEN`; токены остаются вне
+Для приёма заказов после контрольной проверки задаётся `SHOP_ACCEPTING_REQUESTS=true`.
+В первом выпуске заявки обрабатываются только в админке: `SHOP_TELEGRAM_CHAT_ID`
+не задан, уведомления на почту и в Telegram не отправляются. При последующем
+подключении Telegram потребуется подтверждённый чат владельца; доставка использует
+существующие `TELEGRAM_ENABLED` и `TELEGRAM_BOT_TOKEN`. Токены остаются вне
 репозитория. Приём заявок по умолчанию выключен. `SHOP_RATE_SECRET` можно задать
 отдельно; иначе используется `JWT_SECRET_KEY`. `SHOP_TRUSTED_PROXY_ADDRESSES`
 ограничивает источники `X-Real-IP`, по умолчанию доверен только loopback.

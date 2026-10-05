@@ -12,7 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
-    { "id": "nursery-kits-and-orders", "published_at": "2026-10-05", "kind": "feature", "article_id": "komplekty-dlya-rasteniy-growerhub", "preview_position": "50% 52%" },
+    { "id": "nursery-kits-and-orders", "published_at": "2026-10-06", "kind": "feature", "article_id": "komplekty-dlya-rasteniy-growerhub", "preview_position": "50% 52%" },
     { "id": "nursery-temperature-history-route", "published_at": "2026-10-04", "kind": "article_update", "article_id": "istoriya-mikroklimata-i-grafiki", "text": "The microclimate history article now includes a small nursery example: one seedling zone, a daily chart, a follow-up inspection and connection limits." },
     { "id": "live-publication-catalog-check", "published_at": "2026-10-04", "kind": "fix", "text": "Publication checks no longer report an error when new articles are added. Missing pages and translations are still detected." },
     { "id": "ha-watering-connection-route", "published_at": "2026-10-04", "kind": "article_update", "article_id": "home-assistant-dlya-rasteniy", "text": "The Home Assistant watering guide now explains MQTT connector compatibility, access scope and a first sensor check while existing HA automations stay in charge." },

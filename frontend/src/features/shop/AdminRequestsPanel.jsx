@@ -15,6 +15,7 @@ const adminCopy = {
     detailError: 'Заявка по ссылке не найдена или недоступна.', found: 'Всего заявок', previous: 'Назад', next: 'Далее', page: 'Страница',
     order: 'Заказ комплекта', consultation: 'Консультация', total: 'Сумма комплектов', customer: 'Контакт', pickup: 'Пункт СДЭК',
     comment: 'Комментарий', notification: 'Уведомление Telegram', attempts: 'Попыток', notificationError: 'Код ошибки',
+    adminOnly: 'Заявка сохранена. Пока обрабатываем заказы здесь, без уведомлений на почту или в Telegram.',
     uncertain: 'Результат отправки неизвестен. Не повторяем автоматически, чтобы не дублировать сообщение.',
     checkedChat: 'Я проверил чат: этого уведомления там нет',
     accepted: 'Telegram принял сообщение. Это не подтверждение прочтения.', retry: 'Повторить уведомление', status: 'Статус заявки', save: 'Сохранить статус', saving: 'Сохраняем…',
@@ -31,6 +32,7 @@ const adminCopy = {
     detailError: 'The linked request was not found or is unavailable.', found: 'Total requests', previous: 'Previous', next: 'Next', page: 'Page',
     order: 'Kit order', consultation: 'Consultation', total: 'Kit total', customer: 'Contact', pickup: 'CDEK pickup point',
     comment: 'Comment', notification: 'Telegram notification', attempts: 'Attempts', notificationError: 'Error code',
+    adminOnly: 'The request is saved. For now, orders are handled here, without email or Telegram notifications.',
     uncertain: 'The send result is unknown. We do not retry automatically to avoid a duplicate message.',
     checkedChat: 'I checked the chat: this notification is not there',
     accepted: 'Telegram accepted the message. This does not confirm it was read.', retry: 'Retry notification', status: 'Request status', save: 'Save status', saving: 'Saving…',
@@ -57,13 +59,13 @@ function RequestCard({ request, locale, busy, onStatus, onRetry, initiallyOpen =
       </div>
       {request.items?.length ? <section><ul>{request.items.map((item) => <li key={item.offerId}>{getOfferCopy(item.offerId, locale).title} × {item.quantity} — {formatShopMoney(item.unitPriceMinor * item.quantity, locale, request.currency)}<small>{item.hubModel} · {item.socketCount} {locale === 'en' ? 'plug(s) per kit' : 'розеток в комплекте'}{item.verification === 'PILOT' ? ` · ${t.verification}` : ''}</small></li>)}</ul><p><strong>{t.total}: {formatShopMoney(request.totalMinor, locale, request.currency)}</strong></p><p className="gh-shop-admin__hint">{t.noPayment}</p></section> : null}
       {request.comment ? <section><h3>{t.comment}</h3><p className="gh-shop-admin__comment">{request.comment}</p></section> : null}
-      <section className="gh-shop-admin__notification"><h3>{t.notification}</h3><p>{t.notifications[notification.status] || '—'} · {t.attempts}: {notification.attempts ?? 0}</p>
+      {notification.lastError === 'NOT_CONFIGURED' ? <p className="gh-shop-admin__hint">{t.adminOnly}</p> : <section className="gh-shop-admin__notification"><h3>{t.notification}</h3><p>{t.notifications[notification.status] || '—'} · {t.attempts}: {notification.attempts ?? 0}</p>
         {notification.lastError ? <p className="gh-shop-admin__hint">{t.notificationError}: {notification.lastError}</p> : null}
         {notification.status === 'uncertain' ? <p>{t.uncertain}</p> : null}
         {notification.status === 'accepted' ? <p className="gh-shop-admin__hint">{t.accepted}</p> : null}
         {notification.status === 'uncertain' ? <label className="gh-shop-admin__retry-confirm"><input type="checkbox" checked={retryConfirmation === retryKey} disabled={busy} onChange={(event) => setRetryConfirmation(event.target.checked ? retryKey : null)} />{t.checkedChat}</label> : null}
         {['failed', 'blocked', 'uncertain'].includes(notification.status) ? <button type="button" onClick={() => { setRetryConfirmation(null); onRetry(request.id); }} disabled={busy || (notification.status === 'uncertain' && retryConfirmation !== retryKey)}>{t.retry}</button> : null}
-      </section>
+      </section>}
       <form className="gh-shop-admin__status" onSubmit={(event) => { event.preventDefault(); onStatus(request.id, status); }}>
         <label htmlFor={`shop-status-${request.id}`}>{t.status}<select id={`shop-status-${request.id}`} value={status} disabled={busy} onChange={(event) => setStatusDraft({ base: request.status, value: event.target.value })}>{Object.entries(t.statuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <button type="submit" disabled={busy || status === request.status}>{busy ? t.saving : t.save}</button>

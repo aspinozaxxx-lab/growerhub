@@ -2,8 +2,8 @@
 slug: "komplekty-dlya-rasteniy-growerhub"
 title: "Больше времени на растения: выбираем комплект для света"
 summary: "Один стеллаж или три зоны света: понятные наборы с ПушОком, помощь с первым подключением и заявка без предоплаты на сайте."
-created_at: "2026-10-05"
-updated_at: "2026-10-05"
+created_at: "2026-10-06"
+updated_at: "2026-10-06"
 cluster: "zigbee-hub-i-ustroystva"
 related: ["avtomatizatsiya-sveta-v-groubokse","zigbee-rozetka-dlya-sveta-i-nasosa"]
 hero_image: "/content/nursery/kit-three.webp"
