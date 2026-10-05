@@ -9,13 +9,17 @@ import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.common.contract.*;
 import ru.growerhub.backend.common.util.SafeImage;
 import ru.growerhub.backend.journal.contract.CareData;
 import ru.growerhub.backend.notification.NotificationFacade;
 import ru.growerhub.backend.notification.contract.TelegramData;
+import ru.growerhub.backend.notification.contract.TelegramGateway;
 import ru.growerhub.backend.notification.engine.TelegramService;
+import ru.growerhub.backend.messaging.TelegramWorker;
+import ru.growerhub.backend.messaging.ShopTelegramWorker;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.user.UserFacade;
 import ru.growerhub.backend.user.jpa.*;
@@ -31,6 +35,10 @@ class CareJournalIntegrationTest extends IntegrationTestBase {
     @Autowired ru.growerhub.backend.notification.jpa.TelegramDeliveryRepository deliveries;
     @Autowired ru.growerhub.backend.api.NotificationController webhook;
     @Autowired com.fasterxml.jackson.databind.ObjectMapper json;
+    // Fonovaya dostavka ne dolzhna konkurirovat s ruchnymi proverkami ocheredi.
+    @MockBean TelegramWorker telegramWorker;
+    @MockBean ShopTelegramWorker shopWorker;
+    @MockBean TelegramGateway telegramGateway;
 
     AuthenticatedUser account() {
         var now = LocalDateTime.now(ZoneOffset.UTC);
