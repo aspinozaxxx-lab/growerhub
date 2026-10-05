@@ -2,9 +2,9 @@
   "version": "2026-10-06.1",
   "currency": "RUB",
   "offers": [
-    { "id": "light-mini", "hubModel": "POK101", "hubEquipmentId": "pushok-pok101", "socketEquipmentId": "zbeacon-ts011f", "socketCount": 1, "priceMinor": 329000, "verification": "PILOT" },
-    { "id": "light-white", "hubModel": "POK100", "hubEquipmentId": "pushok-pok100", "socketEquipmentId": "zbeacon-ts011f", "socketCount": 1, "priceMinor": 449000, "verification": "TESTED" },
-    { "id": "light-three", "hubModel": "POK100", "hubEquipmentId": "pushok-pok100", "socketEquipmentId": "zbeacon-ts011f", "socketCount": 3, "priceMinor": 549000, "verification": "TESTED" },
+    { "id": "light-mini", "hubModel": "POK101", "hubEquipmentId": "pushok-pok101", "socketEquipmentId": "zbeacon-ts011f", "socketCount": 1, "priceMinor": 329000, "verification": "PILOT", "components": null },
+    { "id": "light-white", "hubModel": "POK100", "hubEquipmentId": "pushok-pok100", "socketEquipmentId": "zbeacon-ts011f", "socketCount": 1, "priceMinor": 449000, "verification": "TESTED", "components": null },
+    { "id": "light-three", "hubModel": "POK100", "hubEquipmentId": "pushok-pok100", "socketEquipmentId": "zbeacon-ts011f", "socketCount": 3, "priceMinor": 549000, "verification": "TESTED", "components": null },
     { "id": "soil-sensor", "hubModel": null, "hubEquipmentId": null, "socketEquipmentId": null, "socketCount": 0, "priceMinor": 49900, "verification": "PILOT", "components": [{ "id": "soil-sensor", "quantity": 1 }] },
     { "id": "pump", "hubModel": null, "hubEquipmentId": null, "socketEquipmentId": null, "socketCount": 0, "priceMinor": 199900, "verification": "PILOT", "components": [{ "id": "zigbee-pump", "quantity": 1 }] },
     { "id": "pump-drip-kit", "hubModel": null, "hubEquipmentId": null, "socketEquipmentId": null, "socketCount": 0, "priceMinor": 249900, "verification": "PILOT", "components": [{ "id": "zigbee-pump", "quantity": 1 }, { "id": "dripper", "quantity": 20 }, { "id": "hose-set", "quantity": 1 }] }
