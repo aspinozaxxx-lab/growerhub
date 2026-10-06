@@ -26,9 +26,9 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: #eef3fb;
+  color: var(--text-1);
   padding: 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-1);
 }
 
 .profile-row:last-of-type {
@@ -36,7 +36,7 @@
 }
 
 .profile-label {
-  color: #8aa3c6;
+  color: var(--text-3);
   font-size: 14px;
 }
 
@@ -57,7 +57,7 @@
   align-items: flex-start;
   gap: 12px;
   padding: 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-1);
 }
 
 .profile-auth-row:last-of-type {
@@ -65,12 +65,12 @@
 }
 
 .profile-auth-title {
-  color: #eef3fb;
+  color: var(--text-1);
   font-weight: 600;
 }
 
 .profile-auth-status {
-  color: #8aa3c6;
+  color: var(--text-3);
   font-size: 14px;
 }
 
@@ -85,9 +85,9 @@
   gap: 8px;
   margin-top: 8px;
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-1);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-2);
 }
 
 .profile-auth-form .profile-auth-actions {
@@ -95,12 +95,12 @@
 }
 
 .profile-auth-error {
-  color: #f6c1b5;
+  color: var(--danger);
   font-size: 14px;
 }
 
 .profile-auth-success {
-  color: #b6e4c1;
+  color: var(--success);
   font-size: 14px;
 }
 

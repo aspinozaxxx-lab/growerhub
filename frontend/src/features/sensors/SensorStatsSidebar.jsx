@@ -181,24 +181,24 @@ function SensorChart({
     return (
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={prepared} margin={{ top: 8, right: 8, left: -12, bottom: 8 }}>
-          <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.08)" />
+          <CartesianGrid strokeDasharray="4 4" stroke="var(--border-1)" />
           <XAxis
             dataKey="timestamp"
             tickFormatter={(value) => formatAxisLabel(value, range)}
-            tick={{ fill: '#c7d7ef', fontSize: 12 }}
+            tick={{ fill: 'var(--text-2)', fontSize: 12 }}
           />
           <YAxis
-            tick={{ fill: '#c7d7ef', fontSize: 12 }}
+            tick={{ fill: 'var(--text-2)', fontSize: 12 }}
             label={{
               value: translateApp("Объём полива (л)"),
               angle: -90,
               position: 'insideLeft',
-              fill: '#c7d7ef',
+              fill: 'var(--text-2)',
               fontSize: 12,
             }}
           />
           <Tooltip content={<WateringTooltip />} />
-          <Bar dataKey="value" fill="#6bdba8" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="value" fill="var(--accent)" radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     );
@@ -209,20 +209,20 @@ function SensorChart({
     return (
       <ResponsiveContainer width="100%" height={260}>
         <LineChart data={preparedData} margin={{ top: 8, right: 8, left: -12, bottom: 8 }}>
-          <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.08)" />
+          <CartesianGrid strokeDasharray="4 4" stroke="var(--border-1)" />
           <XAxis
             dataKey="timeMs"
             type="number"
             scale="time"
             domain={['dataMin', 'dataMax']}
             tickFormatter={(value) => formatAxisLabel(value, range)}
-            tick={{ fill: '#c7d7ef', fontSize: 12 }}
+            tick={{ fill: 'var(--text-2)', fontSize: 12 }}
           />
           <YAxis
             domain={[0, 1]}
             ticks={[0, 1]}
             tickFormatter={(value) => (Number(value) >= 0.5 ? binaryOnLabel : binaryOffLabel)}
-            tick={{ fill: '#c7d7ef', fontSize: 12 }}
+            tick={{ fill: 'var(--text-2)', fontSize: 12 }}
             width={86}
           />
           <Tooltip
@@ -237,7 +237,7 @@ function SensorChart({
           <Line
             type="stepAfter"
             dataKey="value"
-            stroke="#6bdba8"
+            stroke="var(--accent)"
             strokeWidth={2}
             dot={false}
             isAnimationActive={false}
@@ -253,23 +253,23 @@ function SensorChart({
   return (
     <ResponsiveContainer width="100%" height={260}>
       <LineChart data={preparedData} margin={{ top: 8, right: 8, left: -12, bottom: 8 }}>
-        <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.08)" />
+        <CartesianGrid strokeDasharray="4 4" stroke="var(--border-1)" />
         <XAxis
           dataKey="timeMs"
           type="number"
           scale="time"
           domain={['dataMin', 'dataMax']}
           tickFormatter={(value) => formatAxisLabel(value, range)}
-          tick={{ fill: '#c7d7ef', fontSize: 12 }}
+          tick={{ fill: 'var(--text-2)', fontSize: 12 }}
         />
         <YAxis
           domain={isPower ? [0, 'auto'] : undefined}
-          tick={{ fill: '#c7d7ef', fontSize: 12 }}
+          tick={{ fill: 'var(--text-2)', fontSize: 12 }}
           label={isPower ? {
             value: translateApp("Мощность (Вт)"),
             angle: -90,
             position: 'insideLeft',
-            fill: '#c7d7ef',
+            fill: 'var(--text-2)',
             fontSize: 12,
           } : undefined}
         />
@@ -279,13 +279,13 @@ function SensorChart({
             numericLabel,
           ]}
           labelFormatter={(value, payload) => formatTooltipTimestamp(payload, value)}
-          contentStyle={{ fontSize: '0.9rem' }}
-          labelStyle={{ color: '#0f172a', fontWeight: 600 }}
+          contentStyle={{ fontSize: '0.9rem', background: 'var(--surface-1)', borderColor: 'var(--border-2)', borderRadius: 12 }}
+          labelStyle={{ color: 'var(--text-1)', fontWeight: 600 }}
         />
         <Line
           type={isPower ? 'stepAfter' : 'monotone'}
           dataKey="value"
-          stroke="#6bdba8"
+          stroke="var(--accent)"
           strokeWidth={2}
           dot={false}
         />

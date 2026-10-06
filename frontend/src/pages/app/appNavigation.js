@@ -2,8 +2,8 @@ import { House, PanelsTopLeft, Workflow, Sprout, Settings } from 'lucide-react';
 
 export const APP_NAV_ITEMS = [
   { to: '/app/', label: 'Обзор', icon: House, end: true },
-  { to: '/app/farm/', label: 'Конструктор фермы', shortLabel: 'Ферма', icon: PanelsTopLeft },
-  { to: '/app/automations/', label: 'Автоматизации', shortLabel: 'Сценарии', icon: Workflow },
+  { to: '/app/farm/', label: 'Ферма', icon: PanelsTopLeft },
+  { to: '/app/automations/', label: 'Сценарии', icon: Workflow },
   { to: '/app/plants/', label: 'Растения', icon: Sprout },
   { to: '/app/settings/', label: 'Настройки', icon: Settings },
 ];

@@ -508,7 +508,7 @@ function FarmConstructor() {
   if (farms.length === 0) {
     return (
       <div className="farm-constructor">
-        <AppPageHeader title={translateApp('Конструктор фермы')} />
+        <AppPageHeader title={translateApp('Ферма')} />
         <AppPageState
           kind="empty"
           title={translateApp('Сначала создайте ферму')}
@@ -527,7 +527,8 @@ function FarmConstructor() {
   return (
     <div className="farm-constructor">
       <AppPageHeader
-        title={translateApp(compact ? 'Ферма' : 'Конструктор фермы')}
+        title={translateApp('Ферма')}
+        description={translateApp('У каждой теплицы — свои растения, датчики и приборы.')}
         right={(
           <Link className="gh-btn gh-btn--secondary gh-btn--md" to={compact ? '/app/settings/zones/' : '/app/settings/devices/'}>
             {translateApp(compact ? 'Структура' : 'Все устройства')}
@@ -536,7 +537,7 @@ function FarmConstructor() {
       />
       <p className="farm-constructor__intro">
         {translateApp('Назначьте оборудование и разместите растения в теплицах.')} {' '}
-        <Link to="/app/automations/">{translateApp('Настроить автоматизации')}</Link>
+        <Link to="/app/automations/">{translateApp('Настроить сценарии')}</Link>
       </p>
       {error ? <AppPageState kind="error" title={error} /> : null}
       {notice ? <div className="farm-constructor__notice" role="status">{notice}</div> : null}

@@ -467,7 +467,7 @@ function AppManualWatering() {
     <div className="self-service-page manual-watering-page">
       <AppPageHeader
         title={translateApp("Ручной полив")}
-        subtitle={translateApp("Насосы, привязанные теплицы и единый журнал сессий")}
+        description={translateApp("Выберите теплицу и задайте, сколько поливать. История останется здесь.")}
         right={(
           <span className="manual-watering-page__polling">
             <Clock3 size={14} aria-hidden="true" />{translateApp("Обновляется автоматически")}</span>

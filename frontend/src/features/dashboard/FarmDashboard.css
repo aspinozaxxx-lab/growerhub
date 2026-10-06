@@ -113,7 +113,7 @@
   padding: 4px 7px;
   border-radius: 7px;
   color: var(--text-2);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
@@ -126,13 +126,13 @@
 }
 
 .farm-dashboard-badge--warning {
-  color: var(--dashboard-warning, #f5ce83);
-  background: rgba(245, 206, 131, .08);
+  color: var(--dashboard-warning, var(--warning));
+  background: var(--warning-soft);
 }
 
 .farm-dashboard-badge--danger {
   color: var(--danger);
-  background: rgba(255, 179, 179, .08);
+  background: var(--danger-soft);
 }
 
 .farm-dashboard-badge--muted {
@@ -154,7 +154,7 @@
   align-items: center;
   gap: 6px;
   color: var(--text-3);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .farm-dashboard-summary-tile > svg {
@@ -209,9 +209,9 @@
 }
 
 .farm-dashboard-resource.is-active .is-glow svg {
-  color: #f8de9b;
-  fill: rgba(248, 222, 155, .25);
-  filter: drop-shadow(0 0 5px rgba(248, 222, 155, .65));
+  color: var(--warning);
+  fill: var(--warning-border);
+  filter: drop-shadow(0 0 5px var(--warning-border));
 }
 
 .farm-dashboard-resource__body {
@@ -222,7 +222,7 @@
 
 .farm-dashboard-resource__label {
   color: var(--text-3);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .farm-dashboard-resource__value {
@@ -240,12 +240,12 @@
 .farm-dashboard-resource__footer {
   grid-column: 2;
   color: var(--text-3);
-  font-size: 10px;
+  font-size: 12px;
   overflow-wrap: anywhere;
 }
 
 .farm-dashboard-resource--warning .farm-dashboard-resource__icon, .farm-dashboard-resource--warning .farm-dashboard-resource__footer {
-  color: var(--dashboard-warning, #f5ce83);
+  color: var(--dashboard-warning, var(--warning));
 }
 
 .farm-dashboard-stats-hint {
@@ -295,7 +295,7 @@
   display: block;
   margin-top: 5px;
   color: var(--text-2);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
 }
 
@@ -308,7 +308,7 @@
 
 .farm-dashboard-ac-requests__empty {
   color: var(--text-3);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .farm-dashboard-request-chip {
@@ -317,9 +317,9 @@
   gap: 4px;
   padding: 3px 6px;
   border-radius: 6px;
-  color: var(--dashboard-warning, #f5ce83);
-  background: rgba(245, 206, 131, .08);
-  font-size: 11px;
+  color: var(--dashboard-warning, var(--warning));
+  background: var(--warning-soft);
+  font-size: 12px;
   overflow-wrap: anywhere;
 }
 
@@ -406,23 +406,23 @@
 
 .farm-dashboard-sensor__label {
   color: var(--text-2);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.3;
 }
 
 .farm-dashboard-sensor__seen {
   grid-column: 1 / -1;
   color: var(--text-3);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 400;
 }
 
 .farm-dashboard-sensor--warning {
-  background: rgba(245, 206, 131, .08);
+  background: var(--warning-soft);
 }
 
 .farm-dashboard-sensor--warning .farm-dashboard-sensor__value, .farm-dashboard-sensor--warning > svg:first-child {
-  color: var(--dashboard-warning, #f5ce83);
+  color: var(--dashboard-warning, var(--warning));
 }
 
 .farm-dashboard-box__equipment {
@@ -626,14 +626,14 @@ button.farm-dashboard-resource:hover, button.farm-dashboard-sensor:hover {
     min-height: 32px;
     padding: 6px 9px;
     gap: 5px;
-    font-size: 11px;
+    font-size: 12px;
     border-radius: 10px;
   }
 
   .farm-dashboard-refresh {
     order: 0;
     gap: 4px;
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .farm-dashboard-refresh svg {
@@ -675,7 +675,7 @@ button.farm-dashboard-resource:hover, button.farm-dashboard-sensor:hover {
 
   .farm-dashboard-room__badges .farm-dashboard-badge {
     padding: 2px 0;
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .farm-dashboard-room__summary {
@@ -683,7 +683,7 @@ button.farm-dashboard-resource:hover, button.farm-dashboard-sensor:hover {
   }
 
   .farm-dashboard-summary-tile {
-    font-size: 10px;
+    font-size: 12px;
     gap: 4px;
   }
 
@@ -719,11 +719,11 @@ button.farm-dashboard-resource:hover, button.farm-dashboard-sensor:hover {
   }
 
   .farm-dashboard-room__climate .farm-dashboard-resource__label {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .farm-dashboard-room__climate .farm-dashboard-resource__value {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .farm-dashboard-resource__footer {
@@ -750,7 +750,7 @@ button.farm-dashboard-resource:hover, button.farm-dashboard-sensor:hover {
   }
 
   .farm-dashboard-ac-requests .farm-dashboard-badge {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .farm-dashboard-ac-requests .farm-dashboard-badge > svg {
@@ -762,11 +762,11 @@ button.farm-dashboard-resource:hover, button.farm-dashboard-sensor:hover {
     order: 1;
     flex-basis: 100%;
     margin: 0;
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .farm-dashboard-ac-requests__empty, .farm-dashboard-request-chip {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .farm-dashboard-request-chip {
@@ -812,7 +812,7 @@ button.farm-dashboard-resource:hover, button.farm-dashboard-sensor:hover {
 
   .farm-dashboard-box__header .farm-dashboard-badge {
     padding: 0;
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .farm-dashboard-sensors {
@@ -843,7 +843,7 @@ button.farm-dashboard-resource:hover, button.farm-dashboard-sensor:hover {
   }
 
   .farm-dashboard-sensor__label {
-    font-size: 9px;
+    font-size: 11px;
     line-height: 1.2;
   }
 
@@ -906,12 +906,12 @@ button.farm-dashboard-resource:hover, button.farm-dashboard-sensor:hover {
   }
 
   .farm-dashboard-box__equipment .farm-dashboard-resource__label {
-    font-size: 9px;
+    font-size: 11px;
     line-height: 1.1;
   }
 
   .farm-dashboard-box__equipment .farm-dashboard-resource__value {
-    font-size: 9px;
+    font-size: 11px;
     line-height: 1.1;
   }
 
@@ -922,7 +922,7 @@ button.farm-dashboard-resource:hover, button.farm-dashboard-sensor:hover {
 
   .farm-dashboard-scenarios .farm-dashboard-badge {
     display: block;
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .farm-dashboard-scenarios .farm-dashboard-badge > svg {
@@ -934,7 +934,7 @@ button.farm-dashboard-resource:hover, button.farm-dashboard-sensor:hover {
   }
 
   .farm-dashboard-scenario__label {
-    font-size: 9px;
+    font-size: 11px;
   }
 
 }

@@ -19,15 +19,15 @@
 }
 
 .manual-watering-page__message.is-error {
-  border-color: rgba(246, 120, 120, 0.45);
-  color: #ffb3b3;
-  background: rgba(246, 120, 120, 0.08);
+  border-color: var(--danger-border);
+  color: var(--danger);
+  background: var(--danger-soft);
 }
 
 .manual-watering-page__message.is-notice {
-  border-color: rgba(95, 212, 145, 0.4);
-  color: #a7e7c0;
-  background: rgba(95, 212, 145, 0.08);
+  border-color: var(--accent-border);
+  color: var(--success);
+  background: var(--accent-soft);
 }
 
 .manual-watering-pumps,
@@ -102,26 +102,26 @@
   border: 1px solid var(--border-2);
   border-radius: var(--radius-sm);
   color: var(--text-3);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--surface-2);
   font-size: 11px;
 }
 
 .manual-watering-pump__statuses .is-online,
 .manual-watering-leak.is-success {
-  border-color: rgba(95, 212, 145, 0.4);
-  color: #a7e7c0;
+  border-color: var(--accent-border);
+  color: var(--success);
 }
 
 .manual-watering-pump__statuses .is-offline,
 .manual-watering-leak.is-danger {
-  border-color: rgba(246, 120, 120, 0.45);
-  color: #ffb3b3;
+  border-color: var(--danger-border);
+  color: var(--danger);
 }
 
 .manual-watering-pump__statuses .is-running {
-  border-color: rgba(95, 212, 145, 0.5);
+  border-color: var(--accent-border);
   color: var(--accent);
-  background: rgba(95, 212, 145, 0.08);
+  background: var(--accent-soft);
 }
 
 .manual-watering-active {
@@ -130,9 +130,9 @@
   gap: 12px;
   align-items: center;
   padding: 12px;
-  border: 1px solid rgba(95, 212, 145, 0.45);
+  border: 1px solid var(--accent-border);
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, rgba(95, 212, 145, 0.13), rgba(255, 255, 255, 0.02));
+  background: linear-gradient(135deg, var(--accent-soft), var(--surface-2));
 }
 
 .manual-watering-active__icon {
@@ -141,9 +141,9 @@
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  color: #0b1524;
+  color: var(--on-accent);
   background: var(--accent);
-  box-shadow: 0 0 22px rgba(95, 212, 145, 0.28);
+  box-shadow: 0 0 22px var(--accent-border);
 }
 
 .manual-watering-active__body {
@@ -178,8 +178,8 @@
 }
 
 .manual-watering-box__disabled {
-  border-color: rgba(245, 193, 106, 0.45);
-  color: #f5c16a;
+  border-color: var(--warning-border);
+  color: var(--warning);
 }
 
 .manual-watering-box__plants {
@@ -193,9 +193,9 @@
   gap: 2px;
   min-width: 0;
   padding: 7px 8px;
-  border: 1px solid rgba(95, 212, 145, 0.24);
+  border: 1px solid var(--accent-border);
   border-radius: var(--radius-sm);
-  background: rgba(95, 212, 145, 0.05);
+  background: var(--accent-soft);
 }
 
 .manual-watering-plant span {
@@ -234,7 +234,7 @@
   max-width: 620px;
   align-items: flex-start;
   gap: 5px;
-  color: #f5c16a;
+  color: var(--warning);
   font-size: 12px;
 }
 
@@ -251,7 +251,7 @@
 .manual-watering-state.is-error,
 .manual-watering-session__error,
 .manual-watering-form__error {
-  color: #ffb3b3;
+  color: var(--danger);
 }
 
 .manual-watering-session {
@@ -260,7 +260,7 @@
   padding: 10px;
   border: 1px solid var(--border-2);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-2);
 }
 
 .manual-watering-session__heading strong {
@@ -297,7 +297,7 @@
 .manual-watering-session__reason.is-leak,
 .manual-watering-session__reason.is-limit,
 .manual-watering-session__reason.is-error {
-  color: #f5c16a;
+  color: var(--warning);
 }
 
 .manual-watering-form {
@@ -319,10 +319,10 @@
   gap: 8px;
   align-items: flex-start;
   padding: 9px;
-  border: 1px solid rgba(245, 193, 106, 0.42);
+  border: 1px solid var(--warning-border);
   border-radius: var(--radius-sm);
-  color: #f5c16a;
-  background: rgba(245, 193, 106, 0.07);
+  color: var(--warning);
+  background: var(--warning-soft);
   font-size: 12px;
 }
 

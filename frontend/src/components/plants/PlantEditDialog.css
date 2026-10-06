@@ -24,14 +24,14 @@
 .plant-dialog__error {
   padding: 8px 10px;
   border-radius: 10px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: #fecaca;
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
   font-size: 13px;
 }
 
 .plant-dialog__section {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-1);
   padding-top: 8px;
   display: flex;
   flex-direction: column;
@@ -39,12 +39,12 @@
 }
 
 .plant-dialog__section-title {
-  color: #e2e8f0;
+  color: var(--text-1);
   font-weight: 700;
 }
 
 .plant-dialog__hint {
-  color: #8aa3c6;
+  color: var(--text-3);
   font-size: 13px;
 }
 
@@ -62,9 +62,9 @@
 }
 
 .plant-dialog__unlink {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: #fecaca;
+  background: var(--danger-soft);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
   border-radius: 8px;
   padding: 6px 10px;
   cursor: pointer;
@@ -77,9 +77,9 @@
 }
 
 .plant-dialog__attach button {
-  background: rgba(52, 211, 153, 0.15);
-  border: 1px solid rgba(52, 211, 153, 0.4);
-  color: #bbf7d0;
+  background: var(--success-soft);
+  border: 1px solid var(--success-border);
+  color: var(--success);
   border-radius: 8px;
   padding: 8px 12px;
   cursor: pointer;

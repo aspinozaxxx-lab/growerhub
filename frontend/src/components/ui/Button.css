@@ -13,24 +13,27 @@
 }
 
 .gh-btn--sm {
+  min-height: 36px;
   padding: 6px 10px;
   font-size: 13px;
 }
 
 .gh-btn--md {
+  min-height: 44px;
   padding: 9px 12px;
   font-size: 14px;
 }
 
 .gh-btn--lg {
+  min-height: 48px;
   padding: 11px 16px;
   font-size: 15px;
 }
 
 .gh-btn--primary {
   background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-  border-color: rgba(95, 212, 145, 0.4);
-  color: #0b1524;
+  border-color: var(--accent-border);
+  color: var(--on-accent);
 }
 
 .gh-btn--secondary {
@@ -40,9 +43,9 @@
 }
 
 .gh-btn--danger {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.35);
-  color: #fecaca;
+  background: var(--danger-soft);
+  border-color: var(--danger-border);
+  color: var(--danger);
 }
 
 .gh-btn--ghost {
@@ -60,6 +63,11 @@
 .gh-btn:is(:hover):not(.is-disabled):not(:disabled) {
   border-color: var(--accent);
   color: var(--text-1);
+}
+
+.gh-btn--primary:is(:hover):not(.is-disabled):not(:disabled) {
+  color: var(--on-accent);
+  background: var(--accent-strong);
 }
 
 .gh-btn.is-disabled,

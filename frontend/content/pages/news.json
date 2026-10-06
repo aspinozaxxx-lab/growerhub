@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id": "warm-plant-care-app-theme", "published_at": "2026-10-06", "kind": "fix", "text": "Кабинет стал светлым и ближе к оформлению сайта: сиреневая палитра, более читаемые подписи, простые названия «Ферма» и «Сценарии». Обновлены обзор, растения, графики и формы; привычные действия и настройки сохранены."},
     { "id": "nursery-catalog-devices-and-watering", "published_at": "2026-10-06", "kind": "article_update", "article_id": "komplekty-dlya-rasteniy-growerhub", "text": "В каталог и руководство добавлены датчик почвы за 499 ₽, насос за 1 999 ₽ и насос с 20 капельницами и шлангами за 2 499 ₽. Их можно заказать через корзину отдельно или с комплектом. Насос поддерживает Wi-Fi без Zigbee-координатора или Zigbee; состав и первый запуск обсудим по телефону." },
     { "id": "nursery-kits-and-orders", "published_at": "2026-10-06", "kind": "feature", "article_id": "komplekty-dlya-rasteniy-growerhub", "preview_position": "50% 52%" },
     { "id": "nursery-temperature-history-route", "published_at": "2026-10-04", "kind": "article_update", "article_id": "istoriya-mikroklimata-i-grafiki", "text": "В статье об истории микроклимата добавлен пример наблюдения за рассадой в небольшом питомнике: первая зона, суточный график, повторный осмотр и ограничения подключения." },

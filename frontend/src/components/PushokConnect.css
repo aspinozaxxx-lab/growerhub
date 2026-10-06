@@ -4,7 +4,7 @@
 .pushok-connect p { margin: 0 0 10px; line-height: 1.45; }
 .pushok-connect form { display: grid; gap: 12px; }
 .pushok-connect label { display: grid; gap: 5px; }
-.pushok-connect input:not([type="checkbox"]) { width: 100%; min-width: 0; padding: 10px; box-sizing: border-box; border: 1px solid var(--border-color, #cbd5e1); border-radius: 8px; font-size: 16px; }
+.pushok-connect input:not([type="checkbox"]) { width: 100%; min-width: 0; padding: 10px; box-sizing: border-box; border: 1px solid var(--border-color, var(--text-2)); border-radius: 8px; font-size: 16px; }
 .pushok-connect .pushok-connect__consent { display: flex; align-items: flex-start; gap: 10px; }
 .pushok-connect__consent input { flex: 0 0 auto; margin-top: 4px; }
 .pushok-connect [role="alert"] { color: #b42318; }

@@ -11,6 +11,9 @@
   color: var(--text-1);
 }
 
+.app-page-header__copy { min-width: 0; }
+.app-page-header__description { margin: 5px 0 0; max-width: 640px; font-size: 14px; color: var(--text-3); line-height: 1.5; }
+
 .app-page-header__actions {
   display: flex;
   align-items: center;
@@ -20,6 +23,9 @@
 
 @media (max-width: 680px) {
   .app-page-header { min-width: 0; gap: 8px; }
+  .app-page-header:has(.app-page-header__description) { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+  .app-page-header:has(.app-page-header__description) .app-page-header__actions { align-self: start; justify-content: flex-end; max-width: 145px; }
   .app-page-header__title { font-size: 20px; line-height: 1.2; overflow-wrap: anywhere; }
   .app-page-header__actions { min-width: 0; gap: 6px; }
+  .app-page-header__description { font-size: 13px; max-width: 36ch; }
 }

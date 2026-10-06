@@ -26,7 +26,7 @@
   padding: 5px 9px;
   border-radius: 999px;
   color: var(--accent);
-  background: rgba(95, 212, 145, 0.12);
+  background: var(--accent-soft);
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
@@ -84,12 +84,12 @@
 
 .choice-card:hover,
 .choice-card.is-selected {
-  border-color: rgba(95, 212, 145, 0.6);
-  background: rgba(95, 212, 145, 0.1);
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
 }
 
 .onboarding-secret {
-  border-color: rgba(255, 193, 92, 0.35);
+  border-color: var(--warning-border);
 }
 
 .onboarding-credentials {
@@ -157,7 +157,7 @@
 
 .onboarding-note {
   padding-left: 12px;
-  border-left: 3px solid #ffc15c;
+  border-left: 3px solid var(--warning);
 }
 
 @media (max-width: 720px) {

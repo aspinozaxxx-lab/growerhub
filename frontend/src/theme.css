@@ -13,6 +13,19 @@
   --accent: #5fd491;
   --accent-strong: #43b674;
   --danger: #ffb3b3;
+  --on-accent: #0b1524;
+  --accent-soft: rgba(95, 212, 145, 0.12);
+  --accent-border: rgba(95, 212, 145, 0.4);
+  --success: #9de8ba;
+  --success-soft: rgba(52, 211, 153, 0.15);
+  --success-border: rgba(52, 211, 153, 0.4);
+  --warning: #ffd48d;
+  --warning-soft: rgba(255, 188, 92, 0.1);
+  --warning-border: rgba(255, 188, 92, 0.38);
+  --danger-soft: rgba(239, 68, 68, 0.12);
+  --danger-border: rgba(239, 68, 68, 0.35);
+  --info: #60a5fa;
+  --overlay: rgba(0, 0, 0, 0.5);
 
   --radius-sm: 8px;
   --radius-md: 10px;
@@ -29,9 +42,69 @@
   --space-5: 20px;
   --space-6: 24px;
 
-  /* legacy aliases for existing variables */
+  /* Sovmestimost s imenami peremennyh obshchih komponentov. */
   --card: var(--surface-1);
   --text: var(--text-1);
   --muted: var(--text-3);
   --border: var(--border-1);
+}
+
+/* Obshchaya tema kabineta, vklyuchaya dialogi v portalakh. */
+:root:has(.app-shell--cabinet) {
+  color-scheme: light;
+  --bg: #faf7fc;
+  --surface-1: #fffcff;
+  --surface-2: #f2ebf6;
+  --text-1: #321749;
+  --text-2: #574362;
+  --text-3: #6c5877;
+  --border-1: #e5d9eb;
+  --border-2: #c9b6d4;
+  --accent: #784591;
+  --accent-strong: #633579;
+  --on-accent: #fff;
+  --accent-soft: #eee3f4;
+  --accent-border: #b597c5;
+  --success: #356442;
+  --success-soft: #edf4ed;
+  --success-border: #a8c4ae;
+  --warning: #865917;
+  --warning-soft: #fff3dd;
+  --warning-border: #d9b87b;
+  --danger: #aa3548;
+  --danger-soft: #fff0f2;
+  --danger-border: #d9a0aa;
+  --info: #326394;
+  --overlay: #32174966;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --shadow-1: 0 4px 18px #51305f08;
+  --shadow-2: 0 16px 48px #51305f1c;
+}
+
+.app-shell--cabinet {
+  background: radial-gradient(ellipse at 85% 0, #f0e7f6 0, transparent 48%), var(--bg);
+  color: var(--text-1);
+  line-height: 1.5;
+}
+
+.app-shell--cabinet :is(input, select, textarea) {
+  accent-color: var(--accent);
+}
+
+.app-shell--cabinet :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 680px) {
+  .app-shell--cabinet :is(input, select, textarea) { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell--cabinet *, .app-shell--cabinet *::before, .app-shell--cabinet *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

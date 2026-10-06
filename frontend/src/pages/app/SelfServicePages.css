@@ -91,13 +91,13 @@
   padding: 4px 8px;
   border-radius: 999px;
   color: var(--text-3);
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--surface-2);
   font-size: 12px;
 }
 
 .status-chip.is-online {
-  color: #9de8ba;
-  background: rgba(95, 212, 145, 0.13);
+  color: var(--success);
+  background: var(--accent-soft);
 }
 
 .zone-card__metrics,
@@ -187,11 +187,11 @@
 }
 
 .secret-card {
-  border-color: rgba(255, 193, 92, 0.45);
+  border-color: var(--warning-border);
 }
 
 .secret-card > div:first-child > span {
-  color: #ffd48d;
+  color: var(--warning);
   font-size: 12px;
   text-transform: uppercase;
 }
@@ -230,7 +230,7 @@
 
 .readonly-control,
 .automation-note {
-  color: #ffd48d;
+  color: var(--warning);
   font-size: 13px;
 }
 
@@ -246,12 +246,12 @@
 
 .automation-readiness {
   margin-top: 5px !important;
-  color: #ffd48d;
+  color: var(--warning);
   font-size: 12px;
 }
 
 .automation-readiness.is-ready {
-  color: #9de8ba;
+  color: var(--success);
 }
 
 .farm-device-filters {
@@ -396,8 +396,8 @@
   max-width: 100%;
   padding: 5px 8px;
   border-radius: 999px;
-  color: #9de8ba;
-  background: rgba(95, 212, 145, 0.12);
+  color: var(--success);
+  background: var(--accent-soft);
   font-size: 12px;
   text-decoration: none;
   overflow-wrap: anywhere;

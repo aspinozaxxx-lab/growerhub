@@ -21,6 +21,6 @@
 .gh-shop-admin .gh-shop-admin__retry-confirm { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; margin: 12px 0; align-items: start; }
 .gh-shop-admin__retry-confirm input { width: 20px; height: 20px; margin: 3px 0 0; }
 .gh-shop-admin__status { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
-.gh-shop-admin__error { color: #ef9da8; }
+.gh-shop-admin__error { color: var(--danger); }
 .gh-shop-admin :is(button, select, summary, a):focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 @media (max-width: 560px) { .gh-shop-admin__columns { grid-template-columns: minmax(0, 1fr); } .gh-shop-admin__request summary, .gh-shop-admin__details { padding: 14px; } .gh-shop-admin__pagination { justify-content: center; } }

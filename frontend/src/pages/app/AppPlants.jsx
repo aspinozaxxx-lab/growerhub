@@ -248,6 +248,7 @@ function AppPlants() {
     <div className="app-plants">
       <AppPageHeader
         title={translateApp("Растения")}
+        description={translateApp("Ваши посадки, этапы роста и история ухода.")}
         right={(
           <Button type="button" variant="primary" onClick={handleOpenCreate}>{translateApp("Добавить растение")}</Button>
         )}

@@ -120,9 +120,13 @@
 }
 
 .app-footer a {
-  color: #9de8ba;
+  color: var(--accent);
   text-decoration: none;
 }
+
+.app-shell--cabinet > .app-header { background: var(--surface-1); }
+.app-shell--cabinet .nav-link { color: var(--text-2); }
+.app-shell--cabinet .nav-link:is(.is-active, :hover) { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-border); }
 
 .footer-links {
   display: flex;

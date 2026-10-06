@@ -41,12 +41,12 @@
 }
 
 .admin-error {
-  color: #f6c1b5;
+  color: var(--danger);
   font-size: 14px;
 }
 
 .admin-notice {
-  color: #a7e7c0;
+  color: var(--success);
   font-size: 14px;
 }
 
@@ -389,12 +389,12 @@
 
 .admin-automation-badge.is-ready {
   border-color: rgba(76, 175, 80, 0.45);
-  color: #a7e7c0;
+  color: var(--success);
 }
 
 .admin-automation-badge.is-unready {
-  border-color: rgba(255, 183, 77, 0.45);
-  color: #ffd29b;
+  border-color: var(--warning-border);
+  color: var(--warning);
 }
 
 .admin-automation-hint {
@@ -425,8 +425,8 @@
 }
 
 .admin-automation-plant.is-selected {
-  border-color: rgba(95, 212, 145, 0.42);
-  background: rgba(95, 212, 145, 0.06);
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
 }
 
 .admin-automation-plant__choice {
@@ -517,12 +517,12 @@
 }
 
 .admin-dashboard-tile.is-warning {
-  border-color: rgba(255, 193, 7, 0.65);
-  background: rgba(255, 193, 7, 0.13);
+  border-color: var(--warning-border);
+  background: var(--warning-soft);
 }
 
 .admin-dashboard-tile.is-warning .admin-dashboard-tile__value {
-  color: #ffe08a;
+  color: var(--warning);
 }
 
 .admin-dashboard-tile.is-muted {

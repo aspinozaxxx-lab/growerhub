@@ -10,7 +10,7 @@
 .gh-modal__overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--overlay);
 }
 
 .gh-modal__panel {

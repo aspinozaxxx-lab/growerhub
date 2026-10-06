@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link, matchPath, NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Leaf } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { getPublicPath } from '../../domain/localizedRoutes';
 import './AppLayout.css';
 import { useAuth } from '../../features/auth/AuthContext';
@@ -83,8 +83,8 @@ function AppLayout() {
       <aside className="app-sidebar">
         <div className="app-sidebar__inner">
           <Link to={getPublicPath('home', currentLocale)} className="app-sidebar__brand">
-            <Leaf size={28} strokeWidth={1.6} aria-hidden="true" />
-            <span>GrowerHub</span>
+            <Heart size={28} strokeWidth={1.6} aria-hidden="true" />
+            <span className="app-sidebar__brand-copy">GrowerHub<small>{translateApp('Больше времени на растения')}</small></span>
           </Link>
           {!adminRoute ? (
             <button

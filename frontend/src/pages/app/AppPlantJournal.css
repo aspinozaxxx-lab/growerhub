@@ -1,5 +1,5 @@
 .plant-journal-page {
-  color: #e2e8f0;
+  color: var(--text-1);
   padding: 24px 12px;
 }
 
@@ -18,7 +18,7 @@
 }
 
 .plant-journal__subtitle {
-  color: #a0aec0;
+  color: var(--text-3);
   font-size: 14px;
 }
 
@@ -29,9 +29,9 @@
 
 .plant-journal__download,
 .plant-journal__back {
-  background: #1f2937;
-  color: #e2e8f0;
-  border: 1px solid #374151;
+  background: var(--surface-1);
+  color: var(--text-1);
+  border: 1px solid var(--border-2);
   border-radius: 6px;
   padding: 8px 12px;
   cursor: pointer;
@@ -39,19 +39,19 @@
 
 .plant-journal__download:hover,
 .plant-journal__back:hover {
-  border-color: #60a5fa;
+  border-color: var(--info);
 }
 
 .plant-journal__state {
   margin: 12px 0;
   padding: 10px 12px;
-  background: #1f2937;
+  background: var(--surface-1);
   border-radius: 6px;
 }
 
 .plant-journal__state--error {
-  border: 1px solid #f87171;
-  color: #fecdd3;
+  border: 1px solid var(--danger);
+  color: var(--danger);
 }
 
 .journal-calendar {
@@ -80,11 +80,11 @@
 }
 
 .journal-calendar__day {
-  background: #111827;
+  background: var(--surface-1);
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 10px;
   padding: 4px 6px;
-  color: #e5e7eb;
+  color: var(--text-1);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s ease, transform 0.1s ease;
@@ -97,12 +97,12 @@
 }
 
 .journal-calendar__day:hover {
-  border-color: #60a5fa;
+  border-color: var(--info);
 }
 
 .journal-calendar__day.is-selected {
-  border-color: #34d399;
-  box-shadow: 0 0 0 1px #34d399 inset;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
 }
 
 .journal-calendar__date-number {
@@ -118,8 +118,8 @@
 }
 
 .journal-entries-block {
-  background: #0f172a;
-  border: 1px solid #1f2937;
+  background: var(--surface-1);
+  border: 1px solid var(--border-1);
   border-radius: 12px;
   padding: 14px;
 }
@@ -137,25 +137,25 @@
   font-size: 16px;
 }
 .journal-entries-block__age {
-  color: #9ca3af;
+  color: var(--text-3);
   font-size: 14px;
 }
 
 .journal-entries-block__add {
-  background: #1f2937;
-  color: #e2e8f0;
-  border: 1px solid #374151;
+  background: var(--surface-1);
+  color: var(--text-1);
+  border: 1px solid var(--border-2);
   border-radius: 6px;
   padding: 8px 12px;
   cursor: pointer;
 }
 
 .journal-entries-block__add:hover {
-  border-color: #60a5fa;
+  border-color: var(--info);
 }
 
 .journal-entries-block__empty {
-  color: #94a3b8;
+  color: var(--text-3);
   padding: 8px 0;
 }
 
@@ -166,8 +166,8 @@
 }
 
 .journal-entry {
-  background: #111827;
-  border: 1px solid #1f2937;
+  background: var(--surface-1);
+  border: 1px solid var(--border-1);
   border-radius: 10px;
   padding: 10px;
   display: grid;
@@ -190,7 +190,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #cbd5e1;
+  color: var(--text-2);
 }
 
 .journal-entry__icon {
@@ -198,7 +198,7 @@
 }
 
 .journal-entry__body {
-  color: #e5e7eb;
+  color: var(--text-1);
 }
 
 .journal-entry__watering {
@@ -207,7 +207,7 @@
   grid-template-columns: 70px auto minmax(0, 1fr);
   align-items: center;
   gap: 12px;
-  color: #e5e7eb;
+  color: var(--text-1);
 }
 
 .journal-entry__watering-summary {
@@ -220,7 +220,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 5px 12px;
-  color: #94a3b8;
+  color: var(--text-3);
   font-size: 12px;
 }
 
@@ -234,7 +234,7 @@
 }
 
 .journal-entry__fertilizers {
-  color: #cbd5e1;
+  color: var(--text-2);
 }
 
 .plant-journal-entry-watering-details {
@@ -255,18 +255,18 @@
 .journal-entry__photo {
   max-width: 240px;
   border-radius: 8px;
-  border: 1px solid #1f2937;
+  border: 1px solid var(--border-1);
 }
 
 .journal-entry__photo-placeholder {
-  color: #9ca3af;
+  color: var(--text-3);
   font-size: 14px;
 }
 
 .journal-entry__edit {
   background: transparent;
-  border: 1px solid #374151;
-  color: #e5e7eb;
+  border: 1px solid var(--border-2);
+  color: var(--text-1);
   border-radius: 6px;
   width: 32px;
   height: 32px;
@@ -276,13 +276,13 @@
 }
 
 .journal-entry__edit:hover {
-  border-color: #60a5fa;
+  border-color: var(--info);
 }
 
 .journal-form {
   margin-top: 14px;
-  background: #111827;
-  border: 1px solid #1f2937;
+  background: var(--surface-1);
+  border: 1px solid var(--border-1);
   border-radius: 10px;
   padding: 12px;
   display: flex;
@@ -306,11 +306,11 @@
 .journal-form__field input,
 .journal-form__field select,
 .journal-form__field textarea {
-  background: #0f172a;
-  border: 1px solid #1f2937;
+  background: var(--surface-1);
+  border: 1px solid var(--border-1);
   border-radius: 8px;
   padding: 8px;
-  color: #e5e7eb;
+  color: var(--text-1);
 }
 
 .journal-form__field--wide textarea,
@@ -325,9 +325,9 @@
 
 .journal-form__submit,
 .journal-form__cancel {
-  background: #1f2937;
-  color: #e2e8f0;
-  border: 1px solid #374151;
+  background: var(--surface-1);
+  color: var(--text-1);
+  border: 1px solid var(--border-2);
   border-radius: 6px;
   padding: 8px 12px;
   cursor: pointer;
@@ -335,7 +335,7 @@
 
 .journal-form__submit:hover,
 .journal-form__cancel:hover {
-  border-color: #60a5fa;
+  border-color: var(--info);
 }
 
 @media (max-width: 680px) {

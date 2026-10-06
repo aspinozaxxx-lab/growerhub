@@ -1,6 +1,6 @@
 ﻿.sensor-pill {
   border: 1px solid var(--border-1);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-2);
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
   width: 100%;
@@ -18,8 +18,8 @@
 }
 
 .sensor-pill.is-clickable:hover:not(.is-disabled) {
-  border-color: rgba(95, 212, 145, 0.4);
-  background: rgba(95, 212, 145, 0.08);
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
   transform: translateY(-1px);
 }
 
@@ -29,8 +29,8 @@
 }
 
 .sensor-pill.is-highlight {
-  border-color: rgba(95, 212, 145, 0.6);
-  box-shadow: 0 0 0 1px rgba(95, 212, 145, 0.2) inset;
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 1px var(--accent-border) inset;
 }
 
 .sensor-pill__icon {
@@ -77,11 +77,11 @@
 }
 
 .sensor-pill__indicator.is-warning {
-  color: #f4c15d;
+  color: var(--warning);
 }
 
 .sensor-pill__indicator.is-offline {
-  color: #8aa3c6;
+  color: var(--text-3);
 }
 
 .sensor-pill__indicator svg {

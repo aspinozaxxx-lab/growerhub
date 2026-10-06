@@ -106,7 +106,7 @@ function AppOverview() {
     <div className="self-service-page farm-dashboard">
       <AppPageHeader
         title={translateApp("Обзор")}
-        subtitle={translateApp("Состояние всех ферм обновляется каждые 30 секунд")}
+        description={translateApp('Как чувствуют себя растения: условия, полив и свет в одном месте.')}
         right={(
           <div className="farm-dashboard-header-actions">
             <Link className="farm-dashboard-watering-link" to="/app/manual-watering/">
