@@ -31,6 +31,16 @@ Legend: DONE = implemented, TODO = stub (501 Not Implemented)
 | PATCH | /api/users/{user_id} | DONE |
 | DELETE | /api/users/{user_id} | DONE |
 
+## Shop
+| Method | Path | Status |
+| --- | --- | --- |
+| GET | /api/shop/catalog | DONE |
+| POST | /api/shop/requests | DONE |
+| GET | /api/admin/shop/requests | DONE |
+| GET | /api/admin/shop/requests/{id} | DONE |
+| PATCH | /api/admin/shop/requests/{id} | DONE |
+| POST | /api/admin/shop/requests/{id}/retry-notification | DONE |
+
 ## Devices
 | Method | Path | Status |
 | --- | --- | --- |

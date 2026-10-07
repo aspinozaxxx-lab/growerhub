@@ -8,7 +8,7 @@ import {
   within,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchFarmsOverview,
   replaceGreenhouseScenarios,
@@ -19,6 +19,9 @@ import {
 import { fetchPlant, updatePlant } from '../../api/plants';
 import FarmConstructor from './FarmConstructor';
 import { optionValue } from './farmResourceOptions';
+import { loadAppTranslations } from '../../locales/i18n';
+
+beforeAll(loadAppTranslations);
 
 vi.mock('../../api/selfService', () => ({
   fetchFarmsOverview: vi.fn(),
@@ -103,7 +106,7 @@ describe('FarmConstructor', () => {
     const greenhouseTitle = await screen.findByRole('heading', { name: 'Северная' });
     const greenhouse = greenhouseTitle.closest('article');
 
-    expect(screen.getByRole('link', { name: 'Настроить автоматизации' })).toHaveAttribute('href', '/app/automations/');
+    expect(screen.getByRole('link', { name: 'Настроить сценарии' })).toHaveAttribute('href', '/app/automations/');
     expect(screen.queryByRole('button', { name: 'Сохранить сценарии' })).not.toBeInTheDocument();
     expect(screen.queryByRole('checkbox', { name: 'Климат' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Обдув включить выше, °C')).not.toBeInTheDocument();
@@ -132,10 +135,10 @@ describe('FarmConstructor', () => {
       .not.toBeInTheDocument();
     expect(within(greenhouse).queryByText('Настройки кондиционера')).not.toBeInTheDocument();
 
-    fireEvent.change(within(greenhouse).getByLabelText('Тип нового слота'), {
+    fireEvent.change(within(greenhouse).getByLabelText('Что подключить'), {
       target: { value: 'AIR_TEMPERATURE_SENSOR' },
     });
-    fireEvent.click(within(greenhouse).getByRole('button', { name: 'Добавить слот' }));
+    fireEvent.click(within(greenhouse).getByRole('button', { name: 'Добавить прибор или датчик' }));
 
     expect(within(greenhouse).getByLabelText('Температура воздуха')).toBeInTheDocument();
     expect(replaceUserFarmSlots).not.toHaveBeenCalled();
@@ -309,11 +312,11 @@ describe('FarmConstructor', () => {
     fireEvent.click(screen.getByRole('button', { name: /Температура воздуха Grovika Юг/ }));
     dialog = screen.getByRole('dialog');
     expect(within(dialog).getByLabelText('Температура воздуха')).toHaveValue(optionValue({ source_type: 'NATIVE_SENSOR', native_sensor_id: 201 }));
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Сохранить слоты' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Сохранить устройства' }));
     expect(confirm).toHaveBeenCalledOnce();
     expect(replaceGreenhouseSlots).not.toHaveBeenCalled();
     confirm.mockReturnValue(true);
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Сохранить слоты' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Сохранить устройства' }));
     await waitFor(() => expect(replaceGreenhouseSlots).toHaveBeenCalledWith(2, expect.arrayContaining([
       expect.objectContaining({ role: 'AIR_TEMPERATURE_SENSOR', native_sensor_id: 201 }),
       expect.objectContaining({ role: 'AIR_HUMIDITY_SENSOR', native_sensor_id: 102 }),

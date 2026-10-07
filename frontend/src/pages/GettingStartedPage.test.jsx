@@ -7,6 +7,7 @@ import GettingStartedPage from './GettingStartedPage';
 const { leaveDemo } = vi.hoisted(() => ({ leaveDemo: vi.fn() }));
 vi.mock('../features/auth/AuthContext', () => ({ useAuth: () => ({ demoActive: true, leaveDemo }) }));
 vi.mock('../utils/analytics', () => ({ trackProductGoal: vi.fn() }));
+vi.mock('../features/shop', () => ({ useShop: () => ({ openConsultation: vi.fn() }) }));
 
 function Location() {
   return <output data-testid="location">{useLocation().search}</output>;
@@ -21,9 +22,17 @@ it.each([
   await changeLocale(locale, { remember: false });
   render(<MemoryRouter><GettingStartedPage /><Location /></MemoryRouter>);
   if (locale === 'en') expect(document.body.textContent).not.toMatch(/[\u0400-\u04ff]/u);
+  fireEvent.click(screen.getByText(locale === 'en' ? 'Already have PushOk, Home Assistant or other hardware?' : 'Уже есть ПушОк, Home Assistant или другое оборудование?'));
   fireEvent.click(screen.getByRole('link', { name: cta }));
   expect(leaveDemo).toHaveBeenCalledTimes(1);
   const params = new URLSearchParams(screen.getByTestId('location').textContent);
   expect(params.get('redirect')).toBe(`/app/settings/connections/?pilot=pushok&lang=${locale}`);
   expect(getStoredLocale()).toBe(locale);
+});
+
+it('staryj yakor pushok raskryvaet podrobnuyu instrukciyu', () => {
+  render(<MemoryRouter initialEntries={['/kak-nachat/#pushok']}><GettingStartedPage /></MemoryRouter>);
+  const section = document.getElementById('pushok');
+  expect(section).toBeVisible();
+  expect(section.closest('details')).toHaveAttribute('open');
 });

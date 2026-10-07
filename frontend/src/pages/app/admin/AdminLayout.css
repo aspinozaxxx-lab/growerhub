@@ -37,8 +37,8 @@
 
 .admin-nav__link.is-active {
   background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-  border-color: rgba(95, 212, 145, 0.4);
-  color: #0b1524;
+  border-color: var(--accent-border);
+  color: var(--on-accent);
 }
 
 .admin-layout__content {

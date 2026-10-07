@@ -158,7 +158,8 @@ function AppAutomations() {
 
   return (
     <div className="automations-page">
-      <AppPageHeader title={t(compact ? 'Сценарии' : 'Автоматизации')}
+      <AppPageHeader title={t('Сценарии')}
+        description={t('Настройте свет, полив и климат под привычный уход за растениями.')}
         right={<Link className="automations-equipment-link" to="/app/farm/">{t(compact ? 'Оборудование' : 'Оборудование в Конструкторе')}<ArrowUpRight size={17} /></Link>} />
       {error ? <AppPageState kind="error" title={error}>
         {!overview ? <Button onClick={automation.load}>{t('Повторить')}</Button> : null}

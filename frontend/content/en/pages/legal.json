@@ -1,5 +1,13 @@
 {
-  "updated_at": "2026-09-29",
+  "updated_at": "2026-10-06",
+  "shop_privacy": {
+    "title": "Kit orders and help choosing",
+    "text": "When you submit a request, we store your name, phone number, selected kits and their prices, and the city, code and address of your chosen CDEK pickup point. Telegram and comments are stored only if provided. GrowerHub administrators use these details to respond, check the kit and agree the order and delivery with you. Requests are handled in the protected site administration area; automatic email and Telegram notifications are not sent at this stage. Contacts, addresses and form text are excluded from analytics and Webvisor form recording. A request key and a hash of the network address help prevent duplicates and abuse. Submitting a request does not subscribe you to marketing messages. Contact the operator to correct or delete your information."
+  },
+  "shop_terms": {
+    "title": "Kit requests",
+    "text": "An order placed on this website is a request for a kit to be assembled after confirmation. There is no online payment: we contact you first, check the kit and device compatibility, then agree payment, delivery cost and timing. Shipping is separate from the kit price. Find a CDEK pickup point yourself and enter its code and address. The kit includes a hub, the stated number of smart plugs, a power supply and cable, checks and help with the first connection; lamps are not included. Illustrations show the contents; the supplied units may look different. Mini POK101 and the specific smart plug revision must be checked before we confirm supply. GrowerHub schedules require internet access; these kits are not intended to operate watering equipment."
+  },
   "pushok_privacy": {
     "title": "PushOk cloud connection",
     "text": "After your confirmation and physical pairing, GrowerHub uses the PushOk cloud to receive the hub's device list, names, readings and states, and can send commands. A separate access key is created; this key and the server MQTT bridge password are stored encrypted in the database and are not sent to web analytics. GrowerHub does not request your home Wi-Fi password or an access export from Upravlyator. Archiving the connection stops communication and deletes the saved server keys; collected history remains in your account. You can remove the separate hub user in Upravlyator. Communication depends on internet access and PushOk cloud availability."

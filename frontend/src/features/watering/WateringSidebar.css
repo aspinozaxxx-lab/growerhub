@@ -8,7 +8,7 @@
   font-size: 12px;
   font-weight: 600;
   margin-top: 4px;
-  background: linear-gradient(90deg, #f7c15a, #6bdba8);
+  background: linear-gradient(90deg, var(--warning), var(--accent));
   -webkit-background-clip: text;
   color: transparent;
 }

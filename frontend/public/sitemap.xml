@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://growerhub.ru/</loc>
-    <lastmod>2026-09-18</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/about/</loc>
@@ -10,11 +10,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-10-04</lastmod>
+    <lastmod>2026-10-07</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/novosti/</loc>
-    <lastmod>2026-10-04</lastmod>
+    <lastmod>2026-10-07</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/avtomatizatsiya-mini-fermy/</loc>
@@ -26,27 +26,27 @@
   </url>
   <url>
     <loc>https://growerhub.ru/oborudovanie/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/oborudovanie/zigbee-koordinator/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/oborudovanie/datchiki/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/oborudovanie/zigbee-rozetki/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/oborudovanie/nasos-dlya-poliva/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/avtopoliv-i-kontroller-vyrashchivaniya/</loc>
-    <lastmod>2026-10-03</lastmod>
+    <lastmod>2026-10-07</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zhurnal-i-sovetnik-uhoda/</loc>
@@ -54,7 +54,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zigbee-hub-i-ustroystva/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/mini-ferma-i-neskolko-boksov/</loc>
@@ -65,16 +65,12 @@
     <lastmod>2026-10-04</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/articles/dnevnik-rasteniy-bez-oborudovaniya-growerhub/</loc>
-    <lastmod>2026-10-04</lastmod>
+    <loc>https://growerhub.ru/articles/poliv-po-raspisaniyu-growerhub/</loc>
+    <lastmod>2026-10-07</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/articles/dnevnik-rasteniya-chto-zapisyvat/</loc>
-    <lastmod>2026-10-04</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/foto-dnevnik-rosta-rasteniy/</loc>
-    <lastmod>2026-10-04</lastmod>
+    <loc>https://growerhub.ru/articles/komplekty-dlya-rasteniy-growerhub/</loc>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/home-assistant-dlya-rasteniy/</loc>
@@ -102,10 +98,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/poliv-po-mestnym-orientiram-growerhub/</loc>
-    <lastmod>2026-10-02</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/poliv-po-raspisaniyu-growerhub/</loc>
     <lastmod>2026-10-02</lastmod>
   </url>
   <url>
@@ -150,6 +142,10 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/datchik-vlazhnosti-pochvy-dlya-avtopoliva/</loc>
+    <lastmod>2026-09-17</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/dnevnik-rasteniya-chto-zapisyvat/</loc>
     <lastmod>2026-09-17</lastmod>
   </url>
   <url>
@@ -198,6 +194,10 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/diy-ili-gotovyy-kontroller-poliva/</loc>
+    <lastmod>2026-06-30</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/foto-dnevnik-rosta-rasteniy/</loc>
     <lastmod>2026-06-30</lastmod>
   </url>
   <url>
@@ -318,7 +318,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/</loc>
-    <lastmod>2026-09-18</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/about/</loc>
@@ -326,11 +326,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-10-04</lastmod>
+    <lastmod>2026-10-07</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/news/</loc>
-    <lastmod>2026-10-04</lastmod>
+    <lastmod>2026-10-07</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/farm-automation/</loc>
@@ -342,27 +342,27 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/equipment/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/equipment/zigbee-coordinators/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/equipment/sensors/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/equipment/zigbee-smart-plugs/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/equipment/irrigation-pump/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/automated-watering-and-grow-controllers/</loc>
-    <lastmod>2026-10-03</lastmod>
+    <lastmod>2026-10-07</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/plant-journal-and-care-guidance/</loc>
@@ -370,7 +370,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/zigbee-hubs-and-devices/</loc>
-    <lastmod>2026-10-01</lastmod>
+    <lastmod>2026-10-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/small-farms-and-multiple-grow-boxes/</loc>
@@ -381,23 +381,19 @@
     <lastmod>2026-10-04</lastmod>
   </url>
   <url>
+    <loc>https://growerhub.ru/en/articles/scheduled-watering-growerhub/</loc>
+    <lastmod>2026-10-07</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/plant-lighting-kits-growerhub/</loc>
+    <lastmod>2026-10-06</lastmod>
+  </url>
+  <url>
     <loc>https://growerhub.ru/en/articles/home-assistant-plant-watering-safe-step-by-step-setup/</loc>
     <lastmod>2026-10-04</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/microclimate-history-and-charts-how-to-read-data-without-panic/</loc>
-    <lastmod>2026-10-04</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/photo-growth-diary-how-to-compare-plants-week-by-week/</loc>
-    <lastmod>2026-10-04</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/plant-care-journal-and-telegram-growerhub/</loc>
-    <lastmod>2026-10-04</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/plant-diary-what-to-write-down-to-understand-growth-and-mistakes/</loc>
     <lastmod>2026-10-04</lastmod>
   </url>
   <url>
@@ -418,10 +414,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/local-soil-anchors-watering-growerhub/</loc>
-    <lastmod>2026-10-02</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/scheduled-watering-growerhub/</loc>
     <lastmod>2026-10-02</lastmod>
   </url>
   <url>
@@ -470,6 +462,10 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/mqtt-discovery-in-home-assistant-how-to-add-plant-sensors-without-manual-yaml/</loc>
+    <lastmod>2026-09-17</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/plant-diary-what-to-write-down-to-understand-growth-and-mistakes/</loc>
     <lastmod>2026-09-17</lastmod>
   </url>
   <url>
@@ -550,6 +546,10 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/ph-and-feeding-minimum-data-for-careful-care/</loc>
+    <lastmod>2026-07-23</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/photo-growth-diary-how-to-compare-plants-week-by-week/</loc>
     <lastmod>2026-07-23</lastmod>
   </url>
   <url>

@@ -1,0 +1,85 @@
+.gh-shop, .gh-shop-dialog {
+  --gh-shop-ink: #2d123d;
+  --gh-shop-muted: #685571;
+  --gh-shop-purple: #74478a;
+  --gh-shop-border: #ddcfe6;
+  color: var(--gh-shop-ink);
+  font-size: 17px;
+  line-height: 1.55;
+}
+.gh-shop { max-width: 1160px; width: 100%; margin: 0 auto; padding: clamp(24px, 5vw, 64px) clamp(16px, 3vw, 32px); background: #faf7fc; }
+.gh-shop *, .gh-shop-dialog * { box-sizing: border-box; }
+.gh-shop h1, .gh-shop h2, .gh-shop-dialog h2 { color: var(--gh-shop-ink); line-height: 1.2; }
+.gh-shop-heading { max-width: 760px; margin-bottom: 36px; }
+.gh-shop-heading h1 { font-size: clamp(29px, 4.2vw, 46px); margin: 10px 0 16px; }
+.gh-shop-heading p { max-width: 640px; color: var(--gh-shop-muted); margin: 0; }
+.gh-shop-eyebrow { color: var(--gh-shop-purple); letter-spacing: .08em; }
+.gh-shop-checkout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(24px, 4vw, 48px); align-items: start; }
+.gh-shop-summary, .gh-shop-checkout__form { min-width: 0; }
+.gh-shop-checkout__form { padding: 28px; border: 1px solid var(--gh-shop-border); background: #fff; border-radius: 24px; }
+.gh-shop-line { display: grid; grid-template-columns: 125px minmax(0, 1fr); gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--gh-shop-border); }
+.gh-shop-line:first-child { padding-top: 0; }
+.gh-shop-line img { width: 100%; height: 125px; object-fit: contain; border-radius: 18px; background: #fff; }
+.gh-shop-line h2 { font-size: 21px; margin: 0 0 8px; }
+.gh-shop-line p { margin: 6px 0; font-size: 15px; color: var(--gh-shop-muted); }
+.gh-shop-line .gh-shop-line__price { font-size: 21px; font-weight: 700; color: var(--gh-shop-ink); }
+.gh-shop-line__controls { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.gh-shop-line__controls label { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+.gh-shop-line__controls select { background: #fff; color: var(--gh-shop-ink); border: 1px solid #9d83ac; border-radius: 10px; font: inherit; font-size: 16px; padding: 8px; min-height: 44px; }
+.gh-shop-line__verification { grid-column: 1 / -1; font-size: 14px !important; margin-bottom: 0 !important; }
+.gh-shop-remove { color: var(--gh-shop-purple); background: transparent; border: 0; font: inherit; font-size: 15px; text-decoration: underline; cursor: pointer; min-height: 44px; padding: 6px; }
+.gh-shop-total { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px 0 8px; font-size: 18px; }
+.gh-shop-total strong { font-size: 24px; white-space: nowrap; }
+.gh-shop-hint, .gh-shop-muted { color: var(--gh-shop-muted); font-size: 15px; line-height: 1.5; }
+.gh-shop-back, .gh-shop-external { color: var(--gh-shop-purple); display: inline-block; margin: 10px 0; text-underline-offset: 3px; }
+.gh-shop-form { display: grid; gap: 22px; color: var(--gh-shop-ink); }
+.gh-shop-form fieldset { margin: 0; padding: 0; border: 0; min-width: 0; display: grid; gap: 18px; }
+.gh-shop-form legend { font-size: 23px; font-weight: 700; margin-bottom: 18px; padding: 0; line-height: 1.3; }
+.gh-shop-form p { margin: 0; }
+.gh-shop-field { display: grid; gap: 7px; min-width: 0; }
+.gh-shop-field label { font-size: 16px; font-weight: 600; }
+.gh-shop-field :is(input, textarea) { width: 100%; min-width: 0; min-height: 48px; padding: 12px 13px; border: 1px solid #9d83ac; background: #fff; color: var(--gh-shop-ink); border-radius: 11px; font: inherit; font-size: 16px; line-height: 1.4; box-shadow: none; }
+.gh-shop-field textarea { resize: vertical; }
+.gh-shop-field :is(input, textarea)[readonly] { background: #f2eef5; }
+.gh-shop-field [aria-invalid="true"] { border: 2px solid #a4324d; }
+.gh-shop :is(a, button, input, select, textarea):focus-visible, .gh-shop-dialog :is(a, button, input, textarea):focus-visible { outline: 3px solid #9363a9; outline-offset: 3px; }
+.gh-shop-consent { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 12px; align-items: start; font-size: 14px; line-height: 1.5; }
+.gh-shop-consent input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--gh-shop-purple); }
+.gh-shop-consent label { cursor: pointer; }
+.gh-shop-consent p { margin-top: 7px; }
+.gh-shop-consent a { color: var(--gh-shop-purple); text-underline-offset: 2px; }
+.gh-shop-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 22px; min-height: 48px; border: 1px solid var(--gh-shop-purple); border-radius: 13px; background: var(--gh-shop-purple); color: #fff; font: inherit; font-size: 17px; line-height: 1.3; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer; }
+.gh-shop-button:hover { background: #613475; color: #fff; }
+.gh-shop-button--secondary { color: var(--gh-shop-purple); background: #fff; }
+.gh-shop-button--secondary:hover { color: #56286b; background: #eee3f3; }
+.gh-shop-button:disabled, .gh-shop-remove:disabled { opacity: .6; cursor: not-allowed; }
+.gh-shop-error, .gh-shop-field-error { color: #982740; font-size: 15px; }
+.gh-shop-error, .gh-shop-notice { padding: 13px 16px; border-radius: 12px; background: #f2eaf6; line-height: 1.5; }
+.gh-shop-error { background: #fff0f1; border: 1px solid #ebc4ce; }
+.gh-shop-notice { color: var(--gh-shop-ink); font-size: 15px; }
+.gh-shop-notice .gh-shop-button { margin-top: 12px; }
+.gh-shop-honeypot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(100%); }
+.gh-shop-receipt, .gh-shop-empty { max-width: 760px; margin: 0 auto 24px; padding: clamp(24px, 4vw, 48px); text-align: center; border: 1px solid var(--gh-shop-border); border-radius: 24px; background: #fff; }
+.gh-shop-empty > span, .gh-shop-receipt__heart { font-size: 54px; color: #a772b4; line-height: 1; }
+.gh-shop-receipt h2, .gh-shop-empty h2 { font-size: 28px; margin: 16px 0; }
+.gh-shop-receipt p, .gh-shop-empty p { margin: 16px 0; }
+.gh-shop-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 22px; }
+.gh-shop-dialog .gh-modal__panel { --surface-1: #faf7fc; --text-1: #2d123d; --text-2: #685571; --border-1: #ddcfe6; --border-2: #9d83ac; --accent: #74478a; padding: 24px; border-radius: 24px; }
+.gh-shop-dialog .gh-modal__title { font-size: 24px; }
+.gh-shop-dialog .gh-modal__body { padding: 3px; }
+.gh-shop-dialog .gh-modal__close { min-width: 44px; min-height: 44px; }
+.gh-shop-dialog .gh-shop-receipt { padding: 20px 14px; margin: 0; }
+@media (max-width: 760px) {
+  .gh-shop-checkout { grid-template-columns: minmax(0, 1fr); }
+  .gh-shop { padding: 28px 16px 44px; }
+  .gh-shop-heading { margin-bottom: 24px; }
+  .gh-shop-checkout__form { padding: 22px 16px; }
+  .gh-shop-line { grid-template-columns: 96px minmax(0, 1fr); gap: 12px; }
+  .gh-shop-line img { height: 108px; }
+  .gh-shop-line h2 { font-size: 19px; }
+  .gh-shop-total { flex-wrap: wrap; }
+  .gh-shop-form legend { font-size: 21px; }
+  .gh-shop-dialog .gh-modal__panel { padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px)); border-radius: 22px 22px 0 0; }
+  .gh-shop-dialog .gh-modal__title { font-size: 21px; }
+  .gh-shop-actions { flex-direction: column; }
+}

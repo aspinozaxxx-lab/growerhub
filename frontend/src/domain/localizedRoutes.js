@@ -7,6 +7,7 @@ export const PUBLIC_ROUTES = Object.freeze({
   farmAutomation: { ru: '/avtomatizatsiya-mini-fermy/', en: '/en/farm-automation/' },
   gettingStarted: { ru: '/kak-nachat/', en: '/en/getting-started/' },
   equipment: { ru: '/oborudovanie/', en: '/en/equipment/' },
+  cart: { ru: '/korzina/', en: '/en/cart/' },
   equipmentCoordinators: {
     ru: '/oborudovanie/zigbee-koordinator/',
     en: '/en/equipment/zigbee-coordinators/',

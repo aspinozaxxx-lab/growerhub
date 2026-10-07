@@ -6,6 +6,9 @@ import Layout from './Layout';
 vi.mock('../../features/auth/AuthContext', () => ({
   useAuth: () => ({ accountStatus: 'unauthorized', demoActive: false }),
 }));
+vi.mock('../../features/shop', () => ({
+  useShop: () => ({ cartCount: 0, openConsultation: vi.fn() }),
+}));
 
 let scrollTo;
 beforeEach(() => { scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {}); });

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
+import { getNurseryCopy } from '../src/components/nursery/copy.js';
 import { renderPublicPage } from '../node_modules/.cache/growerhub-render/entry-public-server.js';
 import { marked } from 'marked';
 import { overviewScreenshotDimensions, overviewScreenshotVersion } from '../src/content/productScreenshots.js';
@@ -53,6 +54,7 @@ const registerLocalizedPair = (ruPath, enPath) => {
 
 Object.values(PUBLIC_ROUTES).forEach((paths) => registerLocalizedPair(paths.ru, paths.en));
 const APP_NO_INDEX_ROUTES = [
+  { path: '/app/admin/shop/requests/', title: 'Заказы — GrowerHub', description: 'Закрытая обработка заявок на комплекты и консультации.' },
   { path: '/app/', title: 'GrowerHub - приложение', description: 'Личный кабинет GrowerHub для контроля растений, устройств, датчиков и полива.' },
   { path: '/app/login/', title: 'Вход в GrowerHub', description: 'Страница входа в личный кабинет GrowerHub.' },
   { path: '/app/onboarding/', title: 'Первое подключение - GrowerHub', description: 'Приватный мастер подключения Zigbee2MQTT к GrowerHub.' },
@@ -314,7 +316,7 @@ ${mainHtml}
 
 const pageShell = (template, meta, mainHtml, assets) => {
   const locale = meta.locale || (meta.canonical && new URL(meta.canonical).pathname.startsWith('/en/') ? 'en' : 'ru');
-  const reactRendered = meta.initialArticle || meta.renderWithReact;
+  const reactRendered = Boolean(meta.canonical);
   const content = reactRendered
     ? renderPublicPage(new URL(meta.canonical).pathname, locale, meta.initialArticle)
     : staticLayout(mainHtml, locale, meta.canonical);
@@ -699,46 +701,32 @@ const renderMiniFarmPage = (template, assets, data) => {
   }, mainHtml, assets);
 };
 
-const renderGettingStartedPage = (template, assets, platformContent) => {
-  const { start, minimum, early_access_text: earlyAccessText } = platformContent;
-  const canonical = toCanonicalUrl('/kak-nachat/');
-  const mainHtml = `
-          <section class="landing-hero">
-            <div><div class="badge">Самостоятельный запуск</div><h1>${htmlEscape(start.title)}</h1><p>${htmlEscape(start.intro)}</p>${leadCta('getting_started_hero')}</div>
-            <aside class="landing-summary"><strong>Ранний доступ открыт</strong><p>${htmlEscape(earlyAccessText)}</p></aside>
-          </section>
-          <section class="content-section"><h2>${htmlEscape(start.paths_title)}</h2><div class="card-grid">${start.paths.filter((item) => !item.demo || DEMO_PUBLIC_ENABLED).map((item) => `<article class="card"><h3><a href="${htmlEscape(item.href)}">${htmlEscape(item.title)}</a></h3><p>${htmlEscape(item.text)}</p></article>`).join('')}</div></section>
-          <section class="content-section"><h2>Семь коротких шагов</h2><ol class="steps-list">${start.steps.map((step) => `<li><strong>${htmlEscape(step.title)}</strong><span>${htmlEscape(step.text)}</span></li>`).join('')}</ol></section>
-          <section class="content-section split-section">
-            <div><h2>${htmlEscape(minimum.title)}</h2><div class="info-grid"><div class="info-block"><h3>Только мониторинг</h3><p>${htmlEscape(minimum.monitoring)}</p></div><div class="info-block"><h3>Управление</h3><p>${htmlEscape(minimum.control)}</p></div></div></div>
-            <div class="info-block"><h2>Уже есть Home Assistant?</h2><p>${htmlEscape(minimum.existing)}</p><a class="secondary-link" href="/oborudovanie/zigbee-koordinator/">Проверить оборудование</a></div>
-          </section>
-          <section class="content-section"><h2>Поможем с подключением и настройкой</h2><p>${htmlEscape(start.help)}</p>${telegramLink('getting_started_help')}</section>
-          ${leadCta('getting_started_bottom')}`;
-
+const renderGettingStartedPage = (template, assets, _platformContent, locale = 'ru') => {
+  const copy = getNurseryCopy(locale).start;
+  const canonical = toCanonicalUrl(getPublicPath('gettingStarted', locale));
   return pageShell(template, {
-    renderWithReact: true,
-    title: `${start.title} — Zigbee2MQTT, PushOk`,
-    description: start.description,
-    canonical,
-    jsonLd: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'HowTo',
-        name: start.title,
-        description: start.description,
-        url: canonical,
-        publisher: organizationLd,
-        step: start.steps.map((step, index) => ({
-          '@type': 'HowToStep',
-          position: index + 1,
-          name: step.title,
-          text: step.text,
-        })),
-      },
-      breadcrumbLd([{ name: SITE_NAME, url: HOME_URL }, { name: 'Как начать', url: canonical }]),
-    ],
-  }, mainHtml, assets);
+    title: copy.title + ' — GrowerHub', description: copy.description, canonical, locale,
+    jsonLd: [{
+      '@context': 'https://schema.org', '@type': 'HowTo',
+      name: copy.title, description: copy.description, url: canonical, inLanguage: locale,
+      step: copy.steps.map((step, index) => ({
+        '@type': 'HowToStep', position: index + 1, name: step.title, text: step.text,
+      })),
+    }],
+  }, '', assets);
+};
+
+const renderEquipmentIndexPage = (template, assets, _equipment, _platformContent, locale = 'ru') => {
+  const copy = getNurseryCopy(locale).catalogue;
+  const canonical = toCanonicalUrl(getPublicPath('equipment', locale));
+  return pageShell(template, {
+    title: copy.title + ' — GrowerHub', description: copy.description, canonical, locale,
+    jsonLd: [{
+      '@context': 'https://schema.org', '@type': 'CollectionPage',
+      name: copy.title, description: copy.description, url: canonical, inLanguage: locale,
+      isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: toCanonicalUrl(getPublicPath('home', locale)) },
+    }],
+  }, '', assets);
 };
 
 const equipmentEvidence = (locale = 'ru') => {
@@ -753,49 +741,14 @@ const equipmentEvidence = (locale = 'ru') => {
           </section>`;
 };
 
-const renderEquipmentIndexPage = (template, assets, equipment, platformContent) => {
-  const canonical = toCanonicalUrl('/oborudovanie/');
-  const description = 'Что нужно для GrowerHub: Zigbee-координатор, один датчик температуры и влажности, а для управления — Zigbee-розетка.';
-  const categories = Object.values(equipment.categories);
-  const mainHtml = `
-          <div class="badge">Без обязательных комплектов</div>
-          <h1>Оборудование для GrowerHub</h1>
-          <p class="article-lead">${htmlEscape(description)}</p>
-          <section class="content-section start-kit"><h2>Минимальный старт</h2><div class="card-grid"><article class="card"><h3>Для мониторинга</h3><p>${htmlEscape(platformContent.minimum.monitoring)}</p></article><article class="card"><h3>Для управления</h3><p>${htmlEscape(platformContent.minimum.control)}</p></article><article class="card"><h3>Если всё уже работает</h3><p>${htmlEscape(platformContent.minimum.existing)}</p></article></div></section>
-          <section class="content-section info-block"><h2>Главное — выбрать Zigbee</h2><p>${htmlEscape(equipment.zigbee_note)}</p></section>
-          ${equipmentEvidence()}
-          <section class="content-section"><h2>Выберите раздел</h2><div class="card-grid">
-${categories.map((category) => `            <article class="card"><h3>${htmlEscape(category.title)}</h3><p>${htmlEscape(category.intro)}</p><a class="secondary-link" href="/oborudovanie/${htmlEscape(category.slug)}/">Посмотреть варианты</a></article>`).join('\n')}
-            <article class="card"><h3>${htmlEscape(equipment.pump.title)}</h3><p>${htmlEscape(equipment.pump.summary)}</p><a class="secondary-link" href="/oborudovanie/nasos-dlya-poliva/">О насосе GrowerHub</a></article>
-          </div></section>
-          <section class="content-section info-block"><h2>Почему не любой Wi‑Fi-датчик</h2><p>${htmlEscape(equipment.wifi_note)}</p></section>
-          ${leadCta('equipment_index_bottom')}`;
-
-  return pageShell(template, {
-    title: 'Оборудование для GrowerHub — доступные Zigbee-варианты',
-    description,
-    canonical,
-    jsonLd: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'CollectionPage',
-        name: 'Оборудование для GrowerHub',
-        description,
-        url: canonical,
-        isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: HOME_URL },
-        mainEntity: {
-          '@type': 'ItemList',
-          itemListElement: categories.map((category, index) => ({
-            '@type': 'ListItem',
-            position: index + 1,
-            name: category.title,
-            url: toCanonicalUrl(`/oborudovanie/${category.slug}/`),
-          })),
-        },
-      },
-      breadcrumbLd([{ name: SITE_NAME, url: HOME_URL }, { name: 'Оборудование', url: canonical }]),
-    ],
-  }, mainHtml, assets);
+const renderEquipmentCard = (item, locale) => {
+  const en = locale === 'en';
+  return `            <article class="equipment-card">
+              ${item.image ? `<figure class="equipment-card__media"><img src="${htmlEscape(item.image)}" alt="${htmlEscape(item.image_alt || item.model)}" width="640" height="420" loading="lazy" decoding="async" />${item.image_caption ? `<figcaption>${htmlEscape(item.image_caption)}</figcaption>` : ''}</figure>` : ''}
+              <div><span class="status-chip">${htmlEscape(item.status)}</span><h2>${htmlEscape(item.model)}</h2><h3>${htmlEscape(item.name)}</h3><p>${htmlEscape(item.summary)}</p></div>
+              <ul class="check-list">${item.notes.map((note) => `<li>${htmlEscape(note)}</li>`).join('')}</ul>
+              <div class="cta-row"><a class="secondary-link" href="${htmlEscape(item.official_url)}" target="_blank" rel="noreferrer">${en ? 'Zigbee2MQTT compatibility' : 'Совместимость Zigbee2MQTT'}</a>${!en && item.example_url ? `<a class="secondary-link" href="${htmlEscape(item.example_url)}" target="_blank" rel="nofollow noreferrer">Пример на Ozon</a>` : ''}<a class="secondary-link" href="${htmlEscape(item.shop_search_url)}" target="_blank" rel="nofollow noreferrer">${en ? 'Search exact model' : 'Найти на Ozon'}</a></div>
+            </article>`;
 };
 
 const renderEquipmentCategoryPage = (template, assets, equipment, categoryKey) => {
@@ -846,37 +799,22 @@ ${category.items.map((item) => renderEquipmentCard(item, 'ru')).join('\n')}
   }, mainHtml, assets);
 };
 
-const renderPumpEarlyAccessPage = (template, assets, equipment) => {
+const renderPumpEarlyAccessPage = (template, assets, equipment, locale = 'ru') => {
   const pump = equipment.pump;
-  const canonical = toCanonicalUrl('/oborudovanie/nasos-dlya-poliva/');
-  const mainHtml = `
-          <div class="badge">${htmlEscape(pump.status)}</div><h1>${htmlEscape(pump.title)}</h1><p class="article-lead">${htmlEscape(pump.summary)}</p>
-          <section class="content-section split-section"><div class="info-block"><h2>Два варианта связи</h2><p>Проектируем два режима: Zigbee для общей сети устройств и Wi‑Fi с прямым MQTT GrowerHub. Оба варианта работают с единым кабинетом платформы.</p></div><div class="info-block"><h2>Текущий этап</h2><p>Прототип проходит испытания. Если хотите присоединиться к первым пользователям, напишите нам — обсудим оборудование и подходящий сценарий.</p></div></section>
-          <section class="content-section info-block"><h2>Откуда взялась разработка</h2><p>Контур полива GrowerHub развивается с октября 2025 года: в Git видны первые MQTT-команды, а в production-журнале сохранились записи с 26 ноября. Нынешний Zigbee/Wi‑Fi-прототип — отдельное следующее поколение устройства, поэтому мы не выдаём весь этот период за испытание одной модели.</p><a class="secondary-link" href="/about/">Хронология и эксплуатационные данные</a></section>
-          <section class="content-section"><h2>Что мы проверяем</h2><ul class="check-list limitations-list">${pump.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></section>
-          <section class="lead-cta"><div><h2>Стать одним из первых пользователей</h2><p>Расскажите, где планируете использовать насос. Мы ответим на вопросы и подскажем, как подготовиться к первым испытаниям.</p></div>${telegramLink('pump_early_access', 'Написать в Telegram', 'hero-cta')}</section>
-          ${leadCta('pump_platform_bottom', 'Начать с готового оборудования', 'Для мониторинга GrowerHub насос не нужен: достаточно координатора и одного Zigbee-датчика.')}`;
-
+  const canonical = toCanonicalUrl(getPublicPath('equipmentPump', locale));
   return pageShell(template, {
+    renderWithReact: true,
     title: `${pump.title} — GrowerHub`,
     description: pump.description,
     canonical,
-    jsonLd: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'WebPage',
-        name: pump.title,
-        description: pump.description,
-        url: canonical,
-        isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: HOME_URL },
-      },
-      breadcrumbLd([
-        { name: SITE_NAME, url: HOME_URL },
-        { name: 'Оборудование', url: toCanonicalUrl('/oborudovanie/') },
-        { name: pump.title, url: canonical },
-      ]),
-    ],
-  }, mainHtml, assets);
+    locale,
+    image: '/content/nursery/pump-drip-kit.webp',
+    jsonLd: [{
+      '@context': 'https://schema.org', '@type': 'WebPage', name: pump.title,
+      description: pump.description, url: canonical, inLanguage: locale,
+      isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: toCanonicalUrl(getPublicPath('home', locale)) },
+    }],
+  }, '', assets);
 };
 
 const renderLegalPage = (template, assets, legal, type) => {
@@ -1126,113 +1064,9 @@ const renderEnglishMiniFarmPage = (template, assets, data) => {
   )}`, assets);
 };
 
-const renderEnglishGettingStartedPage = (template, assets, data) => {
-  const { start, minimum, early_access_text: earlyAccessText } = data;
-  const routePath = getPublicPath('gettingStarted', 'en');
-  const canonical = toCanonicalUrl(routePath);
-  return pageShell(template, {
-    renderWithReact: true,
-    title: `${start.title} — Zigbee2MQTT, PushOk`,
-    description: start.description,
-    canonical,
-    locale: 'en',
-    jsonLd: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'HowTo',
-        name: start.title,
-        description: start.description,
-        url: canonical,
-        publisher: organizationLd,
-        step: start.steps.map((step, index) => ({
-          '@type': 'HowToStep',
-          position: index + 1,
-          name: step.title,
-          text: step.text,
-        })),
-      },
-      breadcrumbLd([
-        { name: SITE_NAME, url: toCanonicalUrl('/en/') },
-        { name: start.title, url: canonical },
-      ]),
-    ],
-  }, `
-          <section class="landing-hero"><div><div class="badge">Self-service setup</div><h1>${htmlEscape(start.title)}</h1><p>${htmlEscape(start.intro)}</p>${leadCta('getting_started_hero', 'Start with your first device', 'Sign in, connect Zigbee2MQTT and create your first zone. GrowerHub is free to use and does not require a card.', 'en')}</div><aside class="landing-summary"><strong>Early access is open</strong><p>${htmlEscape(earlyAccessText)}</p></aside></section>
-          <section class="content-section"><h2>${htmlEscape(start.paths_title)}</h2><div class="card-grid">${start.paths.filter((item) => !item.demo || DEMO_PUBLIC_ENABLED).map((item) => `<article class="card"><h3><a href="${htmlEscape(item.href)}">${htmlEscape(item.title)}</a></h3><p>${htmlEscape(item.text)}</p></article>`).join('')}</div></section>
-          <section class="content-section"><h2>Seven short steps</h2><ol class="steps-list">${start.steps.map((step) => `<li><strong>${htmlEscape(step.title)}</strong><span>${htmlEscape(step.text)}</span></li>`).join('')}</ol></section>
-          <section class="content-section split-section"><div><h2>${htmlEscape(minimum.title)}</h2><div class="info-grid"><div class="info-block"><h3>Monitoring only</h3><p>${htmlEscape(minimum.monitoring)}</p></div><div class="info-block"><h3>Control</h3><p>${htmlEscape(minimum.control)}</p></div></div></div><div class="info-block"><h2>Already using Home Assistant?</h2><p>${htmlEscape(minimum.existing)}</p><a class="secondary-link" href="${getPublicPath('equipmentCoordinators', 'en')}">Check equipment</a></div></section>
-          <section class="content-section"><h2>We can help with connection and setup</h2><p>${htmlEscape(start.help)}</p>${telegramLink('getting_started_help', 'Telegram support')}</section>
-          ${leadCta(
-    'getting_started_bottom',
-    'Start with your first device',
-    'Sign in, connect Zigbee2MQTT and create your first zone. GrowerHub is free to use and does not require a card.',
-    'en',
-  )}`, assets);
-};
 
-const renderEquipmentCard = (item, locale) => {
-  const en = locale === 'en';
-  return `            <article class="equipment-card">
-              ${item.image ? `<figure class="equipment-card__media"><img src="${htmlEscape(item.image)}" alt="${htmlEscape(item.image_alt || item.model)}" width="640" height="420" loading="lazy" decoding="async" />${item.image_caption ? `<figcaption>${htmlEscape(item.image_caption)}</figcaption>` : ''}</figure>` : ''}
-              <div><span class="status-chip">${htmlEscape(item.status)}</span><h2>${htmlEscape(item.model)}</h2><h3>${htmlEscape(item.name)}</h3><p>${htmlEscape(item.summary)}</p></div>
-              <ul class="check-list">${item.notes.map((note) => `<li>${htmlEscape(note)}</li>`).join('')}</ul>
-              <div class="cta-row"><a class="secondary-link" href="${htmlEscape(item.official_url)}" target="_blank" rel="noreferrer">${en ? 'Zigbee2MQTT compatibility' : 'Совместимость Zigbee2MQTT'}</a>${!en && item.example_url ? `<a class="secondary-link" href="${htmlEscape(item.example_url)}" target="_blank" rel="nofollow noreferrer">Пример на Ozon</a>` : ''}<a class="secondary-link" href="${htmlEscape(item.shop_search_url)}" target="_blank" rel="nofollow noreferrer">${en ? 'Search exact model' : 'Найти на Ozon'}</a></div>
-            </article>`;
-};
 
-const renderEnglishEquipmentIndexPage = (template, assets, equipment, platformContent) => {
-  const routePath = getPublicPath('equipment', 'en');
-  const canonical = toCanonicalUrl(routePath);
-  const categoryRouteIds = {
-    coordinators: 'equipmentCoordinators',
-    sensors: 'equipmentSensors',
-    sockets: 'equipmentSockets',
-  };
-  const description = 'Soft equipment recommendations for connecting Zigbee2MQTT to GrowerHub, from a coordinator and one sensor to smart plugs and optional extensions.';
-  return pageShell(template, {
-    title: 'Equipment for GrowerHub — Zigbee coordinators, sensors, and smart plugs',
-    description,
-    canonical,
-    locale: 'en',
-    jsonLd: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'CollectionPage',
-        name: 'Equipment for GrowerHub',
-        description,
-        url: canonical,
-        isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: toCanonicalUrl('/en/') },
-        mainEntity: {
-          '@type': 'ItemList',
-          itemListElement: Object.entries(equipment.categories).map(([key, category], index) => ({
-            '@type': 'ListItem',
-            position: index + 1,
-            name: category.title,
-            url: toCanonicalUrl(getPublicPath(categoryRouteIds[key], 'en')),
-          })),
-        },
-      },
-      breadcrumbLd([
-        { name: SITE_NAME, url: toCanonicalUrl('/en/') },
-        { name: 'Equipment', url: canonical },
-      ]),
-    ],
-  }, `
-          <div class="badge">No mandatory kits</div>
-          <h1>Equipment for GrowerHub</h1>
-          <p class="article-lead">${description}</p>
-          <section class="content-section start-kit"><h2>Minimum setup</h2><div class="card-grid"><article class="card"><h3>Monitoring</h3><p>${htmlEscape(platformContent.minimum.monitoring)}</p></article><article class="card"><h3>Control</h3><p>${htmlEscape(platformContent.minimum.control)}</p></article><article class="card"><h3>Keep an existing setup</h3><p>${htmlEscape(platformContent.minimum.existing)}</p></article></div></section>
-          <section class="content-section info-block"><h2>Choose Zigbee first</h2><p>${htmlEscape(equipment.zigbee_note)}</p></section>
-          ${equipmentEvidence('en')}
-          <section class="content-section"><h2>Choose a category</h2><div class="card-grid">${Object.entries(equipment.categories).map(([key, category]) => `<article class="card"><h3>${htmlEscape(category.title)}</h3><p>${htmlEscape(category.intro)}</p><a class="secondary-link" href="${getPublicPath(categoryRouteIds[key], 'en')}">View recommendations</a></article>`).join('')}<article class="card"><h3>${htmlEscape(equipment.pump.title)}</h3><p>${htmlEscape(equipment.pump.summary)}</p><a class="secondary-link" href="${getPublicPath('equipmentPump', 'en')}">About the GrowerHub pump</a></article></div></section>
-          <section class="content-section info-block"><h2>Why not every Wi-Fi sensor works</h2><p>${htmlEscape(equipment.wifi_note)}</p></section>
-          ${leadCta(
-    'equipment_index_bottom',
-    'Start with your first device',
-    'A supported coordinator and one Zigbee sensor are enough to begin monitoring.',
-    'en',
-  )}`, assets);
-};
+
 
 const renderEnglishEquipmentCategoryPage = (
   template,
@@ -1297,43 +1131,6 @@ ${category.items.map((item) => renderEquipmentCard(item, 'en')).join('\n')}
   )}`, assets);
 };
 
-const renderEnglishPumpEarlyAccessPage = (template, assets, equipment) => {
-  const pump = equipment.pump;
-  const routePath = getPublicPath('equipmentPump', 'en');
-  const canonical = toCanonicalUrl(routePath);
-  return pageShell(template, {
-    title: `${pump.title} — GrowerHub`,
-    description: pump.description,
-    canonical,
-    locale: 'en',
-    jsonLd: [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'WebPage',
-        name: pump.title,
-        description: pump.description,
-        url: canonical,
-        isPartOf: { '@type': 'WebSite', name: SITE_NAME, url: toCanonicalUrl('/en/') },
-      },
-      breadcrumbLd([
-        { name: SITE_NAME, url: toCanonicalUrl('/en/') },
-        { name: 'Equipment', url: toCanonicalUrl(getPublicPath('equipment', 'en')) },
-        { name: pump.title, url: canonical },
-      ]),
-    ],
-  }, `
-          <div class="badge">${htmlEscape(pump.status)}</div><h1>${htmlEscape(pump.title)}</h1><p class="article-lead">${htmlEscape(pump.summary)}</p>
-          <section class="content-section split-section"><div class="info-block"><h2>Two connection options</h2><p>We are designing Zigbee connectivity for the shared device mesh and Wi-Fi with direct GrowerHub MQTT. Both options use the same platform dashboard.</p></div><div class="info-block"><h2>Current stage</h2><p>The prototype is being tested. If you would like to join the first users, message us and we will discuss your equipment and a suitable scenario.</p></div></section>
-          <section class="content-section info-block"><h2>Where this development came from</h2><p>GrowerHub's irrigation path has been evolving since October 2025: Git contains the first MQTT commands, while the production journal retains entries from November 26. The current Zigbee/Wi-Fi prototype is a separate next generation, so we do not present that entire period as a test of one model.</p><a class="secondary-link" href="${getPublicPath('about', 'en')}">Timeline and operational data</a></section>
-          <section class="content-section"><h2>What we are testing</h2><ul class="check-list limitations-list">${pump.limitations.map((item) => `<li>${htmlEscape(item)}</li>`).join('')}</ul></section>
-          <section class="lead-cta"><div><h2>Become an early user</h2><p>Tell us where you plan to use the pump. We will answer your questions and help you prepare for testing.</p></div>${telegramLink('pump_early_access', 'Message us on Telegram', 'hero-cta')}</section>
-          ${leadCta(
-    'pump_platform_bottom',
-    'Start with available equipment',
-    'You do not need a pump for monitoring: a coordinator and one Zigbee sensor are enough.',
-    'en',
-  )}`, assets);
-};
 
 const renderEnglishLegalPage = (template, assets, legal, type) => {
   const privacy = type === 'privacy';
@@ -1449,7 +1246,7 @@ const buildSitemapEntries = ({
     })),
   ];
 
-  const expected = Object.keys(PUBLIC_ROUTES).filter((id) => id !== 'privacy' && id !== 'terms').length
+  const expected = Object.keys(PUBLIC_ROUTES).filter((id) => !['privacy', 'terms', 'cart'].includes(id)).length
     + clusters.length + articles.length;
   if (entries.length !== expected) {
     throw new Error(`Expected ${expected} ${locale} sitemap URLs, got ${entries.length}`);
@@ -1664,6 +1461,15 @@ const main = () => {
   );
   writePublicPage('/privacy/', renderLegalPage(template, assets, legalContent, 'privacy'));
   writePublicPage('/terms/', renderLegalPage(template, assets, legalContent, 'terms'));
+  for (const locale of ['ru', 'en']) {
+    writePublicPage(getPublicPath('cart', locale), pageShell(template, {
+      title: locale === 'ru' ? 'Корзина комплектов — GrowerHub' : 'Your kit basket — GrowerHub',
+      description: locale === 'ru' ? 'Проверьте комплект для питомника и оставьте заявку. Оплачивать сейчас ничего не нужно.' : 'Review your nursery kit and leave a request. No payment is needed now.',
+      canonical: toCanonicalUrl(getPublicPath('cart', locale)),
+      locale,
+      robots: 'noindex,nofollow',
+    }, '', assets));
+  }
   writeText(path.join(DIST_DIR, '404.html'), render404(template, assets));
 
   writePublicPage(
@@ -1684,11 +1490,11 @@ const main = () => {
   );
   writePublicPage(
     getPublicPath('gettingStarted', 'en'),
-    renderEnglishGettingStartedPage(template, assets, enPlatformContent),
+    renderGettingStartedPage(template, assets, enPlatformContent, 'en'),
   );
   writePublicPage(
     getPublicPath('equipment', 'en'),
-    renderEnglishEquipmentIndexPage(template, assets, enEquipment, enPlatformContent),
+    renderEquipmentIndexPage(template, assets, enEquipment, enPlatformContent, 'en'),
   );
   writePublicPage(
     getPublicPath('equipmentCoordinators', 'en'),
@@ -1704,7 +1510,7 @@ const main = () => {
   );
   writePublicPage(
     getPublicPath('equipmentPump', 'en'),
-    renderEnglishPumpEarlyAccessPage(template, assets, enEquipment),
+    renderPumpEarlyAccessPage(template, assets, enEquipment, 'en'),
   );
   writePublicPage(
     getPublicPath('privacy', 'en'),

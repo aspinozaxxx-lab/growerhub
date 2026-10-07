@@ -21,8 +21,8 @@
 }
 
 .box-watering-stats__ranges button.is-active {
-  border-color: rgba(95, 212, 145, 0.5);
-  color: #0b1524;
+  border-color: var(--accent-border);
+  color: var(--on-accent);
   background: var(--accent);
 }
 
@@ -38,7 +38,7 @@
 }
 
 .box-watering-stats__state.is-error {
-  color: #ffb3b3;
+  color: var(--danger);
 }
 
 .box-watering-stats__active {
@@ -47,10 +47,10 @@
   gap: 10px;
   align-items: center;
   padding: 10px;
-  border: 1px solid rgba(95, 212, 145, 0.45);
+  border: 1px solid var(--accent-border);
   border-radius: var(--radius-sm);
   color: var(--accent);
-  background: rgba(95, 212, 145, 0.08);
+  background: var(--accent-soft);
 }
 
 .box-watering-stats__active > div {
@@ -69,7 +69,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #f5c16a;
+  color: var(--warning);
 }
 
 .box-watering-stats__summary {
@@ -131,7 +131,7 @@
   padding: 8px;
   border: 1px solid var(--border-2);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-2);
 }
 
 .box-watering-session__header,

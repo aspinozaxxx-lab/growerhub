@@ -17,8 +17,8 @@ afterEach(async () => {
 });
 
 it.each([
-  ['ru', 'Ручной полив — Демоферма · GrowerHub', 'Конструктор фермы', 'Конструктор фермы — Демоферма · GrowerHub'],
-  ['en', 'Manual watering — Demo farm · GrowerHub', 'Farm Builder', 'Farm Builder — Demo farm · GrowerHub'],
+  ['ru', 'Ручной полив — Демоферма · GrowerHub', 'Ферма', 'Ферма — Демоферма · GrowerHub'],
+  ['en', 'Manual watering — Demo farm · GrowerHub', 'Farm', 'Farm — Demo farm · GrowerHub'],
 ])('obnovlyaet nazvanie vkladki pri navigacii v demo na yazyke %s', async (locale, initialTitle, link, nextTitle) => {
   await changeLocale(locale);
   render(<MemoryRouter initialEntries={['/app/manual-watering/']}><Routes>

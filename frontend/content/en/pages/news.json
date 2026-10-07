@@ -12,26 +12,176 @@
     "article_update": "Guide update"
   },
   "entries": [
-    {"id": "plant-journal-guide-refresh", "published_at": "2026-10-04", "kind": "article_update", "article_id": "dnevnik-rasteniya-chto-zapisyvat", "text": "The plant journal guide now covers the timeline, search, phone photos and starting without hardware."},
-    {"id": "plant-care-journal-telegram", "published_at": "2026-10-04", "kind": "feature", "article_id": "dnevnik-rasteniy-bez-oborudovaniya-growerhub", "preview_position": "50% 30%"},
-    {"id": "photo-diary-upload-guide", "published_at": "2026-10-04", "kind": "article_update", "article_id": "foto-dnevnik-rosta-rasteniy", "text": "The photo diary guide now explains image uploads, date edits and starting without hardware."},
-    { "id": "nursery-temperature-history-route", "published_at": "2026-10-04", "kind": "article_update", "article_id": "istoriya-mikroklimata-i-grafiki", "text": "The microclimate history article now includes a small nursery example: one seedling zone, a daily chart, a follow-up inspection and connection limits." },
-    { "id": "live-publication-catalog-check", "published_at": "2026-10-04", "kind": "fix", "text": "Publication checks no longer report an error when new articles are added. Missing pages and translations are still detected." },
-    { "id": "ha-watering-connection-route", "published_at": "2026-10-04", "kind": "article_update", "article_id": "home-assistant-dlya-rasteniy", "text": "The Home Assistant watering guide now explains MQTT connector compatibility, access scope and a first sensor check while existing HA automations stay in charge." },
-    { "id": "manual-watering-leak-label", "published_at": "2026-10-03", "kind": "fix", "text": "Clarified the English label for manual watering until leak detection." },
-    { "id": "connector-library-versions", "published_at": "2026-10-03", "kind": "fix", "text": "Zigbee2MQTT connector v0.2.5 preserves library version information for device command compatibility checks. Updating is optional and does not enable irrigation." },
-    { "id": "connector-update-guide", "published_at": "2026-10-03", "kind": "article_update", "article_id": "growerhub-i-home-assistant-cherez-mqtt", "text": "The guide now links to the current connector ZIP and explains updating from v0.2.4 while keeping your personal configuration file." },
-    { "id": "watering-weather", "published_at": "2026-10-03", "kind": "feature", "article_id": "poliv-s-uchetom-dozhdya-growerhub", "preview_position": "50% 45%" },
-    { "id": "drying-plan-weather-update", "published_at": "2026-10-03", "kind": "article_update", "article_id": "prognoz-vysyhaniya-i-plan-poliva-growerhub", "text": "The watering plan guide now explains available rain handling: outdoor precipitation, bounded delays and an explicit policy for unavailable forecasts." },
-    { "id": "watering-weekday-labels", "published_at": "2026-10-03", "kind": "fix", "text": "Watering schedules now show English weekday abbreviations. Tuesday is no longer displayed as a power unit." },
-    { "id": "water-meter", "published_at": "2026-10-02", "kind": "feature", "article_id": "uchet-vody-rashodomer-growerhub" },
-    { "id": "watering-schedule", "published_at": "2026-10-02", "kind": "feature", "article_id": "poliv-po-raspisaniyu-growerhub" },
-    { "id": "soil-anchors", "published_at": "2026-10-02", "kind": "feature", "article_id": "poliv-po-mestnym-orientiram-growerhub", "preview_position": "50% 50%" },
-    { "id": "drying-plan", "published_at": "2026-10-02", "kind": "feature", "article_id": "prognoz-vysyhaniya-i-plan-poliva-growerhub", "preview_position": "50% 90%" },
-    { "id": "demo-water-valve", "published_at": "2026-10-02", "kind": "feature", "article_id": "demo-klapan-rashodomer-growerhub", "preview_position": "50% 40%" },
-    { "id": "plan-refresh", "published_at": "2026-10-02", "kind": "fix", "text": "The watering plan refreshes after settings are saved. The previous plan is no longer shown as current while the new one loads." },
-    { "id": "valve-watering-path", "published_at": "2026-10-02", "kind": "fix", "text": "Watering device cards direct you to a bounded session through the greenhouse. The off button remains available." },
-    { "id": "public-navigation-scroll", "published_at": "2026-10-02", "kind": "fix", "text": "A new page opens at the top when you follow a menu or article link. Back navigation and section links retain their usual behaviour." },
-    { "id": "watering-log-update", "published_at": "2026-10-02", "kind": "article_update", "article_id": "zhurnal-poliva-obem-ph-udobreniya", "text": "The watering log guide now explains measured, estimated and unknown water volumes." }
+    {
+      "id": "plant-journal-guide-refresh",
+      "published_at": "2026-10-07",
+      "kind": "article_update",
+      "article_id": "dnevnik-rasteniya-chto-zapisyvat",
+      "text": "The plant journal guide now covers the timeline, search, phone photos and starting without hardware."
+    },
+    {
+      "id": "plant-care-journal-telegram",
+      "published_at": "2026-10-07",
+      "kind": "feature",
+      "article_id": "dnevnik-rasteniy-bez-oborudovaniya-growerhub",
+      "preview_position": "50% 30%"
+    },
+    {
+      "id": "photo-diary-upload-guide",
+      "published_at": "2026-10-07",
+      "kind": "article_update",
+      "article_id": "foto-dnevnik-rosta-rasteniy",
+      "text": "The photo diary guide now explains image uploads, date edits and starting without hardware."
+    },
+    {
+      "id": "public-article-text-contrast",
+      "published_at": "2026-10-07",
+      "kind": "fix",
+      "text": "Article headings, text, links and demo invitations are easier to read on the light background, including on phones."
+    },
+    {
+      "id": "watering-guide-current-menu",
+      "published_at": "2026-10-07",
+      "kind": "article_update",
+      "article_id": "poliv-po-raspisaniyu-growerhub",
+      "text": "The scheduled watering guide now uses the current Farm and Routines labels and save steps, with updated editor screenshots in Russian and English."
+    },
+    {
+      "id": "warm-plant-care-app-theme",
+      "published_at": "2026-10-06",
+      "kind": "fix",
+      "text": "The app now shares the website’s light lilac style, with more readable labels and simpler Farm and Routines navigation. The overview, plants, charts and forms have been refreshed; existing actions and settings are preserved."
+    },
+    {
+      "id": "nursery-catalog-devices-and-watering",
+      "published_at": "2026-10-06",
+      "kind": "article_update",
+      "article_id": "komplekty-dlya-rasteniy-growerhub",
+      "text": "The catalog and guide now include a 499 RUB soil sensor, a 1,999 RUB pump and a 2,499 RUB pump with 20 drippers and tubing. Order them separately or with a kit through the basket. The pump supports Wi-Fi without a Zigbee coordinator or Zigbee; contents and first setup are discussed by phone."
+    },
+    {
+      "id": "nursery-kits-and-orders",
+      "published_at": "2026-10-06",
+      "kind": "feature",
+      "article_id": "komplekty-dlya-rasteniy-growerhub",
+      "preview_position": "50% 52%"
+    },
+    {
+      "id": "nursery-temperature-history-route",
+      "published_at": "2026-10-04",
+      "kind": "article_update",
+      "article_id": "istoriya-mikroklimata-i-grafiki",
+      "text": "The microclimate history article now includes a small nursery example: one seedling zone, a daily chart, a follow-up inspection and connection limits."
+    },
+    {
+      "id": "live-publication-catalog-check",
+      "published_at": "2026-10-04",
+      "kind": "fix",
+      "text": "Publication checks no longer report an error when new articles are added. Missing pages and translations are still detected."
+    },
+    {
+      "id": "ha-watering-connection-route",
+      "published_at": "2026-10-04",
+      "kind": "article_update",
+      "article_id": "home-assistant-dlya-rasteniy",
+      "text": "The Home Assistant watering guide now explains MQTT connector compatibility, access scope and a first sensor check while existing HA automations stay in charge."
+    },
+    {
+      "id": "manual-watering-leak-label",
+      "published_at": "2026-10-03",
+      "kind": "fix",
+      "text": "Clarified the English label for manual watering until leak detection."
+    },
+    {
+      "id": "connector-library-versions",
+      "published_at": "2026-10-03",
+      "kind": "fix",
+      "text": "Zigbee2MQTT connector v0.2.5 preserves library version information for device command compatibility checks. Updating is optional and does not enable irrigation."
+    },
+    {
+      "id": "connector-update-guide",
+      "published_at": "2026-10-03",
+      "kind": "article_update",
+      "article_id": "growerhub-i-home-assistant-cherez-mqtt",
+      "text": "The guide now links to the current connector ZIP and explains updating from v0.2.4 while keeping your personal configuration file."
+    },
+    {
+      "id": "watering-weather",
+      "published_at": "2026-10-03",
+      "kind": "feature",
+      "article_id": "poliv-s-uchetom-dozhdya-growerhub",
+      "preview_position": "50% 45%"
+    },
+    {
+      "id": "drying-plan-weather-update",
+      "published_at": "2026-10-03",
+      "kind": "article_update",
+      "article_id": "prognoz-vysyhaniya-i-plan-poliva-growerhub",
+      "text": "The watering plan guide now explains available rain handling: outdoor precipitation, bounded delays and an explicit policy for unavailable forecasts."
+    },
+    {
+      "id": "watering-weekday-labels",
+      "published_at": "2026-10-03",
+      "kind": "fix",
+      "text": "Watering schedules now show English weekday abbreviations. Tuesday is no longer displayed as a power unit."
+    },
+    {
+      "id": "water-meter",
+      "published_at": "2026-10-02",
+      "kind": "feature",
+      "article_id": "uchet-vody-rashodomer-growerhub"
+    },
+    {
+      "id": "watering-schedule",
+      "published_at": "2026-10-02",
+      "kind": "feature",
+      "article_id": "poliv-po-raspisaniyu-growerhub"
+    },
+    {
+      "id": "soil-anchors",
+      "published_at": "2026-10-02",
+      "kind": "feature",
+      "article_id": "poliv-po-mestnym-orientiram-growerhub",
+      "preview_position": "50% 50%"
+    },
+    {
+      "id": "drying-plan",
+      "published_at": "2026-10-02",
+      "kind": "feature",
+      "article_id": "prognoz-vysyhaniya-i-plan-poliva-growerhub",
+      "preview_position": "50% 90%"
+    },
+    {
+      "id": "demo-water-valve",
+      "published_at": "2026-10-02",
+      "kind": "feature",
+      "article_id": "demo-klapan-rashodomer-growerhub",
+      "preview_position": "50% 40%"
+    },
+    {
+      "id": "plan-refresh",
+      "published_at": "2026-10-02",
+      "kind": "fix",
+      "text": "The watering plan refreshes after settings are saved. The previous plan is no longer shown as current while the new one loads."
+    },
+    {
+      "id": "valve-watering-path",
+      "published_at": "2026-10-02",
+      "kind": "fix",
+      "text": "Watering device cards direct you to a bounded session through the greenhouse. The off button remains available."
+    },
+    {
+      "id": "public-navigation-scroll",
+      "published_at": "2026-10-02",
+      "kind": "fix",
+      "text": "A new page opens at the top when you follow a menu or article link. Back navigation and section links retain their usual behaviour."
+    },
+    {
+      "id": "watering-log-update",
+      "published_at": "2026-10-02",
+      "kind": "article_update",
+      "article_id": "zhurnal-poliva-obem-ph-udobreniya",
+      "text": "The watering log guide now explains measured, estimated and unknown water volumes."
+    }
   ]
 }

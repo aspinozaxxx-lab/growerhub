@@ -9,8 +9,8 @@
 .login-card {
   width: 100%;
   max-width: 420px;
-  background: #0f1f35;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-1);
+  border: 1px solid var(--border-1);
   border-radius: 18px;
   padding: 22px;
   box-shadow: 0 14px 36px rgba(0, 0, 0, 0.3);
@@ -20,14 +20,14 @@
 
 .login-card h1 {
   margin: 0;
-  color: #f6fbff;
+  color: var(--text-1);
   font-size: 22px;
 }
 
 .login-intro,
 .login-legal {
   margin: 0;
-  color: #9eb2cf;
+  color: var(--text-3);
   line-height: 1.55;
 }
 
@@ -36,7 +36,7 @@
 }
 
 .login-legal a {
-  color: #9de8ba;
+  color: var(--success);
 }
 
 .login-form {
@@ -45,9 +45,9 @@
 }
 
 .login-error {
-  background: rgba(192, 57, 43, 0.16);
-  color: #f6c1b5;
-  border: 1px solid rgba(192, 57, 43, 0.3);
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
   border-radius: 10px;
   padding: 8px 10px;
   font-size: 14px;
@@ -61,32 +61,32 @@
 .login-sso__btn {
   padding: 10px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: #eef3fb;
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--text-1);
   cursor: pointer;
 }
 
 .login-sso__btn:hover {
-  border-color: rgba(95, 212, 145, 0.5);
-  color: #9de8ba;
+  border-color: var(--accent-border);
+  color: var(--success);
 }
 
 .login-sso__btn--primary {
-  border-color: rgba(95, 212, 145, 0.45);
-  color: #0b1524;
-  background: linear-gradient(135deg, #5fd491, #43b674);
+  border-color: var(--accent-border);
+  color: var(--on-accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
   font-weight: 700;
 }
 
 .login-local {
   padding-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-1);
 }
 
 .login-local summary {
   padding: 10px 0;
-  color: #9eb2cf;
+  color: var(--text-3);
   cursor: pointer;
   font-size: 13px;
 }

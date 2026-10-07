@@ -9,8 +9,8 @@ describe('app navigation', () => {
   it('ostavlyaet pyat glavnyh punktov v nuzhnom poryadke', () => {
     expect(APP_NAV_ITEMS.map((item) => item.label)).toEqual([
       'Обзор',
-      'Конструктор фермы',
-      'Автоматизации',
+      'Ферма',
+      'Сценарии',
       'Растения',
       'Настройки',
     ]);

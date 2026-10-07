@@ -21,10 +21,10 @@
 
 .farm-zones-settings__notice {
   padding: 11px 14px;
-  border: 1px solid rgba(95, 212, 145, 0.4);
+  border: 1px solid var(--accent-border);
   border-radius: 12px;
-  color: #9de8ba;
-  background: rgba(95, 212, 145, 0.1);
+  color: var(--success);
+  background: var(--accent-soft);
 }
 
 .farm-zones-settings__create,

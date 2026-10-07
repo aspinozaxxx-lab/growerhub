@@ -4,22 +4,22 @@ slug: "scheduled-watering-growerhub"
 title: "Scheduled watering: days, time and duration"
 summary: "The new schedule does not require a soil sensor. Observe its plan first, then explicitly enable irrigation control when ready."
 created_at: "2026-10-02"
-updated_at: "2026-10-02"
+updated_at: "2026-10-07"
 cluster: "avtopoliv-i-kontroller-vyrashchivaniya"
 related: ["prognoz-vysyhaniya-i-plan-poliva-growerhub","demo-klapan-rashodomer-growerhub"]
 hero_image: "/screenshots/news/watering-schedule-en.webp"
-hero_alt: "Watering schedule with weekdays, local time and observation mode"
+hero_alt: "GrowerHub watering editor with a schedule and Observe without commands mode"
 ---
 
 Once you have checked your normal water dose, you can tie irrigation to specific days and a time. GrowerHub now offers **scheduled watering** without a mandatory soil sensor. Trigger conditions and delivery limits stay visible in one editor.
 
 ## Set it up
 
-1. In the **Farm constructor**, assign an admitted pump or valve to the greenhouse watering slot.
-2. In **Automations**, select the greenhouse and open watering settings.
-3. Choose **By schedule**, then select weekdays and a time.
+1. In **Farm**, assign an admitted pump or valve to the greenhouse watering slot.
+2. In **Routines**, choose a greenhouse under **Greenhouse settings** and find **Watering**. On a phone, choose the greenhouse in the light schedule and open **Watering**.
+3. Under **When to water**, choose **On a schedule**, then select weekdays and a time.
 4. Set delivery duration, the minimum interval and the daily delivery time limit.
-5. Save **Observe without commands** and enable the scenario to inspect its plan without operating equipment.
+5. Under **Scenario operation**, keep **Observe without commands**, click **Save watering** and enable the scenario to inspect its plan without operating equipment.
 
 Times follow your profile time zone. Screenshot values are demo examples, not crop watering recommendations.
 

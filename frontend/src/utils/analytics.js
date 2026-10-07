@@ -98,6 +98,9 @@ export const trackTelegramContact = (placement) => {
 };
 
 const PRODUCT_GOALS = new Set([
+  'shop_offer_select',
+  'shop_checkout_start',
+  'shop_request_created',
   'platform_start',
   'signup_complete',
   'login_view',

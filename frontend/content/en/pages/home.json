@@ -1,108 +1,52 @@
 {
-  "updated_at": "2026-09-18",
+  "updated_at": "2026-10-06",
+  "title": "GrowerHub — more time for the plants you love",
+  "description": "Lighting, watering and ventilation for a small nursery. Smart plugs, soil sensors, automations and energy history. We will help you choose and connect your equipment.",
   "hero": {
-    "badge": "GrowerHub · greenhouse management",
-    "title": "Your greenhouse climate, lighting and watering in one place",
-    "subtitle": "See what is happening in every growing zone and adjust its care. Try a ready-made farm with four greenhouses, plants and sensor history, right in your browser.",
-    "cta": "Connect my devices",
-    "preview_image": "/screenshots/en/zones.webp",
-    "preview_alt": "GrowerHub demo farm: four greenhouses with climate, watering and lighting",
-    "preview_caption": "The real app with virtual devices. Your changes belong to your own demo farm.",
-    "demo_cta": "Open the demo farm",
-    "reassurance": "No sign-up · No hardware · Free to try"
+    "badge": "For people who love growing",
+    "title": "More time for the plants you love",
+    "subtitle": "Lighting, watering and ventilation in one app. Set up automations, follow soil conditions and see electricity use. We will help you choose and connect the equipment.",
+    "cta": "Choose a kit",
+    "demo_cta": "Try without hardware",
+    "reassurance": "Explore the app without signing up or buying anything",
+    "preview_image": "/content/nursery/hero.webp",
+    "preview_alt": "A woman tending flowering pelargoniums in a small nursery",
+    "note": "Flowers make life brighter"
   },
-  "demo_video": {
-    "title": "Watch watering in action",
-    "duration": "30 seconds · no sound",
-    "heading": "Try the same steps in your demo farm",
-    "src": "/videos/watering-demo-20260918-en-mobile.mp4",
-    "poster": "/videos/watering-demo-20260918-en-mobile.jpg",
-    "fallback": "Open the video",
-    "steps": [
-      "Choose a greenhouse, tap “Start watering” and set a duration of 1 minute.",
-      "Choose “Start” to see the timer and the stop button.",
-      "When watering finishes, the pump log opens automatically with the duration and calculated volume."
-    ],
-    "note": "A walkthrough using screens from the working demo. Devices are virtual and the water volume is simulated. Waiting time is shortened in the video.",
-    "cta": "Try watering yourself"
+  "service": [
+    { "title": "Prepared and checked", "text": "Before we send your kit" },
+    { "title": "Delivered with CDEK", "text": "To a pickup point you choose" },
+    { "title": "Help getting connected", "text": "We will work through it together" }
+  ],
+  "kits": {
+    "title": "Start with the kit that suits you",
+    "note": "Good plants start with care",
+    "all": "Explore all kits and devices",
+    "lamps_note": "Choose suitable plugs for your lamps, extractor fan and other appliances. Add a sensor or pump separately."
   },
-  "secondary": {
-    "title": "Ready to connect your own greenhouse?",
-    "text": "Keep your existing Home Assistant and Zigbee2MQTT setup. Connect it through a local bridge, check one sensor, then add devices and automations at your own pace.",
-    "points": [
-      {
-        "title": "What you need",
-        "text": "A compatible Zigbee coordinator, a sensor and an always-on computer running Zigbee2MQTT. GrowerHub needs an internet connection."
-      },
-      {
-        "title": "What is free",
-        "text": "The dashboard, sensor history and available automations are currently free, with no payment card required. Hardware is purchased separately."
-      },
-      {
-        "title": "Your first result",
-        "text": "Readings and their freshness on one page. If the connection is lost, readings become stale and server automations wait for connectivity to return."
-      }
-    ]
+  "help": {
+    "title": "Not sure what to choose?",
+    "text": "Tell us what you grow. We will help find a kit for your plants.",
+    "cta": "Help me choose",
+    "image": "/content/nursery/help.webp",
+    "image_alt": "A woman in her flower garden"
   },
-  "features": {
-    "title": "What would you like to try?",
-    "text": "Choose a task. The demo will open the relevant part of the app.",
-    "items": [
-      {
-        "title": "Compare four greenhouses",
-        "text": "See different temperatures and moisture levels. Tap a reading to explore its history.",
-        "view": "overview",
-        "cta": "Explore sensors"
-      },
-      {
-        "title": "Set up lighting and watering",
-        "text": "Change a lighting schedule, climate thresholds or watering settings, then save your scenario.",
-        "view": "automations",
-        "cta": "Try automations"
-      },
-      {
-        "title": "Water a virtual plant",
-        "text": "Choose a greenhouse, run a short watering session and see it appear in the history.",
-        "view": "watering",
-        "cta": "Try watering"
-      },
-      {
-        "title": "Keep a plant journal",
-        "text": "Open “Journal” on a plant card, add an observation and download your records as Markdown.",
-        "view": "plants",
-        "cta": "Try the plant journal"
-      }
-    ]
+  "demo": {
+    "title": "You can start without any hardware",
+    "text": "Open a ready-made demo farm: try automations, explore sensor history and see virtual devices working. Get to know the app at your own pace.",
+    "cta": "Explore an example",
+    "note": "Everything in the demo is virtual. Your actions cannot switch someone else's plug."
   },
-  "title": "Greenhouse monitoring and automation — GrowerHub demo",
-  "description": "Monitor greenhouse climate, lighting and watering in one dashboard. Try four virtual greenhouses without signing up, then connect your own Zigbee2MQTT devices.",
+  "connection_note": "Controlling devices requires home Wi-Fi with an internet connection.",
   "faq": {
-    "title": "Before you open the demo",
+    "title": "A little reassurance before you start",
     "items": [
-      {
-        "question": "Do I need an account or any devices?",
-        "answer": "No. The demo comes with virtual devices, plants, watering records and sensor history. It uses the same interface as a connected farm."
-      },
-      {
-        "question": "Can I change things in the demo?",
-        "answer": "Yes. Edit scenarios, assign devices, add plants and try watering. Each visitor has a separate demo farm; its commands do not control physical hardware."
-      },
-      {
-        "question": "Will my changes be saved?",
-        "answer": "A guest demo lasts 24 hours. Choose “Save demo farm” and sign in to keep it in your account and continue later."
-      },
-      {
-        "question": "What does GrowerHub cost?",
-        "answer": "The dashboard, sensor history and available automations are currently free, with no payment card required. Hardware and an always-on computer for Zigbee2MQTT are supplied separately."
-      }
+      { "question": "I am not technical. Will I manage?", "answer": "We will help you choose equipment and discuss the first setup by phone. With a PushOk kit, connect the hub to your Wi-Fi using Upravlyator, then link it to GrowerHub. A step-by-step guide and connection help are included." },
+      { "question": "What happens after I place an order?", "answer": "We will call to discuss the contents, compatibility with your appliances, first setup and delivery. Kits are assembled after order confirmation. There is nothing to pay on the website. Enter the code and address of your chosen CDEK pickup point yourself." },
+      { "question": "Do I need to buy hardware straight away?", "answer": "No. Open the demo farm without signing up to explore the app and change settings on virtual devices. You can choose your hardware whenever you are ready." },
+      { "question": "What can I use smart plugs for?", "answer": "Lamps, extractor fans, compatible pumps and other appliances. Automations help manage their operation in one place. When confirming the order, we will match plugs to their loads and agree on water delivery and run limits for any watering setup. GrowerHub and the PushOk cloud need internet access." },
+      { "question": "Can I see electricity use?", "answer": "Yes, if the plug provides those measurements: GrowerHub can show power and energy history. This helps compare device use across days and notice changes. We will check the model's capabilities when choosing it with you." },
+      { "question": "Can I add a soil sensor and watering?", "answer": "Yes. A soil sensor costs 499 RUB, our pump on its own costs 1,999 RUB, and the pump with 20 drippers and tubing costs 2,499 RUB. Add them to your basket separately or with a kit. The pump supports Wi-Fi without a Zigbee coordinator or Zigbee. We will discuss the contents and first setup by phone; a coordinator is not included with the pump or watering kit." }
     ]
-  },
-  "evidence": {
-    "title": "See how GrowerHub is built",
-    "text": "The code, development history and a dated summary of operational data are public. The demo shows the interface and simulated behaviour; the project page explains the evidence from physical devices."
-  },
-  "cta": {
-    "title": "Your demo farm is ready",
-    "text": "Open it, change a setting and see how the app works. Connect your own devices when you are ready."
   }
 }

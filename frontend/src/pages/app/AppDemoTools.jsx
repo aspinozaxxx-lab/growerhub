@@ -65,7 +65,7 @@ export default function AppDemoTools() {
     <div className="demo-tools">
       <AppPageHeader title={t('Устройства и условия среды')} subtitle={t('Проверьте, как ваша настройка реагирует на жару, сухую почву и протечку.')} />
       <div className="demo-actions">
-        <Link className="demo-link" to="/app/farm/">{t('Конструктор фермы')}</Link>
+        <Link className="demo-link" to="/app/farm/">{t('Ферма')}</Link>
         <Link className="demo-link" to="/app/settings/devices/">{t('Все устройства')}</Link>
         <Link className="demo-link" to="/app/automations/">{t('Сценарии')}</Link>
       </div>

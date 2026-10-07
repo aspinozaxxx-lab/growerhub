@@ -25,12 +25,12 @@
 }
 
 .device-card__subtitle {
-  color: #8aa3c6;
+  color: var(--text-3);
   font-size: 13px;
 }
 
 .device-card__status {
-  color: #c7d7ef;
+  color: var(--text-2);
   font-size: 13px;
   display: flex;
   align-items: center;
@@ -72,17 +72,17 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  color: #c7d7ef;
+  color: var(--text-2);
 }
 
 .device-card__firmware-version strong {
-  color: #eef3fb;
+  color: var(--text-1);
   font-weight: 600;
 }
 
 .device-card__firmware-update,
 .device-card__firmware-progress {
-  color: #f4c46b;
+  color: var(--warning);
 }
 
 .device-card__firmware-success {
@@ -105,7 +105,7 @@
 }
 
 .device-card__roles > span {
-  color: #c7d7ef;
+  color: var(--text-2);
   font-weight: 600;
 }
 
@@ -135,16 +135,16 @@
 .device-card__section-title {
   font-size: 13px;
   font-weight: 600;
-  color: #c7d7ef;
+  color: var(--text-2);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .device-card__item {
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-2);
   border-radius: 12px;
   padding: 10px 12px;
-  background: rgba(15, 23, 42, 0.45);
+  background: var(--surface-2);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -160,12 +160,12 @@
 
 .device-card__item-title {
   font-weight: 600;
-  color: #eef3fb;
+  color: var(--text-1);
   font-size: 13px;
 }
 
 .device-card__item-status {
-  color: #8aa3c6;
+  color: var(--text-3);
   font-size: 12px;
 }
 

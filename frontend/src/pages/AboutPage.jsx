@@ -1,5 +1,5 @@
 import LeadCta from '../components/LeadCta';
-import { aboutContent } from '../content/pages';
+import { getPageContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
 import {
   GITHUB_REPOSITORY_URL,
@@ -14,6 +14,7 @@ import useSeoMeta from '../utils/useSeoMeta';
 
 function AboutPage() {
   const locale = getCurrentLocale();
+  const { aboutContent } = getPageContent(locale);
   const path = getPublicPath('about', locale);
   const organizationLd = {
     '@type': 'Organization',

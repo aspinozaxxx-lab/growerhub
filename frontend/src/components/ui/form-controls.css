@@ -5,7 +5,7 @@
 }
 
 .gh-label {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-3);
 }
 
@@ -17,6 +17,7 @@
   background: var(--surface-2);
   color: var(--text-1);
   font: inherit;
+  min-height: 44px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 

@@ -39,6 +39,7 @@ class ArchitectureRulesTest {
             "plant",
             "pump",
             "sensor",
+            "shop",
             "user",
             "zigbee"
     };
@@ -145,6 +146,18 @@ class ArchitectureRulesTest {
         noClasses().that().resideInAPackage("ru.growerhub.backend.weather..")
                 .should().dependOnClassesThat().resideInAnyPackage("ru.growerhub.backend..jpa..",
                         "ru.growerhub.backend.pump..", "ru.growerhub.backend.mqtt..", "ru.growerhub.backend.zigbee..")
+                .check(CLASSES);
+    }
+
+    @Test
+    void shopCannotControlFarmsAndMessagingCannotReadJpa() {
+        noClasses().that().resideInAPackage("ru.growerhub.backend.shop..")
+                .should().dependOnClassesThat().resideInAnyPackage("ru.growerhub.backend.automation..",
+                        "ru.growerhub.backend.pump..", "ru.growerhub.backend.device..",
+                        "ru.growerhub.backend.zigbee..", "ru.growerhub.backend.mqtt..")
+                .check(CLASSES);
+        noClasses().that().resideInAPackage("ru.growerhub.backend.messaging..")
+                .should().dependOnClassesThat().resideInAPackage("ru.growerhub.backend..jpa..")
                 .check(CLASSES);
     }
 

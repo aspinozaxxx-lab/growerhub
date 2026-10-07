@@ -3,7 +3,7 @@ import DemoStartLink from '../components/DemoStartLink';
 import LeadCta from '../components/LeadCta';
 import PlatformStartLink from '../components/PlatformStartLink';
 import TelegramContactLink from '../components/TelegramContactLink';
-import { miniFarmContent } from '../content/pages';
+import { getPageContent } from '../content/pages';
 import { overviewScreenshotDimensions, overviewScreenshotVersion } from '../content/productScreenshots';
 import { getPublicPath } from '../domain/localizedRoutes';
 import { DEMO_PUBLIC_ENABLED, SELF_SERVICE_PUBLIC_ENABLED, SITE_URL } from '../domain/siteConfig';
@@ -13,7 +13,7 @@ import useSeoMeta from '../utils/useSeoMeta';
 function MiniFarmPage() {
   const locale = getCurrentLocale();
   const path = getPublicPath('farmAutomation', locale);
-  const data = miniFarmContent;
+  const { miniFarmContent: data } = getPageContent(locale);
   const screenshotPrefix = locale === 'en' ? '/screenshots/en' : '/screenshots';
   const screenshotNames = ['zones', 'history', 'connection', 'automation'];
   const jsonLd = [{
