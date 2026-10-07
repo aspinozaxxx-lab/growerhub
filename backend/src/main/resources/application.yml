@@ -501,6 +501,16 @@ telegram:
   proxy-host: ${TELEGRAM_PROXY_HOST:}
   # Port otdelnogo proxy; ne menyaet set drugih integracij.
   proxy-port: ${TELEGRAM_PROXY_PORT:8080}
+  # Poluchenie komand ishodyashchim soedineniem; pered vklyucheniem webhook udalyaetsya bez sbrosa ocheredi.
+  updates-enabled: ${TELEGRAM_UPDATES_ENABLED:false}
+  # Ozhidanie sobytij na storone Telegram v otdelnom potoke.
+  updates-wait-seconds: 25
+  # Predel komand za odin zapros.
+  updates-batch-size: 25
+  # Pauza posle oshibki; retry_after Telegram imeet prioritet, esli bolshe.
+  updates-retry-seconds: 60
+  # Pauza mezhdu uspeshnymi zaprosami long polling.
+  updates-poll-ms: 1000
   # Publichnyj adres dnevnika.
   site-url: https://growerhub.ru
   # Srok odnorazovoj ssylki.

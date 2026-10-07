@@ -13,4 +13,11 @@ public class TelegramSchedulerConfig {
         scheduler.setThreadNamePrefix("telegram-");
         return scheduler;
     }
+    @Bean
+    public ThreadPoolTaskScheduler telegramUpdatesTaskScheduler() {
+        var scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setPoolSize(1);
+        scheduler.setThreadNamePrefix("telegram-updates-");
+        return scheduler;
+    }
 }

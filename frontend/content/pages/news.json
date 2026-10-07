@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id": "telegram-incoming-delivery", "published_at": "2026-10-07", "kind": "fix", "text": "Исправлен приём команд бота при недоступности входящего соединения Telegram с сервером. Подключение дневника и кнопки напоминаний работают через тот же бот."},
     {"id": "plant-journal-guide-refresh", "published_at": "2026-10-07", "kind": "article_update", "article_id": "dnevnik-rasteniya-chto-zapisyvat", "text": "Руководство по дневнику обновлено под ленту записей, поиск, фотографии с телефона и самостоятельный старт без оборудования."},
     {"id": "plant-care-journal-telegram", "published_at": "2026-10-07", "kind": "feature", "article_id": "dnevnik-rasteniy-bez-oborudovaniya-growerhub", "preview_position": "50% 30%"},
     {"id": "photo-diary-upload-guide", "published_at": "2026-10-07", "kind": "article_update", "article_id": "foto-dnevnik-rosta-rasteniy", "text": "В руководстве по фото-дневнику появились шаги загрузки фотографий, исправления даты и запуска без оборудования."},

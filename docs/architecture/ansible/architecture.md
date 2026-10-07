@@ -46,7 +46,7 @@ Playbook должен быть идемпотентным. Секреты и hos
 `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_BOT_USERNAME` и
 `TELEGRAM_ENABLED` передаются в защищённый runtime env сервиса. CI/CD сохраняет
 его; повторный provisioning получает эти значения через `java_backend_env_extra`.
-Webhook настроен на точный HTTPS-адрес `/api/notifications/telegram/webhook`.
+При входящей доставке webhook использует точный HTTPS-адрес `/api/notifications/telegram/webhook`.
 По умолчанию доставка выключена, существующие аккаунты не подписываются.
 
 При недоступности прямого Bot API `TELEGRAM_PROXY_HOST` и `TELEGRAM_PROXY_PORT`
@@ -59,6 +59,15 @@ Webhook настроен на точный HTTPS-адрес `/api/notifications/
 изолированному процессу через systemd `LoadCredential` и не входит в репозиторий.
 При смене доступа зарубежного VPS обновляется эта копия и перезапускается только
 сервис прокси. Конфигурация, firewall и процесс основного роутера не изменяются.
+
+На текущем VPS входящие соединения Telegram тоже завершаются таймаутом, поэтому
+`TELEGRAM_UPDATES_ENABLED=true` включает получение команд через `getUpdates` тем
+же прокси. Перед переключением webhook удаляется через Bot API с
+`drop_pending_updates=false`; команды не сбрасываются. Одновременно работает
+только один получатель на бота. Обратный переход: выключить получение, затем
+восстановить webhook с прежним секретом. Оба режима используют один Facade и
+одни проверки владельца. Получение команд имеет собственный поток, лимит
+пакета и паузу после ошибок; 429 учитывает `retry_after`.
 
 ## Заказы (ADR-012)
 

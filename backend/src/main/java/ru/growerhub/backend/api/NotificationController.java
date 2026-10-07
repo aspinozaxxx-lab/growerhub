@@ -11,6 +11,7 @@ import ru.growerhub.backend.common.config.TelegramSettings;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.notification.NotificationFacade;
 import ru.growerhub.backend.notification.contract.TelegramData;
+import ru.growerhub.backend.messaging.TelegramUpdateMapper;
 
 @RestController
 @RequestMapping("/api/notifications/telegram")
@@ -36,19 +37,11 @@ public class NotificationController {
                 || !MessageDigest.isEqual(secret.getBytes(StandardCharsets.UTF_8), settings.webhookSecret().getBytes(StandardCharsets.UTF_8))) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Webhook rejected");
         }
-        JsonNode callback = body.path("callback_query");
-        JsonNode message = callback.isMissingNode() ? body.path("message") : callback.path("message");
-        JsonNode sender = callback.isMissingNode() ? message.path("from") : callback.path("from");
-        if (!body.has("update_id") || !message.path("chat").has("id") || sender.path("is_bot").asBoolean()
-                || sender.path("id").asLong() != message.path("chat").path("id").asLong()
-                || !"private".equals(message.path("chat").path("type").asText())) return Map.of();
-        String name = (sender.path("first_name").asText("") + " " + sender.path("last_name").asText("")).trim();
-        if (sender.has("username")) name += " (@" + sender.path("username").asText() + ")";
-        String reply = notifications.receive(new TelegramData.Update(body.path("update_id").asLong(), message.path("chat").path("id").asLong(),
-                "private".equals(message.path("chat").path("type").asText()), name,
-                message.path("text").asText(""), callback.path("id").asText(null), callback.path("data").asText(null)));
-        if (callback.has("id")) return Map.of("method", "answerCallbackQuery", "callback_query_id", callback.path("id").asText());
-        if (reply != null) return Map.of("method", "sendMessage", "chat_id", message.path("chat").path("id").asLong(), "text", reply);
+        var update = TelegramUpdateMapper.parse(body);
+        if (update == null) return Map.of();
+        String reply = notifications.receive(update);
+        if (update.callbackId() != null) return Map.of("method", "answerCallbackQuery", "callback_query_id", update.callbackId());
+        if (reply != null) return Map.of("method", "sendMessage", "chat_id", update.chatId(), "text", reply);
         return Map.of();
     }
 }

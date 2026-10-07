@@ -77,4 +77,34 @@ class TelegramHttpGatewayTest {
         assertThatThrownBy(() -> new TelegramHttpGateway(settings("https://telegram.invalid", "127.0.0.1", 0), json))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void pollsThroughProxyWithOffsetAndPreservesProviderRetryAfter() throws Exception {
+        var requestBody = new AtomicReference<String>();
+        var requests = new AtomicInteger();
+        var server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/bottest-token/getUpdates", exchange -> {
+            requestBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+            boolean limited = requests.incrementAndGet() > 1;
+            byte[] response = (limited ? "{\"ok\":false,\"error_code\":429,\"parameters\":{\"retry_after\":120}}"
+                    : "{\"ok\":true,\"result\":[{\"update_id\":73}]}").getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(limited ? 429 : 200, response.length);
+            exchange.getResponseBody().write(response); exchange.close();
+        });
+        server.start();
+        try {
+            var settings = settings("http://telegram.invalid", "127.0.0.1", server.getAddress().getPort());
+            when(settings.updatesWaitSeconds()).thenReturn(25);
+            when(settings.updatesBatchSize()).thenReturn(25);
+            when(settings.updatesRetrySeconds()).thenReturn(60);
+            var gateway = new TelegramHttpGateway(settings, json);
+            assertThat(gateway.updates(73).get(0).path("update_id").asLong()).isEqualTo(73);
+            var body = json.readTree(requestBody.get());
+            assertThat(body.path("offset").asLong()).isEqualTo(73);
+            assertThat(body.path("timeout").asInt()).isEqualTo(25);
+            assertThat(body.path("allowed_updates").toString()).isEqualTo("[\"message\",\"callback_query\"]");
+            assertThatThrownBy(() -> gateway.updates(74)).isInstanceOfSatisfying(TelegramHttpGateway.UpdatesRetryException.class,
+                    error -> assertThat(error.retrySeconds()).isEqualTo(120));
+        } finally { server.stop(0); }
+    }
 }

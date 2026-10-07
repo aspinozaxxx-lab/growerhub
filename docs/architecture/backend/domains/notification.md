@@ -9,7 +9,7 @@
 `NotificationFacade`
 
 - `status`, `link`, `confirm`, `preferences`, `disconnect`, `test` — настройки владельца.
-- `receive` — разбор подтверждённого webhook-события на уровне сценария.
+- `receive` — обработка проверенного входящего события Telegram на уровне сценария.
 - `prepare`, `claim`, `finish` — подготовка, резервирование и результат доставки.
 
 ## Публичные контракты

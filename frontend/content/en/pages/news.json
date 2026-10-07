@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id": "telegram-incoming-delivery", "published_at": "2026-10-07", "kind": "fix", "text": "Fixed receiving bot commands when Telegram cannot initiate a connection to the server. Journal linking and reminder buttons use the same bot."},
     {"id": "plant-journal-guide-refresh", "published_at": "2026-10-07", "kind": "article_update", "article_id": "dnevnik-rasteniya-chto-zapisyvat", "text": "The plant journal guide now covers the timeline, search, phone photos and starting without hardware."},
     {"id": "plant-care-journal-telegram", "published_at": "2026-10-07", "kind": "feature", "article_id": "dnevnik-rasteniy-bez-oborudovaniya-growerhub", "preview_position": "50% 30%"},
     {"id": "photo-diary-upload-guide", "published_at": "2026-10-07", "kind": "article_update", "article_id": "foto-dnevnik-rosta-rasteniy", "text": "The photo diary guide now explains image uploads, date edits and starting without hardware."},
