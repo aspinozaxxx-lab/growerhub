@@ -283,7 +283,7 @@ function AppPlants() {
         </div>
       )}
 
-      {!isLoading && !error && archivedPlants.length > 0 && (
+      {tab === 'plants' && !isLoading && !error && archivedPlants.length > 0 && (
         <div className="app-plants__archive">
           <div className="app-plants__archive-title">{translateApp("Архив растений")}</div>
           <AppGrid min={260}>

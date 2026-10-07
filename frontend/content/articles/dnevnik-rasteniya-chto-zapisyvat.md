@@ -3,7 +3,7 @@ slug: "dnevnik-rasteniya-chto-zapisyvat"
 title: "Дневник растений: полив, урожай и заметки"
 summary: "Что записывать в дневник растения и как попробовать его в GrowerHub: фотографии, напоминания, поливы, заметки, частичный сбор урожая и выгрузка Markdown."
 created_at: "2026-06-29"
-updated_at: "2026-10-04"
+updated_at: "2026-10-07"
 cluster: "zhurnal-i-sovetnik-uhoda"
 tags:
   - "GrowerHub"

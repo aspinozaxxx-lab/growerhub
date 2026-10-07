@@ -6,7 +6,7 @@ summary: >-
   How to take photos of plants so that the pictures help analyze growth, light,
   watering and care errors.
 created_at: '2026-07-23'
-updated_at: '2026-10-04'
+updated_at: '2026-10-07'
 cluster: zhurnal-i-sovetnik-uhoda
 tags:
   - GrowerHub

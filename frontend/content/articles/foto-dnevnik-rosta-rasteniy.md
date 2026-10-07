@@ -3,7 +3,7 @@ slug: "foto-dnevnik-rosta-rasteniy"
 title: "Фото-дневник роста: как сравнивать растения по неделям"
 summary: "Как делать фото растений так, чтобы снимки помогали анализировать рост, свет, полив и ошибки ухода."
 created_at: "2026-06-29"
-updated_at: "2026-10-04"
+updated_at: "2026-10-07"
 cluster: "zhurnal-i-sovetnik-uhoda"
 tags:
   - "GrowerHub"

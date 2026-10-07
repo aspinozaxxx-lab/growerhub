@@ -1,5 +1,7 @@
 package ru.growerhub.backend.messaging;
 
+import java.net.InetSocketAddress;
+import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.*;
 import java.time.Duration;
@@ -16,7 +18,14 @@ public class TelegramHttpGateway implements TelegramGateway {
     private final HttpClient client;
     public TelegramHttpGateway(TelegramSettings settings, ObjectMapper json) {
         this.settings = settings; this.json = json;
-        client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(settings.timeoutSeconds())).build();
+        var builder = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(settings.timeoutSeconds()));
+        if (settings.proxyHost() != null && !settings.proxyHost().isBlank()) {
+            if (settings.proxyPort() < 1 || settings.proxyPort() > 65535) {
+                throw new IllegalArgumentException("Invalid Telegram proxy port");
+            }
+            builder.proxy(ProxySelector.of(new InetSocketAddress(settings.proxyHost(), settings.proxyPort())));
+        }
+        client = builder.build();
     }
     public TelegramData.Result send(TelegramData.Delivery delivery) {
         try {

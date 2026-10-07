@@ -22,7 +22,7 @@ export default function CareEntryEditor({ plantId, item, action = 'note', onClos
       if (saved.current) await careRequest(`/entries/${saved.current}`, 'PATCH', body);
       else saved.current = (await careRequest(`/plants/${plantId}/entries`, 'POST', body)).entry.id;
       for (let i = 0; i < photos.length; i++) if (!uploaded.current.has(files[i])) { await uploadCarePhoto(saved.current, photos[i]); uploaded.current.add(files[i]); }
-      onSaved(); onClose();
+      await onSaved(); onClose();
     } catch (err) { setError((saved.current ? `${t('Запись сохранена. Не все изменения или фото загрузились; можно повторить.')} ` : '') + err.message); }
     finally { setBusy(false); }
   }
@@ -31,7 +31,7 @@ export default function CareEntryEditor({ plantId, item, action = 'note', onClos
   }><form id="care-entry-form" className="care-form ym-hide-content" onSubmit={submit}>
     {error && <p role="alert">{error}</p>}
     <FormField label={t('Вид ухода')} htmlFor="care-action"><select id="care-action" value={form.action} disabled={busy} onChange={e => change('action', e.target.value)}>{!CARE_ACTIONS.some(([key]) => key === form.action) && <option value={form.action}>{t(form.action === 'feeding' ? 'Уход' : 'Заметка')}</option>}{CARE_ACTIONS.map(([id, label, emoji]) => <option key={id} value={id}>{emoji} {t(label)}</option>)}</select></FormField>
-    <FormField label={t('Дата и время')} htmlFor="care-date"><input id="care-date" type="datetime-local" required value={form.eventAt} disabled={busy} onChange={e => change('eventAt', e.target.value)} /></FormField>
+    <FormField label={t('Дата и время')} htmlFor="care-date"><input id="care-date" type="datetime-local" required value={form.eventAt} disabled={busy} onInput={e => change('eventAt', e.target.value)} onChange={e => change('eventAt', e.target.value)} /></FormField>
     <FormField label={t('Заметка')} htmlFor="care-text"><textarea id="care-text" rows={4} maxLength={8000} value={form.text} disabled={busy} placeholder={t('Что изменилось, что сделали, что заметили?')} onChange={e => change('text', e.target.value)} /></FormField>
     <FormField label={t('Фотографии')} htmlFor="care-photos"><input id="care-photos" type="file" accept="image/*" multiple disabled={busy} onChange={e => { const next = [...e.target.files]; if (next.length > 6 - existingPhotos.length) { setError(t('В одной записи — до 6 фотографий')); e.target.value = ''; return; } setFiles(next); }} /></FormField>
     {!!existingPhotos.length && <div className="care-entry-photos">{existingPhotos.filter(p => p.hasData).map(p => <div key={p.id}><CarePhoto id={p.id} /><Button disabled={busy} onClick={async () => { if (!window.confirm(t('Удалить эту фотографию?'))) return; setBusy(true); try { await careRequest(`/photos/${p.id}`, 'DELETE'); setExistingPhotos(old => old.filter(photo => photo.id !== p.id)); onSaved(); } catch (e) { setError(e.message); } finally { setBusy(false); } }}>{t('Удалить фото')}</Button></div>)}</div>}

@@ -3,14 +3,14 @@ translation_of: "dnevnik-rasteniy-bez-oborudovaniya-growerhub"
 slug: "plant-care-journal-and-telegram-growerhub"
 title: "A plant journal without hardware: photos, care and Telegram"
 summary: "Keep your plants, photographs and care notes together. Plan tasks and receive Telegram reminders without sensors, a coordinator or automation setup."
-created_at: "2026-10-04"
-updated_at: "2026-10-04"
+created_at: "2026-10-07"
+updated_at: "2026-10-07"
 cluster: "zhurnal-i-sovetnik-uhoda"
 tags: ["GrowerHub", "plant journal", "Telegram", "houseplants"]
 keywords: ["plant care journal", "watering reminders", "plant photo diary"]
 related: ["foto-dnevnik-rosta-rasteniy", "dnevnik-rasteniya-chto-zapisyvat", "zhurnal-poliva-obem-ph-udobreniya"]
 hero_image: "/screenshots/care/plant-en.webp"
-hero_alt: "A monstera card, quick care notes and a soil-check reminder in GrowerHub"
+hero_alt: "A pelargonium card, photos, care notes and a soil-check reminder in GrowerHub"
 ---
 
 When did you last repot your monstera? What did its new leaf look like last week? GrowerHub can keep those answers even when your setup is just a windowsill plant and a phone.
@@ -26,7 +26,7 @@ When did you last repot your monstera? What did its new leaf look like last week
 
 The screenshot shows a training journal with a plant illustration instead of a personal photograph. This is the working interface, not a mockup.
 
-![A plant and its next care task on a phone](/screenshots/care/plant-en.webp)
+![A plant, its next care task and care history](/screenshots/care/plant-en.webp)
 
 ## Photos and care history
 

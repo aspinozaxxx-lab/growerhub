@@ -12,176 +12,31 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
-    {
-      "id": "plant-journal-guide-refresh",
-      "published_at": "2026-10-07",
-      "kind": "article_update",
-      "article_id": "dnevnik-rasteniya-chto-zapisyvat",
-      "text": "Руководство по дневнику обновлено под ленту записей, поиск, фотографии с телефона и самостоятельный старт без оборудования."
-    },
-    {
-      "id": "plant-care-journal-telegram",
-      "published_at": "2026-10-07",
-      "kind": "feature",
-      "article_id": "dnevnik-rasteniy-bez-oborudovaniya-growerhub",
-      "preview_position": "50% 30%"
-    },
-    {
-      "id": "photo-diary-upload-guide",
-      "published_at": "2026-10-07",
-      "kind": "article_update",
-      "article_id": "foto-dnevnik-rosta-rasteniy",
-      "text": "В руководстве по фото-дневнику появились шаги загрузки фотографий, исправления даты и запуска без оборудования."
-    },
-    {
-      "id": "public-article-text-contrast",
-      "published_at": "2026-10-07",
-      "kind": "fix",
-      "text": "Заголовки, текст, ссылки и приглашение в демо в статьях лучше читаются на светлом фоне, в том числе на телефоне."
-    },
-    {
-      "id": "watering-guide-current-menu",
-      "published_at": "2026-10-07",
-      "kind": "article_update",
-      "article_id": "poliv-po-raspisaniyu-growerhub",
-      "text": "В руководстве по расписанию полива обновлены названия разделов и шаги сохранения. Добавлены актуальные снимки редактора для русского и английского интерфейсов."
-    },
-    {
-      "id": "warm-plant-care-app-theme",
-      "published_at": "2026-10-06",
-      "kind": "fix",
-      "text": "Кабинет стал светлым и ближе к оформлению сайта: сиреневая палитра, более читаемые подписи, простые названия «Ферма» и «Сценарии». Обновлены обзор, растения, графики и формы; привычные действия и настройки сохранены."
-    },
-    {
-      "id": "nursery-catalog-devices-and-watering",
-      "published_at": "2026-10-06",
-      "kind": "article_update",
-      "article_id": "komplekty-dlya-rasteniy-growerhub",
-      "text": "В каталог и руководство добавлены датчик почвы за 499 ₽, насос за 1 999 ₽ и насос с 20 капельницами и шлангами за 2 499 ₽. Их можно заказать через корзину отдельно или с комплектом. Насос поддерживает Wi-Fi без Zigbee-координатора или Zigbee; состав и первый запуск обсудим по телефону."
-    },
-    {
-      "id": "nursery-kits-and-orders",
-      "published_at": "2026-10-06",
-      "kind": "feature",
-      "article_id": "komplekty-dlya-rasteniy-growerhub",
-      "preview_position": "50% 52%"
-    },
-    {
-      "id": "nursery-temperature-history-route",
-      "published_at": "2026-10-04",
-      "kind": "article_update",
-      "article_id": "istoriya-mikroklimata-i-grafiki",
-      "text": "В статье об истории микроклимата добавлен пример наблюдения за рассадой в небольшом питомнике: первая зона, суточный график, повторный осмотр и ограничения подключения."
-    },
-    {
-      "id": "live-publication-catalog-check",
-      "published_at": "2026-10-04",
-      "kind": "fix",
-      "text": "Проверка публикаций больше не сообщает об ошибке из-за появления новых статей. Отсутствующие страницы и переводы по-прежнему выявляются."
-    },
-    {
-      "id": "ha-watering-connection-route",
-      "published_at": "2026-10-04",
-      "kind": "article_update",
-      "article_id": "home-assistant-dlya-rasteniy",
-      "text": "В статье об автополиве в Home Assistant уточнены совместимость MQTT-моста, объём доступа и первый шаг с одним датчиком без переноса действующих сценариев."
-    },
-    {
-      "id": "manual-watering-leak-label",
-      "published_at": "2026-10-03",
-      "kind": "fix",
-      "text": "В английском интерфейсе уточнено название режима ручного полива до срабатывания датчика протечки."
-    },
-    {
-      "id": "connector-library-versions",
-      "published_at": "2026-10-03",
-      "kind": "fix",
-      "text": "Модуль связи Zigbee2MQTT v0.2.5 сохраняет сведения о версиях библиотек для проверки совместимости управления устройствами. Обновление добровольное и не включает полив."
-    },
-    {
-      "id": "connector-update-guide",
-      "published_at": "2026-10-03",
-      "kind": "article_update",
-      "article_id": "growerhub-i-home-assistant-cherez-mqtt",
-      "text": "В руководство добавлены актуальный архив модуля связи и шаги обновления с v0.2.4 с сохранением своего файла подключения."
-    },
-    {
-      "id": "watering-weather",
-      "published_at": "2026-10-03",
-      "kind": "feature",
-      "article_id": "poliv-s-uchetom-dozhdya-growerhub",
-      "preview_position": "50% 45%"
-    },
-    {
-      "id": "drying-plan-weather-update",
-      "published_at": "2026-10-03",
-      "kind": "article_update",
-      "article_id": "prognoz-vysyhaniya-i-plan-poliva-growerhub",
-      "text": "В статье о плане полива описана доступная погодная поправка: дождь на открытом участке, ограниченная отсрочка и отдельное правило при недоступном прогнозе."
-    },
-    {
-      "id": "watering-weekday-labels",
-      "published_at": "2026-10-03",
-      "kind": "fix",
-      "text": "В английском расписании полива дни недели отображаются понятными сокращениями; вторник больше не обозначается как единица мощности."
-    },
-    {
-      "id": "water-meter",
-      "published_at": "2026-10-02",
-      "kind": "feature",
-      "article_id": "uchet-vody-rashodomer-growerhub"
-    },
-    {
-      "id": "watering-schedule",
-      "published_at": "2026-10-02",
-      "kind": "feature",
-      "article_id": "poliv-po-raspisaniyu-growerhub"
-    },
-    {
-      "id": "soil-anchors",
-      "published_at": "2026-10-02",
-      "kind": "feature",
-      "article_id": "poliv-po-mestnym-orientiram-growerhub",
-      "preview_position": "50% 50%"
-    },
-    {
-      "id": "drying-plan",
-      "published_at": "2026-10-02",
-      "kind": "feature",
-      "article_id": "prognoz-vysyhaniya-i-plan-poliva-growerhub",
-      "preview_position": "50% 58%"
-    },
-    {
-      "id": "demo-water-valve",
-      "published_at": "2026-10-02",
-      "kind": "feature",
-      "article_id": "demo-klapan-rashodomer-growerhub",
-      "preview_position": "50% 40%"
-    },
-    {
-      "id": "plan-refresh",
-      "published_at": "2026-10-02",
-      "kind": "fix",
-      "text": "План полива обновляется после сохранения параметров; прежний план не показывается как актуальный во время загрузки."
-    },
-    {
-      "id": "valve-watering-path",
-      "published_at": "2026-10-02",
-      "kind": "fix",
-      "text": "Карточка поливного устройства ведёт к ограниченному поливу через теплицу. Кнопка выключения остаётся доступной."
-    },
-    {
-      "id": "public-navigation-scroll",
-      "published_at": "2026-10-02",
-      "kind": "fix",
-      "text": "Новая страница открывается с начала при переходе по меню или ссылке статьи. Возврат назад и ссылки на разделы сохраняют обычную навигацию."
-    },
-    {
-      "id": "watering-log-update",
-      "published_at": "2026-10-02",
-      "kind": "article_update",
-      "article_id": "zhurnal-poliva-obem-ph-udobreniya",
-      "text": "В руководство по журналу полива добавлено объяснение измеренных, расчётных и неизвестных объёмов воды."
-    }
+    {"id": "plant-journal-guide-refresh", "published_at": "2026-10-07", "kind": "article_update", "article_id": "dnevnik-rasteniya-chto-zapisyvat", "text": "Руководство по дневнику обновлено под ленту записей, поиск, фотографии с телефона и самостоятельный старт без оборудования."},
+    {"id": "plant-care-journal-telegram", "published_at": "2026-10-07", "kind": "feature", "article_id": "dnevnik-rasteniy-bez-oborudovaniya-growerhub", "preview_position": "50% 30%"},
+    {"id": "photo-diary-upload-guide", "published_at": "2026-10-07", "kind": "article_update", "article_id": "foto-dnevnik-rosta-rasteniy", "text": "В руководстве по фото-дневнику появились шаги загрузки фотографий, исправления даты и запуска без оборудования."},
+    { "id": "public-article-text-contrast", "published_at": "2026-10-07", "kind": "fix", "text": "Заголовки, текст, ссылки и приглашение в демо в статьях лучше читаются на светлом фоне, в том числе на телефоне." },
+    { "id": "watering-guide-current-menu", "published_at": "2026-10-07", "kind": "article_update", "article_id": "poliv-po-raspisaniyu-growerhub", "text": "В руководстве по расписанию полива обновлены названия разделов и шаги сохранения. Добавлены актуальные снимки редактора для русского и английского интерфейсов." },
+    {"id": "warm-plant-care-app-theme", "published_at": "2026-10-06", "kind": "fix", "text": "Кабинет стал светлым и ближе к оформлению сайта: сиреневая палитра, более читаемые подписи, простые названия «Ферма» и «Сценарии». Обновлены обзор, растения, графики и формы; привычные действия и настройки сохранены."},
+    { "id": "nursery-catalog-devices-and-watering", "published_at": "2026-10-06", "kind": "article_update", "article_id": "komplekty-dlya-rasteniy-growerhub", "text": "В каталог и руководство добавлены датчик почвы за 499 ₽, насос за 1 999 ₽ и насос с 20 капельницами и шлангами за 2 499 ₽. Их можно заказать через корзину отдельно или с комплектом. Насос поддерживает Wi-Fi без Zigbee-координатора или Zigbee; состав и первый запуск обсудим по телефону." },
+    { "id": "nursery-kits-and-orders", "published_at": "2026-10-06", "kind": "feature", "article_id": "komplekty-dlya-rasteniy-growerhub", "preview_position": "50% 52%" },
+    { "id": "nursery-temperature-history-route", "published_at": "2026-10-04", "kind": "article_update", "article_id": "istoriya-mikroklimata-i-grafiki", "text": "В статье об истории микроклимата добавлен пример наблюдения за рассадой в небольшом питомнике: первая зона, суточный график, повторный осмотр и ограничения подключения." },
+    { "id": "live-publication-catalog-check", "published_at": "2026-10-04", "kind": "fix", "text": "Проверка публикаций больше не сообщает об ошибке из-за появления новых статей. Отсутствующие страницы и переводы по-прежнему выявляются." },
+    { "id": "ha-watering-connection-route", "published_at": "2026-10-04", "kind": "article_update", "article_id": "home-assistant-dlya-rasteniy", "text": "В статье об автополиве в Home Assistant уточнены совместимость MQTT-моста, объём доступа и первый шаг с одним датчиком без переноса действующих сценариев." },
+    { "id": "manual-watering-leak-label", "published_at": "2026-10-03", "kind": "fix", "text": "В английском интерфейсе уточнено название режима ручного полива до срабатывания датчика протечки." },
+    { "id": "connector-library-versions", "published_at": "2026-10-03", "kind": "fix", "text": "Модуль связи Zigbee2MQTT v0.2.5 сохраняет сведения о версиях библиотек для проверки совместимости управления устройствами. Обновление добровольное и не включает полив." },
+    { "id": "connector-update-guide", "published_at": "2026-10-03", "kind": "article_update", "article_id": "growerhub-i-home-assistant-cherez-mqtt", "text": "В руководство добавлены актуальный архив модуля связи и шаги обновления с v0.2.4 с сохранением своего файла подключения." },
+    { "id": "watering-weather", "published_at": "2026-10-03", "kind": "feature", "article_id": "poliv-s-uchetom-dozhdya-growerhub", "preview_position": "50% 45%" },
+    { "id": "drying-plan-weather-update", "published_at": "2026-10-03", "kind": "article_update", "article_id": "prognoz-vysyhaniya-i-plan-poliva-growerhub", "text": "В статье о плане полива описана доступная погодная поправка: дождь на открытом участке, ограниченная отсрочка и отдельное правило при недоступном прогнозе." },
+    { "id": "watering-weekday-labels", "published_at": "2026-10-03", "kind": "fix", "text": "В английском расписании полива дни недели отображаются понятными сокращениями; вторник больше не обозначается как единица мощности." },
+    { "id": "water-meter", "published_at": "2026-10-02", "kind": "feature", "article_id": "uchet-vody-rashodomer-growerhub" },
+    { "id": "watering-schedule", "published_at": "2026-10-02", "kind": "feature", "article_id": "poliv-po-raspisaniyu-growerhub" },
+    { "id": "soil-anchors", "published_at": "2026-10-02", "kind": "feature", "article_id": "poliv-po-mestnym-orientiram-growerhub", "preview_position": "50% 50%" },
+    { "id": "drying-plan", "published_at": "2026-10-02", "kind": "feature", "article_id": "prognoz-vysyhaniya-i-plan-poliva-growerhub", "preview_position": "50% 58%" },
+    { "id": "demo-water-valve", "published_at": "2026-10-02", "kind": "feature", "article_id": "demo-klapan-rashodomer-growerhub", "preview_position": "50% 40%" },
+    { "id": "plan-refresh", "published_at": "2026-10-02", "kind": "fix", "text": "План полива обновляется после сохранения параметров; прежний план не показывается как актуальный во время загрузки." },
+    { "id": "valve-watering-path", "published_at": "2026-10-02", "kind": "fix", "text": "Карточка поливного устройства ведёт к ограниченному поливу через теплицу. Кнопка выключения остаётся доступной." },
+    { "id": "public-navigation-scroll", "published_at": "2026-10-02", "kind": "fix", "text": "Новая страница открывается с начала при переходе по меню или ссылке статьи. Возврат назад и ссылки на разделы сохраняют обычную навигацию." },
+    { "id": "watering-log-update", "published_at": "2026-10-02", "kind": "article_update", "article_id": "zhurnal-poliva-obem-ph-udobreniya", "text": "В руководство по журналу полива добавлено объяснение измеренных, расчётных и неизвестных объёмов воды." }
   ]
 }

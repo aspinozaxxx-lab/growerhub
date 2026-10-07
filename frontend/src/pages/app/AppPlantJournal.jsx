@@ -149,8 +149,11 @@ function AppPlantJournal() {
   const [editor, setEditor] = useState(null); const [editPlant, setEditPlant] = useState(false);
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [notice, setNotice] = useState('');
   const request = useRef(0);
+  const plantRequest = useRef(0);
   const reloadPlant = useCallback(async () => {
+    const generation = ++plantRequest.current;
     const [value, tasks, summaries] = await Promise.all([fetchPlant(token, plantId), careRequest('/reminders'), careRequest('/summaries')]);
+    if (generation !== plantRequest.current) return;
     setPlant(value); setReminders(tasks.filter(r => r.plantId === Number(plantId))); setCover(summaries.find(s => s.plantId === Number(plantId))?.coverPhotoId);
   }, [plantId, token]);
   const load = useCallback(async (nextPage = 0) => {
@@ -164,7 +167,12 @@ function AppPlantJournal() {
     } catch (e) { if (generation === request.current) setError(e.message); }
     finally { if (generation === request.current) setBusy(false); }
   }, [plantId, query, action, date]);
-  useEffect(() => { reloadPlant().catch(e => setError(e.message)); }, [reloadPlant]);
+  useEffect(() => {
+    let active = true;
+    const sequence = plantRequest;
+    reloadPlant().catch(e => { if (active) setError(e.message); });
+    return () => { active = false; sequence.current++; };
+  }, [reloadPlant]);
   useEffect(() => { const sequence = request; const timer = setTimeout(() => load(), 250); return () => { clearTimeout(timer); sequence.current++; }; }, [load]);
   async function changed() { await Promise.all([reloadPlant(), load()]); }
   async function remove(id) { if (!window.confirm(translateApp('Удалить запись и её фотографии?'))) return; try { await careRequest(`/entries/${id}`, 'DELETE'); await changed(); } catch (e) { setError(e.message); } }
@@ -175,7 +183,7 @@ function AppPlantJournal() {
     <div className="care-quick-actions">{CARE_ACTIONS.filter(([key]) => ['watering', 'photo', 'note', 'fertilizing'].includes(key)).map(([key, label, emoji]) => <Button key={key} onClick={() => setEditor({ action: key })}>{emoji} {translateApp(label)}</Button>)}</div>
     <CareReminders plantId={plantId} reminders={reminders} onChanged={changed} />
     <div className="care-section-heading"><h2>{translateApp('История растения')}</h2><Button variant="primary" onClick={() => setEditor({ action: 'note' })}>{translateApp('Добавить запись')}</Button></div>
-    <div className="care-filters"><input aria-label={translateApp('Поиск в журнале')} placeholder={translateApp('Найти в записях…')} value={query} onChange={e => setQuery(e.target.value)} /><select aria-label={translateApp('Вид ухода')} value={action} onChange={e => setAction(e.target.value)}><option value="">{translateApp('Все действия')}</option>{CARE_ACTIONS.map(([key, label]) => <option key={key} value={key}>{translateApp(label)}</option>)}<option value="automatic">{translateApp('Полив оборудованием')}</option></select><input type="date" aria-label={translateApp('Дата')} value={date} onChange={e => setDate(e.target.value)} />{date && <Button onClick={() => setDate('')}>{translateApp('Все даты')}</Button>}</div>
+    <div className="care-filters"><input aria-label={translateApp('Поиск в журнале')} placeholder={translateApp('Найти в записях…')} value={query} onChange={e => setQuery(e.target.value)} /><select aria-label={translateApp('Вид ухода')} value={action} onChange={e => setAction(e.target.value)}><option value="">{translateApp('Все действия')}</option>{CARE_ACTIONS.map(([key, label]) => <option key={key} value={key}>{translateApp(label)}</option>)}<option value="automatic">{translateApp('Полив оборудованием')}</option></select><input type="date" aria-label={translateApp('Дата')} value={date} onInput={e => setDate(e.target.value)} onChange={e => setDate(e.target.value)} />{date && <Button onClick={() => setDate('')}>{translateApp('Все даты')}</Button>}</div>
     {busy && <p role="status">{translateApp('Загрузка...')}</p>}
     {!busy && !items.length && <section className="care-empty"><span>🌱</span><h3>{translateApp(query || action || date ? 'По этому запросу записей нет' : 'История начинается с первого наблюдения')}</h3><p>{translateApp('Сфотографируйте растение или запишите, как оно себя чувствует.')}</p></section>}
     <div className="care-timeline">{items.map(item => { const entry = item.entry; const config = careAction(item.action || entry.type); return <article className="care-entry" key={entry.id}><div className="care-entry-heading"><span>{config[2]} {translateApp(item.editable ? config[1] : 'Полив оборудованием')}</span><time>{formatDateLong(entry.eventAt)} · {formatTimeHHMM(entry.eventAt)}</time></div>
@@ -184,8 +192,8 @@ function AppPlantJournal() {
       {item.editable && <div className="care-actions"><button onClick={() => setEditor({ item })}>{translateApp('Редактировать')}</button><button onClick={() => remove(entry.id)}>{translateApp('Удалить')}</button></div>}
     </article>; })}</div>
     {more && <Button disabled={busy} onClick={() => load(page + 1)}>{translateApp('Показать ещё')}</Button>}
-    {editor && <CareEntryEditor plantId={plantId} {...editor} onClose={() => setEditor(null)} onSaved={() => { setNotice(translateApp('Запись сохранена')); changed(); }} />}
-    <PlantEditDialog isOpen={editPlant} mode="edit" plant={plant} zones={plant?.zone ? [plant.zone] : []} onClose={() => setEditPlant(false)} onSaved={reloadPlant} />
+    {editor && <CareEntryEditor plantId={plantId} {...editor} onClose={() => setEditor(null)} onSaved={async () => { setNotice(translateApp('Запись сохранена')); try { await changed(); } catch (e) { setError(e.message); } }} />}
+    <PlantEditDialog isOpen={editPlant} mode="edit" plant={plant} zones={plant?.zone ? [plant.zone] : []} onClose={() => setEditPlant(false)} onSaved={() => reloadPlant().catch(e => setError(e.message))} />
   </div>;
 }
 export default AppPlantJournal;

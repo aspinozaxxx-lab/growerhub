@@ -497,6 +497,10 @@ telegram:
   webhook-secret: ${TELEGRAM_WEBHOOK_SECRET:}
   # Oficialnyj adres Bot API.
   api-url: https://api.telegram.org
+  # Neobyazatelnyj HTTP CONNECT proxy tolko dlya Bot API, pustoe znachenie oznachaet pryamoj dostup.
+  proxy-host: ${TELEGRAM_PROXY_HOST:}
+  # Port otdelnogo proxy; ne menyaet set drugih integracij.
+  proxy-port: ${TELEGRAM_PROXY_PORT:8080}
   # Publichnyj adres dnevnika.
   site-url: https://growerhub.ru
   # Srok odnorazovoj ssylki.

@@ -4,7 +4,7 @@ slug: plant-diary-what-to-write-down-to-understand-growth-and-mistakes
 title: "Plant journal: watering, harvests and notes"
 summary: "Try a plant journal in GrowerHub without hardware: photos, reminders, watering history, partial harvests and a downloadable Markdown record."
 created_at: "2026-07-23"
-updated_at: "2026-10-04"
+updated_at: "2026-10-07"
 cluster: zhurnal-i-sovetnik-uhoda
 tags:
   - GrowerHub
