@@ -11,6 +11,7 @@ function PlatformStartLink({ placement, className = 'hero-cta', children, onClic
   if (status === 'authorized' && user?.onboarding_completed) {
     return null;
   }
+  if (status === 'authorized' && user?.care_started) return <Link className={className} to="/app/plants/">{translatePublic('Мои растения')}</Link>;
   const continueSetup = status === 'authorized' && !user?.onboarding_completed;
   const target = continueSetup
     ? '/app/onboarding/'

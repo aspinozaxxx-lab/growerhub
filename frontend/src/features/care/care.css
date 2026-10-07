@@ -1,0 +1,66 @@
+.care-page { display:flex; flex-direction:column; gap:18px; max-width:1100px; width:100%; margin:auto; color:var(--text-1); }
+.care-page h1,.care-page h2,.care-page h3,.care-panel p { margin:0; }
+.care-page h1 { font-size:clamp(24px,4vw,36px); line-height:1.15; overflow-wrap:anywhere; }
+.care-page h2 { font-size:19px; }
+.care-muted,.care-page small { color:var(--text-2); }
+.care-topline,.care-section-heading,.care-entry-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.care-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; }
+.care-actions > button:not(.gh-btn) { background:none; color:var(--text-2); border:0; padding:10px 0; cursor:pointer; }
+.care-hero { display:grid; grid-template-columns:minmax(160px,32%) 1fr; gap:24px; padding:20px; border:1px solid var(--border-1); border-radius:20px; background:var(--surface-1); }
+.care-hero > div { min-width:0; display:flex; flex-direction:column; justify-content:center; gap:10px; }
+.care-hero > .care-actions { grid-column:1/-1; flex-direction:row; justify-content:space-between; margin-top:0; }
+.care-hero p { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; }
+.care-hero-photo { width:100%; height:240px; border-radius:14px; object-fit:cover; }
+.care-photo-placeholder { display:flex; align-items:center; justify-content:center; background:var(--surface-2); font-size:48px; min-height:100px; }
+.care-kicker { color:var(--text-2); font-size:12px; letter-spacing:.08em; }
+.care-quick-actions { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.care-quick-actions .gh-btn { min-width:0; padding:12px 8px; }
+.care-filters { display:flex; gap:8px; flex-wrap:wrap; }
+.care-filters > * { flex:1 1 150px; min-width:0; max-width:100%; }
+.care-filters input,.care-filters select,.care-form input:not([type=checkbox]),.care-form select,.care-form textarea { box-sizing:border-box; width:100%; min-width:0; min-height:44px; padding:10px 12px; background:var(--surface-1); color:var(--text-1); border:1px solid var(--border-2); border-radius:10px; font:inherit; font-size:16px; }
+.care-form { display:flex; flex-direction:column; gap:15px; margin-top:16px; }
+.care-form input[type=file] { padding:10px 0; border:0; font-size:14px; }
+.care-checkbox { display:flex; gap:10px; align-items:center; }
+.care-checkbox input { width:20px; height:20px; }
+.care-panel,.care-reminders { background:var(--surface-1); border:1px solid var(--border-1); border-radius:16px; padding:18px; }
+.care-reminder { display:flex; flex-direction:column; gap:5px; padding:14px 0; border-bottom:1px solid var(--border-1); overflow-wrap:anywhere; }
+.care-reminder:last-child { border-bottom:0; padding-bottom:0; }
+.care-due { color:var(--accent); }
+.care-timeline { display:flex; flex-direction:column; gap:12px; }
+.care-entry { background:var(--surface-1); border:1px solid var(--border-1); padding:18px; border-radius:16px; overflow:hidden; }
+.care-entry-heading { font-size:14px; color:var(--text-2); }
+.care-entry-text { white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.6; }
+.care-entry-photos { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; }
+.care-entry-photos img,.care-entry-photos .care-photo-placeholder { width:100%; height:210px; object-fit:cover; border-radius:12px; }
+.care-empty { text-align:center; background:var(--surface-1); border:1px dashed var(--border-2); border-radius:18px; padding:28px 16px; }
+.care-empty > span { font-size:40px; }
+.care-plant-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr)); gap:14px; }
+.care-plant-card { border:1px solid var(--border-1); border-radius:18px; background:var(--surface-1); overflow:hidden; }
+.care-plant-card img,.care-plant-card .care-photo-placeholder { width:100%; height:190px; object-fit:cover; }
+.care-plant-card-body { padding:14px; display:flex; flex-direction:column; gap:7px; }
+.care-plant-card h3 { margin:0; font-size:20px; overflow-wrap:anywhere; }
+.care-link-steps { margin:18px 0; display:flex; flex-direction:column; gap:10px; align-items:flex-start; }
+.care-entry .journal-entry { color:var(--text-1); }
+.care-entry .journal-entry__watering-summary { min-width:0; }
+@media(max-width:600px) {
+  .care-page { gap:14px; }
+  .care-hero { grid-template-columns:96px 1fr; padding:12px; gap:14px; }
+  .care-hero-photo { height:128px; align-self:start; }
+  .care-hero h1 { font-size:24px; }
+  .care-hero .care-actions { grid-column:1/-1; flex-direction:row; justify-content:space-between; margin-top:0; }
+  .care-hero > .care-actions { grid-column:1/-1; flex-direction:row; justify-content:space-between; margin-top:0; }
+.care-hero p { font-size:14px; }
+  .care-hero small { font-size:12px; }
+  .care-quick-actions { grid-template-columns:repeat(2,1fr); }
+  .care-reminders,.care-panel,.care-entry { padding:14px; }
+  .care-entry-heading time { font-size:12px; }
+  .care-plant-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .care-plant-card img,.care-plant-card .care-photo-placeholder { height:140px; }
+  .care-plant-card-body { padding:11px; }
+  .care-plant-card h3 { font-size:18px; }
+  .care-plant-card .care-actions { gap:4px; }
+  .care-plant-card .gh-btn { font-size:12px; min-height:40px; padding:8px; }
+}
+
+.care-photo-open { padding:0; border:0; background:transparent; width:100%; cursor:zoom-in; line-height:0; }
+.care-entry-photos img.care-photo-full { width:100%; height:auto; max-height:65vh; object-fit:contain; }

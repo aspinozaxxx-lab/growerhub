@@ -6,7 +6,7 @@ summary: >-
   How to take photos of plants so that the pictures help analyze growth, light,
   watering and care errors.
 created_at: '2026-07-23'
-updated_at: '2026-07-23'
+updated_at: '2026-10-04'
 cluster: zhurnal-i-sovetnik-uhoda
 tags:
   - GrowerHub
@@ -30,6 +30,10 @@ A photo diary is needed for slow changes that the eye gets used to not noticing.
 
 The main rule is repeatability. Shoot the plant from one side, in similar lighting, at the same distance and with a clear reference to the date. Otherwise, you will not be comparing height, but different angles, shadows and camera settings. In GrowerHub the photo should be stored next to watering, fertilizing and microclimate charts.
 
+## Add a photo to GrowerHub
+
+Open **Plants → a plant’s journal → Photo**, choose the date and add an observation and an image from your gallery. Each entry supports up to six photographs; its date, text and images can be edited later. No hardware is required. See the [plant journal and Telegram guide](/articles/dnevnik-rasteniy-bez-oborudovaniya-growerhub/) for reminders.
+
 ## How to shoot
 
 Select one main shooting point. For the pot, a general front view and, if necessary, a close-up of the problem leaf will do. For a bed or shelving, a general shot of the zone and individual photos of control plants are useful. If there is a ruler, a mark on the wall or the edge of a pot, leave them in the frame: this makes it easier to judge the size.
@@ -46,7 +50,7 @@ Photos are especially useful when paired with a journal. The entry “changed th
 
 Sometimes the graph looks normal, but the photo shows deterioration. This is a signal to look for the missing parameter: light, temperature, ventilation, growth stage, feeding or root condition. The opposite also happens: the graph frightens with a short peak, but photos and inspection show that the plant is not damaged.
 
-In GrowerHub it is convenient to view photos on the same time line where watering, humidity and microclimate are visible. Then the cycle report becomes not a set of individual images, but a care history. There is an article about reading data without panic [history of microclimate and graphics](/articles/istoriya-mikroklimata-i-grafiki).
+GrowerHub shows photographs and care entries in date order. Connected sensor charts open separately; compare their dates with your observations. Automatic side-by-side photo comparison is not available yet. There is an article about reading data without panic [history of microclimate and graphics](/articles/istoriya-mikroklimata-i-grafiki).
 
 ## Frequency
 

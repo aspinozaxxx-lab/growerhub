@@ -9,6 +9,7 @@ export const APP_NAV_ITEMS = [
 ];
 
 export const SETTINGS_TABS = [
+  { to: '/app/settings/notifications/', label: 'Уведомления' },
   { to: '/app/settings/connections/', label: 'Подключения' },
   { to: '/app/settings/zones/', label: 'Зоны' },
   { to: '/app/settings/devices/', label: 'Устройства' },

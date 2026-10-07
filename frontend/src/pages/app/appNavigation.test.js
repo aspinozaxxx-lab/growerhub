@@ -18,6 +18,7 @@ describe('app navigation', () => {
 
   it('perenosit starye stranicy na aktualnye marshruty', () => {
     expect(SETTINGS_TABS.map((item) => item.label)).toEqual([
+      'Уведомления',
       'Подключения',
       'Зоны',
       'Устройства',

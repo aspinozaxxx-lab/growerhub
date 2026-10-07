@@ -1,4 +1,4 @@
-﻿import React, { useLayoutEffect, useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../features/auth/AuthContext';
 import { isSessionExpiredError } from '../../api/client';
 import {
@@ -39,7 +39,7 @@ function PlantEditDialog({
     strain: '',
     growth_stage: '',
     planted_at: '',
-    zone_id: null,
+    zone_id: null, description: '', location_label: '',
   });
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -71,6 +71,7 @@ function PlantEditDialog({
     if (mode === 'edit' && plant) {
       setLocalPlant({
         name: plant.name || '',
+        description: plant.description || '', location_label: plant.location_label || '',
         plant_type: normalizePlantTypeId(plant.plant_type || DEFAULT_PLANT_TYPE_ID),
         strain: plant.strain || '',
         growth_stage: plant.growth_stage || '',
@@ -84,7 +85,7 @@ function PlantEditDialog({
         strain: '',
         growth_stage: '',
         planted_at: '',
-        zone_id: null,
+        zone_id: null, description: '', location_label: '',
       });
     }
   }, [isOpen, mode, plant]);
@@ -127,6 +128,8 @@ function PlantEditDialog({
       strain: localPlant.strain || null,
       growth_stage: localPlant.growth_stage || null,
       zone_id: localPlant.zone_id ?? null,
+      description: localPlant.description || '', location_label: localPlant.location_label || '',
+      date_unknown: !localPlant.planted_at,
     };
     const plantedIso = toIsoString(localPlant.planted_at);
     if (plantedIso) {
@@ -189,6 +192,8 @@ function PlantEditDialog({
       <div className="plant-dialog__body">
         <FormField label={translateApp("Название")} htmlFor="plant-name" className="plant-dialog__field">
           <input
+            maxLength={255}
+            autoFocus
             id="plant-name"
             value={localPlant.name}
             onChange={(e) => setLocalPlant((prev) => ({ ...prev, name: e.target.value }))}
@@ -196,6 +201,9 @@ function PlantEditDialog({
           />
         </FormField>
 
+        <details open={mode === 'edit'}><summary>{translateApp('Необязательные подробности')}</summary><div className="plant-dialog__body">
+        <FormField label={translateApp("Место растения")} htmlFor="plant-location" className="plant-dialog__field"><input id="plant-location" maxLength={255} value={localPlant.location_label || ''} onChange={e => setLocalPlant(prev => ({ ...prev, location_label: e.target.value }))} placeholder={translateApp("Например, подоконник в гостиной")} /></FormField>
+        <FormField label={translateApp("О растении")} htmlFor="plant-description" className="plant-dialog__field"><textarea id="plant-description" maxLength={8000} rows={3} value={localPlant.description || ''} onChange={e => setLocalPlant(prev => ({ ...prev, description: e.target.value }))} /></FormField>
         <FormField label={translateApp("Тип растения")} htmlFor="plant-type" className="plant-dialog__field">
           <select
             id="plant-type"
@@ -237,6 +245,7 @@ function PlantEditDialog({
           />
         </FormField>
 
+        <small>{translateApp('Дату можно оставить пустой, если она неизвестна. Для дневника оборудование не требуется.')}</small>
         <FormField label={translateApp("Теплица")} htmlFor="plant-zone" className="plant-dialog__field">
           <select
             id="plant-zone"
@@ -249,6 +258,7 @@ function PlantEditDialog({
             ))}
           </select>
         </FormField>
+        </div></details>
       </div>
     </Modal>
   );

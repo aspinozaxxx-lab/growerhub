@@ -1,70 +1,25 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { fetchPlants } from '../../api/plants';
-import {
-  createPlantJournalEntry,
-  fetchPlantJournal,
-  updatePlantJournalEntry,
-  downloadPlantJournalMarkdown,
-  downloadJournalPhotoBlob,
-} from '../../api/plantJournal';
-import { isSessionExpiredError } from '../../api/client';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { fetchPlant } from '../../api/plants';
+import { downloadPlantJournalMarkdown, downloadJournalPhotoBlob } from '../../api/plantJournal';
+import { careRequest } from '../../api/care';
 import { useAuth } from '../../features/auth/AuthContext';
-import {
-  completionReasonLabel,
-  formatDurationSeconds,
-  modeLabel,
-} from '../../features/manual-watering/manualWateringModel';
-import {
-  formatDateKeyYYYYMMDD,
-  formatCalendarDateLong,
-  formatDateLong,
-  formatTimeHHMM,
-  parseBackendTimestamp,
-  zonedDateTimeInputToUtc,
-} from '../../utils/formatters';
+import { completionReasonLabel, formatDurationSeconds, modeLabel } from '../../features/manual-watering/manualWateringModel';
+import { formatDateLong, formatTimeHHMM } from '../../utils/formatters';
+import { translateApp } from '../../locales/i18n';
+import { CARE_ACTIONS, careAction, careUtc } from '../../features/care/careModel';
+import CarePhoto from '../../features/care/CarePhoto';
+import CareEntryEditor from '../../features/care/CareEntryEditor';
+import CareReminders from '../../features/care/CareReminders';
+import PlantEditDialog from '../../components/plants/PlantEditDialog';
+import Button from '../../components/ui/Button';
 import './AppPlantJournal.css';
-import { getIntlLocale, translateApp } from '../../locales/i18n';
-
+import '../../features/care/care.css';
 const JOURNAL_TYPE_CONFIG = {
-  watering: { label: translateApp("Полив"), icon: '💧', kind: 'watering' },
-  feeding: { label: translateApp("Уход"), icon: '🧹', kind: 'care' },
-  harvest: { label: translateApp("Сбор"), icon: '🧺', kind: 'harvest' },
-  photo: { label: translateApp("Фото"), icon: '📷', kind: 'photo' },
-  note: { label: translateApp("Наблюдение"), icon: '👁', kind: 'observation' },
-  other: { label: translateApp("Наблюдение"), icon: '👁', kind: 'observation' },
+  watering: { label: translateApp('Полив'), icon: '💧' },
+  photo: { label: translateApp('Фото'), icon: '📷' },
+  other: { label: translateApp('Заметка'), icon: '✍️' },
 };
-
-const BACKEND_TYPES = ['watering', 'feeding', 'harvest', 'photo', 'note', 'other'];
-
-function toLocalDateKeyFromIso(isoString) {
-  // Translitem: backend otdaet UTC datetime, a v UI nuzhen key v timezone polzovatelja.
-  return formatDateKeyYYYYMMDD(isoString);
-}
-
-function dateKeyFromString(value) {
-  if (!value) return '';
-  if (typeof value === 'string') {
-    // Dlya gotovyh key v formate YYYY-MM-DD prosto vozvrashaem.
-    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) {
-      return value;
-    }
-    return toLocalDateKeyFromIso(value);
-  }
-  return toLocalDateKeyFromIso(value);
-}
-
-function buildDateRange(startDate, endDate) {
-  const days = [];
-  const cursor = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
-  while (cursor.getTime() <= end.getTime()) {
-    days.push(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()));
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return days;
-}
-
 function formatVolumeL(value) {
   if (value === null || value === undefined) return '';
   const str = Number(value).toFixed(3).replace(/\.?0+$/, '').replace('.', ',');
@@ -178,410 +133,59 @@ export function JournalEntryCard({ entry, onEdit, photoCache, setPhotoCache, tok
           </div>
         </>
       )}
-      <button type="button" className="journal-entry__edit" onClick={() => onEdit(entry)} title={translateApp("Редактировать")}>
+      {!details && <button type="button" className="journal-entry__edit" onClick={() => onEdit(entry)} title={translateApp("Редактировать")}>
         ✏
-      </button>
+      </button>}
     </div>
   );
 }
 
-function CalendarGrid({ startDate, endDate, entries, plantedAt, selectedDate, onSelectDate }) {
-  const dateList = useMemo(() => buildDateRange(startDate, endDate), [startDate, endDate]);
-  const planted = new Date(plantedAt.getTime());
-  planted.setHours(0, 0, 0, 0);
-
-  const entriesByDate = useMemo(() => {
-    const map = {};
-    entries.forEach((entry) => {
-      const key = dateKeyFromString(entry.event_at);
-      if (!map[key]) {
-        map[key] = [];
-      }
-      map[key].push(entry);
-    });
-    return map;
-  }, [entries]);
-
-  const months = useMemo(() => {
-    const grouped = dateList.reduce((acc, day) => {
-      const monthKey = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}`;
-      if (!acc[monthKey]) acc[monthKey] = [];
-      acc[monthKey].push(day);
-      return acc;
-    }, {});
-    return Object.entries(grouped).sort((a, b) => (a[0] < b[0] ? -1 : 1));
-  }, [dateList]);
-
-  return (
-    <div className="journal-calendar">
-      {months.map(([monthKey, days]) => {
-        const monthLabel = days[0].toLocaleDateString(getIntlLocale(), { month: 'long', year: 'numeric' });
-        const normalizedLabel = monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1);
-        return (
-          <div className="journal-calendar__month" key={monthKey}>
-            <div className="journal-calendar__month-title">{normalizedLabel.replace(translateApp("Г."), translateApp("г."))}</div>
-            <div className="journal-calendar__month-grid">
-              {days.map((day) => {
-                const key = dateKeyFromString(day);
-                const entriesForDay = entriesByDate[key] || [];
-                const typeOrder = ['watering', 'feeding', 'harvest', 'note', 'other', 'photo'];
-                const uniqueIcons = [];
-                typeOrder.forEach((t) => {
-                  const hasType = entriesForDay.some((e) => e.type === t);
-                  if (hasType && JOURNAL_TYPE_CONFIG[t]) {
-                    uniqueIcons.push(JOURNAL_TYPE_CONFIG[t].icon);
-                  }
-                });
-                const iconList = uniqueIcons.slice(0, 3);
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    className={`journal-calendar__day ${selectedDate === key ? 'is-selected' : ''}`}
-                    aria-pressed={selectedDate === key}
-                    onClick={() => onSelectDate(key)}
-                  >
-                    <span className="journal-calendar__date-number">{day.getDate()}</span>
-                    {iconList.length > 0 && (
-                      <span className="journal-calendar__icons">
-                        {iconList.map((icon) => (
-                          <span key={icon}>{icon}</span>
-                        ))}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 function AppPlantJournal() {
-  const { plantId } = useParams();
-  const navigate = useNavigate();
-  const { token } = useAuth();
-  const [plant, setPlant] = useState(null);
-  const [entries, setEntries] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [photoCache, setPhotoCache] = useState({});
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [formState, setFormState] = useState({
-    date: '',
-    time: '12:00',
-    type: 'note',
-    text: '',
-    photoUrl: '',
-  });
-
-  const loadData = useCallback(async () => {
-    if (!plantId) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [plants, journal] = await Promise.all([fetchPlants(token), fetchPlantJournal(plantId, token)]);
-      const currentPlant = plants.find((item) => String(item.id) === String(plantId)) || null;
-      const journalEntries = Array.isArray(journal) ? journal : [];
-      setPlant(currentPlant);
-      setEntries(journalEntries);
-      const todayKey = dateKeyFromString(new Date());
-      const latestEntryDate = journalEntries.reduce((latest, entry) => {
-        const key = dateKeyFromString(entry.event_at);
-        return key > latest ? key : latest;
-      }, '');
-      setSelectedDate((previous) => previous || latestEntryDate || todayKey);
-      setFormState((prev) => ({ ...prev, date: prev.date || todayKey }));
-    } catch (err) {
-      if (isSessionExpiredError(err)) return;
-      setError(err?.message || translateApp("Не удалось загрузить журнал"));
-    } finally {
-      setIsLoading(false);
-    }
+  const { plantId } = useParams(); const { token } = useAuth();
+  const [plant, setPlant] = useState(null); const [items, setItems] = useState([]); const [more, setMore] = useState(false);
+  const [query, setQuery] = useState(''); const [action, setAction] = useState(''); const [date, setDate] = useState('');
+  const [page, setPage] = useState(0); const [reminders, setReminders] = useState([]); const [cover, setCover] = useState(null);
+  const [editor, setEditor] = useState(null); const [editPlant, setEditPlant] = useState(false);
+  const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [notice, setNotice] = useState('');
+  const request = useRef(0);
+  const reloadPlant = useCallback(async () => {
+    const [value, tasks, summaries] = await Promise.all([fetchPlant(token, plantId), careRequest('/reminders'), careRequest('/summaries')]);
+    setPlant(value); setReminders(tasks.filter(r => r.plantId === Number(plantId))); setCover(summaries.find(s => s.plantId === Number(plantId))?.coverPhotoId);
   }, [plantId, token]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const plantedDate = useMemo(() => {
-    const fallback = new Date();
-    fallback.setHours(0, 0, 0, 0);
-    if (plant?.planted_at) {
-      const key = dateKeyFromString(plant.planted_at);
-      return new Date(`${key}T00:00:00`);
-    }
-    if (entries.length > 0) {
-      const earliestKey = entries
-        .map((e) => dateKeyFromString(e.event_at))
-        .sort((a, b) => (a < b ? -1 : 1))[0];
-      return new Date(`${earliestKey}T00:00:00`);
-    }
-    return fallback;
-  }, [entries, plant]);
-
-  const endDate = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return today;
-  }, []);
-
-  const entriesForSelectedDate = useMemo(() => {
-    if (!selectedDate) return [];
-    return entries
-      .filter((entry) => toLocalDateKeyFromIso(entry.event_at) === selectedDate)
-      .sort((a, b) => {
-        const aTs = parseBackendTimestamp(a.event_at)?.getTime() ?? 0;
-        const bTs = parseBackendTimestamp(b.event_at)?.getTime() ?? 0;
-        return aTs - bTs;
-      });
-  }, [entries, selectedDate]);
-
-  const selectedDateLabel = selectedDate && formatCalendarDateLong(selectedDate);
-
-  const selectedAgeLabel =
-    selectedDate && plant?.planted_at
-      ? (() => {
-          const [y, m, d] = selectedDate.split('-').map((part) => Number(part));
-          const plantedKey = formatDateKeyYYYYMMDD(plant.planted_at);
-          const [py, pm, pd] = plantedKey.split('-').map((part) => Number(part));
-          const diff = Date.UTC(y, m - 1, d) - Date.UTC(py, pm - 1, pd);
-          return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
-        })()
-      : null;
-
-  const handleDownloadJournal = async () => {
+  const load = useCallback(async (nextPage = 0) => {
+    const generation = ++request.current; setBusy(true); setError('');
     try {
-      await downloadPlantJournalMarkdown(plantId, token);
-    } catch (e) {
-      console.error(e);
-      alert(translateApp("Не удалось скачать журнал"));
-    }
-  };
-
-  const resetForm = useCallback(() => {
-    const todayKey = dateKeyFromString(new Date());
-    setEditingId(null);
-    setFormState({
-      date: selectedDate || todayKey,
-      time: '12:00',
-      type: 'note',
-      text: '',
-      photoUrl: '',
-    });
-  }, [selectedDate]);
-
-  const handleOpenForm = () => {
-    setIsFormOpen((prev) => !prev);
-    if (!isFormOpen) {
-      resetForm();
-    }
-  };
-
-  const handleChangeForm = (field, value) => {
-    setFormState((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleEditEntry = (entry) => {
-    setIsFormOpen(true);
-    setEditingId(entry.id);
-    const datePart = dateKeyFromString(entry.event_at);
-    const timePart = formatTimeHHMM(entry.event_at) || '12:00';
-    const firstPhotoUrl = entry.photos?.[0]?.url || '';
-    setFormState({
-      date: datePart,
-      time: timePart,
-      type: BACKEND_TYPES.includes(entry.type) ? entry.type : 'note',
-      text: entry.text || '',
-      photoUrl: firstPhotoUrl,
-    });
-  };
-
-  const buildEventAtIso = (dateStr, timeStr) => {
-    if (!dateStr) return null;
-    const safeTime = timeStr && timeStr.includes(':') ? timeStr : '00:00';
-    const iso = zonedDateTimeInputToUtc(`${dateStr}T${safeTime}:00`);
-    if (!iso) {
-      return null;
-    }
-    return iso.toISOString();
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!plantId) return;
-    const backendType = BACKEND_TYPES.includes(formState.type) ? formState.type : 'note';
-    try {
-      let savedEntry;
-      if (editingId) {
-        savedEntry = await updatePlantJournalEntry(
-          plantId,
-          editingId,
-          { type: backendType, text: formState.text || null },
-          token,
-        );
-      } else {
-        const eventAt = buildEventAtIso(formState.date, formState.time) || undefined;
-        const payload = {
-          type: backendType,
-          text: formState.text || null,
-          event_at: eventAt,
-        };
-        if (backendType === 'photo' && formState.photoUrl) {
-          payload.photo_urls = [formState.photoUrl];
-        }
-        savedEntry = await createPlantJournalEntry(plantId, payload, token);
-      }
-      await loadData();
-      setSelectedDate(dateKeyFromString(savedEntry?.event_at) || formState.date);
-      setIsFormOpen(false);
-      resetForm();
-    } catch (err) {
-      if (isSessionExpiredError(err)) return;
-      setError(err?.message || translateApp("Не удалось сохранить запись"));
-    }
-  };
-
-  const headingTitle = plant ? translateApp("Журнал: {{value1}}", { value1: plant.name }) : translateApp("Журнал растения");
-  const plantedAtLabel = plant?.planted_at && formatDateLong(plant.planted_at);
-
-  return (
-    <div className="plant-journal-page">
-      <div className="plant-journal__header">
-        <div>
-          <div className="plant-journal__title">{headingTitle}</div>
-          {plant && (
-            <div className="plant-journal__subtitle">
-              {plantedAtLabel ? translateApp("Посажено {{value1}}", { value1: plantedAtLabel }) : translateApp("Посажено —")}
-            </div>
-          )}
-        </div>
-        <div className="plant-journal__actions">
-          <button type="button" className="plant-journal__download" onClick={handleDownloadJournal}>{translateApp("Скачать журнал (.md)")}</button>
-          <button type="button" className="plant-journal__back" onClick={() => navigate('/app/plants/')}>{translateApp("← К списку")}</button>
-        </div>
-      </div>
-
-      {error && <div className="plant-journal__state plant-journal__state--error">{error}</div>}
-      {isLoading && <div className="plant-journal__state">{translateApp("Загрузка...")}</div>}
-
-      {plant && (
-        <CalendarGrid
-          startDate={plantedDate}
-          endDate={endDate}
-          entries={entries}
-          plantedAt={plantedDate}
-          selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
-        />
-      )}
-
-      <div className="journal-entries-block">
-        <div className="journal-entries-block__header">
-          <div className="journal-entries-block__title">
-            {selectedDateLabel ? translateApp("Записи за {{value1}}", { value1: selectedDateLabel }) : translateApp("Выберите день в календаре")}
-            {selectedAgeLabel !== null && selectedAgeLabel !== undefined && (
-              <div className="journal-entries-block__age">{translateApp("Возраст")}{selectedAgeLabel}{translateApp("дней")}</div>
-            )}
-          </div>
-          <button type="button" className="journal-entries-block__add" onClick={handleOpenForm}>
-            {isFormOpen ? translateApp("Закрыть форму") : translateApp("Добавить запись")}
-          </button>
-        </div>
-
-        {selectedDate && entriesForSelectedDate.length === 0 && (
-          <div className="journal-entries-block__empty">{translateApp("Нет записей за выбранную дату")}</div>
-        )}
-
-        {selectedDate && entriesForSelectedDate.length > 0 && (
-          <div className="journal-entries-list">
-            {entriesForSelectedDate.map((entry) => (
-              <JournalEntryCard
-                key={entry.id}
-                entry={entry}
-                onEdit={handleEditEntry}
-                photoCache={photoCache}
-                setPhotoCache={setPhotoCache}
-                token={token}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {isFormOpen && (
-        <form className="journal-form" onSubmit={handleSubmit}>
-          <div className="journal-form__row">
-            <label className="journal-form__field">
-              <span>{translateApp("Дата")}</span>
-              <input
-                type="date"
-                value={formState.date}
-                onChange={(e) => handleChangeForm('date', e.target.value)}
-                required
-              />
-            </label>
-            <label className="journal-form__field">
-              <span>{translateApp("Время")}</span>
-              <input
-                type="time"
-                value={formState.time}
-                onChange={(e) => handleChangeForm('time', e.target.value)}
-              />
-            </label>
-            <label className="journal-form__field">
-              <span>{translateApp("Тип записи")}</span>
-              <select
-                value={formState.type}
-                onChange={(e) => handleChangeForm('type', e.target.value)}
-              >
-                <option value="watering">{translateApp("Полив")}</option>
-                <option value="feeding">{translateApp("Уход")}</option>
-                <option value="harvest">{translateApp("Сбор")}</option>
-                <option value="note">{translateApp("Наблюдение")}</option>
-                <option value="photo">{translateApp("Фото")}</option>
-                <option value="other">{translateApp("Наблюдение (other)")}</option>
-              </select>
-            </label>
-          </div>
-
-          <label className="journal-form__field journal-form__field--wide">
-            <span>{translateApp("Текст / комментарий")}</span>
-            <textarea
-              rows={3}
-              value={formState.text}
-              onChange={(e) => handleChangeForm('text', e.target.value)}
-              placeholder={translateApp("Комментарий или детали")}
-            />
-          </label>
-
-          {formState.type === 'photo' && (
-            <label className="journal-form__field journal-form__field--wide">
-              <span>{translateApp("URL фото (пока только ссылка)")}</span>
-              <input
-                type="url"
-                value={formState.photoUrl}
-                onChange={(e) => handleChangeForm('photoUrl', e.target.value)}
-                placeholder="https://..."
-              />
-            </label>
-          )}
-
-          <div className="journal-form__actions">
-            <button type="submit" className="journal-form__submit">
-              {editingId ? translateApp("Сохранить") : translateApp("Добавить")}
-            </button>
-            <button type="button" className="journal-form__cancel" onClick={resetForm}>{translateApp("Сбросить")}</button>
-          </div>
-        </form>
-      )}
-    </div>
-  );
+      const params = new URLSearchParams({ plant_id: plantId, query, action, page: nextPage });
+      if (date) { params.set('from', careUtc(`${date}T00:00`)); const day = new Date(`${date}T12:00:00Z`); day.setUTCDate(day.getUTCDate() + 1); params.set('until', careUtc(`${day.toISOString().slice(0, 10)}T00:00`)); }
+      const result = await careRequest(`/journal?${params}`);
+      if (generation !== request.current) return;
+      setItems(old => nextPage ? [...old, ...result.items] : result.items); setPage(nextPage); setMore(result.hasMore);
+    } catch (e) { if (generation === request.current) setError(e.message); }
+    finally { if (generation === request.current) setBusy(false); }
+  }, [plantId, query, action, date]);
+  useEffect(() => { reloadPlant().catch(e => setError(e.message)); }, [reloadPlant]);
+  useEffect(() => { const sequence = request; const timer = setTimeout(() => load(), 250); return () => { clearTimeout(timer); sequence.current++; }; }, [load]);
+  async function changed() { await Promise.all([reloadPlant(), load()]); }
+  async function remove(id) { if (!window.confirm(translateApp('Удалить запись и её фотографии?'))) return; try { await careRequest(`/entries/${id}`, 'DELETE'); await changed(); } catch (e) { setError(e.message); } }
+  return <div className="care-page ym-hide-content">
+    <div className="care-topline"><Link to="/app/plants/">← {translateApp('Мои растения')}</Link><Button onClick={() => downloadPlantJournalMarkdown(plantId, token).catch(e => setError(e.message))}>{translateApp('Скачать журнал')}</Button></div>
+    {error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
+    {plant && <section className="care-hero"><CarePhoto id={cover} alt={plant.name} className="care-hero-photo" /><div><span className="care-kicker">{plant.location_label || plant.zone?.name || translateApp('Мой зелёный уголок')}</span><h1>{plant.name}</h1>{plant.strain && <p>{plant.strain}</p>}{plant.description && <p>{plant.description}</p>}<small>{plant.planted_at ? `${translateApp('Дата посадки')}: ${formatDateLong(plant.planted_at)}` : translateApp('Дата посадки не указана')}</small></div><div className="care-actions"><Button onClick={() => setEditPlant(true)}>{translateApp('О растении')}</Button><Link to="/app/settings/notifications/">{translateApp('Напоминания в Telegram')}</Link></div></section>}
+    <div className="care-quick-actions">{CARE_ACTIONS.filter(([key]) => ['watering', 'photo', 'note', 'fertilizing'].includes(key)).map(([key, label, emoji]) => <Button key={key} onClick={() => setEditor({ action: key })}>{emoji} {translateApp(label)}</Button>)}</div>
+    <CareReminders plantId={plantId} reminders={reminders} onChanged={changed} />
+    <div className="care-section-heading"><h2>{translateApp('История растения')}</h2><Button variant="primary" onClick={() => setEditor({ action: 'note' })}>{translateApp('Добавить запись')}</Button></div>
+    <div className="care-filters"><input aria-label={translateApp('Поиск в журнале')} placeholder={translateApp('Найти в записях…')} value={query} onChange={e => setQuery(e.target.value)} /><select aria-label={translateApp('Вид ухода')} value={action} onChange={e => setAction(e.target.value)}><option value="">{translateApp('Все действия')}</option>{CARE_ACTIONS.map(([key, label]) => <option key={key} value={key}>{translateApp(label)}</option>)}<option value="automatic">{translateApp('Полив оборудованием')}</option></select><input type="date" aria-label={translateApp('Дата')} value={date} onChange={e => setDate(e.target.value)} />{date && <Button onClick={() => setDate('')}>{translateApp('Все даты')}</Button>}</div>
+    {busy && <p role="status">{translateApp('Загрузка...')}</p>}
+    {!busy && !items.length && <section className="care-empty"><span>🌱</span><h3>{translateApp(query || action || date ? 'По этому запросу записей нет' : 'История начинается с первого наблюдения')}</h3><p>{translateApp('Сфотографируйте растение или запишите, как оно себя чувствует.')}</p></section>}
+    <div className="care-timeline">{items.map(item => { const entry = item.entry; const config = careAction(item.action || entry.type); return <article className="care-entry" key={entry.id}><div className="care-entry-heading"><span>{config[2]} {translateApp(item.editable ? config[1] : 'Полив оборудованием')}</span><time>{formatDateLong(entry.eventAt)} · {formatTimeHHMM(entry.eventAt)}</time></div>
+      {entry.wateringDetails ? <JournalEntryCard entry={{ ...entry, event_at: entry.eventAt, watering_details: { water_volume_l: entry.wateringDetails.waterVolumeL, duration_s: entry.wateringDetails.durationS, mode: entry.wateringDetails.mode, completion_reason: entry.wateringDetails.completionReason, volume_source: entry.wateringDetails.volumeSource, fertilizers_per_liter: entry.wateringDetails.fertilizersPerLiter } }} photoCache={{}} /> : <p className="care-entry-text">{entry.text}</p>}
+      {!!entry.photos?.length && <div className="care-entry-photos">{entry.photos.filter(p => p.hasData).map(p => <CarePhoto preview key={p.id} id={p.id} alt={plant?.name || translateApp('Фото')} />)}</div>}
+      {item.editable && <div className="care-actions"><button onClick={() => setEditor({ item })}>{translateApp('Редактировать')}</button><button onClick={() => remove(entry.id)}>{translateApp('Удалить')}</button></div>}
+    </article>; })}</div>
+    {more && <Button disabled={busy} onClick={() => load(page + 1)}>{translateApp('Показать ещё')}</Button>}
+    {editor && <CareEntryEditor plantId={plantId} {...editor} onClose={() => setEditor(null)} onSaved={() => { setNotice(translateApp('Запись сохранена')); changed(); }} />}
+    <PlantEditDialog isOpen={editPlant} mode="edit" plant={plant} zones={plant?.zone ? [plant.zone] : []} onClose={() => setEditPlant(false)} onSaved={reloadPlant} />
+  </div>;
 }
-
 export default AppPlantJournal;

@@ -1,5 +1,9 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { careRequest } from '../../api/care';
+import CarePhoto from '../../features/care/CarePhoto';
+import CareReminders from '../../features/care/CareReminders';
+import '../../features/care/care.css';
+import { Link, useNavigate } from 'react-router-dom';
 import { fetchPlants, harvestPlant } from '../../api/plants';
 import { fetchFarmsOverview } from '../../api/selfService';
 import { isSessionExpiredError } from '../../api/client';
@@ -111,6 +115,10 @@ function AppPlants() {
   const { refreshVersion } = useWateringSidebar();
   const navigate = useNavigate();
   const [plants, setPlants] = useState([]);
+  const [summaries, setSummaries] = useState([]); const [reminders, setReminders] = useState([]);
+  const [query, setQuery] = useState(''); const [tab, setTab] = useState('plants');
+  const matches = useCallback(plant => [plant.name, plant.strain, plant.plant_type, plant.location_label].join(' ').toLowerCase().includes(query.trim().toLowerCase()), [query]);
+
   const [zones, setZones] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -130,11 +138,11 @@ function AppPlants() {
     setIsLoading(true);
     setError(null);
     try {
-      const [plantsPayload, farmPayload] = await Promise.all([
+      const [plantsPayload, farmPayload, nextSummaries, nextReminders] = await Promise.all([
         fetchPlants(token),
-        fetchFarmsOverview(),
+        fetchFarmsOverview(), careRequest('/summaries'), careRequest('/reminders'),
       ]);
-      setPlants(Array.isArray(plantsPayload) ? plantsPayload : []);
+      setPlants(Array.isArray(plantsPayload) ? plantsPayload : []); setSummaries(nextSummaries); setReminders(nextReminders);
       setZones(Array.isArray(farmPayload?.farms)
         ? farmPayload.farms.flatMap((farm) => (
           (Array.isArray(farm.greenhouses) ? farm.greenhouses : [])
@@ -235,17 +243,17 @@ function AppPlants() {
   };
 
   const activePlants = useMemo(
-    () => plants.filter((plant) => !plant?.harvested_at),
-    [plants],
+    () => plants.filter((plant) => !plant?.harvested_at && matches(plant)),
+    [plants, matches],
   );
 
   const archivedPlants = useMemo(
-    () => plants.filter((plant) => plant?.harvested_at),
-    [plants],
+    () => plants.filter((plant) => plant?.harvested_at && matches(plant)),
+    [plants, matches],
   );
 
   return (
-    <div className="app-plants">
+    <div className="app-plants care-page ym-hide-content">
       <AppPageHeader
         title={translateApp("Растения")}
         right={(
@@ -253,25 +261,25 @@ function AppPlants() {
         )}
       />
 
+      <div className="care-actions"><Button aria-pressed={tab === 'plants'} onClick={() => setTab('plants')}>{translateApp('Мои растения')}</Button><Button aria-pressed={tab === 'tasks'} onClick={() => setTab('tasks')}>{translateApp('Дела и напоминания')} · {reminders.length}</Button><Link to="/app/settings/notifications/">Telegram</Link></div>
+      <div className="care-filters"><input aria-label={translateApp('Поиск растений')} placeholder={translateApp('Имя, сорт или место…')} value={query} onChange={e => setQuery(e.target.value)} /></div>
+      {tab === 'tasks' && <CareReminders reminders={reminders.filter(r => plants.some(p => p.id === r.plantId && matches(p)))} onChanged={loadData} />}
       {isLoading && <AppPageState kind="loading" title={translateApp("Загрузка...")} />}
       {error && <AppPageState kind="error" title={error} />}
 
       {!isLoading && !error && activePlants.length === 0 && archivedPlants.length === 0 && (
-        <AppPageState kind="empty" title={translateApp("Растения не найдены")} />
+        <section className="care-empty"><span>🌱</span><h2>{translateApp(query ? 'Растения не найдены' : 'Ваш зелёный уголок')}</h2><p>{translateApp('Добавьте первое растение: достаточно имени. Сохраняйте фото, записывайте уход и ставьте напоминания — без оборудования.')}</p><Button variant="primary" onClick={handleOpenCreate}>{translateApp('Добавить растение')}</Button></section>
       )}
 
-      {!isLoading && !error && activePlants.length > 0 && (
-        <AppGrid min={320}>
-          {activePlants.map((plant) => (
-            <PlantCard
-              key={plant.id}
-              plant={plant}
-              onEdit={handleOpenEdit}
-              onOpenJournal={handleOpenJournal}
-              onHarvest={handleOpenHarvest}
-            />
-          ))}
-        </AppGrid>
+      {tab === 'plants' && !isLoading && !error && activePlants.length > 0 && (
+        <div className="care-plant-grid">
+          {activePlants.map((plant) => {
+            const summary = summaries.find(s => s.plantId === plant.id);
+            const task = reminders.find(r => r.plantId === plant.id);
+            if (plant.sensors?.length || plant.pumps?.length) return <PlantCard key={plant.id} plant={plant} onEdit={handleOpenEdit} onOpenJournal={handleOpenJournal} onHarvest={handleOpenHarvest} />;
+            return <article key={plant.id} className="care-plant-card"><Link to={`/app/plants/${plant.id}/journal/`} aria-label={plant.name}><CarePhoto id={summary?.coverPhotoId} alt={plant.name} /></Link><div className="care-plant-card-body"><h3><Link to={`/app/plants/${plant.id}/journal/`}>{plant.name}</Link></h3><small>{plant.location_label || plant.zone?.name || translateApp('Мой зелёный уголок')}</small><small>{summary?.lastEntryAt ? `${translateApp('Последняя запись')}: ${formatPlantDate(summary.lastEntryAt)}` : translateApp('Добавьте первое наблюдение')}</small>{task && <small>{task.title} · {formatPlantDate(task.dueAt)}</small>}<div className="care-actions"><Button onClick={() => handleOpenJournal(plant)}>{translateApp('Дневник')}</Button><Button onClick={() => handleOpenEdit(plant)}>{translateApp('Изменить')}</Button><Button onClick={() => handleOpenHarvest(plant)}>{translateApp('Сбор')}</Button></div></div></article>;
+          })}
+        </div>
       )}
 
       {!isLoading && !error && archivedPlants.length > 0 && (

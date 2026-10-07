@@ -2,9 +2,9 @@
 translation_of: dnevnik-rasteniya-chto-zapisyvat
 slug: plant-diary-what-to-write-down-to-understand-growth-and-mistakes
 title: "Plant journal: watering, harvests and notes"
-summary: "Try a plant journal in GrowerHub without hardware: calendar entries, watering history, partial harvests and a downloadable Markdown record."
+summary: "Try a plant journal in GrowerHub without hardware: photos, reminders, watering history, partial harvests and a downloadable Markdown record."
 created_at: "2026-07-23"
-updated_at: "2026-09-17"
+updated_at: "2026-10-04"
 cluster: zhurnal-i-sovetnik-uhoda
 tags:
   - GrowerHub
@@ -27,14 +27,16 @@ hero_alt: "GrowerHub illustration: plant journal, photos, watering and charts"
 
 A plant journal records what a sensor reading cannot: what you changed, why, and what you noticed later. A date, an action and a short comment are enough. For example: “Moved the basil to another shelf; compare growth in photos in three days.” A record helps reconstruct events, but does not by itself prove what caused a change.
 
+You can start with your own plant in a personal account: a name is enough, with no hardware required. Follow the [plant journal and Telegram guide](/articles/dnevnik-rasteniy-bez-oborudovaniya-growerhub/) for setup and reminders.
+
 ## Try the journal without any hardware
 
 [Open the plants in the GrowerHub demo farm](/app/demo/?lang=en&view=plants). Plants and a history of virtual watering are already provided.
 
 1. Choose a plant card and open “Journal”.
-2. Select a day in the calendar to see its entries.
-3. Choose “Add entry”, keep the “Observation” type, check the date and time, enter a comment and choose “Add”.
-4. Choose “Download journal (.md)” to get a text file containing that plant’s records.
+2. Filter the plant history by date or search your notes by words.
+3. Choose “Add entry”, keep the “Note” type, check the date and time, enter a comment and choose “Save”.
+4. Choose “Download journal” to get a text file containing that plant’s records.
 
 This is your own demo farm in the regular application. Your test note does not change anyone else’s plants or operate physical equipment. Guest changes last 24 hours; choose “Save demo farm” and sign in to keep working on them later.
 
@@ -46,7 +48,7 @@ This is your own demo farm in the regular application. Your test note does not c
 | Watering | Measured volume, watering method and a later observation |
 | Care | Repotting, pruning, substrate changes or feeding |
 | Harvest | Date, weight or count, variety and notes |
-| Photo | A photo URL and a short comment |
+| Photo | An image from your gallery and a short comment |
 
 In the manual form, volume, pH, fertilizer details and harvest weight go in the comment. They are not separate numeric fields for automatic comparisons between varieties. System watering events include additional details where available; an unknown volume should not be treated as zero. See the [watering log guide](/articles/zhurnal-poliva-obem-ph-udobreniya/) for more context.
 
@@ -62,11 +64,11 @@ The harvest action on the plant card saves the finishing date and harvest descri
 
 Photograph the plant from a similar distance and in similar light. Note changes in location, lighting or other conditions so that the pictures have context.
 
-The current “Photo” form accepts a URL; it does not upload a picture from your phone. Markdown exports do not bundle image files, so keep the originals separately. See [how to keep a photo growth diary](/articles/foto-dnevnik-rosta-rasteniy/).
+The “Photo” form lets you select pictures from your phone’s gallery. Up to six photos fit in an entry; you can edit its date and text later. Markdown exports do not bundle image files, so keep the originals separately. See [how to keep a photo growth diary](/articles/foto-dnevnik-rosta-rasteniy/).
 
 ## Keep a copy of your records
 
-“Download journal (.md)” exports the plant’s entries as Markdown, a plain-text format you can open in an editor or notes application. It is a journal export, not a backup of the whole farm and its devices.
+“Download journal” exports the plant’s entries as Markdown, a plain-text format you can open in an editor or notes application. It is a journal export, not a backup of the whole farm and its devices.
 
 File headings follow the interface language. Dates and times use the profile’s time zone, with the zone name and each event’s UTC offset included. Your comments keep their original language. Watering entries retain known volume, pH and fertilizer details alongside the entry text.
 

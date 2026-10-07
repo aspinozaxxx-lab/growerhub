@@ -3,86 +3,43 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AppPlantJournal, { JournalEntryCard } from './AppPlantJournal';
-import { fetchPlants } from '../../api/plants';
-import { createPlantJournalEntry, fetchPlantJournal, updatePlantJournalEntry } from '../../api/plantJournal';
-
+import { fetchPlant } from '../../api/plants';
+import { careRequest } from '../../api/care';
 vi.mock('../../features/auth/AuthContext', () => ({ useAuth: () => ({ token: 'token' }) }));
-vi.mock('../../api/plants', () => ({ fetchPlants: vi.fn() }));
-vi.mock('../../api/plantJournal', () => ({
-  fetchPlantJournal: vi.fn(),
-  createPlantJournalEntry: vi.fn(),
-  updatePlantJournalEntry: vi.fn(),
-  downloadPlantJournalMarkdown: vi.fn(),
-  downloadJournalPhotoBlob: vi.fn(),
-}));
+vi.mock('../../api/plants', () => ({ fetchPlant: vi.fn(), createPlant: vi.fn(), updatePlant: vi.fn(), deletePlant: vi.fn() }));
+vi.mock('../../api/care', () => ({ careRequest: vi.fn(), uploadCarePhoto: vi.fn() }));
+vi.mock('../../api/plantJournal', () => ({ downloadPlantJournalMarkdown: vi.fn(), downloadJournalPhotoBlob: vi.fn() }));
 
-describe('AppPlantJournal selected day', () => {
-  const older = { id: 1, type: 'note', text: 'Первый спелый томат', event_at: '2026-09-16T10:00:00', photos: [] };
-  const latest = { id: 2, type: 'note', text: 'Сладкие плоды без трещин', event_at: '2026-09-16T22:00:00', photos: [] };
-
+describe('Plant care journal', () => {
+  const entries = [
+    { action: 'note', editable: true, entry: { id: 2, type: 'note', text: 'Новый лист', eventAt: '2026-10-04T08:00:00', photos: [] } },
+    { action: 'repotting', editable: true, entry: { id: 1, type: 'other', text: 'Новый горшок', eventAt: '2026-10-01T08:00:00', photos: [] } },
+  ];
   beforeEach(() => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-09-18T09:00:00Z'));
-    fetchPlants.mockResolvedValue([{ id: 5, name: 'Томат черри', planted_at: '2026-09-01T08:00:00' }]);
-    fetchPlantJournal.mockResolvedValue([latest, older]);
+    fetchPlant.mockResolvedValue({ id: 5, name: 'Монстера', planted_at: null });
+    careRequest.mockImplementation(async path => path.startsWith('/journal?') ? { items: entries, hasMore: false } : []);
   });
-
-  afterEach(() => {
-    cleanup();
-    vi.resetAllMocks();
-    vi.useRealTimers();
+  afterEach(() => { cleanup(); vi.resetAllMocks(); });
+  function open() { render(<MemoryRouter initialEntries={['/app/plants/5/journal/']}><Routes><Route path="/app/plants/:plantId/journal/" element={<AppPlantJournal />} /></Routes></MemoryRouter>); }
+  it('pokazyvaet lentu raznyh dnej i ne vydumyvaet datu posadki', async () => {
+    open(); expect(await screen.findByText('Новый лист')).toBeInTheDocument();
+    expect(screen.getByText('Новый горшок')).toBeInTheDocument();
+    expect(screen.getByText('Дата посадки не указана')).toBeInTheDocument();
   });
-
-  function openJournal() {
-    render(<MemoryRouter initialEntries={['/app/plants/5/journal/']}>
-      <Routes><Route path="/app/plants/:plantId/journal/" element={<AppPlantJournal />} /></Routes>
-    </MemoryRouter>);
-  }
-
-  it('srazu pokazyvaet poslednyuyu zapis po lokalnoj date nezavisimo ot poryadka API', async () => {
-    openJournal();
-    expect(await screen.findByText(latest.text)).toBeInTheDocument();
-    expect(screen.getByText(/Записи за 17 сентября/)).toBeInTheDocument();
-    expect(screen.queryByText(older.text)).not.toBeInTheDocument();
+  it('peredajot poisk i filtry na server', async () => {
+    open(); await screen.findByText('Новый лист');
+    fireEvent.change(screen.getByLabelText('Поиск в журнале'), { target: { value: 'горшок' } });
+    fireEvent.change(screen.getByLabelText('Вид ухода'), { target: { value: 'repotting' } });
+    await waitFor(() => expect(careRequest).toHaveBeenCalledWith(expect.stringContaining('action=repotting')));
+    expect(careRequest.mock.calls.some(([path]) => path.includes(new URLSearchParams({ query: 'горшок' }).toString()))).toBe(true);
   });
-
-  it('otkryvaet segodnya dlya pustogo zhurnala', async () => {
-    fetchPlantJournal.mockResolvedValue([]);
-    openJournal();
-    expect(await screen.findByText('Нет записей за выбранную дату')).toBeInTheDocument();
-    expect(screen.getByText(/Записи за 18 сентября/)).toBeInTheDocument();
-  });
-
-  it('posle dobavleniya na druguyu datu pokazyvaet sohranennuyu zapis', async () => {
-    openJournal();
-    await screen.findByText(latest.text);
-    fireEvent.click(screen.getByRole('button', { name: 'Добавить запись' }));
-    fireEvent.change(screen.getByLabelText('Дата'), { target: { value: '2026-09-18' } });
-    fireEvent.change(screen.getByLabelText('Текст / комментарий'), { target: { value: 'Посадить этот сорт снова' } });
-    const saved = { id: 3, type: 'note', text: 'Посадить этот сорт снова', event_at: '2026-09-18T09:00:00', photos: [] };
-    createPlantJournalEntry.mockResolvedValue(saved);
-    fetchPlantJournal.mockResolvedValue([saved, latest, older]);
-    fireEvent.click(screen.getByRole('button', { name: 'Добавить', exact: true }));
-    await waitFor(() => expect(screen.queryByLabelText('Текст / комментарий')).not.toBeInTheDocument());
-    expect(screen.getByText(saved.text)).toBeInTheDocument();
-    expect(screen.getByText(/Записи за 18 сентября/)).toBeInTheDocument();
-    expect(screen.queryByLabelText('Текст / комментарий')).not.toBeInTheDocument();
-  });
-
-  it('sohranyaet vybrannyj proshlyj den pri redaktirovanii', async () => {
-    openJournal();
-    await screen.findByText(latest.text);
-    fireEvent.click(screen.getByText('16', { selector: '.journal-calendar__date-number' }));
-    fireEvent.click(screen.getByTitle('Редактировать'));
-    fireEvent.change(screen.getByLabelText('Текст / комментарий'), { target: { value: 'Первый сбор: 200 г' } });
-    const saved = { ...older, text: 'Первый сбор: 200 г' };
-    updatePlantJournalEntry.mockResolvedValue(saved);
-    fetchPlantJournal.mockResolvedValue([latest, saved]);
+  it('redaktiruet datu i tekst ruchnoj zapisi', async () => {
+    open(); await screen.findByText('Новый горшок');
+    fireEvent.click(screen.getAllByRole('button', { name: 'Редактировать', exact: true })[1]);
+    fireEvent.change(screen.getByLabelText('Дата и время'), { target: { value: '2026-10-02T11:00' } });
+    fireEvent.change(screen.getByLabelText('Заметка'), { target: { value: 'Горшок побольше' } });
     fireEvent.click(screen.getByRole('button', { name: 'Сохранить', exact: true }));
-    await waitFor(() => expect(screen.queryByLabelText('Текст / комментарий')).not.toBeInTheDocument());
-    expect(screen.getByText(saved.text)).toBeInTheDocument();
-    expect(screen.getByText(/Записи за 16 сентября/)).toBeInTheDocument();
-    expect(screen.queryByText(latest.text)).not.toBeInTheDocument();
+    await waitFor(() => expect(careRequest).toHaveBeenCalledWith('/entries/1', 'PATCH', expect.objectContaining({ text: 'Горшок побольше', eventAt: '2026-10-02T08:00:00' })));
   });
 });
 

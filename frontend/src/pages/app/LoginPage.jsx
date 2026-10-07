@@ -26,7 +26,7 @@ function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const title = translateApp('Начать работу с GrowerHub');
-  const description = translateApp('GrowerHub доступен бесплатно и без карты. Войдите, чтобы подключить свои устройства или сохранить демоферму.');
+  const description = translateApp('GrowerHub доступен бесплатно и без карты. Войдите, чтобы вести дневник растений, подключить устройства или сохранить демоферму.');
 
   useSeoMeta({
     title,

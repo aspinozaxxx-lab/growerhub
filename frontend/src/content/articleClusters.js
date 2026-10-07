@@ -316,8 +316,8 @@ const clusterGuides = {
         { situation: 'На графике появилось отклонение', start: 'Проверка свежести датчика и журнала изменений', reason: 'Сначала исключают ошибку измерения, затем ищут причину в уходе.' },
       ],
       cta: {
-        title: 'Соберите историю зоны без ручных таблиц',
-        text: 'GrowerHub хранит показания устройств и события зоны рядом. Подключите датчик, а заметки о растениях добавляйте только когда они помогают принять решение.',
+        title: 'Начните историю своего растения',
+        text: 'Добавьте растение, фотографию и первое наблюдение. Дневник и напоминания работают без оборудования; датчики можно подключить позже.',
       },
     },
     'zigbee-hub-i-ustroystva': {
@@ -435,7 +435,7 @@ const clusterGuides = {
         { situation: 'You want to compare two grow cycles', start: 'The same fields and checkpoints in both cycles', reason: 'A comparison only works when measurements are collected consistently.' },
         { situation: 'A chart suddenly changes', start: 'Sensor freshness and the change log', reason: 'Rule out a measurement fault before attributing the change to plant care.' },
       ],
-      cta: { title: 'Keep zone history without separate spreadsheets', text: 'GrowerHub keeps device readings and zone events together. Connect a sensor first, then add plant notes only when they support a decision.' },
+      cta: { title: 'Start your own plant history', text: 'Add a plant, a photo and your first observation. The journal and reminders work without hardware; sensors can be added later.' },
     },
     'zigbee-hub-i-ustroystva': {
       intro: 'A first Zigbee setup needs an always-on computer or Raspberry Pi, a coordinator with suitable firmware, and one device. Brand alone does not establish compatibility: check the exact model, Zigbee2MQTT support, and exposed capabilities.',

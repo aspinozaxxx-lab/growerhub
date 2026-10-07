@@ -23,6 +23,7 @@ const AppManualWatering = lazy(() => import('./AppManualWatering'));
 const AppAutomations = lazy(() => import('./AppAutomations'));
 const AppPlants = lazy(() => import('./AppPlants'));
 const AppPlantJournal = lazy(() => import('./AppPlantJournal'));
+const AppNotifications = lazy(() => import('./AppNotifications'));
 const AppProfile = lazy(() => import('./AppProfile'));
 const AppSettings = lazy(() => import('./AppSettings'));
 const FarmConstructor = lazy(() => import('../../features/farm/FarmConstructor'));
@@ -53,14 +54,14 @@ function ProtectedAppLayout() {
 }
 
 function AppSection() {
-  const { demoActive } = useAuth();
+  const { demoActive, user } = useAuth();
   return (
     <Suspense fallback={<div className="app-loading">{translateApp("Загружаем раздел…")}</div>}>
         <Routes>
           <Route path="login/" element={<LoginPage />} />
           <Route path="demo/" element={<AppDemo />} />
           <Route element={<ProtectedAppLayout />}>
-            <Route index element={<AppOverview />} />
+            <Route index element={!demoActive && user?.care_started && !user?.onboarding_completed ? <Navigate to="plants/" replace /> : <AppOverview />} />
             <Route path="onboarding/" element={demoActive ? <Navigate to="/app/" replace /> : <AppOnboarding />} />
             <Route path="demo-tools/" element={<AppDemoTools />} />
             <Route path="farm/" element={<FarmConstructor />} />
@@ -71,6 +72,7 @@ function AppSection() {
             <Route path="settings/" element={<AppSettings />}>
               <Route index element={<Navigate to="connections/" replace />} />
               <Route path="connections/" element={demoActive ? <Navigate to="/app/demo-tools/" replace /> : <AppConnections />} />
+              <Route path="notifications/" element={<AppNotifications />} />
               <Route path="zones/" element={<FarmZonesSettings />} />
               <Route path="devices/" element={<AppDevices />} />
               <Route path="profile/" element={demoActive ? <Navigate to="/app/demo-tools/" replace /> : <AppProfile />} />

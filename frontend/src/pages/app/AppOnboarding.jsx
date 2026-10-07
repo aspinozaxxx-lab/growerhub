@@ -33,6 +33,7 @@ import {
   getWritableSwitches,
 } from './onboardingModel';
 import './AppOnboarding.css';
+import { startCare } from '../../api/care';
 import { getCurrentLocale, translateApp } from '../../locales/i18n';
 
 const POLL_INTERVAL_MS = 5000;
@@ -275,6 +276,7 @@ function AppOnboarding() {
   return (
     <div className="app-onboarding">
       <AppPageHeader title={translateApp("Первое подключение")} />
+      <section className="onboarding-card"><div className="onboarding-kicker">{translateApp('Для любителей растений')}</div><h2>{translateApp('Дневник без оборудования')}</h2><p>{translateApp('Свои растения, фотографии, записи ухода и напоминания в Telegram. Для начала достаточно имени растения.')}</p><button className="hero-cta" disabled={!!busy} onClick={async () => { setBusy('care'); try { await startCare(); await loadCurrentUser(); navigate('/app/plants/'); } catch (e) { setError(e.message); } finally { setBusy(''); } }}>{translateApp('Вести дневник растений')}</button></section>
       <Progress status={status} />
       {error ? <AppPageState kind="error" title={error}><HelpLink step="error" /></AppPageState> : null}
 
