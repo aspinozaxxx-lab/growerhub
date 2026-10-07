@@ -12,6 +12,8 @@
     "article_update": "Guide update"
   },
   "entries": [
+    { "id": "public-article-text-contrast", "published_at": "2026-10-07", "kind": "fix", "text": "Article headings, text, links and demo invitations are easier to read on the light background, including on phones." },
+    { "id": "watering-guide-current-menu", "published_at": "2026-10-07", "kind": "article_update", "article_id": "poliv-po-raspisaniyu-growerhub", "text": "The scheduled watering guide now uses the current Farm and Routines labels and save steps, with updated editor screenshots in Russian and English." },
     {"id": "warm-plant-care-app-theme", "published_at": "2026-10-06", "kind": "fix", "text": "The app now shares the website’s light lilac style, with more readable labels and simpler Farm and Routines navigation. The overview, plants, charts and forms have been refreshed; existing actions and settings are preserved."},
     { "id": "nursery-catalog-devices-and-watering", "published_at": "2026-10-06", "kind": "article_update", "article_id": "komplekty-dlya-rasteniy-growerhub", "text": "The catalog and guide now include a 499 RUB soil sensor, a 1,999 RUB pump and a 2,499 RUB pump with 20 drippers and tubing. Order them separately or with a kit through the basket. The pump supports Wi-Fi without a Zigbee coordinator or Zigbee; contents and first setup are discussed by phone." },
     { "id": "nursery-kits-and-orders", "published_at": "2026-10-06", "kind": "feature", "article_id": "komplekty-dlya-rasteniy-growerhub", "preview_position": "50% 52%" },
