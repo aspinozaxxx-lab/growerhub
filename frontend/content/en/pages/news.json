@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id": "pushok-reported-sensor-values", "published_at": "2026-10-08", "kind": "fix", "text": "Fixed sensor readings through PushOk: temperature, humidity and other measurements with a supported format now use the driver's units and can be assigned to greenhouses. Unknown conversions no longer pass raw numbers to automations."},
     {"id": "pushok-unrecognized-device-refresh", "published_at": "2026-10-08", "kind": "fix", "text": "A device without a PushOk driver no longer interrupts device list and reading updates. It remains listed without controls, while supported sensors and sockets continue to work."},
     {"id": "telegram-incoming-delivery", "published_at": "2026-10-07", "kind": "fix", "text": "Fixed receiving bot commands when Telegram cannot initiate a connection to the server. Journal linking and reminder buttons use the same bot."},
     {"id": "plant-journal-guide-refresh", "published_at": "2026-10-07", "kind": "article_update", "article_id": "dnevnik-rasteniya-chto-zapisyvat", "text": "The plant journal guide now covers the timeline, search, phone photos and starting without hardware."},

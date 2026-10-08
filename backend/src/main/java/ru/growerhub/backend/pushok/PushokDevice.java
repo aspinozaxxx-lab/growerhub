@@ -29,21 +29,25 @@ final class PushokDevice {
             if ("lqi".equals(property)) property = "linkquality";
             if (!property.matches("[a-z][a-z0-9_]{0,63}") || (param.path("hidden").asBoolean() && !"linkquality".equals(property))) continue;
             String type = param.path("type").asText();
-            if (!List.of("bool", "int", "float", "number").contains(type) || !param.path("access").asText().contains("r")) continue;
+            String access = param.path("access").asText();
+            if (!List.of("bool", "int", "float", "number").contains(type)
+                    || !param.path("access").isTextual() || !List.of("", "r", "rw").contains(access)) continue;
             if (!param.path("address").canConvertToInt()) continue;
             int address = param.path("address").asInt();
             if (address < 0 || address > 255 || fields.containsKey(property)) continue;
             if (param.has("__convert") || param.path("viewParams").has("__convert")) continue;
             String rawUnit = param.path("viewParams").path("unit").asText();
-            double scale = "unit_mA".equals(rawUnit) ? 0.001 : 1;
+            double unitScale = "unit_mA".equals(rawUnit) ? 0.001 : 1;
+            Double conversionScale = param.has("convert") ? conversionScale(param.path("convert").path("conversion")) : Double.valueOf(1);
+            if (conversionScale == null || (param.has("convert") && "bool".equals(type))) continue;
             Map<String, Object> labels = new LinkedHashMap<>();
             if ("dropdown".equals(param.path("viewParams").path("type").asText())) {
                 param.path("labels").fields().forEachRemaining(entry -> {
                     if (entry.getValue().isNumber()) labels.put(entry.getKey(), entry.getValue().numberValue());
                 });
             }
-            fields.put(property, new Field(address, property, type, param.path("access").asText().contains("w"),
-                    unit(rawUnit), number(param.get("min"), scale), number(param.get("max"), scale), labels, scale));
+            fields.put(property, new Field(address, property, type, access.contains("w") && !param.has("convert"),
+                    unit(rawUnit), number(param.get("min"), unitScale), number(param.get("max"), unitScale), labels, unitScale * conversionScale));
         }
     }
     String id() { return id; }
@@ -68,6 +72,7 @@ final class PushokDevice {
             } else {
                 if (!value.isNumber() || !Double.isFinite(value.asDouble())) continue;
                 converted = value.asDouble() * field.scale();
+                if (!Double.isFinite((Double) converted)) continue;
                 if (!field.labels().isEmpty()) {
                     var matched = field.labels().entrySet().stream()
                             .filter(entry -> ((Number) entry.getValue()).doubleValue() == value.asDouble()).findFirst();
@@ -148,6 +153,17 @@ final class PushokDevice {
         } catch (Exception ex) { return "0x" + id.toLowerCase(Locale.ROOT); }
     }
     private static Double number(JsonNode node, double scale) { return node != null && node.isNumber() ? node.asDouble() * scale : null; }
+    private static Double conversionScale(JsonNode formula) {
+        if (!formula.isArray() || formula.size() != 3 || !"self".equals(formula.path(0).asText()) || !formula.path(1).isNumber()) return null;
+        double factor = formula.path(1).asDouble();
+        if (!Double.isFinite(factor) || factor <= 0) return null;
+        Double scale = switch (formula.path(2).asText()) {
+            case "/" -> 1 / factor;
+            case "*" -> factor;
+            default -> null;
+        };
+        return scale != null && Double.isFinite(scale) ? scale : null;
+    }
     private static String unit(String raw) {
         return switch (raw) {
             case "unit_C", "unit_degrees" -> "°C";
