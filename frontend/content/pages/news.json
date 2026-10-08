@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id": "pushok-unrecognized-device-refresh", "published_at": "2026-10-08", "kind": "fix", "text": "Устройство без драйвера ПушОка больше не прерывает обновление списка и показаний остальных устройств. Оно остаётся в списке без функций управления; поддерживаемые датчики и розетки продолжают работать."},
     {"id": "telegram-incoming-delivery", "published_at": "2026-10-07", "kind": "fix", "text": "Исправлен приём команд бота при недоступности входящего соединения Telegram с сервером. Подключение дневника и кнопки напоминаний работают через тот же бот."},
     {"id": "plant-journal-guide-refresh", "published_at": "2026-10-07", "kind": "article_update", "article_id": "dnevnik-rasteniya-chto-zapisyvat", "text": "Руководство по дневнику обновлено под ленту записей, поиск, фотографии с телефона и самостоятельный старт без оборудования."},
     {"id": "plant-care-journal-telegram", "published_at": "2026-10-07", "kind": "feature", "article_id": "dnevnik-rasteniy-bez-oborudovaniya-growerhub", "preview_position": "50% 30%"},

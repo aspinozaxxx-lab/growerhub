@@ -148,10 +148,15 @@ public class PushokCloudBridge {
                 String id = description.path("id").asText();
                 if (!id.matches("[A-Fa-f0-9]{16}")) continue;
                 var params = Map.of("id", id, "type", "zigbee");
-                JsonNode attributes = cloud.request("getAttributes", params);
+                String driver = description.path("drv").isTextual() ? description.path("drv").asText() : "";
+                JsonNode attributes = driver.isBlank() ? mapper.createObjectNode() : cloud.request("getAttributes", params);
                 String name = PushokDevice.name(attributes, id, mapper);
                 if (!names.add(name)) { name += " " + id; names.add(name); }
-                String driver = description.path("drv").asText();
+                // Bez drajvera hub znaet tolko identity; zaprosy parametrov takogo ustrojstva otklonyayutsya.
+                if (driver.isBlank()) {
+                    current.put(id, new PushokDevice(description, name, mapper.createObjectNode()));
+                    continue;
+                }
                 String adapterKey = driver + ":" + description.path("adptr-crc").asText();
                 JsonNode adapter = adapters.get(adapterKey);
                 if (adapter == null) {
