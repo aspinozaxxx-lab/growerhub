@@ -83,8 +83,7 @@ class PushokDeviceTest {
              "2":{"ack":true,"value":200,"time":"200"},"3":{"ack":true,"value":4,"time":"200"},
              "4":{"ack":true,"value":false,"time":"200"},"251":{"ack":true,"value":false}}
             """));
-        assertThat(((Number) sensor.state().get("humidity")).doubleValue()).isCloseTo(81.6, within(0.000001));
-        assertThat(sensor.state()).containsEntry("temperature", 19.0)
+        assertThat(sensor.state()).containsEntry("temperature", 19.0).containsEntry("humidity", 81.6)
                 .containsEntry("battery_percent", 100.0).containsEntry("soil_moisture", 4.0).containsEntry("dry", false);
         var metadata = mapper.valueToTree(sensor.metadata(java.util.List.of("temperature", "humidity")));
         for (var feature : metadata.path("definition").path("exposes")) {
