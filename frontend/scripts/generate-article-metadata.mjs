@@ -30,6 +30,9 @@ const readLocale = (directory, locale) => {
       if (!id || !parsed.data.slug || !parsed.data.title || !parsed.data.summary) {
         throw new Error(`Required article metadata is missing: ${locale}/${fileName}`);
       }
+      if (parsed.data.product_cta !== undefined && typeof parsed.data.product_cta !== 'boolean') {
+        throw new Error(`product_cta must be a boolean: ${locale}/${fileName}`);
+      }
 
       return {
         id,
@@ -43,6 +46,7 @@ const readLocale = (directory, locale) => {
         hero_image: parsed.data.hero_image || '',
         hero_alt: parsed.data.hero_alt || parsed.data.title,
         download: parsed.data.download || null,
+        product_cta: parsed.data.product_cta ?? true,
         source_file: fileName,
         hero_in_body: Boolean(
           parsed.data.hero_image && parsed.content.includes(`](${parsed.data.hero_image})`),
@@ -146,6 +150,7 @@ fs.writeFileSync(
       'source_file',
       'hero_in_body',
       'download',
+      'product_cta',
     ],
     ru: withSortDates(ru).map((article) => [
       article.id,
@@ -161,6 +166,7 @@ fs.writeFileSync(
       article.source_file,
       article.hero_in_body,
       article.download,
+      article.product_cta,
     ]),
     en: withSortDates(en).map((article) => [
       article.id,
@@ -176,6 +182,7 @@ fs.writeFileSync(
       article.source_file,
       article.hero_in_body,
       article.download,
+      article.product_cta,
     ]),
   })}\n`,
   'utf8',

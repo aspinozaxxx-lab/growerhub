@@ -45,6 +45,7 @@ function ArticlePage({ initialArticle } = {}) {
   const cluster = useMemo(() => getArticleClusterById(article?.cluster, locale), [article, locale]);
   const relatedArticles = useMemo(() => getRelatedArticles(article, 4, locale), [article, locale]);
   const articleKey = article ? `${article.locale}:${article.id}` : '';
+  const showProductCta = article?.product_cta !== false;
   const staticBodyHtml = useMemo(() => (initialArticle?.id === article?.id && initialArticle?.locale === locale
     ? initialArticle.bodyHtml : readStaticBody(article)), [article, initialArticle, locale]);
   const [loadedBody, setLoadedBody] = useState({ key: '', html: '', error: false });
@@ -155,7 +156,7 @@ function ArticlePage({ initialArticle } = {}) {
           {cluster.title}
         </Link>
       )}
-      {DEMO_PUBLIC_ENABLED && !article.download && (
+      {showProductCta && DEMO_PUBLIC_ENABLED && !article.download && (
         <aside className="article-demo-invite" aria-label={translatePublic('Попробовать в GrowerHub')}>
           <p><strong>{translatePublic('Попробуйте на готовой ферме')}</strong><span>{demoHint} {translatePublic('Без регистрации и оборудования.')}</span></p>
           <DemoStartLink placement="article_intro_demo" view={demoView} className="hero-cta">{translatePublic('Открыть демо')}</DemoStartLink>
@@ -175,25 +176,31 @@ function ArticlePage({ initialArticle } = {}) {
       )}
       <aside className="info-block content-section">
         <strong>{translatePublic('Редакция GrowerHub')}</strong>
-        <p>
-          {translatePublic('Материал сопровождается публичной историей разработки и честным описанием эксплуатационных данных. Это не означает, что каждое упомянутое устройство проверено нами.')}
-        </p>
-        <div className="cta-row">
-          <Link className="secondary-link" to={getPublicPath('about', locale)}>
-            {translatePublic('Как мы подтверждаем опыт')}
-          </Link>
-          <a className="secondary-link" href={GITHUB_REPOSITORY_URL} target="_blank" rel="noreferrer">
-            {translatePublic('Исходный код на GitHub')}
-          </a>
-        </div>
+        {showProductCta && (
+          <>
+            <p>
+              {translatePublic('Материал сопровождается публичной историей разработки и честным описанием эксплуатационных данных. Это не означает, что каждое упомянутое устройство проверено нами.')}
+            </p>
+            <div className="cta-row">
+              <Link className="secondary-link" to={getPublicPath('about', locale)}>
+                {translatePublic('Как мы подтверждаем опыт')}
+              </Link>
+              <a className="secondary-link" href={GITHUB_REPOSITORY_URL} target="_blank" rel="noreferrer">
+                {translatePublic('Исходный код на GitHub')}
+              </a>
+            </div>
+          </>
+        )}
       </aside>
-      <LeadCta
-        placement="article_bottom"
-        demoView={demoView}
-        showChannel
-        title={DEMO_PUBLIC_ENABLED ? translatePublic('Попробуйте на готовой ферме') : cluster?.guide.cta.title}
-        text={DEMO_PUBLIC_ENABLED ? `${demoHint} ${translatePublic('Без регистрации и оборудования.')}` : cluster?.guide.cta.text}
-      />
+      {showProductCta && (
+        <LeadCta
+          placement="article_bottom"
+          demoView={demoView}
+          showChannel
+          title={DEMO_PUBLIC_ENABLED ? translatePublic('Попробуйте на готовой ферме') : cluster?.guide.cta.title}
+          text={DEMO_PUBLIC_ENABLED ? `${demoHint} ${translatePublic('Без регистрации и оборудования.')}` : cluster?.guide.cta.text}
+        />
+      )}
       {relatedArticles.length > 0 && (
         <section className="related-articles">
           <h2>{translatePublic('Читайте также')}</h2>
