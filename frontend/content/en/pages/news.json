@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    { "id": "winter-houseplant-lighting-guide", "published_at": "2026-10-08", "kind": "article", "article_id": "dosvetka-rasteniy-na-podokonnike-zimoy", "preview_position": "50% 45%" },
     { "id": "optional-article-product-cta", "published_at": "2026-10-08", "kind": "fix", "text": "The editorial team can now publish growing guides without automatic demo or device connection prompts. The article text, sources and links to related guides remain available." },
     {"id": "pushok-reported-sensor-values", "published_at": "2026-10-08", "kind": "fix", "text": "Fixed sensor readings through PushOk: temperature, humidity and other measurements with a supported format now use the driver's units and can be assigned to greenhouses. Removed spurious decimal digits introduced during conversion. Unknown conversions no longer pass raw numbers to automations."},
     {"id": "pushok-unrecognized-device-refresh", "published_at": "2026-10-08", "kind": "fix", "text": "A device without a PushOk driver no longer interrupts device list and reading updates. It remains listed without controls, while supported sensors and sockets continue to work."},
