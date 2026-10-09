@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"dahlia-winter-storage-guide","published_at":"2026-10-09","kind":"article","article_id":"georginy-hranenie-klubney-zimoy","preview_position":"50% 55%"},
     { "id": "winter-houseplant-lighting-guide", "published_at": "2026-10-08", "kind": "article", "article_id": "dosvetka-rasteniy-na-podokonnike-zimoy", "preview_position": "50% 45%" },
     { "id": "optional-article-product-cta", "published_at": "2026-10-08", "kind": "fix", "text": "Редакция может публиковать статьи о выращивании без автоматических приглашений открыть демо или подключить оборудование. Текст, источники и ссылки на связанные материалы сохраняются." },
     {"id": "pushok-reported-sensor-values", "published_at": "2026-10-08", "kind": "fix", "text": "Исправлено получение показаний датчиков через ПушОк: температура, влажность и другие измерения с подтверждённым форматом отображаются в единицах драйвера и доступны для назначения в теплицы. Убраны лишние разряды после запятой при пересчёте. Неизвестные преобразования не подставляют необработанные числа в автоматизации."},
