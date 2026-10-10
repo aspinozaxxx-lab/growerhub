@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"pumpkin-storage-guide-refresh","published_at":"2026-10-10","kind":"article_update","article_id":"tykva-zelenaya-posle-zamorozkov","text":"Переписали статью о зелёной тыкве: от урожая на кухонном столе до зимней полки, без сложных терминов и лишних отступлений."},
     {"id":"green-pumpkin-harvest-storage-guide","published_at":"2026-10-10","kind":"article","article_id":"tykva-zelenaya-posle-zamorozkov","preview_position":"50% 50%"},
     {"id":"dahlia-winter-storage-guide","published_at":"2026-10-09","kind":"article","article_id":"georginy-hranenie-klubney-zimoy","preview_position":"50% 55%"},
     { "id": "winter-houseplant-lighting-guide", "published_at": "2026-10-08", "kind": "article", "article_id": "dosvetka-rasteniy-na-podokonnike-zimoy", "preview_position": "50% 45%" },
