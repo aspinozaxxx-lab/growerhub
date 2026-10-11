@@ -4,7 +4,7 @@ slug: "winter-grow-lights-for-houseplants"
 title: "Winter houseplant lighting: how to choose a grow light"
 summary: "Check the light at your window, compare LED fixtures, position them over the leaves and plan the light period. A practical starting point for established foliage houseplants."
 created_at: "2026-10-08"
-updated_at: "2026-10-08"
+updated_at: "2026-10-11"
 product_cta: false
 tags:
   - "houseplants"
@@ -58,6 +58,8 @@ Before shopping, write down the plant's name, the width of your row of pots, the
 Start with the manufacturer's stated height for your fixture and intended plants. If it is missing, ask about height and coverage before buying: a “windowsill light” label does not describe your setup. Distance affects intensity; the [RHS](https://www.rhs.org.uk/plants/types/houseplants/artificial-lighting) suggests moving the source further away when light is excessive.
 
 Position the light relative to the upper leaves, rather than the bottom of the pot. Check whether a tall plant shades its neighbours. On a long windowsill, compare the fixture's length with the row of plants; one bright spot over one pot does not cover the others.
+
+Once the lamp is in place, try taking readings from the centre to the edges. A shelf can look bright while individual plants receive quite different amounts of light. The [light measurement guide](/en/articles/measuring-light-for-plants-phone-lux-par/) explains when a phone or lux meter is enough, how to check readings at the leaves and when a PAR meter is useful.
 
 If leaves nearest the fixture begin to look bleached after switching it on, investigate excessive light too, a sign discussed by the [RHS](https://www.rhs.org.uk/plants/types/houseplants/artificial-lighting). It also needs investigation rather than a diagnosis based on colour alone.
 

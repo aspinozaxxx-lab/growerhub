@@ -12,6 +12,8 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"plant-light-measurement-guide","published_at":"2026-10-11","kind":"article","article_id":"kak-izmerit-svet-dlya-rasteniy","preview_position":"50% 50%"},
+    {"id":"winter-light-measurement-followup","published_at":"2026-10-11","kind":"article_update","article_id":"dosvetka-rasteniy-na-podokonnike-zimoy","text":"В статью о зимней досветке добавили переход к замерам: как посмотреть, сколько света доходит до листьев в центре и по краям полки."},
     {"id":"pumpkin-storage-guide-refresh","published_at":"2026-10-10","kind":"article_update","article_id":"tykva-zelenaya-posle-zamorozkov","text":"Переписали статью о зелёной тыкве: от урожая на кухонном столе до зимней полки, без сложных терминов и лишних отступлений."},
     {"id":"green-pumpkin-harvest-storage-guide","published_at":"2026-10-10","kind":"article","article_id":"tykva-zelenaya-posle-zamorozkov","preview_position":"50% 50%"},
     {"id":"dahlia-winter-storage-guide","published_at":"2026-10-09","kind":"article","article_id":"georginy-hranenie-klubney-zimoy","preview_position":"50% 55%"},
