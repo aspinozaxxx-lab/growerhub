@@ -56,11 +56,11 @@ describe('localized navigation', () => {
     }
   });
 
-  it('svyazyvaet pyat tematicheskih razdelov', () => {
+  it('svyazyvaet vse tematicheskie razdely v obeih lokalyah', () => {
     const ruClusters = getArticleClusters('ru');
     const enClusters = getArticleClusters('en');
-    expect(ruClusters).toHaveLength(5);
-    expect(enClusters).toHaveLength(5);
+    expect(ruClusters).toHaveLength(7);
+    expect(enClusters.map((cluster) => cluster.id)).toEqual(ruClusters.map((cluster) => cluster.id));
 
     for (const cluster of ruClusters) {
       const translation = enClusters.find((item) => item.id === cluster.id);

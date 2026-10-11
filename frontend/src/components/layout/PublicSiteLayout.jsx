@@ -34,6 +34,7 @@ export default function PublicSiteLayout({ children }) {
         <nav id="public-navigation" className={`public-nav${menuOpen ? ' public-nav--open' : ''}`} aria-label={en ? 'Main navigation' : 'Главное меню'}>
           <NavLink to={getPublicPath('equipment', locale)} onClick={closeMenu}>{en ? 'Ready-made kits' : 'Комплекты'}</NavLink>
           <NavLink to={getPublicPath('gettingStarted', locale)} onClick={closeMenu}>{en ? 'Getting started' : 'Как начать'}</NavLink>
+          <NavLink to={getPublicPath('articles', locale)} onClick={closeMenu}>{en ? 'Plant guides' : 'Статьи'}</NavLink>
           <button type="button" onClick={consult}>{en ? 'Help choosing' : 'Помощь'}</button>
           <Link to={`/app/?lang=${locale}`} className="public-login" onClick={closeMenu}>{en ? 'Sign in' : 'Войти'}</Link>
           <a href={en ? pair.ru : pair.en} className="locale-switch" hrefLang={en ? 'ru' : 'en'}>{en ? 'RU' : 'EN'}</a>

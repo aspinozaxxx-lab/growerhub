@@ -5,6 +5,7 @@ title: "Measuring light for plants: a phone, lux meter or PAR meter?"
 summary: "The shelf looks bright, but is every pot getting its share? Find out how to check light at the leaves, when a phone is enough and when a separate meter earns its place."
 created_at: "2026-10-11"
 updated_at: "2026-10-11"
+cluster: "svet-dlya-rasteniy"
 product_cta: false
 tags:
   - "plant lighting"

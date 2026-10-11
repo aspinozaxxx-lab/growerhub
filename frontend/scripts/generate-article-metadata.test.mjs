@@ -12,6 +12,7 @@ vi.mock('node:fs', () => ({
 }));
 
 let flags;
+let clusters;
 const news = JSON.stringify({
   labels: { fix: 'Update' },
   entries: [{ id: 'test-update', kind: 'fix', published_at: '2026-10-08', text: 'Update' }],
@@ -21,6 +22,7 @@ slug: ${id}${locale === 'en' ? '-en' : ''}
 ${locale === 'en' ? `translation_of: ${id}\n` : ''}title: Article ${id}
 summary: Summary ${id}
 created_at: '2026-10-08'
+${clusters[locale][id] ? `cluster: ${clusters[locale][id]}\n` : ''}
 ${flags[locale][id] === undefined ? '' : `product_cta: ${flags[locale][id]}\n`}---
 Article body.
 `;
@@ -32,6 +34,7 @@ beforeEach(() => {
     ru: { legacy: undefined, enabled: 'true', standalone: 'false' },
     en: { legacy: undefined, enabled: 'true', standalone: 'false' },
   };
+  clusters = { ru: {}, en: {} };
   fs.existsSync.mockReturnValue(true);
   fs.readdirSync.mockReturnValue(['legacy.md', 'enabled.md', 'standalone.md']);
   fs.readFileSync.mockImplementation((filePath) => {
@@ -41,6 +44,27 @@ beforeEach(() => {
     return markdown(normalized.split('/').at(-1).replace('.md', ''), locale);
   });
   vi.spyOn(console, 'log').mockImplementation(() => {});
+});
+
+it('statya bez rubriki popadaet v uhod vmesto ischeznoveniya iz kataloga', async () => {
+  await import('./generate-article-metadata.mjs');
+  const metadata = JSON.parse(fs.writeFileSync.mock.calls[0][1]);
+  const index = metadata.fields.indexOf('cluster');
+  for (const locale of ['ru', 'en']) {
+    expect(metadata[locale].every((row) => row[index] === 'vyrashchivanie-i-uhod')).toBe(true);
+  }
+});
+
+it('neizvestnaya rubrika ostanavlivaet publikaciyu', async () => {
+  clusters.ru.standalone = 'missing-topic';
+  await expect(import('./generate-article-metadata.mjs')).rejects.toThrow('Unknown article cluster');
+  expect(fs.writeFileSync).not.toHaveBeenCalled();
+});
+
+it('rubriki originala i perevoda dolzhny sovpadat', async () => {
+  clusters.en.standalone = 'svet-dlya-rasteniy';
+  await expect(import('./generate-article-metadata.mjs')).rejects.toThrow('Article cluster differs between locales');
+  expect(fs.writeFileSync).not.toHaveBeenCalled();
 });
 
 afterEach(() => vi.restoreAllMocks());

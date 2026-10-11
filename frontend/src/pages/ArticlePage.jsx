@@ -23,6 +23,8 @@ import {
 import { getCurrentLocale, getIntlLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 import NotFoundPage from './NotFoundPage';
+import { ArticleBreadcrumbs, ArticleSaveButton, ArticleStorageNotice } from '../features/articles/ArticleCards';
+import { rememberArticle } from '../features/articles/useArticleLibrary';
 
 const readStaticBody = (article) => {
   if (!article || typeof document === 'undefined') return '';
@@ -51,6 +53,9 @@ function ArticlePage({ initialArticle } = {}) {
   const [loadedBody, setLoadedBody] = useState({ key: '', html: '', error: false });
   const bodyHtml = staticBodyHtml || (loadedBody.key === articleKey ? loadedBody.html : '');
   const bodyError = loadedBody.key === articleKey && loadedBody.error;
+  useEffect(() => {
+    if (article && bodyHtml && !bodyError) rememberArticle(article.id);
+  }, [article, bodyHtml, bodyError]);
   const ruArticle = getArticleTranslation(article, 'ru');
   const enArticle = getArticleTranslation(article, 'en');
   const path = article ? getArticlePath(article, locale) : null;
@@ -141,20 +146,22 @@ function ArticlePage({ initialArticle } = {}) {
 
   return (
     <article className="section">
+      <ArticleBreadcrumbs cluster={cluster} locale={locale} />
       <div className="article-meta">
         {translatePublic('Обновлено')} {new Date(article.updated_at).toLocaleDateString(getIntlLocale(locale), { timeZone: 'UTC' })}
       </div>
       <h1>{article.title}</h1>
       <p className="article-lead">{article.summary}</p>
+      <div className="article-library-actions">
+        <ArticleSaveButton article={article} locale={locale} />
+        <Link to={`${getPublicPath('articles', locale)}?view=saved`}>{locale === 'en' ? 'My saved articles' : 'Мои сохранённые статьи'}</Link>
+        <Link to={`${getPublicPath('articles', locale)}?view=recent`}>{locale === 'en' ? 'Recently opened' : 'Недавно открывали'}</Link>
+      </div>
+      <ArticleStorageNotice locale={locale} />
       {article.download && (
         <p className="cta-row">
           <a className="hero-cta" href={article.download.url}>{article.download.label}</a>
         </p>
-      )}
-      {cluster && (
-        <Link to={getClusterPath(cluster, locale)} className="secondary-link">
-          {cluster.title}
-        </Link>
       )}
       {showProductCta && DEMO_PUBLIC_ENABLED && !article.download && (
         <aside className="article-demo-invite" aria-label={translatePublic('Попробовать в GrowerHub')}>
@@ -215,6 +222,7 @@ function ArticlePage({ initialArticle } = {}) {
         </section>
       )}
       <div className="content-section">
+        {cluster && <p><Link to={getClusterPath(cluster, locale)}>{locale === 'en' ? 'More in ' : 'Ещё в рубрике «'}{cluster.label}{locale === 'en' ? '' : '»'}</Link></p>}
         <Link to={getPublicPath('articles', locale)} className="secondary-link">
           {translatePublic('Назад к статьям')}
         </Link>

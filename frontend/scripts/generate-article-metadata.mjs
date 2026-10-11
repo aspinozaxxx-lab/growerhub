@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
+import { DEFAULT_ARTICLE_CLUSTER, getArticleClusters } from '../src/content/articleClusters.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RU_DIR = path.join(ROOT, 'content', 'articles');
@@ -33,6 +34,10 @@ const readLocale = (directory, locale) => {
       if (parsed.data.product_cta !== undefined && typeof parsed.data.product_cta !== 'boolean') {
         throw new Error(`product_cta must be a boolean: ${locale}/${fileName}`);
       }
+      const cluster = parsed.data.cluster || DEFAULT_ARTICLE_CLUSTER;
+      if (!getArticleClusters(locale).some((item) => item.id === cluster)) {
+        throw new Error(`Unknown article cluster: ${locale}/${fileName}: ${cluster}`);
+      }
 
       return {
         id,
@@ -41,7 +46,7 @@ const readLocale = (directory, locale) => {
         summary: parsed.data.summary,
         created_at: parsed.data.created_at,
         updated_at: parsed.data.updated_at || parsed.data.created_at,
-        cluster: parsed.data.cluster || '',
+        cluster,
         related: normalizeArray(parsed.data.related),
         hero_image: parsed.data.hero_image || '',
         hero_alt: parsed.data.hero_alt || parsed.data.title,
@@ -57,6 +62,12 @@ const readLocale = (directory, locale) => {
 
 const ru = readLocale(RU_DIR, 'ru');
 const en = readLocale(EN_DIR, 'en');
+for (const article of en) {
+  const original = ru.find((item) => item.id === article.id);
+  if (original && original.cluster !== article.cluster) {
+    throw new Error(`Article cluster differs between locales: ${article.id}`);
+  }
+}
 
 if (!ru.length || ru.length !== en.length) {
   throw new Error(`Article locales must be nonempty and have equal size, got ru=${ru.length}, en=${en.length}`);

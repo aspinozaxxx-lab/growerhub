@@ -6,8 +6,8 @@ summary: >-
   How to automate lighting in a grow room without dangerous overloads: schedule,
   relays, smart sockets, manual mode and connection with a care log.
 created_at: '2026-07-23'
-updated_at: '2026-07-23'
-cluster: avtopoliv-i-kontroller-vyrashchivaniya
+updated_at: "2026-10-11"
+cluster: "svet-dlya-rasteniy"
 tags:
   - GrowerHub
   - grow box

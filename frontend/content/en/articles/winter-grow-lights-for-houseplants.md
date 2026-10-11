@@ -5,6 +5,7 @@ title: "Winter houseplant lighting: how to choose a grow light"
 summary: "Check the light at your window, compare LED fixtures, position them over the leaves and plan the light period. A practical starting point for established foliage houseplants."
 created_at: "2026-10-08"
 updated_at: "2026-10-11"
+cluster: "svet-dlya-rasteniy"
 product_cta: false
 tags:
   - "houseplants"

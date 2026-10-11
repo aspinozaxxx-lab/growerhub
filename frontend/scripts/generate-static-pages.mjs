@@ -8,6 +8,7 @@ import { marked } from 'marked';
 import { overviewScreenshotDimensions, overviewScreenshotVersion } from '../src/content/productScreenshots.js';
 import {
   articleClusters,
+  DEFAULT_ARTICLE_CLUSTER,
   getArticleClusters,
 } from '../src/content/articleClusters.js';
 import {
@@ -137,7 +138,7 @@ const readArticles = (locale = 'ru') => fs.readdirSync(locale === 'en' ? EN_ARTI
       summary: data.summary || '',
       created_at: data.created_at || '',
       updated_at: data.updated_at || data.created_at || '',
-      cluster: data.cluster || '',
+      cluster: data.cluster || DEFAULT_ARTICLE_CLUSTER,
       tags: normalizeArray(data.tags),
       keywords: normalizeArray(data.keywords),
       related: normalizeArray(data.related),
@@ -458,8 +459,8 @@ const renderArticlePage = (template, assets, article, _articlesBySlug, clustersB
 
 const renderArticlesIndex = (template, assets, articlesByCluster) => {
   const canonical = toCanonicalUrl('/articles/');
-  const allArticles = [...articlesByCluster.values()].flat();
-  const description = 'Практические материалы GrowerHub об автополиве, датчиках, Zigbee2MQTT, Home Assistant и автоматизации мини-фермы.';
+  const allArticles = [...articlesByCluster.values()].flat().sort((a, b) => new Date(b.created_at) - new Date(a.created_at) || a.id.localeCompare(b.id)).slice(0, 6);
+  const description = 'Статьи об уходе за растениями, досветке, поливе и полезной технике. Понятные рубрики, поиск и закладки для любимых материалов.';
   const mainHtml = `
           <h1>Статьи GrowerHub</h1>
           <p>${htmlEscape(description)}</p>
@@ -482,7 +483,7 @@ ${(articlesByCluster.get(cluster.slug) || []).map(renderArticleCard).join('\n')}
           ${leadCta('articles_index_bottom')}`;
 
   return pageShell(template, {
-    title: 'Статьи GrowerHub — датчики, полив и автоматизация',
+    title: 'Статьи о растениях: уход, свет и полив — GrowerHub',
     description,
     canonical,
     jsonLd: [
@@ -912,8 +913,8 @@ const renderEnglishArticlePage = (
 const renderEnglishArticlesIndex = (template, assets, clusters, articlesByCluster) => {
   const routePath = getPublicPath('articles', 'en');
   const canonical = toCanonicalUrl(routePath);
-  const allArticles = [...articlesByCluster.values()].flat();
-  const description = 'Practical GrowerHub guides to irrigation, sensors, Zigbee2MQTT, Home Assistant, greenhouse monitoring, and small-farm automation.';
+  const allArticles = [...articlesByCluster.values()].flat().sort((a, b) => new Date(b.created_at) - new Date(a.created_at) || a.id.localeCompare(b.id)).slice(0, 6);
+  const description = 'Practical guides to plant care, grow lights, watering and useful equipment. Browse topics, search and save articles to return to.';
   const mainHtml = `
           <h1>GrowerHub guides</h1>
           <p>${description}</p>
@@ -941,7 +942,7 @@ ${(articlesByCluster.get(cluster.id) || []).map(renderEnglishArticleCard).join('
   )}`;
 
   return pageShell(template, {
-    title: 'GrowerHub guides — sensors, irrigation, and automation',
+    title: 'Plant guides: care, lighting and watering — GrowerHub',
     description,
     canonical,
     locale: 'en',

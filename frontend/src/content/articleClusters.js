@@ -482,10 +482,100 @@ const clusterGuides = {
   },
 };
 
-const attachGuides = (locale, clusters) => clusters.map((cluster) => ({
+export const DEFAULT_ARTICLE_CLUSTER = 'vyrashchivanie-i-uhod';
+
+const plantTopics = {
+  ru: [
+    {
+      id: DEFAULT_ARTICLE_CLUSTER, slug: DEFAULT_ARTICLE_CLUSTER,
+      title: 'Выращивание и уход за растениями', label: 'Уход за растениями',
+      description: 'Сезонные заботы, хранение растений и урожая, повседневный уход.',
+      fit: 'Нужен понятный ответ на вопрос о растении, даже если у вас нет автоматизации.',
+      tasks: 'Разобраться с сезонными работами, выбрать условия хранения и записать наблюдения.',
+      keywords: ['уход за растениями', 'выращивание растений', 'сезонные работы'],
+      featuredArticles: ['tykva-zelenaya-posle-zamorozkov', 'georginy-hranenie-klubney-zimoy'],
+      guide: {
+        intro: 'Начните с той заботы, которая актуальна сейчас. Сохраните полезную статью, чтобы найти её к следующему сезону.',
+        steps: [
+          { articleId: 'tykva-zelenaya-posle-zamorozkov', title: 'Что делать с зелёной тыквой после заморозка', text: 'Проверяем плод и выбираем, что использовать сразу, а что оставить дозревать.' },
+          { articleId: 'georginy-hranenie-klubney-zimoy', title: 'Как сохранить георгины до весны', text: 'Подготовка клубней, место для зимовки и проверки во время хранения.' },
+        ],
+        decisions: [],
+        cta: { title: 'Запишите важное о своих растениях', text: 'Фото и заметки в дневнике помогут вспомнить, что вы делали и как растение на это отреагировало.' },
+      },
+    },
+    {
+      id: 'svet-dlya-rasteniy', slug: 'svet-dlya-rasteniy',
+      title: 'Свет и досветка растений', label: 'Свет и досветка',
+      description: 'Лампы, часы досветки и измерения света у листьев — с понятными примерами.',
+      fit: 'Растениям темно, вы выбираете лампу или хотите проверить уже установленную.',
+      tasks: 'Найти подходящее место, оценить освещение и настроить продолжительность досветки.',
+      keywords: ['свет для растений', 'досветка растений', 'измерение света'],
+      featuredArticles: ['dosvetka-rasteniy-na-podokonnike-zimoy', 'kak-izmerit-svet-dlya-rasteniy'],
+      guide: {
+        intro: 'Сначала посмотрите, где стоят растения и сколько света доходит до листьев. Затем выбирайте лампу и режим её работы.',
+        steps: [
+          { articleId: 'dosvetka-rasteniy-na-podokonnike-zimoy', title: 'Организуем досветку на подоконнике', text: 'Разбираемся с расположением лампы и продолжительностью светового дня.' },
+          { articleId: 'kak-izmerit-svet-dlya-rasteniy', title: 'Проверяем свет у листьев', text: 'Когда хватит телефона или люксметра, а когда пригодится PAR-датчик.' },
+        ],
+        decisions: [],
+        cta: { title: 'Одно расписание для ваших ламп', text: 'Управляйте светом через розетки и меняйте расписания для нескольких зон в GrowerHub.' },
+      },
+    },
+  ],
+  en: [
+    {
+      id: DEFAULT_ARTICLE_CLUSTER, slug: 'plant-care',
+      title: 'Growing and caring for plants', label: 'Plant care',
+      description: 'Seasonal jobs, storing plants and harvests, and everyday care.',
+      fit: 'You want a practical answer about a plant, with or without automation.',
+      tasks: 'Plan seasonal jobs, choose storage conditions and keep useful observations.',
+      keywords: ['plant care', 'growing plants', 'seasonal gardening'],
+      featuredArticles: ['tykva-zelenaya-posle-zamorozkov', 'georginy-hranenie-klubney-zimoy'],
+      guide: {
+        intro: 'Start with the job that matters today. Save a useful guide so you can find it next season.',
+        steps: [
+          { articleId: 'tykva-zelenaya-posle-zamorozkov', title: 'Dealing with green pumpkins after frost', text: 'Check each fruit and decide what to use now and what to leave to ripen.' },
+          { articleId: 'georginy-hranenie-klubney-zimoy', title: 'Keeping dahlias until spring', text: 'Prepare tubers, choose a winter storage spot and check them along the way.' },
+        ],
+        decisions: [],
+        cta: { title: 'Keep notes about your plants', text: 'Photos and care notes help you remember what you did and how your plants responded.' },
+      },
+    },
+    {
+      id: 'svet-dlya-rasteniy', slug: 'plant-lighting',
+      title: 'Light and grow lights for plants', label: 'Light and grow lights',
+      description: 'Lamps, lighting hours and measurements at leaf level, explained with practical examples.',
+      fit: 'Your plants need more light, you are choosing a lamp or checking one you already have.',
+      tasks: 'Choose a location, assess light levels and set lighting hours.',
+      keywords: ['light for plants', 'grow lights', 'measuring light'],
+      featuredArticles: ['dosvetka-rasteniy-na-podokonnike-zimoy', 'kak-izmerit-svet-dlya-rasteniy'],
+      guide: {
+        intro: 'Check where your plants stand and how much light reaches their leaves. Then choose a lamp and its schedule.',
+        steps: [
+          { articleId: 'dosvetka-rasteniy-na-podokonnike-zimoy', title: 'Add light to a winter windowsill', text: 'Work out where to put the lamp and how long to keep it on.' },
+          { articleId: 'kak-izmerit-svet-dlya-rasteniy', title: 'Measure light at leaf level', text: 'When a phone or lux meter is enough, and when a PAR sensor is useful.' },
+        ],
+        decisions: [],
+        cta: { title: 'A shared schedule for your lamps', text: 'Control lighting through smart plugs and adjust schedules across growing zones in GrowerHub.' },
+      },
+    },
+  ],
+};
+
+const topicLabels = {
+  'avtopoliv-i-kontroller-vyrashchivaniya': { ru: 'Полив и автоматика', en: 'Watering and automation' },
+  'zhurnal-i-sovetnik-uhoda': { ru: 'Дневник и GrowerHub', en: 'Plant journal and GrowerHub' },
+  'zigbee-hub-i-ustroystva': { ru: 'Датчики и оборудование', en: 'Sensors and equipment' },
+  'mini-ferma-i-neskolko-boksov': { ru: 'Теплица и мини-питомник', en: 'Greenhouse and nursery' },
+  'home-assistant-i-diy': { ru: 'Home Assistant и DIY', en: 'Home Assistant and DIY' },
+};
+
+const attachGuides = (locale, clusters) => [...plantTopics[locale], ...clusters.map((cluster) => ({
   ...cluster,
+  label: topicLabels[cluster.id][locale],
   guide: clusterGuides[locale][cluster.id],
-}));
+}))];
 
 export const articleClustersByLocale = Object.freeze({
   ru: attachGuides('ru', ru),

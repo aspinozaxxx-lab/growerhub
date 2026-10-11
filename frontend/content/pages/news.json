@@ -12,6 +12,10 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"light-articles-topic-automation","published_at":"2026-10-11","kind":"article_update","article_id":"avtomatizatsiya-sveta-v-groubokse","text":"Руководство по автоматизации освещения теперь находится в рубрике «Свет и досветка» рядом с выбором лампы и измерениями."},
+    {"id":"article-library-navigation","published_at":"2026-10-11","kind":"feature","article_id":"kak-nayti-i-sohranit-stati-growerhub","preview_position":"50% 0%"},
+    {"id":"light-articles-topic-measurement","published_at":"2026-10-11","kind":"article_update","article_id":"kak-izmerit-svet-dlya-rasteniy","text":"Статью об измерении света перенесли в новую рубрику «Свет и досветка», чтобы её было проще найти вместе с близкими материалами."},
+    {"id":"light-articles-topic-winter","published_at":"2026-10-11","kind":"article_update","article_id":"dosvetka-rasteniy-na-podokonnike-zimoy","text":"Материал о зимней досветке теперь доступен в отдельной рубрике о свете. Адрес статьи остался прежним."},
     {"id":"plant-light-measurement-guide","published_at":"2026-10-11","kind":"article","article_id":"kak-izmerit-svet-dlya-rasteniy","preview_position":"50% 50%"},
     {"id":"winter-light-measurement-followup","published_at":"2026-10-11","kind":"article_update","article_id":"dosvetka-rasteniy-na-podokonnike-zimoy","text":"В статью о зимней досветке добавили переход к замерам: как посмотреть, сколько света доходит до листьев в центре и по краям полки."},
     {"id":"pumpkin-storage-guide-refresh","published_at":"2026-10-10","kind":"article_update","article_id":"tykva-zelenaya-posle-zamorozkov","text":"Переписали статью о зелёной тыкве: от урожая на кухонном столе до зимней полки, без сложных терминов и лишних отступлений."},

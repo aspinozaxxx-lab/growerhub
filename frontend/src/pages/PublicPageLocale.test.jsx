@@ -35,7 +35,7 @@ it.each([
 it('anglijskie ssylki na klastery ispolzuyut anglijskie slug', async () => {
   await changeLocale('en', { remember: false });
   render(<MemoryRouter><ArticlesListPage /></MemoryRouter>);
-  const hrefs = [...document.querySelectorAll('a[href*="/clusters/"]')].map((link) => link.getAttribute('href'));
+  const hrefs = [...document.querySelectorAll('.article-topic-grid a')].map((link) => link.getAttribute('href'));
   expect(hrefs).toEqual(getArticleClusters('en').map((cluster) => `/en/articles/clusters/${cluster.slug}/`));
 });
 

@@ -9,10 +9,12 @@ import { getArticleById, getArticlesByCluster } from '../content/articles';
 import {
   getArticlePath,
   getClusterPath,
+  getPublicPath,
 } from '../domain/localizedRoutes';
-import { getCurrentLocale, getIntlLocale, translatePublic } from '../locales/i18n';
+import { getCurrentLocale, translatePublic } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 import NotFoundPage from './NotFoundPage';
+import ArticleCards, { ArticleBreadcrumbs, ArticleStorageNotice } from '../features/articles/ArticleCards';
 
 function ArticleClusterPage() {
   const { clusterSlug } = useParams();
@@ -46,10 +48,28 @@ function ArticleClusterPage() {
   }));
 
   return (
-    <div className="section">
-      <div className="article-meta">{translatePublic('Практический раздел')}</div>
+    <div className="section article-library">
+      <ArticleBreadcrumbs locale={locale} />
       <h1>{cluster.title}</h1>
       <p>{cluster.description}</p>
+
+      <div className="article-library-actions">
+        <Link to={getPublicPath('articles', locale)}>{locale === 'en' ? 'Search all articles' : 'Поиск по всем статьям'}</Link>
+        <Link to={`${getPublicPath('articles', locale)}?view=saved`}>{locale === 'en' ? 'Saved articles' : 'Сохранённые статьи'}</Link>
+        <Link to={`${getPublicPath('articles', locale)}?view=recent`}>{locale === 'en' ? 'Recently opened' : 'Недавно открывали'}</Link>
+      </div>
+      <ArticleStorageNotice locale={locale} />
+      <section aria-labelledby="cluster-articles-heading">
+        <h2 id="cluster-articles-heading">{translatePublic('Статьи раздела')} <small>({clusterArticles.length})</small></h2>
+        <ArticleCards articles={clusterArticles.slice(0, 6)} locale={locale} />
+        {clusterArticles.length > 6 && <details className="article-library-more" key={cluster.id}>
+          <summary>{locale === 'en' ? 'Show more articles' : 'Показать ещё статьи'} ({clusterArticles.length - 6})</summary>
+          <ArticleCards articles={clusterArticles.slice(6)} locale={locale} />
+        </details>}
+      </section>
+
+      <details className="article-library-more article-library-guide" key={`guide:${cluster.id}`}>
+        <summary>{locale === 'en' ? 'Help me choose where to start' : 'Подскажите, с чего начать'}</summary>
 
       <div className="cluster-meta-grid">
         <div>
@@ -79,7 +99,7 @@ function ArticleClusterPage() {
         </div>
       </section>
 
-      <section className="cluster-block">
+      {cluster.guide.decisions.length > 0 && <section className="cluster-block">
         <h2>{translatePublic('Выберите первый шаг')}</h2>
         <div className="cluster-table-wrap">
           <table className="cluster-decision-table">
@@ -101,22 +121,8 @@ function ArticleClusterPage() {
             </tbody>
           </table>
         </div>
-      </section>
-
-      <section className="cluster-block">
-        <h2>{translatePublic('Статьи раздела')}</h2>
-        <div className="articles-list">
-          {clusterArticles.map((article) => (
-            <article className="article-card" key={article.slug}>
-              <div className="article-meta">
-                {translatePublic('Обновлено')} {new Date(article.updated_at).toLocaleDateString(getIntlLocale(locale))}
-              </div>
-              <Link to={getArticlePath(article, locale)}>{article.title}</Link>
-              <p>{article.summary}</p>
-            </article>
-          ))}
-        </div>
-      </section>
+      </section>}
+      </details>
 
       <LeadCta
         placement="cluster_bottom"
@@ -129,7 +135,7 @@ function ArticleClusterPage() {
         <div className="cluster-nav-grid">
           {otherClusters.map((item) => (
             <Link to={getClusterPath(item, locale)} key={item.slug}>
-              {item.title}
+              {item.label}
             </Link>
           ))}
         </div>
