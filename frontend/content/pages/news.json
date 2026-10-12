@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"pelargonium-winter-care-guide","published_at":"2026-10-12","kind":"article","article_id":"pelargoniya-zimovka-doma","preview_position":"50% 45%"},
     {"id":"light-articles-topic-automation","published_at":"2026-10-11","kind":"article_update","article_id":"avtomatizatsiya-sveta-v-groubokse","text":"Руководство по автоматизации освещения теперь находится в рубрике «Свет и досветка» рядом с выбором лампы и измерениями."},
     {"id":"article-library-navigation","published_at":"2026-10-11","kind":"feature","article_id":"kak-nayti-i-sohranit-stati-growerhub","preview_position":"50% 0%"},
     {"id":"light-articles-topic-measurement","published_at":"2026-10-11","kind":"article_update","article_id":"kak-izmerit-svet-dlya-rasteniy","text":"Статью об измерении света перенесли в новую рубрику «Свет и досветка», чтобы её было проще найти вместе с близкими материалами."},
