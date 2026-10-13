@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id":"plant-light-readings-guide","published_at":"2026-10-13","kind":"article","article_id":"pokazaniya-sveta-dlya-rasteniy-ppfd-dli","preview_position":"50% 50%"},
     {"id":"pelargonium-winter-care-guide","published_at":"2026-10-12","kind":"article","article_id":"pelargoniya-zimovka-doma","preview_position":"50% 45%"},
     {"id":"light-articles-topic-automation","published_at":"2026-10-11","kind":"article_update","article_id":"avtomatizatsiya-sveta-v-groubokse","text":"The lighting automation guide is now in Light and grow lights, alongside choosing a lamp and measuring light."},
     {"id":"article-library-navigation","published_at":"2026-10-11","kind":"feature","article_id":"kak-nayti-i-sohranit-stati-growerhub","preview_position":"50% 0%"},
