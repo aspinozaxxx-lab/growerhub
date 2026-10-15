@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"winter-basil-growing-guide","published_at":"2026-10-15","kind":"article","article_id":"bazilik-zimoy-na-podokonnike","preview_position":"50% 45%"},
     {"id":"plant-light-readings-guide","published_at":"2026-10-13","kind":"article","article_id":"pokazaniya-sveta-dlya-rasteniy-ppfd-dli","preview_position":"50% 50%"},
     {"id":"pelargonium-winter-care-guide","published_at":"2026-10-12","kind":"article","article_id":"pelargoniya-zimovka-doma","preview_position":"50% 45%"},
     {"id":"light-articles-topic-automation","published_at":"2026-10-11","kind":"article_update","article_id":"avtomatizatsiya-sveta-v-groubokse","text":"Руководство по автоматизации освещения теперь находится в рубрике «Свет и досветка» рядом с выбором лампы и измерениями."},
