@@ -9,17 +9,6 @@ import {
 import { canonicalizePublicLinksInHtml } from '../domain/siteConfig';
 import { getCurrentLocale } from '../locales/i18n';
 
-const markdownModules = {
-  ru: import.meta.glob('../../content/articles/*.md', {
-    query: '?raw',
-    import: 'default',
-  }),
-  en: import.meta.glob('../../content/en/articles/*.md', {
-    query: '?raw',
-    import: 'default',
-  }),
-};
-
 const expandMetadata = (rows, locale) => rows.map((row) => ({
   ...Object.fromEntries(metadata.fields.map((field, index) => [field, row[index]])),
   locale,
@@ -47,7 +36,7 @@ const stripFrontMatter = (raw = '') => {
   return end < 0 ? normalized : normalized.slice(end + 4).trim();
 };
 
-const resolveMarkdownImporter = (article) => {
+const resolveMarkdownImporter = (article, markdownModules) => {
   const modules = markdownModules[article.locale] || markdownModules.ru;
   const suffix = `/${article.source_file}`.replaceAll('\\', '/');
   const entry = Object.entries(modules).find(([modulePath]) => (
@@ -138,7 +127,8 @@ export const getRelatedArticles = (article, limit = 3, locale = getCurrentLocale
 
 export const loadArticleBody = async (article) => {
   if (!article) return '';
-  const importer = resolveMarkdownImporter(article);
+  const { default: markdownModules } = await import('./articleMarkdown');
+  const importer = resolveMarkdownImporter(article, markdownModules);
   if (!importer) {
     throw new Error(`Markdown module is missing: ${article.locale}/${article.source_file}`);
   }
