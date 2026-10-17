@@ -10,11 +10,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-10-16</lastmod>
+    <lastmod>2026-10-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/novosti/</loc>
-    <lastmod>2026-10-16</lastmod>
+    <lastmod>2026-10-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/avtomatizatsiya-mini-fermy/</loc>
@@ -46,7 +46,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/vyrashchivanie-i-uhod/</loc>
-    <lastmod>2026-10-16</lastmod>
+    <lastmod>2026-10-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/svet-dlya-rasteniy/</loc>
@@ -71,6 +71,10 @@
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
     <lastmod>2026-10-04</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/tsiklamen-doma-prohlada-i-poliv/</loc>
+    <lastmod>2026-10-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/fialka-iz-lista-ukorenenie/</loc>
@@ -374,11 +378,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-10-16</lastmod>
+    <lastmod>2026-10-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/news/</loc>
-    <lastmod>2026-10-16</lastmod>
+    <lastmod>2026-10-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/farm-automation/</loc>
@@ -410,7 +414,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/plant-care/</loc>
-    <lastmod>2026-10-16</lastmod>
+    <lastmod>2026-10-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/plant-lighting/</loc>
@@ -435,6 +439,10 @@
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/home-assistant-and-diy/</loc>
     <lastmod>2026-10-04</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/indoor-cyclamen-cool-spot-and-watering/</loc>
+    <lastmod>2026-10-17</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/growing-african-violets-from-a-leaf/</loc>
