@@ -24,6 +24,12 @@ public class AssistantController {
     public List<Model> models(@AuthenticationPrincipal AuthenticatedUser user) { return advisor.assistantModels(user); }
     @GetMapping("/runtime")
     public RuntimeStatus runtime(@AuthenticationPrincipal AuthenticatedUser user) { return advisor.assistantRuntimeStatus(user); }
+    @PostMapping("/runtime/check")
+    public RuntimeStatus checkRuntime(@AuthenticationPrincipal AuthenticatedUser user) { return advisor.checkAssistantRuntimeStatus(user); }
+    @GetMapping("/runtime/update")
+    public RuntimeMaintenance runtimeUpdate(@AuthenticationPrincipal AuthenticatedUser user) { return advisor.assistantRuntimeMaintenance(user); }
+    @PostMapping("/runtime/update")
+    public RuntimeUpdate updateRuntime(@AuthenticationPrincipal AuthenticatedUser user, @RequestBody RuntimeUpdateRequest request) { return advisor.startAssistantRuntimeUpdate(request, user); }
     @GetMapping("/conversations")
     public List<Conversation> conversations(@AuthenticationPrincipal AuthenticatedUser user) { return advisor.assistantConversations(user); }
     @PostMapping("/conversations")
@@ -64,6 +70,12 @@ public class AssistantController {
     public Proposal reject(@PathVariable UUID id, @AuthenticationPrincipal AuthenticatedUser user, @RequestBody Confirm body) { return advisor.confirmAssistantProposal(id, body, user, true); }
     @GetMapping("/usage")
     public Usage usage(@AuthenticationPrincipal AuthenticatedUser user) { return advisor.assistantUsage(user); }
+    @GetMapping("/requests")
+    public List<FeatureRequest> requests(@AuthenticationPrincipal AuthenticatedUser user, @RequestParam(defaultValue = "0") int page) { return advisor.assistantRequests(user, false, page); }
+    @GetMapping("/requests/admin")
+    public List<FeatureRequest> adminRequests(@AuthenticationPrincipal AuthenticatedUser user, @RequestParam(defaultValue = "0") int page) { return advisor.assistantRequests(user, true, page); }
+    @PutMapping("/requests/admin/{id}")
+    public FeatureRequest decideRequest(@AuthenticationPrincipal AuthenticatedUser user, @PathVariable UUID id, @RequestBody FeatureDecision body) { return advisor.decideAssistantRequest(id, body, user); }
     @PutMapping("/public")
     public Usage publicSwitch(@AuthenticationPrincipal AuthenticatedUser user, @RequestBody Switch body) { return advisor.switchPublicAssistant(body.enabled(), user); }
     @PutMapping("/preferences")

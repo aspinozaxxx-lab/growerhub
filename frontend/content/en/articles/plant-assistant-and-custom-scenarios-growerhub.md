@@ -75,3 +75,7 @@ The GrowerHub owner can choose their Codex model and reasoning effort above the 
 In the administrative conversation, the owner can ask about registrations, users' farms, plants, device readiness and assistant spending. This is a separate permission for the system owner. Regular users can access only their own plants and equipment. Administrative reading does not permit changing another user's farm, retrieving secrets or running server commands.
 
 Under **Settings → Notifications**, the owner can see the installed and latest stable Codex versions. Checks run every six hours; each new release produces one notification in the confirmed Telegram chat. Installation is a separate operation with verification and rollback.
+
+## Sensor history and ideas for the team
+
+The assistant can read recorded temperature, air humidity and soil moisture history, describe changes and account for gaps. If you need a missing feature, ask it to prepare a request for the team. You can review the complete text before confirming with a separate button. [Try the ready-made demo tasks and examples](/en/articles/try-the-assistant-on-a-demo-farm/).

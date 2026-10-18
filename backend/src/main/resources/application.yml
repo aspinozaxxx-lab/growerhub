@@ -660,6 +660,15 @@ assistant:
   codex-check-ms: 21600000
   # Pervaya proverka posle zapuska izolirovannogo worker.
   codex-check-start-ms: 30000
+  # Chastota chteniya etapov nezavisimogo processa obnovleniya.
+  codex-update-poll-ms: 5000
+  maintenance:
+    # Otdelnyj lokalnyj tunel k operatoru obnovleniya.
+    url: ${ASSISTANT_MAINTENANCE_URL:http://127.0.0.1:18789}
+    # Sekret operatora nedostupen processam modelej.
+    token: ${ASSISTANT_MAINTENANCE_TOKEN:}
+    # Predel ozhidaniya priyoma zadaniya, ne vsej ustanovki.
+    timeout-seconds: 20
   # Proverka dobrovolnyh otchetov i ochistki istorii.
   reports-poll-ms: 60000
   # Izolirovannye potoki ocheredi pomoshchnika i Telegram-foto.
@@ -670,6 +679,10 @@ assistant:
   context-messages: 12
   # Predel teksta rezultata instrumenta.
   max-tool-result-chars: 24000
+  # Predel tochek v otvete istorii datchika; svodka schitaetsya do szhatiya.
+  history-points: 48
+  # Predel podtverzhdennyh zayavok na dorabotku za poslednie sutki na akkaunt.
+  requests-per-day: 5
   # Srok podtverzhdeniya predlozheniya.
   proposal-minutes: 15
   # Chas otcheta po umolchaniyu.

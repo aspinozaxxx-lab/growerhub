@@ -214,6 +214,9 @@ public final class AutomationData {
     ) {
     }
 
+    public record SensorHistory(Integer resourceId, String name, String role, String unit,
+            LocalDateTime from, LocalDateTime until, List<ResourceStatisticsPoint> points) {}
+
     public record ResourceStatistics(
             @JsonProperty("chart_kind") String chartKind,
             @JsonProperty("chart_unit") String chartUnit,

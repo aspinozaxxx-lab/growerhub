@@ -26,12 +26,14 @@ public class AssistantChannels {
     private final AssistantSettings settings;
     private final Clock clock;
     private final ObjectMapper json;
+    private final AssistantRequests requests;
     public AssistantChannels(AssistantService assistant, AssistantTools tools, AssistantPreferencesRepository preferences,
             AssistantConversationRepository conversations, AssistantJobRepository jobs, AssistantGuardRepository guards,
-            NotificationFacade notifications, UserFacade users, AssistantSettings settings, Clock clock, ObjectMapper json, AssistantProposalRepository proposals) {
+            NotificationFacade notifications, UserFacade users, AssistantSettings settings, Clock clock, ObjectMapper json, AssistantProposalRepository proposals, AssistantRequests requests) {
         this.assistant = assistant; this.tools = tools; this.preferences = preferences; this.conversations = conversations;
         this.jobs = jobs; this.guards = guards; this.notifications = notifications; this.users = users; this.settings = settings; this.clock = clock; this.json = json;
         this.proposals = proposals;
+        this.requests = requests;
     }
     public Preferences save(Preferences value, AuthenticatedUser user) {
         if (user.isDemo()) throw new DomainException("forbidden", "Telegram и отчёты доступны в основном аккаунте");
@@ -57,8 +59,26 @@ public class AssistantChannels {
         if (state.error() == null && state.updateAvailable() && !state.latest().equals(guard.codexNotifiedVersion)
                 && notifications.enqueueMessage(user, "codex-release:" + state.latest(),
                 "Для личного помощника GrowerHub вышел Codex " + state.latest() + ". Сейчас установлен " + state.installed()
-                + ". Обновление не устанавливается автоматически. Проверить: " + settings.siteUrl() + "/app/admin/assistant/", null)) {
+                + ". Запустить обновление с проверкой и откатом: " + settings.siteUrl() + "/app/admin/assistant/", null)) {
             guard.codexNotifiedVersion = state.latest(); guards.save(guard);
+        }
+    }
+    public void notifyCodexOperation() {
+        var user = principal(settings.ownerUserId());
+        if (user == null || !tools.adminRead(user)) return;
+        var operation = assistant.runtimeUpdate();
+        if (operation == null || operation.active()) return;
+        var guard = guards.lock(1).orElseThrow();
+        String key = operation.id().toString();
+        String result = switch (operation.phase()) {
+            case "succeeded" -> "Codex обновлён до " + operation.installed() + ". Проверка ответа помощника прошла.";
+            case "rolled_back" -> "Обновление Codex не прошло проверку. Восстановлена и проверена версия " + operation.installed() + ".";
+            case "rollback_failed" -> "Codex: автоматический откат не прошёл проверку. Требуется внимание администратора.";
+            default -> "Обновление Codex остановлено до переключения. Предыдущая версия сохранена.";
+        };
+        if (!key.equals(guard.codexUpdateNotifiedId) && notifications.enqueueMessage(user, "codex-update:" + key,
+                result + " " + settings.siteUrl() + "/app/admin/assistant/", null)) {
+            guard.codexUpdateNotifiedId = key; guards.save(guard);
         }
     }
     public Incoming begin(TelegramData.Inbox item) {
@@ -119,6 +139,7 @@ public class AssistantChannels {
         }
     }
     public void deliver() {
+        requests.notifyOwner();
         for (var job : jobs.findByTelegramQueuedFalseAndChannelInAndStatusNotIn(List.of("telegram", "report"), List.of("queued", "running"), PageRequest.of(0, settings.limits().queueSize()))) {
             var user = principal(job.userId); var p = preferences.findById(job.userId).orElse(null);
             if (user == null || p == null || !p.telegram || !notifications.assistantAllowed(user)) { job.telegramQueued = true; jobs.save(job); continue; }
@@ -133,7 +154,7 @@ public class AssistantChannels {
                 String keyboard = write(Map.of("inline_keyboard", List.of(List.of(
                         Map.of("text", "Подтвердить", "callback_data", "gha:" + compact + ":" + proposal.revision()),
                         Map.of("text", "Отменить", "callback_data", "ghr:" + compact + ":" + proposal.revision())))));
-                String details = proposal.title() + "\nИзменение будет сохранено только после подтверждения.\n" + readablePayload(proposal);
+                String details = proposal.title() + ("feature_request".equals(proposal.kind()) ? "\nПосле подтверждения этот текст и номер вашего аккаунта получит команда GrowerHub.\n" : "\nИзменение будет сохранено только после подтверждения.\n") + readablePayload(proposal);
                 if (details.length() > 3900) {
                     details = proposal.title() + "\nУ предложения много настроек. Откройте его полностью и подтвердите в приложении: " + settings.siteUrl() + "/app/assistant/";
                     keyboard = null;
@@ -146,7 +167,7 @@ public class AssistantChannels {
             var job = jobs.findById(p.jobId).orElse(null); var user = principal(p.userId);
             if (job != null && "telegram".equals(job.channel) && user != null && notifications.assistantAllowed(user)) {
                 String result = switch (p.status) {
-                    case "applied" -> "device".equals(p.kind) ? "Команда передана устройству. Фактическое состояние смотрите на ферме." : "Изменение сохранено.";
+                    case "applied" -> "feature_request".equals(p.kind) ? "Запрос передан команде GrowerHub на рассмотрение." : "device".equals(p.kind) ? "Команда передана устройству. Фактическое состояние смотрите на ферме." : "Изменение сохранено.";
                     case "stale" -> "Настройки изменились. Попросите новое предложение.";
                     case "uncertain" -> "Результат неизвестен. Повторная команда не отправлена. Проверьте состояние в GrowerHub.";
                     default -> "Предложение отменено или устарело.";
@@ -166,6 +187,7 @@ public class AssistantChannels {
     }
     private String readablePayload(Proposal proposal) {
         var p = proposal.payload();
+        if ("feature_request".equals(proposal.kind())) return p.path("description").asText() + "\nЗачем: " + p.path("benefit").asText();
         if ("care".equals(proposal.kind())) return p.path("action").asText() + ": " + p.path("text").asText();
         if ("reminder".equals(proposal.kind())) return p.path("title").asText() + ", " + p.path("dueAt").asText() + " UTC";
         if ("rule".equals(proposal.kind())) {

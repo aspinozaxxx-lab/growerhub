@@ -45,7 +45,7 @@ else:
         folder = Path(user.pw_dir) / '.ssh'
         folder.mkdir(mode=0o700, exist_ok=True)
         auth = folder / 'authorized_keys'
-        auth.write_text(f'from="{peer}",restrict,port-forwarding,permitopen="127.0.0.1:8787",permitopen="127.0.0.1:8788",command="/usr/sbin/nologin" {args.public_key}\n')
+        auth.write_text(f'from="{peer}",restrict,port-forwarding,permitopen="127.0.0.1:8787",permitopen="127.0.0.1:8788",permitopen="127.0.0.1:8789",command="/usr/sbin/nologin" {args.public_key}\n')
         os.chown(folder, user.pw_uid, user.pw_gid)
         os.chown(auth, user.pw_uid, user.pw_gid)
         auth.chmod(0o600)
@@ -53,7 +53,7 @@ else:
         previous = policy.read_bytes() if policy.exists() else None
         policy.write_text('''Match User gh-ai-tunnel
     AllowTcpForwarding local
-    PermitOpen 127.0.0.1:8787 127.0.0.1:8788
+    PermitOpen 127.0.0.1:8787 127.0.0.1:8788 127.0.0.1:8789
     PermitListen none
     AllowAgentForwarding no
     X11Forwarding no
@@ -86,7 +86,7 @@ Wants=network-online.target
 User=gh-ai-tunnel
 LoadCredential=ssh-key:{base}/id_ed25519
 LoadCredential=known-hosts:{base}/known_hosts
-ExecStart=/usr/bin/ssh -NT -i %d/ssh-key -o UserKnownHostsFile=%d/known-hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=20 -o ServerAliveCountMax=3 -o ConnectTimeout=15 -L 127.0.0.1:18787:127.0.0.1:8787 -L 127.0.0.1:18788:127.0.0.1:8788 gh-ai-tunnel@{peer}
+ExecStart=/usr/bin/ssh -NT -i %d/ssh-key -o UserKnownHostsFile=%d/known-hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o IdentitiesOnly=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=20 -o ServerAliveCountMax=3 -o ConnectTimeout=15 -L 127.0.0.1:18787:127.0.0.1:8787 -L 127.0.0.1:18788:127.0.0.1:8788 -L 127.0.0.1:18789:127.0.0.1:8789 gh-ai-tunnel@{peer}
 Restart=on-failure
 RestartSec=10
 NoNewPrivileges=yes

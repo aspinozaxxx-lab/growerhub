@@ -12,6 +12,9 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id": "assistant-demo-history-requests", "published_at": "2026-10-18", "kind": "feature", "article_id": "poprobovat-pomoshchnika-na-demoferme", "preview_position": "50% 55%"},
+    {"id": "codex-admin-update-button", "published_at": "2026-10-18", "kind": "fix", "text": "The owner admin panel now includes a Codex update button, with a reply check, a persistent result and rollback if verification fails."},
+    {"id": "assistant-guide-history-update", "published_at": "2026-10-18", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "The guide now covers sensor history and user-confirmed feature requests."},
     {"id": "assistant-owner-controls", "published_at": "2026-10-18", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "The assistant guide now explains shared Telegram conversations, the owner’s model selection and the limits of administrative reading. Codex update notifications are available to the owner."},
     {"id":"assistant-notification-scenarios","published_at":"2026-10-18","kind":"fix","text":"Clarified the assistant’s instructions for notification-only routines, which do not require devices. Verified shared app and Telegram history, including routine confirmation through a button in the bot."},
     {"id":"assistant-final-step-proposal","published_at":"2026-10-18","kind":"fix","text":"Fixed a case where the assistant checked a routine but could not prepare its confirmation card on the final step. A redundant check before preparing the card was removed; spending limits remain in place."},

@@ -324,6 +324,37 @@ public class AutomationFacade {
         );
     }
 
+    @Transactional(readOnly = true)
+    public AutomationData.SensorHistory getResourceSensorHistory(AuthenticatedUser user, Integer resourceId, Integer hours) {
+        requireAuthenticated(user);
+        if (hours == null || hours < 1) throw new DomainException("bad_request", "Укажите период в часах");
+        var binding = resourceRepository.findById(resourceId)
+                .filter(r -> Objects.equals(resourceOwnerId(r), user.id()))
+                .orElseThrow(() -> new DomainException("not_found", "Датчик не найден в вашей ферме"));
+        String unit = switch (binding.getRole()) {
+            case "AIR_TEMPERATURE_SENSOR" -> "°C";
+            case "AIR_HUMIDITY_SENSOR", "SOIL_MOISTURE_SENSOR" -> "%";
+            case "LEAK_SENSOR" -> "boolean";
+            default -> throw new DomainException("bad_request", "Этот ресурс не является датчиком");
+        };
+        var catalog = buildCatalog(user);
+        var status = resolveResourceStatus(binding, catalog);
+        List<AutomationData.ResourceStatisticsPoint> points;
+        if (AutomationData.SOURCE_NATIVE_SENSOR.equals(binding.getSourceType())) {
+            points = sensorFacade.getHistory(binding.getNativeSensorId(), hours, user).stream()
+                    .map(p -> new AutomationData.ResourceStatisticsPoint(p.ts(), p.value(), null)).toList();
+        } else if (AutomationData.SOURCE_ZIGBEE_DEVICE.equals(binding.getSourceType())) {
+            var device = findZigbeeDevice(binding, catalog);
+            if (device == null) throw new DomainException("not_found", "Датчик не найден");
+            points = zigbeeFacade.getHistory(user, device.coordinatorId(), binding.getZigbeeIeeeAddress(), binding.getZigbeeProperty(), hours).stream()
+                    .map(p -> new AutomationData.ResourceStatisticsPoint(p.ts(), p.value(), p.rawValue())).toList();
+        } else throw new DomainException("bad_request", "У датчика нет истории измерений");
+        var until = LocalDateTime.now(clock);
+        return new AutomationData.SensorHistory(resourceId, status.label(), binding.getRole(), unit,
+                until.minusHours(hours), until, points.stream().filter(p -> p.ts() != null && !p.ts().isAfter(until)
+                        && !p.ts().isBefore(until.minusHours(hours))).toList());
+    }
+
     public AutomationData.Overview getOverview(AuthenticatedUser user) {
         requireAuthenticated(user);
         Catalog catalog = buildCatalog(user);

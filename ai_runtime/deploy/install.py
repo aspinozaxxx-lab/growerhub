@@ -9,6 +9,7 @@ import pwd
 import secrets
 import shutil
 import subprocess
+import sys
 import tarfile
 import urllib.request
 
@@ -29,8 +30,25 @@ def private(path, data, group=None):
     os.chown(path, 0, grp.getgrnam(group).gr_gid if group else 0)
 
 
+def maintenance():
+    for path in ['/var/lib/growerhub-codex-update', '/opt/growerhub-codex-releases', '/root/growerhub-ai-backups']:
+        pathlib.Path(path).mkdir(mode=0o700 if '/var/' in path or '/root/' in path else 0o755, exist_ok=True)
+    private(pathlib.Path('/etc/growerhub-ai/maintenance.env'), 'GH_CODEX_UPDATE_TOKEN=' + secrets.token_urlsafe(48) + '\n')
+    units = ['growerhub-codex-maintenance.service', 'growerhub-codex-update.service']
+    for name in units:
+        shutil.copyfile(ROOT / 'deploy' / name, pathlib.Path('/etc/systemd/system') / name)
+    run('systemd-analyze', 'verify', *(str(pathlib.Path('/etc/systemd/system') / name) for name in units))
+    run('systemctl', 'daemon-reload')
+    run('systemctl', 'enable', *units)
+    run('systemctl', 'restart', units[0])
+    print('Private maintenance API installed')
+
+
 if os.getuid() != 0 or not (ROOT / 'src/server.mjs').is_file():
     raise SystemExit('Run as root from the deployed runtime')
+if '--maintenance-only' in sys.argv:
+    maintenance()
+    raise SystemExit(0)
 for name, home in [('gh-ai-owner', '/var/lib/growerhub-ai-owner'), ('gh-ai-api', '/var/lib/growerhub-ai-public')]:
     try:
         pwd.getpwnam(name)
@@ -122,3 +140,4 @@ for name in ['growerhub-ai-owner.service', 'growerhub-ai-public.service']:
 print('Runtime installed; public generation remains disabled')
 print(run(str(link / 'bin/node'), '--version').stdout.strip())
 print(run(str(codex), '--version', env=env).stdout.strip())
+maintenance()

@@ -7,6 +7,7 @@ import { assistantPhoto } from '../../api/assistant';
 import useAssistant from './useAssistant';
 import RuleExplanation from './RuleExplanation';
 import AssistantText from './AssistantText';
+import { demoPrompts } from './demoPrompts';
 import './assistant.css';
 
 const status = { queued: 'В очереди', running: 'Думаю…', completed: 'Готово', incomplete: 'Ответ остановлен на лимите', failed: 'Ответ недоступен', uncertain: 'Результат неизвестен', cancelled: 'Остановлено', pending: 'Ждёт подтверждения', confirmed: 'Подтверждено', applying: 'Применяется', applied: 'Изменение применено', stale: 'Настройки изменились', rejected: 'Отклонено', expired: 'Предложение устарело' };
@@ -26,12 +27,13 @@ function Proposal({ item, onAction, busy }) {
     {item.kind === 'device' && <p>{p.type === 'water' ? `${t('Полив')}: ${p.durationSeconds} ${t('с')}` : `${t('Состояние')}: ${p.value}`}</p>}
     {item.kind === 'reminder' && <p>{p.title} · {p.dueAt} UTC</p>}
     {item.kind === 'care' && <p>{p.text}</p>}
+    {item.kind === 'feature_request' && <><p>{p.description}</p><p><strong>{t('Зачем это нужно:')}</strong> {p.benefit}</p><small>{t('Команда получит этот текст и номер вашего аккаунта. Решение о доработке появится после рассмотрения.')}</small></>}
     {['rule', 'scenario'].includes(item.kind) && <p>{t(item.status === 'applied' ? (p.enabled ? 'Сохранён включённым' : 'Сохранён выключенным') : (p.enabled ? 'Начнёт работать при ближайшем выполнении условий' : 'Сохранится выключенным'))}</p>}
     {item.kind === 'rule' && <RuleExplanation definition={p.definition} resourceNames={p.resourceNames} scopeName={p.scopeName} />}
-    {item.status === 'pending' && <small>{t('Изменение начнётся только после вашего подтверждения.')}</small>}
+    {item.status === 'pending' && <small>{t(item.kind === 'feature_request' ? 'Запрос отправится только после вашего подтверждения.' : 'Изменение начнётся только после вашего подтверждения.')}</small>}
     {item.kind === 'scenario' && <details><summary>{t('Настройки сценария')}</summary><dl>{Object.entries(p.config || {}).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{String(v)}</dd></div>)}</dl></details>}
-    <p role="status">{t(item.kind === 'device' && item.status === 'applied' ? 'Команда передана устройству. Фактическое состояние смотрите на ферме.' : status[item.status] || item.status)}</p>
-    {item.status === 'pending' && <div className="assistant-actions"><Button variant="primary" disabled={busy} onClick={() => onAction(item, false)}>{t('Подтвердить')}</Button><Button disabled={busy} onClick={() => onAction(item, true)}>{t('Не применять')}</Button></div>}
+    <p role="status">{t(item.kind === 'feature_request' && item.status === 'applied' ? 'Запрос передан команде GrowerHub на рассмотрение.' : item.kind === 'device' && item.status === 'applied' ? 'Команда передана устройству. Фактическое состояние смотрите на ферме.' : status[item.status] || item.status)}</p>
+    {item.status === 'pending' && <div className="assistant-actions"><Button variant="primary" disabled={busy} onClick={() => onAction(item, false)}>{t(item.kind === 'feature_request' ? 'Отправить запрос' : 'Подтвердить')}</Button><Button disabled={busy} onClick={() => onAction(item, true)}>{t(item.kind === 'feature_request' ? 'Не отправлять' : 'Не применять')}</Button></div>}
   </section>;
 }
 export default function AssistantChat({ initialText = '' }) {
@@ -44,6 +46,8 @@ export default function AssistantChat({ initialText = '' }) {
   }, [a.messages]);
   const cap = a.capabilities; const prefs = cap?.preferences;
   const selectedModel = cap?.models?.find(m => m.id === a.options.model);
+  const pickPrompt = text => { a.setText(t(text)); document.getElementById('assistant-text')?.focus(); };
+  const examples = <div className="assistant-suggestions assistant-demo-prompts">{demoPrompts.map(p => <button type="button" key={p.id} disabled={a.busy || !!a.active || !!a.pending} onClick={() => pickPrompt(p.text)}><span aria-hidden="true">{p.icon}</span><span><strong>{t(p.title)}</strong><small>{t(p.hint)}</small></span></button>)}</div>;
   return <section className="assistant-chat ym-hide-content ym-disable-keys" aria-label={t('Помощник GrowerHub')}>
     {!a.messages.length && <header className="assistant-intro"><Heart aria-hidden="true" /><div><h2>{t('Рядом с вашими растениями')}</h2><p>{t('Разберёмся в уходе, проверим ферму и настроим удобный сценарий.')}</p></div></header>}
     {a.error && <p className="assistant-error" role="alert">{a.error}</p>}
@@ -64,9 +68,10 @@ export default function AssistantChat({ initialText = '' }) {
         <small>{t('Время — по часовому поясу аккаунта. Сводка сохраняется здесь и приходит в подключённый Telegram.')}</small><Button type="submit" disabled={a.busy}>{t('Сохранить')}</Button>
       </form>}
       <div className="assistant-messages" ref={messagesRef} onScroll={e => { const el = e.currentTarget; followEnd.current = el.scrollHeight - el.clientHeight - el.scrollTop < 64; }} aria-label={t('История разговора')}>
-        {!a.messages.length && <div className="assistant-welcome"><span aria-hidden="true">🌱</span><h3>{t('С чего начнём?')}</h3><div className="assistant-suggestions">{['Что сейчас с моей фермой?', 'Помоги составить расписание света', 'На что обратить внимание в уходе?'].map(q => <button type="button" key={q} onClick={() => a.setText(t(q))}>{t(q)}</button>)}</div><p>{t('Можно приложить фото растения. Помощник предложит изменения, а решение останется за вами.')}</p></div>}
+        {!a.messages.length && <div className="assistant-welcome"><span aria-hidden="true">🌱</span><h3>{t(cap.demo ? 'Попробуем вместе?' : 'С чего начнём?')}</h3>{cap.demo ? <>{examples}<p>{t('Выберите задачу, прочитайте готовый вопрос и нажмите «Отправить». Данные и устройства здесь учебные.')}</p><small>{t('В демо сценарий можно сохранить; уведомления в настоящий Telegram не отправляются.')}</small></> : <><div className="assistant-suggestions">{['Что сейчас с моей фермой?', 'Помоги составить расписание света', 'На что обратить внимание в уходе?'].map(q => <button type="button" key={q} onClick={() => pickPrompt(q)}>{t(q)}</button>)}</div><p>{t('Можно приложить фото растения. Помощник предложит изменения, а решение останется за вами.')}</p></>}</div>}
         {a.messages.map(m => <article key={m.id} className="assistant-exchange"><div className="assistant-question"><small>{t('Вы')}</small><p>{m.text}</p><div className="assistant-photos">{m.attachments?.map(id => <Photo key={id} id={id} />)}</div></div><div className="assistant-answer"><small>{t('Помощник')}</small><AssistantText text={m.answer} /><span className="assistant-status">{t(status[m.status] || m.status)}</span>{m.error && <p>{t('Попробуйте задать вопрос короче или открыть новый разговор.')}</p>}{m.proposals?.map(p => <Proposal key={p.id} item={p} onAction={a.proposal} busy={a.busy} />)}</div></article>)}
       </div>
+      {cap.demo && a.messages.length > 0 && <details className="assistant-demo-more"><summary>{t('Попробовать другую задачу')}</summary>{examples}</details>}
       <form className="assistant-compose" onSubmit={e => { e.preventDefault(); a.send(); }}>
         <label className="sr-only" htmlFor="assistant-text">{t('Ваш вопрос')}</label><textarea id="assistant-text" rows="2" maxLength={6000} placeholder={t('Напишите, с чем нужна помощь…')} value={a.text} disabled={!!a.pending || a.busy} onChange={e => a.setText(e.target.value)} />
         {a.files.length > 0 && <div className="assistant-files">{a.files.map((f, i) => <span key={`${f.name}:${i}`}>{f.name}<button type="button" disabled={a.busy || !!a.pending} aria-label={t('Удалить фото')} onClick={() => a.setFiles(a.files.filter((_, n) => i !== n))}>×</button></span>)}</div>}

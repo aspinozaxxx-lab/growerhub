@@ -34,6 +34,7 @@ it.each([
   ['automations', '/app/automations/'],
   ['watering', '/app/manual-watering/'],
   ['plants', '/app/plants/'],
+  ['assistant', '/app/assistant/'],
 ])('otkryvaet vybrannyj razdel %s tolko posle uspeshnogo starta demo', async (view, path) => {
   auth.startDemo.mockResolvedValue({ success: true });
   entry(`?view=${view}`);

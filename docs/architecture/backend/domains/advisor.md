@@ -16,6 +16,8 @@
 - `confirmAssistantProposal`, `claimAssistantApplication`, `applyAssistantProposal`, `failAssistantApplication` — подтверждение конкретной версии.
 - `saveAssistantPreferences`, `processAssistantInbox`, `beginAssistantInbox`, `completeAssistantInbox`, `rejectAssistantInbox`, `assistantReportsDue`, `prepareAssistantReport`, `deliverAssistantResponses`, `maintainAssistant` — каналы, сводки и очистка.
 - `assistantRuntimeStatus`, `recordAssistantRuntimeStatus` — версия Codex и уведомление владельцу.
+- `assistantRuntimeMaintenance`, `prepareAssistantRuntimeUpdate`, `startAssistantRuntimeUpdate`, `recordAssistantRuntimeUpdate`, `checkAssistantRuntimeStatus` — подтверждённое обновление отдельным оператором.
+- `assistantRequests`, `decideAssistantRequest` — свои заявки и административное рассмотрение.
 - `assistantUsage`, `switchPublicAssistant` — административный учёт и остановка публичных ответов.
 
 ## Публичные контракты
@@ -24,7 +26,7 @@
 
 ## Владение данными
 
-Кэш `advisor_watering_advice`; таблицы `assistant_*`: диалоги, фото, задания, предложения, предпочтения, глобальный guard и журнал квот. История и фото удаляются через 90 дней или с аккаунтом. Обезличенный журнал расходов сохраняется при удалении аккаунта, чтобы квота не обнулялась. Данные фермы получаются через Facade, не копируются в собственные справочники.
+Кэш `advisor_watering_advice`; таблицы `assistant_*`: диалоги, фото, задания, предложения, предпочтения, глобальный guard и журнал квот. Заявки на доработки хранят задачу, решение, ревизию и флаг постановки уведомления; ID предложения исключает дубли. История и фото удаляются через 90 дней или с аккаунтом. Обезличенный журнал расходов сохраняется при удалении аккаунта, чтобы квота не обнулялась. Данные фермы получаются через Facade, не копируются в собственные справочники.
 
 ## Используемые домены
 

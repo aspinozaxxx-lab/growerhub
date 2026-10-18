@@ -25,11 +25,12 @@ public class AssistantTools {
     private final AssistantSettings settings;
     private final ObjectMapper json;
     private final Clock clock;
+    private final AssistantRequests requests;
 
     public AssistantTools(AutomationFacade automation, PlantFacade plants, JournalFacade journal, UserFacade users,
-            AssistantIdentity identity, AssistantSettings settings, ObjectMapper json, Clock clock) {
+            AssistantIdentity identity, AssistantSettings settings, ObjectMapper json, Clock clock, AssistantRequests requests) {
         this.automation = automation; this.plants = plants; this.journal = journal; this.users = users;
-        this.identity = identity; this.settings = settings; this.json = json; this.clock = clock;
+        this.identity = identity; this.settings = settings; this.json = json; this.clock = clock; this.requests = requests;
     }
     public record Prepared(String title, JsonNode payload, String fingerprint) {}
 
@@ -44,10 +45,12 @@ public class AssistantTools {
             tool("gh_farm_report", "Текущее состояние собственной фермы, устройства, показания, сценарии и растения. Числа рассчитывает сервер.", Map.of(), List.of()),
             tool("gh_plant_details", "История ухода и сведения о своём растении", Map.of("plantId", integer()), List.of("plantId")),
             tool("gh_resource_history", "История и энергопотребление своей розетки. hours — число часов", Map.of("resourceId", integer(), "hours", integer()), List.of("resourceId", "hours")),
+            tool("gh_sensor_history", "История своего датчика температуры, влажности воздуха/почвы или протечки за последние hours часов (до 2160). resourceId возьми из gh_farm_report. Сводка по сохранённым точкам, а не непрерывным измерениям; учитывай пропуски и возраст последнего показания. Для сравнения зон вызови для каждого датчика.", Map.of("resourceId", integer(), "hours", integer()), List.of("resourceId", "hours")),
+            tool("gh_feature_requests", "Мои отправленные запросы на доработки и решения команды. page — страница с нуля.", Map.of("page", Map.of("type", "integer", "minimum", 0)), List.of()),
             tool("gh_rule_details", "Без параметров: свои правила и схема новых сценариев, включая ежедневное уведомление без устройств. ruleId: подробности своего правила. scopeType=ROOM|BOX и scopeId: настройки существующих готовых сценариев, не схема нового правила.", Map.of("ruleId", Map.of("type", "string"), "scopeType", Map.of("type", "string"), "scopeId", integer()), List.of()),
             tool("gh_validate_rule", "Проверить правило, конфликты каналов и готовность устройств без сохранения. payload — определение version=1 из gh_rule_details.", Map.of("payload", Map.of("type", "object")), List.of("payload")),
-            tool("gh_prepare_change", "Подготовить предложение, НЕ применяя его. kind=care: payload {plantId,action,text,eventAt}; reminder: {plantId,action,title,dueAt,repeatDays,repeatMode}; scenario: {scopeType:ROOM|BOX,scopeId,scenarioType,enabled,config}; rule: {ruleId?:UUID,revision?:number,enabled:boolean,definition:object из gh_rule_details}; device: {type:set|water,resourceId,value?:string,durationSeconds?:integer}. Даты ISO UTC. Человек подтверждает кнопкой.",
-                Map.of("kind", Map.of("type", "string", "enum", List.of("care", "reminder", "scenario", "rule", "device")), "payload", Map.of("type", "object")), List.of("kind", "payload"))));
+            tool("gh_prepare_change", "Подготовить предложение, НЕ применяя его. kind=care: payload {plantId,action,text,eventAt}; reminder: {plantId,action,title,dueAt,repeatDays,repeatMode}; scenario: {scopeType:ROOM|BOX,scopeId,scenarioType,enabled,config}; rule: {ruleId?:UUID,revision?:number,enabled:boolean,definition:object из gh_rule_details}; device: {type:set|water,resourceId,value?:string,durationSeconds?:integer}; feature_request: {title до 120 символов,description до 2000,benefit до 1000} — запрос команде на нужную пользователю доработку, без обещания реализации. Только краткая задача и польза, без секретов и пересылки переписки. Даты ISO UTC. Человек подтверждает кнопкой.",
+                Map.of("kind", Map.of("type", "string", "enum", List.of("care", "reminder", "scenario", "rule", "device", "feature_request")), "payload", Map.of("type", "object")), List.of("kind", "payload"))));
         if (adminRead(user)) {
             result.add(tool("gh_admin_users", "Только для владельца-администратора: поиск аккаунтов по имени, email или ID. Без секретов. offset — смещение, до 20 записей.", Map.of("query", Map.of("type", "string", "maxLength", 100), "offset", Map.of("type", "integer", "minimum", 0)), List.of()));
             result.add(tool("gh_admin_user_report", "Только чтение данных выбранного пользователя: профиль, ферма, устройства, растения, сценарии. Не даёт права менять чужие данные.", Map.of("userId", integer()), List.of("userId")));
@@ -82,6 +85,8 @@ public class AssistantTools {
                         "publicAssistantConfigured", settings.publicEnabled(), "monthlyApiLimitUsd", settings.budget().monthMicros() / 1000000d));
             }
             case "gh_farm_report" -> report(user);
+            case "gh_feature_requests" -> json.valueToTree(requests.list(user, false, input.path("page").asInt(0)));
+            case "gh_sensor_history" -> sensorHistory(input, user);
             case "gh_plant_details" -> {
                 int id = id(input, "plantId"); var plant = plants.requireOwnedPlantInfo(id, user);
                 yield json.valueToTree(Map.of("plant", plant, "care", journal.searchCare(user, id, null, null, null, null, 0),
@@ -107,6 +112,36 @@ public class AssistantTools {
 
     private void requireAdminRead(AuthenticatedUser user) {
         if (!adminRead(user)) throw new DomainException("forbidden", "Административное чтение недоступно");
+    }
+
+    private JsonNode sensorHistory(JsonNode input, AuthenticatedUser user) {
+        int hours = id(input, "hours");
+        if (hours > settings.retentionDays() * 24) throw bad("Слишком длинный период истории");
+        var history = automation.getResourceSensorHistory(user, id(input, "resourceId"), hours);
+        var points = history.points().stream().filter(p -> p.value() != null && Double.isFinite(p.value()))
+                .sorted(Comparator.comparing(ResourceStatisticsPoint::ts)).toList();
+        var result = new LinkedHashMap<String, Object>();
+        result.put("resourceId", history.resourceId()); result.put("name", history.name()); result.put("role", history.role()); result.put("unit", history.unit());
+        result.put("fromUtc", history.from()); result.put("untilUtc", history.until()); result.put("savedPoints", points.size());
+        result.put("basis", "Сохранённые точки; источник может усреднять историю. Минимум и максимум не гарантируют учёт кратких пиков. Пропуски не заполнены.");
+        if ("SOIL_MOISTURE_SENSOR".equals(history.role())) result.put("interpretation", "Проценты зависят от датчика и грунта. Без сухого/влажного ориентира нельзя объявлять перелив или нехватку воды только по абсолютному значению.");
+        if (!points.isEmpty()) {
+            var first = points.get(0); var last = points.get(points.size() - 1);
+            result.put("first", first); result.put("last", last);
+            result.put("minimum", points.stream().min(Comparator.comparing(ResourceStatisticsPoint::value)).orElseThrow());
+            result.put("maximum", points.stream().max(Comparator.comparing(ResourceStatisticsPoint::value)).orElseThrow());
+            result.put("sampleMean", points.stream().mapToDouble(ResourceStatisticsPoint::value).average().orElseThrow());
+            result.put("change", last.value() - first.value());
+            result.put("lastAgeSeconds", Duration.between(last.ts(), history.until()).getSeconds());
+            long gap = 0;
+            for (int i = 1; i < points.size(); i++) gap = Math.max(gap, Duration.between(points.get(i - 1).ts(), points.get(i).ts()).getSeconds());
+            result.put("largestGapSeconds", gap);
+        }
+        int limit = Math.max(2, settings.historyPoints());
+        var shown = new ArrayList<ResourceStatisticsPoint>();
+        for (int i = 0, size = Math.min(points.size(), limit); i < size; i++) shown.add(points.get(size == 1 ? 0 : (int) ((long) i * (points.size() - 1) / (size - 1))));
+        result.put("sampled", shown.size() < points.size()); result.put("points", shown);
+        return json.valueToTree(result);
     }
 
     public JsonNode report(AuthenticatedUser user) {
@@ -145,6 +180,10 @@ public class AssistantTools {
     public Prepared prepare(String kind, JsonNode payload, AuthenticatedUser user) {
         if (payload == null || !payload.isObject() || payload.toString().length() > settings.maxToolResultChars()) throw bad("Неверное предложение");
         return switch (kind) {
+            case "feature_request" -> {
+                var clean = requests.validate(payload, user);
+                yield new Prepared("Отправить команде: " + clean.path("title").asText(), clean, fingerprint(clean));
+            }
             case "care" -> {
                 int id = id(payload, "plantId"); var plant = plants.requireOwnedPlantInfo(id, user);
                 var command = care(payload, "assistant:preview"); journal.validateCareEntry(id, user, command);
@@ -189,10 +228,11 @@ public class AssistantTools {
     }
 
     public JsonNode apply(String kind, JsonNode payload, String expected, UUID proposalId, AuthenticatedUser user) {
-        if (user.isDemo()) users.lockDemoOwner(user.id()); else users.lockAccount(user.id());
+        if (!"feature_request".equals(kind)) { if (user.isDemo()) users.lockDemoOwner(user.id()); else users.lockAccount(user.id()); }
         var prepared = prepare(kind, payload, user);
         if (!prepared.fingerprint().equals(expected)) throw new DomainException("conflict", "Настройки изменились. Попросите помощника подготовить новое предложение");
         return switch (kind) {
+            case "feature_request" -> json.valueToTree(requests.create(proposalId, payload, user));
             case "care" -> json.valueToTree(journal.createCareEntry(id(payload, "plantId"), user, care(payload, "assistant:" + proposalId)));
             case "reminder" -> json.valueToTree(journal.saveCareReminder(null, user, reminder(payload)));
             case "scenario" -> {

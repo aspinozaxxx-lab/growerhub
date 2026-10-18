@@ -73,4 +73,11 @@ public class AssistantWorker {
     @PreDestroy public void stop() {
         active.values().forEach(work -> gateway.cancel(work.provider(), work.id())); executor.shutdownNow();
     }
+    @Scheduled(fixedDelayString = "${assistant.codex-update-poll-ms}", scheduler = "assistantTaskScheduler")
+    public void watchCodexUpdate() {
+        if (settings.maintenance() == null || !settings.maintenance().enabled()) return;
+        try {
+            if (advisor.recordAssistantRuntimeUpdate(gateway.runtimeUpdate(null))) checkCodex();
+        } catch (RuntimeException ignored) { /* Sostoyanie ostayotsya poslednim izvestnym; neizvestnost ne schitaetsya uspehom. */ }
+    }
 }

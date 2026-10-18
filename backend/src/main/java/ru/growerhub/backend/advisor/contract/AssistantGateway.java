@@ -8,6 +8,7 @@ import java.util.function.Function;
 public interface AssistantGateway {
     List<AssistantData.Model> models();
     AssistantData.RuntimeStatus runtimeStatus();
+    AssistantData.RuntimeUpdate runtimeUpdate(AssistantData.RuntimeUpdateRequest request);
     AssistantData.Outcome run(AssistantData.Work work, Consumer<String> onText,
             Function<AssistantData.ToolCall, JsonNode> onTool, java.util.function.BooleanSupplier cancelled);
     void cancel(String provider, java.util.UUID jobId);

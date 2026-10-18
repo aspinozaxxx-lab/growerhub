@@ -20,6 +20,17 @@
 .assistant-welcome h3 { margin: 8px 0 12px; }
 .assistant-suggestions { display: flex; flex-direction: column; gap: 8px; }
 .assistant-suggestions button { background: var(--surface-1); color: var(--accent); border: 1px solid var(--accent-border); border-radius: 12px; padding: 12px; font: inherit; cursor: pointer; }
+.assistant-demo-prompts button { display: flex; align-items: center; gap: 12px; text-align: left; }
+.assistant-demo-prompts button > span:first-child { font-size: 25px; }
+.assistant-demo-prompts button strong, .assistant-demo-prompts button small { display: block; }
+.assistant-demo-prompts button small { margin-top: 3px; }
+.assistant-demo-prompts button:disabled { opacity: .6; cursor: default; }
+.assistant-demo-more { padding: 4px 0; }
+.assistant-demo-more summary { cursor: pointer; color: var(--accent); padding: 6px; }
+.assistant-demo-more[open] { max-height: 240px; overflow-y: auto; }
+.codex-status { display: grid; gap: 10px; }
+.codex-status p { margin: 0; }
+.codex-status .assistant-settings { margin-top: 4px; }
 .assistant-exchange { display: grid; gap: 12px; margin-bottom: 20px; }
 .assistant-question, .assistant-answer { padding: 14px; border-radius: 16px; }
 .assistant-question { margin-left: 25px; background: var(--accent-soft); }
@@ -37,6 +48,7 @@
 .assistant-status { font-size: 12px; color: var(--text-3); }
 .assistant-error { padding: 12px; border: 1px solid var(--danger-border); color: var(--danger); background: var(--danger-soft); border-radius: 10px; }
 .assistant-compose { display: grid; gap: 10px; position: sticky; bottom: 0; padding: 12px; background: var(--surface-1); border: 1px solid var(--border-1); border-radius: 16px; }
+.assistant-page .assistant-compose { position: static; }
 .assistant-compose textarea { resize: vertical; min-height: 76px; }
 .assistant-compose .assistant-actions { justify-content: space-between; }
 .assistant-chat .assistant-upload { position: relative; display: inline-flex; align-items: center; padding: 10px; gap: 7px; border: 1px solid var(--border-2); border-radius: 12px; cursor: pointer; }
@@ -78,3 +90,8 @@ body:has(.assistant-dialog) { overflow: hidden; }
   .assistant-welcome > span { display: none; }
   .assistant-suggestions button { padding: 10px; }
 }
+
+.assistant-requests { margin-top: 2rem; }
+.assistant-requests label { display: grid; gap: .4rem; margin: .7rem 0; }
+.assistant-requests textarea, .assistant-requests select { max-width: 100%; width: 100%; box-sizing: border-box; }
+.assistant-proposal p { white-space: pre-wrap; overflow-wrap: anywhere; }

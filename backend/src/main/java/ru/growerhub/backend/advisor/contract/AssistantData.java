@@ -18,11 +18,20 @@ public final class AssistantData {
     public record Proposal(UUID id, String title, String kind, JsonNode payload, String status,
             String revision, LocalDateTime expiresAt, JsonNode result) {}
     public record Confirm(String revision) {}
+    public record FeatureRequest(UUID id, Integer userId, String title, String description, String benefit,
+            String status, String note, int revision, boolean notificationQueued, LocalDateTime createdAt, LocalDateTime updatedAt) {}
+    public record FeatureDecision(String status, String note, int revision) {}
     public record Attachment(UUID id, String mime, long size) {}
     public record Image(byte[] bytes, String mime) {}
     public record PhotoPermit(UUID id, int maxBytes, long maxPixels, int edge) {}
     public record Model(String id, String name, List<String> efforts, String defaultEffort, boolean images, boolean preferred) {}
     public record RuntimeStatus(String installed, String latest, java.time.Instant checkedAt, boolean updateAvailable, String error) {}
+    public record RuntimeUpdateRequest(UUID id, String target, String expectedInstalled) {}
+    public record RuntimeUpdate(UUID id, String target, String previous, String installed, String phase,
+            java.time.Instant startedAt, java.time.Instant updatedAt, java.time.Instant finishedAt, String error) {
+        public boolean active() { return finishedAt == null; }
+    }
+    public record RuntimeMaintenance(boolean enabled, RuntimeUpdate operation) {}
     public record Capabilities(boolean enabled, boolean available, boolean owner, boolean demo,
             String model, String effort, List<Model> models, LimitsView limits, Preferences preferences) {}
     public record LimitsView(int perMinute, int perDay, long remainingDay, String reason) {}

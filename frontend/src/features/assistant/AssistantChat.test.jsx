@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import AssistantChat from './AssistantChat';
 import { assistantRequest } from '../../api/assistant';
+import { demoPrompts } from './demoPrompts';
 vi.mock('../../api/assistant', () => ({ assistantRequest: vi.fn(), watchAssistant: vi.fn().mockResolvedValue(), uploadAssistantPhoto: vi.fn(), assistantPhoto: vi.fn() }));
 vi.mock('../../locales/i18n', () => ({ translateApp: (value, params = {}) => value.replace(/\{\{(\w+)\}\}/g, (_, key) => String(params[key])) }));
 const cap = { enabled: true, available: true, owner: false, demo: false, model: 'deepseek-flash', effort: 'high', models: [], limits: { remainingDay: 30 }, preferences: { telegram: false, report: 'off', hour: 9, weekday: 1 } };
@@ -19,6 +20,16 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 const mount = () => render(<MemoryRouter><AssistantChat /></MemoryRouter>);
+test('demo examples fill editable text without sending or applying changes', async () => {
+  const original = assistantRequest.getMockImplementation();
+  assistantRequest.mockImplementation((path, ...args) => path === '/capabilities' ? Promise.resolve({ ...cap, demo: true }) : original(path, ...args));
+  mount();
+  fireEvent.click(await screen.findByRole('button', { name: /Мой утренний обход/ }));
+  expect(screen.getByRole('textbox', { name: 'Ваш вопрос' })).toHaveValue(demoPrompts[2].text);
+  expect(screen.getByRole('textbox', { name: 'Ваш вопрос' })).toHaveFocus();
+  expect(assistantRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+  expect(screen.queryByLabelText('Модель')).not.toBeInTheDocument();
+});
 test('owner model controls use the current catalog and preserve a supported effort', async () => {
   const models = [
     {id:'sol',name:'Sol',efforts:['low','max','ultra'],defaultEffort:'low'},
@@ -71,4 +82,12 @@ test('device delivery is shown separately from actual device state', async () =>
   history = [{ id: 'message-1', text: 'Включи', status: 'completed', attachments: [], proposals: [{ id: 'proposal-1', title: 'Лампа', kind: 'device', payload: { type: 'set', value: 'ON' }, status: 'applied', revision: 'version-7' }] }];
   mount(); await screen.findByText('Команда передана устройству. Фактическое состояние смотрите на ферме.');
   expect(screen.queryByRole('button', { name: 'Подтвердить' })).not.toBeInTheDocument();
+});
+test('feature request displays the complete text and waits for explicit sending', async () => {
+  history = [{ id: 'message-1', text: 'Нужна доработка', status: 'completed', attachments: [], proposals: [{ id: 'request-1', title: 'Отправить команде: Удобрения', kind: 'feature_request', payload: { description: 'Расход по растениям', benefit: 'Планировать покупки' }, status: 'pending', revision: 'reviewed-text-2' }] }];
+  mount(); await screen.findByText('Расход по растениям');
+  expect(screen.getByText('Планировать покупки')).toBeInTheDocument();
+  expect(assistantRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: 'Отправить запрос', exact: true }));
+  await waitFor(() => expect(assistantRequest).toHaveBeenCalledWith('/proposals/request-1/confirm', 'POST', { revision: 'reviewed-text-2' }));
 });

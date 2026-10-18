@@ -55,6 +55,7 @@ public class AdvisorFacade {
     private final NotificationFacade notifications;
     private final TelegramGateway telegramGateway;
     private final AssistantSettings assistantSettings;
+    private final ru.growerhub.backend.advisor.engine.AssistantRequests requests;
 
     public AdvisorFacade(
             PlantFacade plantFacade,
@@ -62,7 +63,7 @@ public class AdvisorFacade {
             WateringAdviceEngine adviceEngine,
             AdvisorSettings advisorSettings, AssistantService assistant, AssistantGateway assistantGateway,
             ObjectProvider<AdvisorFacade> self, AssistantChannels channels, NotificationFacade notifications,
-            TelegramGateway telegramGateway, AssistantSettings assistantSettings
+            TelegramGateway telegramGateway, AssistantSettings assistantSettings, ru.growerhub.backend.advisor.engine.AssistantRequests requests
     ) {
         this.plantFacade = plantFacade;
         this.journalFacade = journalFacade;
@@ -70,7 +71,14 @@ public class AdvisorFacade {
         this.advisorSettings = advisorSettings;
         this.assistant = assistant; this.assistantGateway = assistantGateway; this.self = self;
         this.channels = channels; this.notifications = notifications; this.telegramGateway = telegramGateway; this.assistantSettings = assistantSettings;
+        this.requests = requests;
     }
+
+    @Transactional(readOnly = true)
+    public List<AssistantData.FeatureRequest> assistantRequests(AuthenticatedUser user, boolean admin, int page) { return requests.list(user, admin, page); }
+
+    @Transactional
+    public AssistantData.FeatureRequest decideAssistantRequest(UUID id, AssistantData.FeatureDecision decision, AuthenticatedUser user) { return requests.decide(id, decision, user); }
 
     @Transactional(readOnly = true)
     public AssistantData.Capabilities assistantCapabilities(AuthenticatedUser user, AssistantData.Origin origin) { return assistant.capabilities(user, origin); }
@@ -81,6 +89,24 @@ public class AdvisorFacade {
     public AssistantData.RuntimeStatus assistantRuntimeStatus(AuthenticatedUser user) { return assistant.runtimeStatus(user); }
     @Transactional
     public void recordAssistantRuntimeStatus(AssistantData.RuntimeStatus value) { assistant.saveRuntimeStatus(value); channels.notifyCodexUpdate(); }
+    @Transactional(readOnly = true)
+    public AssistantData.RuntimeMaintenance assistantRuntimeMaintenance(AuthenticatedUser user) { return assistant.runtimeMaintenance(user); }
+    @Transactional(readOnly = true)
+    public void prepareAssistantRuntimeUpdate(AssistantData.RuntimeUpdateRequest request, AuthenticatedUser user) { assistant.prepareRuntimeUpdate(request, user); }
+    public AssistantData.RuntimeUpdate startAssistantRuntimeUpdate(AssistantData.RuntimeUpdateRequest request, AuthenticatedUser user) {
+        self.getObject().prepareAssistantRuntimeUpdate(request, user);
+        var operation = assistantGateway.runtimeUpdate(request);
+        self.getObject().recordAssistantRuntimeUpdate(operation);
+        return operation;
+    }
+    @Transactional
+    public boolean recordAssistantRuntimeUpdate(AssistantData.RuntimeUpdate value) {
+        boolean completed = assistant.saveRuntimeUpdate(value); channels.notifyCodexOperation(); return completed;
+    }
+    public AssistantData.RuntimeStatus checkAssistantRuntimeStatus(AuthenticatedUser user) {
+        self.getObject().assistantRuntimeStatus(user);
+        var status = assistantGateway.runtimeStatus(); self.getObject().recordAssistantRuntimeStatus(status); return status;
+    }
     @Transactional(readOnly = true)
     public List<AssistantData.Conversation> assistantConversations(AuthenticatedUser user) { return assistant.conversations(user); }
     @Transactional(noRollbackFor = AssistantLimitException.class)

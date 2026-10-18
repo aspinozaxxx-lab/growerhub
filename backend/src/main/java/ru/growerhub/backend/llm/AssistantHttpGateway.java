@@ -47,6 +47,26 @@ public class AssistantHttpGateway implements AssistantGateway {
             return new RuntimeStatus(null, null, java.time.Instant.now(), false, "runtime_unavailable");
         }
     }
+    @Override public RuntimeUpdate runtimeUpdate(RuntimeUpdateRequest value) {
+        try {
+            var config = settings.maintenance();
+            if (config == null || !config.enabled()) throw new IOException();
+            URI base = URI.create(config.url());
+            if (!Set.of("127.0.0.1", "localhost", "::1", "[::1]").contains(base.getHost()) || !"http".equals(base.getScheme())) throw new IOException();
+            var request = HttpRequest.newBuilder(base.resolve("/v1/update")).timeout(Duration.ofSeconds(config.timeoutSeconds()))
+                    .header("Authorization", "Bearer " + config.token()).header("Content-Type", "application/json");
+            if (value == null) request.GET(); else request.POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(value)));
+            var response = client.send(request.build(), HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 409) throw new DomainException("conflict", "Обновление не принято: проверьте версию и состояние предыдущей операции");
+            if (response.statusCode() != 200 && response.statusCode() != 202) throw new IOException();
+            var operation = json.readTree(response.body()).get("operation");
+            return operation == null || operation.isNull() ? null : json.treeToValue(operation, RuntimeUpdate.class);
+        } catch (DomainException ex) { throw ex; }
+        catch (Exception ex) {
+            if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
+            throw new DomainException("unavailable", "Не удалось проверить обновление Codex. Операция могла начаться; дождитесь обновления её состояния");
+        }
+    }
     @Override public Outcome run(Work work, Consumer<String> onText, Function<ToolCall, JsonNode> onTool, BooleanSupplier cancelled) {
         boolean dispatched = false; StringBuilder text = new StringBuilder();
         AtomicReference<InputStream> input = new AtomicReference<>();

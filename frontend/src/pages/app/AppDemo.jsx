@@ -14,6 +14,7 @@ const DEMO_VIEWS = {
   watering: '/app/manual-watering/',
   farm: '/app/farm/',
   plants: '/app/plants/',
+  assistant: '/app/assistant/',
 };
 
 export default function AppDemo() {

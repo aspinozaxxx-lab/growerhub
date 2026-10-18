@@ -1,0 +1,25 @@
+[Unit]
+Description=GrowerHub verified Codex update and recovery
+After=network-online.target growerhub-ai-owner.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/growerhub-ai/deploy/update-codex.py --job
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=900
+UMask=0022
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/growerhub-codex-update /var/lib/growerhub-ai-owner /opt/growerhub-codex-releases /etc/growerhub-ai /root/growerhub-ai-backups
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryHigh=450M
+MemoryMax=700M
+CPUQuota=100%
+TasksMax=96
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+[Unit]
+Description=GrowerHub private Codex maintenance API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/growerhub-ai/maintenance.env
+ExecStart=/usr/bin/python3 /opt/growerhub-ai/deploy/update-codex.py --serve
+Restart=on-failure
+RestartSec=5
+UMask=0077
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/growerhub-codex-update
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=128M
+TasksMax=32
+
+[Install]
+WantedBy=multi-user.target

@@ -25,6 +25,7 @@
 - `updateGreenhousePlantWateringRate(AuthenticatedUser user, Integer greenhouseId, Integer plantId, UpdateWateringRateRequest request)`
 - `replaceGreenhouseScenarios(AuthenticatedUser user, Integer greenhouseId, SaveScenariosRequest request)`
 - `getResourceStatistics(AuthenticatedUser user, Integer resourceId, Integer hours)`
+- `getResourceSensorHistory(user, resourceId, hours)` — история собственного native/Zigbee-датчика с периодом и единицами.
 - `getPlantZones(AuthenticatedUser user, List<Integer> plantIds)`
 - `getPlantZone(AuthenticatedUser user, Integer plantId)`
 - `createPlantWithPlacement(AuthenticatedUser user, PlantCreateCommand command, Integer zoneId)`
@@ -97,4 +98,4 @@ REST строит собственные farms → greenhouses; канал за�
 
 ## Ограничения
 
-Теплица принадлежит одной ферме; физический канал занимает один слот. Обычный кабинет исключает чужие id также для admin. WATER_PUMP принимает native pump либо допущенный Zigbee-клапан; switch-роли — writable state без известных поливных каналов; LEAK_SENSOR — readable property. Статистика доступна Zigbee LIGHT_SWITCH, EXHAUST_SWITCH и AC_SWITCH. Frontend не вычисляет readiness, automation не пишет журнал растений. Правила v1 ограничены декларативным JSON: конфликт каналов блокирует включение, полив ограничен независимо от ИИ, неизвестная отправка не повторяется; детали — ADR-013.
+Теплица принадлежит одной ферме; физический канал занимает один слот. Обычный кабинет исключает чужие id также для admin. WATER_PUMP принимает native pump либо допущенный Zigbee-клапан; switch-роли — writable state без известных поливных каналов; LEAK_SENSOR — readable property. История датчиков доступна только владельцу привязки; значения могут быть усреднены источником. Статистика мощности доступна Zigbee LIGHT_SWITCH, EXHAUST_SWITCH и AC_SWITCH. Frontend не вычисляет readiness, automation не пишет журнал растений. Правила v1 ограничены декларативным JSON: конфликт каналов блокирует включение, полив ограничен независимо от ИИ, неизвестная отправка не повторяется; детали — ADR-013.

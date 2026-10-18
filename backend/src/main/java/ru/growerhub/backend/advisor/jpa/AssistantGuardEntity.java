@@ -9,4 +9,6 @@ public class AssistantGuardEntity {
     @Column(columnDefinition = "TEXT") public String denialsJson = "{}";
     @Column(columnDefinition = "TEXT") public String codexStatusJson;
     public String codexNotifiedVersion;
+    @Column(columnDefinition = "TEXT") public String codexUpdateJson;
+    public String codexUpdateNotifiedId;
 }

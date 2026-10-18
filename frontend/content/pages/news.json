@@ -12,6 +12,9 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id": "assistant-demo-history-requests", "published_at": "2026-10-18", "kind": "feature", "article_id": "poprobovat-pomoshchnika-na-demoferme", "preview_position": "50% 55%"},
+    {"id": "codex-admin-update-button", "published_at": "2026-10-18", "kind": "fix", "text": "В админке владельца появилась кнопка обновления личного Codex: с проверкой ответа помощника, сохранением результата и откатом к предыдущей версии при ошибке."},
+    {"id": "assistant-guide-history-update", "published_at": "2026-10-18", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "Руководство дополнено историей датчиков и подтверждённой отправкой запросов на доработки."},
     {"id": "assistant-owner-controls", "published_at": "2026-10-18", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "В руководстве помощника уточнены общий разговор с Telegram, выбор модели владельца и границы административного чтения. Владельцу доступны уведомления о новых версиях Codex."},
     {"id":"assistant-notification-scenarios","published_at":"2026-10-18","kind":"fix","text":"Уточнены инструкции помощника для создания сценариев с одними уведомлениями: оборудование для них не требуется. Проверена общая история приложения и Telegram, включая подтверждение сценария кнопкой в боте."},
     {"id":"assistant-final-step-proposal","published_at":"2026-10-18","kind":"fix","text":"Исправлен случай, когда помощник доходил до проверки сценария, но не показывал карточку подтверждения на последнем шаге. Убрана лишняя проверка перед карточкой; лимит расходов сохранён."},
