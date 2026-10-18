@@ -1,0 +1,74 @@
+.assistant-page { max-width: 900px; margin: auto; min-width: 0; }
+.assistant-chat { display: flex; flex-direction: column; gap: 12px; min-width: 0; color: var(--text-1); }
+.assistant-intro { display: flex; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 18px; background: var(--accent-soft); }
+.assistant-intro svg { flex: none; color: var(--accent); margin-top: 4px; }
+.assistant-intro h2 { font-size: 20px; margin: 0 0 6px; }
+.assistant-intro p { margin: 0; color: var(--text-2); }
+.assistant-toolbar, .assistant-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.assistant-conversation { flex: 1; min-width: 120px; }
+.assistant-chat input:not([type=checkbox]), .assistant-chat select, .assistant-chat textarea { width: 100%; min-width: 0; max-width: 100%; background: var(--surface-1); border: 1px solid var(--border-2); color: var(--text-1); border-radius: 10px; padding: 10px; font: inherit; box-sizing: border-box; }
+.assistant-chat label { display: grid; gap: 4px; }
+.assistant-models { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.assistant-models label, .assistant-chat small { font-size: 13px; color: var(--text-2); }
+.assistant-chat button:focus-visible, .assistant-chat a:focus-visible, .assistant-chat input:focus-visible, .assistant-chat select:focus-visible, .assistant-chat textarea:focus-visible { outline: 3px solid var(--accent-border); outline-offset: 2px; }
+.assistant-settings { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--border-1); border-radius: 14px; }
+.assistant-settings label:has(input[type=checkbox]) { display: flex; align-items: center; }
+.assistant-settings input[type=checkbox] { width: 18px; height: 18px; }
+.assistant-messages { min-height: 160px; overflow-wrap: anywhere; }
+.assistant-welcome { text-align: center; padding: 20px 8px; }
+.assistant-welcome > span { font-size: 32px; }
+.assistant-welcome h3 { margin: 8px 0 12px; }
+.assistant-suggestions { display: flex; flex-direction: column; gap: 8px; }
+.assistant-suggestions button { background: var(--surface-1); color: var(--accent); border: 1px solid var(--accent-border); border-radius: 12px; padding: 12px; font: inherit; cursor: pointer; }
+.assistant-exchange { display: grid; gap: 12px; margin-bottom: 20px; }
+.assistant-question, .assistant-answer { padding: 14px; border-radius: 16px; }
+.assistant-question { margin-left: 25px; background: var(--accent-soft); }
+.assistant-answer { border: 1px solid var(--border-1); background: var(--surface-1); }
+.assistant-exchange p { white-space: pre-wrap; margin: 6px 0; line-height: 1.55; }
+.assistant-proposal { margin-top: 12px; padding: 14px; background: var(--success-soft); border: 1px solid var(--success-border); border-radius: 12px; }
+.assistant-proposal dl div { display: flex; justify-content: space-between; gap: 8px; }
+.assistant-proposal dd { margin: 0; }
+.assistant-status { font-size: 12px; color: var(--text-3); }
+.assistant-error { padding: 12px; border: 1px solid var(--danger-border); color: var(--danger); background: var(--danger-soft); border-radius: 10px; }
+.assistant-compose { display: grid; gap: 10px; position: sticky; bottom: 0; padding: 12px; background: var(--surface-1); border: 1px solid var(--border-1); border-radius: 16px; }
+.assistant-compose textarea { resize: vertical; min-height: 76px; }
+.assistant-compose .assistant-actions { justify-content: space-between; }
+.assistant-chat .assistant-upload { position: relative; display: inline-flex; align-items: center; padding: 10px; gap: 7px; border: 1px solid var(--border-2); border-radius: 12px; cursor: pointer; }
+.assistant-upload input { position: absolute; opacity: 0; inset: 0; width: 100%; cursor: pointer; }
+.assistant-upload:focus-within { outline: 3px solid var(--accent-border); }
+.assistant-files { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; overflow-wrap: anywhere; }
+.assistant-files span { background: var(--surface-2); padding: 5px 8px; border-radius: 8px; max-width: 100%; }
+.assistant-files button { border: 0; background: transparent; color: var(--danger); font-size: 20px; }
+.assistant-photos { display: flex; flex-wrap: wrap; gap: 6px; }
+.assistant-photo { max-width: 160px; max-height: 180px; border-radius: 12px; object-fit: contain; }
+.assistant-launch { position: fixed; z-index: 60; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 8px; padding: 13px 17px; color: var(--on-accent); background: var(--accent); border: 1px solid var(--accent-strong); border-radius: 30px; box-shadow: var(--shadow-2); font: inherit; text-decoration: none; cursor: pointer; }
+.assistant-dialog .gh-modal { justify-content: flex-end; }
+.assistant-dialog .gh-modal__panel { width: min(550px, 95vw); height: 100dvh; max-height: 100dvh; box-sizing: border-box; border-radius: 18px 0 0 18px; }
+.assistant-dialog .gh-modal__body { overflow: hidden; }
+.assistant-dialog .assistant-chat { flex: 1; min-height: 0; }
+.assistant-dialog .assistant-chat > :not(.assistant-messages) { flex-shrink: 0; }
+.assistant-dialog .assistant-messages { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 3px; }
+.assistant-dialog .assistant-compose { position: static; }
+.assistant-dialog .assistant-intro p, .assistant-dialog .assistant-welcome > span, .assistant-dialog .assistant-welcome h3 { display: none; }
+.assistant-dialog .assistant-intro h2 { margin: 0; }
+.assistant-dialog .assistant-welcome { padding: 0 4px; }
+.assistant-dialog .assistant-settings { max-height: 32dvh; overflow-y: auto; }
+body:has(.assistant-dialog) { overflow: hidden; }
+.assistant-rules { margin: 20px 0; padding: 18px; border: 1px solid var(--border-1); border-radius: 18px; background: var(--surface-1); }
+.assistant-rules header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.assistant-rule { padding: 16px 0; border-top: 1px solid var(--border-1); overflow-wrap: anywhere; }
+.assistant-rule h3 { margin: 0 0 6px; }
+.assistant-rule dl { display: grid; gap: 6px; }
+.assistant-rule li { margin-bottom: 8px; }
+@media(max-width:680px) { .assistant-launch { bottom: calc(76px + env(safe-area-inset-bottom)); right: 12px; padding: 10px 14px; } .assistant-page > h1 { font-size: 24px; margin: 12px 0; } .assistant-compose { bottom: calc(68px + env(safe-area-inset-bottom)); } .assistant-chat { gap: 10px; } .assistant-intro { padding: 12px; } .assistant-intro h2 { font-size: 18px; } .assistant-photo { max-width: 115px; } .assistant-question { margin-left: 12px; } .assistant-rules { padding: 12px; } }
+@media(max-width:680px) {
+  .assistant-page .assistant-chat { height: calc(100dvh - 250px); min-height: 430px; }
+  .assistant-page .assistant-intro { display: none; }
+  .assistant-page .assistant-chat > :not(.assistant-messages) { flex-shrink: 0; }
+  .assistant-page .assistant-messages { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .assistant-page .assistant-compose { position: static; }
+  .assistant-page .assistant-settings { max-height: 180px; overflow-y: auto; }
+  .assistant-welcome { padding: 8px 3px; }
+  .assistant-welcome > span { display: none; }
+  .assistant-suggestions button { padding: 10px; }
+}

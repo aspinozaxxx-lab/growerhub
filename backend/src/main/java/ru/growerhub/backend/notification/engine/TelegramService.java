@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.PageRequest;
 import ru.growerhub.backend.common.config.TelegramSettings;
+import ru.growerhub.backend.common.config.advisor.AssistantSettings;
 import ru.growerhub.backend.common.contract.*;
 import ru.growerhub.backend.journal.JournalFacade;
 import ru.growerhub.backend.journal.contract.CareData;
@@ -25,11 +26,14 @@ public class TelegramService {
     private final JournalFacade journal;
     private final TelegramSettings settings;
     private final ObjectMapper json;
+    private final TelegramInboxRepository inbox;
+    private final AssistantSettings assistant;
     public TelegramService(TelegramChannelRepository channels, TelegramDeliveryRepository deliveries,
             TelegramUpdateRepository updates, @Lazy UserFacade users, @Lazy JournalFacade journal,
-            TelegramSettings settings, ObjectMapper json) {
+            TelegramSettings settings, ObjectMapper json, TelegramInboxRepository inbox, AssistantSettings assistant) {
         this.channels = channels; this.deliveries = deliveries; this.updates = updates; this.users = users;
         this.journal = journal; this.settings = settings; this.json = json;
+        this.inbox = inbox; this.assistant = assistant;
     }
     public TelegramData.Status status(AuthenticatedUser user) {
         requireAccount(user);
@@ -61,7 +65,8 @@ public class TelegramService {
         deliveries.cancel(user.id()); c.addressVersion++;
         c.chatId = c.pendingChatId; c.name = c.pendingName; c.enabled = true; clearPending(c); c.lastStatus = "connected";
         channels.save(c);
-        enqueue(c, "welcome:" + c.addressVersion, "Telegram подключён к GrowerHub. Здесь будут напоминания о ручном уходе. /today — дела, /stop — отключить уведомления. Насосами этот бот не управляет.", null);
+        c.assistantEnabled = false;
+        enqueue(c, "welcome:" + c.addressVersion, "Telegram подключён к GrowerHub. /today — дела, /stop — отключить уведомления. Чат с помощником можно отдельно включить в приложении.", null);
         return status(user);
     }
     public TelegramData.Status preferences(AuthenticatedUser user, TelegramData.Preferences p) {
@@ -70,13 +75,13 @@ public class TelegramService {
         var c = channels.findById(user.id()).orElseGet(() -> defaults(user.id()));
         if (p.enabled() && c.chatId == null) throw error("Сначала подключите Telegram");
         c.enabled = p.enabled(); c.digestHour = p.hour(); c.quietFrom = p.quietFrom(); c.quietUntil = p.quietUntil();
-        if (!p.enabled()) deliveries.cancel(user.id());
+        if (!p.enabled()) { c.assistantEnabled = false; deliveries.cancel(user.id()); }
         channels.save(c); return status(user);
     }
     public void disconnect(AuthenticatedUser user) {
         requireAccount(user); users.lockAccount(user.id());
         channels.findById(user.id()).ifPresent(c -> { deliveries.cancel(user.id()); c.enabled = false;
-            c.chatId = null; c.name = null; c.addressVersion++; c.lastStatus = "disconnected"; clearPending(c); channels.save(c); });
+            c.chatId = null; c.name = null; c.assistantEnabled = false; c.addressVersion++; c.lastStatus = "disconnected"; clearPending(c); channels.save(c); });
     }
     public void test(AuthenticatedUser user) {
         requireAccount(user); requireAvailable(); users.lockAccount(user.id());
@@ -110,7 +115,12 @@ public class TelegramService {
             return null;
         }
         if (!Objects.equals(c.chatId, update.chatId())) return null;
-        if (text.equals("/stop")) { c.enabled = false; c.lastStatus = "stopped"; deliveries.cancel(c.userId); channels.save(c); return "Напоминания отключены. Снова включить их можно в настройках GrowerHub."; }
+        if (text.equals("/stop")) { c.enabled = false; c.assistantEnabled = false; c.lastStatus = "stopped"; deliveries.cancel(c.userId); channels.save(c); return "Напоминания и помощник отключены. Снова включить их можно в настройках GrowerHub."; }
+        if (c.enabled && c.assistantEnabled && assistant.enabled() &&
+                (update.callbackData() != null && update.callbackData().matches("gh[ar]:[0-9a-f]{32}:[0-9a-f]{16}")
+                || update.callbackData() == null && (!text.startsWith("/") || text.equals("/report")) && (!text.isBlank() || update.photoId() != null))) {
+            captureAssistant(c, update); return null;
+        }
         if (update.callbackData() != null && c.enabled) {
             String[] parts = update.callbackData().split(":");
             if (parts.length == 3 && Set.of("done", "snooze", "skip").contains(parts[0])) {
@@ -128,7 +138,7 @@ public class TelegramService {
         } else if (text.equals("/today") && c.enabled) {
             digest(c, "request:" + update.updateId(), true);
         } else if (c.enabled) {
-            enqueue(c, "help:" + update.updateId(), "Дневник растений — " + settings.siteUrl() + "/app/plants/\n/today — назначенные дела\n/stop — отключить напоминания\nФото и заметки пока добавляйте в дневнике на сайте.", null);
+            enqueue(c, "help:" + update.updateId(), "Дневник растений — " + settings.siteUrl() + "/app/plants/\n/today — назначенные дела\n/stop — отключить сообщения\nПомощник и фотографии — после включения чата в приложении: " + settings.siteUrl() + "/app/assistant/", null);
         }
         return null;
     }
@@ -147,7 +157,46 @@ public class TelegramService {
             digest(c, "daily:" + c.addressVersion + ":" + digestDate, false);
         }
         updates.deleteByReceivedAtBefore(now().minusDays(settings.retentionDays()));
+        inbox.deleteByCreatedAtBefore(now().minusDays(settings.retentionDays()));
         deliveries.purge(now().minusDays(settings.retentionDays()));
+    }
+    public void configureAssistant(AuthenticatedUser user, boolean enabled) {
+        requireAccount(user); users.lockAccount(user.id());
+        var c = channels.findById(user.id()).orElse(null);
+        if (enabled && (c == null || c.chatId == null || !c.enabled)) throw error("Сначала подключите и подтвердите Telegram в настройках уведомлений");
+        if (c != null) { c.assistantEnabled = enabled; channels.save(c); }
+    }
+    public boolean assistantAllowed(AuthenticatedUser user) {
+        if (user == null || user.isDemo()) return false;
+        return channels.findById(user.id()).map(c -> c.chatId != null && c.enabled && c.assistantEnabled).orElse(false);
+    }
+    private void captureAssistant(TelegramChannelEntity c, TelegramData.Update update) {
+        if (Objects.toString(update.text(), "").length() > assistant.limits().maxTextChars()
+                || update.photoSize() > assistant.limits().maxPhotoBytes()
+                || inbox.countByUserIdAndCreatedAtAfter(c.userId, now().minusMinutes(1)) >= assistant.limits().ownerMinute()
+                || inbox.countByUserIdAndCreatedAtAfter(c.userId, now().minusDays(1)) >= assistant.limits().ownerDay()) {
+            String key = "inbox-limit:" + now().withSecond(0).withNano(0);
+            if (!deliveries.existsByDedupeKey(c.userId + ":" + key)) enqueue(c, key, "Подождите немного или сократите сообщение. Фото — до 6 МБ.", null);
+            return;
+        }
+        var row = new TelegramInboxEntity(); row.id = update.updateId(); row.userId = c.userId; row.addressVersion = c.addressVersion;
+        row.text = update.text(); row.photoId = update.photoId(); row.callbackData = update.callbackData(); row.status = "queued"; row.createdAt = now(); inbox.save(row);
+    }
+    public TelegramData.Inbox claimAssistantInbox() {
+        for (var stale : inbox.findByStatusAndLeasedUntilBefore("processing", now())) { stale.status = "uncertain"; inbox.save(stale); }
+        for (var row : inbox.findByStatusOrderByCreatedAtAsc("queued", PageRequest.of(0, settings.batchSize()))) {
+            users.lockAccount(row.userId); var c = channels.findById(row.userId).orElse(null);
+            if (c == null || !c.enabled || !c.assistantEnabled || c.addressVersion != row.addressVersion || row.createdAt.plusSeconds(assistant.limits().queueSeconds()).isBefore(now())) {
+                row.status = "cancelled"; inbox.save(row); continue;
+            }
+            row.status = "processing"; row.leaseKey = UUID.randomUUID().toString(); row.leasedUntil = now().plusSeconds(assistant.limits().leaseSeconds()); inbox.save(row);
+            return new TelegramData.Inbox(row.id, row.userId, row.text, row.photoId, row.callbackData, row.leaseKey);
+        }
+        return null;
+    }
+    public void finishAssistantInbox(TelegramData.Inbox item, String status) {
+        var row = inbox.findById(item.id()).orElse(null);
+        if (row != null && Objects.equals(row.leaseKey, item.lease()) && "processing".equals(row.status)) { row.status = status; inbox.save(row); }
     }
     public List<TelegramData.Delivery> claim() {
         if (!available()) return List.of();
@@ -224,6 +273,15 @@ public class TelegramService {
         d.chatId = c.pendingChatId; deliveries.save(d);
     }
     private void enqueue(TelegramChannelEntity c, String key, String text, String keyboard) { deliveries.save(delivery(c, key, text, keyboard)); }
+    public boolean enqueueMessage(AuthenticatedUser user, String key, String text, String keyboard) {
+        if (user == null || user.isDemo() || !available()) return false;
+        requireAccount(user); users.lockAccount(user.id());
+        var c = channels.findById(user.id()).orElse(null);
+        if (c == null || !c.enabled || c.chatId == null) return false;
+        if (key == null || key.length() > 180 || text == null || text.isBlank() || text.length() > 4000) throw error("Неверное уведомление");
+        if (!deliveries.existsByDedupeKey(c.userId + ":" + key)) enqueue(c, key, text, keyboard);
+        return true;
+    }
     private TelegramDeliveryEntity delivery(TelegramChannelEntity c, String key, String text, String keyboard) {
         var d = new TelegramDeliveryEntity(); d.userId = c.userId; d.chatId = c.chatId == null ? 0 : c.chatId;
         d.addressVersion = c.addressVersion; d.dedupeKey = c.userId + ":" + key; d.text = text; d.keyboard = keyboard;

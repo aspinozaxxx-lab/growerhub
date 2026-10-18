@@ -24,6 +24,8 @@ const AppAutomations = lazy(() => import('./AppAutomations'));
 const AppPlants = lazy(() => import('./AppPlants'));
 const AppPlantJournal = lazy(() => import('./AppPlantJournal'));
 const AppNotifications = lazy(() => import('./AppNotifications'));
+const AppAssistant = lazy(() => import('./AppAssistant'));
+const AdminAssistant = lazy(() => import('./admin/AdminAssistant'));
 const AppProfile = lazy(() => import('./AppProfile'));
 const AppSettings = lazy(() => import('./AppSettings'));
 const FarmConstructor = lazy(() => import('../../features/farm/FarmConstructor'));
@@ -68,6 +70,7 @@ function AppSection() {
             <Route path="farm/" element={<FarmConstructor />} />
             <Route path="manual-watering/" element={<AppManualWatering />} />
             <Route path="automations/" element={<AppAutomations />} />
+            <Route path="assistant/" element={<AppAssistant />} />
             <Route path="plants/" element={<AppPlants />} />
             <Route path="plants/:plantId/journal/" element={<AppPlantJournal />} />
             <Route path="settings/" element={<AppSettings />}>
@@ -103,6 +106,7 @@ function AppSection() {
               <Route path="mqtt/" element={<AdminMqtt />} />
               <Route path="zigbee/" element={<AdminZigbee />} />
               <Route path="automation/" element={<AdminAutomation />} />
+              <Route path="assistant/" element={<AdminAssistant />} />
             </Route>
           </Route>
           <Route path="*" element={<NotFoundPage />} />

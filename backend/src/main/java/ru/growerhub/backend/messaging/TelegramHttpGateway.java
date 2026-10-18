@@ -70,6 +70,26 @@ public class TelegramHttpGateway implements TelegramGateway {
         catch (Exception ignored) { /* Podtverzhdenie knopki ne povtoryaet uzhe sohranennuyu komandu. */ }
     }
 
+    @Override public byte[] photo(String fileId, int maximumBytes) {
+        if (fileId == null || !fileId.matches("[A-Za-z0-9_-]{1,255}") || maximumBytes <= 0) throw new IllegalArgumentException("Invalid photo");
+        try {
+            var response = request("getFile", Map.of("file_id", fileId), settings.timeoutSeconds());
+            var body = json.readTree(response.body()); var file = body.path("result");
+            String path = file.path("file_path").asText();
+            if (response.statusCode() != 200 || !body.path("ok").asBoolean() || file.path("file_size").asLong() > maximumBytes
+                    || !path.matches("photos/[A-Za-z0-9_-]+\\.(jpg|jpeg|png)")) throw new IOException();
+            var req = HttpRequest.newBuilder(URI.create(settings.apiUrl() + "/file/bot" + settings.botToken() + "/" + path))
+                    .timeout(Duration.ofSeconds(settings.timeoutSeconds())).GET().build();
+            var image = client.send(req, HttpResponse.BodyHandlers.ofInputStream());
+            try (var stream = image.body()) {
+                if (image.statusCode() != 200) throw new IOException();
+                byte[] bytes = stream.readNBytes(maximumBytes + 1);
+                if (bytes.length > maximumBytes) throw new IOException(); return bytes;
+            }
+        } catch (InterruptedException ex) { Thread.currentThread().interrupt(); throw new IllegalStateException("Photo unavailable"); }
+        catch (Exception ex) { throw new IllegalStateException("Photo unavailable"); }
+    }
+
     private HttpResponse<String> request(String method, Map<String, Object> body, int timeoutSeconds) throws IOException, InterruptedException {
         var request = HttpRequest.newBuilder(URI.create(settings.apiUrl() + "/bot" + settings.botToken() + "/" + method))
                 .timeout(Duration.ofSeconds(timeoutSeconds)).header("Content-Type", "application/json")

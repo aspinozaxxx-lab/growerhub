@@ -185,6 +185,13 @@ public class DemoFacade {
                 devices.findBySpaceId(space.id).stream().map(this::deviceView).toList(), weatherKind(space));
     }
 
+    @Transactional(readOnly = true)
+    public DemoData.AssistantIdentity assistantIdentity(AuthenticatedUser user) {
+        DemoSpaceEntity space = owned(user);
+        if (space.expiresAt != null && !space.expiresAt.isAfter(now())) throw new DomainException("forbidden", "Срок демо завершился");
+        return new DemoData.AssistantIdentity(space.accountUserId, space.admissionKey);
+    }
+
     public DemoData.Status weather(AuthenticatedUser user, DemoData.Weather request) {
         var space = owned(user);
         if (request == null || request.kind() == null || !List.of("sunny", "rain", "unavailable").contains(request.kind()))

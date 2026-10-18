@@ -14,6 +14,7 @@ public class TelegramChannelEntity {
     public String pendingName;
     public String confirmation;
     public boolean enabled;
+    public boolean assistantEnabled;
     public int digestHour;
     public int quietFrom;
     public int quietUntil;

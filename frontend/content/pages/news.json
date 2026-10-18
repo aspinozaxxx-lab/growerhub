@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"farm-assistant-and-custom-scenarios","published_at":"2026-10-18","kind":"feature","article_id":"pomoshchnik-rasteniy-i-scenarii-growerhub","preview_position":"65% 30%"},
     {"id":"phalaenopsis-bark-watering-guide","published_at":"2026-10-18","kind":"article","article_id":"poliv-falenopsisa-v-kore","preview_position":"50% 50%"},
     { "id": "deferred-article-markdown-index", "published_at": "2026-10-17", "kind": "fix", "text": "Уменьшен объём начальной загрузки сайта. Текст статей, иллюстрации и переходы между материалами сохранены." },
     {"id":"cyclamen-cool-window-watering-guide","published_at":"2026-10-17","kind":"article","article_id":"tsiklamen-doma-prohlada-i-poliv","preview_position":"42% 45%"},

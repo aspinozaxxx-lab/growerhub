@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-06",
+  "updated_at": "2026-10-18",
   "shop_privacy": {
     "title": "Kit orders and help choosing",
     "text": "When you submit a request, we store your name, phone number, selected kits and their prices, and the city, code and address of your chosen CDEK pickup point. Telegram and comments are stored only if provided. GrowerHub administrators use these details to respond, check the kit and agree the order and delivery with you. Requests are handled in the protected site administration area; automatic email and Telegram notifications are not sent at this stage. Contacts, addresses and form text are excluded from analytics and Webvisor form recording. A request key and a hash of the network address help prevent duplicates and abuse. Submitting a request does not subscribe you to marketing messages. Contact the operator to correct or delete your information."
@@ -28,5 +28,13 @@
   "demo_terms": {
     "title": "Demonstration mode",
     "text": "Sensor readings, water use and electricity use in the demo farm are simulated. They let you try the interface and scenarios but do not confirm compatibility with specific equipment. Guest farms are deleted after expiry; save your demo to an account to continue later."
+  },
+  "assistant_privacy": {
+    "title": "Assistant conversations, photos and Telegram",
+    "text": "When you use the assistant, GrowerHub stores your messages, attached photos, results of queries about your farm and proposed changes. To generate a reply, the text, prepared images and relevant information about your plants, devices and care are sent to the DeepSeek API. The project owner separately uses their personal Codex/OpenAI connection; other users’ conversations are not routed to it. EXIF metadata is removed from photos. Account names, contacts and connection secrets are not included in the domain tools. Do not include passwords or other people’s private information in messages. Conversations and photos are retained for up to 90 days; proposals and usage records also prevent duplicate commands and enforce limits. Text and photos are excluded from web analytics and form recording. A signed session and a hash of the network address help protect the service. If you separately enable chat in Telegram, your selected conversation is shared with the bot and its messages and replies pass through Telegram. You can disable that channel and scheduled summaries in assistant settings; ordinary care reminders have separate settings. Contact the operator to request data deletion."
+  },
+  "assistant_terms": {
+    "title": "Assistant and action confirmation",
+    "text": "The assistant helps with plant care, readings and scenario configuration. Before making a change, it presents a proposal. Check the plants, devices, timing and duration, then confirm using its button. Saying yes in a chat does not itself operate equipment. If the underlying settings change, a new proposal is required. Sending a device command does not confirm its execution: check the actual state on the farm. Clarify photo-based assessments by inspecting the soil, roots and growing conditions. Replies are subject to frequency, size and shared service budget limits. When a limit is reached, chat pauses while saved scenarios, the journal and ordinary notifications continue to work."
   }
 }

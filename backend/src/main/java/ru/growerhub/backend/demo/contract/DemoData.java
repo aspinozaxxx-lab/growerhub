@@ -17,6 +17,7 @@ public final class DemoData {
     public record Device(UUID id, String profile, String name, Map<String, Object> state) {}
     public record Profile(String key, String name, String description) {}
     public record Tick(Integer ownerId, boolean telemetry) {}
+    public record AssistantIdentity(Integer accountId, String admissionKey) {}
     public record AddDevice(String profile, String name) {}
     public record Environment(@JsonProperty("device_id") UUID deviceId, Double temperature, Double moisture, Boolean leak) {}
 }

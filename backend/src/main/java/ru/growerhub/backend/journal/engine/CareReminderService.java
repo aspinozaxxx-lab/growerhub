@@ -31,12 +31,7 @@ public class CareReminderService {
     public CareData.Reminder save(Integer id, AuthenticatedUser user, CareData.ReminderCommand command) {
         care.lock(user);
         var plant = plants.requireOwnedPlantInfo(command.plantId(), user);
-        if (command.dueAt() == null || command.title() == null || command.title().isBlank()
-                || command.title().length() > 200 || !CareService.ACTIONS.contains(Objects.toString(command.action(), ""))
-                || (command.repeatDays() != null && (command.repeatDays() < 1 || command.repeatDays() > settings.maxRepeatDays()))
-                || !Set.of("calendar", "completion").contains(Objects.toString(command.repeatMode(), ""))) {
-            throw new DomainException("unprocessable", "Проверьте дату, название и повтор напоминания");
-        }
+        validate(command);
         var r = id == null ? new CareReminderEntity() : owned(id, user);
         if (id == null && repository.countByUserIdAndEnabledTrue(user.id()) >= settings.maxReminders()) {
             throw new DomainException("conflict", "Достигнут предел активных напоминаний");
@@ -45,6 +40,14 @@ public class CareReminderService {
         r.dueAt = command.dueAt(); r.repeatDays = command.repeatDays(); r.repeatMode = command.repeatMode();
         r.occurrenceKey = UUID.randomUUID().toString().replace("-", ""); r.enabled = true;
         return view(repository.save(r), plant.name());
+    }
+    public void validate(CareData.ReminderCommand command) {
+        if (command.dueAt() == null || command.title() == null || command.title().isBlank()
+                || command.title().length() > 200 || !CareService.ACTIONS.contains(Objects.toString(command.action(), ""))
+                || (command.repeatDays() != null && (command.repeatDays() < 1 || command.repeatDays() > settings.maxRepeatDays()))
+                || !Set.of("calendar", "completion").contains(Objects.toString(command.repeatMode(), ""))) {
+            throw new DomainException("unprocessable", "Проверьте дату, название и повтор напоминания");
+        }
     }
     public void act(Integer id, AuthenticatedUser user, String action, CareData.ReminderAction command) {
         care.lock(user);

@@ -51,9 +51,13 @@
 - `getWateringPlan(user, greenhouseId)` — предварительное решение только собственной теплицы.
 - `updateFarmWeatherLocation(user, farmId, location)` — округлённое необязательное место собственной фермы.
 
+- `listRules`, `getRule`, `previewRule`, `saveRule`, `toggleRule`, `restoreRule`, `ruleVersions`, `ruleHistory` — декларативные правила ADR-013.
+- `ruleFingerprint`, `scenarioFingerprint`, `previewScenario`, `previewDeviceCommand`, `applyDeviceCommand` — проверка подтверждаемых изменений.
+- `ruleOwnersDue`, `evaluateRules`, `claimRuleStep`, `executeRuleStep`, `finishRuleStep` — устойчивые запуски без ИИ.
+
 ## Публичные контракты
 
-- `AutomationData`
+- `AutomationData`, `RuleData`
 - `WateringPlanData`: время, доза, ключ, причины, использованные показания и отклик; ADR-010.
 - `WeatherForecastData`, `WeatherForecastGateway`: исходные интервалы прогноза, модель, источник и устойчивое ожидание.
 - `PUT /api/automation/scenarios/enabled` принимает обязательный boolean
@@ -69,7 +73,7 @@
 теплицами, размещением растений со скоростью `rate_ml_per_hour`, resource
 bindings, scenario configs, scenario states и action log. Zigbee-привязка
 содержит внутренний `coordinator_id`. Устройства, датчики, насосы, растения,
-сессии полива и MQTT принадлежат другим доменам.
+сессии полива и MQTT принадлежат другим доменам. `automation_rules`, версии и запуски хранят декларативные правила, ключи запуска, паузы, lease и результаты.
 
 ## Используемые домены
 
@@ -78,7 +82,8 @@ bindings, scenario configs, scenario states и action log. Zigbee-привязк
 - `pump` — запуск, остановка, worker сессий, история и статистика.
 - `plant` — каталог растений.
 - `zigbee` — Zigbee metadata, state и команды.
-- `user` — часовой пояс владельца.
+- `user` — часовой пояс и блокировка владельца.
+- `notification` — постановка разрешённого уведомления в очередь.
 - `demo` — моделируемый прогноз через Facade, без внешнего HTTP.
 
 ## Внешние пользователи домена
@@ -92,12 +97,4 @@ REST строит собственные farms → greenhouses; канал за�
 
 ## Ограничения
 
-Пользователь может иметь несколько ферм и теплиц; теплица принадлежит одной
-ферме. Кондиционер допустим на обоих уровнях, остальные роли — на теплице.
-Физический канал занимает один слот. Чужой id выглядит отсутствующим даже для
-администратора в обычном кабинете. `WATER_PUMP` принимает native pump либо допущенный Zigbee-клапан,
-switch-роли — Zigbee writable state без известных поливных каналов, `LEAK_SENSOR` — readable property.
-Статистика оборудования разрешена только Zigbee-ролям `LIGHT_SWITCH`,
-`EXHAUST_SWITCH` и `AC_SWITCH`; admin может читать чужую привязку только через
-admin endpoint. Frontend не вычисляет readiness. Automation не пишет журнал
-растений.
+Теплица принадлежит одной ферме; физический канал занимает один слот. Обычный кабинет исключает чужие id также для admin. WATER_PUMP принимает native pump либо допущенный Zigbee-клапан; switch-роли — writable state без известных поливных каналов; LEAK_SENSOR — readable property. Статистика доступна Zigbee LIGHT_SWITCH, EXHAUST_SWITCH и AC_SWITCH. Frontend не вычисляет readiness, automation не пишет журнал растений. Правила v1 ограничены декларативным JSON: конфликт каналов блокирует включение, полив ограничен независимо от ИИ, неизвестная отправка не повторяется; детали — ADR-013.

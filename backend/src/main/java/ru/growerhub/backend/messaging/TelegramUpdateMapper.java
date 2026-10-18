@@ -15,7 +15,9 @@ public final class TelegramUpdateMapper {
                 || !"private".equals(message.path("chat").path("type").asText())) return null;
         String name = (sender.path("first_name").asText("") + " " + sender.path("last_name").asText("")).trim();
         if (sender.has("username")) name += " (@" + sender.path("username").asText() + ")";
+        JsonNode photo = message.path("photo").isArray() && !message.path("photo").isEmpty() ? message.path("photo").get(message.path("photo").size() - 1) : null;
         return new TelegramData.Update(body.path("update_id").asLong(), message.path("chat").path("id").asLong(),
-                true, name, message.path("text").asText(""), callback.path("id").asText(null), callback.path("data").asText(null));
+                true, name, message.path("text").asText(message.path("caption").asText("")), callback.path("id").asText(null), callback.path("data").asText(null),
+                callback.isMissingNode() && photo != null ? photo.path("file_id").asText(null) : null, photo == null ? 0 : photo.path("file_size").asLong());
     }
 }

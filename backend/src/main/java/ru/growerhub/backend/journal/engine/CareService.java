@@ -177,7 +177,7 @@ public class CareService {
         return new JournalPhoto(photo.getId(), photo.getUrl(), photo.getCaption(), photo.getData() != null);
     }
 
-    private void validate(CareData.EntryCommand command) {
+    public void validate(CareData.EntryCommand command) {
         if (command == null || !ACTIONS.contains(Objects.toString(command.action(), ""))) {
             throw new DomainException("unprocessable", "Выберите вид ухода");
         }

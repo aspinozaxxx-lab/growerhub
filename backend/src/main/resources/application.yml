@@ -365,6 +365,33 @@ weather:
   demo-default-kind: sunny
 
 automation:
+  rules:
+    # Maksimalnoe chislo polzovatelskih pravil.
+    maximum: 50
+    # Dlinna konechnoj posledovatelnosti dejstvij.
+    actions: 16
+    # Maksimalnaya vlozhennost uslovij.
+    condition-depth: 5
+    # Ogranichenie obshchego chisla uzlov uslovij.
+    condition-nodes: 64
+    # Minimalnyj interval zapuskov.
+    min-interval-seconds: 60
+    # Predel odnoj posledovatelnosti s pauzami.
+    max-delay-seconds: 86400
+    # Dop limit poliva; predely proshivki i pump takzhe obyazatelny.
+    max-watering-seconds: 300
+    # Predel sekund poliva odnogo kanala pravilami za poslednie sutki.
+    max-daily-watering-seconds: 1800
+    # Maksimalno dopustimyj vozrast dannyh v pravile.
+    max-freshness-seconds: 900
+    # Minimalnaya pauza mezhdu zapuskami odnogo pravila.
+    min-cooldown-seconds: 60
+    # Period proverki uslovij i konechnyh posledovatelnostej.
+    worker-ms: 5000
+    # Neizvestnaya komanda posle sboya ne povtoryaetsya.
+    lease-seconds: 60
+    # Glubina otobrazhaemoj istorii zapuskov.
+    history-limit: 50
   watering-plan:
     # Okno starta raspisaniya; propushchennyj poliv ne dogonyaetsya.
     execution-window-seconds: 90
@@ -603,3 +630,125 @@ spring:
       max-file-size: 6MB
       # Verhnij razmer multipart zaprosa.
       max-request-size: 7MB
+
+assistant:
+  # Vkluchenie pomoshchnika.
+  enabled: ${ASSISTANT_ENABLED:false}
+  # Razreshenie platnogo API posle proverki klyucha.
+  public-enabled: ${ASSISTANT_PUBLIC_ENABLED:false}
+  # Edinstvennyj akkaunt s lichnym Codex.
+  owner-user-id: ${ASSISTANT_OWNER_USER_ID:0}
+  # Lokalnyj tunel k lichnomu Codex.
+  owner-url: ${ASSISTANT_OWNER_URL:http://127.0.0.1:18787}
+  # Lokalnyj tunel k DeepSeek API.
+  public-url: ${ASSISTANT_PUBLIC_URL:http://127.0.0.1:18788}
+  # Sekret sluzhebnogo dostupa k Codex.
+  owner-token: ${ASSISTANT_OWNER_TOKEN:}
+  # Sekret sluzhebnogo dostupa k API.
+  public-token: ${ASSISTANT_PUBLIC_TOKEN:}
+  # Sekret psevdonimnyh klyuchej kvot.
+  hmac-secret: ${ASSISTANT_HMAC_SECRET:}
+  # Doverennye reverse proxy.
+  trusted-proxies: ${ASSISTANT_TRUSTED_PROXIES:127.0.0.1,::1}
+  # Model platnogo profilya.
+  public-model: deepseek-flash
+  # Usilie rassuzhdeniya platnogo profilya.
+  public-effort: high
+  # Pauza planirovshchika pomoshchnika.
+  worker-delay-ms: 1000
+  # Proverka dobrovolnyh otchetov i ochistki istorii.
+  reports-poll-ms: 60000
+  # Izolirovannye potoki ocheredi pomoshchnika i Telegram-foto.
+  scheduler-threads: 2
+  # Srok hraneniya dialogov i fotografij.
+  retention-days: 90
+  # Predel soobshchenij v kontekste.
+  context-messages: 12
+  # Predel teksta rezultata instrumenta.
+  max-tool-result-chars: 24000
+  # Srok podtverzhdeniya predlozheniya.
+  proposal-minutes: 15
+  # Chas otcheta po umolchaniyu.
+  report-hour: 9
+  # Publichnyj adres ssylok pomoshchnika.
+  site-url: ${ASSISTANT_SITE_URL:https://growerhub.ru}
+  budget:
+    # Limit month-micros; summa v mikro USD, tarif tokena v nano USD.
+    month-micros: 2000000
+    # Limit day-micros; summa v mikro USD, tarif tokena v nano USD.
+    day-micros: 150000
+    # Limit hour-micros; summa v mikro USD, tarif tokena v nano USD.
+    hour-micros: 30000
+    # Limit turn-micros; summa v mikro USD, tarif tokena v nano USD.
+    turn-micros: 15000
+    # Limit user-day-micros; summa v mikro USD, tarif tokena v nano USD.
+    user-day-micros: 30000
+    # Limit guests-day-micros; summa v mikro USD, tarif tokena v nano USD.
+    guests-day-micros: 20000
+    # Limit input-nano-usd; summa v mikro USD, tarif tokena v nano USD.
+    input-nano-usd: 300
+    # Limit output-nano-usd; summa v mikro USD, tarif tokena v nano USD.
+    output-nano-usd: 1200
+  limits:
+    # Predel account-minute.
+    account-minute: 3
+    # Predel account-day.
+    account-day: 30
+    # Predel guest-minute.
+    guest-minute: 1
+    # Predel guest-day.
+    guest-day: 3
+    # Predel owner-minute.
+    owner-minute: 5
+    # Predel owner-day.
+    owner-day: 100
+    # Predel ip-minute.
+    ip-minute: 10
+    # Predel ip-day.
+    ip-day: 100
+    # Predel public-concurrency.
+    public-concurrency: 2
+    # Predel owner-concurrency.
+    owner-concurrency: 1
+    # Predel queue-size.
+    queue-size: 8
+    # Predel queue-seconds.
+    queue-seconds: 60
+    # Predel lease-seconds.
+    lease-seconds: 180
+    # Predel owner-lease-seconds.
+    owner-lease-seconds: 600
+    # Predel max-text-chars.
+    max-text-chars: 6000
+    # Predel max-photos.
+    max-photos: 2
+    # Predel max-photo-bytes.
+    max-photo-bytes: 6291456
+    # Predel max-image-pixels.
+    max-image-pixels: 24000000
+    # Predel image-edge.
+    image-edge: 1536
+    # Predel account-photo-bytes.
+    account-photo-bytes: 104857600
+    # Predel guest-photo-bytes.
+    guest-photo-bytes: 12582912
+    # Obshchiy predel hraneniya fotografiy pomoshchnika.
+    total-photo-bytes: 1073741824
+    # Predel upload-minute.
+    upload-minute: 4
+    # Predel conversations-day.
+    conversations-day: 10
+    # Predel max-input-tokens.
+    max-input-tokens: 16000
+    # Predel max-output-tokens.
+    max-output-tokens: 4096
+    # Predel max-model-calls.
+    max-model-calls: 3
+    # Predel max-tool-calls.
+    max-tool-calls: 6
+    # Predel max-response-chars.
+    max-response-chars: 24000
+    # Ogranichenie chisla potokov otveta i vremeni odnogo podklyucheniya.
+    streams: 64
+    # Srok odnogo SSE podklyucheniya; povtor ne zapuskaet generaciyu.
+    stream-seconds: 60

@@ -34,6 +34,6 @@ export default function AppNotifications() {
       {state.connected && <div className="care-actions"><Button disabled={busy || !state.enabled} onClick={() => run(async () => { await telegramRequest('/test', 'POST'); setNotice(t('Пробное сообщение поставлено в очередь. Обычно доставка занимает до минуты.')); })}>{t('Пробное сообщение')}</Button><Button disabled={busy} onClick={() => run(async () => {})}>{t('Обновить статус')}</Button></div>}
       {state.lastStatus && <p role="status">{t('Последняя доставка')}: {t(statusText[state.lastStatus] || 'В очереди')}</p>}
     </section>}
-    <small>{t('Бот пока отвечает по-русски. Фото и заметки добавляются на сайте; в Telegram можно отмечать и переносить дела.')}</small>
+    <small>{t('Бот отвечает по-русски. В Telegram можно отмечать и переносить дела. Чат и фотографии включаются отдельно в помощнике.')} <Link to="/app/assistant/">{t('Открыть помощника')}</Link></small>
   </div>;
 }

@@ -41,6 +41,7 @@ function LegalPage({ type }) {
           <h2>{legalContent.pilot_privacy.title}</h2><p>{legalContent.pilot_privacy.text}</p>
           <h2>{legalContent.pushok_privacy.title}</h2><p>{legalContent.pushok_privacy.text}</p>
           <h2>{legalContent.shop_privacy.title}</h2><p>{legalContent.shop_privacy.text}</p>
+          <h2>{legalContent.assistant_privacy.title}</h2><p>{legalContent.assistant_privacy.text}</p>
         </>
       ) : (
         <>
@@ -48,6 +49,7 @@ function LegalPage({ type }) {
           <h2>{translatePublic('Подключение оборудования')}</h2><p>{translatePublic('Для оборудования с водой и сетевым питанием соблюдайте электробезопасность, проверяйте нагрузку и предусмотрите физическое аварийное отключение.')}</p>
           <h2>{translatePublic('Поддержка')}</h2><p>{translatePublic('Если понадобится помощь, напишите нам в Telegram — подскажем с подключением, устройствами и настройкой функций на русском или английском.')}</p>
           <h2>{legalContent.shop_terms.title}</h2><p>{legalContent.shop_terms.text}</p>
+          <h2>{legalContent.assistant_terms.title}</h2><p>{legalContent.assistant_terms.text}</p>
         </>
       )}
       <h2>{(isPrivacy ? legalContent.demo_privacy : legalContent.demo_terms).title}</h2>

@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "backend/**"
+      - "ai_runtime/**"
       - "firmware/**"
       - "ansible/**"
       - ".github/workflows/ci-cd-backend.yml"
@@ -11,6 +12,7 @@ on:
     branches: [ "main" ]
     paths:
       - "backend/**"
+      - "ai_runtime/**"
       - "firmware/**"
       - "ansible/**"
       - ".github/workflows/ci-cd-backend.yml"
@@ -50,6 +52,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Setup AI runtime Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.22.0"
+
+      - name: Test AI runtime
+        working-directory: ai_runtime
+        run: node --test
 
       - name: Install PlatformIO
         run: pip install platformio

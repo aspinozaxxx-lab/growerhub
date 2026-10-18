@@ -19,9 +19,16 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 import ru.growerhub.backend.common.contract.ApiError;
 import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.device.contract.DeviceClaimRateLimitException;
+import ru.growerhub.backend.advisor.contract.AssistantLimitException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(AssistantLimitException.class)
+    public ResponseEntity<ApiError> handleAssistantLimit(AssistantLimitException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).header(HttpHeaders.RETRY_AFTER, Integer.toString(ex.retryAfter()))
+                .body(new ApiError(ex.getMessage()));
+    }
 
     @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiError> handleUploadSize(org.springframework.web.multipart.MaxUploadSizeExceededException ex) {

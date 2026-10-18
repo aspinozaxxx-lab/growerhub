@@ -15,8 +15,10 @@ import {
 import { translateCommon } from '../../locales/i18n';
 import { APP_NAV_ITEMS, SETTINGS_TABS } from '../../pages/app/appNavigation';
 import useSeoMeta from '../../utils/useSeoMeta';
+import AssistantEntry from '../../features/assistant/AssistantEntry';
 
 const PAGE_LABELS = [
+  { to: '/app/assistant/', label: 'Помощник GrowerHub', end: true },
   { to: '/app/plants/:plantId/journal/', label: 'Журнал растения', end: true },
   { to: '/app/manual-watering/', label: 'Ручной полив', end: true },
   { to: '/app/demo-tools/', label: 'Устройства и условия среды', end: true },
@@ -115,6 +117,7 @@ function AppLayout() {
           {renderNavItems()}
         </nav>
       </div>
+      {!adminRoute && <AssistantEntry />}
     </div>
   );
 }

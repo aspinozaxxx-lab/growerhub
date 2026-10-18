@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import RuleCards from '../../features/assistant/RuleCards';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Check, ChevronRight, Clock3, Droplets, Info, Moon, Pencil, Power, Sun, Thermometer } from 'lucide-react';
 import AppPageHeader from '../../components/layout/AppPageHeader';
@@ -66,12 +67,13 @@ function AppAutomations() {
   const automation = useAutomations();
   const { overview, farms, greenhouses, busy, error, notice } = automation;
   const [selectedId, setSelectedId] = useState(null);
+  const [customRulesEnabled, setCustomRulesEnabled] = useState(false);
   const selected = greenhouses.find((greenhouse) => greenhouse.id === selectedId) || greenhouses[0];
   const allScenarios = farms.flatMap((farm) => [
     ...listOrEmpty(farm.scenarios),
     ...listOrEmpty(farm.greenhouses).flatMap((greenhouse) => listOrEmpty(greenhouse.scenarios)),
   ]);
-  const anyEnabled = allScenarios.some((scenario) => scenario.enabled);
+  const anyEnabled = customRulesEnabled || allScenarios.some((scenario) => scenario.enabled);
   const allEnabled = greenhouses.length > 0 && greenhouses.every((greenhouse) => (
     FARM_SCENARIO_TYPES.every((type) => automation.scenarioFor(greenhouse, type).enabled)
   ));
@@ -176,6 +178,7 @@ function AppAutomations() {
         {masterActions}
       </section>}
       <div className="automations-feedback" role="status" aria-live="polite">{notice}</div>
+      <RuleCards onChange={setCustomRulesEnabled} refreshKey={overview} farms={farms} />
       {overview && greenhouses.length === 0 ? (
         <AppPageState kind="empty" title={t(farms.length ? 'Сначала добавьте теплицу' : 'Сначала создайте ферму')}>
           <Link to="/app/settings/zones/">{t('Открыть настройки зон')}</Link>

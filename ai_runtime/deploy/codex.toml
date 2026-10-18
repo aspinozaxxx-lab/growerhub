@@ -1,0 +1,38 @@
+approval_policy = "never"
+sandbox_mode = "read-only"
+web_search = "disabled"
+project_doc_max_bytes = 0
+file_opener = "none"
+cli_auth_credentials_store = "file"
+
+[features]
+shell_tool = false
+shell_snapshot = false
+multi_agent = false
+goals = false
+remote_plugin = false
+skill_mcp_dependency_install = false
+skill_search = false
+memories = false
+apps = false
+browser_use = false
+computer_use = false
+view_image = false
+code_mode_host = true
+workspace_dependencies = false
+worktrees = false
+unbounded_connection_retries = false
+hooks = true
+
+[apps._default]
+enabled = false
+
+[history]
+persistence = "none"
+
+[[hooks.PreToolUse]]
+matcher = "*"
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "/usr/bin/python3 /opt/growerhub-ai/deploy/allow-tools.py"
+timeout = 5

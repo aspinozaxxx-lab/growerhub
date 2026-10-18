@@ -31,6 +31,8 @@ import ru.growerhub.backend.common.config.automation.WeatherSettings;
 import ru.growerhub.backend.demo.DemoFacade;
 import org.springframework.beans.factory.ObjectProvider;
 import ru.growerhub.backend.automation.engine.WateringPlanEngine;
+import ru.growerhub.backend.automation.engine.RuleService;
+import ru.growerhub.backend.automation.contract.RuleData;
 import ru.growerhub.backend.common.config.automation.WateringPlanSettings;
 import ru.growerhub.backend.automation.jpa.AutomationActionLogEntity;
 import ru.growerhub.backend.automation.jpa.AutomationActionLogRepository;
@@ -143,6 +145,7 @@ public class AutomationFacade {
     private final WeatherSettings weatherSettings;
     private final WeatherForecastGateway weatherForecast;
     private final ObjectProvider<DemoFacade> demos;
+    private final RuleService rules;
 
     public AutomationFacade(
             AutomationRoomRepository roomRepository,
@@ -164,7 +167,7 @@ public class AutomationFacade {
             java.time.Clock clock,
             WateringPlanEngine wateringPlans,
             WateringPlanSettings wateringPlanSettings,
-            WeatherSettings weatherSettings, WeatherForecastGateway weatherForecast, ObjectProvider<DemoFacade> demos
+            WeatherSettings weatherSettings, WeatherForecastGateway weatherForecast, ObjectProvider<DemoFacade> demos, RuleService rules
     ) {
         this.roomRepository = roomRepository;
         this.boxRepository = boxRepository;
@@ -186,6 +189,43 @@ public class AutomationFacade {
         this.wateringPlans = wateringPlans;
         this.wateringPlanSettings = wateringPlanSettings;
         this.weatherSettings = weatherSettings; this.weatherForecast = weatherForecast; this.demos = demos;
+        this.rules = rules;
+    }
+
+    @Transactional(readOnly = true)
+    public List<RuleData.Rule> listRules(AuthenticatedUser user) { return rules.list(user); }
+    @Transactional(readOnly = true)
+    public RuleData.Rule getRule(UUID id, AuthenticatedUser user) { return rules.get(id, user); }
+    @Transactional(readOnly = true)
+    public RuleData.Preview previewRule(UUID id, RuleData.Definition definition, AuthenticatedUser user) { return rules.preview(id, definition, user); }
+    public RuleData.Rule saveRule(UUID id, RuleData.Save command, AuthenticatedUser user) { return rules.save(id, command, user); }
+    public RuleData.Rule toggleRule(UUID id, RuleData.Toggle command, AuthenticatedUser user) { return rules.toggle(id, command, user); }
+    public RuleData.Rule restoreRule(UUID id, RuleData.Restore command, AuthenticatedUser user) { return rules.restore(id, command, user); }
+    @Transactional(readOnly = true)
+    public List<RuleData.Version> ruleVersions(UUID id, AuthenticatedUser user) { return rules.versions(id, user); }
+    @Transactional(readOnly = true)
+    public List<RuleData.Run> ruleHistory(UUID id, AuthenticatedUser user) { return rules.history(id, user); }
+    @Transactional(readOnly = true)
+    public String ruleFingerprint(RuleData.Definition definition, AuthenticatedUser user) { return rules.fingerprint(definition, user); }
+    @Transactional(readOnly = true)
+    public String scenarioFingerprint(String scope, int id, AuthenticatedUser user) { return rules.scenarioFingerprint(scope, id, user); }
+    @Transactional(readOnly = true)
+    public com.fasterxml.jackson.databind.JsonNode previewDeviceCommand(com.fasterxml.jackson.databind.JsonNode command, AuthenticatedUser user) { return rules.validateCommand(command, user); }
+    public com.fasterxml.jackson.databind.JsonNode applyDeviceCommand(com.fasterxml.jackson.databind.JsonNode command, AuthenticatedUser user) { return rules.command(command, user); }
+    @Transactional(readOnly = true)
+    public List<Integer> ruleOwnersDue() { return rules.ownersDue(); }
+    public void evaluateRules(Integer owner) { rules.evaluate(owner); }
+    public RuleData.Step claimRuleStep(Integer owner) { return rules.claim(owner); }
+    public com.fasterxml.jackson.databind.JsonNode executeRuleStep(RuleData.Step step) { return rules.execute(step); }
+    public void finishRuleStep(RuleData.Step step, com.fasterxml.jackson.databind.JsonNode result, boolean success) { rules.finish(step, result, success); }
+
+    @Transactional(readOnly = true)
+    public void previewScenario(AuthenticatedUser user, String scope, Integer scopeId, AutomationData.ScenarioConfigRequest command) {
+        if (AutomationData.SCOPE_ROOM.equals(scope)) requireOwnedFarm(user, scopeId); else if (AutomationData.SCOPE_BOX.equals(scope)) requireOwnedGreenhouse(user, scopeId);
+        else throw new DomainException("unprocessable", "Выберите ферму или теплицу");
+        var allowed = AutomationData.SCOPE_ROOM.equals(scope) ? ROOM_SCENARIOS : BOX_SCENARIOS;
+        if (!allowed.contains(command.scenarioType())) throw new DomainException("unprocessable", "Сценарий недоступен для этой области");
+        validateScenarioConfig(scope, scopeId, command.scenarioType(), Boolean.TRUE.equals(command.enabled()), mergeDefaults(command.scenarioType(), command.config()));
     }
 
     @Transactional(readOnly = true)
@@ -335,6 +375,8 @@ public class AutomationFacade {
             throw new DomainException("bad_request", "Поле enabled обязательно");
         }
         boolean enabled = request.enabled();
+        if (user.isDemo()) userFacade.lockDemoOwner(user.id()); else userFacade.lockAccount(user.id());
+        if (!enabled) rules.disableAll(user);
         List<AutomationRoomEntity> farms = roomRepository.findAllByUserIdOrderByNameAscIdAsc(user.id());
         List<AutomationBoxEntity> greenhouses = boxRepository.findAllByRoom_UserIdOrderByNameAscIdAsc(user.id());
         Catalog catalog = enabled ? buildOwnedCatalog(user) : null;
@@ -352,6 +394,7 @@ public class AutomationFacade {
                     continue;
                 }
                 if (enabled) {
+                    rules.requireFixedChannelAvailable(user, AutomationData.SCOPE_BOX, greenhouse.getId(), scenarioType);
                     validateScenarioConfig(AutomationData.SCOPE_BOX, greenhouse.getId(), scenarioType,
                             true, config == null ? defaultConfig(scenarioType) : configMap(config, scenarioType));
                 }
@@ -1533,6 +1576,10 @@ public class AutomationFacade {
                 }
             }
             validateScenarioConfig(scopeType, scopeId, scenarioType, Boolean.TRUE.equals(item.enabled()), mergedConfig);
+            if (Boolean.TRUE.equals(item.enabled())) {
+                Integer owner = AutomationData.SCOPE_ROOM.equals(scopeType) ? requireRoom(scopeId).getUserId() : requireBox(scopeId).getRoom().getUserId();
+                rules.requireFixedChannelAvailable(new AuthenticatedUser(owner, userFacade.isDemoOwner(owner) ? "demo" : "user"), scopeType, scopeId, scenarioType);
+            }
             entity.setEnabled(Boolean.TRUE.equals(item.enabled()));
             entity.setConfigJson(writeJson(mergedConfig));
             entity.setUpdatedAt(now);

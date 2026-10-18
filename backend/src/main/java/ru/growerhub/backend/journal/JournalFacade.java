@@ -79,6 +79,16 @@ public class JournalFacade {
     public List<ru.growerhub.backend.journal.contract.CareData.Summary> careSummaries(AuthenticatedUser user) {
         return care.summaries(user);
     }
+    @Transactional(readOnly = true)
+    public void validateCareEntry(Integer plantId, AuthenticatedUser user,
+            ru.growerhub.backend.journal.contract.CareData.EntryCommand command) {
+        plantFacade.requireOwnedPlantInfo(plantId, user); care.validate(command);
+    }
+    @Transactional(readOnly = true)
+    public void validateCareReminder(AuthenticatedUser user,
+            ru.growerhub.backend.journal.contract.CareData.ReminderCommand command) {
+        plantFacade.requireOwnedPlantInfo(command.plantId(), user); reminders.validate(command);
+    }
     @Transactional
     public ru.growerhub.backend.journal.contract.CareData.Item createCareEntry(Integer plantId, AuthenticatedUser user,
             ru.growerhub.backend.journal.contract.CareData.EntryCommand command) { return care.create(plantId, user, command); }

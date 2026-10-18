@@ -1,0 +1,53 @@
+import { beforeEach, afterEach, expect, test, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
+import AssistantChat from './AssistantChat';
+import { assistantRequest } from '../../api/assistant';
+vi.mock('../../api/assistant', () => ({ assistantRequest: vi.fn(), watchAssistant: vi.fn().mockResolvedValue(), uploadAssistantPhoto: vi.fn(), assistantPhoto: vi.fn() }));
+vi.mock('../../locales/i18n', () => ({ translateApp: (value, params = {}) => value.replace(/\{\{(\w+)\}\}/g, (_, key) => String(params[key])) }));
+const cap = { enabled: true, available: true, owner: false, demo: false, model: 'deepseek-flash', effort: 'high', models: [], limits: { remainingDay: 30 }, preferences: { telegram: false, report: 'off', hour: 9, weekday: 1 } };
+const chat = { id: 'chat-1', title: 'Уход', model: 'deepseek-flash', effort: 'high' };
+let history;
+beforeEach(() => {
+  vi.clearAllMocks(); history = [];
+  assistantRequest.mockImplementation(async (path, method) => {
+    if (path === '/capabilities') return cap;
+    if (path === '/conversations') return [chat];
+    if (path.endsWith('/messages') && !method) return history;
+    return {};
+  });
+});
+afterEach(cleanup);
+const mount = () => render(<MemoryRouter><AssistantChat /></MemoryRouter>);
+test('a proposal is never applied by reading the chat and confirmation carries its exact version', async () => {
+  history = [{ id: 'message-1', text: 'Запиши уход', answer: 'Проверьте карточку', status: 'completed', attachments: [], proposals: [{ id: 'proposal-1', title: 'Записать осмотр', kind: 'care', payload: { text: 'Листья без пятен' }, status: 'pending', revision: 'version-7' }] }];
+  mount(); await screen.findByText('Записать осмотр');
+  expect(assistantRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: 'Подтвердить', exact: true }));
+  await waitFor(() => expect(assistantRequest).toHaveBeenCalledWith('/proposals/proposal-1/confirm', 'POST', { revision: 'version-7' }));
+  expect(screen.queryByLabelText('Модель')).not.toBeInTheDocument();
+});
+test('an ambiguous send does not automatically retry and manual retry keeps the same request key', async () => {
+  const ordinary = assistantRequest.getMockImplementation(); let failed = false;
+  assistantRequest.mockImplementation(async (path, method, body) => {
+    if (path.endsWith('/messages') && method === 'POST') {
+      if (!failed) { failed = true; throw new Error('Связь прервалась'); }
+      return { id: 'sent', text: body.text, status: 'completed', answer: 'Ответ', attachments: [], proposals: [] };
+    }
+    return ordinary(path, method, body);
+  });
+  mount(); await screen.findByRole('textbox', { name: 'Ваш вопрос' });
+  fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Как растение?' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Отправить', exact: true }));
+  await screen.findByText('Связь прервалась');
+  const sent = () => assistantRequest.mock.calls.filter(([, method]) => method === 'POST');
+  expect(sent()).toHaveLength(1);
+  fireEvent.click(screen.getByRole('button', { name: 'Проверить отправку' }));
+  await waitFor(() => expect(sent()).toHaveLength(2));
+  expect(sent()[0][2]).toEqual(sent()[1][2]);
+});
+test('device delivery is shown separately from actual device state', async () => {
+  history = [{ id: 'message-1', text: 'Включи', status: 'completed', attachments: [], proposals: [{ id: 'proposal-1', title: 'Лампа', kind: 'device', payload: { type: 'set', value: 'ON' }, status: 'applied', revision: 'version-7' }] }];
+  mount(); await screen.findByText('Команда передана устройству. Фактическое состояние смотрите на ферме.');
+  expect(screen.queryByRole('button', { name: 'Подтвердить' })).not.toBeInTheDocument();
+});

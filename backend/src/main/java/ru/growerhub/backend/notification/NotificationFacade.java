@@ -31,4 +31,14 @@ public class NotificationFacade {
     public List<TelegramData.Delivery> claim() { return telegram.claim(); }
     @Transactional
     public void finish(TelegramData.Delivery delivery, TelegramData.Result result) { telegram.finish(delivery, result); }
+    @Transactional
+    public boolean enqueueMessage(AuthenticatedUser user, String key, String text, String keyboard) { return telegram.enqueueMessage(user, key, text, keyboard); }
+    @Transactional
+    public void configureAssistant(AuthenticatedUser user, boolean enabled) { telegram.configureAssistant(user, enabled); }
+    @Transactional(readOnly = true)
+    public boolean assistantAllowed(AuthenticatedUser user) { return telegram.assistantAllowed(user); }
+    @Transactional
+    public TelegramData.Inbox claimAssistantInbox() { return telegram.claimAssistantInbox(); }
+    @Transactional
+    public void finishAssistantInbox(TelegramData.Inbox item, String status) { telegram.finishAssistantInbox(item, status); }
 }

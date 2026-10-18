@@ -11,7 +11,7 @@ Backend построен вокруг доменов. Адаптеры REST и M
 - `common` - стабильные общие контракты, утилиты и конфигурационный wiring.
 - `config` - общая конфигурация приложения.
 - `diagnostics` - техническая диагностика.
-- `llm` - внешний шлюз для advisor.
+- `llm` — внешние шлюзы advisor и отдельный worker помощника; предметные инструменты вызывает только backend через Facade.
 - `weather` — технический HTTP-кеш MET Norway, реализация `automation.contract.WeatherForecastGateway` без JPA и команд полива.
 - доменные пакеты - `advisor`, `auth`, `automation`, `demo`, `device`, `firmware`, `journal`, `maintenance`, `notification`, `onboarding`, `plant`, `pump`, `sensor`, `shop`, `user`, `zigbee`.
 
@@ -19,7 +19,7 @@ Backend построен вокруг доменов. Адаптеры REST и M
 
 Фактические домены backend:
 
-- `advisor` - рекомендации по поливу.
+- `advisor` — рекомендации, диалоги помощника, подтверждения, сводки и квоты (ADR-013).
 - `auth` - аутентификация, токены, методы входа и SSO.
 - `automation` - помещения, боксы, привязки ресурсов и сценарии автоматизации.
 - `device` - устройства, shadow, ACK и service events.
