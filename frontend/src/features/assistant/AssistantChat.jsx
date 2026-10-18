@@ -6,6 +6,7 @@ import { translateApp as t } from '../../locales/i18n';
 import { assistantPhoto } from '../../api/assistant';
 import useAssistant from './useAssistant';
 import RuleExplanation from './RuleExplanation';
+import AssistantText from './AssistantText';
 import './assistant.css';
 
 const status = { queued: 'В очереди', running: 'Думаю…', completed: 'Готово', incomplete: 'Ответ остановлен на лимите', failed: 'Ответ недоступен', uncertain: 'Результат неизвестен', cancelled: 'Остановлено', pending: 'Ждёт подтверждения', confirmed: 'Подтверждено', applying: 'Применяется', applied: 'Изменение применено', stale: 'Настройки изменились', rejected: 'Отклонено', expired: 'Предложение устарело' };
@@ -64,7 +65,7 @@ export default function AssistantChat({ initialText = '' }) {
       </form>}
       <div className="assistant-messages" ref={messagesRef} onScroll={e => { const el = e.currentTarget; followEnd.current = el.scrollHeight - el.clientHeight - el.scrollTop < 64; }} aria-label={t('История разговора')}>
         {!a.messages.length && <div className="assistant-welcome"><span aria-hidden="true">🌱</span><h3>{t('С чего начнём?')}</h3><div className="assistant-suggestions">{['Что сейчас с моей фермой?', 'Помоги составить расписание света', 'На что обратить внимание в уходе?'].map(q => <button type="button" key={q} onClick={() => a.setText(t(q))}>{t(q)}</button>)}</div><p>{t('Можно приложить фото растения. Помощник предложит изменения, а решение останется за вами.')}</p></div>}
-        {a.messages.map(m => <article key={m.id} className="assistant-exchange"><div className="assistant-question"><small>{t('Вы')}</small><p>{m.text}</p><div className="assistant-photos">{m.attachments?.map(id => <Photo key={id} id={id} />)}</div></div><div className="assistant-answer"><small>{t('Помощник')}</small><p>{m.answer}</p><span className="assistant-status">{t(status[m.status] || m.status)}</span>{m.error && <p>{t('Попробуйте задать вопрос короче или открыть новый разговор.')}</p>}{m.proposals?.map(p => <Proposal key={p.id} item={p} onAction={a.proposal} busy={a.busy} />)}</div></article>)}
+        {a.messages.map(m => <article key={m.id} className="assistant-exchange"><div className="assistant-question"><small>{t('Вы')}</small><p>{m.text}</p><div className="assistant-photos">{m.attachments?.map(id => <Photo key={id} id={id} />)}</div></div><div className="assistant-answer"><small>{t('Помощник')}</small><AssistantText text={m.answer} /><span className="assistant-status">{t(status[m.status] || m.status)}</span>{m.error && <p>{t('Попробуйте задать вопрос короче или открыть новый разговор.')}</p>}{m.proposals?.map(p => <Proposal key={p.id} item={p} onAction={a.proposal} busy={a.busy} />)}</div></article>)}
       </div>
       <form className="assistant-compose" onSubmit={e => { e.preventDefault(); a.send(); }}>
         <label className="sr-only" htmlFor="assistant-text">{t('Ваш вопрос')}</label><textarea id="assistant-text" rows="2" maxLength={6000} placeholder={t('Напишите, с чем нужна помощь…')} value={a.text} disabled={!!a.pending || a.busy} onChange={e => a.setText(e.target.value)} />
