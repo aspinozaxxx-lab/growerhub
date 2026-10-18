@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id":"phalaenopsis-bark-watering-guide","published_at":"2026-10-18","kind":"article","article_id":"poliv-falenopsisa-v-kore","preview_position":"50% 50%"},
     { "id": "deferred-article-markdown-index", "published_at": "2026-10-17", "kind": "fix", "text": "Reduced the site's initial download size while keeping article text, illustrations and navigation available as before." },
     {"id":"cyclamen-cool-window-watering-guide","published_at":"2026-10-17","kind":"article","article_id":"tsiklamen-doma-prohlada-i-poliv","preview_position":"42% 45%"},
     {"id":"african-violet-leaf-rooting-guide","published_at":"2026-10-16","kind":"article","article_id":"fialka-iz-lista-ukorenenie","preview_position":"50% 45%"},
