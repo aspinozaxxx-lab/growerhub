@@ -26,9 +26,9 @@ function Proposal({ item, onAction, busy }) {
     {item.kind === 'device' && <p>{p.type === 'water' ? `${t('Полив')}: ${p.durationSeconds} ${t('с')}` : `${t('Состояние')}: ${p.value}`}</p>}
     {item.kind === 'reminder' && <p>{p.title} · {p.dueAt} UTC</p>}
     {item.kind === 'care' && <p>{p.text}</p>}
-    {['rule', 'scenario'].includes(item.kind) && <p>{t(p.enabled ? 'Начнёт работать при ближайшем выполнении условий' : 'Сохранится выключенным')}</p>}
+    {['rule', 'scenario'].includes(item.kind) && <p>{t(item.status === 'applied' ? (p.enabled ? 'Сохранён включённым' : 'Сохранён выключенным') : (p.enabled ? 'Начнёт работать при ближайшем выполнении условий' : 'Сохранится выключенным'))}</p>}
     {item.kind === 'rule' && <RuleExplanation definition={p.definition} resourceNames={p.resourceNames} scopeName={p.scopeName} />}
-    <small>{t('Изменение начнётся только после вашего подтверждения.')}</small>
+    {item.status === 'pending' && <small>{t('Изменение начнётся только после вашего подтверждения.')}</small>}
     {item.kind === 'scenario' && <details><summary>{t('Настройки сценария')}</summary><dl>{Object.entries(p.config || {}).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{String(v)}</dd></div>)}</dl></details>}
     <p role="status">{t(item.kind === 'device' && item.status === 'applied' ? 'Команда передана устройству. Фактическое состояние смотрите на ферме.' : status[item.status] || item.status)}</p>
     {item.status === 'pending' && <div className="assistant-actions"><Button variant="primary" disabled={busy} onClick={() => onAction(item, false)}>{t('Подтвердить')}</Button><Button disabled={busy} onClick={() => onAction(item, true)}>{t('Не применять')}</Button></div>}

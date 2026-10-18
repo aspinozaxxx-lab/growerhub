@@ -1325,6 +1325,8 @@
   "Фото растения": "Plant photo",
   "Начнёт работать при ближайшем выполнении условий": "Will start when its conditions next match",
   "Сохранится выключенным": "Will be saved disabled",
+  "Сохранён включённым": "Saved enabled",
+  "Сохранён выключенным": "Saved disabled",
   "Изменение начнётся только после вашего подтверждения.": "The change starts only after your confirmation.",
   "Настройки сценария": "Routine settings",
   "Не применять": "Do not apply",

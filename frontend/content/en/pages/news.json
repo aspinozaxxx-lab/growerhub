@@ -13,7 +13,7 @@
   },
   "entries": [
     {"id":"assistant-final-step-proposal","published_at":"2026-10-18","kind":"fix","text":"Fixed a case where the assistant checked a routine but could not prepare its confirmation card on the final step. A redundant check before preparing the card was removed; spending limits remain in place."},
-    {"id":"assistant-readable-replies","published_at":"2026-10-18","kind":"fix","text":"Assistant replies now display lists and emphasis without raw Markdown symbols, making them easier to read on a phone."},
+    {"id":"assistant-readable-replies","published_at":"2026-10-18","kind":"fix","text":"Assistant replies now display lists and emphasis without raw Markdown symbols, making them easier to read on a phone. Cards clearly show the saved state, and editing prompts use routine names instead of internal identifiers."},
     {"id":"farm-assistant-and-custom-scenarios","published_at":"2026-10-18","kind":"feature","article_id":"pomoshchnik-rasteniy-i-scenarii-growerhub","preview_position":"65% 30%"},
     {"id":"phalaenopsis-bark-watering-guide","published_at":"2026-10-18","kind":"article","article_id":"poliv-falenopsisa-v-kore","preview_position":"50% 50%"},
     { "id": "deferred-article-markdown-index", "published_at": "2026-10-17", "kind": "fix", "text": "Reduced the site's initial download size while keeping article text, illustrations and navigation available as before." },
