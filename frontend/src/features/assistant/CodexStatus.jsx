@@ -19,7 +19,10 @@ export default function CodexStatus() {
   const operation = maintenance?.operation; const active = operation && !operation.finishedAt;
   const load = async () => {
     const [status, update] = await Promise.all([assistantRequest('/runtime'), assistantRequest('/runtime/update')]);
-    if (live.current) { setState(status); setMaintenance(update); }
+    if (live.current) {
+      setState(status); setMaintenance(update);
+      if (pending.current && update.operation?.id === pending.current.id) { pending.current = null; setConfirm(null); }
+    }
   };
   useEffect(() => {
     live.current = true;

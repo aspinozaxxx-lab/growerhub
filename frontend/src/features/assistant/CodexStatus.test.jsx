@@ -38,3 +38,20 @@ test('forbidden accounts do not get update controls', async () => {
   await waitFor(() => expect(assistantRequest).toHaveBeenCalled());
   expect(container).toBeEmptyDOMElement();
 });
+test('a lost update response is recovered by its id without offering to send it again', async () => {
+  let operation = null;
+  assistantRequest.mockImplementation(async (path, method, body) => {
+    if (path === '/runtime') return status;
+    if (method === 'POST') {
+      operation = { id: body.id, phase: 'succeeded', previous: '0.163.0', target: '0.164.0', installed: '0.164.0', finishedAt: new Date().toISOString() };
+      throw new Error('Connection interrupted');
+    }
+    return { enabled: true, operation };
+  });
+  render(<CodexStatus />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Обновить Codex' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Запустить обновление' }));
+  await screen.findByText('Обновление завершено, ответ помощника проверен');
+  expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  expect(assistantRequest.mock.calls.filter(([, method]) => method === 'POST')).toHaveLength(1);
+});
