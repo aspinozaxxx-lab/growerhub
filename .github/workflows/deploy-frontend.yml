@@ -162,7 +162,7 @@ jobs:
           for attempt in $(seq 1 180); do
             if ssh -p "$SSH_PORT" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
               "$SSH_USER@$SSH_HOST" \
-              "python3 -c 'import zipfile; z=zipfile.ZipFile(\"/opt/growerhub/current/backend/app.jar\"); assert \"BOOT-INF/classes/ru/growerhub/backend/api/AssistantController.class\" in z.namelist()' && curl -fsS --max-time 5 http://127.0.0.1:18080/health >/dev/null"; then
+              "python3 -c 'import zipfile; z=zipfile.ZipFile(\"/opt/growerhub/current/backend/app.jar\"); assert \"BOOT-INF/classes/ru/growerhub/backend/advisor/engine/AssistantRequests.class\" in z.namelist()' && curl -fsS --max-time 5 http://127.0.0.1:18080/health >/dev/null"; then
               ready=1
               break
             fi
