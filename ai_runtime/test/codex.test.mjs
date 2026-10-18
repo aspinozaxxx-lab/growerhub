@@ -18,6 +18,7 @@ class FakeRpc {
     if (method === 'thread/start') return { thread: { id: 't1' } };
     if (method === 'turn/start') {
       queueMicrotask(() => {
+        if (this.mode === 'last') for (let n=1;n<=3;n++) this.event('thread/tokenUsage/updated', {tokenUsage:{total:{inputTokens:n*100,outputTokens:n*10},last:{inputTokens:100,outputTokens:10}}});
         this.event('item/agentMessage/delta', { delta: 'Готово' });
         this.event('item/tool/call', { callId: 'call1', tool: this.mode === 'bad' ? 'exec_command' : 'gh_farm_report', arguments: {} }, 40);
       });
@@ -39,6 +40,13 @@ test('Codex exposes only domain tools, uses isolated ephemeral threads and verif
   assert.deepEqual(thread.dynamicTools.map(t => t.name), ['gh_farm_report']); assert.ok(instances.every(r => r.closed));
   const invalid = await provider.run({ ...job, effort: 'invented' }, { signal: new AbortController().signal, emit() {}, tool() {} });
   assert.equal(invalid.code, 'model_rejected'); assert.equal(instances.length, 2);
+});
+test('Codex preserves the final tool result without starting another generation', async () => {
+  const instances = []; let executed = 0;
+  const provider = new CodexProvider({cwd:'/empty',startRpc:()=>{ const rpc=new FakeRpc('last'); instances.push(rpc); return rpc; }});
+  const outcome = await provider.run(job,{signal:new AbortController().signal,emit(){},tool:async()=>{executed++; return {id:'proposal',status:'pending'};}});
+  assert.equal(executed,1); assert.equal(outcome.status,'incomplete'); assert.equal(outcome.code,null);
+  assert.equal(instances[1].results.length,0); assert.ok(instances.every(r=>r.closed));
 });
 test('Unexpected Codex RPC never reaches a backend tool', async () => {
   const instances = []; const provider = new CodexProvider({ cwd: '/empty', startRpc: () => { const rpc = new FakeRpc('bad'); instances.push(rpc); return rpc; } });

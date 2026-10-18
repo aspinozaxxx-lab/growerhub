@@ -181,7 +181,7 @@ public class AssistantTools {
                 "triggers", List.of("{type:schedule,at:HH:mm,days?:[1..7]}", "{type:interval,seconds:60..86400,anchor:ISO_UTC}", "{type:change,resourceId,maxAgeSeconds:1..900}"),
                 "conditions", List.of("{type:all|any,conditions:[...]}", "{type:not,condition:...}", "{type:time,from:HH:mm,until:HH:mm,days?:[1..7]}", "{type:stage,plantId,stage}", "{type:sensor,resourceId,op:gt|gte|lt|lte|eq|ne,value,hysteresis?:number,holdSeconds?:0..86400,maxAgeSeconds:1..900}"),
                 "actions", List.of("{type:set,resourceId,value:ON|OFF или on_value/off_value устройства}", "{type:water,resourceId,durationSeconds:1..300}", "{type:delay,seconds:1..86400}", "{type:notify,text}"),
-                "limits", "До 16 действий; паузы суммарно до суток. Сначала проверь gh_validate_rule. Для света и климата set, для насоса только water. Конфликтующее правило надо сначала отключить явно.");
+                "limits", "До 16 действий; паузы суммарно до суток. gh_prepare_change сам проверит правило перед созданием карточки. gh_validate_rule нужен только для отдельного предварительного разбора. Для света и климата set, для насоса только water. Конфликтующее правило надо сначала отключить явно.");
     }
 
     private List<ScenarioConfig> scenarioSource(JsonNode payload, AuthenticatedUser user) {

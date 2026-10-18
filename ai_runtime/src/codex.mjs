@@ -81,7 +81,7 @@ export class CodexProvider {
     } finally { connection.close(); }
   }
   async run(job, { signal, emit, tool }) {
-    let connection, text = '', inputTokens = 0, outputTokens = 0, calls = 0, toolCount = 0;
+    let connection, text = '', inputTokens = 0, outputTokens = 0, calls = 0, toolCount = 0, pendingTools = 0, limited = false;
     try {
       const model = (await this.models()).find(item => item.id === job.model);
       if (!model || !model.efforts.includes(job.effort)) throw new ProviderFailure('model_rejected');
@@ -119,12 +119,22 @@ export class CodexProvider {
           if (message.method === 'disconnected') return reject(new ProviderFailure('codex_disconnected'));
           if (message.id !== undefined) {
             if (message.method !== 'item/tool/call' || p.threadId !== threadId || !allowed.has(p.tool)
-                || ++toolCount > Math.min(job.maxToolCalls, LIMITS.tools) || calls >= Math.min(job.maxModelCalls, LIMITS.calls)) {
+                || ++toolCount > Math.min(job.maxToolCalls, LIMITS.tools) || calls > Math.min(job.maxModelCalls, LIMITS.calls)) {
               rpc.reject(message.id); reject(new ProviderFailure('tool_rejected')); return;
             }
+            pendingTools++;
             Promise.resolve(tool({ id: p.callId, name: p.tool, arguments: p.arguments })).then(result => {
+              pendingTools--;
+              // Kartochka uzhe podgotovlena backend; ne zapuskaem novuju generaciyu s ee rezultatom.
+              if (calls >= Math.min(job.maxModelCalls, LIMITS.calls)) {
+                limited = true; if (!pendingTools) resolve(); return;
+              }
               rpc.respond(message.id, { contentItems: [{ type: 'inputText', text: JSON.stringify(result) }], success: true });
-            }, () => { rpc.respond(message.id, { contentItems: [{ type: 'inputText', text: '{"error":"tool_unavailable"}' }], success: false }); });
+            }, () => {
+              pendingTools--;
+              if (calls >= Math.min(job.maxModelCalls, LIMITS.calls)) { limited = true; if (!pendingTools) resolve(); return; }
+              rpc.respond(message.id, { contentItems: [{ type: 'inputText', text: '{"error":"tool_unavailable"}' }], success: false });
+            });
             return;
           }
           if (p?.threadId !== threadId) return;
@@ -148,8 +158,10 @@ export class CodexProvider {
       const turn = rpc.request('turn/start', { threadId, input, model: job.model, effort: job.effort,
         environments: [], approvalPolicy: 'never', serviceTierForTurn: 'default' });
       await Promise.all([turn, completed]);
-      return { status: 'completed', text, inputTokens, outputTokens, usageKnown: true, code: null };
+      return { status: limited ? 'incomplete' : 'completed', text, inputTokens, outputTokens, usageKnown: true, code: null };
     } catch (error) {
+      if (!signal.aborted && error.code === 'context_limit' && text)
+        return { status: 'incomplete', text, inputTokens, outputTokens, usageKnown: true, code: null };
       return { status: signal.aborted ? 'cancelled' : 'failed', text, inputTokens, outputTokens,
         usageKnown: false, code: error instanceof ProviderFailure ? error.code : 'codex_unavailable' };
     } finally { connection?.close(); }
