@@ -47,6 +47,7 @@ class AssistantIntegrationTest extends IntegrationTestBase {
     @Autowired com.fasterxml.jackson.databind.ObjectMapper json;
     @Autowired ru.growerhub.backend.plant.PlantFacade plants;
     @Autowired ru.growerhub.backend.journal.JournalFacade journal;
+    @Autowired ru.growerhub.backend.automation.AutomationFacade automation;
     @Autowired ru.growerhub.backend.notification.NotificationFacade notifications;
     @Autowired ru.growerhub.backend.notification.jpa.TelegramInboxRepository inbox;
     @MockBean ru.growerhub.backend.messaging.TelegramWorker telegramWorker;
@@ -210,6 +211,44 @@ class AssistantIntegrationTest extends IntegrationTestBase {
         notifications.disconnect(user);
         notifications.receive(new ru.growerhub.backend.notification.contract.TelegramData.Update(update + 3, address, true, "Test", "После отключения", null, null));
         assertThat(inbox.existsById(update + 3)).isFalse();
+    }
+    @Test void telegramCreatesNotificationOnlyRuleInSharedHistoryAfterConfirmationOnce() {
+        var user = principal(owner);
+        int farm = automation.createUserFarm(user, new ru.growerhub.backend.automation.contract.AutomationData.SaveRoomRequest("Проверка Telegram", true)).farms().getFirst().id();
+        long update = 2000000L + user.id() * 100L, address = update + 50;
+        var link = notifications.link(user);
+        notifications.receive(new ru.growerhub.backend.notification.contract.TelegramData.Update(update, address, true, "Test", "/start " + link.url().split("start=")[1], null, null));
+        notifications.confirm(user, notifications.status(user).confirmation());
+        var chat = create(owner);
+        advisor.saveAssistantPreferences(new Preferences(true, "off", 9, 1, chat.toString()), user);
+        notifications.receive(new ru.growerhub.backend.notification.contract.TelegramData.Update(update + 1, address, true, "Test", "Создай выключенное напоминание об осмотре", null, null));
+        advisor.processAssistantInbox();
+        var work = advisor.claimAssistantWork("codex");
+        assertThat(work.conversationId()).isEqualTo(chat);
+        var arguments = json.valueToTree(Map.of("kind", "rule", "payload", Map.of("enabled", false, "definition", Map.of(
+                "version", 1, "name", "Осмотр растений", "scopeType", "ROOM", "scopeId", farm,
+                "trigger", Map.of("type", "schedule", "at", "09:20"),
+                "actions", List.of(Map.of("type", "notify", "text", "Осмотреть листья")), "cooldownSeconds", 60))));
+        var call = new ToolCall("telegram-rule", "gh_prepare_change", arguments);
+        advisor.beginAssistantTool(work.id(), work.lease(), call);
+        var proposal = advisor.executeAssistantTool(work.id(), work.lease(), call);
+        advisor.finishAssistantTool(work.id(), work.lease(), call.id(), proposal);
+        advisor.finishAssistantWork(work.id(), work.lease(), new Outcome("completed", "Подтвердите карточку", 1000, 100, true, null));
+        assertThat(automation.listRules(user)).isEmpty();
+        UUID proposalId = UUID.fromString(proposal.path("id").asText());
+        var callback = new ru.growerhub.backend.notification.contract.TelegramData.Update(update + 2, address, true, "Test", null, null,
+                "gha:" + proposalId.toString().replace("-", "") + ":" + proposal.path("revision").asText());
+        notifications.receive(callback); notifications.receive(callback); advisor.processAssistantInbox();
+        assertThat(advisor.claimAssistantApplication().id()).isEqualTo(proposalId);
+        advisor.applyAssistantProposal(proposalId); advisor.applyAssistantProposal(proposalId);
+        assertThat(automation.listRules(user)).singleElement().satisfies(rule -> {
+            assertThat(rule.enabled()).isFalse(); assertThat(rule.revision()).isEqualTo(1);
+            assertThat(rule.definition().actions()).singleElement().satisfies(action -> assertThat(action.path("type").asText()).isEqualTo("notify"));
+            assertThat(automation.ruleHistory(rule.id(), user)).isEmpty();
+        });
+        assertThat(advisor.assistantMessages(chat, user)).singleElement().satisfies(message ->
+                assertThat(message.proposals()).singleElement().satisfies(item -> assertThat(item.status()).isEqualTo("applied")));
+        assertThat(advisor.claimAssistantApplication()).isNull();
     }
     private UUID create(UserEntity user) { return UUID.fromString(request(user).body(Map.of()).post("/api/advisor/conversations").then().statusCode(200).extract().path("id")); }
     private void send(UserEntity user, UUID chat) { request(user).body(Map.of("clientKey", UUID.randomUUID(), "text", "Покажи состояние")).post(path(chat)).then().statusCode(200); }
