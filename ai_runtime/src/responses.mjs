@@ -113,19 +113,25 @@ export class ResponsesProvider {
         const body = { model: PUBLIC_MODEL, input, tools,
           reasoning: { effort: 'high' }, store: false,
           max_output_tokens: outputLimit,
-          tool_choice: callCount + 1 >= Math.min(job.maxModelCalls, LIMITS.calls) || toolCount >= Math.min(job.maxToolCalls, LIMITS.tools) ? 'none' : 'auto' };
+          tool_choice: toolCount >= Math.min(job.maxToolCalls, LIMITS.tools) ? 'none' : 'auto' };
         outstanding = true; callCount++;
         const response = await this.transport(`${this.apiBase}/responses`, {
           method: 'POST', headers: this.headers(), body: JSON.stringify({ ...body, stream: true }), signal, redirect: 'error',
         });
         if (!response.ok && response.status < 500) outstanding = false;
         const beforeText = text.length;
+        let callText = '', emittedLength = 0;
         const result = await readResponse(response, event => {
           if (event.type === 'delta') {
-            text += event.text;
+            callText += event.text; text += event.text;
             if (text.length > LIMITS.text) throw new ProviderFailure('output_limit', false);
+            // Korotkij hvost zaderzhivaetsya, chtoby sluzhebnaya razmetka ne popala v potok.
+            if (/DSML[|｜]/.test(callText)) return;
+            const safeEnd = Math.max(0, callText.length - 64);
+            if (safeEnd > emittedLength) {
+              emit({ type: 'delta', text: callText.slice(emittedLength, safeEnd) }); emittedLength = safeEnd;
+            }
           }
-          emit(event);
         }, signal);
         if (!Number.isSafeInteger(result.usage.input_tokens) || !Number.isSafeInteger(result.usage.output_tokens)
             || result.usage.input_tokens < 0 || result.usage.output_tokens < 0) throw new ProviderFailure('invalid_usage', false);
@@ -138,8 +144,10 @@ export class ResponsesProvider {
           const fallback = (result.output || []).filter(item => item.type === 'message').flatMap(item => item.content || [])
             .filter(item => item.type === 'output_text').map(item => item.text).join('');
           if (text.length + fallback.length > LIMITS.text) throw new ProviderFailure('output_limit');
-          if (fallback) { text += fallback; emit({ type: 'delta', text: fallback }); }
+          if (fallback) { text += fallback; callText = fallback; }
         }
+        if (/DSML[|｜]/.test(callText)) { text = text.slice(0, beforeText); throw new ProviderFailure('provider_invalid_tool_text'); }
+        if (emittedLength < callText.length) emit({ type: 'delta', text: callText.slice(emittedLength) });
         const calls = (result.output || []).filter(item => item.type === 'function_call');
         if (!calls.length) return { status: result.status === 'incomplete' ? 'incomplete' : 'completed', text, inputTokens, outputTokens, usageKnown: true, code: null };
         if (body.tool_choice === 'none') throw new ProviderFailure('tool_limit');
@@ -155,6 +163,9 @@ export class ResponsesProvider {
           const answer = await tool({ id: call.call_id, name: call.name, arguments: argumentsValue });
           input.push({ type: 'function_call_output', call_id: call.call_id, output: JSON.stringify(answer) });
         }
+        // Poslednij vyzov mozhet podgotovit kartochku; chetvertoj generacii dlya otveta net.
+        if (callCount >= Math.min(job.maxModelCalls, LIMITS.calls))
+          return { status: 'incomplete', text, inputTokens, outputTokens, usageKnown: true, code: null };
       }
       throw new ProviderFailure('model_call_limit');
     } catch (error) {

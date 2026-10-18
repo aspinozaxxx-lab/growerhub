@@ -19,7 +19,7 @@ test('rejects model overrides, hosted tools and remote photos without a request'
   assert.equal(calls, 0);
 });
 
-test('counts complete input before every charged call, preserves reasoning and disables final tools', async () => {
+test('counts complete input before every charged call and preserves reasoning', async () => {
   const sent = []; let generations = 0;
   const provider = new ResponsesProvider({ apiKey: 'test', transport: async (url, request) => {
     const body = JSON.parse(request.body); sent.push({ url, body });
@@ -29,11 +29,37 @@ test('counts complete input before every charged call, preserves reasoning and d
   } });
   const result = await provider.run(job(), context({ tool: async () => ({ plants: 5 }) }));
   assert.equal(result.status, 'completed'); assert.equal(result.inputTokens, 360); assert.equal(result.outputTokens, 120);
-  assert.equal(sent.length, 3); assert.equal(sent[2].body.tool_choice, 'none');
+  assert.equal(sent.length, 3); assert.equal(sent[2].body.tool_choice, 'auto');
   assert.ok(sent[1].body.input.some(item => item.type === 'reasoning'));
   assert.ok(sent[1].body.input.some(item => item.type === 'function_call_output'));
   assert.equal(sent[0].body.store, false); assert.equal(sent[0].body.include, undefined);
   assert.equal(sent[1].body.max_output_tokens, LIMITS.output);
+});
+
+test('the final permitted model call can prepare a proposal without a fourth generation', async () => {
+  let generations = 0, toolCalls = 0;
+  const sample = job(); sample.tools.push({type:'function',name:'gh_prepare_change',description:'Prepare only',parameters:{type:'object',properties:{}}});
+  const provider = new ResponsesProvider({apiKey:'test',transport:async()=> {
+    generations++;
+    return completed([{type:'function_call',call_id:`c${generations}`,name:generations < 3 ? 'gh_farm_report' : 'gh_prepare_change',arguments:'{}'}]);
+  }});
+  const result = await provider.run(sample, context({tool:async call=> {
+    toolCalls++; return call.name === 'gh_prepare_change' ? {id:'proposal',status:'pending'} : {ready:true};
+  }}));
+  assert.equal(generations, 3); assert.equal(toolCalls, 3);
+  assert.equal(result.status, 'incomplete'); assert.equal(result.code, null); assert.equal(result.usageKnown, true);
+});
+
+test('raw provider tool markup is never executed or shown as a successful answer', async () => {
+  const leaked = '<｜｜DSML｜｜ calls><｜｜DSML｜｜ invoke name="gh_prepare_change">';
+  const emitted = [];
+  const provider = new ResponsesProvider({apiKey:'test',transport:async()=> {
+    const stream = [...leaked].map(delta=>'data: '+JSON.stringify({type:'response.output_text.delta',delta})+'\n\n').join('');
+    return new Response(stream+'data: '+JSON.stringify({type:'response.completed',response:{status:'completed',usage:{input_tokens:120,output_tokens:80},output:[]}})+'\n\n');
+  }});
+  const result = await provider.run(job(), context({emit:event=>emitted.push(event)}));
+  assert.equal(result.status, 'failed'); assert.equal(result.code, 'provider_invalid_tool_text');
+  assert.equal(result.usageKnown, true); assert.equal(result.text, ''); assert.deepEqual(emitted, []);
 });
 
 test('complete input including tool answers and photos is limited before generation', async () => {
