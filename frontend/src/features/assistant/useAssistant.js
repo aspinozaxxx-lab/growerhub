@@ -67,6 +67,10 @@ export default function useAssistant(initialText = '') {
     }
     setOptions(next);
   });
+  const refreshModels = () => run(async () => {
+    const models = await assistantRequest('/models');
+    setCapabilities(old => ({ ...old, models }));
+  });
   const send = () => run(async () => {
     if (active || retryAt > Date.now()) return;
     let request = pending, id = chatId;
@@ -94,5 +98,5 @@ export default function useAssistant(initialText = '') {
     setCapabilities(old => ({ ...old, preferences: result }));
   });
   return { capabilities, chats, chatId, messages, text, setText, files, setFiles, busy, error, options, active, pending,
-    retrySeconds: Math.max(0, Math.ceil((retryAt - now) / 1000)), choose, create, configure, send, proposal, cancel, preferences };
+    retrySeconds: Math.max(0, Math.ceil((retryAt - now) / 1000)), choose, create, configure, refreshModels, send, proposal, cancel, preferences };
 }

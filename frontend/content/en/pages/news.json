@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id": "assistant-owner-controls", "published_at": "2026-10-18", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "The assistant guide now explains shared Telegram conversations, the owner’s model selection and the limits of administrative reading. Codex update notifications are available to the owner."},
     {"id":"assistant-notification-scenarios","published_at":"2026-10-18","kind":"fix","text":"Clarified the assistant’s instructions for notification-only routines, which do not require devices. Verified shared app and Telegram history, including routine confirmation through a button in the bot."},
     {"id":"assistant-final-step-proposal","published_at":"2026-10-18","kind":"fix","text":"Fixed a case where the assistant checked a routine but could not prepare its confirmation card on the final step. A redundant check before preparing the card was removed; spending limits remain in place."},
     {"id":"assistant-readable-replies","published_at":"2026-10-18","kind":"fix","text":"Assistant replies now display lists and emphasis without raw Markdown symbols, making them easier to read on a phone. Cards clearly show the saved state, and editing prompts use routine names instead of internal identifiers."},

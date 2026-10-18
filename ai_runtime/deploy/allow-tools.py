@@ -6,6 +6,7 @@ import pathlib
 ALLOWED = {
     'gh_farm_report', 'gh_plant_details', 'gh_resource_history',
     'gh_prepare_change', 'gh_rule_details', 'gh_validate_rule',
+    'gh_admin_users', 'gh_admin_user_report', 'gh_admin_system',
 }
 try:
     event = json.load(sys.stdin)

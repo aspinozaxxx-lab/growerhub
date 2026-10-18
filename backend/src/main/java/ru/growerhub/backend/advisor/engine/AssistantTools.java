@@ -33,19 +33,54 @@ public class AssistantTools {
     }
     public record Prepared(String title, JsonNode payload, String fingerprint) {}
 
-    public List<Map<String, Object>> catalog() {
-        return List.of(
+    public boolean adminRead(AuthenticatedUser user) {
+        if (user == null || user.isDemo() || !user.id().equals(settings.ownerUserId())) return false;
+        var account = users.getAuthUser(user.id());
+        return account != null && account.active() && "admin".equals(account.role());
+    }
+
+    public List<Map<String, Object>> catalog(AuthenticatedUser user) {
+        var result = new ArrayList<>(List.of(
             tool("gh_farm_report", "Текущее состояние собственной фермы, устройства, показания, сценарии и растения. Числа рассчитывает сервер.", Map.of(), List.of()),
             tool("gh_plant_details", "История ухода и сведения о своём растении", Map.of("plantId", integer()), List.of("plantId")),
             tool("gh_resource_history", "История и энергопотребление своей розетки. hours — число часов", Map.of("resourceId", integer(), "hours", integer()), List.of("resourceId", "hours")),
             tool("gh_rule_details", "Без параметров: свои правила и схема новых сценариев, включая ежедневное уведомление без устройств. ruleId: подробности своего правила. scopeType=ROOM|BOX и scopeId: настройки существующих готовых сценариев, не схема нового правила.", Map.of("ruleId", Map.of("type", "string"), "scopeType", Map.of("type", "string"), "scopeId", integer()), List.of()),
             tool("gh_validate_rule", "Проверить правило, конфликты каналов и готовность устройств без сохранения. payload — определение version=1 из gh_rule_details.", Map.of("payload", Map.of("type", "object")), List.of("payload")),
             tool("gh_prepare_change", "Подготовить предложение, НЕ применяя его. kind=care: payload {plantId,action,text,eventAt}; reminder: {plantId,action,title,dueAt,repeatDays,repeatMode}; scenario: {scopeType:ROOM|BOX,scopeId,scenarioType,enabled,config}; rule: {ruleId?:UUID,revision?:number,enabled:boolean,definition:object из gh_rule_details}; device: {type:set|water,resourceId,value?:string,durationSeconds?:integer}. Даты ISO UTC. Человек подтверждает кнопкой.",
-                Map.of("kind", Map.of("type", "string", "enum", List.of("care", "reminder", "scenario", "rule", "device")), "payload", Map.of("type", "object")), List.of("kind", "payload")));
+                Map.of("kind", Map.of("type", "string", "enum", List.of("care", "reminder", "scenario", "rule", "device")), "payload", Map.of("type", "object")), List.of("kind", "payload"))));
+        if (adminRead(user)) {
+            result.add(tool("gh_admin_users", "Только для владельца-администратора: поиск аккаунтов по имени, email или ID. Без секретов. offset — смещение, до 20 записей.", Map.of("query", Map.of("type", "string", "maxLength", 100), "offset", Map.of("type", "integer", "minimum", 0)), List.of()));
+            result.add(tool("gh_admin_user_report", "Только чтение данных выбранного пользователя: профиль, ферма, устройства, растения, сценарии. Не даёт права менять чужие данные.", Map.of("userId", integer()), List.of("userId")));
+            result.add(tool("gh_admin_system", "Сводка аккаунтов GrowerHub. Только чтение, без shell, секретов и произвольных запросов к БД.", Map.of(), List.of()));
+        }
+        return List.copyOf(result);
     }
 
     public JsonNode read(String name, JsonNode input, AuthenticatedUser user) {
         return switch (name) {
+            case "gh_admin_users" -> {
+                requireAdminRead(user);
+                String query = input.path("query").asText("").strip().toLowerCase(Locale.ROOT);
+                if (query.length() > 100 || input.path("offset").asInt(0) < 0) throw bad("Сократите поисковый запрос");
+                var found = users.listUsers().stream().filter(u -> (u.id() + " " + u.username() + " " + u.email()).toLowerCase(Locale.ROOT).contains(query)).toList();
+                yield json.valueToTree(Map.of("total", found.size(), "users", found.stream().skip(input.path("offset").asInt(0)).limit(20).toList()));
+            }
+            case "gh_admin_user_report" -> {
+                requireAdminRead(user);
+                var account = users.getUser(id(input, "userId"));
+                if (account == null) throw bad("Пользователь не найден");
+                var target = new AuthenticatedUser(account.id(), "user");
+                yield json.valueToTree(Map.of("profile", account, "farm", report(target), "rules", automation.listRules(target)));
+            }
+            case "gh_admin_system" -> {
+                requireAdminRead(user);
+                var accounts = users.listUsers();
+                yield json.valueToTree(Map.of("at", clock.instant(), "accounts", accounts.size(),
+                        "activeAccounts", accounts.stream().filter(u -> u.active()).count(),
+                        "completedSetup", accounts.stream().filter(u -> u.onboardingCompletedAt() != null).count(),
+                        "startedDiary", accounts.stream().filter(u -> u.careStartedAt() != null).count(),
+                        "publicAssistantConfigured", settings.publicEnabled(), "monthlyApiLimitUsd", settings.budget().monthMicros() / 1000000d));
+            }
             case "gh_farm_report" -> report(user);
             case "gh_plant_details" -> {
                 int id = id(input, "plantId"); var plant = plants.requireOwnedPlantInfo(id, user);
@@ -68,6 +103,10 @@ public class AssistantTools {
             case "gh_validate_rule" -> json.valueToTree(automation.previewRule(null, ruleDefinition(input.get("payload")), user));
             default -> throw bad("Такого инструмента у помощника нет");
         };
+    }
+
+    private void requireAdminRead(AuthenticatedUser user) {
+        if (!adminRead(user)) throw new DomainException("forbidden", "Административное чтение недоступно");
     }
 
     public JsonNode report(AuthenticatedUser user) {

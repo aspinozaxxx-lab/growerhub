@@ -67,3 +67,11 @@ Accounts can send up to 30 messages per day; guest demos allow up to three. A sh
 An external AI service processes messages, photos and the relevant farm data to prepare replies. See the [privacy policy](/privacy/). Do not paste passwords or connection keys into chat.
 
 You can begin with one plant and a care question. Hardware is needed only for actions that a light, smart plug or pump should perform.
+
+## The system owner's personal assistant
+
+The GrowerHub owner can choose their Codex model and reasoning effort above the conversation. The list comes from the installed client; **Refresh models** reloads it. The choice is saved for the conversation, including Telegram. Switching models preserves the effort when the new model supports it.
+
+In the administrative conversation, the owner can ask about registrations, users' farms, plants, device readiness and assistant spending. This is a separate permission for the system owner. Regular users can access only their own plants and equipment. Administrative reading does not permit changing another user's farm, retrieving secrets or running server commands.
+
+Under **Settings → Notifications**, the owner can see the installed and latest stable Codex versions. Checks run every six hours; each new release produces one notification in the confirmed Telegram chat. Installation is a separate operation with verification and rollback.

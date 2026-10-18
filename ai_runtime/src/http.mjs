@@ -13,9 +13,10 @@ async function jsonBody(request, maximum) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
-export function runtimeServer({ provider, token, concurrency, timeoutMs, enabled = true, maxBodyBytes = 20 * 1024 * 1024 }) {
+export function runtimeServer({ provider, token, concurrency, timeoutMs, enabled = true, maintenance = null, maxBodyBytes = 20 * 1024 * 1024 }) {
   if (!token || token.length < 32) throw new Error('Service token is required');
   const expected = Buffer.from(`Bearer ${token}`), active = new Map(), seen = new Map();
+  let draining = false;
   const respond = (response, status, value) => {
     response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     response.end(JSON.stringify(value));
@@ -26,7 +27,13 @@ export function runtimeServer({ provider, token, concurrency, timeoutMs, enabled
     try {
       const url = new URL(request.url, 'http://127.0.0.1');
       if (url.search) return respond(response, 400, { error: 'query_not_supported' });
-      if (request.method === 'GET' && url.pathname === '/v1/health') return respond(response, 200, { ready: true, generationEnabled: enabled, active: active.size });
+      if (request.method === 'GET' && url.pathname === '/v1/health') return respond(response, 200, { ready: true, generationEnabled: enabled && !draining, active: active.size });
+      if (maintenance && request.method === 'GET' && url.pathname === '/v1/runtime') return respond(response, 200, await maintenance.status());
+      if (maintenance && request.method === 'POST' && url.pathname === '/v1/drain') {
+        const value = await jsonBody(request, 100);
+        if (typeof value.enabled !== 'boolean') return respond(response, 400, { error: 'invalid_request' });
+        draining = value.enabled; return respond(response, 200, { draining, active: active.size });
+      }
       if (request.method === 'GET' && url.pathname === '/v1/models') return respond(response, 200, { models: await provider.models() });
       const match = url.pathname.match(/^\/v1\/jobs\/([^/]+)(?:\/tools\/([^/]+))?$/);
       if (match && request.method === 'DELETE' && !match[2]) {
@@ -40,7 +47,7 @@ export function runtimeServer({ provider, token, concurrency, timeoutMs, enabled
         return respond(response, 200, { accepted: true });
       }
       if (request.method !== 'POST' || url.pathname !== '/v1/jobs') return respond(response, 404, { error: 'not_found' });
-      if (!enabled) return respond(response, 503, { error: 'generation_disabled' });
+      if (!enabled || draining) return respond(response, 503, { error: 'generation_disabled' });
       if (active.size >= concurrency) return respond(response, 429, { error: 'busy' });
       const job = await jsonBody(request, maxBodyBytes);
       if (!uuid.test(job.id) || !Array.isArray(job.messages) || !Array.isArray(job.tools)

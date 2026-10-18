@@ -656,6 +656,10 @@ assistant:
   public-effort: high
   # Pauza planirovshchika pomoshchnika.
   worker-delay-ms: 1000
+  # Interval proverki stabilnogo reliza Codex, bez avtomaticheskoy ustanovki.
+  codex-check-ms: 21600000
+  # Pervaya proverka posle zapuska izolirovannogo worker.
+  codex-check-start-ms: 30000
   # Proverka dobrovolnyh otchetov i ochistki istorii.
   reports-poll-ms: 60000
   # Izolirovannye potoki ocheredi pomoshchnika i Telegram-foto.

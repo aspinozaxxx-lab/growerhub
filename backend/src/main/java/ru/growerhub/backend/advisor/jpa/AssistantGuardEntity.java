@@ -7,4 +7,6 @@ public class AssistantGuardEntity {
     public long rejected;
     public String alertKey;
     @Column(columnDefinition = "TEXT") public String denialsJson = "{}";
+    @Column(columnDefinition = "TEXT") public String codexStatusJson;
+    public String codexNotifiedVersion;
 }

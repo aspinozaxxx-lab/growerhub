@@ -48,6 +48,19 @@ public class AssistantChannels {
         row.telegram = value.telegram(); row.report = value.report(); row.hour = value.hour(); row.weekday = value.weekday(); row.conversationId = id; row.updatedAt = now(); preferences.save(row);
         return value;
     }
+
+    public void notifyCodexUpdate() {
+        var user = principal(settings.ownerUserId());
+        if (user == null || !tools.adminRead(user)) return;
+        var state = assistant.runtimeStatus(user);
+        var guard = guards.lock(1).orElseThrow();
+        if (state.error() == null && state.updateAvailable() && !state.latest().equals(guard.codexNotifiedVersion)
+                && notifications.enqueueMessage(user, "codex-release:" + state.latest(),
+                "Для личного помощника GrowerHub вышел Codex " + state.latest() + ". Сейчас установлен " + state.installed()
+                + ". Обновление не устанавливается автоматически. Проверить: " + settings.siteUrl() + "/app/admin/assistant/", null)) {
+            guard.codexNotifiedVersion = state.latest(); guards.save(guard);
+        }
+    }
     public Incoming begin(TelegramData.Inbox item) {
         var user = principal(item.userId());
         if (user == null || !notifications.assistantAllowed(user)) throw new DomainException("forbidden", "Чат с помощником отключён");
@@ -120,7 +133,7 @@ public class AssistantChannels {
                 String keyboard = write(Map.of("inline_keyboard", List.of(List.of(
                         Map.of("text", "Подтвердить", "callback_data", "gha:" + compact + ":" + proposal.revision()),
                         Map.of("text", "Отменить", "callback_data", "ghr:" + compact + ":" + proposal.revision())))));
-                String details = proposal.title() + "\nНачало: после подтверждения. Если это сценарий — при ближайшем выполнении его условий.\n" + readablePayload(proposal);
+                String details = proposal.title() + "\nИзменение будет сохранено только после подтверждения.\n" + readablePayload(proposal);
                 if (details.length() > 3900) {
                     details = proposal.title() + "\nУ предложения много настроек. Откройте его полностью и подтвердите в приложении: " + settings.siteUrl() + "/app/assistant/";
                     keyboard = null;

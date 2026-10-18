@@ -37,6 +37,16 @@ public class AssistantHttpGateway implements AssistantGateway {
             return json.readerForListOf(Model.class).readValue(json.readTree(response.body()).path("models"));
         } catch (Exception ex) { throw new DomainException("unavailable", "Не удалось получить список моделей. Попробуйте позже"); }
     }
+    @Override public RuntimeStatus runtimeStatus() {
+        try {
+            var response = client.send(request("codex", "/v1/runtime").timeout(Duration.ofSeconds(20)).GET().build(), HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) throw new IOException();
+            return json.readValue(response.body(), RuntimeStatus.class);
+        } catch (Exception ex) {
+            if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
+            return new RuntimeStatus(null, null, java.time.Instant.now(), false, "runtime_unavailable");
+        }
+    }
     @Override public Outcome run(Work work, Consumer<String> onText, Function<ToolCall, JsonNode> onTool, BooleanSupplier cancelled) {
         boolean dispatched = false; StringBuilder text = new StringBuilder();
         AtomicReference<InputStream> input = new AtomicReference<>();

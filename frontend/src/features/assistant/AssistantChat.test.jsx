@@ -19,6 +19,27 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 const mount = () => render(<MemoryRouter><AssistantChat /></MemoryRouter>);
+test('owner model controls use the current catalog and preserve a supported effort', async () => {
+  const models = [
+    {id:'sol',name:'Sol',efforts:['low','max','ultra'],defaultEffort:'low'},
+    {id:'astra',name:'Astra',efforts:['medium','max'],defaultEffort:'medium'},
+  ];
+  assistantRequest.mockImplementation(async(path,method,body)=> {
+    if(path==='/capabilities') return {...cap,owner:true,model:'sol',models};
+    if(path==='/models') return models;
+    if(path==='/conversations') return [{...chat,model:'sol',effort:'max'}];
+    if(path==='/conversations/chat-1' && method==='PUT') return {...chat,...body};
+    if(path.endsWith('/messages')) return [];
+    return {};
+  });
+  mount(); await screen.findByLabelText('Модель');
+  expect(screen.getByLabelText('Усилие')).toHaveValue('max');
+  fireEvent.change(screen.getByLabelText('Модель'),{target:{value:'astra'}});
+  await waitFor(()=>expect(assistantRequest).toHaveBeenCalledWith('/conversations/chat-1','PUT',{model:'astra',effort:'max'}));
+  await waitFor(()=>expect(screen.queryByRole('option',{name:'ultra'})).not.toBeInTheDocument());
+  fireEvent.click(screen.getByRole('button',{name:'Обновить список моделей'}));
+  await waitFor(()=>expect(assistantRequest.mock.calls.filter(([p])=>p==='/models')).toHaveLength(2));
+});
 test('a proposal is never applied by reading the chat and confirmation carries its exact version', async () => {
   history = [{ id: 'message-1', text: 'Запиши уход', answer: 'Проверьте карточку', status: 'completed', attachments: [], proposals: [{ id: 'proposal-1', title: 'Записать осмотр', kind: 'care', payload: { text: 'Листья без пятен' }, status: 'pending', revision: 'version-7' }] }];
   mount(); await screen.findByText('Записать осмотр');

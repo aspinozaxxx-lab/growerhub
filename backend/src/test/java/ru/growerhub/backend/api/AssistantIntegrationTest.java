@@ -61,12 +61,12 @@ class AssistantIntegrationTest extends IntegrationTestBase {
     @BeforeAll void migration() {
         for (String table : List.of("assistant_preferences", "assistant_proposals", "assistant_photos", "assistant_jobs", "assistant_conversations", "assistant_usage", "assistant_guard"))
             jdbc.execute("drop table " + table);
-        new ResourceDatabasePopulator(new ClassPathResource("db/migration/V34__farm_assistant.sql"))
+        new ResourceDatabasePopulator(new ClassPathResource("db/migration/V34__farm_assistant.sql"), new ClassPathResource("db/migration/V37__assistant_codex_status.sql"))
                 .execute(Objects.requireNonNull(jdbc.getDataSource()));
     }
     @BeforeEach void prepare() {
         for (String table : List.of("assistant_preferences", "assistant_proposals", "assistant_photos", "assistant_jobs", "assistant_conversations", "assistant_usage")) jdbc.execute("delete from " + table);
-        jdbc.update("update assistant_guard set public_enabled=true, rejected=0");
+        jdbc.update("update assistant_guard set public_enabled=true, rejected=0, codex_status_json=null, codex_notified_version=null");
         users.deleteAll(); owner = user("owner", "admin"); first = user("first", "user"); other = user("other", "user");
         doReturn(owner.getId()).when(settings).ownerUserId();
         when(gateway.models()).thenReturn(List.of(new Model("test-model", "Test", List.of("medium", "high"), "medium", true, true)));
@@ -236,6 +236,14 @@ class AssistantIntegrationTest extends IntegrationTestBase {
         advisor.finishAssistantWork(work.id(), work.lease(), new Outcome("completed", "Подтвердите карточку", 1000, 100, true, null));
         assertThat(automation.listRules(user)).isEmpty();
         UUID proposalId = UUID.fromString(proposal.path("id").asText());
+        var stranger = principal(other); var foreignLink = notifications.link(stranger);
+        notifications.receive(new ru.growerhub.backend.notification.contract.TelegramData.Update(update + 10, address + 1, true, "Other", "/start " + foreignLink.url().split("start=")[1], null, null));
+        notifications.confirm(stranger, notifications.status(stranger).confirmation());
+        advisor.saveAssistantPreferences(new Preferences(true, "off", 9, 1, create(other).toString()), stranger);
+        notifications.receive(new ru.growerhub.backend.notification.contract.TelegramData.Update(update + 11, address + 1, true, "Other", null, null,
+                "gha:" + proposalId.toString().replace("-", "") + ":" + proposal.path("revision").asText()));
+        advisor.processAssistantInbox();
+        assertThat(advisor.claimAssistantApplication()).isNull();
         var callback = new ru.growerhub.backend.notification.contract.TelegramData.Update(update + 2, address, true, "Test", null, null,
                 "gha:" + proposalId.toString().replace("-", "") + ":" + proposal.path("revision").asText());
         notifications.receive(callback); notifications.receive(callback); advisor.processAssistantInbox();
@@ -249,6 +257,85 @@ class AssistantIntegrationTest extends IntegrationTestBase {
         assertThat(advisor.assistantMessages(chat, user)).singleElement().satisfies(message ->
                 assertThat(message.proposals()).singleElement().satisfies(item -> assertThat(item.status()).isEqualTo("applied")));
         assertThat(advisor.claimAssistantApplication()).isNull();
+    }
+
+    @Test void foreignFarmPlantAndSystemCommandsAreRejectedRegardlessOfPromptOrArguments() {
+        var foreign = principal(other);
+        int plant = plants.createPlant(new ru.growerhub.backend.plant.PlantFacade.PlantCreateCommand("Private plant", null, null, null, null, "", "", true), foreign).id();
+        int farm = automation.createUserFarm(foreign, new ru.growerhub.backend.automation.contract.AutomationData.SaveRoomRequest("Private farm", true)).farms().getFirst().id();
+        var chat = create(first); send(first, chat); var work = advisor.claimAssistantWork("deepseek");
+        assertThat(work.tools().stream().map(t -> t.get("name").toString())).noneMatch(n -> n.startsWith("gh_admin"));
+        var attempts = List.of(
+                new ToolCall("foreign-plant", "gh_plant_details", json.valueToTree(Map.of("plantId", plant, "userId", other.getId()))),
+                new ToolCall("foreign-care", "gh_prepare_change", json.valueToTree(Map.of("kind", "care", "payload", Map.of("plantId", plant, "action", "inspection", "eventAt", Instant.now().toString())))),
+                new ToolCall("foreign-scenario", "gh_rule_details", json.valueToTree(Map.of("scopeType", "ROOM", "scopeId", farm))),
+                new ToolCall("fake-admin", "gh_admin_user_report", json.valueToTree(Map.of("userId", other.getId()))),
+                new ToolCall("shell", "exec_command", json.valueToTree(Map.of("cmd", "read secrets"))),
+                new ToolCall("confirm", "gh_confirm_change", json.valueToTree(Map.of("id", UUID.randomUUID()))));
+        for (var call : attempts) {
+            advisor.beginAssistantTool(work.id(), work.lease(), call);
+            assertThatThrownBy(() -> advisor.executeAssistantTool(work.id(), work.lease(), call)).isInstanceOf(ru.growerhub.backend.common.contract.DomainException.class);
+        }
+        assertThat(journal.searchCare(foreign, plant, null, null, null, null, 0).items()).isEmpty();
+        assertThat(jdbc.queryForObject("select count(*) from assistant_proposals", Integer.class)).isZero();
+        request(first).get("/api/advisor/runtime").then().statusCode(403);
+    }
+
+    @Test void adminReadRequiresConfiguredOwnerAndCurrentRoleAndNeverAuthorizesForeignChanges() {
+        var foreign = principal(other);
+        int farm = automation.createUserFarm(foreign, new ru.growerhub.backend.automation.contract.AutomationData.SaveRoomRequest("Private farm", true)).farms().getFirst().id();
+        int plant = plants.createPlant(new ru.growerhub.backend.plant.PlantFacade.PlantCreateCommand("Private plant", null, null, null, null, "", "", true), foreign).id();
+        var chat = create(owner); send(owner, chat); var work = advisor.claimAssistantWork("codex");
+        assertThat(work.tools().stream().map(t -> t.get("name").toString())).contains("gh_admin_user_report", "gh_admin_users", "gh_admin_system");
+        var read = new ToolCall("admin-read", "gh_admin_user_report", json.valueToTree(Map.of("userId", other.getId())));
+        advisor.beginAssistantTool(work.id(), work.lease(), read);
+        var data = advisor.executeAssistantTool(work.id(), work.lease(), read);
+        assertThat(data.path("profile").path("id").asInt()).isEqualTo(other.getId());
+        assertThat(data.path("farm").path("plants").get(0).path("id").asInt()).isEqualTo(plant);
+        var change = new ToolCall("foreign-change", "gh_prepare_change", json.valueToTree(Map.of("kind", "care", "payload", Map.of("plantId", plant, "action", "inspection", "eventAt", Instant.now().toString()))));
+        advisor.beginAssistantTool(work.id(), work.lease(), change);
+        assertThatThrownBy(() -> advisor.executeAssistantTool(work.id(), work.lease(), change)).isInstanceOf(ru.growerhub.backend.common.contract.DomainException.class);
+        var definition = Map.of("version", 1, "name", "Foreign rule", "scopeType", "ROOM", "scopeId", farm,
+                "trigger", Map.of("type", "schedule", "at", "09:20"), "actions", List.of(Map.of("type", "notify", "text", "No access")), "cooldownSeconds", 60);
+        var rule = new ToolCall("foreign-rule", "gh_prepare_change", json.valueToTree(Map.of("kind", "rule", "payload", Map.of("enabled", false, "definition", definition))));
+        advisor.beginAssistantTool(work.id(), work.lease(), rule);
+        assertThatThrownBy(() -> advisor.executeAssistantTool(work.id(), work.lease(), rule)).isInstanceOf(ru.growerhub.backend.common.contract.DomainException.class);
+        assertThat(automation.listRules(foreign)).isEmpty();
+        jdbc.update("update users set role='user' where id=?", owner.getId());
+        var revoked = new ToolCall("revoked", "gh_admin_users", json.createObjectNode());
+        advisor.beginAssistantTool(work.id(), work.lease(), revoked);
+        assertThatThrownBy(() -> advisor.executeAssistantTool(work.id(), work.lease(), revoked)).isInstanceOf(ru.growerhub.backend.common.contract.DomainException.class);
+        var anotherAdmin = user("another-admin", "admin");
+        request(anotherAdmin).get("/api/advisor/models").then().statusCode(403);
+        request(anotherAdmin).get("/api/advisor/runtime").then().statusCode(403);
+    }
+
+    @Test void codexUpdateNotificationsAreOwnerOnlyAndDeduplicatedPerRelease() {
+        var user = principal(owner); long update = 3000000L + user.id() * 100L, address = update + 50;
+        var link = notifications.link(user);
+        notifications.receive(new ru.growerhub.backend.notification.contract.TelegramData.Update(update, address, true, "Test", "/start " + link.url().split("start=")[1], null, null));
+        notifications.confirm(user, notifications.status(user).confirmation());
+        advisor.saveAssistantPreferences(new Preferences(true, "off", 9, 1, create(owner).toString()), user);
+        var state = new RuntimeStatus("0.163.0", "0.164.0", Instant.now(), true, null);
+        advisor.recordAssistantRuntimeStatus(state); advisor.recordAssistantRuntimeStatus(state);
+        request(owner).get("/api/advisor/runtime").then().statusCode(200).body("latest", equalTo("0.164.0"));
+        assertThat(jdbc.queryForObject("select count(*) from telegram_deliveries where dedupe_key like '%:codex-release:0.164.0'", Integer.class)).isEqualTo(1);
+        advisor.recordAssistantRuntimeStatus(new RuntimeStatus("0.163.0", null, Instant.now(), false, "check_unavailable"));
+        assertThat(advisor.assistantRuntimeStatus(user).error()).isEqualTo("check_unavailable");
+        assertThat(jdbc.queryForObject("select count(*) from telegram_deliveries where dedupe_key like '%:codex-release:%'", Integer.class)).isEqualTo(1);
+        jdbc.update("delete from telegram_deliveries where dedupe_key like '%:codex-release:%'");
+        advisor.recordAssistantRuntimeStatus(state);
+        assertThat(jdbc.queryForObject("select count(*) from telegram_deliveries where dedupe_key like '%:codex-release:%'", Integer.class)).isZero();
+    }
+
+    @Test void currentModelCatalogAndEffortAreSavedAndUsedByTelegram() {
+        when(gateway.models()).thenReturn(List.of(new Model("gpt-6.1-sol", "GPT-6.1-Sol", List.of("low", "medium", "max", "ultra"), "low", true, true)));
+        advisor.assistantModels(principal(owner)); var chat = create(owner);
+        request(owner).body(Map.of("model", "gpt-6.1-sol", "effort", "max")).put("/api/advisor/conversations/" + chat).then().statusCode(200);
+        advisor.sendAssistantMessage(chat, new Send(UUID.randomUUID(), "Отчёт", List.of()), principal(owner), new Origin(null, null, "telegram"));
+        var work = advisor.claimAssistantWork("codex");
+        assertThat(work.model()).isEqualTo("gpt-6.1-sol"); assertThat(work.effort()).isEqualTo("max");
+        request(first).body(Map.of("model", "gpt-6.1-sol", "effort", "max")).put("/api/advisor/conversations/" + chat).then().statusCode(404);
     }
     private UUID create(UserEntity user) { return UUID.fromString(request(user).body(Map.of()).post("/api/advisor/conversations").then().statusCode(200).extract().path("id")); }
     private void send(UserEntity user, UUID chat) { request(user).body(Map.of("clientKey", UUID.randomUUID(), "text", "Покажи состояние")).post(path(chat)).then().statusCode(200); }

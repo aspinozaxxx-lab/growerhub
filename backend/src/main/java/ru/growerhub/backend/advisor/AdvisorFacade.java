@@ -78,6 +78,10 @@ public class AdvisorFacade {
         assistant.requireModelAccess(user); return assistant.cacheModels(assistantGateway.models());
     }
     @Transactional(readOnly = true)
+    public AssistantData.RuntimeStatus assistantRuntimeStatus(AuthenticatedUser user) { return assistant.runtimeStatus(user); }
+    @Transactional
+    public void recordAssistantRuntimeStatus(AssistantData.RuntimeStatus value) { assistant.saveRuntimeStatus(value); channels.notifyCodexUpdate(); }
+    @Transactional(readOnly = true)
     public List<AssistantData.Conversation> assistantConversations(AuthenticatedUser user) { return assistant.conversations(user); }
     @Transactional(noRollbackFor = AssistantLimitException.class)
     public AssistantData.Conversation createAssistantConversation(AuthenticatedUser user, AssistantData.Origin origin, AssistantData.Options options) { return assistant.create(user, origin, options); }

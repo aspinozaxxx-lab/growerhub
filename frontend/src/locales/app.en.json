@@ -1,4 +1,15 @@
 {
+  "Обновить список моделей": "Refresh models",
+  "Выбор сохраняется для этого разговора, включая Telegram.": "Your selection is saved for this conversation, including Telegram.",
+  "Обновления Codex": "Codex updates",
+  "Установлена версия": "Installed version",
+  "Последняя стабильная": "Latest stable version",
+  "Проверка обновлений временно недоступна.": "The update check is temporarily unavailable.",
+  "Доступно обновление серверного Codex.": "An update is available for the server Codex client.",
+  "Установленная версия Codex актуальна.": "The installed Codex version is up to date.",
+  "Последняя проверка": "Last checked",
+  "Проверяем каждые 6 часов. О новой версии сообщим только владельцу в Telegram. Обновление выполняется вручную, с проверкой и возможностью отката.": "We check every 6 hours and notify only the owner in Telegram. Updates are installed manually, with verification and rollback.",
+
   "Название, модель или ID": "Name, model or ID",
   "Без назначения": "Unassigned",
   "Вся ферма: {{value1}}": "Whole farm: {{value1}}",

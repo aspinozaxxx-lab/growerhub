@@ -15,6 +15,7 @@
 - `claimAssistantWork`, `assistantWorkAlive`, `appendAssistantText`, `beginAssistantTool`, `executeAssistantTool`, `finishAssistantTool`, `finishAssistantWork` — отдельный worker.
 - `confirmAssistantProposal`, `claimAssistantApplication`, `applyAssistantProposal`, `failAssistantApplication` — подтверждение конкретной версии.
 - `saveAssistantPreferences`, `processAssistantInbox`, `beginAssistantInbox`, `completeAssistantInbox`, `rejectAssistantInbox`, `assistantReportsDue`, `prepareAssistantReport`, `deliverAssistantResponses`, `maintainAssistant` — каналы, сводки и очистка.
+- `assistantRuntimeStatus`, `recordAssistantRuntimeStatus` — версия Codex и уведомление владельцу.
 - `assistantUsage`, `switchPublicAssistant` — административный учёт и остановка публичных ответов.
 
 ## Публичные контракты
@@ -42,4 +43,4 @@ REST `api`, шлюз и worker `llm`, worker каналов `messaging`.
 
 ## Ограничения
 
-Месячный бюджет публичного API $2 по UTC, остальные квоты и тарифы — `assistant.*`; активные резервы учитываются при проверке. Нет shell, произвольных URL, кода и чужих данных. Telegram включается отдельно после привязки. Инструмент подготовки ничего не применяет. Подтверждение не гарантирует физическое исполнение: интерфейс различает отправленную команду и телеметрию. Ключи, тексты и фото исключаются из аналитики. Сеть и генерация не работают в потоке автоматизации.
+Месячный бюджет публичного API $2 по UTC, остальные квоты и тарифы — `assistant.*`; активные резервы учитываются при проверке. Нет shell, произвольных URL и кода. Только владелец-admin вне демо может читать чужие профили и фермы отдельными инструментами; изменения остаются собственными. Telegram включается отдельно после привязки. Инструмент подготовки ничего не применяет. Подтверждение не гарантирует физическое исполнение: интерфейс различает отправленную команду и телеметрию. Ключи, тексты и фото исключаются из аналитики. Сеть и генерация не работают в потоке автоматизации.

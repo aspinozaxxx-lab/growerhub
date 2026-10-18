@@ -22,6 +22,8 @@ public class AssistantController {
     public Capabilities capabilities(@AuthenticationPrincipal AuthenticatedUser user, HttpServletRequest request, HttpServletResponse response) { return advisor.assistantCapabilities(user, origin.resolve(request, response)); }
     @GetMapping("/models")
     public List<Model> models(@AuthenticationPrincipal AuthenticatedUser user) { return advisor.assistantModels(user); }
+    @GetMapping("/runtime")
+    public RuntimeStatus runtime(@AuthenticationPrincipal AuthenticatedUser user) { return advisor.assistantRuntimeStatus(user); }
     @GetMapping("/conversations")
     public List<Conversation> conversations(@AuthenticationPrincipal AuthenticatedUser user) { return advisor.assistantConversations(user); }
     @PostMapping("/conversations")

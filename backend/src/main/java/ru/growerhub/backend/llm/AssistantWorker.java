@@ -65,6 +65,11 @@ public class AssistantWorker {
             advisor.finishAssistantWork(work.id(), work.lease(), new Outcome("failed", null, 0, 0, false, "worker_failure"));
         } finally { active.remove(work.id()); }
     }
+    @Scheduled(fixedDelayString = "${assistant.codex-check-ms}", initialDelayString = "${assistant.codex-check-start-ms}", scheduler = "assistantTaskScheduler")
+    public void checkCodex() {
+        if (settings.enabled() && settings.ownerUserId() != null && settings.ownerUserId() > 0)
+            advisor.recordAssistantRuntimeStatus(gateway.runtimeStatus());
+    }
     @PreDestroy public void stop() {
         active.values().forEach(work -> gateway.cancel(work.provider(), work.id())); executor.shutdownNow();
     }

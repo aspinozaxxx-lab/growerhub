@@ -22,6 +22,7 @@ public final class AssistantData {
     public record Image(byte[] bytes, String mime) {}
     public record PhotoPermit(UUID id, int maxBytes, long maxPixels, int edge) {}
     public record Model(String id, String name, List<String> efforts, String defaultEffort, boolean images, boolean preferred) {}
+    public record RuntimeStatus(String installed, String latest, java.time.Instant checkedAt, boolean updateAvailable, String error) {}
     public record Capabilities(boolean enabled, boolean available, boolean owner, boolean demo,
             String model, String effort, List<Model> models, LimitsView limits, Preferences preferences) {}
     public record LimitsView(int perMinute, int perDay, long remainingDay, String reason) {}
