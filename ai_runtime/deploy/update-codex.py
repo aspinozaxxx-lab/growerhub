@@ -236,6 +236,7 @@ def perform(job):
         if version(str(binary)) != job['target']:
             raise RuntimeError('version_mismatch')
         run(NODE + '/node', '--test', cwd=ROOT, env=env, timeout=120)
+        run('python3', '-m', 'unittest', 'discover', '-s', 'test', '-p', '*_test.py', cwd=ROOT, timeout=60)
         probe(binary)
         BACKUPS.mkdir(mode=0o700, exist_ok=True)
         backup = BACKUPS / ('owner-before-codex-' + job['id'] + '.env')

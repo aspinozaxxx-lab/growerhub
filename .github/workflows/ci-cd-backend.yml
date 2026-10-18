@@ -60,7 +60,9 @@ jobs:
 
       - name: Test AI runtime
         working-directory: ai_runtime
-        run: node --test
+        run: |
+          node --test
+          python3 -m unittest discover -s test -p '*_test.py'
 
       - name: Install PlatformIO
         run: pip install platformio
