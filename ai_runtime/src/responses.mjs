@@ -99,10 +99,13 @@ export class ResponsesProvider {
       if (!Number.isSafeInteger(job.maxCostMicros) || job.maxCostMicros <= 0) throw new ProviderFailure('invalid_budget');
       const maximumCost = Math.min(job.maxCostMicros, PRICE.turnMicros) * 1000;
       const input = inputMessages(job.messages), tools = functionTools(job.tools);
+      let measuredPrefix = null, prefixLength = 0;
       const allowed = new Set(tools.map(item => item.name));
       while (callCount < Math.min(job.maxModelCalls, LIMITS.calls)) {
         signal.throwIfAborted();
-        const count = inputUpperBound(input, tools);
+        // Proverennyj usage opisyvaet tot zhe prefiks; novye rezultaty schitaem sverhu otdelno.
+        const measured = measuredPrefix === null ? Infinity : measuredPrefix + inputUpperBound(input.slice(prefixLength), []);
+        const count = Math.min(inputUpperBound(input, tools), measured);
         if (count > Math.min(job.maxInputTokens, LIMITS.input)) throw new ProviderFailure('context_limit');
         const available = maximumCost - inputTokens * PRICE.input - outputTokens * PRICE.output - count * PRICE.input;
         const outputLimit = Math.min(job.maxOutputTokens, LIMITS.output, Math.floor(available / PRICE.output));
@@ -141,6 +144,9 @@ export class ResponsesProvider {
         if (!calls.length) return { status: result.status === 'incomplete' ? 'incomplete' : 'completed', text, inputTokens, outputTokens, usageKnown: true, code: null };
         if (body.tool_choice === 'none') throw new ProviderFailure('tool_limit');
         input.push(...result.output);
+        // Vkljuchaet reasoning i tool calls; 1024 tokena ostavleny na framing assistant-soobshcheniya.
+        measuredPrefix = result.usage.input_tokens + result.usage.output_tokens + 1024;
+        prefixLength = input.length;
         for (const call of calls) {
           if (++toolCount > Math.min(job.maxToolCalls, LIMITS.tools)) throw new ProviderFailure('tool_limit');
           if (!allowed.has(call.name)) throw new ProviderFailure('tool_rejected');

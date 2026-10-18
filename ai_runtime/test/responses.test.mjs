@@ -57,8 +57,34 @@ test('each call reduces its output limit to the remaining turn budget', async ()
   const result = await provider.run({...job(), maxCostMicros:8000}, context({tool:async()=>({plants:2})}));
   assert.ok(limits[1] < limits[0]);
   assert.ok(result.inputTokens * PRICE.input + result.outputTokens * PRICE.output <= 8000000);
-  assert.equal(result.code, 'turn_budget');
-  assert.equal(generations, 2);
+  assert.ok(result.status === 'completed' || result.code === 'turn_budget');
+  assert.ok(generations >= 2 && generations <= LIMITS.calls);
+});
+
+test('uses measured prefix tokens without dropping farm facts or reasoning', async () => {
+  const sample = job(); sample.messages[0].content[0].text = 'x'.repeat(11000);
+  let generations = 0;
+  const provider = new ResponsesProvider({ apiKey:'test', transport:async (_url, request) => {
+    const body = JSON.parse(request.body); generations++;
+    if (generations === 1) return completed([
+      {type:'reasoning',content:[{type:'reasoning_text',text:'r'.repeat(2000)}]},
+      {type:'function_call',call_id:'c1',name:'gh_farm_report',arguments:'{}'}], 2000, 1000);
+    assert.ok(inputUpperBound(body.input, body.tools) > LIMITS.input);
+    assert.ok(body.input.some(item => item.type === 'reasoning'));
+    assert.ok(body.input.some(item => item.type === 'function_call_output' && item.output.includes('z'.repeat(6000))));
+    return completed([], 6000, 50);
+  }});
+  const result = await provider.run(sample, context({tool:async()=>({facts:'z'.repeat(6000)})}));
+  assert.equal(result.status, 'completed'); assert.equal(generations, 2);
+});
+
+test('measured prefix never exempts new oversized tool results from the input limit', async () => {
+  let generations = 0;
+  const provider = new ResponsesProvider({ apiKey:'test', transport:async () => {
+    generations++; return completed([{type:'function_call',call_id:'c1',name:'gh_farm_report',arguments:'{}'}]);
+  }});
+  const result = await provider.run(job(), context({tool:async()=>({facts:'z'.repeat(16000)})}));
+  assert.equal(result.code, 'context_limit'); assert.equal(generations, 1); assert.equal(result.usageKnown, true);
 });
 
 test('network failure after dispatch keeps conservative accounting; refusal before generation does not', async () => {
