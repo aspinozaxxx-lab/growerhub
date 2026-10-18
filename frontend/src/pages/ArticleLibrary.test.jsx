@@ -17,6 +17,7 @@ vi.mock('../utils/analytics', () => ({ trackProductGoal: vi.fn() }));
 const key = 'growerhub.article-library.v1';
 const lightId = 'kak-izmerit-svet-dlya-rasteniy';
 const light = getArticles('ru').find((article) => article.id === lightId);
+const freshArticle = getArticles('ru')[0];
 const sync = (value) => {
   if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value);
   window.dispatchEvent(new StorageEvent('storage', { key }));
@@ -70,14 +71,14 @@ it('nahodit statyu po zapomnennomu slovu i sbrasyvaet pustoj rezultat', () => {
 
 it('sohranyaet statyu, vosstanavlivaet v drugoj lokali i snymaet zakladku', async () => {
   const page = render(app());
-  fireEvent.click(screen.getByRole('button', { name: `Сохранить статью: ${light.title}` }));
-  expect(JSON.parse(localStorage.getItem(key)).saved).toEqual([lightId]);
+  fireEvent.click(screen.getByRole('button', { name: `Сохранить статью: ${freshArticle.title}` }));
+  expect(JSON.parse(localStorage.getItem(key)).saved).toEqual([freshArticle.id]);
   fireEvent.click(screen.getByRole('link', { name: /^Сохранённые/ }));
   expect(document.querySelectorAll('.article-library-card')).toHaveLength(1);
   page.unmount();
   await changeLocale('en', { remember: false });
   render(app('/en/articles/?view=saved'));
-  const translated = getArticles('en').find((article) => article.id === lightId);
+  const translated = getArticles('en').find((article) => article.id === freshArticle.id);
   expect(screen.getByRole('link', { name: translated.title })).toHaveAttribute('href', getArticlePath(translated, 'en'));
   fireEvent.click(screen.getByRole('button', { name: `Saved: ${translated.title}` }));
   expect(screen.getByText(/Tap the bookmark/)).toBeInTheDocument();
@@ -107,8 +108,8 @@ it('obrabatyvaet povrezhdennoe ili zapreshchennoe hranilishche bez poteri teksta
   act(() => sync('{broken'));
   expect(screen.getByRole('status')).toHaveTextContent('Браузер не разрешает постоянное хранение');
   vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('blocked', 'SecurityError'); });
-  fireEvent.click(screen.getByRole('button', { name: `Сохранить статью: ${light.title}` }));
-  expect(screen.getByRole('button', { name: `Сохранено: ${light.title}` })).toHaveAttribute('aria-pressed', 'true');
+  fireEvent.click(screen.getByRole('button', { name: `Сохранить статью: ${freshArticle.title}` }));
+  expect(screen.getByRole('button', { name: `Сохранено: ${freshArticle.title}` })).toHaveAttribute('aria-pressed', 'true');
   expect(document.querySelectorAll('.article-library-card')).toHaveLength(6);
 });
 
