@@ -8,7 +8,8 @@ import {
   within,
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ruleRequest } from '../../api/assistant';
 import {
   fetchFarmsOverview,
   replaceGreenhouseScenarios,
@@ -21,6 +22,8 @@ vi.mock('../../api/selfService', () => ({
   replaceGreenhouseScenarios: vi.fn(),
   setScenariosEnabled: vi.fn(),
 }));
+vi.mock('../../api/assistant', () => ({ ruleRequest: vi.fn() }));
+let personalRules;
 
 const scenarioConfig = {
   max_c: 28,
@@ -59,11 +62,57 @@ function overview(withAirConditioners = true) {
 }
 
 describe('AppAutomations', () => {
+  beforeEach(() => {
+    personalRules = [];
+    ruleRequest.mockImplementation(async (path = '') => {
+      if (!path) return personalRules;
+      if (path.endsWith('/history') || path.endsWith('/versions')) return [];
+      if (path.startsWith('/preview')) return { conflicts: [], readiness: [], timing: null };
+      return {};
+    });
+  });
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it('keeps personal rules compact and grouped by the selected greenhouse or whole farm', async () => {
+    fetchFarmsOverview.mockResolvedValue(multiOverview());
+    personalRules = [personalRule('watering-3', 'Полив через день', 'BOX', 3), personalRule('farm-check', 'Обход фермы', 'ROOM', 1)];
+    render(<MemoryRouter><AppAutomations /></MemoryRouter>);
+    await screen.findByRole('button', { name: 'Открыть сценарий «Обход фермы»' });
+    expect(screen.queryByRole('button', { name: 'Открыть сценарий «Полив через день»' })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Настройки теплицы'), { target: { value: '3' } });
+    const group = screen.getByRole('region', { name: 'Свои сценарии: Зелень' });
+    expect(within(group).getByRole('button', { name: 'Открыть сценарий «Полив через день»' })).toBeInTheDocument();
+    expect(within(group).getByText('Выключен')).toBeInTheDocument();
+    expect(screen.queryByText('Пауза между запусками')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Автоматизации фермы: Ферма' })).toBeInTheDocument();
+    expect(ruleRequest.mock.calls.filter(([path]) => !path)).toHaveLength(1);
+    expect(ruleRequest.mock.calls.some(([path]) => path?.includes('/enabled'))).toBe(false);
+  });
+
+  it('opens an owned rule link in its greenhouse without enabling anything', async () => {
+    fetchFarmsOverview.mockResolvedValue(multiOverview());
+    personalRules = [personalRule('watering-3', 'Полив через день', 'BOX', 3)];
+    render(<MemoryRouter initialEntries={['/app/automations/?rule=watering-3']}><AppAutomations /></MemoryRouter>);
+    const dialog = await screen.findByRole('dialog', { name: 'Полив через день' });
+    await within(dialog).findByText('Устройства готовы, конфликтов нет');
+    expect(screen.getByLabelText('Настройки теплицы')).toHaveValue('3');
+    expect(within(dialog).getByText('Зелень')).toBeInTheDocument();
+    expect(ruleRequest.mock.calls.some(([path]) => path?.includes('/enabled'))).toBe(false);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Закрыть' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('does not request details for an unknown or foreign rule identifier in the URL', async () => {
+    fetchFarmsOverview.mockResolvedValue(multiOverview());
+    render(<MemoryRouter initialEntries={['/app/automations/?rule=foreign']}><AppAutomations /></MemoryRouter>);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Сценарий не найден в текущей ферме');
+    expect(ruleRequest.mock.calls.every(([path]) => !path)).toBe(true);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('pokazyvaet tolko obshchie chetyre polya klimata', async () => {
@@ -245,4 +294,10 @@ function multiOverview() {
     readiness: { BOX_CLIMATE: { ready: true }, LIGHT_SCHEDULE: { ready: true }, WATERING: { ready: true } },
   }));
   return payload;
+}
+
+function personalRule(id, name, scopeType, scopeId) {
+  return { id, enabled: false, revision: 1, definition: { version: 2, name, scopeType, scopeId,
+    trigger: { type: 'calendar', every: 2, unit: 'day', startDate: '2026-10-20', at: '16:00' },
+    actions: [{ type: 'notify', text: 'Осмотр растений' }], cooldownSeconds: 60 } };
 }

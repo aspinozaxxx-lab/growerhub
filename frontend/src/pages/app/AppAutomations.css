@@ -1,4 +1,4 @@
-.automations-page { display: grid; gap: 22px; min-width: 0; }
+.automations-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; min-width: 0; padding-bottom: 60px; }
 .automations-page h2, .automations-page h3, .automations-page p { margin: 0; }
 .automations-page .app-page-header { align-items: center; }
 .automations-page .app-page-header__title { font-size: 32px; line-height: 1.2; letter-spacing: -.8px; }
@@ -87,6 +87,26 @@
 .automations-settings-panel .climate-settings-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 24px; }
 .automations-settings-panel footer { margin-top: auto; display: flex; justify-content: flex-end; padding: 0 24px 18px; }
 .automations-watering-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.automations-rules-panel { grid-column: 1 / -1; min-width: 0; border: 1px solid var(--border-1); border-radius: 12px; background: var(--surface-1); overflow: hidden; }
+.automations-rules-panel > header { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 12px 16px; }
+.automations-rules-panel h2 { min-width: 0; font-size: 15px; line-height: 1.35; overflow-wrap: anywhere; }
+.automations-rules-panel h2 span { color: var(--text-2); font-weight: 400; }
+.automations-rules-create { display: inline-flex; align-items: center; gap: 5px; flex: none; padding: 5px 0; font-size: 12px; color: var(--accent); }
+.automations-rules-panel > ul { list-style: none; margin: 0; padding: 0; }
+.automations-rules-panel > ul > li { border-top: 1px solid var(--border-1); }
+.automations-rule-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; padding: 10px 16px; border: 0; background: transparent; color: var(--text-1); text-align: left; font: inherit; cursor: pointer; }
+.automations-rule-row:hover { background: var(--accent-soft); }
+.automations-rule-row > svg { flex: none; color: var(--accent); }
+.automations-rule-name { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.automations-rule-name strong { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.automations-rule-name small { color: var(--text-2); font-size: 12px; }
+.automations-rule-status { flex: none; display: inline-block; width: fit-content; padding: 4px 7px; border-radius: 20px; background: var(--surface-2); color: var(--text-2); font-size: 11px; }
+.automations-rule-status.is-on { color: var(--success); background: var(--success-soft); }
+.automations-timeline__name .automations-custom-count { color: var(--accent); font-size: 11px; }
+.assistant-rule-details { display: grid; gap: 14px; }
+.assistant-rule-details p { margin: 5px 0; }
+.assistant-rule-details h3 { margin: 0 0 6px; font-size: 15px; }
+.assistant-rule-details li { margin: 5px 0; }
 
 @media (max-width: 1100px) {
   .automations-light-editor { grid-template-columns: minmax(150px, 1.3fr) repeat(2, minmax(115px, 1fr)); }
@@ -107,6 +127,15 @@
 }
 
 @media (max-width: 680px) {
+  .automations-rules-panel { border-radius: 10px; }
+  .automations-rules-panel > header { padding: 8px 10px; min-height: 32px; }
+  .automations-rules-panel h2 { font-size: 13px; }
+  .automations-rule-row { min-height: 54px; padding: 8px 10px; gap: 7px; }
+  .automations-rule-name strong { font-size: 13px; }
+  .automations-rule-name small { font-size: 11px; }
+  .automations-rule-status { font-size: 10px; padding: 4px 6px; }
+  .automations-selection label { width: 100%; font-size: 12px; }
+  .automations-selection select { flex: 1; min-width: 0; max-width: 100%; height: 36px; }
   .automations-page { gap: 8px; }
   .automations-page .app-page-header { align-items: center; min-height: 44px; gap: 8px; }
   .automations-page .app-page-header__title { font-size: 22px; letter-spacing: -.4px; }

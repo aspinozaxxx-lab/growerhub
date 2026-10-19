@@ -33,6 +33,7 @@ function Proposal({ item, onAction, busy }) {
     {item.status === 'pending' && <small>{t(item.kind === 'feature_request' ? 'Запрос отправится только после вашего подтверждения.' : 'Изменение начнётся только после вашего подтверждения.')}</small>}
     {item.kind === 'scenario' && <details><summary>{t('Настройки сценария')}</summary><dl>{Object.entries(p.config || {}).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{String(v)}</dd></div>)}</dl></details>}
     <p role="status">{t(item.kind === 'feature_request' && item.status === 'applied' ? 'Запрос передан команде GrowerHub на рассмотрение.' : item.kind === 'device' && item.status === 'applied' ? 'Команда передана устройству. Фактическое состояние смотрите на ферме.' : status[item.status] || item.status)}</p>
+    {item.kind === 'rule' && item.status === 'applied' && item.result?.id && <Link className="gh-btn gh-btn--secondary" to={`/app/automations/?rule=${encodeURIComponent(item.result.id)}`}>{t('Открыть сценарий')}</Link>}
     {item.status === 'pending' && <div className="assistant-actions"><Button variant="primary" disabled={busy} onClick={() => onAction(item, false)}>{t(item.kind === 'feature_request' ? 'Отправить запрос' : 'Подтвердить')}</Button><Button disabled={busy} onClick={() => onAction(item, true)}>{t(item.kind === 'feature_request' ? 'Не отправлять' : 'Не применять')}</Button></div>}
   </section>;
 }

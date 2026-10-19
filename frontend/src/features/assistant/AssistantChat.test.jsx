@@ -103,6 +103,11 @@ test('device delivery is shown separately from actual device state', async () =>
   mount(); await screen.findByText('Команда передана устройству. Фактическое состояние смотрите на ферме.');
   expect(screen.queryByRole('button', { name: 'Подтвердить' })).not.toBeInTheDocument();
 });
+test('a saved rule has a direct link to its own details in automations', async () => {
+  history = [{ id: 'message-1', text: 'Сохрани сценарий', status: 'completed', attachments: [], proposals: [{ id: 'proposal-1', title: 'Утренний осмотр', kind: 'rule', payload: { enabled: false }, status: 'applied', revision: 'version-7', result: { id: 'owned-rule' } }] }];
+  mount(); expect(await screen.findByRole('link', { name: 'Открыть сценарий' })).toHaveAttribute('href', '/app/automations/?rule=owned-rule');
+  expect(assistantRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+});
 test('feature request displays the complete text and waits for explicit sending', async () => {
   history = [{ id: 'message-1', text: 'Нужна доработка', status: 'completed', attachments: [], proposals: [{ id: 'request-1', title: 'Отправить команде: Удобрения', kind: 'feature_request', payload: { description: 'Расход по растениям', benefit: 'Планировать покупки' }, status: 'pending', revision: 'reviewed-text-2' }] }];
   mount(); await screen.findByText('Расход по растениям');

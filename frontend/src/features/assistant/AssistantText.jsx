@@ -1,7 +1,9 @@
 import { Fragment } from 'react';
 import { marked } from 'marked';
+import { Link } from 'react-router-dom';
+import { supportedAppLink } from './appLinks';
 
-// HTML, izobrazheniya i ssylki modeli ne sozdayut aktivnyj kontent.
+// Aktivny tolko proverennye marshruty kabineta; HTML i vneshnie ssylki inertny.
 function render(tokens, depth = 0) {
   if (depth > 24) return null;
   return tokens.map((token, index) => {
@@ -24,7 +26,10 @@ function render(tokens, depth = 0) {
         node = token.ordered ? <ol start={token.start}>{items}</ol> : <ul>{items}</ul>; break;
       }
       case 'table': node = <div className="assistant-answer-table"><table><thead><tr>{token.header.map((cell, n) => <th key={n}>{render(cell.tokens, depth + 1)}</th>)}</tr></thead><tbody>{token.rows.map((row, n) => <tr key={n}>{row.map((cell, c) => <td key={c}>{render(cell.tokens, depth + 1)}</td>)}</tr>)}</tbody></table></div>; break;
-      case 'link': node = <>{children()} ({token.href})</>; break;
+      case 'link': {
+        const path = supportedAppLink(token.href);
+        node = path ? <Link to={path}>{children()}</Link> : <>{children()} ({token.href})</>; break;
+      }
       case 'image': node = token.text; break;
       default: node = token.tokens ? children() : token.text || token.raw;
     }

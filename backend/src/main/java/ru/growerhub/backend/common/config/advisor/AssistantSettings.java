@@ -8,7 +8,8 @@ public record AssistantSettings(boolean enabled, boolean publicEnabled, Integer 
         String ownerUrl, String publicUrl, String ownerToken, String publicToken, String hmacSecret,
         Set<String> trustedProxies, String publicModel, String publicEffort, Budget budget, Limits limits,
         int workerDelayMs, int retentionDays, int contextMessages, int maxToolResultChars, int proposalMinutes,
-        int reportHour, String siteUrl, int schedulerThreads, Maintenance maintenance, int historyPoints, int requestsPerDay) {
+        int reportHour, String siteUrl, int schedulerThreads, Maintenance maintenance, int historyPoints, int requestsPerDay,
+        String interfaceGuide) {
     public record Maintenance(String url, String token, int timeoutSeconds) {
         public boolean enabled() { return token != null && token.length() >= 32; }
     }

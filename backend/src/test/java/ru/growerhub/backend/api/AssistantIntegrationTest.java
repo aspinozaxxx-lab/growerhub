@@ -264,6 +264,34 @@ class AssistantIntegrationTest extends IntegrationTestBase {
         assertThat(advisor.claimAssistantApplication()).isNull();
     }
 
+    @Test void interfaceHelpFindsOnlyOwnedRulesAndNeverCreatesAProposal() {
+        var user = principal(first); var stranger = principal(other);
+        int ownFarm = automation.createUserFarm(user, new ru.growerhub.backend.automation.contract.AutomationData.SaveRoomRequest("Моя ферма", true)).farms().getFirst().id();
+        int foreignFarm = automation.createUserFarm(stranger, new ru.growerhub.backend.automation.contract.AutomationData.SaveRoomRequest("Чужая ферма", true)).farms().getFirst().id();
+        var ownDefinition = json.convertValue(Map.of("version", 2, "name", "Утренний осмотр", "scopeType", "ROOM", "scopeId", ownFarm,
+                "trigger", Map.of("type", "schedule", "at", "09:00"), "actions", List.of(Map.of("type", "notify", "text", "Осмотр")), "cooldownSeconds", 60), ru.growerhub.backend.automation.contract.RuleData.Definition.class);
+        var foreignDefinition = new ru.growerhub.backend.automation.contract.RuleData.Definition(2, "Чужой осмотр", "ROOM", foreignFarm,
+                ownDefinition.trigger(), null, ownDefinition.actions(), 60);
+        var mine = automation.saveRule(null, new ru.growerhub.backend.automation.contract.RuleData.Save(null, false, ownDefinition), user);
+        var theirs = automation.saveRule(null, new ru.growerhub.backend.automation.contract.RuleData.Save(null, false, foreignDefinition), stranger);
+        var chat = create(first); send(first, chat); var work = advisor.claimAssistantWork("deepseek");
+        assertThat(work.tools().stream().map(t -> t.get("name"))).contains("gh_app_help");
+        var help = new ToolCall("help", "gh_app_help", json.valueToTree(Map.of("section", "scenarios")));
+        advisor.beginAssistantTool(work.id(), work.lease(), help);
+        var result = advisor.executeAssistantTool(work.id(), work.lease(), help);
+        advisor.finishAssistantTool(work.id(), work.lease(), help.id(), result);
+        assertThat(result.path("sections").get(0).path("path").asText()).isEqualTo("/app/automations/");
+        assertThat(result.path("rules")).hasSize(1);
+        assertThat(result.path("rules").get(0).path("url").asText()).endsWith("/app/automations/?rule=" + mine.id());
+        assertThat(result.toString()).contains("Моя ферма", "Свои сценарии").doesNotContain("Чужая ферма", "Чужой осмотр");
+        var foreign = new ToolCall("foreign-help", "gh_app_help", json.valueToTree(Map.of("ruleId", theirs.id().toString())));
+        advisor.beginAssistantTool(work.id(), work.lease(), foreign);
+        assertThatThrownBy(() -> advisor.executeAssistantTool(work.id(), work.lease(), foreign)).isInstanceOf(ru.growerhub.backend.common.contract.DomainException.class);
+        assertThat(jdbc.queryForObject("select count(*) from assistant_proposals", Integer.class)).isZero();
+        assertThat(automation.getRule(mine.id(), user).revision()).isEqualTo(1);
+        assertThat(automation.getRule(mine.id(), user).enabled()).isFalse();
+    }
+
     @Test void foreignFarmPlantAndSystemCommandsAreRejectedRegardlessOfPromptOrArguments() {
         var foreign = principal(other);
         int plant = plants.createPlant(new ru.growerhub.backend.plant.PlantFacade.PlantCreateCommand("Private plant", null, null, null, null, "", "", true), foreign).id();

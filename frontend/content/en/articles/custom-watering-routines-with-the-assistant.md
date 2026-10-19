@@ -39,7 +39,11 @@ For this example, the plan is:
 
 That gives **eight minutes of pump running time and an eighteen-minute cycle**. Device confirmations may add a small delay.
 
-Review the greenhouse, total dose, pauses, next dates and the disabled state before confirming. The saved routine appears in **Routines**.
+Review the greenhouse, total dose, pauses, next dates and the disabled state before confirming. Select **Open routine** below the saved proposal to see its details in the right greenhouse.
+
+To find it later, open **Routines**, choose a greenhouse in the light schedule or the **Greenhouse settings** field and select a row under **Custom routines**. The name, schedule and status are visible immediately; dates, stages and history are inside. You can also ask the assistant where to find a routine and get a link.
+
+![A compact list of the selected greenhouse’s custom routines](/screenshots/assistant/scoped-routines-en.webp)
 
 ## Every two days or every 48 hours?
 

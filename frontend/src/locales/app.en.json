@@ -1440,5 +1440,16 @@
   "После пропуска выполнится только последний актуальный запуск.": "After a missed run, only the most recent occurrence will run.",
   "Опоздавший более чем на {{seconds}} с запуск будет пропущен.": "A run more than {{seconds}} seconds late will be skipped.",
   "Для ожидания завершения полива подготовьте правило версии 2.": "Prepare a version 2 rule to wait for watering to finish.",
-  "Показаны первые {{count}} этапов, итог учитывает весь цикл.": "The first {{count}} steps are shown; the total includes the entire cycle."
+  "Показаны первые {{count}} этапов, итог учитывает весь цикл.": "The first {{count}} steps are shown; the total includes the entire cycle.",
+  "Автоматизации фермы": "Farm automations",
+  "Свои сценарии": "Custom routines",
+  "Создать сценарий: {{name}}": "Create a routine: {{name}}",
+  "Открыть сценарий «{{name}}»": "Open routine “{{name}}”",
+  "Помоги создать сценарий для всей фермы": "Help me create a routine for the whole farm",
+  "Помоги создать сценарий для теплицы": "Help me create a routine for the greenhouse",
+  "Сначала уточни, что я хочу автоматизировать.": "First ask what I want to automate.",
+  "Проверяем сценарий…": "Checking the routine…",
+  "Сценарий не найден в текущей ферме. Проверьте аккаунт и режим демо.": "This routine was not found in the current farm. Check your account and demo mode.",
+  "Поливной канал": "Watering channel",
+  "Открыть сценарий": "Open routine"
 }

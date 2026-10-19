@@ -73,12 +73,6 @@
 .assistant-dialog .gh-modal__panel { width: min(620px, 95vw); height: 100dvh; max-height: 100dvh; padding: 0; gap: 0; box-sizing: border-box; border-radius: 18px 0 0 18px; }
 .assistant-dialog .gh-modal__body { overflow: hidden; gap: 0; }
 body:has(.assistant-dialog) { overflow: hidden; }
-.assistant-rules { margin: 20px 0; padding: 18px; border: 1px solid var(--border-1); border-radius: 18px; background: var(--surface-1); }
-.assistant-rules header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-.assistant-rule { padding: 16px 0; border-top: 1px solid var(--border-1); overflow-wrap: anywhere; }
-.assistant-rule h3 { margin: 0 0 6px; }
-.assistant-rule dl { display: grid; gap: 6px; }
-.assistant-rule li { margin-bottom: 8px; }
 .assistant-timing { margin-top: 10px; border-top: 1px solid var(--border-1); padding-top: 8px; font-size: 13px; }
 .assistant-timing ol { padding-left: 22px; }
 .assistant-timing li { margin: 5px 0; }
@@ -116,6 +110,5 @@ body:has(.assistant-dialog) { overflow: hidden; }
   .assistant-suggestions button { padding: 11px; font-size: 14px; }
   .assistant-question { max-width: 90%; padding: 8px 13px; }
   .assistant-photo { max-width: 115px; }
-  .assistant-rules { padding: 12px; }
   .assistant-launch { bottom: calc(76px + env(safe-area-inset-bottom)); right: 12px; padding: 10px 14px; }
 }

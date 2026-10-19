@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import RuleCards from '../../features/assistant/RuleCards';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import RuleCards, { RuleDetails } from '../../features/assistant/RuleCards';
+import useRules from '../../features/assistant/useRules';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, Check, ChevronRight, Clock3, Droplets, Info, Moon, Pencil, Power, Sun, Thermometer } from 'lucide-react';
 import AppPageHeader from '../../components/layout/AppPageHeader';
 import AppPageState from '../../components/layout/AppPageState';
@@ -67,13 +68,18 @@ function AppAutomations() {
   const automation = useAutomations();
   const { overview, farms, greenhouses, busy, error, notice } = automation;
   const [selectedId, setSelectedId] = useState(null);
-  const [customRulesEnabled, setCustomRulesEnabled] = useState(false);
+  const [search, setSearch] = useSearchParams();
+  const closeRule = useCallback(() => setSearch(current => { const next = new URLSearchParams(current); next.delete('rule'); return next; }, { replace: true }), [setSearch]);
+  const custom = useRules({ refreshKey: overview, selectedId: search.get('rule'), onClose: closeRule });
+  const openRule = rule => setSearch(current => { const next = new URLSearchParams(current); next.set('rule', rule.id); return next; });
+  const scopedRule = custom.selected?.definition;
+  useEffect(() => { if (scopedRule?.scopeType === 'BOX') setSelectedId(scopedRule.scopeId); }, [scopedRule?.scopeType, scopedRule?.scopeId]);
   const selected = greenhouses.find((greenhouse) => greenhouse.id === selectedId) || greenhouses[0];
   const allScenarios = farms.flatMap((farm) => [
     ...listOrEmpty(farm.scenarios),
     ...listOrEmpty(farm.greenhouses).flatMap((greenhouse) => listOrEmpty(greenhouse.scenarios)),
   ]);
-  const anyEnabled = customRulesEnabled || allScenarios.some((scenario) => scenario.enabled);
+  const anyEnabled = custom.rules.some(r => r.enabled) || allScenarios.some((scenario) => scenario.enabled);
   const allEnabled = greenhouses.length > 0 && greenhouses.every((greenhouse) => (
     FARM_SCENARIO_TYPES.every((type) => automation.scenarioFor(greenhouse, type).enabled)
   ));
@@ -178,7 +184,8 @@ function AppAutomations() {
         {masterActions}
       </section>}
       <div className="automations-feedback" role="status" aria-live="polite">{notice}</div>
-      <RuleCards onChange={setCustomRulesEnabled} refreshKey={overview} farms={farms} />
+      {custom.error && !custom.selected && <p role="alert" className="automations-dialog-error">{custom.error}</p>}
+      {custom.missing && <p role="alert">{t('Сценарий не найден в текущей ферме. Проверьте аккаунт и режим демо.')} <button type="button" onClick={closeRule}>{t('Закрыть')}</button></p>}
       {overview && greenhouses.length === 0 ? (
         <AppPageState kind="empty" title={t(farms.length ? 'Сначала добавьте теплицу' : 'Сначала создайте ферму')}>
           <Link to="/app/settings/zones/">{t('Открыть настройки зон')}</Link>
@@ -207,6 +214,7 @@ function AppAutomations() {
                     <strong>{greenhouse.name}{automation.isDirty(greenhouse, LIGHT) ? <i aria-label={t('Не сохранено')} /> : null}</strong>{' '}
                     {!compact || farms.length > 1 ? <span>{greenhouse.farmName}</span> : null}
                     {compact ? <span>{config.start_time}–{config.end_time}</span> : null}
+                    {custom.rules.some(r => r.definition.scopeType === 'BOX' && r.definition.scopeId === greenhouse.id) && <span className="automations-custom-count">{t('Свои сценарии')}: {custom.rules.filter(r => r.definition.scopeType === 'BOX' && r.definition.scopeId === greenhouse.id).length}</span>}
                     {!readiness.ready ? <small>{readiness.reason}</small> : null}
                   </button>
                   <div className="automations-timeline__range">
@@ -229,12 +237,12 @@ function AppAutomations() {
             <SettingsState greenhouse={selected} type={LIGHT} automation={automation} pendingOnly />
           </div> : lightEditor}
         </section>
-        {!compact ? <div className="automations-selection">
+        <div className="automations-selection">
           <label>{t('Настройки теплицы')}<select value={selected.id} onChange={(event) => setSelectedId(Number(event.target.value))}>
             {greenhouses.map((greenhouse) => <option key={greenhouse.id} value={greenhouse.id}>{greenhouse.farmName} · {greenhouse.name}</option>)}
           </select></label>
-          <span>{t('Включаются только готовые сценарии активных теплиц.')}</span>
-        </div> : null}
+          {!compact && <span>{t('Включаются только готовые сценарии активных теплиц.')}</span>}
+        </div>
         <div className="automations-details">
           {compact ? <>
             <section className="automations-settings-panel automations-compact-panel">
@@ -265,8 +273,12 @@ function AppAutomations() {
                 greenhouseId={selected.id} revision={wateringRevision} /> : null}
             </section>
           </> : <>{climateEditor}{wateringEditor}</>}
+          <RuleCards rules={custom.rules} scopeType="BOX" scopeId={selected.id} scopeName={selected.name} onOpen={openRule} busy={custom.busy} />
         </div>
       </> : null}
+      {farms.filter(f => !greenhouses.length || custom.rules.some(r => r.definition.scopeType === 'ROOM' && r.definition.scopeId === f.id)).map(farm =>
+        <RuleCards key={farm.id} rules={custom.rules} scopeType="ROOM" scopeId={farm.id} scopeName={farm.name} onOpen={openRule} busy={custom.busy} />)}
+      <RuleDetails manager={custom} farms={farms} onClose={closeRule} compact={compact} />
       {compact ? <Modal isOpen={editorType !== null} presentation="sheet"
         title={editorType === 'all' ? t('Все автоматизации') : `${selected?.name || ''} · ${t(SCENARIO_LABELS[editorType] || '')}`}
         onClose={() => setEditorType(null)}>

@@ -699,6 +699,8 @@ assistant:
   report-hour: 9
   # Publichnyj adres ssylok pomoshchnika.
   site-url: ${ASSISTANT_SITE_URL:https://growerhub.ru}
+  # Proverennaya spravka po marshrutam i dejstviyam interfejsa.
+  interface-guide: classpath:advisor/interface-guide.json
   budget:
     # Limit month-micros; summa v mikro USD, tarif tokena v nano USD.
     month-micros: 2000000

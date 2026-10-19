@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.*;
 import java.util.*;
 import org.springframework.stereotype.Service;
+import org.springframework.core.io.ResourceLoader;
 import ru.growerhub.backend.automation.AutomationFacade;
 import ru.growerhub.backend.automation.contract.AutomationData.*;
 import ru.growerhub.backend.automation.contract.RuleData;
@@ -26,11 +27,14 @@ public class AssistantTools {
     private final ObjectMapper json;
     private final Clock clock;
     private final AssistantRequests requests;
+    private final JsonNode interfaceGuide;
 
     public AssistantTools(AutomationFacade automation, PlantFacade plants, JournalFacade journal, UserFacade users,
-            AssistantIdentity identity, AssistantSettings settings, ObjectMapper json, Clock clock, AssistantRequests requests) {
+            AssistantIdentity identity, AssistantSettings settings, ObjectMapper json, Clock clock, AssistantRequests requests, ResourceLoader resources) {
         this.automation = automation; this.plants = plants; this.journal = journal; this.users = users;
         this.identity = identity; this.settings = settings; this.json = json; this.clock = clock; this.requests = requests;
+        try (var input = resources.getResource(settings.interfaceGuide()).getInputStream()) { this.interfaceGuide = json.readTree(input); }
+        catch (java.io.IOException ex) { throw new IllegalStateException("Не удалось загрузить справку интерфейса", ex); }
     }
     public record Prepared(String title, JsonNode payload, String fingerprint) {}
 
@@ -43,6 +47,7 @@ public class AssistantTools {
     public List<Map<String, Object>> catalog(AuthenticatedUser user) {
         var result = new ArrayList<>(List.of(
             tool("gh_farm_report", "Текущее состояние собственной фермы, устройства, показания, сценарии и растения. Числа рассчитывает сервер.", Map.of(), List.of()),
+            tool("gh_app_help", "Где и как что-то сделать в интерфейсе GrowerHub: проверенные названия разделов, шаги и ссылки. section — раздел; без него список. Для созданного сценария section=scenarios вернёт свои сценарии с точными ссылками; ruleId необязателен и должен принадлежать пользователю. Только чтение, не меняет настройки.", Map.of("section", Map.of("type", "string", "enum", interfaceGuide.path("sections").properties().stream().map(Map.Entry::getKey).toList()), "ruleId", Map.of("type", "string")), List.of()),
             tool("gh_plant_details", "История ухода и сведения о своём растении", Map.of("plantId", integer()), List.of("plantId")),
             tool("gh_resource_history", "История и энергопотребление своей розетки. hours — число часов", Map.of("resourceId", integer(), "hours", integer()), List.of("resourceId", "hours")),
             tool("gh_sensor_history", "История своего датчика температуры, влажности воздуха/почвы или протечки за последние hours часов (до 2160). resourceId возьми из gh_farm_report. Сводка по сохранённым точкам, а не непрерывным измерениям; учитывай пропуски и возраст последнего показания. Для сравнения зон вызови для каждого датчика.", Map.of("resourceId", integer(), "hours", integer()), List.of("resourceId", "hours")),
@@ -85,6 +90,7 @@ public class AssistantTools {
                         "publicAssistantConfigured", settings.publicEnabled(), "monthlyApiLimitUsd", settings.budget().monthMicros() / 1000000d));
             }
             case "gh_farm_report" -> report(user);
+            case "gh_app_help" -> interfaceHelp(input, user);
             case "gh_feature_requests" -> json.valueToTree(requests.list(user, false, input.path("page").asInt(0)));
             case "gh_sensor_history" -> sensorHistory(input, user);
             case "gh_plant_details" -> {
@@ -142,6 +148,32 @@ public class AssistantTools {
         for (int i = 0, size = Math.min(points.size(), limit); i < size; i++) shown.add(points.get(size == 1 ? 0 : (int) ((long) i * (points.size() - 1) / (size - 1))));
         result.put("sampled", shown.size() < points.size()); result.put("points", shown);
         return json.valueToTree(result);
+    }
+
+    private JsonNode interfaceHelp(JsonNode input, AuthenticatedUser user) {
+        String section = input.hasNonNull("ruleId") ? "scenarios" : input.path("section").asText("");
+        if (!section.isEmpty() && !interfaceGuide.path("sections").has(section)) throw bad("Такого раздела в справке нет");
+        var result = json.createObjectNode(); result.put("version", interfaceGuide.path("version").asInt());
+        result.put("demo", user.isDemo()); result.set("instructions", interfaceGuide.get("instructions"));
+        var pages = result.putArray("sections");
+        interfaceGuide.path("sections").properties().forEach(entry -> {
+            if (section.isEmpty() || section.equals(entry.getKey())) {
+                var page = (com.fasterxml.jackson.databind.node.ObjectNode) entry.getValue().deepCopy();
+                page.put("section", entry.getKey()); page.put("url", settings.siteUrl() + page.path("path").asText()); pages.add(page);
+            }
+        });
+        if (section.equals("scenarios")) {
+            var ownRules = input.hasNonNull("ruleId") ? List.of(automation.getRule(uuid(input, "ruleId"), user)) : automation.listRules(user);
+            var names = new HashMap<String, String>();
+            for (var farm : automation.getFarmsOverview(user).farms()) {
+                names.put("ROOM:" + farm.id(), farm.name());
+                farm.greenhouses().forEach(g -> names.put("BOX:" + g.id(), g.name()));
+            }
+            result.set("rules", json.valueToTree(ownRules.stream().map(rule -> Map.of("id", rule.id(), "name", rule.definition().name(),
+                    "scopeType", rule.definition().scopeType(), "scopeName", names.getOrDefault(rule.definition().scopeType() + ":" + rule.definition().scopeId(), ""),
+                    "enabled", rule.enabled(), "url", settings.siteUrl() + interfaceGuide.path("sections").path("scenarios").path("path").asText() + "?rule=" + rule.id())).toList()));
+        }
+        return result;
     }
 
     public JsonNode report(AuthenticatedUser user) {

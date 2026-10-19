@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import guide from '../../../../backend/src/main/resources/advisor/interface-guide.json';
 import {
   APP_NAV_ITEMS,
   LEGACY_APP_REDIRECTS,
@@ -6,6 +7,15 @@ import {
 } from './appNavigation';
 
 describe('app navigation', () => {
+  it('keeps the assistant guide aligned with the cabinet menu and settings paths', () => {
+    const entries = Object.values(guide.sections);
+    for (const item of [...APP_NAV_ITEMS, ...SETTINGS_TABS]) {
+      const entry = entries.find(page => page.path === item.to);
+      expect(entry).toBeDefined();
+      expect(entry.label.ru).toContain(item.label);
+      expect(entry.label.en).toBeTruthy();
+    }
+  });
   it('ostavlyaet pyat glavnyh punktov v nuzhnom poryadke', () => {
     expect(APP_NAV_ITEMS.map((item) => item.label)).toEqual([
       'Обзор',

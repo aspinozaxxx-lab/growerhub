@@ -12,6 +12,8 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id": "assistant-interface-help-scoped-rules", "published_at": "2026-10-19", "kind": "fix", "text": "Помощник подсказывает, где найти нужную функцию, и даёт ссылки на разделы приложения. Свои сценарии теперь показаны короткими строками у выбранной теплицы; подробности открываются по нажатию. Под сохранённым предложением появился переход к сценарию."},
+    {"id": "assistant-interface-guide-update", "published_at": "2026-10-19", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "В руководстве — поиск функций через помощника, переход к сохранённому сценарию и новые изображения списка сценариев теплицы. Обновлена и инструкция полива через день."},
     {"id": "assistant-models-after-restart", "published_at": "2026-10-19", "kind": "fix", "text": "Исправили исчезновение выбора модели владельца после отправки сообщения, если сервер обновился при открытом чате."},
     {"id": "firmware-build-platform-pin", "published_at": "2026-10-19", "kind": "fix", "text": "Закрепили проверенную среду сборки, чтобы обновления внешних инструментов не задерживали выпуск серверных исправлений."},
     {"id": "assistant-calendar-pulse-chat", "published_at": "2026-10-19", "kind": "feature", "article_id": "svoi-scenarii-poliva-cherez-pomoshchnika", "preview_position": "50% 50%"},
