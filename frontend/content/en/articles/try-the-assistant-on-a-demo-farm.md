@@ -4,7 +4,7 @@ slug: "try-the-assistant-on-a-demo-farm"
 title: "Meet the assistant: a farm tour, sensor history and your own routine"
 summary: "Three ready-to-use tasks to try without equipment. Explore a day of readings and send the team a request for a feature you need."
 created_at: "2026-10-18"
-updated_at: "2026-10-18"
+updated_at: "2026-10-19"
 cluster: "zhurnal-i-sovetnik-uhoda"
 tags: ["GrowerHub", "demo farm", "assistant", "sensors", "routines"]
 keywords: ["GrowerHub demo farm", "plant care assistant", "soil moisture history"]
@@ -58,3 +58,7 @@ The request appears in the admin panel for review and a recorded decision. Later
 Guest demo access includes up to three messages per 24 hours. Your remaining allowance appears below the input; a shared service limit may also pause replies. Save the demo to your account to keep your changes, or start a [plant diary without equipment](/en/articles/plant-care-journal-and-telegram-growerhub/).
 
 Read about photos, Telegram and confirmations in the [assistant guide](/en/articles/plant-assistant-and-custom-scenarios-growerhub/).
+
+## Ready for your own watering routine?
+
+The redesigned chat keeps its composer at the bottom and conversation controls in one header row. Ask for repetition after several days and pulse watering: the assistant previews the dates and full cycle before confirmation. [Example: every two days with eight minutes of pump time](/en/articles/custom-watering-routines-with-the-assistant/).

@@ -12,6 +12,9 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id": "assistant-calendar-pulse-chat", "published_at": "2026-10-19", "kind": "feature", "article_id": "svoi-scenarii-poliva-cherez-pomoshchnika", "preview_position": "50% 50%"},
+    {"id": "assistant-compact-chat-guide", "published_at": "2026-10-19", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "The guide now covers the bottom composer, owner model controls and routine previews."},
+    {"id": "assistant-demo-compact-refresh", "published_at": "2026-10-19", "kind": "article_update", "article_id": "poprobovat-pomoshchnika-na-demoferme", "text": "Updated demo-chat screenshots and a link to watering routines that repeat after several days."},
     {"id": "assistant-demo-history-requests", "published_at": "2026-10-18", "kind": "feature", "article_id": "poprobovat-pomoshchnika-na-demoferme", "preview_position": "50% 55%"},
     {"id": "codex-admin-update-button", "published_at": "2026-10-18", "kind": "fix", "text": "The owner admin panel now includes a Codex update button, with a reply check, a persistent result and rollback if verification fails."},
     {"id": "assistant-guide-history-update", "published_at": "2026-10-18", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "The guide now covers sensor history and user-confirmed feature requests."},

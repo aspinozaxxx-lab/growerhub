@@ -48,7 +48,7 @@ public class AssistantTools {
             tool("gh_sensor_history", "История своего датчика температуры, влажности воздуха/почвы или протечки за последние hours часов (до 2160). resourceId возьми из gh_farm_report. Сводка по сохранённым точкам, а не непрерывным измерениям; учитывай пропуски и возраст последнего показания. Для сравнения зон вызови для каждого датчика.", Map.of("resourceId", integer(), "hours", integer()), List.of("resourceId", "hours")),
             tool("gh_feature_requests", "Мои отправленные запросы на доработки и решения команды. page — страница с нуля.", Map.of("page", Map.of("type", "integer", "minimum", 0)), List.of()),
             tool("gh_rule_details", "Без параметров: свои правила и схема новых сценариев, включая ежедневное уведомление без устройств. ruleId: подробности своего правила. scopeType=ROOM|BOX и scopeId: настройки существующих готовых сценариев, не схема нового правила.", Map.of("ruleId", Map.of("type", "string"), "scopeType", Map.of("type", "string"), "scopeId", integer()), List.of()),
-            tool("gh_validate_rule", "Проверить правило, конфликты каналов и готовность устройств без сохранения. payload — определение version=1 из gh_rule_details.", Map.of("payload", Map.of("type", "object")), List.of("payload")),
+            tool("gh_validate_rule", "Проверить правило, ближайшие даты, этапы цикла, конфликты и готовность без сохранения. payload — определение version=2 из gh_rule_details.", Map.of("payload", Map.of("type", "object")), List.of("payload")),
             tool("gh_prepare_change", "Подготовить предложение, НЕ применяя его. kind=care: payload {plantId,action,text,eventAt}; reminder: {plantId,action,title,dueAt,repeatDays,repeatMode}; scenario: {scopeType:ROOM|BOX,scopeId,scenarioType,enabled,config}; rule: {ruleId?:UUID,revision?:number,enabled:boolean,definition:object из gh_rule_details}; device: {type:set|water,resourceId,value?:string,durationSeconds?:integer}; feature_request: {title до 120 символов,description до 2000,benefit до 1000} — запрос команде на нужную пользователю доработку, без обещания реализации. Только краткая задача и польза, без секретов и пересылки переписки. Даты ISO UTC. Человек подтверждает кнопкой.",
                 Map.of("kind", Map.of("type", "string", "enum", List.of("care", "reminder", "scenario", "rule", "device", "feature_request")), "payload", Map.of("type", "object")), List.of("kind", "payload"))));
         if (adminRead(user)) {
@@ -103,7 +103,7 @@ public class AssistantTools {
             case "gh_rule_details" -> {
                 if (input.hasNonNull("scopeId")) yield json.valueToTree(scenarioSource(input, user));
                 if (input.hasNonNull("ruleId")) { UUID rule = uuid(input, "ruleId"); yield json.valueToTree(Map.of("rule", automation.getRule(rule, user), "history", automation.ruleHistory(rule, user))); }
-                yield json.valueToTree(Map.of("rules", automation.listRules(user), "schema", ruleSchema()));
+                yield json.valueToTree(Map.of("rules", automation.listRules(user), "schema", automation.ruleSchema()));
             }
             case "gh_validate_rule" -> json.valueToTree(automation.previewRule(null, ruleDefinition(input.get("payload")), user));
             default -> throw bad("Такого инструмента у помощника нет");
@@ -212,6 +212,7 @@ public class AssistantTools {
                     throw bad(String.join(". ", java.util.stream.Stream.concat(check.conflicts().stream(), check.readiness().stream()).toList()));
                 if (ruleId != null && automation.getRule(ruleId, user).revision() != id(payload, "revision")) throw new DomainException("conflict", "Версия правила изменилась");
                 var shown = payload.deepCopy();
+                ((com.fasterxml.jackson.databind.node.ObjectNode) shown).set("timing", json.valueToTree(check.timing()));
                 var names = new LinkedHashMap<String, String>();
                 var overview = automation.getFarmsOverview(user);
                 overview.farms().stream().flatMap(f -> java.util.stream.Stream.concat(f.slots().stream(), f.greenhouses().stream().flatMap(g -> g.slots().stream())))
@@ -255,14 +256,6 @@ public class AssistantTools {
     }
     private UUID uuid(JsonNode node, String field) { try { return UUID.fromString(text(node, field)); } catch (IllegalArgumentException ex) { throw bad("Неверный идентификатор правила"); } }
     private RuleData.Definition ruleDefinition(JsonNode node) { try { return json.treeToValue(node, RuleData.Definition.class); } catch (Exception ex) { throw bad("Проверьте структуру правила"); } }
-    private Map<String, Object> ruleSchema() {
-        return Map.of("definition", "{version:1,name,scopeType:ROOM|BOX,scopeId,trigger,condition:null|object,actions:[...],cooldownSeconds:60..86400}",
-                "triggers", List.of("{type:schedule,at:HH:mm,days?:[1..7]}", "{type:interval,seconds:60..86400,anchor:ISO_UTC}", "{type:change,resourceId,maxAgeSeconds:1..900}"),
-                "conditions", List.of("{type:all|any,conditions:[...]}", "{type:not,condition:...}", "{type:time,from:HH:mm,until:HH:mm,days?:[1..7]}", "{type:stage,plantId,stage}", "{type:sensor,resourceId,op:gt|gte|lt|lte|eq|ne,value,hysteresis?:number,holdSeconds?:0..86400,maxAgeSeconds:1..900}"),
-                "actions", List.of("{type:set,resourceId,value:ON|OFF или on_value/off_value устройства}", "{type:water,resourceId,durationSeconds:1..300}", "{type:delay,seconds:1..86400}", "{type:notify,text}"),
-                "limits", "До 16 действий; паузы суммарно до суток. Правило может состоять только из notify: оборудование и команды устройствам не обязательны. Имя задаётся в definition.name, ежедневное время — в trigger {type:schedule,at:HH:mm}; для всей фермы scopeType=ROOM. Передай definition в gh_prepare_change с kind=rule и отдельным payload.enabled=false, если пользователь просит сохранить выключенным. Подготовка сама проверит правило; gh_validate_rule нужен только для отдельного предварительного разбора. Для света и климата set, для насоса только water. Конфликтующее правило надо сначала отключить явно.");
-    }
-
     private List<ScenarioConfig> scenarioSource(JsonNode payload, AuthenticatedUser user) {
         var overview = automation.getFarmsOverview(user); int id = id(payload, "scopeId");
         return switch (text(payload, "scopeType")) {

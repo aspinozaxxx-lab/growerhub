@@ -15,29 +15,26 @@ import ru.growerhub.backend.plant.contract.PlantInfo;
 @Component
 public class RuleEvaluator {
     private final RuleSettings settings;
-    public RuleEvaluator(RuleSettings settings) { this.settings = settings; }
+    private final RuleSchedule schedule;
+    public RuleEvaluator(RuleSettings settings) { this.settings = settings; this.schedule = new RuleSchedule(settings); }
     public record Context(Map<Integer, ResourceBinding> resources, Map<Integer, PlantInfo> plants, ZoneId timezone, Instant now) {}
     public record Decision(String key, boolean ready, String reason) {}
     private record Check(boolean valid, boolean value, String reason) {}
 
     public Set<Integer> validate(Definition d, Context context) {
-        if (d == null || d.version() != 1 || d.name() == null || d.name().isBlank() || d.name().length() > 120
+        if (d == null || !Set.of(1, 2).contains(d.version()) || d.name() == null || d.name().isBlank() || d.name().length() > 120
                 || d.scopeId() == null || d.scopeType() == null || !Set.of("ROOM", "BOX").contains(d.scopeType())
                 || d.cooldownSeconds() < settings.minCooldownSeconds() || d.cooldownSeconds() > settings.maxDelaySeconds()) throw bad("Проверьте название, область и паузу правила");
         var used = new TreeSet<Integer>(); var trigger = d.trigger();
         String type = type(trigger);
         switch (type) {
-            case "schedule" -> { fields(trigger, "type", "at", "days"); time(trigger, "at"); days(trigger); }
-            case "interval" -> {
-                fields(trigger, "type", "seconds", "anchor"); bounded(trigger, "seconds", settings.minIntervalSeconds(), settings.maxDelaySeconds());
-                try { Instant.parse(trigger.path("anchor").asText()); } catch (DateTimeException ex) { throw bad("Укажите начало интервала с часовым поясом UTC"); }
-            }
+            case "schedule", "interval", "calendar" -> schedule.validate(trigger, d.version());
             case "change" -> { fields(trigger, "type", "resourceId", "maxAgeSeconds"); resource(trigger, context, used); freshness(trigger); }
             default -> throw bad("Неизвестный способ запуска");
         }
         validateCondition(d.condition(), context, used, 0, new AtomicInteger());
         if (d.actions() == null || d.actions().isEmpty() || d.actions().size() > settings.actions()) throw bad("Последовательность должна содержать от 1 до " + settings.actions() + " действий");
-        int delay = 0;
+        long delay = 0;
         for (var action : d.actions()) switch (type(action)) {
             case "set" -> {
                 fields(action, "type", "resourceId", "value"); var r = resource(action, context, used);
@@ -48,9 +45,20 @@ public class RuleEvaluator {
                     throw bad("Значение не поддерживается этим каналом");
             }
             case "water" -> {
-                fields(action, "type", "resourceId", "durationSeconds"); var r = resource(action, context, used);
+                if (d.version() >= 2) fields(action, "type", "resourceId", "durationSeconds", "pulse");
+                else fields(action, "type", "resourceId", "durationSeconds");
+                var r = resource(action, context, used);
                 if (!"WATER_PUMP".equals(r.role())) throw bad("Для полива выберите назначенный поливной канал");
-                bounded(action, "durationSeconds", 1, settings.maxWateringSeconds());
+                boolean pulse = action.hasNonNull("pulse");
+                int seconds = bounded(action, "durationSeconds", 1, pulse ? settings.maxTotalWateringSeconds() : settings.maxWateringSeconds());
+                if (pulse) {
+                    var p = action.get("pulse"); if (!p.isObject()) throw bad("Укажите длительность импульса и паузы");
+                    fields(p, "runSeconds", "pauseSeconds");
+                    int run = bounded(p, "runSeconds", 1, settings.maxWateringSeconds());
+                    int pause = bounded(p, "pauseSeconds", 1, settings.maxDelaySeconds());
+                    delay += ((seconds + (long) run - 1) / run - 1) * pause;
+                }
+                if (d.version() >= 2) delay += seconds;
             }
             case "delay" -> { fields(action, "type", "seconds"); delay += bounded(action, "seconds", 1, settings.maxDelaySeconds()); }
             case "notify" -> {
@@ -93,13 +101,72 @@ public class RuleEvaluator {
     public Decision evaluate(Definition d, Context context, ObjectNode runtime) {
         if (!runtime.path("conditions").isObject()) runtime.putObject("conditions");
         Check condition = condition(d.condition(), context, (ObjectNode) runtime.get("conditions"), "root");
-        String key = trigger(d.trigger(), context, runtime);
+        String key;
+        if (d.version() >= 2 && !type(d.trigger()).equals("change")) {
+            var occurrence = schedule.current(d.trigger(), d.version(), context.now(), context.timezone());
+            key = occurrence == null ? null : occurrence.key();
+        } else key = trigger(d.trigger(), context, runtime);
         if (key == null) return new Decision(null, false, "Ожидает следующего запуска");
         if (!condition.valid() || !condition.value()) return new Decision(key, false, condition.reason());
         if (runtime.has("lastStarted") && context.now().getEpochSecond() - runtime.get("lastStarted").asLong() < d.cooldownSeconds())
             return new Decision(key, false, "Пауза между запусками ещё не закончилась");
         return new Decision(key, true, "Условия выполнены");
     }
+
+    public Timing timing(Definition d, Context context) {
+        List<TimelineStep> timeline = new ArrayList<>(); long offset = 0; int active = 0;
+        for (int i = 0; i < d.actions().size(); i++) {
+            var action = d.actions().get(i); String type = type(action); Integer id = action.has("resourceId") ? action.get("resourceId").asInt() : null;
+            if (type.equals("water")) {
+                int total = action.get("durationSeconds").asInt(); active += total;
+                int run = action.hasNonNull("pulse") ? action.get("pulse").get("runSeconds").asInt() : total;
+                int pause = action.hasNonNull("pulse") ? action.get("pulse").get("pauseSeconds").asInt() : 0;
+                int remaining = total;
+                while (remaining > 0) {
+                    int seconds = Math.min(run, remaining);
+                    if (timeline.size() < settings.previewTimelineSteps()) timeline.add(new TimelineStep(i, "water", offset, seconds, id, "Полив"));
+                    offset += seconds; remaining -= seconds;
+                    if (remaining > 0) {
+                        if (timeline.size() < settings.previewTimelineSteps()) timeline.add(new TimelineStep(i, "delay", offset, pause, id, "Пауза после подтверждённой остановки насоса"));
+                        offset += pause;
+                    }
+                }
+            } else {
+                int seconds = type.equals("delay") ? action.get("seconds").asInt() : 0;
+                if (timeline.size() < settings.previewTimelineSteps()) timeline.add(new TimelineStep(i, type, offset, seconds, id, type.equals("delay") ? "Пауза" : type.equals("notify") ? action.get("text").asText() : "Установить " + action.get("value").asText()));
+                offset += seconds;
+            }
+        }
+        List<String> notes = new ArrayList<>();
+        notes.add("device_ack_delay");
+        if (d.version() >= 2 && !type(d.trigger()).equals("change")) notes.add(d.trigger().path("misfire").asText("skip").equals("run_once")
+                ? "misfire_run_once" : "misfire_skip");
+        if (timeline.size() == settings.previewTimelineSteps()) notes.add("timeline_truncated");
+        if (d.version() == 1 && d.actions().stream().anyMatch(a -> type(a).equals("water"))) notes.add("legacy_nonblocking_water");
+        String zone = d.trigger().path("timezone").asText(context.timezone().getId());
+        return new Timing(zone, schedule.next(d.trigger(), d.version(), context.now(), context.timezone(), settings.previewRuns()), List.copyOf(timeline), active, offset, List.copyOf(notes), settings.scheduleGraceSeconds(), settings.previewTimelineSteps());
+    }
+
+    public Map<String, Object> schema() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("version", 2); result.put("supportedVersions", List.of(1, 2));
+        result.put("definition", Map.of("version", 2, "name", "строка до 120 символов", "scopeType", "ROOM|BOX", "scopeId", "ID из gh_farm_report",
+                "trigger", "один объект из triggers", "condition", "null либо объект из conditions", "actions", "непустой массив из actions", "cooldownSeconds", range(settings.minCooldownSeconds(), settings.maxDelaySeconds())));
+        result.put("triggers", List.of(
+                Map.of("type", "schedule", "at", "HH:mm", "days?", List.of(1, 2, 3, 4, 5, 6, 7), "misfire?", "skip|run_once"),
+                Map.of("type", "interval", "seconds", range(settings.minIntervalSeconds(), settings.maxIntervalSeconds()), "anchor", "ISO UTC первого запуска", "misfire?", "skip|run_once"),
+                Map.of("type", "calendar", "every", range(1, settings.maxIntervalSeconds() / 86400), "unit", "day|week (для week максимум " + settings.maxIntervalSeconds() / 604800 + ")", "startDate", "YYYY-MM-DD", "at", "HH:mm", "timezone?", "IANA, по умолчанию пояс аккаунта", "misfire?", "skip|run_once"),
+                Map.of("type", "change", "resourceId", "ID своего датчика", "maxAgeSeconds", range(1, settings.maxFreshnessSeconds()))));
+        result.put("conditions", List.of("{type:all|any,conditions:[...]}", "{type:not,condition:...}", "{type:time,from:HH:mm,until:HH:mm,days?:[1..7]}", "{type:stage,plantId,stage}",
+                "{type:sensor,resourceId,op:gt|gte|lt|lte|eq|ne,value,hysteresis?:number,holdSeconds?:0.." + settings.maxDelaySeconds() + ",maxAgeSeconds:1.." + settings.maxFreshnessSeconds() + "}"));
+        result.put("actions", List.of(Map.of("type", "set", "resourceId", "ID своего канала света или климата", "value", "on/off из отчёта устройства"),
+                Map.of("type", "water", "resourceId", "ID WATER_PUMP", "durationSeconds", range(1, settings.maxTotalWateringSeconds()), "pulse?", Map.of("runSeconds", range(1, settings.maxWateringSeconds()), "pauseSeconds", range(1, settings.maxDelaySeconds())), "constraints", "Без pulse durationSeconds не более " + settings.maxWateringSeconds() + ". С pulse это общая работа насоса, паузы не входят."),
+                Map.of("type", "delay", "seconds", range(1, settings.maxDelaySeconds())), Map.of("type", "notify", "text", "строка до 1000 символов")));
+        result.put("limits", Map.of("maxActions", settings.actions(), "maxCycleSeconds", settings.maxDelaySeconds(), "maxDailyWateringSecondsPerChannel", settings.maxDailyWateringSeconds(), "scheduleGraceSeconds", settings.scheduleGraceSeconds()));
+        result.put("instructions", "Создавай version=2. Для «каждые N дней в местное время» используй calendar, для точных часов interval. По умолчанию misfire=skip. Полив pulse — один сеанс: durationSeconds суммарная работа, pulse.runSeconds импульс, pulse.pauseSeconds пауза после OFF. Дождёмся завершения перед следующим действием. Оборудование проверяется отдельно; notify не требует устройств. gh_prepare_change kind=rule с payload {enabled,definition}; выключенный черновик enabled=false. Карточка содержит timing с датами и этапами. Подготовка не применяет сценарий.");
+        return Collections.unmodifiableMap(result);
+    }
+    private Map<String, Integer> range(int min, int max) { return Map.of("minimum", min, "maximum", max); }
     private String trigger(JsonNode trigger, Context c, ObjectNode state) {
         var local = c.now().atZone(c.timezone());
         return switch (type(trigger)) {

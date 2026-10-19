@@ -115,6 +115,79 @@ class RuleIntegrationTest extends IntegrationTestBase {
         assertThat(facade.previewRule(rule.id(), safe, user).readiness()).isNotEmpty();
         verifyNoInteractions(zigbee);
     }
+    Definition pulseRule(String suffix) throws Exception {
+        var d = definition("[{\"type\":\"water\",\"resourceId\":2,\"durationSeconds\":480,\"pulse\":{\"runSeconds\":180,\"pauseSeconds\":300}}" + suffix + "]");
+        return new Definition(2, d.name(), d.scopeType(), d.scopeId(), json.readTree("{\"type\":\"interval\",\"seconds\":172800,\"anchor\":\"2026-10-18T09:00:00Z\"}"), null, d.actions(), 60);
+    }
+    ru.growerhub.backend.pump.contract.PumpSessionData.View session(String phase, String reason, Instant finished) throws Exception {
+        var data = new HashMap<String, Object>();
+        data.put("id", 123L); data.put("user_id", user.id()); data.put("phase", phase);
+        data.put("status", finished == null ? "active" : "terminal"); data.put("planned_duration_s", 480);
+        data.put("active_duration_s", finished == null ? 180 : 480); data.put("completion_reason", reason);
+        if (finished != null) data.put("finished_at", LocalDateTime.ofInstant(finished, ZoneOffset.UTC).toString());
+        return json.treeToValue(json.valueToTree(data), ru.growerhub.backend.pump.contract.PumpSessionData.View.class);
+    }
+    @Test void wateringRecoversCommittedSessionAfterLostStepResultAndWaitsForItsEndBeforePausing() throws Exception {
+        doNothing().when(facade).validateRuleWatering(any(), eq(user));
+        var running = session("pause", "duration", null);
+        doReturn(running).when(facade).startRuleWatering(any(), anyString(), eq(user));
+        doReturn(running).when(facade).ruleWateringExecution(anyString(), eq(user));
+        var rule = facade.saveRule(null, new Save(null, true, pulseRule(", {\"type\":\"delay\",\"seconds\":300}, {\"type\":\"set\",\"resourceId\":1,\"value\":\"ON\"}")), user);
+        facade.evaluateRules(user.id()); var step = facade.claimRuleStep(user.id());
+        assertThat(facade.executeRuleStep(step).path("waitingForWatering").asLong()).isEqualTo(123);
+        // Rezultat komandy ne uspel zapisatsya do ostanovki worker.
+        clock.value = at.plusSeconds(70); assertThat(facade.claimRuleStep(user.id())).isNull();
+        assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("waiting");
+        clock.value = at.plusSeconds(80); assertThat(facade.claimRuleStep(user.id())).isNull();
+        verify(facade, times(1)).startRuleWatering(any(), eq("rule:" + step.runId() + ":0"), eq(user));
+        verifyNoInteractions(zigbee);
+        var finished = at.plusSeconds(1080); clock.value = finished;
+        doReturn(session("completed", "duration", finished)).when(facade).ruleWateringExecution(anyString(), eq(user));
+        assertThat(facade.claimRuleStep(user.id())).isNull();
+        assertThat(facade.claimRuleStep(user.id())).isNull();
+        clock.value = finished.plusSeconds(299); assertThat(facade.claimRuleStep(user.id())).isNull();
+        clock.value = finished.plusSeconds(300); var light = facade.claimRuleStep(user.id());
+        assertThat(light.action().path("type").asText()).isEqualTo("set");
+        facade.finishRuleStep(light, facade.executeRuleStep(light), true); facade.claimRuleStep(user.id());
+        facade.evaluateRules(user.id());
+        assertThat(facade.ruleHistory(rule.id(), user)).hasSize(1);
+        assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("completed");
+        verify(zigbee, times(1)).setDeviceProperty(any(), any(), any(), any(), any());
+    }
+    @Test void failedWateringStopsSequenceAndDisablingStopsItsKnownActiveSession() throws Exception {
+        doNothing().when(facade).validateRuleWatering(any(), eq(user));
+        doNothing().when(facade).stopRuleWatering(anyString(), eq(user));
+        var running = session("running", "duration", null);
+        doReturn(running).when(facade).startRuleWatering(any(), anyString(), eq(user));
+        doReturn(running).when(facade).ruleWateringExecution(anyString(), eq(user));
+        var rule = facade.saveRule(null, new Save(null, true, pulseRule(", {\"type\":\"set\",\"resourceId\":1,\"value\":\"ON\"}")), user);
+        facade.evaluateRules(user.id()); var step = facade.claimRuleStep(user.id()); facade.finishRuleStep(step, facade.executeRuleStep(step), true);
+        facade.toggleRule(rule.id(), new Toggle(rule.revision(), false), user);
+        verify(facade).stopRuleWatering(eq("rule:" + step.runId() + ":0"), eq(user));
+        assertThat(facade.claimRuleStep(user.id())).isNull();
+        assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("cancelled");
+        clock.value = at.plusSeconds(1);
+        rule = facade.saveRule(rule.id(), new Save(2, true, rule.definition()), user);
+        facade.evaluateRules(user.id()); step = facade.claimRuleStep(user.id()); facade.finishRuleStep(step, facade.executeRuleStep(step), true);
+        doReturn(session("completed", "manual", at.plusSeconds(10))).when(facade).ruleWateringExecution(anyString(), eq(user));
+        clock.value = at.plusSeconds(10); assertThat(facade.claimRuleStep(user.id())).isNull();
+        assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("failed");
+        verifyNoInteractions(zigbee);
+    }
+    @Test void incompleteRuntimeNeverAllowsFollowingActionsEvenWithCompletedPhase() throws Exception {
+        doNothing().when(facade).validateRuleWatering(any(), eq(user));
+        var running = session("running", "duration", null);
+        doReturn(running).when(facade).startRuleWatering(any(), anyString(), eq(user));
+        doReturn(running).when(facade).ruleWateringExecution(anyString(), eq(user));
+        var rule = facade.saveRule(null, new Save(null, true, pulseRule(", {\"type\":\"set\",\"resourceId\":1,\"value\":\"ON\"}")), user);
+        facade.evaluateRules(user.id()); var step = facade.claimRuleStep(user.id()); facade.finishRuleStep(step, facade.executeRuleStep(step), true);
+        var shortResult = (com.fasterxml.jackson.databind.node.ObjectNode) json.valueToTree(session("completed", "duration", at.plusSeconds(10)));
+        shortResult.put("active_duration_s", 120);
+        doReturn(json.treeToValue(shortResult, ru.growerhub.backend.pump.contract.PumpSessionData.View.class)).when(facade).ruleWateringExecution(anyString(), eq(user));
+        clock.value = at.plusSeconds(10); assertThat(facade.claimRuleStep(user.id())).isNull();
+        assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("failed");
+        verifyNoInteractions(zigbee);
+    }
     Definition definition(String actions) throws Exception { return new Definition(1, "Проба", "ROOM", 1, json.readTree("{\"type\":\"interval\",\"seconds\":3600,\"anchor\":\"2026-10-18T09:00:00Z\"}"), null, Arrays.asList(json.readValue(actions, JsonNode[].class)), 60); }
     AuthenticatedUser account(String name) { var now = LocalDateTime.ofInstant(at, ZoneOffset.UTC); var row = users.save(UserEntity.create(name + "@rules.test", name, "user", true, now, now)); return new AuthenticatedUser(row.getId(), "user"); }
     FarmsOverview overview(boolean fixed, boolean ready, String value) {

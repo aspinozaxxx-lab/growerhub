@@ -15,6 +15,7 @@
 - `status(Integer pumpId, AuthenticatedUser user)`
 - `getHistory(Integer pumpId, Integer hours, AuthenticatedUser user)`
 - `sessionDefaults()`
+- `sessionExecution(executionKey, user)` — сохранённый сеанс только его владельца для восстановления ожидающего правила.
 - `waterMeterStatistics(user, coordinatorPublicId, ieee, month)` — отчёты расходомера только собственного клапана.
 - `startSession(PumpSessionData.Start request, AuthenticatedUser user)`
 - `stopSession(Integer pumpId, AuthenticatedUser user)`

@@ -18,6 +18,7 @@ import ru.growerhub.backend.common.config.automation.RuleSettings;
 import ru.growerhub.backend.common.contract.*;
 import ru.growerhub.backend.notification.NotificationFacade;
 import ru.growerhub.backend.plant.PlantFacade;
+import ru.growerhub.backend.pump.contract.PumpSessionData;
 import ru.growerhub.backend.user.UserFacade;
 import ru.growerhub.backend.zigbee.ZigbeeFacade;
 
@@ -44,6 +45,7 @@ public class RuleService {
     }
     private record Snapshot(FarmsOverview farms, RuleEvaluator.Context context, Map<String, Boolean> areas) {}
     public List<Rule> list(AuthenticatedUser user) { require(user); return rules.findByUserIdOrderByUpdatedAtDesc(user.id()).stream().map(this::view).toList(); }
+    public Map<String, Object> schema() { return evaluator.schema(); }
     public Rule get(UUID id, AuthenticatedUser user) { return view(owned(id, user)); }
     public List<Version> versions(UUID id, AuthenticatedUser user) {
         owned(id, user); return versions.findByRuleIdOrderByRevisionDesc(id).stream().map(v -> new Version(v.revision, v.enabled, definition(v.definitionJson), v.createdAt)).toList();
@@ -61,6 +63,8 @@ public class RuleService {
         if (!s.areas().containsKey(area(d))) throw bad("Ферма или теплица не найдена");
         Set<Integer> areaResources = areaResources(d, s.farms());
         if (!areaResources.containsAll(resources)) throw bad("Устройства должны относиться к выбранной ферме или теплице");
+        if (d.version() >= 2) for (var action : d.actions()) if ("water".equals(action.path("type").asText()))
+            automation.getObject().validateRuleWatering(watering(action), user);
         var readiness = new ArrayList<String>();
         if (!s.areas().get(area(d))) readiness.add("Выбранная ферма или теплица отключена");
         for (int resourceId : resources) {
@@ -78,7 +82,7 @@ public class RuleService {
                 if (scenario.enabled() && !Collections.disjoint(writes, fixedWrites(scenario, s.farms())))
                     conflicts.add("Канал уже использует сценарий «" + scenario.scenarioType() + "» теплицы «" + greenhouse.name() + "»");
         }
-        return new Preview(true, describe(d), conflicts.stream().distinct().toList(), readiness, List.copyOf(resources));
+        return new Preview(true, describe(d), conflicts.stream().distinct().toList(), readiness, List.copyOf(resources), evaluator.timing(d, s.context()));
     }
     public Rule save(UUID id, Save command, AuthenticatedUser user) {
         lock(user);
@@ -153,13 +157,21 @@ public class RuleService {
     public Step claim(Integer ownerId) {
         var user = principal(ownerId); if (user == null) return null; lock(user);
         for (var run : runs.findByUserIdAndStatusIn(ownerId, List.of("waiting", "dispatching"))) {
+            var d = definition(run.definitionJson);
             if ("dispatching".equals(run.status)) {
-                if (run.leasedUntil == null || !run.leasedUntil.isAfter(now())) { run.status = "uncertain"; run.reason = "Результат команды неизвестен. Повтор автоматически не отправлен"; runs.save(run); }
+                if (run.leasedUntil == null || !run.leasedUntil.isAfter(now())) {
+                    if (waitingWater(d, run)) resumeWatering(run, user);
+                    else { run.status = "uncertain"; run.reason = "Результат команды неизвестен. Повтор автоматически не отправлен"; runs.save(run); }
+                }
                 continue;
             }
             if (run.nextAt.isAfter(now())) continue;
-            var rule = rules.findById(run.ruleId).orElse(null); var d = definition(run.definitionJson);
+            var rule = rules.findById(run.ruleId).orElse(null);
             if (rule == null || !rule.enabled || rule.revision != run.revision) { stop(run, "Правило изменено или отключено"); continue; }
+            var results = read(run.resultJson);
+            if (waitingWater(d, run) && !results.isEmpty() && results.get(results.size() - 1).has("waitingForWatering")) {
+                resumeWatering(run, user); continue;
+            }
             try {
                 if (!run.bindingFingerprint.equals(fingerprint(d, user))) { stop(run, "Состав оборудования изменился"); continue; }
                 var check = preview(rule.id, d, user);
@@ -168,7 +180,7 @@ public class RuleService {
             if (run.stepIndex >= d.actions().size()) { run.status = "completed"; run.reason = "Все действия завершены"; runs.save(run); continue; }
             var action = d.actions().get(run.stepIndex);
             if ("delay".equals(action.path("type").asText())) {
-                run.stepIndex++; run.nextAt = now().plusSeconds(action.get("seconds").asInt()); run.reason = "Пауза"; runs.save(run); continue;
+                run.stepIndex++; run.nextAt = (d.version() >= 2 ? run.nextAt : now()).plusSeconds(action.get("seconds").asInt()); run.reason = "Пауза"; runs.save(run); continue;
             }
             run.status = "dispatching"; run.leaseKey = UUID.randomUUID().toString(); run.leasedUntil = now().plusSeconds(settings.leaseSeconds());
             run.reason = "Команда подготовлена"; runs.save(run);
@@ -184,14 +196,59 @@ public class RuleService {
             boolean sent = notifications.enqueueMessage(step.user(), "rule:" + run.id + ":" + run.stepIndex, action.get("text").asText(), null);
             return json.valueToTree(Map.of("notificationQueued", sent, "demo", step.user().isDemo()));
         }
+        if (waitingWater(definition(run.definitionJson), run)) {
+            var session = automation.getObject().startRuleWatering(watering(action), executionKey(run), step.user());
+            return json.valueToTree(Map.of("waitingForWatering", session.id()));
+        }
         return command(action, step.user());
     }
     public void finish(Step step, JsonNode result, boolean success) {
         lock(step.user()); var run = lease(step);
         var history = (com.fasterxml.jackson.databind.node.ArrayNode) read(run.resultJson); history.add(result);
-        run.resultJson = history.toString(); run.stepIndex++; run.status = success ? "waiting" : "uncertain";
+        run.resultJson = history.toString();
+        boolean water = waitingWater(definition(run.definitionJson), run);
+        if (water && !success) { resumeWatering(run, step.user()); return; }
+        if (!water || !success) run.stepIndex++;
+        run.status = success ? "waiting" : "uncertain";
         run.reason = success ? "Действие передано устройству" : "Не удалось подтвердить выполнение. Повтор не отправлен";
         run.nextAt = now(); run.leasedUntil = null; runs.save(run);
+    }
+
+    private Watering watering(JsonNode action) {
+        var pulse = action.path("pulse");
+        return new Watering(action.get("resourceId").asInt(), action.get("durationSeconds").asInt(),
+                pulse.isObject() ? pulse.get("runSeconds").asInt() : null, pulse.isObject() ? pulse.get("pauseSeconds").asInt() : null);
+    }
+    private boolean waitingWater(Definition d, RuleRunEntity run) {
+        return d.version() >= 2 && run.stepIndex < d.actions().size() && "water".equals(d.actions().get(run.stepIndex).path("type").asText());
+    }
+    private String executionKey(RuleRunEntity run) { return "rule:" + run.id + ":" + run.stepIndex; }
+    private void resumeWatering(RuleRunEntity run, AuthenticatedUser user) {
+        var session = automation.getObject().ruleWateringExecution(executionKey(run), user);
+        run.leasedUntil = null;
+        if (session == null) {
+            run.status = "uncertain"; run.reason = "Результат запуска полива неизвестен. Команда не повторена"; runs.save(run); return;
+        }
+        var history = (com.fasterxml.jackson.databind.node.ArrayNode) read(run.resultJson);
+        if (!history.isEmpty() && history.get(history.size() - 1).has("waitingForWatering")) history.remove(history.size() - 1);
+        if (PumpSessionData.STATUS_ACTIVE.equals(session.status())) {
+            history.add(json.valueToTree(Map.of("waitingForWatering", session.id())));
+            run.status = "waiting"; run.reason = "Ожидает завершения полива"; run.nextAt = now().plusNanos(settings.workerMs() * 1000000L);
+            if (now().isAfter(run.createdAt.plusSeconds(settings.maxDelaySeconds() + settings.leaseSeconds()))) {
+                automation.getObject().stopRuleWatering(executionKey(run), user);
+                run.status = "uncertain"; run.reason = "Время ожидания полива истекло. Запрошена остановка, следующие действия отменены";
+            }
+        } else {
+            history.add(json.valueToTree(Map.of("sessionId", session.id(), "phase", session.phase(), "activeSeconds", session.activeDurationS(),
+                    "completionReason", Objects.requireNonNullElse(session.completionReason(), "unknown"))));
+            boolean complete = PumpSessionData.PHASE_COMPLETED.equals(session.phase()) && PumpSessionData.REASON_DURATION.equals(session.completionReason())
+                    && session.activeDurationS() >= watering(definition(run.definitionJson).actions().get(run.stepIndex)).durationSeconds();
+            run.status = complete ? "waiting" : "failed";
+            run.reason = complete ? "Полив завершён, следующий шаг разрешён" : "Полив остановлен без полного завершения. Последовательность прекращена";
+            if (complete) run.stepIndex++;
+            run.nextAt = session.finishedAt() == null ? now() : session.finishedAt();
+        }
+        run.resultJson = history.toString(); runs.save(run);
     }
     public JsonNode validateCommand(JsonNode action, AuthenticatedUser user) {
         var s = snapshot(user); var r = s.context().resources().get(action.path("resourceId").asInt());
@@ -206,7 +263,7 @@ public class RuleService {
         var r = snapshot(user).context().resources().get(action.get("resourceId").asInt());
         if ("water".equals(action.get("type").asText())) {
             int seconds = action.get("durationSeconds").asInt();
-            var request = new ManualWateringStartRequest("fixed_duration", seconds, seconds, false, null, null);
+            var request = new ManualWateringStartRequest(PumpSessionData.MODE_TIMED, seconds, seconds, false, null, null);
             return json.valueToTree(r.nativePumpId() != null ? automation.getObject().startUserManualWateringSession(r.nativePumpId(), request, user)
                     : automation.getObject().startResourceWatering(r.id(), request, user));
         }
@@ -266,7 +323,13 @@ public class RuleService {
         var run = runs.findById(step.runId()).orElseThrow(RuleService::conflict);
         if (!run.userId.equals(step.user().id()) || !"dispatching".equals(run.status) || !Objects.equals(run.leaseKey, step.lease()) || run.leasedUntil.isBefore(now())) throw conflict(); return run;
     }
-    private void cancelWaiting(UUID rule, Integer owner, String reason) { for (var r : runs.findByUserIdAndStatusIn(owner, List.of("waiting"))) if (r.ruleId.equals(rule)) stop(r, reason); }
+    private void cancelWaiting(UUID rule, Integer owner, String reason) {
+        for (var r : runs.findByUserIdAndStatusIn(owner, List.of("waiting", "dispatching"))) if (r.ruleId.equals(rule)) {
+            var d = definition(r.definitionJson);
+            if (waitingWater(d, r)) automation.getObject().stopRuleWatering(executionKey(r), principal(owner));
+            if (d.version() >= 2 || "waiting".equals(r.status)) stop(r, reason);
+        }
+    }
     private void stop(RuleRunEntity r, String reason) { r.status = "cancelled"; r.reason = reason; runs.save(r); }
     private AuthenticatedUser principal(Integer id) {
         if (users.isDemoOwner(id)) return new AuthenticatedUser(id, "demo");
@@ -277,7 +340,8 @@ public class RuleService {
     private RuleEntity owned(UUID id, AuthenticatedUser user) { require(user); return rules.findById(id).filter(r -> r.userId.equals(user.id())).orElseThrow(() -> new DomainException("not_found", "Правило не найдено")); }
     private Rule view(RuleEntity row) { var d = definition(row.definitionJson); return new Rule(row.id, row.revision, row.enabled, d, describe(d), row.updatedAt, row.enabled ? read(row.runtimeJson).path("reason").asText("Ожидает проверки условий") : "Выключен"); }
     private String describe(Definition d) {
-        String when = switch (d.trigger().path("type").asText()) { case "schedule" -> "В " + d.trigger().path("at").asText(); case "interval" -> "Каждые " + d.trigger().path("seconds").asInt() + " сек."; default -> "При изменении показаний"; };
+        String when = switch (d.trigger().path("type").asText()) { case "schedule" -> "В " + d.trigger().path("at").asText(); case "interval" -> "Каждые " + d.trigger().path("seconds").asInt() + " сек.";
+            case "calendar" -> "Каждые " + d.trigger().path("every").asInt() + ("week".equals(d.trigger().path("unit").asText()) ? " нед." : " дн.") + " в " + d.trigger().path("at").asText() + ", с " + d.trigger().path("startDate").asText(); default -> "При изменении показаний"; };
         return when + (d.condition() == null || d.condition().isNull() ? "" : ", если выполнены условия") + ": " + d.actions().stream().map(a -> switch (a.path("type").asText()) {
             case "set" -> "установить " + a.path("value").asText() + " на устройстве №" + a.path("resourceId").asInt();
             case "water" -> "поливать " + a.path("durationSeconds").asInt() + " сек."; case "delay" -> "подождать " + a.path("seconds").asInt() + " сек."; default -> "отправить уведомление";

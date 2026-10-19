@@ -428,6 +428,14 @@ public class PumpSessionService {
         return session != null ? toView(session, nowUtc()) : null;
     }
 
+    public PumpSessionData.View execution(String key, AuthenticatedUser user) {
+        var session = sessionRepository.findByExecutionKey(key).orElse(null);
+        if (session == null) return null;
+        if (user == null || !java.util.Objects.equals(session.getUserId(), user.id()))
+            throw new DomainException("not_found", "Сеанс полива не найден");
+        return toView(session, nowUtc());
+    }
+
     public PumpSessionData.Page listSessions(Integer pumpId, int limit, Long beforeId) {
         int pageSize = pageSize(limit);
         List<PumpWateringSessionEntity> sessions = sessionRepository.findPageByPumpId(

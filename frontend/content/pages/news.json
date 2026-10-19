@@ -12,6 +12,9 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id": "assistant-calendar-pulse-chat", "published_at": "2026-10-19", "kind": "feature", "article_id": "svoi-scenarii-poliva-cherez-pomoshchnika", "preview_position": "50% 50%"},
+    {"id": "assistant-compact-chat-guide", "published_at": "2026-10-19", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "Руководство обновлено: чат с полем ввода внизу, выбор модели владельца под сообщением и предварительный план сценария."},
+    {"id": "assistant-demo-compact-refresh", "published_at": "2026-10-19", "kind": "article_update", "article_id": "poprobovat-pomoshchnika-na-demoferme", "text": "Обновлены изображения демочата и добавлен переход к настройке полива с повторением через несколько дней."},
     {"id": "assistant-demo-history-requests", "published_at": "2026-10-18", "kind": "feature", "article_id": "poprobovat-pomoshchnika-na-demoferme", "preview_position": "50% 55%"},
     {"id": "codex-admin-update-button", "published_at": "2026-10-18", "kind": "fix", "text": "В админке владельца появилась кнопка обновления личного Codex: с проверкой ответа помощника, сохранением результата и откатом к предыдущей версии при ошибке."},
     {"id": "assistant-guide-history-update", "published_at": "2026-10-18", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "Руководство дополнено историей датчиков и подтверждённой отправкой запросов на доработки."},

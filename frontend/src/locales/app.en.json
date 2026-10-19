@@ -1424,5 +1424,21 @@
   "Сохранить решение": "Save decision",
   "На рассмотрении": "Under review",
   "Запланировано": "Planned",
-  "Пока не планируем": "Not planned for now"
+  "Пока не планируем": "Not planned for now",
+  "Вернуться к ферме": "Back to the farm",
+  "Приложить фото": "Attach a photo",
+  "Предварительный план": "Preview",
+  "Весь цикл": "Full cycle",
+  "Работа насоса": "Pump running time",
+  "Ближайшие запуски": "Next runs",
+  "Этапы цикла": "Cycle steps",
+  "Импульс": "Pulse",
+  "С даты": "Starting",
+  "дн.": "days",
+  "нед.": "weeks",
+  "Длительность плановая: подтверждения устройств могут добавить задержку.": "The duration is planned; device confirmations may add a delay.",
+  "После пропуска выполнится только последний актуальный запуск.": "After a missed run, only the most recent occurrence will run.",
+  "Опоздавший более чем на {{seconds}} с запуск будет пропущен.": "A run more than {{seconds}} seconds late will be skipped.",
+  "Для ожидания завершения полива подготовьте правило версии 2.": "Prepare a version 2 rule to wait for watering to finish.",
+  "Показаны первые {{count}} этапов, итог учитывает весь цикл.": "The first {{count}} steps are shown; the total includes the entire cycle."
 }

@@ -378,6 +378,16 @@ automation:
     min-interval-seconds: 60
     # Predel odnoj posledovatelnosti s pauzami.
     max-delay-seconds: 86400
+    # Period raspisaniya nezavisim ot pauz posledovatelnosti.
+    max-interval-seconds: 31536000
+    # Obshchee aktivnoe vremya impulsnogo seansa; nepreryvnyj impuls ogranichen otdelno.
+    max-total-watering-seconds: 1800
+    # Okno starta pri politike propuska opozdavshih zapuskov.
+    schedule-grace-seconds: 90
+    # Chislo blizhajshih dat v predvaritelnom plane.
+    preview-runs: 3
+    # Predel etapov v kartochke; summarnaya dlitelnost uchityvaet ves cikl.
+    preview-timeline-steps: 64
     # Dop limit poliva; predely proshivki i pump takzhe obyazatelny.
     max-watering-seconds: 300
     # Predel sekund poliva odnogo kanala pravilami za poslednie sutki.

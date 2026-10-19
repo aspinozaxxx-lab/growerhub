@@ -4,12 +4,12 @@ slug: "plant-assistant-and-custom-scenarios-growerhub"
 title: "GrowerHub assistant: ask about plants and create your own scenario"
 summary: "Review your farm, discuss plant care and prepare a useful schedule in one chat. Every change is shown to you for confirmation first."
 created_at: "2026-10-18"
-updated_at: "2026-10-18"
+updated_at: "2026-10-19"
 cluster: "zhurnal-i-sovetnik-uhoda"
 tags: ["GrowerHub", "assistant", "plant care", "Telegram", "scenarios"]
 keywords: ["plant care assistant", "plant care automation", "GrowerHub scenarios"]
 related: ["dnevnik-rasteniy-bez-oborudovaniya-growerhub", "avtomatizatsiya-sveta-v-groubokse", "poliv-po-raspisaniyu-growerhub"]
-hero_image: "/screenshots/assistant/chat-en.webp"
+hero_image: "/screenshots/assistant/custom-routines-en.webp"
 hero_alt: "The GrowerHub assistant on a demonstration farm, ready for a question about plants"
 ---
 
@@ -30,7 +30,7 @@ Name the plant or greenhouse when you have several. The assistant only reads you
 
 The screenshots show the working interface with a practice conversation, rather than an assessment of a particular plant.
 
-![The assistant in the GrowerHub application](/screenshots/assistant/chat-en.webp)
+![The assistant in the GrowerHub application](/screenshots/assistant/custom-routines-en.webp)
 
 ## Add a photo for context
 
@@ -70,7 +70,7 @@ You can begin with one plant and a care question. Hardware is needed only for ac
 
 ## The system owner's personal assistant
 
-The GrowerHub owner can choose their Codex model and reasoning effort above the conversation. The list comes from the installed client; **Refresh models** reloads it. The choice is saved for the conversation, including Telegram. Switching models preserves the effort when the new model supports it.
+The GrowerHub owner can choose their Codex model and reasoning effort below the composer. The list comes from the installed client; **Refresh models** in assistant settings reloads it. The choice is saved for the conversation, including Telegram. Switching models preserves the effort when the new model supports it.
 
 In the administrative conversation, the owner can ask about registrations, users' farms, plants, device readiness and assistant spending. This is a separate permission for the system owner. Regular users can access only their own plants and equipment. Administrative reading does not permit changing another user's farm, retrieving secrets or running server commands.
 
@@ -79,3 +79,9 @@ Under **Settings → Notifications**, the owner can see the installed and latest
 ## Sensor history and ideas for the team
 
 The assistant can read recorded temperature, air humidity and soil moisture history, describe changes and account for gaps. If you need a missing feature, ask it to prepare a request for the team. You can review the complete text before confirming with a separate button. [Try the ready-made demo tasks and examples](/en/articles/try-the-assistant-on-a-demo-farm/).
+
+## The chat and routine preview
+
+The composer stays at the bottom, with photo and send controls inside. Conversation selection and the new-chat button share one header row. The assistant also has a dedicated full-screen page on desktop. The service owner selects the model and reasoning effort below the text box; model-list refresh is in assistant settings.
+
+New routine cards show upcoming dates, cycle steps and duration. Calendar repetition after several days or weeks and a single pulse-watering session are supported. [See a watering-every-two-days example](/en/articles/custom-watering-routines-with-the-assistant/).

@@ -11,7 +11,7 @@ import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.plant.contract.PlantInfo;
 class RuleEvaluatorTest {
     final ObjectMapper json = new ObjectMapper();
-    final RuleEvaluator engine = new RuleEvaluator(new RuleSettings(50, 16, 5, 64, 60, 86400, 300, 1800, 900, 60, 5000, 60, 50));
+    final RuleEvaluator engine = new RuleEvaluator(new RuleSettings(50, 16, 5, 64, 60, 86400, 300, 1800, 900, 60, 5000, 60, 50, 31536000, 1800, 90, 3, 64));
     final Instant at = Instant.parse("2026-10-18T09:00:00Z");
     JsonNode node(String text) throws Exception { return json.readTree(text); }
     Definition rule(JsonNode condition) throws Exception {
@@ -67,5 +67,54 @@ class RuleEvaluatorTest {
         for (int i = 0; i < 7; i++) tooDeep = json.createObjectNode().put("type", "not").set("condition", tooDeep);
         var deep = rule(tooDeep);
         assertThatThrownBy(() -> engine.validate(deep, context(at, 25, at))).isInstanceOf(DomainException.class);
+    }
+
+    Definition modern(String trigger, String actions) throws Exception {
+        return new Definition(2, "Полив", "ROOM", 1, node(trigger), null, Arrays.asList(json.readValue(actions, JsonNode[].class)), 60);
+    }
+    @Test void twoDayCalendarKeepsFirstDateAndSkipsLateSlotsUnlessExplicitlyRequested() throws Exception {
+        var d = modern("{\"type\":\"calendar\",\"every\":2,\"unit\":\"day\",\"startDate\":\"2026-10-19\",\"at\":\"16:00\",\"timezone\":\"Europe/Moscow\"}", "[{\"type\":\"notify\",\"text\":\"Осмотр\"}]");
+        var before = context(Instant.parse("2026-10-19T12:00:00Z"), 25, at);
+        engine.validate(d, before);
+        assertThat(engine.evaluate(d, before, json.createObjectNode()).key()).isNull();
+        assertThat(engine.timing(d, before).nextRuns().stream().map(r -> r.at().toString()))
+                .containsExactly("2026-10-19T13:00:00Z", "2026-10-21T13:00:00Z", "2026-10-23T13:00:00Z");
+        assertThat(engine.evaluate(d, context(Instant.parse("2026-10-19T13:00:10Z"), 25, at), json.createObjectNode()).ready()).isTrue();
+        assertThat(engine.evaluate(d, context(Instant.parse("2026-10-20T13:00:00Z"), 25, at), json.createObjectNode()).ready()).isFalse();
+        assertThat(engine.evaluate(d, context(Instant.parse("2026-10-21T13:01:31Z"), 25, at), json.createObjectNode()).ready()).isFalse();
+        ((com.fasterxml.jackson.databind.node.ObjectNode)d.trigger()).put("misfire", "run_once");
+        assertThat(engine.evaluate(d, context(Instant.parse("2026-10-21T14:00:00Z"), 25, at), json.createObjectNode()).key()).contains("2026-10-21");
+    }
+    @Test void calendarAndExactHoursHaveDifferentDstMeaning() throws Exception {
+        var calendar = modern("{\"type\":\"calendar\",\"every\":2,\"unit\":\"day\",\"startDate\":\"2026-10-24\",\"at\":\"09:00\",\"timezone\":\"Europe/Berlin\"}", "[{\"type\":\"notify\",\"text\":\"Осмотр\"}]");
+        var exact = modern("{\"type\":\"interval\",\"seconds\":172800,\"anchor\":\"2026-10-24T07:00:00Z\"}", "[{\"type\":\"notify\",\"text\":\"Осмотр\"}]");
+        var c = context(Instant.parse("2026-10-24T06:00:00Z"), 25, at);
+        engine.validate(exact, c); engine.validate(calendar, c);
+        assertThat(engine.timing(calendar, c).nextRuns().get(1).at()).isEqualTo(Instant.parse("2026-10-26T08:00:00Z"));
+        assertThat(engine.timing(exact, c).nextRuns().get(1).at()).isEqualTo(Instant.parse("2026-10-26T07:00:00Z"));
+    }
+    @Test void pulsePlanShowsEightActiveMinutesAndEighteenElapsedMinutesWithoutRelaxingContinuousLimit() throws Exception {
+        var d = modern("{\"type\":\"interval\",\"seconds\":172800,\"anchor\":\"2026-10-19T13:00:00Z\"}",
+                "[{\"type\":\"water\",\"resourceId\":2,\"durationSeconds\":480,\"pulse\":{\"runSeconds\":180,\"pauseSeconds\":300}}]");
+        var c = context(at, 25, at);
+        var pump = new ResourceBinding(2, "ROOM", 1, "WATER_PUMP", "NATIVE", null, 1, null, null, null, null, null, null, null,
+                LocalDateTime.ofInstant(at, ZoneOffset.UTC), "ONLINE", null, "Насос", true, null);
+        c = new RuleEvaluator.Context(Map.of(2, pump), c.plants(), c.timezone(), c.now());
+        engine.validate(d, c); var plan = engine.timing(d, c);
+        assertThat(plan.activeWateringSeconds()).isEqualTo(480); assertThat(plan.cycleSeconds()).isEqualTo(1080);
+        assertThat(plan.timeline().stream().map(s -> s.durationSeconds())).containsExactly(180L, 300L, 180L, 300L, 120L);
+        var pulse = (com.fasterxml.jackson.databind.node.ObjectNode)d.actions().getFirst().get("pulse"); pulse.put("runSeconds", 301);
+        var finalContext = c;
+        assertThatThrownBy(() -> engine.validate(d, finalContext)).isInstanceOf(DomainException.class);
+        pulse.put("runSeconds", 180); ((com.fasterxml.jackson.databind.node.ObjectNode)d.actions().getFirst()).remove("pulse");
+        assertThatThrownBy(() -> engine.validate(d, finalContext)).isInstanceOf(DomainException.class);
+    }
+    @Test void longIntervalsDoNotAllowLongPausesAndSchemaUsesTheSameLimits() throws Exception {
+        var d = modern("{\"type\":\"interval\",\"seconds\":604800,\"anchor\":\"2026-10-19T13:00:00Z\"}", "[{\"type\":\"delay\",\"seconds\":86401}]");
+        assertThatThrownBy(() -> engine.validate(d, context(at, 25, at))).isInstanceOf(DomainException.class);
+        var schema = json.valueToTree(engine.schema());
+        assertThat(schema.path("version").asInt()).isEqualTo(2);
+        assertThat(schema.path("triggers").get(1).path("seconds").path("maximum").asInt()).isEqualTo(31536000);
+        assertThat(schema.path("limits").path("maxCycleSeconds").asInt()).isEqualTo(86400);
     }
 }

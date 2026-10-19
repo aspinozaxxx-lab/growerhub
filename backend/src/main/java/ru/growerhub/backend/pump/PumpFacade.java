@@ -62,6 +62,11 @@ public class PumpFacade {
         return sessionService.defaults();
     }
 
+    @Transactional(readOnly = true)
+    public PumpSessionData.View sessionExecution(String executionKey, AuthenticatedUser user) {
+        return sessionService.execution(executionKey, user);
+    }
+
     @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = RuntimeException.class)
     public PumpSessionData.View startSession(PumpSessionData.Start request, AuthenticatedUser user) {
         return sessionService.start(request, user);

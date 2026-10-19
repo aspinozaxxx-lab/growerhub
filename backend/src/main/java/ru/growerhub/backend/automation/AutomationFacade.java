@@ -198,6 +198,7 @@ public class AutomationFacade {
     public RuleData.Rule getRule(UUID id, AuthenticatedUser user) { return rules.get(id, user); }
     @Transactional(readOnly = true)
     public RuleData.Preview previewRule(UUID id, RuleData.Definition definition, AuthenticatedUser user) { return rules.preview(id, definition, user); }
+    public Map<String, Object> ruleSchema() { return rules.schema(); }
     public RuleData.Rule saveRule(UUID id, RuleData.Save command, AuthenticatedUser user) { return rules.save(id, command, user); }
     public RuleData.Rule toggleRule(UUID id, RuleData.Toggle command, AuthenticatedUser user) { return rules.toggle(id, command, user); }
     public RuleData.Rule restoreRule(UUID id, RuleData.Restore command, AuthenticatedUser user) { return rules.restore(id, command, user); }
@@ -1162,7 +1163,7 @@ public class AutomationFacade {
             if (boxes.stream().flatMap(box -> box.leakSensors().stream()).anyMatch(leak -> Boolean.TRUE.equals(leak.triggered()))) reasons.add("Обнаружена протечка");
             pumps.add(new AutomationData.ManualWateringPump(null, null, target.key(), null, executor.label(),
                     observed.online(), observed.running(), new AutomationData.ManualWateringCapabilities(
-                    reasons.isEmpty(), reasons, true, false, current != null, false, executor.capability().maxDurationS()),
+                    reasons.isEmpty(), reasons, true, false, current != null, executor.capability().pulse(), executor.capability().maxDurationS()),
                     boxes, current, binding.getId(), target.key()));
         }
         return new AutomationData.ManualWateringOverview(pumpFacade.sessionDefaults(), pumps);
@@ -1181,6 +1182,46 @@ public class AutomationFacade {
         return pumpFacade.startSession(new PumpSessionData.Start(null, PumpSessionData.SOURCE_USER_MANUAL,
                 safe.mode(), safe.durationS(), safe.maxActiveDurationS(), safe.pulseEnabled(), safe.pulseRunS(), safe.pulsePauseS(),
                 topology.targetsByZigbee.getOrDefault(target.key(), List.of()), null, null).withZigbeeTarget(target), user);
+    }
+
+    @Transactional(readOnly = true)
+    public void validateRuleWatering(RuleData.Watering request, AuthenticatedUser user) {
+        requireAuthenticated(user);
+        var binding = resourceRepository.findById(request.resourceId()).orElseThrow(() -> new DomainException("not_found", "Ресурс не найден"));
+        if (!Objects.equals(resourceOwnerId(binding), user.id()) || !AutomationData.ROLE_WATER_PUMP.equals(binding.getRole()))
+            throw new DomainException("not_found", "Ресурс не найден");
+        if (isZigbeeWatering(binding)) {
+            var capability = zigbeeFacade.resolveWateringExecutor(zigbeeWateringTarget(binding), user, false).capability();
+            if (request.pulseRunSeconds() != null && !capability.pulse()) throw new DomainException("unprocessable", "Этот клапан не поддерживает импульсный полив");
+            if (capability.maxDurationS() != null && request.durationSeconds() > capability.maxDurationS())
+                throw new DomainException("unprocessable", "Длительность превышает проверенный предел клапана");
+        }
+    }
+
+    @Transactional(noRollbackFor = RuntimeException.class)
+    public PumpSessionData.View startRuleWatering(RuleData.Watering request, String executionKey, AuthenticatedUser user) {
+        validateRuleWatering(request, user);
+        var binding = resourceRepository.lockById(request.resourceId()).orElseThrow(() -> new DomainException("not_found", "Ресурс не найден"));
+        Catalog catalog = buildOwnedCatalog(user); var topology = buildOwnedWateringTopology(user, catalog);
+        var start = new PumpSessionData.Start(binding.getNativePumpId(), PumpSessionData.SOURCE_AUTOMATION, PumpSessionData.MODE_TIMED,
+                request.durationSeconds(), null, request.pulseRunSeconds() != null, request.pulseRunSeconds(), request.pulsePauseSeconds(),
+                wateringTargets(binding, topology), null, null).withExecutionKey(executionKey);
+        if (isZigbeeWatering(binding)) start = start.withZigbeeTarget(zigbeeWateringTarget(binding));
+        else requireOwnedPump(binding.getNativePumpId(), catalog);
+        return pumpFacade.startSession(start, user);
+    }
+
+    @Transactional(readOnly = true)
+    public PumpSessionData.View ruleWateringExecution(String executionKey, AuthenticatedUser user) {
+        requireAuthenticated(user); return pumpFacade.sessionExecution(executionKey, user);
+    }
+
+    @Transactional
+    public void stopRuleWatering(String executionKey, AuthenticatedUser user) {
+        var session = ruleWateringExecution(executionKey, user);
+        if (session == null || !PumpSessionData.STATUS_ACTIVE.equals(session.status())) return;
+        if (session.zigbeeTarget() != null) pumpFacade.stopSession(session.zigbeeTarget(), user);
+        else pumpFacade.stopSession(session.pumpId(), user);
     }
 
     @Transactional

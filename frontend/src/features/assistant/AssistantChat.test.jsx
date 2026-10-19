@@ -5,7 +5,7 @@ import AssistantChat from './AssistantChat';
 import { assistantRequest } from '../../api/assistant';
 import { demoPrompts } from './demoPrompts';
 vi.mock('../../api/assistant', () => ({ assistantRequest: vi.fn(), watchAssistant: vi.fn().mockResolvedValue(), uploadAssistantPhoto: vi.fn(), assistantPhoto: vi.fn() }));
-vi.mock('../../locales/i18n', () => ({ translateApp: (value, params = {}) => value.replace(/\{\{(\w+)\}\}/g, (_, key) => String(params[key])) }));
+vi.mock('../../locales/i18n', () => ({ getCurrentLocale: () => 'ru', translateApp: (value, params = {}) => value.replace(/\{\{(\w+)\}\}/g, (_, key) => String(params[key])) }));
 const cap = { enabled: true, available: true, owner: false, demo: false, model: 'deepseek-flash', effort: 'high', models: [], limits: { remainingDay: 30 }, preferences: { telegram: false, report: 'off', hour: 9, weekday: 1 } };
 const chat = { id: 'chat-1', title: 'Уход', model: 'deepseek-flash', effort: 'high' };
 let history;
@@ -48,6 +48,8 @@ test('owner model controls use the current catalog and preserve a supported effo
   fireEvent.change(screen.getByLabelText('Модель'),{target:{value:'astra'}});
   await waitFor(()=>expect(assistantRequest).toHaveBeenCalledWith('/conversations/chat-1','PUT',{model:'astra',effort:'max'}));
   await waitFor(()=>expect(screen.queryByRole('option',{name:'ultra'})).not.toBeInTheDocument());
+  expect(screen.getByLabelText('Модель').closest('form')).toHaveClass('assistant-compose');
+  fireEvent.click(screen.getByRole('button',{name:'Настройки помощника'}));
   fireEvent.click(screen.getByRole('button',{name:'Обновить список моделей'}));
   await waitFor(()=>expect(assistantRequest.mock.calls.filter(([p])=>p==='/models')).toHaveLength(2));
 });
@@ -90,4 +92,28 @@ test('feature request displays the complete text and waits for explicit sending'
   expect(assistantRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
   fireEvent.click(screen.getByRole('button', { name: 'Отправить запрос', exact: true }));
   await waitFor(() => expect(assistantRequest).toHaveBeenCalledWith('/proposals/request-1/confirm', 'POST', { revision: 'reviewed-text-2' }));
+});
+
+test('Enter sends once while Shift+Enter and composition do not send', async () => {
+  const ordinary = assistantRequest.getMockImplementation();
+  assistantRequest.mockImplementation(async (path, method, body) => path.endsWith('/messages') && method === 'POST'
+    ? { id: 'sent', text: body.text, status: 'completed', answer: 'Ответ', attachments: [], proposals: [] } : ordinary(path, method, body));
+  mount(); const input = await screen.findByRole('textbox', { name: 'Ваш вопрос' });
+  fireEvent.change(input, { target: { value: 'Как растения?' } });
+  fireEvent.keyDown(input, { key: 'Enter', shiftKey: true });
+  fireEvent.keyDown(input, { key: 'Enter', isComposing: true });
+  expect(assistantRequest.mock.calls.filter(([, m]) => m === 'POST')).toHaveLength(0);
+  fireEvent.keyDown(input, { key: 'Enter' });
+  await waitFor(() => expect(assistantRequest.mock.calls.filter(([, m]) => m === 'POST')).toHaveLength(1));
+});
+
+test('photos stay editable in the composer until explicit sending', async () => {
+  mount(); await screen.findByRole('textbox', { name: 'Ваш вопрос' });
+  const file = new File(['plant'], 'my-rose.jpg', { type: 'image/jpeg' });
+  fireEvent.change(screen.getByLabelText('Приложить фото'), { target: { files: [file] } });
+  expect(screen.getByText('my-rose.jpg')).toBeInTheDocument();
+  expect(screen.getByLabelText('Приложить фото').closest('form')).toHaveClass('assistant-compose');
+  expect(assistantRequest.mock.calls.some(([, m]) => m === 'POST')).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: 'Удалить фото' }));
+  expect(screen.queryByText('my-rose.jpg')).not.toBeInTheDocument();
 });

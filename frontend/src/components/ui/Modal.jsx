@@ -13,6 +13,7 @@ function Modal({
   closeLabel = translateApp("Закрыть"),
   disableOverlayClose = false,
   presentation = 'dialog',
+  showHeader = true,
 }) {
   const panelRef = useRef(null);
   const closeRef = useRef(onClose);
@@ -65,7 +66,7 @@ function Modal({
     <div className={`gh-modal ${presentation === 'sheet' ? 'gh-modal--sheet' : ''}`} role="dialog" aria-modal="true" aria-label={title || closeLabel}>
       <div className="gh-modal__overlay" onClick={handleOverlayClick} />
       <div className={`gh-modal__panel gh-modal__panel--${size}`} onClick={handlePanelClick} ref={panelRef}>
-        <header className="gh-modal__header">
+        {showHeader && <header className="gh-modal__header">
           {title ? <div className="gh-modal__title">{title}</div> : <div />}
           <Button
             type="button"
@@ -77,7 +78,7 @@ function Modal({
           >
             ×
           </Button>
-        </header>
+        </header>}
         <div className="gh-modal__body">
           {children}
         </div>

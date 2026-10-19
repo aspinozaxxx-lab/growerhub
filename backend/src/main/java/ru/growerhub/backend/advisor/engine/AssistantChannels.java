@@ -195,17 +195,23 @@ public class AssistantChannels {
             String when = switch (trigger.path("type").asText()) {
                 case "schedule" -> "В " + trigger.path("at").asText() + (trigger.path("days").size() == 0 || trigger.path("days").size() == 7 ? ", каждый день" : ", дни " + trigger.path("days").toString());
                 case "interval" -> "Каждые " + trigger.path("seconds").asInt() + " сек., начало " + trigger.path("anchor").asText();
+                case "calendar" -> "Каждые " + trigger.path("every").asInt() + ("week".equals(trigger.path("unit").asText()) ? " нед." : " дн.")
+                        + " в " + trigger.path("at").asText() + ", с " + trigger.path("startDate").asText() + " (" + p.path("timing").path("timezone").asText() + ")";
                 default -> "При изменении показаний №" + trigger.path("resourceId").asInt() + ", свежесть до " + trigger.path("maxAgeSeconds").asInt() + " сек.";
             };
             var actions = new ArrayList<String>();
             for (var a : d.path("actions")) actions.add(switch (a.path("type").asText()) {
                 case "set" -> resourceName(p, a) + ": " + a.path("value").asText();
-                case "water" -> resourceName(p, a) + ": полив " + a.path("durationSeconds").asInt() + " секунд";
+                case "water" -> resourceName(p, a) + ": полив " + a.path("durationSeconds").asInt() + " секунд работы насоса"
+                        + (a.hasNonNull("pulse") ? ", импульс " + a.path("pulse").path("runSeconds").asInt() + " сек., пауза " + a.path("pulse").path("pauseSeconds").asInt() + " сек. после остановки" : "");
                 case "delay" -> "Пауза " + a.path("seconds").asInt() + " секунд";
                 default -> "Уведомление: " + a.path("text").asText();
             });
+            var next = new ArrayList<String>();
+            for (var at : p.path("timing").path("nextRuns")) next.add(at.path("localAt").asText());
             return p.path("scopeName").asText("") + "\n" + (p.path("enabled").asBoolean() ? "Сценарий будет включён." : "Сценарий сохранится выключенным.") + "\n" + when + "\nУсловия: " + condition(d.path("condition"))
-                    + "\n" + String.join(" → ", actions) + "\nПауза между запусками: " + d.path("cooldownSeconds").asInt() + " сек.";
+                    + "\n" + String.join(" → ", actions) + "\nПауза между запусками: " + d.path("cooldownSeconds").asInt() + " сек."
+                    + (p.has("timing") ? "\nПлановая длительность цикла: " + p.path("timing").path("cycleSeconds").asLong() + " сек.\nБлижайшие запуски: " + String.join(", ", next) : "");
         }
         if ("device".equals(proposal.kind())) return "water".equals(p.path("type").asText()) ? "Полив " + p.path("durationSeconds").asInt() + " секунд" : "Состояние: " + p.path("value").asText();
         return "Состояние: " + (p.path("enabled").asBoolean() ? "включён" : "выключен") + ". Настройки:\n" + p.path("config").toPrettyString();

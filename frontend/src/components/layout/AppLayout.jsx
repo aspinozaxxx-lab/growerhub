@@ -49,6 +49,7 @@ function AppLayout() {
   const location = useLocation();
   const { demoActive } = useAuth();
   const adminRoute = location.pathname.startsWith('/app/admin/');
+  const assistantRoute = location.pathname.startsWith('/app/assistant/');
   const currentLocale = getCurrentLocale();
   const pageLabel = PAGE_LABELS.find((item) => matchPath({
     path: item.to,
@@ -81,7 +82,7 @@ function AppLayout() {
   };
 
   return (
-    <div className={`app-layout ${adminRoute ? 'app-layout--admin' : 'app-layout--workspace'}`}>
+    <div className={`app-layout ${adminRoute ? 'app-layout--admin' : 'app-layout--workspace'} ${assistantRoute ? 'app-layout--assistant' : ''}`}>
       <aside className="app-sidebar">
         <div className="app-sidebar__inner">
           <Link to={getPublicPath('home', currentLocale)} className="app-sidebar__brand">
@@ -106,8 +107,8 @@ function AppLayout() {
 
       <main className="app-content">
         <div className="app-content__inner">
-          <DemoBanner />
-          {DEMO_PUBLIC_ENABLED && !demoActive && !adminRoute ? <div className="app-demo-entry-link"><Link to="/app/demo/">{translateApp("Попробовать на демоферме")}</Link></div> : null}
+          {!assistantRoute && <DemoBanner />}
+          {DEMO_PUBLIC_ENABLED && !demoActive && !adminRoute && !assistantRoute ? <div className="app-demo-entry-link"><Link to="/app/demo/">{translateApp("Попробовать на демоферме")}</Link></div> : null}
           <Outlet />
         </div>
       </main>
