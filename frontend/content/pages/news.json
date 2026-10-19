@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id": "assistant-photo-context-space", "published_at": "2026-10-19", "kind": "fix", "text": "Сократили служебные инструкции помощника: фотографии больше не вытесняются ими до обработки. Для фото заранее освобождается место за счёт старой переписки; лимиты расходов сохранены."},
     {"id": "assistant-plants-and-journal-photos", "published_at": "2026-10-19", "kind": "feature", "article_id": "rasteniya-i-foto-v-zhurnale-cherez-pomoshchnika", "preview_position": "50% 55%"},
     {"id": "custom-rule-list-switches", "published_at": "2026-10-19", "kind": "fix", "text": "Свои сценарии можно включать и выключать переключателем прямо в списке теплицы или фермы. При конфликте или неготовности устройств причина появляется рядом, а сценарий остаётся выключенным."},
     {"id": "assistant-plant-guide-update", "published_at": "2026-10-19", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "В руководство добавлены создание и перемещение растений, записи с фото из Telegram и переключатели своих сценариев в списке."},

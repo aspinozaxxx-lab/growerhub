@@ -510,6 +510,27 @@ class AssistantIntegrationTest extends IntegrationTestBase {
         assertThat(confirmed.status()).isEqualTo("stale"); assertThat(advisor.claimAssistantApplication()).isNull();
         assertThat(automation.getPlantZone(user, id)).isNull(); assertThat(plants.getPlant(id, user).name()).isEqualTo("Новое имя");
     }
+    @Test void ownerPhotoKeepsRoomForTheImageAndTrimsOldConversationBeforeCodex() throws Exception {
+        var user = principal(owner); var chat = create(owner);
+        for (int i = 0; i < 3; i++) {
+            advisor.sendAssistantMessage(chat, new Send(UUID.randomUUID(), "Старая переписка " + "растение ".repeat(90), List.of()), user, new Origin(null, null, "app"));
+            var previous = advisor.claimAssistantWork("codex");
+            advisor.finishAssistantWork(previous.id(), previous.lease(), new Outcome("completed", "Описание ухода ".repeat(90), 100, 100, true, null));
+        }
+        var image = advisor.uploadAssistantPhoto(chat, journalTestPhoto(), user, new Origin(null, null, "app"));
+        advisor.sendAssistantMessage(chat, new Send(UUID.randomUUID(), "Сохрани приложенную фотографию в журнал моего розмарина. Текст: новый прирост после пересадки. Подготовь карточку и покажи растение, которому будет добавлена фотография.", List.of(image.id())), user, new Origin(null, null, "app"));
+        var work = advisor.claimAssistantWork("codex");
+        var schemas = json.valueToTree(work.tools());
+        schemas.forEach(schema -> ((com.fasterxml.jackson.databind.node.ObjectNode) schema).put("strict", false));
+        int estimate = json.writeValueAsBytes(schemas).length;
+        for (var message : work.messages()) for (Object item : (List<?>) message.get("content")) {
+            var part = (Map<?, ?>) item;
+            estimate += "image".equals(part.get("type")) ? 6144 : part.get("text").toString().getBytes(StandardCharsets.UTF_8).length;
+        }
+        assertThat(estimate).as("Codex preflight including image and complete owner tool catalogue").isLessThanOrEqualTo(work.maxInputTokens());
+        assertThat(work.messages().toString()).contains(image.id().toString()).doesNotContain("Старая переписка");
+        assertThat(work.tools().stream().map(t -> t.get("name"))).contains("gh_journal", "gh_prepare_change", "gh_admin_users");
+    }
     @Test void telegramPhotoIsCopiedToTheChosenJournalOnceAndSharedWithTheApp() throws Exception {
         var user = principal(first); int id = plants.createPlant(new ru.growerhub.backend.plant.PlantFacade.PlantCreateCommand("Мой розмарин", null, null, null, null), user).id();
         long update = 3000000L + user.id() * 100L, address = update + 50;
