@@ -12,7 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
-    {"id": "assistant-interface-help-scoped-rules", "published_at": "2026-10-19", "kind": "fix", "text": "The assistant can explain where to find app features and link to them. Custom routines now appear as compact rows for the selected greenhouse, with details on selection and a direct link below saved proposals."},
+    {"id": "assistant-interface-help-scoped-rules", "published_at": "2026-10-19", "kind": "fix", "text": "The assistant can explain where to find app features and link to them. Custom routines now appear as compact rows for the selected greenhouse, with details on selection. Following a chat link closes the side panel so you can see the destination."},
     {"id": "assistant-interface-guide-update", "published_at": "2026-10-19", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "The guide now covers app navigation help, direct links to saved routines and updated greenhouse routine screenshots. The every-other-day watering guide was updated too."},
     {"id": "assistant-models-after-restart", "published_at": "2026-10-19", "kind": "fix", "text": "Fixed owner model choices disappearing after sending a message when the server had restarted while the chat was open."},
     {"id": "firmware-build-platform-pin", "published_at": "2026-10-19", "kind": "fix", "text": "Pinned the verified build environment so external tool updates do not delay server fixes."},

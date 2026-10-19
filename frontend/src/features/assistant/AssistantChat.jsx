@@ -56,7 +56,8 @@ export default function AssistantChat({ initialText = '', backTo, onClose }) {
   const canSend = !!cap?.available && !a.busy && a.retrySeconds === 0 && (!!a.pending || !!a.text.trim() || !!a.files.length) && !a.files.some(f => f.size > 6 * 1024 * 1024);
   const pickPrompt = text => { a.setText(t(text)); textareaRef.current?.focus(); };
   const examples = <div className="assistant-suggestions assistant-demo-prompts">{demoPrompts.map(p => <button type="button" key={p.id} disabled={locked} onClick={() => pickPrompt(p.text)}><span aria-hidden="true">{p.icon}</span><span><strong>{t(p.title)}</strong><small>{t(p.hint)}</small></span></button>)}</div>;
-  return <section className="assistant-chat ym-hide-content ym-disable-keys" aria-label={t('Помощник GrowerHub')}>
+  return <section className="assistant-chat ym-hide-content ym-disable-keys" aria-label={t('Помощник GrowerHub')}
+    onClick={event => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey && event.target.closest('a[href]')) onClose?.(); }}>
     <header className="assistant-toolbar">
       {backTo && <Link className="assistant-icon-button" to={backTo} aria-label={t('Вернуться к ферме')} title={t('Вернуться к ферме')}><ArrowLeft size={19} aria-hidden="true" /></Link>}
       <h1>{t('Помощник')}{cap?.demo && <small>{t('Демо')}</small>}</h1>
