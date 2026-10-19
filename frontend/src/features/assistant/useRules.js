@@ -25,7 +25,10 @@ export default function useRules({ refreshKey, selectedId, onClose }) {
     if (locked.current) return;
     locked.current = true; setBusy(true); setError(''); setErrorRuleId(ruleId);
     try { await action(); await load(); if (live.current && close) onClose(); }
-    catch (e) { if (live.current) setError(e.message); }
+    catch (e) {
+      if (live.current) setError(e.message);
+      if (!close && live.current) await load().catch(() => {});
+    }
     finally { locked.current = false; if (live.current) setBusy(false); }
   }
   return { rules, selected, preview, history, versions, detailLoading, loaded, error, errorRuleId, busy,

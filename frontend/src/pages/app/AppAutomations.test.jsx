@@ -142,6 +142,19 @@ describe('AppAutomations', () => {
     expect(await within(screen.getByRole('region', { name: 'Свои сценарии: Рассада' })).findByRole('alert')).toHaveTextContent('Канал занят поливом');
     expect(toggle).not.toBeChecked(); expect(toggle).toBeEnabled(); expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+  it('refreshes actual state after a concurrent change without sending a second command', async () => {
+    fetchFarmsOverview.mockResolvedValue(multiOverview()); personalRules = [personalRule('custom', 'Осмотр', 'BOX', 2)];
+    ruleRequest.mockImplementation(async (path = '') => {
+      if (!path) return [...personalRules];
+      if (path === '/custom/enabled') { personalRules = personalRules.map(r => ({ ...r, enabled: true, revision: 2 })); throw new Error('Версия сценария изменилась'); }
+      return {};
+    });
+    render(<MemoryRouter><AppAutomations /></MemoryRouter>);
+    const toggle = await screen.findByRole('switch', { name: 'Сценарий: Осмотр' }); fireEvent.click(toggle);
+    await waitFor(() => expect(toggle).toBeChecked());
+    expect(await screen.findByRole('alert')).toHaveTextContent('Версия сценария изменилась');
+    expect(ruleRequest.mock.calls.filter(([path]) => path === '/custom/enabled')).toHaveLength(1);
+  });
 
   it('pokazyvaet tolko obshchie chetyre polya klimata', async () => {
     fetchFarmsOverview.mockResolvedValue(overview(true));
