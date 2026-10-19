@@ -4,7 +4,7 @@ slug: "plant-care-journal-and-telegram-growerhub"
 title: "A plant journal without hardware: photos, care and Telegram"
 summary: "Keep your plants, photographs and care notes together. Plan tasks and receive Telegram reminders without sensors, a coordinator or automation setup."
 created_at: "2026-10-07"
-updated_at: "2026-10-07"
+updated_at: "2026-10-20"
 cluster: "zhurnal-i-sovetnik-uhoda"
 tags: ["GrowerHub", "plant journal", "Telegram", "houseplants"]
 keywords: ["plant care journal", "watering reminders", "plant photo diary"]
@@ -32,7 +32,7 @@ The screenshot shows a training journal with a plant illustration instead of a p
 
 **Watered by hand**, **Feeding**, **Photo** and **Note** open a short form. Repotting, pruning, treatment and inspection are also available in the care-type list.
 
-Choose a date, write an observation and select images from your gallery. Your phone may also offer its camera. A saved image becomes the card’s cover. You can record yesterday’s repotting today by changing the entry date.
+Choose a date, write an observation and select images from your gallery. Your phone may also offer its camera. Photos stay in the journal timeline. With automatic styling, the latest photo becomes its cover. You can also [choose a plant picture and its stage](/en/articles/plant-pictures-and-growth-stages/) in the plant form. You can record yesterday’s repotting today by changing the entry date.
 
 Manual entries allow date, text and photo edits. Recorded equipment watering remains factual and cannot be edited through this form. **A manual care entry never switches on a pump or socket.** An unmeasured volume stays unknown.
 

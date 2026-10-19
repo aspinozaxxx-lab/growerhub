@@ -6,6 +6,7 @@ on:
     paths:
       - "frontend/**"
       - "backend/src/main/resources/shop/catalog.json"
+      - "backend/src/main/resources/plant/avatars.json"
       - "backend/src/main/resources/advisor/interface-guide.json"
       - ".github/workflows/deploy-frontend.yml"
   workflow_dispatch:

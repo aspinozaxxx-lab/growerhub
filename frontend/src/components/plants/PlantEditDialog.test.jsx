@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { updatePlant } from '../../api/plants';
 import PlantEditDialog from './PlantEditDialog';
@@ -66,5 +66,27 @@ describe('PlantEditDialog', () => {
 
     expect(screen.getByLabelText('Название')).toHaveValue('Томат');
     expect(screen.getByLabelText('Теплица')).toHaveValue('2');
+  });
+
+  it('vybiraet lyubuyu kartinku i imennuyu stadiyu ne menyaya stadiyu vyrashchivaniya', async () => {
+    updatePlant.mockResolvedValue({});
+    render(<PlantEditDialog isOpen mode="edit" plant={{ ...plant, growth_stage: 'vegetative', avatar_key: 'tomato', avatar_stage: 'young' }} zones={zones} />);
+    fireEvent.click(screen.getByText('Картинка растения').closest('summary'));
+    expect(within(screen.getByRole('radiogroup', { name: 'Растение на картинке' })).getAllByRole('radio')).toHaveLength(11);
+    expect(screen.getByRole('radio', { name: 'Молодой куст', exact: true })).toBeChecked();
+    fireEvent.click(screen.getByRole('radio', { name: 'Петуния', exact: true }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Бутоны', exact: true }));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Сохранить' })));
+    expect(updatePlant).toHaveBeenCalledWith('test-token', 5, expect.objectContaining({ avatar_key: 'petunia', avatar_stage: 'mature', growth_stage: 'vegetative' }));
+  });
+
+  it('vozvrashchaet avtomaticheskuyu kartinku i sbros stadii bez poteri ostalnyh polej', async () => {
+    updatePlant.mockResolvedValue({});
+    render(<PlantEditDialog isOpen mode="edit" plant={{ ...plant, avatar_key: 'basil', avatar_stage: 'young' }} zones={zones} />);
+    fireEvent.click(screen.getByText('Картинка растения').closest('summary'));
+    fireEvent.click(screen.getByRole('radio', { name: 'Автоматически', exact: true }));
+    expect(screen.queryByRole('group', { name: 'Стадия на картинке' })).not.toBeInTheDocument();
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Сохранить' })));
+    expect(updatePlant).toHaveBeenCalledWith('test-token', 5, expect.objectContaining({ avatar_key: '', avatar_stage: '', name: 'Томат', zone_id: 2 }));
   });
 });

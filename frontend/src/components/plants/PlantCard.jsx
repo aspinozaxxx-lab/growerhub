@@ -1,4 +1,4 @@
-﻿import React, { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import PlantAvatar from '../plant-avatar/PlantAvatar';
 import {
   DEFAULT_PLANT_TYPE_ID,
@@ -59,7 +59,7 @@ function PlantPumpRow({ pump, rate, showRate }) {
 }
 
 // Translitem: PlantCard - kartochka rasteniya na stranice spiska rastenij; pokazivaet metadannye i privyazannye sensory/pumpy.
-function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
+function PlantCard({ plant, summary, reminder, onEdit, onOpenJournal, onHarvest }) {
   const { openSensorStats } = useSensorStatsContext();
   const locale = getCurrentLocale();
   const plantedAt = plant?.planted_at;
@@ -74,7 +74,7 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
   const stageId = manualStageId || (ageDays !== null ? getAutoStageFromAge(plantTypeId, ageDays) : undefined);
   const stageLabel = stageId ? getStageLabel(stageId, locale) : '';
 
-  const zoneName = plant?.zone?.name || translateApp("Без теплицы");
+  const zoneName = plant?.location_label || plant?.zone?.name || translateApp('Мой зелёный уголок');
   const plantedLabel = plantedDate && !Number.isNaN(plantedDate.getTime())
     ? formatDateOnly(plantedDate)
     : translateApp("Дата не указана");
@@ -101,7 +101,7 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
     <Surface variant="card" padding="md" className="plant-card">
       <div className="plant-card__header">
         <div className="plant-card__title">
-          <Title level={3} className="plant-card__name">{plant.name}</Title>
+          <Title level={3} className="plant-card__name"><button type="button" onClick={handleOpenJournal}>{plant.name}</button></Title>
           <div className="plant-card__meta">
             {plant.plant_type && <span className="plant-card__tag">{getPlantTypeLabel(plant.plant_type, locale)}</span>}
             {plant.strain && <span className="plant-card__tag">{plant.strain}</span>}
@@ -109,7 +109,7 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
           <Text tone="muted" className="plant-card__zone">{zoneName}</Text>
         </div>
         <div className="plant-card__actions">
-          <button type="button" className="plant-card__edit" onClick={handleEdit} aria-label={translateApp("Редактировать")}>
+          <button type="button" className="plant-card__edit" onClick={handleEdit} aria-label={translateApp('Изменить растение {{value1}}', { value1: plant.name })}>
             <svg className="plant-card__edit-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path
                 d="M4 20h4l10-10-4-4-10 10v4zM14 6l4 4"
@@ -126,28 +126,30 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
 
       <div className="plant-card__body">
         <div className="plant-card__avatar" aria-hidden="true">
-          <PlantAvatar plantType={plantTypeId} stage={stageId} variant="card" size="md" />
+          <PlantAvatar avatarKey={plant.avatar_key} avatarStage={plant.avatar_stage} plantType={plantTypeId} stage={stageId} variant="card" size="md" showStage={false} />
         </div>
         <div className="plant-card__info">
           <div className="plant-card__row">
             <Text as="span" tone="muted" className="plant-card__label">{translateApp("Дата посадки")}</Text>
             <span className="plant-card__value">{plantedLabel}</span>
           </div>
-          <div className="plant-card__row">
+          {(ageDays !== null || stageLabel) && <div className="plant-card__row">
             <Text as="span" tone="muted" className="plant-card__label">{translateApp("Возраст / Стадия")}</Text>
             <span className="plant-card__value">
-              {ageDays !== null ? translateApp("{{value1}} дн.", { value1: ageDays }) : '-'}
-              {stageLabel ? ` · ${stageLabel}` : ''}
+              {ageDays !== null ? translateApp("{{value1}} дн.", { value1: ageDays }) : ''}
+              {stageLabel ? `${ageDays !== null ? ' · ' : ''}${stageLabel}` : ''}
             </span>
-          </div>
+          </div>}
+          <div className="plant-card__care-note">{summary?.lastEntryAt
+            ? `${translateApp('Последняя запись')}: ${formatDateOnly(parseBackendTimestamp(summary.lastEntryAt))}`
+            : translateApp('Добавьте первое наблюдение')}</div>
+          {reminder && <div className="plant-card__reminder">{reminder.title} · {formatDateOnly(parseBackendTimestamp(reminder.dueAt))}</div>}
         </div>
       </div>
 
-      <div className="plant-card__section">
+      {sensors.length > 0 && <div className="plant-card__section">
         <div className="plant-card__section-title">{translateApp("Датчики")}</div>
-        {sensors.length === 0 && <div className="plant-card__empty">{translateApp("Нет датчиков")}</div>}
-        {sensors.length > 0 && (
-          <div className="plant-card__metrics">
+        <div className="plant-card__metrics">
             {sensors.map((sensor) => {
               const kind = SENSOR_KIND_MAP[sensor.type] || 'soil_moisture';
               return (
@@ -161,15 +163,12 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
                 />
               );
             })}
-          </div>
-        )}
-      </div>
+        </div>
+      </div>}
 
-      <div className="plant-card__section">
+      {pumps.length > 0 && <div className="plant-card__section">
         <div className="plant-card__section-title">{translateApp("Насосы")}</div>
-        {pumps.length === 0 && <div className="plant-card__empty">{translateApp("Нет насосов")}</div>}
-        {pumps.length > 0 && (
-          <div className="plant-card__pumps">
+        <div className="plant-card__pumps">
             {pumps.map((pump) => {
               const bound = Array.isArray(pump.bound_plants)
                 ? pump.bound_plants.find((bp) => bp.id === plant.id)
@@ -177,13 +176,12 @@ function PlantCard({ plant, onEdit, onOpenJournal, onHarvest }) {
               const rate = bound?.rate_ml_per_hour;
               return <PlantPumpRow key={pump.id} pump={pump} rate={rate} showRate={Boolean(bound)} />;
             })}
-          </div>
-        )}
-      </div>
+        </div>
+      </div>}
 
       <div className="plant-card__footer">
-        <button type="button" className="plant-card__harvest" onClick={handleHarvest}>{translateApp("Сбор")}</button>
         <button type="button" className="plant-card__journal" onClick={handleOpenJournal}>{translateApp("Журнал")}</button>
+        <button type="button" className="plant-card__harvest" onClick={handleHarvest}>{translateApp("Сбор")}</button>
       </div>
     </Surface>
   );

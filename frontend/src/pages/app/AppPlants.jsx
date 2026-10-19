@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { careRequest } from '../../api/care';
-import CarePhoto from '../../features/care/CarePhoto';
 import CareReminders from '../../features/care/CareReminders';
 import '../../features/care/care.css';
 import { Link, useNavigate } from 'react-router-dom';
@@ -67,7 +66,7 @@ function ArchivePlantCard({ plant, onOpenJournal, onOpenMetric }) {
           </Text>
         </div>
         <div className="archive-plant-card__avatar" aria-hidden="true">
-          <PlantAvatar plantType={plantTypeId} stage={stageId} variant="card" size="sm" />
+          <PlantAvatar avatarKey={plant.avatar_key} avatarStage={plant.avatar_stage} plantType={plantTypeId} stage={stageId} variant="card" size="sm" />
         </div>
       </div>
 
@@ -277,8 +276,7 @@ function AppPlants() {
           {activePlants.map((plant) => {
             const summary = summaries.find(s => s.plantId === plant.id);
             const task = reminders.find(r => r.plantId === plant.id);
-            if (plant.sensors?.length || plant.pumps?.length) return <PlantCard key={plant.id} plant={plant} onEdit={handleOpenEdit} onOpenJournal={handleOpenJournal} onHarvest={handleOpenHarvest} />;
-            return <article key={plant.id} className="care-plant-card"><Link to={`/app/plants/${plant.id}/journal/`} aria-label={plant.name}><CarePhoto id={summary?.coverPhotoId} alt={plant.name} /></Link><div className="care-plant-card-body"><h3><Link to={`/app/plants/${plant.id}/journal/`}>{plant.name}</Link></h3><small>{plant.location_label || plant.zone?.name || translateApp('Мой зелёный уголок')}</small><small>{summary?.lastEntryAt ? `${translateApp('Последняя запись')}: ${formatPlantDate(summary.lastEntryAt)}` : translateApp('Добавьте первое наблюдение')}</small>{task && <small>{task.title} · {formatPlantDate(task.dueAt)}</small>}<div className="care-actions"><Button onClick={() => handleOpenJournal(plant)}>{translateApp('Дневник')}</Button><Button onClick={() => handleOpenEdit(plant)}>{translateApp('Изменить')}</Button><Button onClick={() => handleOpenHarvest(plant)}>{translateApp('Сбор')}</Button></div></div></article>;
+            return <PlantCard key={plant.id} plant={plant} summary={summary} reminder={task} onEdit={handleOpenEdit} onOpenJournal={handleOpenJournal} onHarvest={handleOpenHarvest} />;
           })}
         </div>
       )}

@@ -1,0 +1,1960 @@
+{
+  "flowering_plants/default": [
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/default-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/default-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/default-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/default-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "flowering_plants/flowering": [
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/flowering-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/flowering-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/flowering-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/flowering-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "flowering_plants/harvest_ready": [
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/harvest_ready-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/harvest_ready-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/harvest_ready-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/harvest_ready-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "flowering_plants/preflower": [
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/preflower-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/preflower-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/preflower-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/preflower-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "flowering_plants/ripening": [
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/ripening-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/ripening-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/ripening-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/ripening-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "flowering_plants/seed": [
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/seed-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/seed-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/seed-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/seed-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "flowering_plants/seedling": [
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/seedling-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/seedling-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/seedling-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/seedling-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "flowering_plants/vegetative": [
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/vegetative-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/vegetative-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/vegetative-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/flowering_plants/vegetative-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "fruiting_veg/default": [
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/default-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/default-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/default-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/default-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "fruiting_veg/flowering": [
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/flowering-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/flowering-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/flowering-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/flowering-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "fruiting_veg/fruit_set": [
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/fruit_set-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/fruit_set-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/fruit_set-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/fruit_set-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "fruiting_veg/harvest_ready": [
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/harvest_ready-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/harvest_ready-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/harvest_ready-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/harvest_ready-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "fruiting_veg/ripening": [
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/ripening-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/ripening-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/ripening-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/ripening-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "fruiting_veg/seed": [
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/seed-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/seed-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/seed-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/seed-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "fruiting_veg/seedling": [
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/seedling-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/seedling-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/seedling-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/seedling-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "fruiting_veg/vegetative": [
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/vegetative-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/vegetative-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/vegetative-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/fruiting_veg/vegetative-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "generic/bolting": [
+    {
+      "src": "/assets/plant-avatars/v1/generic/bolting-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/bolting-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/bolting-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/bolting-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "generic/default": [
+    {
+      "src": "/assets/plant-avatars/v1/generic/default-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/default-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/default-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/default-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "generic/flowering": [
+    {
+      "src": "/assets/plant-avatars/v1/generic/flowering-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/flowering-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/flowering-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/flowering-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "generic/fruit_set": [
+    {
+      "src": "/assets/plant-avatars/v1/generic/fruit_set-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/fruit_set-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/fruit_set-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/fruit_set-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "generic/harvest_ready": [
+    {
+      "src": "/assets/plant-avatars/v1/generic/harvest_ready-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/harvest_ready-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/harvest_ready-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/harvest_ready-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "generic/mature": [
+    {
+      "src": "/assets/plant-avatars/v1/generic/mature-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/mature-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/mature-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/mature-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "generic/preflower": [
+    {
+      "src": "/assets/plant-avatars/v1/generic/preflower-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/preflower-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/preflower-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/preflower-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "generic/ripening": [
+    {
+      "src": "/assets/plant-avatars/v1/generic/ripening-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/ripening-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/ripening-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/ripening-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "generic/seed": [
+    {
+      "src": "/assets/plant-avatars/v1/generic/seed-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/seed-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/seed-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/seed-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "generic/seedling": [
+    {
+      "src": "/assets/plant-avatars/v1/generic/seedling-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/seedling-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/seedling-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/seedling-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "generic/vegetative": [
+    {
+      "src": "/assets/plant-avatars/v1/generic/vegetative-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/vegetative-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/vegetative-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/generic/vegetative-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "herbs_spices/bolting": [
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/bolting-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/bolting-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/bolting-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/bolting-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "herbs_spices/default": [
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/default-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/default-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/default-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/default-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "herbs_spices/harvest_ready": [
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/harvest_ready-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/harvest_ready-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/harvest_ready-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/harvest_ready-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "herbs_spices/seed": [
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/seed-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/seed-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/seed-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/seed-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "herbs_spices/seedling": [
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/seedling-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/seedling-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/seedling-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/seedling-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "herbs_spices/vegetative": [
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/vegetative-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/vegetative-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/vegetative-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/herbs_spices/vegetative-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "houseplant/default": [
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/default-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/default-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/default-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/default-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "houseplant/mature": [
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/mature-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/mature-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/mature-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/mature-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "houseplant/seed": [
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/seed-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/seed-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/seed-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/seed-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "houseplant/seedling": [
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/seedling-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/seedling-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/seedling-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/seedling-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "houseplant/vegetative": [
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/vegetative-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/vegetative-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/vegetative-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/houseplant/vegetative-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "leafy_greens/default": [
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/default-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/default-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/default-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/default-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "leafy_greens/harvest_ready": [
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/harvest_ready-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/harvest_ready-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/harvest_ready-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/harvest_ready-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "leafy_greens/seed": [
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/seed-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/seed-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/seed-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/seed-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "leafy_greens/seedling": [
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/seedling-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/seedling-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/seedling-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/seedling-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "leafy_greens/vegetative": [
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/vegetative-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/vegetative-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/vegetative-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/leafy_greens/vegetative-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "succulents_cacti/default": [
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/default-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/default-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/default-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/default-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "succulents_cacti/flowering": [
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/flowering-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/flowering-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/flowering-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/flowering-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "succulents_cacti/mature": [
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/mature-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/mature-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/mature-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/mature-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "succulents_cacti/seed": [
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/seed-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/seed-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/seed-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/seed-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "succulents_cacti/seedling": [
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/seedling-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/seedling-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/seedling-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/seedling-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "succulents_cacti/vegetative": [
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/vegetative-96.webp",
+      "width": 96,
+      "height": 144
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/vegetative-192.webp",
+      "width": 192,
+      "height": 288
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/vegetative-384.webp",
+      "width": 384,
+      "height": 576
+    },
+    {
+      "src": "/assets/plant-avatars/v1/succulents_cacti/vegetative-640.webp",
+      "width": 640,
+      "height": 960
+    }
+  ],
+  "selected/tomato/peak": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/peak-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/peak-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/peak-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/peak-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/cucumber/peak": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/peak-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/peak-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/peak-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/peak-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/strawberry/peak": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/peak-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/peak-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/peak-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/peak-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/rosemary/peak": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/peak-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/peak-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/peak-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/peak-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/basil/peak": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/peak-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/peak-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/peak-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/peak-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/lettuce/peak": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/peak-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/peak-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/peak-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/peak-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/pepper/peak": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/peak-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/peak-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/peak-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/peak-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/petunia/peak": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/peak-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/peak-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/peak-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/peak-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/pelargonium/peak": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/peak-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/peak-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/peak-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/peak-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/monstera/peak": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/peak-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/peak-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/peak-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/peak-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/tomato/sprout": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/sprout-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/sprout-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/sprout-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/sprout-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/tomato/young": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/young-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/young-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/young-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/young-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/tomato/mature": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/mature-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/mature-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/mature-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/tomato/mature-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/cucumber/sprout": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/sprout-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/sprout-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/sprout-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/sprout-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/cucumber/young": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/young-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/young-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/young-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/young-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/cucumber/mature": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/mature-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/mature-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/mature-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/cucumber/mature-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/strawberry/sprout": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/sprout-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/sprout-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/sprout-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/sprout-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/strawberry/young": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/young-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/young-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/young-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/young-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/strawberry/mature": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/mature-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/mature-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/mature-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/strawberry/mature-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/rosemary/sprout": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/sprout-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/sprout-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/sprout-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/sprout-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/rosemary/young": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/young-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/young-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/young-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/young-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/rosemary/mature": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/mature-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/mature-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/mature-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/rosemary/mature-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/basil/sprout": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/sprout-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/sprout-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/sprout-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/sprout-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/basil/young": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/young-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/young-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/young-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/young-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/basil/mature": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/mature-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/mature-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/mature-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/basil/mature-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/lettuce/sprout": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/sprout-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/sprout-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/sprout-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/sprout-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/lettuce/young": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/young-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/young-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/young-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/young-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/lettuce/mature": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/mature-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/mature-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/mature-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/lettuce/mature-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/pepper/sprout": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/sprout-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/sprout-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/sprout-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/sprout-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/pepper/young": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/young-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/young-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/young-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/young-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/pepper/mature": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/mature-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/mature-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/mature-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pepper/mature-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/petunia/sprout": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/sprout-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/sprout-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/sprout-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/sprout-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/petunia/young": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/young-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/young-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/young-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/young-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/petunia/mature": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/mature-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/mature-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/mature-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/petunia/mature-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/pelargonium/sprout": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/sprout-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/sprout-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/sprout-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/sprout-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/pelargonium/young": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/young-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/young-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/young-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/young-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/pelargonium/mature": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/mature-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/mature-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/mature-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/pelargonium/mature-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/monstera/sprout": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/sprout-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/sprout-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/sprout-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/sprout-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/monstera/young": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/young-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/young-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/young-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/young-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ],
+  "selected/monstera/mature": [
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/mature-96.webp",
+      "width": 96,
+      "height": 96
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/mature-192.webp",
+      "width": 192,
+      "height": 192
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/mature-384.webp",
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "/assets/plant-avatars/v1/selected/monstera/mature-640.webp",
+      "width": 640,
+      "height": 640
+    }
+  ]
+}

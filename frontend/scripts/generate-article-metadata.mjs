@@ -144,9 +144,16 @@ const withSortDates = (articles) => articles
     || left.id.localeCompare(right.id)
   ));
 
+const trailingDefaults = [['source_file', null], ['hero_in_body', true], ['download', null], ['product_cta', true]];
+const compactDefaults = (row) => {
+  while (row.length > 10 && row.at(-1) === trailingDefaults[row.length - 11][1]) row.pop();
+  return row;
+};
+
 fs.writeFileSync(
   OUTPUT_PATH,
   `${JSON.stringify({
+    defaults: Object.fromEntries(trailingDefaults),
     fields: [
       'id',
       'slug',
@@ -165,7 +172,7 @@ fs.writeFileSync(
     ],
     ru: withSortDates(ru).map((article) => [
       article.id,
-      article.slug,
+      article.slug === article.id ? null : article.slug,
       article.title,
       article.summary,
       article.created_at,
@@ -178,10 +185,10 @@ fs.writeFileSync(
       article.hero_in_body,
       article.download,
       article.product_cta,
-    ]),
+    ]).map(compactDefaults),
     en: withSortDates(en).map((article) => [
       article.id,
-      article.slug,
+      article.slug === article.id ? null : article.slug,
       article.title,
       article.summary,
       article.created_at,
@@ -194,7 +201,7 @@ fs.writeFileSync(
       article.hero_in_body,
       article.download,
       article.product_cta,
-    ]),
+    ]).map(compactDefaults),
   })}\n`,
   'utf8',
 );

@@ -12,6 +12,9 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id": "plant-diary-picture-guide-update", "published_at": "2026-10-20", "kind": "article_update", "article_id": "dnevnik-rasteniy-bez-oborudovaniya-growerhub", "text": "Updated the journal guide: where photos stay and how to choose a plant picture and its stage."},
+    {"id": "plant-pictures-and-named-stages", "published_at": "2026-10-20", "kind": "feature", "article_id": "kartinki-rasteniy-i-stadii-rosta", "preview_position": "50% 45%"},
+    {"id": "one-plant-card-with-or-without-equipment", "published_at": "2026-10-20", "kind": "fix", "text": "Plants added by the assistant and through the form now share one card. All cards show the latest entry and next task; equipment appears only when connected."},
     {"id":"all-custom-routines-visible","published_at":"2026-10-19","kind":"article_update","article_id":"pomoshchnik-rasteniy-i-scenarii-growerhub","text":"Custom routines from every greenhouse stay visible at the bottom, regardless of the greenhouse selected above. Switches remain in the list. The guide is updated."},
     {"id":"all-custom-watering-guide","published_at":"2026-10-19","kind":"article_update","article_id":"svoi-scenarii-poliva-cherez-pomoshchnika","text":"Updated the custom watering guide with the path to the complete routine list."},
     {"id": "assistant-photo-context-space", "published_at": "2026-10-19", "kind": "fix", "text": "Shortened the assistant’s service instructions so they no longer crowd out photos before processing. Image space is reserved by trimming older conversation context; spending limits stay in place."},

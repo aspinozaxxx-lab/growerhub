@@ -12,6 +12,7 @@ import CarePhoto from '../../features/care/CarePhoto';
 import CareEntryEditor from '../../features/care/CareEntryEditor';
 import CareReminders from '../../features/care/CareReminders';
 import PlantEditDialog from '../../components/plants/PlantEditDialog';
+import PlantAvatar from '../../components/plant-avatar/PlantAvatar';
 import Button from '../../components/ui/Button';
 import './AppPlantJournal.css';
 import '../../features/care/care.css';
@@ -179,7 +180,7 @@ function AppPlantJournal() {
   return <div className="care-page ym-hide-content">
     <div className="care-topline"><Link to="/app/plants/">← {translateApp('Мои растения')}</Link><Button onClick={() => downloadPlantJournalMarkdown(plantId, token).catch(e => setError(e.message))}>{translateApp('Скачать журнал')}</Button></div>
     {error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
-    {plant && <section className="care-hero"><CarePhoto id={cover} alt={plant.name} className="care-hero-photo" /><div><span className="care-kicker">{plant.location_label || plant.zone?.name || translateApp('Мой зелёный уголок')}</span><h1>{plant.name}</h1>{plant.strain && <p>{plant.strain}</p>}{plant.description && <p>{plant.description}</p>}<small>{plant.planted_at ? `${translateApp('Дата посадки')}: ${formatDateLong(plant.planted_at)}` : translateApp('Дата посадки не указана')}</small></div><div className="care-actions"><Button onClick={() => setEditPlant(true)}>{translateApp('О растении')}</Button><Link to="/app/settings/notifications/">{translateApp('Напоминания в Telegram')}</Link></div></section>}
+    {plant && <section className="care-hero">{plant.avatar_key || !cover ? <PlantAvatar avatarKey={plant.avatar_key} avatarStage={plant.avatar_stage} plantType={plant.plant_type} stage={plant.growth_stage} size="xl" sizes="(max-width: 600px) 96px, 320px" showStage={false} /> : <CarePhoto id={cover} alt={plant.name} className="care-hero-photo" />}<div><span className="care-kicker">{plant.location_label || plant.zone?.name || translateApp('Мой зелёный уголок')}</span><h1>{plant.name}</h1>{plant.strain && <p>{plant.strain}</p>}{plant.description && <p>{plant.description}</p>}<small>{plant.planted_at ? `${translateApp('Дата посадки')}: ${formatDateLong(plant.planted_at)}` : translateApp('Дата посадки не указана')}</small></div><div className="care-actions"><Button onClick={() => setEditPlant(true)}>{translateApp('О растении')}</Button><Link to="/app/settings/notifications/">{translateApp('Напоминания в Telegram')}</Link></div></section>}
     <div className="care-quick-actions">{CARE_ACTIONS.filter(([key]) => ['watering', 'photo', 'note', 'fertilizing'].includes(key)).map(([key, label, emoji]) => <Button key={key} onClick={() => setEditor({ action: key })}>{emoji} {translateApp(label)}</Button>)}</div>
     <CareReminders plantId={plantId} reminders={reminders} onChanged={changed} />
     <div className="care-section-heading"><h2>{translateApp('История растения')}</h2><Button variant="primary" onClick={() => setEditor({ action: 'note' })}>{translateApp('Добавить запись')}</Button></div>

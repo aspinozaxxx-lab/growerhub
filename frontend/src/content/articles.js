@@ -10,8 +10,9 @@ import { canonicalizePublicLinksInHtml } from '../domain/siteConfig';
 import { getCurrentLocale } from '../locales/i18n';
 
 const expandMetadata = (rows, locale) => rows.map((row) => {
-  const article = Object.fromEntries(metadata.fields.map((field, index) => [field, row[index]]));
-  return { ...article, source_file: article.source_file || `${article.slug}.md`, locale };
+  const article = Object.fromEntries(metadata.fields.map((field, index) => [field, index < row.length ? row[index] : metadata.defaults?.[field]]));
+  const slug = article.slug || article.id;
+  return { ...article, slug, source_file: article.source_file || `${slug}.md`, locale };
 });
 
 const metadataByLocale = Object.freeze({

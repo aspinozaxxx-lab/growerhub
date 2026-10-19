@@ -1,14 +1,14 @@
-﻿.plant-avatar {
+.plant-avatar {
   display: flex;
   width: 100%;
   flex-direction: column;
 }
 
-/* Ramka 3:4 dlya kartinki ili fallback-teksta */
+/* Kvadratnaya ramka: vse rastenie pomeshchaetsya bez obrezki. */
 .plant-avatar__frame {
   position: relative;
   width: 100%;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 1;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -22,7 +22,7 @@
   height: 100%;
   object-fit: contain;
   display: block;
-  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.25));
+  filter: drop-shadow(0 3px 5px rgba(81, 61, 79, 0.08));
 }
 
 .plant-avatar__placeholder {
@@ -38,17 +38,17 @@
 }
 
 .plant-avatar--size-xs .plant-avatar__frame {
-  max-width: 96px;
+  max-width: 64px;
   border-radius: 8px;
 }
 
 .plant-avatar--size-sm .plant-avatar__frame {
-  max-width: 140px;
+  max-width: 96px;
   border-radius: 10px;
 }
 
 .plant-avatar--size-md .plant-avatar__frame {
-  max-width: 200px;
+  max-width: 96px;
 }
 
 .plant-avatar--size-lg .plant-avatar__frame {

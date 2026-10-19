@@ -1,8 +1,16 @@
-﻿.plant-card {
+.plant-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
+  border-radius: 18px;
 }
+
+.plant-card__name button { background:none; border:0; padding:0; color:inherit; font:inherit; text-align:left; cursor:pointer; overflow-wrap:anywhere; }
+.plant-card__name button:hover { color:var(--accent); }
+.plant-card__name button:focus-visible { outline:2px solid var(--accent); outline-offset:4px; border-radius:4px; }
+.plant-card__care-note { color:var(--text-2); font-size:12px; line-height:1.5; }
+.plant-card__reminder { color:var(--accent); font-size:12px; line-height:1.5; }
 
 .plant-card__header {
   display: flex;
@@ -15,6 +23,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .plant-card__meta {
@@ -38,6 +47,8 @@
 }
 
 .plant-card__edit {
+  min-width: 44px;
+  min-height: 44px;
   background: var(--surface-2);
   border: 1px solid var(--border-2);
   border-radius: 10px;
@@ -53,7 +64,7 @@
 
 .plant-card__body {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 96px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
 }
@@ -63,12 +74,15 @@
 }
 
 .plant-card__info {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 .plant-card__row {
+  flex-wrap: wrap;
+  font-size: 13px;
   display: flex;
   justify-content: space-between;
   gap: 8px;
@@ -137,13 +151,15 @@
 }
 
 .plant-card__footer {
+  margin-top: auto;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 8px;
   flex-wrap: wrap;
 }
 
 .plant-card__harvest {
+  min-height: 44px;
   background: var(--warning-soft);
   border: 1px solid var(--warning-border);
   color: var(--warning);
@@ -153,6 +169,7 @@
 }
 
 .plant-card__journal {
+  min-height: 44px;
   background: var(--success-soft);
   border: 1px solid var(--success-border);
   color: var(--success);

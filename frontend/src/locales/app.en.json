@@ -1457,5 +1457,13 @@
   "Открыть журнал растения": "Open plant journal",
   "Вид": "Type",
   "Неизвестна": "Unknown",
-  "Проверьте настройки сценария, готовность устройств и другие сценарии для них.": "Check the routine settings, device readiness and other routines using these devices."
+  "Проверьте настройки сценария, готовность устройств и другие сценарии для них.": "Check the routine settings, device readiness and other routines using these devices.",
+  "Изменить растение {{value1}}": "Edit plant {{value1}}",
+  "Картинка растения": "Plant picture",
+  "Автоматически": "Automatic",
+  "Выбрать": "Choose",
+  "Выберите любую картинку": "Choose any picture",
+  "Стадия на картинке": "Stage in the picture",
+  "Картинка и её стадия не меняют настройки выращивания. Фотографии сохраняются в журнале.": "The picture and its stage do not change growing settings. Your photos stay in the journal.",
+  "Растение на картинке": "Plant in the picture"
 }

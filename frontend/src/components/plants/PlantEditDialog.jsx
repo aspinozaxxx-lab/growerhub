@@ -10,6 +10,7 @@ import {
   getPlantTypeOptions,
   getStageOptionsForType,
   getStagesForType,
+  getPlantAvatarOptions,
   normalizePlantTypeId,
 } from '../../domain/plants';
 import {
@@ -20,6 +21,7 @@ import {
 import FormField from '../ui/FormField';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
+import PlantAvatar from '../plant-avatar/PlantAvatar';
 import './PlantEditDialog.css';
 import { getCurrentLocale, translateApp } from '../../locales/i18n';
 
@@ -39,13 +41,15 @@ function PlantEditDialog({
     strain: '',
     growth_stage: '',
     planted_at: '',
-    zone_id: null, description: '', location_label: '',
+    zone_id: null, description: '', location_label: '', avatar_key: '', avatar_stage: '',
   });
   const [error, setError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const locale = getCurrentLocale();
   const plantTypeOptions = useMemo(() => getPlantTypeOptions(locale), [locale]);
+  const avatarOptions = useMemo(() => getPlantAvatarOptions(locale), [locale]);
+  const selectedAvatar = avatarOptions.find(item => item.value === localPlant.avatar_key);
   const selectedTypeId = useMemo(() => normalizePlantTypeId(localPlant.plant_type), [localPlant.plant_type]);
   const stageOptions = useMemo(
     () => getStageOptionsForType(locale, selectedTypeId),
@@ -77,6 +81,8 @@ function PlantEditDialog({
         growth_stage: plant.growth_stage || '',
         planted_at: toLocalDateTimeInput(plant.planted_at),
         zone_id: plant.zone?.id ?? plant.zone_id ?? null,
+        avatar_key: plant.avatar_key || '',
+        avatar_stage: plant.avatar_stage || '',
       });
     } else {
       setLocalPlant({
@@ -85,7 +91,7 @@ function PlantEditDialog({
         strain: '',
         growth_stage: '',
         planted_at: '',
-        zone_id: null, description: '', location_label: '',
+        zone_id: null, description: '', location_label: '', avatar_key: '', avatar_stage: '',
       });
     }
   }, [isOpen, mode, plant]);
@@ -130,6 +136,8 @@ function PlantEditDialog({
       zone_id: localPlant.zone_id ?? null,
       description: localPlant.description || '', location_label: localPlant.location_label || '',
       date_unknown: !localPlant.planted_at,
+      avatar_key: localPlant.avatar_key,
+      avatar_stage: localPlant.avatar_key ? localPlant.avatar_stage || selectedAvatar.stages.at(-1).value : '',
     };
     const plantedIso = toIsoString(localPlant.planted_at);
     if (plantedIso) {
@@ -201,7 +209,37 @@ function PlantEditDialog({
           />
         </FormField>
 
-        <details open={mode === 'edit'}><summary>{translateApp('Необязательные подробности')}</summary><div className="plant-dialog__body">
+        <details className="plant-avatar-picker">
+          <summary>
+            <PlantAvatar avatarKey={localPlant.avatar_key} avatarStage={localPlant.avatar_stage} plantType={selectedTypeId} stage={localPlant.growth_stage} size="xs" showStage={false} />
+            <span>{translateApp('Картинка растения')}<strong>{selectedAvatar ? `${selectedAvatar.label} · ${(selectedAvatar.stages.find(item => item.value === localPlant.avatar_stage) || selectedAvatar.stages.at(-1)).label}` : translateApp('Автоматически')}</strong></span>
+            <span className="plant-avatar-picker__choose">{translateApp('Выбрать')}</span>
+          </summary>
+          <fieldset disabled={isSaving}>
+            <legend>{translateApp('Выберите любую картинку')}</legend>
+            <div className="plant-avatar-picker__grid" role="radiogroup" aria-label={translateApp('Растение на картинке')}>
+              {[{ value: '', label: translateApp('Автоматически') }, ...avatarOptions].map(option => <label className="plant-avatar-picker__option" key={option.value || 'auto'}>
+                <input type="radio" name="plant-avatar" value={option.value} checked={localPlant.avatar_key === option.value}
+                  onChange={() => setLocalPlant(prev => ({ ...prev, avatar_key: option.value }))} />
+                <span><span aria-hidden="true"><PlantAvatar avatarKey={option.value} plantType={selectedTypeId} stage={localPlant.growth_stage} size="xs" showStage={false} /></span><span>{option.label}</span></span>
+              </label>)}
+            </div>
+            {selectedAvatar && <fieldset className="plant-avatar-picker__stage">
+              <legend>{translateApp('Стадия на картинке')}</legend>
+              <div className="plant-avatar-picker__stages">
+                {selectedAvatar.stages.map(option => <label className="plant-avatar-picker__option" key={option.value}>
+                  <input type="radio" name="plant-avatar-stage" value={option.value}
+                    checked={(localPlant.avatar_stage || selectedAvatar.stages.at(-1).value) === option.value}
+                    onChange={() => setLocalPlant(prev => ({ ...prev, avatar_stage: option.value }))} />
+                  <span><span aria-hidden="true"><PlantAvatar avatarKey={localPlant.avatar_key} avatarStage={option.value} size="xs" showStage={false} /></span><span>{option.label}</span></span>
+                </label>)}
+              </div>
+            </fieldset>}
+          </fieldset>
+          <small>{translateApp('Картинка и её стадия не меняют настройки выращивания. Фотографии сохраняются в журнале.')}</small>
+        </details>
+
+        <details className="plant-dialog__details" open={mode === 'edit'}><summary>{translateApp('Необязательные подробности')}</summary><div className="plant-dialog__body">
         <FormField label={translateApp("Место растения")} htmlFor="plant-location" className="plant-dialog__field"><input id="plant-location" maxLength={255} value={localPlant.location_label || ''} onChange={e => setLocalPlant(prev => ({ ...prev, location_label: e.target.value }))} placeholder={translateApp("Например, подоконник в гостиной")} /></FormField>
         <FormField label={translateApp("О растении")} htmlFor="plant-description" className="plant-dialog__field"><textarea id="plant-description" maxLength={8000} rows={3} value={localPlant.description || ''} onChange={e => setLocalPlant(prev => ({ ...prev, description: e.target.value }))} /></FormField>
         <FormField label={translateApp("Тип растения")} htmlFor="plant-type" className="plant-dialog__field">

@@ -10,11 +10,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-10-19</lastmod>
+    <lastmod>2026-10-20</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/novosti/</loc>
-    <lastmod>2026-10-19</lastmod>
+    <lastmod>2026-10-20</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/avtomatizatsiya-mini-fermy/</loc>
@@ -58,7 +58,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zhurnal-i-sovetnik-uhoda/</loc>
-    <lastmod>2026-10-19</lastmod>
+    <lastmod>2026-10-20</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zigbee-hub-i-ustroystva/</loc>
@@ -71,6 +71,14 @@
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
     <lastmod>2026-10-04</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/dnevnik-rasteniy-bez-oborudovaniya-growerhub/</loc>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/kartinki-rasteniy-i-stadii-rosta/</loc>
+    <lastmod>2026-10-20</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/pomoshchnik-rasteniy-i-scenarii-growerhub/</loc>
@@ -135,10 +143,6 @@
   <url>
     <loc>https://growerhub.ru/articles/georginy-hranenie-klubney-zimoy/</loc>
     <lastmod>2026-10-09</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/dnevnik-rasteniy-bez-oborudovaniya-growerhub/</loc>
-    <lastmod>2026-10-07</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/dnevnik-rasteniya-chto-zapisyvat/</loc>
@@ -398,11 +402,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-10-19</lastmod>
+    <lastmod>2026-10-20</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/news/</loc>
-    <lastmod>2026-10-19</lastmod>
+    <lastmod>2026-10-20</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/farm-automation/</loc>
@@ -446,7 +450,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/plant-journal-and-care-guidance/</loc>
-    <lastmod>2026-10-19</lastmod>
+    <lastmod>2026-10-20</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/zigbee-hubs-and-devices/</loc>
@@ -459,6 +463,14 @@
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/home-assistant-and-diy/</loc>
     <lastmod>2026-10-04</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/plant-care-journal-and-telegram-growerhub/</loc>
+    <lastmod>2026-10-20</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/plant-pictures-and-growth-stages/</loc>
+    <lastmod>2026-10-20</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/custom-watering-routines-with-the-assistant/</loc>
@@ -526,10 +538,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/photo-growth-diary-how-to-compare-plants-week-by-week/</loc>
-    <lastmod>2026-10-07</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/plant-care-journal-and-telegram-growerhub/</loc>
     <lastmod>2026-10-07</lastmod>
   </url>
   <url>

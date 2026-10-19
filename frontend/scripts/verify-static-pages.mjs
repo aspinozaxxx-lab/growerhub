@@ -360,7 +360,7 @@ for (const [locale, news] of [['ru', ruNews], ['en', enNews]]) {
     assert(html.includes(`data-news-id="${entry.id}"`), `News not rendered: ${locale}/${entry.id}`);
     if (!entry.article_id) continue;
     const article = articleById.get(entry.article_id);
-    const articlePath = `${locale === 'en' ? '/en' : ''}/articles/${article.slug}/`;
+    const articlePath = `${locale === 'en' ? '/en' : ''}/articles/${article.slug || article.id}/`;
     assert(html.includes(`href="${articlePath}"`), `News link missing: ${locale}/${entry.id}`);
     if (entry.kind === 'feature' || entry.kind === 'article') {
       assert(html.includes(`src="${article.hero_image}"`), `News image missing: ${locale}/${entry.id}`);

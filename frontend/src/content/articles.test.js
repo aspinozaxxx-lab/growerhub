@@ -48,3 +48,13 @@ it('otsutstvuyushchiy Markdown vozvrashchaet oshibku dlya sushchestvuyushchego f
   await expect(loadArticleBody({ locale: 'en', source_file: 'missing.md' }))
     .rejects.toThrow('Markdown module is missing: en/missing.md');
 });
+
+it.each(['ru', 'en'])('kompaktnye metadata %s vosstanavlivayut defaults i sohranyayut yavnyj otkaz ot CTA', async locale => {
+  const { getArticleById, getArticles } = await import('./articles');
+  const article = getArticleById('kartinki-rasteniy-i-stadii-rosta', locale);
+  expect(article.product_cta).toBe(true);
+  expect(article.hero_in_body).toBe(true);
+  expect(article.download).toBeNull();
+  expect(article.source_file).toBe(`${article.slug}.md`);
+  expect(getArticles(locale).some(item => item.product_cta === false)).toBe(true);
+});

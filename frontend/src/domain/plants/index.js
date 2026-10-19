@@ -9,11 +9,11 @@
 export { STAGES, getStageLabel } from './stages';
 
 export { PLANT_TYPE_CONFIG } from './config';
+export { getPlantAvatarOptions, resolvePlantAvatar } from './avatars';
 
 export {
   getStagesForType,
   getAutoStageFromAge,
   getStageOptionsForType,
-  resolveAvatarAsset,
 } from './utils';
 

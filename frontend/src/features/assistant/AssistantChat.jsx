@@ -10,6 +10,8 @@ import AssistantText from './AssistantText';
 import { demoPrompts } from './demoPrompts';
 import { careAction } from '../care/careModel';
 import { formatDateTimeDDMMYYYY } from '../../utils/formatters';
+import { getPlantAvatarOptions } from '../../domain/plants';
+import { getCurrentLocale } from '../../locales/i18n';
 import './assistant.css';
 
 const status = { queued: 'В очереди', running: 'Думаю…', completed: 'Готово', incomplete: 'Ответ остановлен на лимите', failed: 'Ответ недоступен', uncertain: 'Результат неизвестен', cancelled: 'Остановлено', pending: 'Ждёт подтверждения', confirmed: 'Подтверждено', applying: 'Применяется', applied: 'Изменение применено', stale: 'Настройки изменились', rejected: 'Отклонено', expired: 'Предложение устарело' };
@@ -47,9 +49,14 @@ function Proposal({ item, onAction, busy }) {
 }
 function PlantChange({ payload: p }) {
   const labels = { name: 'Название', plantType: 'Вид', strain: 'Сорт', growthStage: 'Стадия', description: 'Описание', locationLabel: 'Место', plantedAt: 'Дата посадки' };
+  const pictureName = fields => {
+    const avatar = getPlantAvatarOptions(getCurrentLocale()).find(item => item.value === fields?.avatarKey);
+    return avatar ? `${avatar.label} · ${(avatar.stages.find(stage => stage.value === fields?.avatarStage) || avatar.stages.at(-1)).label}` : t('Автоматически');
+  };
   return <div className="assistant-change-summary"><dl>{Object.entries(p.fields || {}).filter(([key]) => labels[key]).map(([key, value]) => <div key={key}>
     <dt>{t(labels[key])}</dt><dd>{p.operation === 'update' && <>{p.before?.[key] ? (key === 'plantedAt' ? formatDateTimeDDMMYYYY(p.before[key]) : p.before[key]) : t('Не указано')} → </>}{key === 'plantedAt' ? formatDateTimeDDMMYYYY(value) : value || t('Не указано')}</dd>
   </div>)}{p.fields?.dateUnknown && <div><dt>{t('Дата посадки')}</dt><dd>{t('Неизвестна')}</dd></div>}
+    {p.pictureName && <div><dt>{t('Картинка растения')}</dt><dd>{p.operation === 'update' && <>{pictureName(p.before)} → </>}{pictureName({ ...p.before, ...p.fields })}</dd></div>}
     {p.zoneChanged && <div><dt>{t('Теплица')}</dt><dd>{p.operation === 'update' && <>{p.previousZoneName || t('Без теплицы')} → </>}{p.zoneName || t('Без теплицы')}</dd></div>}
   </dl></div>;
 }

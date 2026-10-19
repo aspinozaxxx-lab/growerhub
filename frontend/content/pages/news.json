@@ -12,6 +12,9 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id": "plant-diary-picture-guide-update", "published_at": "2026-10-20", "kind": "article_update", "article_id": "dnevnik-rasteniy-bez-oborudovaniya-growerhub", "text": "Уточнили, где остаются фотографии и как выбрать картинку растения с подходящей стадией."},
+    {"id": "plant-pictures-and-named-stages", "published_at": "2026-10-20", "kind": "feature", "article_id": "kartinki-rasteniy-i-stadii-rosta", "preview_position": "50% 45%"},
+    {"id": "one-plant-card-with-or-without-equipment", "published_at": "2026-10-20", "kind": "fix", "text": "Растения, добавленные помощником и через форму, отображаются одной карточкой. Последняя запись и ближайшее дело доступны всем; приборы показываются только при подключении."},
     {"id":"all-custom-routines-visible","published_at":"2026-10-19","kind":"article_update","article_id":"pomoshchnik-rasteniy-i-scenarii-growerhub","text":"Свои сценарии всех теплиц всегда видны внизу страницы, независимо от выбранной теплицы. Переключатели остаются прямо в списке. Руководство обновлено."},
     {"id":"all-custom-watering-guide","published_at":"2026-10-19","kind":"article_update","article_id":"svoi-scenarii-poliva-cherez-pomoshchnika","text":"В инструкции полива через день обновили путь к списку своих сценариев."},
     {"id": "assistant-photo-context-space", "published_at": "2026-10-19", "kind": "fix", "text": "Сократили служебные инструкции помощника: фотографии больше не вытесняются ими до обработки. Для фото заранее освобождается место за счёт старой переписки; лимиты расходов сохранены."},

@@ -3,9 +3,6 @@ import { getStageLabel } from './stages';
 import { PLANT_TYPE_CONFIG } from './config';
 import { translateApp } from '../../locales/i18n';
 
-// Translitem: vite glob import vsekh png avatarov dlya plants domain.
-const AVATAR_PNG_BY_PATH = import.meta.glob('./avatars/**/*.png', { eager: true, import: 'default' });
-
 function getStagesForType(typeId) {
   const normalized = normalizePlantTypeId(typeId);
   const cfg = PLANT_TYPE_CONFIG[normalized] || PLANT_TYPE_CONFIG[DEFAULT_PLANT_TYPE_ID];
@@ -45,33 +42,9 @@ function getStageOptionsForType(lang = 'ru', typeId) {
   ];
 }
 
-function resolveAvatarAsset(typeId, stageId) {
-  const normalizedType = normalizePlantTypeId(typeId);
-  const stageKey = stageId ? String(stageId).trim() : '';
-
-  const candidates = [];
-  if (normalizedType && stageKey) {
-    candidates.push(`./avatars/${normalizedType}/${stageKey}.png`);
-  }
-  if (normalizedType) {
-    candidates.push(`./avatars/${normalizedType}/default.png`);
-  }
-  if (stageKey) {
-    candidates.push(`./avatars/generic/${stageKey}.png`);
-  }
-  candidates.push('./avatars/generic/default.png');
-
-  for (const key of candidates) {
-    const hit = AVATAR_PNG_BY_PATH[key];
-    if (hit) return hit;
-  }
-  return null;
-}
-
 export {
   getStagesForType,
   getAutoStageFromAge,
   getStageOptionsForType,
-  resolveAvatarAsset,
 };
 

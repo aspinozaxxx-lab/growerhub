@@ -10,6 +10,30 @@
   gap: 6px;
 }
 
+.plant-dialog__details,.plant-avatar-picker { grid-column:1/-1; min-width:0; }
+.plant-avatar-picker { border:1px solid var(--border-1); border-radius:16px; padding:10px; background:var(--surface-1); }
+.plant-avatar-picker > summary { display:flex; gap:12px; align-items:center; cursor:pointer; list-style:none; border-radius:10px; }
+.plant-avatar-picker > summary::-webkit-details-marker { display:none; }
+.plant-avatar-picker > summary:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.plant-avatar-picker > summary > .plant-avatar { width:56px; flex-shrink:0; }
+.plant-avatar-picker > summary > span { font-size:13px; }
+.plant-avatar-picker strong { display:block; margin-top:3px; color:var(--text-2); font-weight:400; }
+.plant-avatar-picker__choose { margin-left:auto; color:var(--accent); }
+.plant-avatar-picker fieldset { border:0; padding:12px 0 8px; margin:0; min-width:0; }
+.plant-avatar-picker legend { padding-top:10px; font-size:13px; color:var(--text-2); }
+.plant-avatar-picker__grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(76px,1fr)); gap:8px; }
+.plant-avatar-picker__option { position:relative; min-width:0; cursor:pointer; }
+.plant-avatar-picker__option > input { position:absolute; opacity:0; width:1px; height:1px; }
+.plant-avatar-picker__option > span { display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 2px; border:2px solid transparent; border-radius:12px; font-size:11px; text-align:center; height:100%; box-sizing:border-box; background:var(--surface-2); }
+.plant-avatar-picker__option .plant-avatar { width:64px; max-width:100%; }
+.plant-avatar-picker__option > input:checked + span { border-color:var(--accent); background:var(--accent-soft,var(--surface-2)); }
+.plant-avatar-picker__option > input:focus-visible + span { outline:2px solid var(--accent); outline-offset:2px; }
+.plant-avatar-picker > small { display:block; color:var(--text-2); font-size:12px; line-height:1.5; }
+.plant-avatar-picker .plant-avatar-picker__stage { margin-top:12px; padding-top:8px; border-top:1px solid var(--border-1); }
+.plant-avatar-picker__stages { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+@media(max-width:400px) { .plant-avatar-picker__stages { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.plant-avatar-picker:not([open]) > small { display:none; }
+
 .plant-dialog__body .gh-control {
   background: var(--surface-2);
   border: 1px solid var(--border-2);

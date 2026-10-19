@@ -77,7 +77,7 @@ it('generator peredayot boolean opt-out i prezhniy default v obe lokali', async 
   const flagIndex = metadata.fields.indexOf('product_cta');
   expect(flagIndex).toBeGreaterThan(-1);
   for (const locale of ['ru', 'en']) {
-    expect(Object.fromEntries(metadata[locale].map((row) => [row[idIndex], row[flagIndex]])))
+    expect(Object.fromEntries(metadata[locale].map((row) => [row[idIndex], row[flagIndex] ?? metadata.defaults.product_cta])))
       .toEqual({ legacy: true, enabled: true, standalone: false });
   }
 });
