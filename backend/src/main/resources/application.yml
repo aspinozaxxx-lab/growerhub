@@ -95,6 +95,8 @@ advisor:
       requestTimeoutSeconds: 15
 
 plant:
+  # Edinyj katalog vybirayemyh avatarov rastenij.
+  avatar-catalog-path: classpath:plant/avatars.json
   history:
     # Maksimal'noe kolichestvo tochek.
     maxPoints: 200

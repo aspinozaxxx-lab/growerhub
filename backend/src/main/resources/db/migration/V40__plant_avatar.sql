@@ -1,0 +1,2 @@
+ALTER TABLE plants ADD COLUMN avatar_key VARCHAR(40);
+ALTER TABLE plants ADD COLUMN avatar_stage VARCHAR(20);

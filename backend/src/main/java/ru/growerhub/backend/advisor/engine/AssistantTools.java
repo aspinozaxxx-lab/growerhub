@@ -59,7 +59,7 @@ public class AssistantTools {
             tool("gh_feature_requests", "Мои отправленные запросы на доработки и решения команды. page — страница с нуля.", Map.of("page", Map.of("type", "integer", "minimum", 0)), List.of()),
             tool("gh_rule_details", "Без параметров: свои правила и схема новых сценариев, включая ежедневное уведомление без устройств. ruleId: подробности своего правила. scopeType=ROOM|BOX и scopeId: настройки существующих готовых сценариев, не схема нового правила.", Map.of("ruleId", Map.of("type", "string"), "scopeType", Map.of("type", "string"), "scopeId", integer()), List.of()),
             tool("gh_validate_rule", "Проверить правило, ближайшие даты, этапы цикла, конфликты и готовность без сохранения. payload — определение version=2 из gh_rule_details.", Map.of("payload", Map.of("type", "object")), List.of("payload")),
-            tool("gh_prepare_change", "Подготовить предложение, НЕ применяя его. kind=plant: {operation:create|update,plantId?:number,fields:{name?,plantType?,strain?,growthStage?,description?,locationLabel?,plantedAt?:ISO UTC,dateUnknown?:boolean},zoneId?:number|null}; zoneId — ID теплицы из gh_farm_report, null убирает размещение, отсутствие сохраняет прежнее. Для create обязательно fields.name, неизвестную дату не выдумывай. kind=care: {plantId,entryId?:number,action,text,eventAt?:ISO UTC,photoIds?:UUID[]}; entryId исправляет ручную запись, иначе создаёт новую. Фото бери только из списка вложений этого разговора. action=watering|fertilizing|repotting|pruning|treatment|inspection|photo|note. reminder: {plantId,action,title,dueAt,repeatDays,repeatMode}; scenario: {scopeType:ROOM|BOX,scopeId,scenarioType,enabled,config}; rule: {ruleId?:UUID,revision?:number,enabled:boolean,definition:object из gh_rule_details}; device: {type:set|water,resourceId,value?:string,durationSeconds?:integer}; feature_request: {title до 120 символов,description до 2000,benefit до 1000}. Человек подтверждает кнопкой. Чужие данные и владельца указывать нельзя.",
+            tool("gh_prepare_change", "Подготовить предложение, НЕ применяя его. kind=plant: {operation:create|update,plantId?:number,fields:{name?,plantType?,strain?,growthStage?,description?,locationLabel?,avatarKey?:tomato|cucumber|strawberry|rosemary|basil|lettuce|pepper|petunia|pelargonium|monstera,avatarStage?:sprout|young|mature|peak,plantedAt?:ISO UTC,dateUnknown?:boolean},zoneId?:number|null}; zoneId — ID теплицы из gh_farm_report, null убирает размещение, отсутствие сохраняет прежнее. Для create обязательно fields.name, неизвестную дату не выдумывай. Картинка и avatarStage не меняют growthStage и автоматику; названия стадий есть в gh_plant_details.avatarOptions. kind=care: {plantId,entryId?:number,action,text,eventAt?:ISO UTC,photoIds?:UUID[]}; entryId исправляет ручную запись, иначе создаёт новую. Фото бери только из списка вложений этого разговора. action=watering|fertilizing|repotting|pruning|treatment|inspection|photo|note. reminder: {plantId,action,title,dueAt,repeatDays,repeatMode}; scenario: {scopeType:ROOM|BOX,scopeId,scenarioType,enabled,config}; rule: {ruleId?:UUID,revision?:number,enabled:boolean,definition:object из gh_rule_details}; device: {type:set|water,resourceId,value?:string,durationSeconds?:integer}; feature_request: {title до 120 символов,description до 2000,benefit до 1000}. Человек подтверждает кнопкой. Чужие данные и владельца указывать нельзя.",
                 Map.of("kind", Map.of("type", "string", "enum", List.of("plant", "care", "reminder", "scenario", "rule", "device", "feature_request")), "payload", Map.of("type", "object")), List.of("kind", "payload"))));
         if (adminRead(user)) {
             result.add(tool("gh_admin_users", "Только для владельца-администратора: поиск аккаунтов по имени, email или ID. Без секретов. offset — смещение, до 20 записей.", Map.of("query", Map.of("type", "string", "maxLength", 100), "offset", Map.of("type", "integer", "minimum", 0)), List.of()));
@@ -107,7 +107,7 @@ public class AssistantTools {
             case "gh_sensor_history" -> sensorHistory(input, user);
             case "gh_plant_details" -> {
                 int id = id(input, "plantId"); var plant = plants.requireOwnedPlantInfo(id, user);
-                var data = new LinkedHashMap<String, Object>(); data.put("plant", plant); data.put("zone", automation.getPlantZone(user, id));
+                var data = new LinkedHashMap<String, Object>(); data.put("plant", plant); data.put("zone", automation.getPlantZone(user, id)); data.put("avatarOptions", plants.avatarOptions());
                 data.put("now", clock.instant()); data.put("url", settings.siteUrl() + "/app/plants/" + id + "/journal/");
                 data.put("care", journal.searchCare(user, id, null, null, null, null, 0));
                 data.put("reminders", journal.careReminders(user).stream().filter(r -> r.plantId().equals(id)).toList()); yield json.valueToTree(data);
@@ -334,10 +334,14 @@ public class AssistantTools {
     private Prepared preparePlant(JsonNode payload, AuthenticatedUser user) {
         String operation = text(payload, "operation"); var clean = (com.fasterxml.jackson.databind.node.ObjectNode) payload.deepCopy(); var fields = clean.path("fields");
         if (!fields.isObject() || !Set.of("create", "update").contains(operation)) throw bad("Укажите создание или изменение растения и его поля");
-        var allowed = Set.of("name", "plantType", "strain", "growthStage", "description", "locationLabel", "plantedAt", "dateUnknown");
+        var allowed = Set.of("name", "plantType", "strain", "growthStage", "description", "locationLabel", "plantedAt", "dateUnknown", "avatarKey", "avatarStage");
         fields.properties().forEach(e -> { if (!allowed.contains(e.getKey()) || e.getValue().isNull()
                 || ("dateUnknown".equals(e.getKey()) ? !e.getValue().isBoolean() : !e.getValue().isTextual())) throw bad("Проверьте поле растения: " + e.getKey()); });
         if (fields.path("dateUnknown").asBoolean() && fields.has("plantedAt")) throw bad("Укажите дату посадки или оставьте её неизвестной");
+        if (fields.has("avatarKey") && !fields.has("avatarStage")) {
+            var avatar = plants.avatarOptions().stream().filter(a -> a.id().equals(fields.path("avatarKey").asText())).findFirst().orElse(null);
+            ((com.fasterxml.jackson.databind.node.ObjectNode) fields).put("avatarStage", avatar == null ? "" : avatar.stages().getLast().id());
+        }
         if ("create".equals(operation) && !fields.has("plantedAt")) {
             var normalized = (com.fasterxml.jackson.databind.node.ObjectNode) fields;
             if (fields.has("dateUnknown") && !fields.path("dateUnknown").asBoolean()) normalized.put("plantedAt", clock.instant().toString());
@@ -365,17 +369,29 @@ public class AssistantTools {
         clean.put("zoneName", zone == null ? "" : zone.name()); clean.put("previousZoneName", oldZone == null ? "" : oldZone.name());
         clean.put("zoneChanged", payload.has("zoneId") || "create".equals(operation));
         clean.set("before", json.valueToTree(previous));
+        if (fields.has("avatarKey") || fields.has("avatarStage")) {
+            String key = fields.has("avatarKey") ? fields.path("avatarKey").asText() : previous == null ? null : previous.avatarKey();
+            String stage = fields.has("avatarStage") ? fields.path("avatarStage").asText() : previous == null ? null : previous.avatarStage();
+            clean.put("pictureName", pictureLabel(key, stage));
+            clean.put("previousPictureName", previous == null ? "" : pictureLabel(previous.avatarKey(), previous.avatarStage()));
+        }
         return new Prepared(("create".equals(operation) ? "Добавить растение: " : "Изменить растение: ") + clean.path("plantName").asText(), clean,
                 fingerprint(Arrays.asList(previous, oldZone, zone)));
+    }
+    private String pictureLabel(String key, String stage) {
+        var avatar = plants.avatarOptions().stream().filter(a -> a.id().equals(key)).findFirst().orElse(null);
+        if (avatar == null) return "Автоматически";
+        var variant = avatar.stages().stream().filter(s -> s.id().equals(stage)).findFirst().orElse(avatar.stages().getLast());
+        return avatar.nameRu() + " · " + variant.nameRu();
     }
     private PlantFacade.PlantCreateCommand plantCreate(JsonNode f) {
         return new PlantFacade.PlantCreateCommand(optionalText(f, "name"), f.has("plantedAt") ? date(f, "plantedAt") : null,
                 optionalText(f, "plantType"), optionalText(f, "strain"), optionalText(f, "growthStage"), optionalText(f, "description"), optionalText(f, "locationLabel"),
-                f.has("dateUnknown") ? f.path("dateUnknown").asBoolean() : !f.has("plantedAt"));
+                f.has("dateUnknown") ? f.path("dateUnknown").asBoolean() : !f.has("plantedAt"), optionalText(f, "avatarKey"), optionalText(f, "avatarStage"));
     }
     private PlantFacade.PlantUpdateCommand plantUpdate(JsonNode f) {
         return new PlantFacade.PlantUpdateCommand(optionalText(f, "name"), f.has("plantedAt") ? date(f, "plantedAt") : null,
-                optionalText(f, "plantType"), optionalText(f, "strain"), optionalText(f, "growthStage"), optionalText(f, "description"), optionalText(f, "locationLabel"), f.path("dateUnknown").asBoolean(false));
+                optionalText(f, "plantType"), optionalText(f, "strain"), optionalText(f, "growthStage"), optionalText(f, "description"), optionalText(f, "locationLabel"), f.path("dateUnknown").asBoolean(false), optionalText(f, "avatarKey"), optionalText(f, "avatarStage"));
     }
     public List<UUID> photoIds(JsonNode payload) {
         if (!payload.has("photoIds")) return List.of();

@@ -24,7 +24,9 @@ public final class PlantDtos {
             @JsonProperty("growth_stage") String growthStage,
             @JsonProperty("description") String description,
             @JsonProperty("location_label") String locationLabel,
-            @JsonProperty("date_unknown") Boolean dateUnknown
+            @JsonProperty("date_unknown") Boolean dateUnknown,
+            @JsonProperty("avatar_key") String avatarKey,
+            @JsonProperty("avatar_stage") String avatarStage
     ) {
     }
 
@@ -38,7 +40,9 @@ public final class PlantDtos {
             @JsonProperty("growth_stage") String growthStage,
             @JsonProperty("description") String description,
             @JsonProperty("location_label") String locationLabel,
-            @JsonProperty("date_unknown") Boolean dateUnknown
+            @JsonProperty("date_unknown") Boolean dateUnknown,
+            @JsonProperty("avatar_key") String avatarKey,
+            @JsonProperty("avatar_stage") String avatarStage
     ) {
     }
 
@@ -61,6 +65,8 @@ public final class PlantDtos {
             @JsonProperty("user_id") Integer userId,
             @JsonProperty("description") String description,
             @JsonProperty("location_label") String locationLabel,
+            @JsonProperty("avatar_key") String avatarKey,
+            @JsonProperty("avatar_stage") String avatarStage,
             @JsonProperty("zone") ZoneResponse zone,
             @JsonProperty("sensors") List<SensorResponse> sensors,
             @JsonProperty("pumps") List<PumpResponse> pumps,
@@ -80,6 +86,8 @@ public final class PlantDtos {
             @JsonProperty("user_id") Integer userId,
             @JsonProperty("description") String description,
             @JsonProperty("location_label") String locationLabel,
+            @JsonProperty("avatar_key") String avatarKey,
+            @JsonProperty("avatar_stage") String avatarStage,
             @JsonProperty("zone") ZoneResponse zone,
             @JsonProperty("sensors") List<PlantListSensorResponse> sensors,
             @JsonProperty("pumps") List<PlantListPumpResponse> pumps

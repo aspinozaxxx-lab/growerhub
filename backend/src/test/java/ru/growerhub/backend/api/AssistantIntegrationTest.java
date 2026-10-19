@@ -481,12 +481,15 @@ class AssistantIntegrationTest extends IntegrationTestBase {
     @Test void assistantCreatesMovesAndFillsPlantsOnlyAfterConfirmation() {
         var user = principal(first); int a = plantZone(user, "Теплица 1"), b = plantZone(user, "Теплица 2");
         UUID chat = create(first); send(first, chat); var work = advisor.claimAssistantWork("deepseek");
-        var proposal = plantChange(work, "create-plant", Map.of("operation", "create", "fields", Map.of("name", "Розмарин", "plantType", "Пряные травы"), "zoneId", a));
+        var proposal = plantChange(work, "create-plant", Map.of("operation", "create", "fields", Map.of("name", "Розмарин", "plantType", "Пряные травы", "avatarKey", "rosemary", "avatarStage", "young"), "zoneId", a));
         assertThat(plants.listPlants(user)).isEmpty();
         assertThat(proposal.path("payload").path("zoneName").asText()).isEqualTo("Теплица 1");
         assertThat(proposal.path("payload").path("fields").path("dateUnknown").asBoolean()).isTrue();
         var saved = applyChange(proposal, user); int id = saved.result().path("id").asInt();
         assertThat(plants.getPlant(id, user).plantedAt()).isNull();
+        assertThat(plants.getPlant(id, user).avatarKey()).isEqualTo("rosemary");
+        assertThat(plants.getPlant(id, user).avatarStage()).isEqualTo("young");
+        assertThat(proposal.path("payload").path("pictureName").asText()).contains("Розмарин", "Молодой кустик");
         assertThat(automation.getPlantZone(user, id).id()).isEqualTo(a);
         advisor.applyAssistantProposal(saved.id()); assertThat(plants.listPlants(user)).hasSize(1);
         var moved = plantChange(work, "move-plant", Map.of("operation", "update", "plantId", id, "fields", Map.of("description", "Черенок от мамы", "strain", "Арп"), "zoneId", b));
@@ -495,6 +498,7 @@ class AssistantIntegrationTest extends IntegrationTestBase {
         assertThat(automation.getPlantZone(user, id).id()).isEqualTo(b);
         assertThat(plants.getPlant(id, user).description()).isEqualTo("Черенок от мамы");
         assertThat(plants.getPlant(id, user).strain()).isEqualTo("Арп");
+        assertThat(plants.getPlant(id, user).avatarStage()).isEqualTo("young");
         var detach = json.createObjectNode().put("operation", "update").put("plantId", id); detach.set("fields", json.createObjectNode()); detach.putNull("zoneId");
         var unplace = assistantTool(work, "unplace", "gh_prepare_change", Map.of("kind", "plant", "payload", detach));
         applyChange(unplace, user); assertThat(automation.getPlantZone(user, id)).isNull();

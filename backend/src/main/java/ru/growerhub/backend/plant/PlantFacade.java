@@ -10,6 +10,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.core.io.ResourceLoader;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import ru.growerhub.backend.common.config.plant.PlantSettings;
+import ru.growerhub.backend.plant.contract.PlantAvatarOption;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.growerhub.backend.diagnostics.PlantTiming;
@@ -43,6 +47,7 @@ public class PlantFacade {
     private final PlantHistorySettings historySettings;
     private final DemoSettings demoSettings;
     private final ru.growerhub.backend.common.config.CareSettings careSettings;
+    private final List<PlantAvatarOption> avatars;
 
     public PlantFacade(
             PlantRepository plantRepository,
@@ -51,7 +56,8 @@ public class PlantFacade {
             JournalFacade journalFacade,
             @Lazy UserFacade userFacade,
             PlantHistorySettings historySettings,
-            DemoSettings demoSettings, ru.growerhub.backend.common.config.CareSettings careSettings
+            DemoSettings demoSettings, ru.growerhub.backend.common.config.CareSettings careSettings,
+            PlantSettings settings, ResourceLoader resources, ObjectMapper json
     ) {
         this.plantRepository = plantRepository;
         this.plantMetricSampleRepository = plantMetricSampleRepository;
@@ -60,7 +66,15 @@ public class PlantFacade {
         this.userFacade = userFacade;
         this.historySettings = historySettings;
         this.demoSettings = demoSettings; this.careSettings = careSettings;
+        try (var input = resources.getResource(settings.avatarCatalogPath()).getInputStream()) {
+            this.avatars = List.of(json.readValue(input, PlantAvatarOption[].class));
+            if (avatars.isEmpty() || avatars.stream().anyMatch(a -> a.id() == null || !a.id().matches("[a-z][a-z0-9-]{0,39}"))
+                    || avatars.stream().map(PlantAvatarOption::id).distinct().count() != avatars.size())
+                throw new IllegalStateException("Некорректный каталог аватаров растений");
+        } catch (java.io.IOException ex) { throw new IllegalStateException("Не удалось загрузить аватары растений", ex); }
     }
+
+    public List<PlantAvatarOption> avatarOptions() { return avatars; }
 
     @Transactional(readOnly = true)
     public List<PlantInfo> listPlants(AuthenticatedUser user) {
@@ -87,6 +101,8 @@ public class PlantFacade {
         plant.setName(command.name().trim());
         plant.setDescription(command.description());
         plant.setLocationLabel(command.locationLabel());
+        plant.setAvatarKey(normalizeAvatar(command.avatarKey()));
+        plant.setAvatarStage(normalizeAvatar(command.avatarStage()));
         plant.setPlantedAt(plantedAt);
         plant.setUserId(requireUserId(user));
         plant.setPlantType(command.plantType());
@@ -118,6 +134,13 @@ public class PlantFacade {
         if (command.dateUnknown()) { plant.setPlantedAt(null); changed = true; }
         if (command.description() != null) { plant.setDescription(command.description()); changed = true; }
         if (command.locationLabel() != null) { plant.setLocationLabel(command.locationLabel()); changed = true; }
+        if (command.avatarKey() != null) {
+            String key = normalizeAvatar(command.avatarKey());
+            if (!java.util.Objects.equals(key, plant.getAvatarKey())) plant.setAvatarStage(null);
+            plant.setAvatarKey(key);
+            changed = true;
+        }
+        if (command.avatarStage() != null) { plant.setAvatarStage(normalizeAvatar(command.avatarStage())); changed = true; }
         if (command.plantedAt() != null && !command.dateUnknown()) {
             plant.setPlantedAt(command.plantedAt());
             changed = true;
@@ -148,6 +171,7 @@ public class PlantFacade {
         if (command == null || command.name() == null) throw new DomainException("unprocessable", "Укажите название растения");
         validateCareMetadata(command.name(), command.description(), command.locationLabel());
         validateClassification(command.plantType(), command.strain(), command.growthStage());
+        validateAvatar(command.avatarKey(), command.avatarStage());
         requireUserId(user);
         if (user.isDemo() && plantRepository.findAllByUserId(user.id()).size() >= demoSettings.maxPlants())
             throw new DomainException("conflict", "Достигнут предел растений демофермы");
@@ -155,10 +179,21 @@ public class PlantFacade {
 
     @Transactional(readOnly = true)
     public void validatePlantUpdate(Integer plantId, PlantUpdateCommand command, AuthenticatedUser user) {
-        requireUserPlant(plantId, user);
+        PlantEntity current = requireUserPlant(plantId, user);
         if (command == null) throw new DomainException("unprocessable", "Укажите изменения растения");
         validateCareMetadata(command.name(), command.description(), command.locationLabel());
         validateClassification(command.plantType(), command.strain(), command.growthStage());
+        validateAvatar(command.avatarKey() == null ? current.getAvatarKey() : command.avatarKey(), command.avatarStage());
+    }
+
+    private String normalizeAvatar(String key) { return key == null || key.isEmpty() ? null : key; }
+
+    private void validateAvatar(String key, String stage) {
+        if (key != null && !key.isEmpty() && avatars.stream().noneMatch(a -> a.id().equals(key)))
+            throw new DomainException("unprocessable", "Выберите картинку растения из коллекции");
+        if (stage != null && !stage.isEmpty() && avatars.stream().filter(a -> a.id().equals(key))
+                .noneMatch(a -> a.stages().stream().anyMatch(s -> s.id().equals(stage))))
+            throw new DomainException("unprocessable", "Выберите стадию на картинке из коллекции");
     }
 
     private void validateClassification(String... values) {
@@ -367,7 +402,7 @@ public class PlantFacade {
                 plant.getPlantType(),
                 plant.getStrain(),
                 plant.getGrowthStage(),
-                ownerId, plant.getDescription(), plant.getLocationLabel()
+                ownerId, plant.getDescription(), plant.getLocationLabel(), plant.getAvatarKey(), plant.getAvatarStage()
         );
     }
 
@@ -415,8 +450,12 @@ public class PlantFacade {
 
     public record PlantCreateCommand(
             String name, LocalDateTime plantedAt, String plantType, String strain, String growthStage,
-            String description, String locationLabel, boolean dateUnknown
+            String description, String locationLabel, boolean dateUnknown, String avatarKey, String avatarStage
     ) {
+        public PlantCreateCommand(String name, LocalDateTime plantedAt, String plantType, String strain, String growthStage,
+                String description, String locationLabel, boolean dateUnknown) {
+            this(name, plantedAt, plantType, strain, growthStage, description, locationLabel, dateUnknown, null, null);
+        }
         public PlantCreateCommand(String name, LocalDateTime plantedAt, String plantType, String strain, String growthStage) {
             this(name, plantedAt, plantType, strain, growthStage, null, null, false);
         }
@@ -424,8 +463,12 @@ public class PlantFacade {
 
     public record PlantUpdateCommand(
             String name, LocalDateTime plantedAt, String plantType, String strain, String growthStage,
-            String description, String locationLabel, boolean dateUnknown
+            String description, String locationLabel, boolean dateUnknown, String avatarKey, String avatarStage
     ) {
+        public PlantUpdateCommand(String name, LocalDateTime plantedAt, String plantType, String strain, String growthStage,
+                String description, String locationLabel, boolean dateUnknown) {
+            this(name, plantedAt, plantType, strain, growthStage, description, locationLabel, dateUnknown, null, null);
+        }
         public PlantUpdateCommand(String name, LocalDateTime plantedAt, String plantType, String strain, String growthStage) {
             this(name, plantedAt, plantType, strain, growthStage, null, null, false);
         }

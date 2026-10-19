@@ -1,0 +1,272 @@
+[
+  {
+    "id": "tomato",
+    "nameRu": "Томат",
+    "nameEn": "Tomato",
+    "stages": [
+      {
+        "id": "sprout",
+        "nameRu": "Росток",
+        "nameEn": "Sprout"
+      },
+      {
+        "id": "young",
+        "nameRu": "Молодой куст",
+        "nameEn": "Young plant"
+      },
+      {
+        "id": "mature",
+        "nameRu": "Цветение",
+        "nameEn": "Flowering"
+      },
+      {
+        "id": "peak",
+        "nameRu": "Урожай",
+        "nameEn": "Harvest"
+      }
+    ]
+  },
+  {
+    "id": "cucumber",
+    "nameRu": "Огурец",
+    "nameEn": "Cucumber",
+    "stages": [
+      {
+        "id": "sprout",
+        "nameRu": "Росток",
+        "nameEn": "Sprout"
+      },
+      {
+        "id": "young",
+        "nameRu": "Молодая плеть",
+        "nameEn": "Young vine"
+      },
+      {
+        "id": "mature",
+        "nameRu": "Цветение",
+        "nameEn": "Flowering"
+      },
+      {
+        "id": "peak",
+        "nameRu": "Урожай",
+        "nameEn": "Harvest"
+      }
+    ]
+  },
+  {
+    "id": "strawberry",
+    "nameRu": "Клубника",
+    "nameEn": "Strawberry",
+    "stages": [
+      {
+        "id": "sprout",
+        "nameRu": "Росток",
+        "nameEn": "Sprout"
+      },
+      {
+        "id": "young",
+        "nameRu": "Молодой кустик",
+        "nameEn": "Young plant"
+      },
+      {
+        "id": "mature",
+        "nameRu": "Цветение",
+        "nameEn": "Flowering"
+      },
+      {
+        "id": "peak",
+        "nameRu": "Ягоды",
+        "nameEn": "Berries"
+      }
+    ]
+  },
+  {
+    "id": "rosemary",
+    "nameRu": "Розмарин",
+    "nameEn": "Rosemary",
+    "stages": [
+      {
+        "id": "sprout",
+        "nameRu": "Росток",
+        "nameEn": "Sprout"
+      },
+      {
+        "id": "young",
+        "nameRu": "Молодой кустик",
+        "nameEn": "Young plant"
+      },
+      {
+        "id": "mature",
+        "nameRu": "Подросший куст",
+        "nameEn": "Growing bush"
+      },
+      {
+        "id": "peak",
+        "nameRu": "Пышный куст",
+        "nameEn": "Full-grown bush"
+      }
+    ]
+  },
+  {
+    "id": "basil",
+    "nameRu": "Базилик",
+    "nameEn": "Basil",
+    "stages": [
+      {
+        "id": "sprout",
+        "nameRu": "Росток",
+        "nameEn": "Sprout"
+      },
+      {
+        "id": "young",
+        "nameRu": "Молодое растение",
+        "nameEn": "Young plant"
+      },
+      {
+        "id": "mature",
+        "nameRu": "Взрослое растение",
+        "nameEn": "Mature plant"
+      },
+      {
+        "id": "peak",
+        "nameRu": "Пышный куст",
+        "nameEn": "Lush basil"
+      }
+    ]
+  },
+  {
+    "id": "lettuce",
+    "nameRu": "Салат",
+    "nameEn": "Lettuce",
+    "stages": [
+      {
+        "id": "sprout",
+        "nameRu": "Росток",
+        "nameEn": "Sprout"
+      },
+      {
+        "id": "young",
+        "nameRu": "Молодая розетка",
+        "nameEn": "Young rosette"
+      },
+      {
+        "id": "mature",
+        "nameRu": "Набирает объём",
+        "nameEn": "Filling out"
+      },
+      {
+        "id": "peak",
+        "nameRu": "Готов к сбору",
+        "nameEn": "Ready to harvest"
+      }
+    ]
+  },
+  {
+    "id": "pepper",
+    "nameRu": "Перец",
+    "nameEn": "Pepper",
+    "stages": [
+      {
+        "id": "sprout",
+        "nameRu": "Росток",
+        "nameEn": "Sprout"
+      },
+      {
+        "id": "young",
+        "nameRu": "Молодой куст",
+        "nameEn": "Young plant"
+      },
+      {
+        "id": "mature",
+        "nameRu": "Цветение",
+        "nameEn": "Flowering"
+      },
+      {
+        "id": "peak",
+        "nameRu": "Урожай",
+        "nameEn": "Harvest"
+      }
+    ]
+  },
+  {
+    "id": "petunia",
+    "nameRu": "Петуния",
+    "nameEn": "Petunia",
+    "stages": [
+      {
+        "id": "sprout",
+        "nameRu": "Росток",
+        "nameEn": "Sprout"
+      },
+      {
+        "id": "young",
+        "nameRu": "Молодой кустик",
+        "nameEn": "Young plant"
+      },
+      {
+        "id": "mature",
+        "nameRu": "Бутоны",
+        "nameEn": "Buds"
+      },
+      {
+        "id": "peak",
+        "nameRu": "Цветение",
+        "nameEn": "In bloom"
+      }
+    ]
+  },
+  {
+    "id": "pelargonium",
+    "nameRu": "Пеларгония",
+    "nameEn": "Pelargonium",
+    "stages": [
+      {
+        "id": "sprout",
+        "nameRu": "Росток",
+        "nameEn": "Sprout"
+      },
+      {
+        "id": "young",
+        "nameRu": "Молодой кустик",
+        "nameEn": "Young plant"
+      },
+      {
+        "id": "mature",
+        "nameRu": "Бутоны",
+        "nameEn": "Buds"
+      },
+      {
+        "id": "peak",
+        "nameRu": "Цветение",
+        "nameEn": "In bloom"
+      }
+    ]
+  },
+  {
+    "id": "monstera",
+    "nameRu": "Монстера",
+    "nameEn": "Monstera",
+    "stages": [
+      {
+        "id": "sprout",
+        "nameRu": "Росток",
+        "nameEn": "Sprout"
+      },
+      {
+        "id": "young",
+        "nameRu": "Молодое растение",
+        "nameEn": "Young plant"
+      },
+      {
+        "id": "mature",
+        "nameRu": "Крупные листья",
+        "nameEn": "Large leaves"
+      },
+      {
+        "id": "peak",
+        "nameRu": "Пышный куст",
+        "nameEn": "Lush foliage"
+      }
+    ]
+  }
+]

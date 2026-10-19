@@ -50,6 +50,18 @@ public class PlantEntity {
     @Column(name = "location_label")
     private String locationLabel;
 
+    @Column(name = "avatar_key", length = 40)
+    private String avatarKey;
+
+    @Column(name = "avatar_stage", length = 20)
+    private String avatarStage;
+
+    public String getAvatarStage() { return avatarStage; }
+    public void setAvatarStage(String value) { avatarStage = value; }
+
+    public String getAvatarKey() { return avatarKey; }
+    public void setAvatarKey(String value) { avatarKey = value; }
+
     public String getDescription() { return description; }
     public void setDescription(String value) { description = value; }
     public String getLocationLabel() { return locationLabel; }

@@ -196,6 +196,8 @@ public class AssistantChannels {
             var lines = new ArrayList<String>();
             p.path("fields").properties().forEach(e -> { if (labels.containsKey(e.getKey())) lines.add(labels.get(e.getKey()) + ": "
                     + ("update".equals(p.path("operation").asText()) ? p.path("before").path(e.getKey()).asText("не указано") + " → " : "") + e.getValue().asText()); });
+            if (p.has("pictureName")) lines.add("Картинка растения: " + ("update".equals(p.path("operation").asText())
+                    ? p.path("previousPictureName").asText() + " → " : "") + p.path("pictureName").asText());
             if (p.path("fields").path("dateUnknown").asBoolean()) lines.add("Дата посадки неизвестна");
             if (p.path("zoneChanged").asBoolean()) lines.add("Теплица: " + ("update".equals(p.path("operation").asText()) ? place(p.path("previousZoneName").asText()) + " → " : "") + place(p.path("zoneName").asText()));
             return String.join("\n", lines);

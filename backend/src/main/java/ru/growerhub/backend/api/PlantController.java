@@ -109,7 +109,7 @@ public class PlantController {
                         request.plantedAt(),
                         request.plantType(),
                         request.strain(),
-                        request.growthStage(), request.description(), request.locationLabel(), Boolean.TRUE.equals(request.dateUnknown())
+                        request.growthStage(), request.description(), request.locationLabel(), Boolean.TRUE.equals(request.dateUnknown()), request.avatarKey(), request.avatarStage()
                 ),
                 request.zoneId()
         );
@@ -198,7 +198,7 @@ public class PlantController {
                 plant.plantType(),
                 plant.strain(),
                 plant.growthStage(),
-                plant.userId(), plant.description(), plant.locationLabel(),
+                plant.userId(), plant.description(), plant.locationLabel(), plant.avatarKey(), plant.avatarStage(),
                 zoneResponse,
                 sensors,
                 pumps,
@@ -224,7 +224,7 @@ public class PlantController {
                 plant.plantType(),
                 plant.strain(),
                 plant.growthStage(),
-                plant.userId(), plant.description(), plant.locationLabel(),
+                plant.userId(), plant.description(), plant.locationLabel(), plant.avatarKey(), plant.avatarStage(),
                 toZoneResponse(zone),
                 sensors,
                 pumps
@@ -373,6 +373,8 @@ public class PlantController {
     }
 
     private ParsedPlantUpdate parseUpdateCommand(JsonNode request) {
+        if (request.hasNonNull("avatar_key") && !request.get("avatar_key").isTextual()) throw invalidFieldValue("avatar_key");
+        if (request.hasNonNull("avatar_stage") && !request.get("avatar_stage").isTextual()) throw invalidFieldValue("avatar_stage");
         String name = null;
         LocalDateTime plantedAt = null;
         Integer zoneId = null;
@@ -410,7 +412,9 @@ public class PlantController {
                         growthStage,
                         request.has("description") ? textValue(request.get("description")) : null,
                         request.has("location_label") ? textValue(request.get("location_label")) : null,
-                        request.path("date_unknown").asBoolean(false)
+                        request.path("date_unknown").asBoolean(false),
+                        request.has("avatar_key") ? textValue(request.get("avatar_key")) : null,
+                        request.has("avatar_stage") ? textValue(request.get("avatar_stage")) : null
                 ),
                 zoneProvided,
                 zoneId

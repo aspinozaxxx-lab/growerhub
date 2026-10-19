@@ -218,6 +218,39 @@ class PlantsIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void avatarAndPictureStagePersistWithoutChangingGrowingSettings() {
+        var owner = createUser("picture-owner@example.com", "user");
+        String token = buildToken(owner.getId());
+        int id = given().header("Authorization", "Bearer " + token).contentType("application/json")
+                .body(Map.of("name", "Базилик", "plant_type", "herbs_spices", "growth_stage", "vegetative",
+                        "date_unknown", true, "avatar_key", "strawberry", "avatar_stage", "young"))
+                .post("/api/plants").then().statusCode(200).body("avatar_key", equalTo("strawberry"))
+                .body("avatar_stage", equalTo("young")).body("planted_at", nullValue()).extract().path("id");
+        given().header("Authorization", "Bearer " + token).get("/api/plants").then().statusCode(200)
+                .body("[0].avatar_key", equalTo("strawberry")).body("[0].avatar_stage", equalTo("young"));
+        given().header("Authorization", "Bearer " + token).contentType("application/json").body(Map.of("description", "У окна"))
+                .patch("/api/plants/" + id).then().statusCode(200).body("avatar_key", equalTo("strawberry")).body("avatar_stage", equalTo("young"));
+        given().header("Authorization", "Bearer " + token).contentType("application/json")
+                .body(Map.of("avatar_stage", "sprout")).patch("/api/plants/" + id).then().statusCode(200)
+                .body("growth_stage", equalTo("vegetative")).body("plant_type", equalTo("herbs_spices")).body("avatar_stage", equalTo("sprout"));
+        for (var invalid : List.of(Map.of("avatar_key", "../../secret"), Map.of("avatar_key", "https://example.com/x.png"),
+                Map.of("avatar_stage", "nonexistent"), Map.of("avatar_stage", Map.of("value", "peak")))) {
+            given().header("Authorization", "Bearer " + token).contentType("application/json").body(invalid)
+                    .patch("/api/plants/" + id).then().statusCode(422);
+        }
+        var stranger = createUser("picture-other@example.com", "user");
+        given().header("Authorization", "Bearer " + buildToken(stranger.getId())).contentType("application/json")
+                .body(Map.of("avatar_key", "basil", "avatar_stage", "peak")).patch("/api/plants/" + id).then().statusCode(404);
+        given().header("Authorization", "Bearer " + token).get("/api/plants/" + id).then().statusCode(200)
+                .body("avatar_key", equalTo("strawberry")).body("avatar_stage", equalTo("sprout"));
+        given().header("Authorization", "Bearer " + token).contentType("application/json")
+                .body(Map.of("avatar_key", "", "avatar_stage", "")).patch("/api/plants/" + id).then().statusCode(200)
+                .body("avatar_key", nullValue()).body("avatar_stage", nullValue()).body("growth_stage", equalTo("vegetative"));
+        given().header("Authorization", "Bearer " + token).contentType("application/json").body(Map.of("avatar_stage", "young"))
+                .patch("/api/plants/" + id).then().statusCode(422);
+    }
+
+    @Test
     void plantValidationReturns422() {
         UserEntity owner = createUser("plant-validate@example.com", "user");
         String token = buildToken(owner.getId());
