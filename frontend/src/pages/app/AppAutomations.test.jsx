@@ -78,13 +78,16 @@ describe('AppAutomations', () => {
     vi.unstubAllGlobals();
   });
 
-  it('keeps personal rules compact and grouped by the selected greenhouse or whole farm', async () => {
+  it('keeps all personal rules at the bottom independently of the selected greenhouse', async () => {
     fetchFarmsOverview.mockResolvedValue(multiOverview());
-    personalRules = [personalRule('watering-3', 'Полив через день', 'BOX', 3), personalRule('farm-check', 'Обход фермы', 'ROOM', 1)];
+    personalRules = [personalRule('watering-3', 'Полив через день', 'BOX', 3), personalRule('seedling-check', 'Осмотр рассады', 'BOX', 2), personalRule('farm-check', 'Обход фермы', 'ROOM', 1)];
     render(<MemoryRouter><AppAutomations /></MemoryRouter>);
     await screen.findByRole('button', { name: 'Открыть сценарий «Обход фермы»' });
-    expect(screen.queryByRole('button', { name: 'Открыть сценарий «Полив через день»' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Открыть сценарий «Полив через день»' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Открыть сценарий «Осмотр рассады»' })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Настройки теплицы'), { target: { value: '3' } });
+    expect(screen.getByRole('button', { name: 'Открыть сценарий «Осмотр рассады»' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Свои сценарии: Рассада' })).toBeInTheDocument();
     const group = screen.getByRole('region', { name: 'Свои сценарии: Зелень' });
     expect(within(group).getByRole('button', { name: 'Открыть сценарий «Полив через день»' })).toBeInTheDocument();
     expect(within(group).getByRole('switch', { name: 'Сценарий: Полив через день' })).not.toBeChecked();

@@ -46,15 +46,15 @@ A photo shows appearance; moisture inside the pot and root condition need a hand
 2. The assistant reviews available devices and prepares a proposal. Specify the time and weekdays where needed. You can ask it to **save the scenario disabled**.
 3. Read the card: when it runs, which conditions it checks and what it does. Check the devices and watering duration where applicable.
 4. Select **Confirm** to apply that specific version. **Do not apply** keeps the settings as they are. Saying “yes” in a message does not replace the confirmation button.
-5. Select **Open routine** below the saved proposal. Or open **Routines**, choose the greenhouse and find **Custom routines**. Select a row to review readiness, run history, disable the rule or restore an older version.
+5. Select **Open routine** below the saved proposal. Or open **Routines** and scroll down to **Custom routines** under the greenhouse’s name. Select a row to review readiness, run history, disable the rule or restore an older version.
 
 ## Find your way around the app
 
 Cannot find a button? Ask the assistant “Where can I see my saved routine?” or “How do I open a plant journal?”. It can give short menu steps and a link to the right section. Name a routine to get a direct link to its details; the correct greenhouse will be selected automatically.
 
-In **Routines**, choose a greenhouse by its name in the light schedule or the **Greenhouse settings** field. Its **Custom routines** list sits alongside climate and watering settings, with a name, short schedule and status. Select a row for details. Rules for an entire farm appear separately under **Farm automations**.
+At the bottom of **Routines**, **Custom routines** from every greenhouse stay visible, with a name, short schedule and switch. Groups show their greenhouse names; selecting a greenhouse for climate and watering settings above does not hide other routines. Select a row for details. Rules for an entire farm appear nearby under **Farm automations**.
 
-![Custom routines within the selected greenhouse](/screenshots/assistant/scoped-routines-en.webp)
+![Compact custom routine groups for each greenhouse](/screenshots/assistant/scoped-routines-en.webp)
 
 Opening a link does not turn anything on. Use the switch on the right of a custom routine to enable or disable it directly, just like climate or watering. The server checks the current revision, readiness and conflicts; any refusal appears beside the row. Real and demo farms have separate lists: if a link is opened in the wrong mode, choose the right mode and account first.
 

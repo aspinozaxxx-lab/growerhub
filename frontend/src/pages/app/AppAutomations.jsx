@@ -273,9 +273,12 @@ function AppAutomations() {
                 greenhouseId={selected.id} revision={wateringRevision} /> : null}
             </section>
           </> : <>{climateEditor}{wateringEditor}</>}
-          <RuleCards rules={custom.rules} scopeType="BOX" scopeId={selected.id} scopeName={selected.name} onOpen={openRule} onToggle={custom.switchRule} busy={custom.busy} error={custom.error} errorRuleId={custom.errorRuleId} />
         </div>
       </> : null}
+      {greenhouses.filter(greenhouse => custom.rules.length
+        ? custom.rules.some(rule => rule.definition.scopeType === 'BOX' && rule.definition.scopeId === greenhouse.id)
+        : greenhouse.id === greenhouses[0]?.id).map(greenhouse =>
+        <RuleCards key={greenhouse.id} rules={custom.rules} scopeType="BOX" scopeId={greenhouse.id} scopeName={greenhouse.name} onOpen={openRule} onToggle={custom.switchRule} busy={custom.busy} error={custom.error} errorRuleId={custom.errorRuleId} />)}
       {farms.filter(f => !greenhouses.length || custom.rules.some(r => r.definition.scopeType === 'ROOM' && r.definition.scopeId === f.id)).map(farm =>
         <RuleCards key={farm.id} rules={custom.rules} scopeType="ROOM" scopeId={farm.id} scopeName={farm.name} onOpen={openRule} onToggle={custom.switchRule} busy={custom.busy} error={custom.error} errorRuleId={custom.errorRuleId} />)}
       <RuleDetails manager={custom} farms={farms} onClose={closeRule} compact={compact} />

@@ -12,6 +12,8 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id":"all-custom-routines-visible","published_at":"2026-10-19","kind":"article_update","article_id":"pomoshchnik-rasteniy-i-scenarii-growerhub","text":"Custom routines from every greenhouse stay visible at the bottom, regardless of the greenhouse selected above. Switches remain in the list. The guide is updated."},
+    {"id":"all-custom-watering-guide","published_at":"2026-10-19","kind":"article_update","article_id":"svoi-scenarii-poliva-cherez-pomoshchnika","text":"Updated the custom watering guide with the path to the complete routine list."},
     {"id": "assistant-photo-context-space", "published_at": "2026-10-19", "kind": "fix", "text": "Shortened the assistant’s service instructions so they no longer crowd out photos before processing. Image space is reserved by trimming older conversation context; spending limits stay in place."},
     {"id": "assistant-plants-and-journal-photos", "published_at": "2026-10-19", "kind": "feature", "article_id": "rasteniya-i-foto-v-zhurnale-cherez-pomoshchnika", "preview_position": "50% 55%"},
     {"id": "custom-rule-list-switches", "published_at": "2026-10-19", "kind": "fix", "text": "Switch custom routines on or off directly in the greenhouse or farm list. Conflicts and unavailable devices are explained beside the routine, which stays disabled when enabling is rejected."},
