@@ -12,6 +12,7 @@
 - `createPlant(PlantCreateCommand command, AuthenticatedUser user)`
 - `getPlant(Integer plantId, AuthenticatedUser user)`
 - `updatePlant(Integer plantId, PlantUpdateCommand command, AuthenticatedUser user)`
+- `validatePlantCreate`, `validatePlantUpdate` — проверка карточки без записи.
 - `deletePlant(Integer plantId, AuthenticatedUser user)`
 - `harvestPlant(Integer plantId, PlantHarvestCommand command, AuthenticatedUser user)`
 - `listAdminPlants(AuthenticatedUser user)`
@@ -49,7 +50,7 @@
 
 ## Алгоритм работы
 
-Facade выполняет CRUD растений, проверяет владение, отдаёт admin views и историю. `dateUnknown` оставляет посадку неизвестной; старый вызов без этого признака сохраняет прежнюю семантику даты. Растение может не иметь оборудования. `AutomationFacade` вызывает публичные операции растения и в своей транзакции одновременно сохраняет размещение. Метрики создаются по показаниям датчиков и по событиям полива только с известным объёмом. Выбор точек и временных bucket выполняется в БД. По запросу maintenance старые непрерывные метрики прореживаются до одной точки в час; события `WATERING_VOLUME_L` сохраняются полностью. При сборе урожая растение обновляется и создаётся запись журнала.
+Facade выполняет CRUD с проверкой владельца; создание и изменение берут общий lock аккаунта. Preview использует ту же проверку метаданных и пределов демо без записи. `dateUnknown` оставляет посадку неизвестной; старый вызов без него сохраняет прежнюю семантику. Оборудование необязательно. `AutomationFacade` в своей транзакции сохраняет карточку и размещение. Метрики создаются по датчикам и по поливу только с известным объёмом. Точки и временные bucket выбираются в БД. Maintenance прореживает старые непрерывные метрики до одной точки в час; `WATERING_VOLUME_L` сохраняются полностью. Сбор урожая меняет растение и создаёт запись журнала.
 
 ## Ограничения
 

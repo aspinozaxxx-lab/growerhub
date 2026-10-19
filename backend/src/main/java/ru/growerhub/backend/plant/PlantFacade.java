@@ -79,14 +79,8 @@ public class PlantFacade {
 
     @Transactional
     public PlantInfo createPlant(PlantCreateCommand command, AuthenticatedUser user) {
-        validateCareMetadata(command.name(), command.description(), command.locationLabel());
-        if (command.name() == null) throw new DomainException("unprocessable", "Укажите название растения");
-        if (user != null && user.isDemo()) {
-            userFacade.lockDemoOwner(user.id());
-            if (plantRepository.findAllByUserId(user.id()).size() >= demoSettings.maxPlants()) {
-                throw new DomainException("conflict", "Demo plant limit reached");
-            }
-        }
+        lockOwner(user);
+        validatePlantCreate(command, user);
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         LocalDateTime plantedAt = command.dateUnknown() ? null : (command.plantedAt() != null ? command.plantedAt() : now);
         PlantEntity plant = PlantEntity.create();
@@ -112,7 +106,8 @@ public class PlantFacade {
 
     @Transactional
     public PlantInfo updatePlant(Integer plantId, PlantUpdateCommand command, AuthenticatedUser user) {
-        validateCareMetadata(command.name(), command.description(), command.locationLabel());
+        lockOwner(user);
+        validatePlantUpdate(plantId, command, user);
         PlantEntity plant = requireUserPlant(plantId, user);
         boolean changed = false;
 
@@ -146,6 +141,34 @@ public class PlantFacade {
         }
 
         return toPlantInfo(plant);
+    }
+
+    @Transactional(readOnly = true)
+    public void validatePlantCreate(PlantCreateCommand command, AuthenticatedUser user) {
+        if (command == null || command.name() == null) throw new DomainException("unprocessable", "Укажите название растения");
+        validateCareMetadata(command.name(), command.description(), command.locationLabel());
+        validateClassification(command.plantType(), command.strain(), command.growthStage());
+        requireUserId(user);
+        if (user.isDemo() && plantRepository.findAllByUserId(user.id()).size() >= demoSettings.maxPlants())
+            throw new DomainException("conflict", "Достигнут предел растений демофермы");
+    }
+
+    @Transactional(readOnly = true)
+    public void validatePlantUpdate(Integer plantId, PlantUpdateCommand command, AuthenticatedUser user) {
+        requireUserPlant(plantId, user);
+        if (command == null) throw new DomainException("unprocessable", "Укажите изменения растения");
+        validateCareMetadata(command.name(), command.description(), command.locationLabel());
+        validateClassification(command.plantType(), command.strain(), command.growthStage());
+    }
+
+    private void validateClassification(String... values) {
+        for (String value : values) if (value != null && value.length() > 255)
+            throw new DomainException("unprocessable", "Сократите вид, сорт или стадию растения");
+    }
+
+    private void lockOwner(AuthenticatedUser user) {
+        requireUserId(user);
+        if (user.isDemo()) userFacade.lockDemoOwner(user.id()); else userFacade.lockAccount(user.id());
     }
 
     private void validateCareMetadata(String name, String description, String location) {

@@ -12,6 +12,9 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id": "assistant-plants-and-journal-photos", "published_at": "2026-10-19", "kind": "feature", "article_id": "rasteniya-i-foto-v-zhurnale-cherez-pomoshchnika", "preview_position": "50% 55%"},
+    {"id": "custom-rule-list-switches", "published_at": "2026-10-19", "kind": "fix", "text": "Switch custom routines on or off directly in the greenhouse or farm list. Conflicts and unavailable devices are explained beside the routine, which stays disabled when enabling is rejected."},
+    {"id": "assistant-plant-guide-update", "published_at": "2026-10-19", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "The guide now covers creating and moving plants, journal photos from Telegram and custom routine switches in the list."},
     {"id": "assistant-interface-help-scoped-rules", "published_at": "2026-10-19", "kind": "fix", "text": "The assistant can explain where to find app features and link to them. Custom routines now appear as compact rows for the selected greenhouse, with details on selection. Following a chat link closes the side panel so you can see the destination."},
     {"id": "assistant-interface-guide-update", "published_at": "2026-10-19", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "The guide now covers app navigation help, direct links to saved routines and updated greenhouse routine screenshots. The every-other-day watering guide was updated too."},
     {"id": "assistant-models-after-restart", "published_at": "2026-10-19", "kind": "fix", "text": "Fixed owner model choices disappearing after sending a message when the server had restarted while the chat was open."},

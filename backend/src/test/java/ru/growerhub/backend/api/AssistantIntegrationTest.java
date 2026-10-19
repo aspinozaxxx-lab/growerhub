@@ -478,6 +478,130 @@ class AssistantIntegrationTest extends IntegrationTestBase {
         assertThatThrownBy(() -> advisor.executeAssistantTool(work.id(), work.lease(), tooLong)).isInstanceOf(ru.growerhub.backend.common.contract.DomainException.class);
         readings.deleteAll(); bindings.delete(binding); sensors.delete(sensor); devices.delete(device);
     }
+    @Test void assistantCreatesMovesAndFillsPlantsOnlyAfterConfirmation() {
+        var user = principal(first); int a = plantZone(user, "Теплица 1"), b = plantZone(user, "Теплица 2");
+        UUID chat = create(first); send(first, chat); var work = advisor.claimAssistantWork("deepseek");
+        var proposal = plantChange(work, "create-plant", Map.of("operation", "create", "fields", Map.of("name", "Розмарин", "plantType", "Пряные травы"), "zoneId", a));
+        assertThat(plants.listPlants(user)).isEmpty();
+        assertThat(proposal.path("payload").path("zoneName").asText()).isEqualTo("Теплица 1");
+        assertThat(proposal.path("payload").path("fields").path("dateUnknown").asBoolean()).isTrue();
+        var saved = applyChange(proposal, user); int id = saved.result().path("id").asInt();
+        assertThat(plants.getPlant(id, user).plantedAt()).isNull();
+        assertThat(automation.getPlantZone(user, id).id()).isEqualTo(a);
+        advisor.applyAssistantProposal(saved.id()); assertThat(plants.listPlants(user)).hasSize(1);
+        var moved = plantChange(work, "move-plant", Map.of("operation", "update", "plantId", id, "fields", Map.of("description", "Черенок от мамы", "strain", "Арп"), "zoneId", b));
+        assertThat(automation.getPlantZone(user, id).id()).isEqualTo(a);
+        applyChange(moved, user);
+        assertThat(automation.getPlantZone(user, id).id()).isEqualTo(b);
+        assertThat(plants.getPlant(id, user).description()).isEqualTo("Черенок от мамы");
+        assertThat(plants.getPlant(id, user).strain()).isEqualTo("Арп");
+        var detach = json.createObjectNode().put("operation", "update").put("plantId", id); detach.set("fields", json.createObjectNode()); detach.putNull("zoneId");
+        var unplace = assistantTool(work, "unplace", "gh_prepare_change", Map.of("kind", "plant", "payload", detach));
+        applyChange(unplace, user); assertThat(automation.getPlantZone(user, id)).isNull();
+        assertThat(plants.getPlant(id, user).description()).isEqualTo("Черенок от мамы");
+    }
+    @Test void manualPlantChangesInvalidateTheExactAssistantProposal() {
+        var user = principal(first); int zone = plantZone(user, "Розмарин");
+        int id = plants.createPlant(new ru.growerhub.backend.plant.PlantFacade.PlantCreateCommand("Куст", null, null, null, null, "", "", true), user).id();
+        UUID chat = create(first); send(first, chat); var work = advisor.claimAssistantWork("deepseek");
+        var proposal = plantChange(work, "stale-move", Map.of("operation", "update", "plantId", id, "fields", Map.of(), "zoneId", zone));
+        plants.updatePlant(id, new ru.growerhub.backend.plant.PlantFacade.PlantUpdateCommand("Новое имя", null, null, null, null), user);
+        var confirmed = advisor.confirmAssistantProposal(UUID.fromString(proposal.path("id").asText()), new Confirm(proposal.path("revision").asText()), user, false);
+        assertThat(confirmed.status()).isEqualTo("stale"); assertThat(advisor.claimAssistantApplication()).isNull();
+        assertThat(automation.getPlantZone(user, id)).isNull(); assertThat(plants.getPlant(id, user).name()).isEqualTo("Новое имя");
+    }
+    @Test void telegramPhotoIsCopiedToTheChosenJournalOnceAndSharedWithTheApp() throws Exception {
+        var user = principal(first); int id = plants.createPlant(new ru.growerhub.backend.plant.PlantFacade.PlantCreateCommand("Мой розмарин", null, null, null, null), user).id();
+        long update = 3000000L + user.id() * 100L, address = update + 50;
+        var link = notifications.link(user);
+        notifications.receive(new ru.growerhub.backend.notification.contract.TelegramData.Update(update, address, true, "Test", "/start " + link.url().split("start=")[1], null, null));
+        notifications.confirm(user, notifications.status(user).confirmation());
+        var chat = create(first); advisor.saveAssistantPreferences(new Preferences(true, "off", 9, 1, chat.toString()), user);
+        byte[] source = journalTestPhoto(); when(telegramGateway.photo(eq("rosemary-file"), anyInt())).thenReturn(source);
+        var event = new ru.growerhub.backend.notification.contract.TelegramData.Update(update + 1, address, true, "Test", "Добавь фото в журнал розмарина", null, null, "rosemary-file", source.length);
+        notifications.receive(event); notifications.receive(event); advisor.processAssistantInbox();
+        var work = advisor.claimAssistantWork("deepseek");
+        UUID image = jdbc.queryForObject("select id from assistant_photos where user_id=?", UUID.class, user.id());
+        assertThat(work.messages().toString()).contains(image.toString());
+        var proposal = assistantTool(work, "journal-photo", "gh_prepare_change", Map.of("kind", "care", "payload", Map.of("plantId", id, "action", "photo", "text", "Новый прирост", "photoIds", List.of(image.toString()))));
+        assertThat(journal.listEntries(id, user)).isEmpty();
+        assertThat(proposal.path("payload").path("plantName").asText()).isEqualTo("Мой розмарин");
+        advisor.finishAssistantWork(work.id(), work.lease(), new Outcome("completed", "Проверьте растение и фото", 500, 100, true, null));
+        advisor.deliverAssistantResponses();
+        assertThat(jdbc.queryForObject("select count(*) from telegram_deliveries where text like '%Фото в журнал: 1%'", Integer.class)).isEqualTo(1);
+        UUID proposalId = UUID.fromString(proposal.path("id").asText());
+        var callback = new ru.growerhub.backend.notification.contract.TelegramData.Update(update + 2, address, true, "Test", null, null, "gha:" + proposalId.toString().replace("-", "") + ":" + proposal.path("revision").asText());
+        notifications.receive(callback); notifications.receive(callback); advisor.processAssistantInbox();
+        assertThat(advisor.claimAssistantApplication().id()).isEqualTo(proposalId);
+        advisor.applyAssistantProposal(proposalId); advisor.applyAssistantProposal(proposalId);
+        var entry = journal.listEntries(id, user).getFirst(); assertThat(entry.photos()).hasSize(1);
+        assertThat(journal.listEntries(id, user)).hasSize(1);
+        assertThat(advisor.assistantMessages(chat, user)).singleElement().satisfies(message ->
+                assertThat(message.proposals().getFirst().result().path("entry").path("photos")).hasSize(1));
+        int photoId = entry.photos().getFirst().id();
+        assertThatThrownBy(() -> journal.getPhoto(photoId, principal(other))).isInstanceOf(ru.growerhub.backend.common.contract.DomainException.class);
+        jdbc.update("delete from assistant_photos where id=?", image);
+        assertThat(journal.getPhoto(photoId, user).data()).isNotEmpty();
+        advisor.deliverAssistantResponses();
+        assertThat(jdbc.queryForObject("select count(*) from telegram_deliveries where text like '%Журнал растения:%'", Integer.class)).isEqualTo(1);
+    }
+    @Test void assistantEditsAndSearchesManualCareWithoutChangingItsDate() {
+        var user = principal(first); int id = plants.createPlant(new ru.growerhub.backend.plant.PlantFacade.PlantCreateCommand("Розмарин", null, null, null, null), user).id();
+        var time = LocalDateTime.of(2026, 10, 1, 10, 0);
+        var entry = journal.createCareEntry(id, user, new ru.growerhub.backend.journal.contract.CareData.EntryCommand("pruning", "Срезала сухую веточку", time, "initial"));
+        var chat = create(first); send(first, chat); var work = advisor.claimAssistantWork("deepseek");
+        var read = assistantTool(work, "read-journal", "gh_journal", Map.of("plantId", id, "query", "веточку", "action", "pruning", "page", 0));
+        assertThat(read.path("page").path("items")).hasSize(1);
+        var proposal = assistantTool(work, "edit-journal", "gh_prepare_change", Map.of("kind", "care", "payload", Map.of("plantId", id, "entryId", entry.entry().id(), "text", "Обрезаны две сухие веточки")));
+        applyChange(proposal, user);
+        var updated = journal.getCareEntry(entry.entry().id(), user);
+        assertThat(updated.action()).isEqualTo("pruning"); assertThat(updated.entry().eventAt()).isEqualTo(time);
+        assertThat(updated.entry().text()).isEqualTo("Обрезаны две сухие веточки"); assertThat(journal.listEntries(id, user)).hasSize(1);
+    }
+    @Test void evenTheOwnerCannotChangeForeignPlantsZonesEntriesOrInventFields() {
+        var stranger = principal(other); int foreignZone = plantZone(stranger, "Чужая теплица");
+        int plantId = plants.createPlant(new ru.growerhub.backend.plant.PlantFacade.PlantCreateCommand("Чужой куст", null, null, null, null), stranger).id();
+        var entry = journal.createCareEntry(plantId, stranger, new ru.growerhub.backend.journal.contract.CareData.EntryCommand("note", "Личные записи", null, "private"));
+        var chat = create(owner); send(owner, chat); var work = advisor.claimAssistantWork("codex");
+        for (var args : List.of(Map.of("kind", "plant", "payload", Map.of("operation", "update", "plantId", plantId, "fields", Map.of("name", "Взлом"))),
+                Map.of("kind", "plant", "payload", Map.of("operation", "create", "zoneId", foreignZone, "fields", Map.of("name", "Новый"))),
+                Map.of("kind", "plant", "payload", Map.of("operation", "create", "fields", Map.of("name", "Новый", "userId", other.getId()))))) {
+            assertThatThrownBy(() -> assistantTool(work, UUID.randomUUID().toString(), "gh_prepare_change", args)).isInstanceOf(ru.growerhub.backend.common.contract.DomainException.class);
+        }
+        assertThatThrownBy(() -> assistantTool(work, "private-journal", "gh_journal", Map.of("entryId", entry.entry().id()))).isInstanceOf(ru.growerhub.backend.common.contract.DomainException.class);
+        assertThat(plants.listPlants(principal(owner))).isEmpty(); assertThat(plants.getPlant(plantId, stranger).name()).isEqualTo("Чужой куст");
+        assertThat(jdbc.queryForObject("select count(*) from assistant_proposals", Integer.class)).isZero();
+    }
+    @Test void aPhotoCannotBeTakenFromAnotherChatOrAnotherAccount() throws Exception {
+        var user = principal(first); UUID ownChat = create(first), otherChat = create(first), foreignChat = create(other);
+        var ownImage = advisor.uploadAssistantPhoto(otherChat, journalTestPhoto(), user, new Origin(null, null, "app"));
+        var foreignImage = advisor.uploadAssistantPhoto(foreignChat, journalTestPhoto(), principal(other), new Origin(null, null, "app"));
+        int id = plants.createPlant(new ru.growerhub.backend.plant.PlantFacade.PlantCreateCommand("Розмарин", null, null, null, null), user).id();
+        send(first, ownChat); var work = advisor.claimAssistantWork("deepseek");
+        for (var image : List.of(ownImage, foreignImage)) assertThatThrownBy(() -> assistantTool(work, image.id().toString(), "gh_prepare_change",
+                Map.of("kind", "care", "payload", Map.of("plantId", id, "action", "photo", "photoIds", List.of(image.id().toString())))))
+                .isInstanceOf(ru.growerhub.backend.common.contract.DomainException.class);
+        assertThat(journal.listEntries(id, user)).isEmpty(); assertThat(jdbc.queryForObject("select count(*) from assistant_proposals", Integer.class)).isZero();
+    }
+    private int plantZone(AuthenticatedUser user, String name) {
+        int farm = automation.createUserFarm(user, new ru.growerhub.backend.automation.contract.AutomationData.SaveRoomRequest(name + " ферма", true)).farms().stream().filter(f -> f.name().equals(name + " ферма")).findFirst().orElseThrow().id();
+        return automation.createGreenhouse(user, farm, new ru.growerhub.backend.automation.contract.AutomationData.SaveBoxRequest(name, true)).farms().stream()
+                .flatMap(f -> f.greenhouses().stream()).filter(g -> g.name().equals(name)).findFirst().orElseThrow().id();
+    }
+    private com.fasterxml.jackson.databind.JsonNode plantChange(Work work, String key, Map<String, ?> payload) { return assistantTool(work, key, "gh_prepare_change", Map.of("kind", "plant", "payload", payload)); }
+    private com.fasterxml.jackson.databind.JsonNode assistantTool(Work work, String key, String name, Map<String, ?> arguments) {
+        var call = new ToolCall(key, name, json.valueToTree(arguments)); advisor.beginAssistantTool(work.id(), work.lease(), call);
+        var result = advisor.executeAssistantTool(work.id(), work.lease(), call); return advisor.finishAssistantTool(work.id(), work.lease(), key, result);
+    }
+    private Proposal applyChange(com.fasterxml.jackson.databind.JsonNode value, AuthenticatedUser user) {
+        UUID id = UUID.fromString(value.path("id").asText());
+        assertThat(advisor.confirmAssistantProposal(id, new Confirm(value.path("revision").asText()), user, false).status()).isEqualTo("confirmed");
+        assertThat(advisor.claimAssistantApplication().id()).isEqualTo(id); return advisor.applyAssistantProposal(id);
+    }
+    private byte[] journalTestPhoto() throws Exception {
+        var image = new java.awt.image.BufferedImage(8, 8, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        var bytes = new java.io.ByteArrayOutputStream(); javax.imageio.ImageIO.write(image, "jpeg", bytes); return bytes.toByteArray();
+    }
     private UUID create(UserEntity user) { return UUID.fromString(request(user).body(Map.of()).post("/api/advisor/conversations").then().statusCode(200).extract().path("id")); }
     private void send(UserEntity user, UUID chat) { request(user).body(Map.of("clientKey", UUID.randomUUID(), "text", "Покажи состояние")).post(path(chat)).then().statusCode(200); }
     private String path(UUID id) { return "/api/advisor/conversations/" + id + "/messages"; }

@@ -68,6 +68,11 @@
 .assistant-files button { border: 0; background: transparent; color: var(--danger); font-size: 20px; }
 .assistant-photos { display: flex; flex-wrap: wrap; gap: 6px; }
 .assistant-photo { max-width: 160px; max-height: 180px; border-radius: 12px; object-fit: contain; }
+.assistant-change-summary { overflow-wrap: anywhere; }
+.assistant-change-summary dl { display: grid; gap: 8px; margin: 12px 0; }
+.assistant-change-summary dl > div { display: grid; gap: 3px; }
+.assistant-change-summary dt { font-size: 12px; color: var(--text-2); }
+.assistant-change-summary dd { margin: 0; white-space: pre-wrap; }
 .assistant-launch { position: fixed; z-index: 60; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 8px; padding: 13px 17px; color: var(--on-accent); background: var(--accent); border: 1px solid var(--accent-strong); border-radius: 30px; box-shadow: var(--shadow-2); font: inherit; text-decoration: none; cursor: pointer; }
 .assistant-dialog .gh-modal { justify-content: flex-end; }
 .assistant-dialog .gh-modal__panel { width: min(620px, 95vw); height: 100dvh; max-height: 100dvh; padding: 0; gap: 0; box-sizing: border-box; border-radius: 18px 0 0 18px; }

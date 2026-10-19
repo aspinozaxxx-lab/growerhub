@@ -8,6 +8,8 @@ import useAssistant from './useAssistant';
 import RuleExplanation from './RuleExplanation';
 import AssistantText from './AssistantText';
 import { demoPrompts } from './demoPrompts';
+import { careAction } from '../care/careModel';
+import { formatDateTimeDDMMYYYY } from '../../utils/formatters';
 import './assistant.css';
 
 const status = { queued: 'В очереди', running: 'Думаю…', completed: 'Готово', incomplete: 'Ответ остановлен на лимите', failed: 'Ответ недоступен', uncertain: 'Результат неизвестен', cancelled: 'Остановлено', pending: 'Ждёт подтверждения', confirmed: 'Подтверждено', applying: 'Применяется', applied: 'Изменение применено', stale: 'Настройки изменились', rejected: 'Отклонено', expired: 'Предложение устарело' };
@@ -22,11 +24,16 @@ function Photo({ id }) {
 }
 function Proposal({ item, onAction, busy }) {
   const p = item.payload || {};
+  const plantId = item.kind === 'plant' ? item.result?.id : item.kind === 'care' ? item.result?.entry?.plantId : null;
   return <section className="assistant-proposal">
     <strong>{item.title}</strong>
     {item.kind === 'device' && <p>{p.type === 'water' ? `${t('Полив')}: ${p.durationSeconds} ${t('с')}` : `${t('Состояние')}: ${p.value}`}</p>}
     {item.kind === 'reminder' && <p>{p.title} · {p.dueAt} UTC</p>}
-    {item.kind === 'care' && <p>{p.text}</p>}
+    {item.kind === 'plant' && <PlantChange payload={p} />}
+    {item.kind === 'care' && <div className="assistant-change-summary"><p><strong>{p.plantName}</strong> · {t(careAction(p.action)[1])}</p>
+      {p.eventAt && <p>{formatDateTimeDDMMYYYY(p.eventAt)}</p>}<p>{p.text}</p>
+      {p.photoIds?.length > 0 && <><p>{t('Фото в журнал: {{count}}', { count: p.photoIds.length })}</p><div className="assistant-photos">{p.photoIds.map(id => <Photo key={id} id={id} />)}</div></>}
+    </div>}
     {item.kind === 'feature_request' && <><p>{p.description}</p><p><strong>{t('Зачем это нужно:')}</strong> {p.benefit}</p><small>{t('Команда получит этот текст и номер вашего аккаунта. Решение о доработке появится после рассмотрения.')}</small></>}
     {['rule', 'scenario'].includes(item.kind) && <p>{t(item.status === 'applied' ? (p.enabled ? 'Сохранён включённым' : 'Сохранён выключенным') : (p.enabled ? 'Начнёт работать при ближайшем выполнении условий' : 'Сохранится выключенным'))}</p>}
     {item.kind === 'rule' && <RuleExplanation definition={p.definition} resourceNames={p.resourceNames} scopeName={p.scopeName} timing={p.timing} />}
@@ -34,8 +41,17 @@ function Proposal({ item, onAction, busy }) {
     {item.kind === 'scenario' && <details><summary>{t('Настройки сценария')}</summary><dl>{Object.entries(p.config || {}).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{String(v)}</dd></div>)}</dl></details>}
     <p role="status">{t(item.kind === 'feature_request' && item.status === 'applied' ? 'Запрос передан команде GrowerHub на рассмотрение.' : item.kind === 'device' && item.status === 'applied' ? 'Команда передана устройству. Фактическое состояние смотрите на ферме.' : status[item.status] || item.status)}</p>
     {item.kind === 'rule' && item.status === 'applied' && item.result?.id && <Link className="gh-btn gh-btn--secondary" to={`/app/automations/?rule=${encodeURIComponent(item.result.id)}`}>{t('Открыть сценарий')}</Link>}
+    {plantId && item.status === 'applied' && <Link className="gh-btn gh-btn--secondary" to={`/app/plants/${encodeURIComponent(plantId)}/journal/`}>{t('Открыть журнал растения')}</Link>}
     {item.status === 'pending' && <div className="assistant-actions"><Button variant="primary" disabled={busy} onClick={() => onAction(item, false)}>{t(item.kind === 'feature_request' ? 'Отправить запрос' : 'Подтвердить')}</Button><Button disabled={busy} onClick={() => onAction(item, true)}>{t(item.kind === 'feature_request' ? 'Не отправлять' : 'Не применять')}</Button></div>}
   </section>;
+}
+function PlantChange({ payload: p }) {
+  const labels = { name: 'Название', plantType: 'Вид', strain: 'Сорт', growthStage: 'Стадия', description: 'Описание', locationLabel: 'Место', plantedAt: 'Дата посадки' };
+  return <div className="assistant-change-summary"><dl>{Object.entries(p.fields || {}).filter(([key]) => labels[key]).map(([key, value]) => <div key={key}>
+    <dt>{t(labels[key])}</dt><dd>{p.operation === 'update' && <>{p.before?.[key] ? (key === 'plantedAt' ? formatDateTimeDDMMYYYY(p.before[key]) : p.before[key]) : t('Не указано')} → </>}{key === 'plantedAt' ? formatDateTimeDDMMYYYY(value) : value || t('Не указано')}</dd>
+  </div>)}{p.fields?.dateUnknown && <div><dt>{t('Дата посадки')}</dt><dd>{t('Неизвестна')}</dd></div>}
+    {p.zoneChanged && <div><dt>{t('Теплица')}</dt><dd>{p.operation === 'update' && <>{p.previousZoneName || t('Без теплицы')} → </>}{p.zoneName || t('Без теплицы')}</dd></div>}
+  </dl></div>;
 }
 export default function AssistantChat({ initialText = '', backTo, onClose }) {
   const a = useAssistant(initialText); const [settingsOpen, setSettingsOpen] = useState(false);

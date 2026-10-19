@@ -16,6 +16,7 @@
 - `deleteEntry(Integer plantId, Integer entryId, AuthenticatedUser user)`
 - `getPhoto(Integer photoId, AuthenticatedUser user)`
 - `searchCare`, `careSummaries`: постраничный поиск и обложки.
+- `getCareEntry`, `validateCareEntryUpdate`: собственная запись и проверка её изменения без записи.
 - `createCareEntry`, `updateCareEntry`, `deleteCareEntry`, `addCarePhoto`, `deleteCarePhoto`: ручной уход и фотографии.
 - `careReminders`, `saveCareReminder`, `actCareReminder`, `deleteCareReminder`: планы ухода и выполнение конкретного экземпляра.
 - `createWateringEntries(List<WateringTarget> targets, AuthenticatedUser user, LocalDateTime eventAt, Double ph, String fertilizersPerLiter)`

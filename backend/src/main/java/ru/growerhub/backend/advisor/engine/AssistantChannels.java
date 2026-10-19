@@ -167,7 +167,8 @@ public class AssistantChannels {
             var job = jobs.findById(p.jobId).orElse(null); var user = principal(p.userId);
             if (job != null && "telegram".equals(job.channel) && user != null && notifications.assistantAllowed(user)) {
                 String result = switch (p.status) {
-                    case "applied" -> "feature_request".equals(p.kind) ? "Запрос передан команде GrowerHub на рассмотрение." : "device".equals(p.kind) ? "Команда передана устройству. Фактическое состояние смотрите на ферме." : "Изменение сохранено.";
+                    case "applied" -> "feature_request".equals(p.kind) ? "Запрос передан команде GrowerHub на рассмотрение." : "device".equals(p.kind) ? "Команда передана устройству. Фактическое состояние смотрите на ферме."
+                            : "care".equals(p.kind) || "plant".equals(p.kind) ? "Изменение сохранено. " + plantLink(p) : "Изменение сохранено.";
                     case "stale" -> "Настройки изменились. Попросите новое предложение.";
                     case "uncertain" -> "Результат неизвестен. Повторная команда не отправлена. Проверьте состояние в GrowerHub.";
                     default -> "Предложение отменено или устарело.";
@@ -188,7 +189,17 @@ public class AssistantChannels {
     private String readablePayload(Proposal proposal) {
         var p = proposal.payload();
         if ("feature_request".equals(proposal.kind())) return p.path("description").asText() + "\nЗачем: " + p.path("benefit").asText();
-        if ("care".equals(proposal.kind())) return p.path("action").asText() + ": " + p.path("text").asText();
+        if ("care".equals(proposal.kind())) return p.path("plantName").asText() + "\n" + careLabel(p.path("action").asText()) + ": " + p.path("text").asText()
+                + "\nДата: " + p.path("eventAt").asText() + "\nФото в журнал: " + p.path("photoIds").size();
+        if ("plant".equals(proposal.kind())) {
+            var labels = Map.of("name", "Название", "plantType", "Вид", "strain", "Сорт", "growthStage", "Стадия", "description", "Описание", "locationLabel", "Место", "plantedAt", "Дата посадки");
+            var lines = new ArrayList<String>();
+            p.path("fields").properties().forEach(e -> { if (labels.containsKey(e.getKey())) lines.add(labels.get(e.getKey()) + ": "
+                    + ("update".equals(p.path("operation").asText()) ? p.path("before").path(e.getKey()).asText("не указано") + " → " : "") + e.getValue().asText()); });
+            if (p.path("fields").path("dateUnknown").asBoolean()) lines.add("Дата посадки неизвестна");
+            if (p.path("zoneChanged").asBoolean()) lines.add("Теплица: " + ("update".equals(p.path("operation").asText()) ? place(p.path("previousZoneName").asText()) + " → " : "") + place(p.path("zoneName").asText()));
+            return String.join("\n", lines);
+        }
         if ("reminder".equals(proposal.kind())) return p.path("title").asText() + ", " + p.path("dueAt").asText() + " UTC";
         if ("rule".equals(proposal.kind())) {
             var d = p.path("definition"); var trigger = d.path("trigger");
@@ -219,6 +230,16 @@ public class AssistantChannels {
     private String resourceName(com.fasterxml.jackson.databind.JsonNode payload, com.fasterxml.jackson.databind.JsonNode action) {
         String id = action.path("resourceId").asText();
         return payload.path("resourceNames").path(id).asText("Устройство №" + id);
+    }
+    private String plantLink(AssistantProposalEntity proposal) {
+        try {
+            var result = json.readTree(proposal.resultJson); int id = "plant".equals(proposal.kind) ? result.path("id").asInt() : result.path("entry").path("plantId").asInt();
+            return id > 0 ? "Журнал растения: " + settings.siteUrl() + "/app/plants/" + id + "/journal/" : "Откройте журнал в GrowerHub.";
+        } catch (Exception ex) { return "Откройте журнал в GrowerHub."; }
+    }
+    private String place(String name) { return name.isBlank() ? "без теплицы" : name; }
+    private String careLabel(String action) {
+        return Map.of("watering", "Полито вручную", "fertilizing", "Подкормка", "repotting", "Пересадка", "pruning", "Обрезка", "treatment", "Обработка", "inspection", "Осмотр", "photo", "Фото", "note", "Заметка", "harvest", "Сбор урожая").getOrDefault(action, "Уход");
     }
     private String condition(com.fasterxml.jackson.databind.JsonNode node) {
         if (node.isNull() || node.isMissingNode()) return "без дополнительных условий";

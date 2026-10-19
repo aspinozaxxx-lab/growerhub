@@ -87,7 +87,7 @@ describe('AppAutomations', () => {
     fireEvent.change(screen.getByLabelText('Настройки теплицы'), { target: { value: '3' } });
     const group = screen.getByRole('region', { name: 'Свои сценарии: Зелень' });
     expect(within(group).getByRole('button', { name: 'Открыть сценарий «Полив через день»' })).toBeInTheDocument();
-    expect(within(group).getByText('Выключен')).toBeInTheDocument();
+    expect(within(group).getByRole('switch', { name: 'Сценарий: Полив через день' })).not.toBeChecked();
     expect(screen.queryByText('Пауза между запусками')).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Автоматизации фермы: Ферма' })).toBeInTheDocument();
     expect(ruleRequest.mock.calls.filter(([path]) => !path)).toHaveLength(1);
@@ -113,6 +113,34 @@ describe('AppAutomations', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Сценарий не найден в текущей ферме');
     expect(ruleRequest.mock.calls.every(([path]) => !path)).toBe(true);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('switches a personal routine on and off in the list using its current revision', async () => {
+    fetchFarmsOverview.mockResolvedValue(multiOverview()); personalRules = [personalRule('custom', 'Осмотр', 'BOX', 2)];
+    ruleRequest.mockImplementation(async (path = '', method, body) => {
+      if (!path) return [...personalRules];
+      if (path === '/custom/enabled' && method === 'PUT') { personalRules = personalRules.map(r => ({ ...r, enabled: body.enabled, revision: r.revision + 1 })); return personalRules[0]; }
+      return {};
+    });
+    render(<MemoryRouter><AppAutomations /></MemoryRouter>);
+    const toggle = await screen.findByRole('switch', { name: 'Сценарий: Осмотр' });
+    expect(toggle).not.toBeChecked(); fireEvent.click(toggle);
+    await waitFor(() => expect(toggle).toBeChecked());
+    expect(ruleRequest).toHaveBeenCalledWith('/custom/enabled', 'PUT', { enabled: true, revision: 1 });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(toggle); await waitFor(() => expect(toggle).not.toBeChecked());
+    expect(ruleRequest).toHaveBeenLastCalledWith();
+    expect(ruleRequest).toHaveBeenCalledWith('/custom/enabled', 'PUT', { enabled: false, revision: 2 });
+    expect(ruleRequest.mock.calls.filter(([path]) => path?.includes('/history') || path?.startsWith('/preview'))).toHaveLength(0);
+  });
+  it('keeps a rejected switch off and shows the server conflict beside that routine', async () => {
+    fetchFarmsOverview.mockResolvedValue(multiOverview()); personalRules = [personalRule('custom', 'Полив с паузами', 'BOX', 2)];
+    const previous = ruleRequest.getMockImplementation();
+    ruleRequest.mockImplementation((path, ...rest) => path === '/custom/enabled' ? Promise.reject(new Error('Канал занят поливом')) : previous(path, ...rest));
+    render(<MemoryRouter><AppAutomations /></MemoryRouter>);
+    const toggle = await screen.findByRole('switch', { name: 'Сценарий: Полив с паузами' }); fireEvent.click(toggle);
+    expect(await within(screen.getByRole('region', { name: 'Свои сценарии: Рассада' })).findByRole('alert')).toHaveTextContent('Канал занят поливом');
+    expect(toggle).not.toBeChecked(); expect(toggle).toBeEnabled(); expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('pokazyvaet tolko obshchie chetyre polya klimata', async () => {

@@ -16,7 +16,7 @@ function scheduleLabel(trigger) {
   return t('При изменении показаний');
 }
 
-export default function RuleCards({ rules, scopeType, scopeId, scopeName, onOpen, busy }) {
+export default function RuleCards({ rules, scopeType, scopeId, scopeName, onOpen, onToggle, busy, error, errorRuleId }) {
   const scoped = rules.filter(r => r.definition.scopeType === scopeType && r.definition.scopeId === scopeId);
   const title = scopeType === 'ROOM' ? t('Автоматизации фермы') : t('Свои сценарии');
   return <section className="automations-rules-panel ym-hide-content" aria-label={`${title}: ${scopeName}`}>
@@ -26,11 +26,14 @@ export default function RuleCards({ rules, scopeType, scopeId, scopeName, onOpen
       <MessageSquarePlus size={16} aria-hidden="true" />{t('Создать')}</Link></header>
     {scoped.length > 0 && <ul>{scoped.map(rule => {
       const Icon = rule.definition.actions.some(a => a.type === 'water') ? Droplets : Workflow;
-      return <li key={rule.id} id={`rule-${rule.id}`}><button type="button" className="automations-rule-row" disabled={busy}
+      return <li key={rule.id} id={`rule-${rule.id}`}><div className="automations-rule-line"><button type="button" className="automations-rule-row" disabled={busy}
         aria-label={t('Открыть сценарий «{{name}}»', { name: rule.definition.name })} onClick={() => onOpen(rule)}>
         <Icon size={19} aria-hidden="true" /><span className="automations-rule-name"><strong>{rule.definition.name}</strong><small>{scheduleLabel(rule.definition.trigger)}</small></span>
-        <span className={`automations-rule-status ${rule.enabled ? 'is-on' : ''}`}>{t(rule.enabled ? 'Включён' : 'Выключен')}</span><ChevronRight size={16} aria-hidden="true" />
-      </button></li>;
+        <ChevronRight size={16} aria-hidden="true" />
+      </button><button type="button" role="switch" className="automation-switch" disabled={busy}
+        aria-label={t('Сценарий: {{name}}', { name: rule.definition.name })} aria-checked={rule.enabled}
+        title={t(rule.enabled ? 'Выключить' : 'Включить')} onClick={() => onToggle(rule)}><span aria-hidden="true" /></button></div>
+        {errorRuleId === rule.id && error && <p className="automations-rule-error" role="alert">{error}</p>}</li>;
     })}</ul>}
   </section>;
 }

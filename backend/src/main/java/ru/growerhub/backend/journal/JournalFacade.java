@@ -80,6 +80,14 @@ public class JournalFacade {
         return care.summaries(user);
     }
     @Transactional(readOnly = true)
+    public ru.growerhub.backend.journal.contract.CareData.Item getCareEntry(Integer entryId, AuthenticatedUser user) {
+        var entry = care.requireEntry(entryId, user);
+        return care.item(entry, plantFacade.requireOwnedPlantInfo(entry.getPlantId(), user).name());
+    }
+    @Transactional(readOnly = true)
+    public void validateCareEntryUpdate(Integer entryId, AuthenticatedUser user,
+            ru.growerhub.backend.journal.contract.CareData.EntryCommand command) { care.validateUpdate(entryId, user, command); }
+    @Transactional(readOnly = true)
     public void validateCareEntry(Integer plantId, AuthenticatedUser user,
             ru.growerhub.backend.journal.contract.CareData.EntryCommand command) {
         plantFacade.requireOwnedPlantInfo(plantId, user); care.validate(command);

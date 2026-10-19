@@ -34,6 +34,8 @@ The screenshots show the working interface with a practice conversation, rather 
 
 ## Add a photo for context
 
+The assistant can also create and fill plant profiles, move them between your greenhouses, search care records and prepare edits to manual entries. Save a photo from the app or Telegram in a selected plant’s journal after reviewing the proposal. [Follow the rosemary example](/en/articles/plants-and-journal-photos-with-the-assistant/).
+
 Attach up to two JPEG or PNG photos, each up to 6 MB. Take one photo of the whole plant and another of the affected leaf in normal light. Describe where the pot stands, when you last watered it and what changed recently.
 
 A photo shows appearance; moisture inside the pot and root condition need a hands-on check. A useful next step may be to check the substrate, look under the leaf or compare new growth with an older photo. If you already keep a journal, ask the assistant to take its entries into account.
@@ -54,7 +56,7 @@ In **Routines**, choose a greenhouse by its name in the light schedule or the **
 
 ![Custom routines within the selected greenhouse](/screenshots/assistant/scoped-routines-en.webp)
 
-Opening a link does not turn anything on. Review a disabled routine freely, then use the separate enable button after checking it. Real and demo farms have separate lists: if a link is opened in the wrong mode, choose the right mode and account first.
+Opening a link does not turn anything on. Use the switch on the right of a custom routine to enable or disable it directly, just like climate or watering. The server checks the current revision, readiness and conflicts; any refusal appears beside the row. Real and demo farms have separate lists: if a link is opened in the wrong mode, choose the right mode and account first.
 
 Scenarios support schedules, intervals and changes in readings. They can check a plant’s stage, the time of day and data freshness. Actions include supported device controls, bounded watering sessions, pauses and notifications. Notifications require a connected Telegram account. Demo rules let you check saving and run history; they do not send messages to a real Telegram chat.
 

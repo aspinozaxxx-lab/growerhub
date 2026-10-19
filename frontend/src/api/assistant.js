@@ -1,8 +1,9 @@
 import { apiFetch, readApiErrorMessage } from './client';
+import { translateApp as t } from '../locales/i18n';
 
-async function checked(response) {
+async function checked(response, fallback) {
   if (response.ok) return response;
-  const error = new Error(await readApiErrorMessage(response));
+  const error = new Error(await readApiErrorMessage(response, fallback));
   error.retryAfter = Number(response.headers.get('Retry-After')) || 0;
   throw error;
 }
@@ -35,6 +36,7 @@ export async function watchAssistant(id, onMessage, signal) {
   } finally { reader.releaseLock(); }
 }
 export async function ruleRequest(path = '', method = 'GET', body) {
-  return (await checked(await apiFetch(`/api/automation/rules${path}`, { method,
-    ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }) }))).json();
+  const response = await apiFetch(`/api/automation/rules${path}`, { method,
+    ...(body === undefined ? {} : { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }) });
+  return (await checked(response, response.status === 422 ? t('Проверьте настройки сценария, готовность устройств и другие сценарии для них.') : undefined)).json();
 }

@@ -6,6 +6,7 @@ import java.time.*;
 import java.util.*;
 import org.springframework.stereotype.Service;
 import org.springframework.core.io.ResourceLoader;
+import ru.growerhub.backend.advisor.jpa.AssistantPhotoRepository;
 import ru.growerhub.backend.automation.AutomationFacade;
 import ru.growerhub.backend.automation.contract.AutomationData.*;
 import ru.growerhub.backend.automation.contract.RuleData;
@@ -28,11 +29,13 @@ public class AssistantTools {
     private final Clock clock;
     private final AssistantRequests requests;
     private final JsonNode interfaceGuide;
+    private final AssistantPhotoRepository photos;
 
     public AssistantTools(AutomationFacade automation, PlantFacade plants, JournalFacade journal, UserFacade users,
-            AssistantIdentity identity, AssistantSettings settings, ObjectMapper json, Clock clock, AssistantRequests requests, ResourceLoader resources) {
+            AssistantIdentity identity, AssistantSettings settings, ObjectMapper json, Clock clock, AssistantRequests requests, ResourceLoader resources, AssistantPhotoRepository photos) {
         this.automation = automation; this.plants = plants; this.journal = journal; this.users = users;
         this.identity = identity; this.settings = settings; this.json = json; this.clock = clock; this.requests = requests;
+        this.photos = photos;
         try (var input = resources.getResource(settings.interfaceGuide()).getInputStream()) { this.interfaceGuide = json.readTree(input); }
         catch (java.io.IOException ex) { throw new IllegalStateException("Не удалось загрузить справку интерфейса", ex); }
     }
@@ -48,14 +51,16 @@ public class AssistantTools {
         var result = new ArrayList<>(List.of(
             tool("gh_farm_report", "Текущее состояние собственной фермы, устройства, показания, сценарии и растения. Числа рассчитывает сервер.", Map.of(), List.of()),
             tool("gh_app_help", "Где и как что-то сделать в интерфейсе GrowerHub: проверенные названия разделов, шаги и ссылки. section — раздел; без него список. Для созданного сценария section=scenarios вернёт свои сценарии с точными ссылками; ruleId необязателен и должен принадлежать пользователю. Только чтение, не меняет настройки.", Map.of("section", Map.of("type", "string", "enum", interfaceGuide.path("sections").properties().stream().map(Map.Entry::getKey).toList()), "ruleId", Map.of("type", "string")), List.of()),
-            tool("gh_plant_details", "История ухода и сведения о своём растении", Map.of("plantId", integer()), List.of("plantId")),
+            tool("gh_plant_details", "Карточка, размещение, первая страница журнала и дела своего растения. ID растения возьми из gh_farm_report. Следующие страницы или поиск записей — gh_journal.", Map.of("plantId", integer()), List.of("plantId")),
+            tool("gh_journal", "Поиск и страницы собственного журнала ухода, включая фото и ручные записи. Все параметры необязательны: plantId, query (слова), action (вид ухода), from/until (ISO UTC), page с нуля. entryId возвращает одну собственную запись для исправления. Автоматический полив доступен только для чтения.",
+                Map.of("plantId", integer(), "entryId", integer(), "query", Map.of("type", "string"), "action", Map.of("type", "string"), "from", Map.of("type", "string"), "until", Map.of("type", "string"), "page", Map.of("type", "integer", "minimum", 0)), List.of()),
             tool("gh_resource_history", "История и энергопотребление своей розетки. hours — число часов", Map.of("resourceId", integer(), "hours", integer()), List.of("resourceId", "hours")),
             tool("gh_sensor_history", "История своего датчика температуры, влажности воздуха/почвы или протечки за последние hours часов (до 2160). resourceId возьми из gh_farm_report. Сводка по сохранённым точкам, а не непрерывным измерениям; учитывай пропуски и возраст последнего показания. Для сравнения зон вызови для каждого датчика.", Map.of("resourceId", integer(), "hours", integer()), List.of("resourceId", "hours")),
             tool("gh_feature_requests", "Мои отправленные запросы на доработки и решения команды. page — страница с нуля.", Map.of("page", Map.of("type", "integer", "minimum", 0)), List.of()),
             tool("gh_rule_details", "Без параметров: свои правила и схема новых сценариев, включая ежедневное уведомление без устройств. ruleId: подробности своего правила. scopeType=ROOM|BOX и scopeId: настройки существующих готовых сценариев, не схема нового правила.", Map.of("ruleId", Map.of("type", "string"), "scopeType", Map.of("type", "string"), "scopeId", integer()), List.of()),
             tool("gh_validate_rule", "Проверить правило, ближайшие даты, этапы цикла, конфликты и готовность без сохранения. payload — определение version=2 из gh_rule_details.", Map.of("payload", Map.of("type", "object")), List.of("payload")),
-            tool("gh_prepare_change", "Подготовить предложение, НЕ применяя его. kind=care: payload {plantId,action,text,eventAt}; reminder: {plantId,action,title,dueAt,repeatDays,repeatMode}; scenario: {scopeType:ROOM|BOX,scopeId,scenarioType,enabled,config}; rule: {ruleId?:UUID,revision?:number,enabled:boolean,definition:object из gh_rule_details}; device: {type:set|water,resourceId,value?:string,durationSeconds?:integer}; feature_request: {title до 120 символов,description до 2000,benefit до 1000} — запрос команде на нужную пользователю доработку, без обещания реализации. Только краткая задача и польза, без секретов и пересылки переписки. Даты ISO UTC. Человек подтверждает кнопкой.",
-                Map.of("kind", Map.of("type", "string", "enum", List.of("care", "reminder", "scenario", "rule", "device", "feature_request")), "payload", Map.of("type", "object")), List.of("kind", "payload"))));
+            tool("gh_prepare_change", "Подготовить предложение, НЕ применяя его. kind=plant: {operation:create|update,plantId?:number,fields:{name?,plantType?,strain?,growthStage?,description?,locationLabel?,plantedAt?:ISO UTC,dateUnknown?:boolean},zoneId?:number|null}; zoneId — ID теплицы из gh_farm_report, null убирает размещение, отсутствие сохраняет прежнее. Для create обязательно fields.name, неизвестную дату не выдумывай. kind=care: {plantId,entryId?:number,action,text,eventAt?:ISO UTC,photoIds?:UUID[]}; entryId исправляет ручную запись, иначе создаёт новую. Фото бери только из списка вложений этого разговора. action=watering|fertilizing|repotting|pruning|treatment|inspection|photo|note. reminder: {plantId,action,title,dueAt,repeatDays,repeatMode}; scenario: {scopeType:ROOM|BOX,scopeId,scenarioType,enabled,config}; rule: {ruleId?:UUID,revision?:number,enabled:boolean,definition:object из gh_rule_details}; device: {type:set|water,resourceId,value?:string,durationSeconds?:integer}; feature_request: {title до 120 символов,description до 2000,benefit до 1000}. Человек подтверждает кнопкой. Чужие данные и владельца указывать нельзя.",
+                Map.of("kind", Map.of("type", "string", "enum", List.of("plant", "care", "reminder", "scenario", "rule", "device", "feature_request")), "payload", Map.of("type", "object")), List.of("kind", "payload"))));
         if (adminRead(user)) {
             result.add(tool("gh_admin_users", "Только для владельца-администратора: поиск аккаунтов по имени, email или ID. Без секретов. offset — смещение, до 20 записей.", Map.of("query", Map.of("type", "string", "maxLength", 100), "offset", Map.of("type", "integer", "minimum", 0)), List.of()));
             result.add(tool("gh_admin_user_report", "Только чтение данных выбранного пользователя: профиль, ферма, устройства, растения, сценарии. Не даёт права менять чужие данные.", Map.of("userId", integer()), List.of("userId")));
@@ -92,11 +97,20 @@ public class AssistantTools {
             case "gh_farm_report" -> report(user);
             case "gh_app_help" -> interfaceHelp(input, user);
             case "gh_feature_requests" -> json.valueToTree(requests.list(user, false, input.path("page").asInt(0)));
+            case "gh_journal" -> {
+                if (input.hasNonNull("entryId")) yield json.valueToTree(journal.getCareEntry(id(input, "entryId"), user));
+                int page = input.has("page") ? nonNegative(input, "page") : 0;
+                yield json.valueToTree(Map.of("now", clock.instant(), "page", journal.searchCare(user, input.hasNonNull("plantId") ? id(input, "plantId") : null,
+                        optionalText(input, "query"), optionalText(input, "action"), input.hasNonNull("from") ? date(input, "from") : null,
+                        input.hasNonNull("until") ? date(input, "until") : null, page)));
+            }
             case "gh_sensor_history" -> sensorHistory(input, user);
             case "gh_plant_details" -> {
                 int id = id(input, "plantId"); var plant = plants.requireOwnedPlantInfo(id, user);
-                yield json.valueToTree(Map.of("plant", plant, "care", journal.searchCare(user, id, null, null, null, null, 0),
-                        "reminders", journal.careReminders(user).stream().filter(r -> r.plantId().equals(id)).toList()));
+                var data = new LinkedHashMap<String, Object>(); data.put("plant", plant); data.put("zone", automation.getPlantZone(user, id));
+                data.put("now", clock.instant()); data.put("url", settings.siteUrl() + "/app/plants/" + id + "/journal/");
+                data.put("care", journal.searchCare(user, id, null, null, null, null, 0));
+                data.put("reminders", journal.careReminders(user).stream().filter(r -> r.plantId().equals(id)).toList()); yield json.valueToTree(data);
             }
             case "gh_resource_history" -> {
                 int resource = id(input, "resourceId");
@@ -212,14 +226,33 @@ public class AssistantTools {
     public Prepared prepare(String kind, JsonNode payload, AuthenticatedUser user) {
         if (payload == null || !payload.isObject() || payload.toString().length() > settings.maxToolResultChars()) throw bad("Неверное предложение");
         return switch (kind) {
+            case "plant" -> preparePlant(payload, user);
             case "feature_request" -> {
                 var clean = requests.validate(payload, user);
                 yield new Prepared("Отправить команде: " + clean.path("title").asText(), clean, fingerprint(clean));
             }
             case "care" -> {
                 int id = id(payload, "plantId"); var plant = plants.requireOwnedPlantInfo(id, user);
-                var command = care(payload, "assistant:preview"); journal.validateCareEntry(id, user, command);
-                yield new Prepared("Записать уход: " + plant.name(), payload, fingerprint(plant));
+                var clean = payload.deepCopy();
+                Object previous = "new";
+                if (clean.hasNonNull("entryId")) {
+                    var entry = journal.getCareEntry(id(clean, "entryId"), user);
+                    if (!entry.entry().plantId().equals(id)) throw bad("Запись относится к другому растению");
+                    var object = (com.fasterxml.jackson.databind.node.ObjectNode) clean;
+                    if (!clean.has("text")) object.put("text", entry.entry().text());
+                    if (!clean.has("action") && entry.action() != null) object.put("action", entry.action());
+                    if (!clean.hasNonNull("eventAt")) object.put("eventAt", entry.entry().eventAt().toInstant(ZoneOffset.UTC).toString());
+                    previous = entry;
+                }
+                if (!clean.hasNonNull("eventAt")) ((com.fasterxml.jackson.databind.node.ObjectNode) clean).put("eventAt", clock.instant().toString());
+                var command = care(clean, "assistant:preview");
+                if (clean.hasNonNull("entryId")) journal.validateCareEntryUpdate(id(clean, "entryId"), user, command);
+                else journal.validateCareEntry(id, user, command);
+                var ids = photoIds(clean);
+                if ("photo".equals(command.action()) && ids.isEmpty() && !clean.hasNonNull("entryId")) throw bad("Прикрепите фотографию для записи в журнал");
+                var imageHashes = ids.stream().map(image -> List.of(image, imageFingerprint(image, user))).toList();
+                ((com.fasterxml.jackson.databind.node.ObjectNode) clean).put("plantName", plant.name());
+                yield new Prepared((clean.hasNonNull("entryId") ? "Исправить запись: " : "Записать уход: ") + plant.name(), clean, fingerprint(List.of(plant, previous, imageHashes)));
             }
             case "reminder" -> {
                 var command = reminder(payload); var plant = plants.requireOwnedPlantInfo(command.plantId(), user);
@@ -265,8 +298,19 @@ public class AssistantTools {
         var prepared = prepare(kind, payload, user);
         if (!prepared.fingerprint().equals(expected)) throw new DomainException("conflict", "Настройки изменились. Попросите помощника подготовить новое предложение");
         return switch (kind) {
+            case "plant" -> {
+                var f = payload.path("fields"); Integer zone = payload.hasNonNull("zoneId") ? id(payload, "zoneId") : null;
+                yield json.valueToTree("create".equals(text(payload, "operation"))
+                        ? automation.createPlantWithPlacement(user, plantCreate(f), zone)
+                        : automation.updatePlantWithPlacement(user, id(payload, "plantId"), plantUpdate(f), payload.has("zoneId"), zone));
+            }
             case "feature_request" -> json.valueToTree(requests.create(proposalId, payload, user));
-            case "care" -> json.valueToTree(journal.createCareEntry(id(payload, "plantId"), user, care(payload, "assistant:" + proposalId)));
+            case "care" -> {
+                var entry = payload.hasNonNull("entryId") ? journal.updateCareEntry(id(payload, "entryId"), user, care(payload, "assistant:" + proposalId))
+                        : journal.createCareEntry(id(payload, "plantId"), user, care(payload, "assistant:" + proposalId));
+                for (UUID image : photoIds(payload)) journal.addCarePhoto(entry.entry().id(), user, ownedPhoto(image, user).bytes);
+                yield json.valueToTree(journal.getCareEntry(entry.entry().id(), user));
+            }
             case "reminder" -> json.valueToTree(journal.saveCareReminder(null, user, reminder(payload)));
             case "scenario" -> {
                 List<ScenarioConfig> current = scenarioSource(payload, user);
@@ -287,6 +331,80 @@ public class AssistantTools {
         };
     }
     private UUID uuid(JsonNode node, String field) { try { return UUID.fromString(text(node, field)); } catch (IllegalArgumentException ex) { throw bad("Неверный идентификатор правила"); } }
+    private Prepared preparePlant(JsonNode payload, AuthenticatedUser user) {
+        String operation = text(payload, "operation"); var clean = (com.fasterxml.jackson.databind.node.ObjectNode) payload.deepCopy(); var fields = clean.path("fields");
+        if (!fields.isObject() || !Set.of("create", "update").contains(operation)) throw bad("Укажите создание или изменение растения и его поля");
+        var allowed = Set.of("name", "plantType", "strain", "growthStage", "description", "locationLabel", "plantedAt", "dateUnknown");
+        fields.properties().forEach(e -> { if (!allowed.contains(e.getKey()) || e.getValue().isNull()
+                || ("dateUnknown".equals(e.getKey()) ? !e.getValue().isBoolean() : !e.getValue().isTextual())) throw bad("Проверьте поле растения: " + e.getKey()); });
+        if (fields.path("dateUnknown").asBoolean() && fields.has("plantedAt")) throw bad("Укажите дату посадки или оставьте её неизвестной");
+        if ("create".equals(operation) && !fields.has("plantedAt")) {
+            var normalized = (com.fasterxml.jackson.databind.node.ObjectNode) fields;
+            if (fields.has("dateUnknown") && !fields.path("dateUnknown").asBoolean()) normalized.put("plantedAt", clock.instant().toString());
+            else normalized.put("dateUnknown", true);
+        }
+        ru.growerhub.backend.plant.contract.PlantInfo previous = null;
+        if ("create".equals(operation)) plants.validatePlantCreate(plantCreate(fields), user);
+        else {
+            int plantId = id(payload, "plantId"); previous = plants.requireOwnedPlantInfo(plantId, user);
+            plants.validatePlantUpdate(plantId, plantUpdate(fields), user);
+            if (fields.isEmpty() && !payload.has("zoneId")) throw bad("Укажите, что изменить у растения");
+        }
+        var oldZone = previous == null ? null : automation.getPlantZone(user, previous.id());
+        var zone = oldZone;
+        if (payload.has("zoneId") || "create".equals(operation)) {
+            zone = null;
+            if (payload.hasNonNull("zoneId")) {
+                int zoneId = id(payload, "zoneId"); var overview = automation.getFarmsOverview(user);
+                for (var farm : overview.farms()) for (var box : farm.greenhouses()) if (box.id().equals(zoneId))
+                    zone = new ZoneReference(box.id(), box.name(), farm.id(), farm.name());
+                if (zone == null) throw bad("Теплица не найдена в вашей ферме");
+            }
+        }
+        clean.put("plantName", fields.has("name") ? fields.path("name").asText() : previous.name());
+        clean.put("zoneName", zone == null ? "" : zone.name()); clean.put("previousZoneName", oldZone == null ? "" : oldZone.name());
+        clean.put("zoneChanged", payload.has("zoneId") || "create".equals(operation));
+        clean.set("before", json.valueToTree(previous));
+        return new Prepared(("create".equals(operation) ? "Добавить растение: " : "Изменить растение: ") + clean.path("plantName").asText(), clean,
+                fingerprint(Arrays.asList(previous, oldZone, zone)));
+    }
+    private PlantFacade.PlantCreateCommand plantCreate(JsonNode f) {
+        return new PlantFacade.PlantCreateCommand(optionalText(f, "name"), f.has("plantedAt") ? date(f, "plantedAt") : null,
+                optionalText(f, "plantType"), optionalText(f, "strain"), optionalText(f, "growthStage"), optionalText(f, "description"), optionalText(f, "locationLabel"),
+                f.has("dateUnknown") ? f.path("dateUnknown").asBoolean() : !f.has("plantedAt"));
+    }
+    private PlantFacade.PlantUpdateCommand plantUpdate(JsonNode f) {
+        return new PlantFacade.PlantUpdateCommand(optionalText(f, "name"), f.has("plantedAt") ? date(f, "plantedAt") : null,
+                optionalText(f, "plantType"), optionalText(f, "strain"), optionalText(f, "growthStage"), optionalText(f, "description"), optionalText(f, "locationLabel"), f.path("dateUnknown").asBoolean(false));
+    }
+    public List<UUID> photoIds(JsonNode payload) {
+        if (!payload.has("photoIds")) return List.of();
+        var values = payload.get("photoIds");
+        if (!values.isArray() || values.size() > settings.limits().maxPhotos()) throw bad("Проверьте фотографии записи");
+        var ids = new ArrayList<UUID>();
+        for (var value : values) try { if (!value.isTextual()) throw new IllegalArgumentException(); ids.add(UUID.fromString(value.asText())); }
+        catch (IllegalArgumentException ex) { throw bad("Неверный идентификатор фотографии"); }
+        if (ids.stream().distinct().count() != ids.size()) throw bad("Фотография указана несколько раз");
+        return List.copyOf(ids);
+    }
+    private ru.growerhub.backend.advisor.jpa.AssistantPhotoEntity ownedPhoto(UUID id, AuthenticatedUser user) {
+        var image = photos.findById(id).orElseThrow(() -> bad("Фотография не найдена"));
+        if (!user.id().equals(image.userId) || !"ready".equals(image.status) || image.bytes == null) throw bad("Фотография недоступна");
+        return image;
+    }
+    private String imageFingerprint(UUID id, AuthenticatedUser user) {
+        try { return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(ownedPhoto(id, user).bytes)); }
+        catch (java.security.NoSuchAlgorithmException ex) { throw new IllegalStateException(ex); }
+    }
+    private String optionalText(JsonNode node, String field) {
+        if (!node.hasNonNull(field)) return null;
+        if (!node.path(field).isTextual()) throw bad("Проверьте текст: " + field);
+        return node.path(field).asText();
+    }
+    private int nonNegative(JsonNode node, String field) {
+        if (!node.path(field).isIntegralNumber() || !node.path(field).canConvertToInt() || node.path(field).asInt() < 0) throw bad("Неверная страница");
+        return node.path(field).asInt();
+    }
     private RuleData.Definition ruleDefinition(JsonNode node) { try { return json.treeToValue(node, RuleData.Definition.class); } catch (Exception ex) { throw bad("Проверьте структуру правила"); } }
     private List<ScenarioConfig> scenarioSource(JsonNode payload, AuthenticatedUser user) {
         var overview = automation.getFarmsOverview(user); int id = id(payload, "scopeId");
@@ -296,7 +414,7 @@ public class AssistantTools {
             default -> throw bad("Выберите ферму или теплицу");
         };
     }
-    private CareData.EntryCommand care(JsonNode p, String key) { return new CareData.EntryCommand(text(p, "action"), p.path("text").asText(""), date(p, "eventAt"), key); }
+    private CareData.EntryCommand care(JsonNode p, String key) { return new CareData.EntryCommand(p.hasNonNull("entryId") ? optionalText(p, "action") : text(p, "action"), Objects.toString(optionalText(p, "text"), ""), date(p, "eventAt"), key); }
     private CareData.ReminderCommand reminder(JsonNode p) {
         return new CareData.ReminderCommand(id(p, "plantId"), text(p, "action"), text(p, "title"), date(p, "dueAt"),
                 p.path("repeatDays").isNull() || !p.has("repeatDays") ? null : id(p, "repeatDays"), p.path("repeatMode").asText("calendar"));

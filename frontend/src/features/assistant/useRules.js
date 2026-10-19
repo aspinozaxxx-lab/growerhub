@@ -4,6 +4,7 @@ import { ruleRequest } from '../../api/assistant';
 export default function useRules({ refreshKey, selectedId, onClose }) {
   const [rules, setRules] = useState([]); const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
+  const [errorRuleId, setErrorRuleId] = useState(null);
   const [preview, setPreview] = useState(null); const [history, setHistory] = useState([]); const [versions, setVersions] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false); const locked = useRef(false); const live = useRef(true);
   const selected = rules.find(r => r.id === selectedId) || null;
@@ -20,16 +21,17 @@ export default function useRules({ refreshKey, selectedId, onClose }) {
       .finally(() => { if (keep) setDetailLoading(false); });
     return () => { keep = false; };
   }, [selected]);
-  async function run(action) {
+  async function run(action, close = true, ruleId = null) {
     if (locked.current) return;
-    locked.current = true; setBusy(true); setError('');
-    try { await action(); await load(); if (live.current) onClose(); }
+    locked.current = true; setBusy(true); setError(''); setErrorRuleId(ruleId);
+    try { await action(); await load(); if (live.current && close) onClose(); }
     catch (e) { if (live.current) setError(e.message); }
     finally { locked.current = false; if (live.current) setBusy(false); }
   }
-  return { rules, selected, preview, history, versions, detailLoading, loaded, error, busy,
+  return { rules, selected, preview, history, versions, detailLoading, loaded, error, errorRuleId, busy,
     missing: loaded && !!selectedId && !selected,
     toggle: enabled => selected && run(() => ruleRequest(`/${selected.id}/enabled`, 'PUT', { revision: selected.revision, enabled })),
+    switchRule: rule => run(() => ruleRequest(`/${rule.id}/enabled`, 'PUT', { revision: rule.revision, enabled: !rule.enabled }), false, rule.id),
     restore: sourceRevision => selected && run(() => ruleRequest(`/${selected.id}/restore`, 'POST', { revision: selected.revision, sourceRevision })),
   };
 }

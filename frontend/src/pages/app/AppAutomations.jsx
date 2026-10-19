@@ -184,7 +184,7 @@ function AppAutomations() {
         {masterActions}
       </section>}
       <div className="automations-feedback" role="status" aria-live="polite">{notice}</div>
-      {custom.error && !custom.selected && <p role="alert" className="automations-dialog-error">{custom.error}</p>}
+      {custom.error && !custom.selected && !custom.errorRuleId && <p role="alert" className="automations-dialog-error">{custom.error}</p>}
       {custom.missing && <p role="alert">{t('Сценарий не найден в текущей ферме. Проверьте аккаунт и режим демо.')} <button type="button" onClick={closeRule}>{t('Закрыть')}</button></p>}
       {overview && greenhouses.length === 0 ? (
         <AppPageState kind="empty" title={t(farms.length ? 'Сначала добавьте теплицу' : 'Сначала создайте ферму')}>
@@ -273,11 +273,11 @@ function AppAutomations() {
                 greenhouseId={selected.id} revision={wateringRevision} /> : null}
             </section>
           </> : <>{climateEditor}{wateringEditor}</>}
-          <RuleCards rules={custom.rules} scopeType="BOX" scopeId={selected.id} scopeName={selected.name} onOpen={openRule} busy={custom.busy} />
+          <RuleCards rules={custom.rules} scopeType="BOX" scopeId={selected.id} scopeName={selected.name} onOpen={openRule} onToggle={custom.switchRule} busy={custom.busy} error={custom.error} errorRuleId={custom.errorRuleId} />
         </div>
       </> : null}
       {farms.filter(f => !greenhouses.length || custom.rules.some(r => r.definition.scopeType === 'ROOM' && r.definition.scopeId === f.id)).map(farm =>
-        <RuleCards key={farm.id} rules={custom.rules} scopeType="ROOM" scopeId={farm.id} scopeName={farm.name} onOpen={openRule} busy={custom.busy} />)}
+        <RuleCards key={farm.id} rules={custom.rules} scopeType="ROOM" scopeId={farm.id} scopeName={farm.name} onOpen={openRule} onToggle={custom.switchRule} busy={custom.busy} error={custom.error} errorRuleId={custom.errorRuleId} />)}
       <RuleDetails manager={custom} farms={farms} onClose={closeRule} compact={compact} />
       {compact ? <Modal isOpen={editorType !== null} presentation="sheet"
         title={editorType === 'all' ? t('Все автоматизации') : `${selected?.name || ''} · ${t(SCENARIO_LABELS[editorType] || '')}`}

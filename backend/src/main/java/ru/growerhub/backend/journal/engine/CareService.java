@@ -109,19 +109,25 @@ public class CareService {
 
     public CareData.Item update(Integer id, AuthenticatedUser user, CareData.EntryCommand command) {
         lock(user);
+        validateUpdate(id, user, command);
         var entry = requireEntry(id, user);
-        if (entry.getWateringDetails() != null) throw new DomainException("conflict", "Параметры состоявшегося полива изменять нельзя");
         if (command.action() != null) {
-            if (!ACTIONS.contains(command.action())) throw new DomainException("unprocessable", "Неизвестный вид ухода");
             entry.setCareAction(command.action());
             entry.setType(Set.of("watering", "photo", "note", "harvest").contains(command.action()) ? command.action() : "other");
         }
-        validateText(command.text());
         entry.setText(command.text());
         if (command.eventAt() != null) entry.setEventAt(command.eventAt());
         entry.setUpdatedAt(LocalDateTime.now(ZoneOffset.UTC));
         entries.save(entry);
         return item(entry, plants.requireOwnedPlantInfo(entry.getPlantId(), user).name());
+    }
+
+    public void validateUpdate(Integer id, AuthenticatedUser user, CareData.EntryCommand command) {
+        var entry = requireEntry(id, user);
+        if (entry.getWateringDetails() != null) throw new DomainException("conflict", "Параметры состоявшегося полива изменять нельзя");
+        if (command == null || command.action() != null && !ACTIONS.contains(command.action()))
+            throw new DomainException("unprocessable", "Неизвестный вид ухода");
+        validateText(command.text());
     }
 
     public void delete(Integer id, AuthenticatedUser user) {

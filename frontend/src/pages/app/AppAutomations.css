@@ -94,7 +94,10 @@
 .automations-rules-create { display: inline-flex; align-items: center; gap: 5px; flex: none; padding: 5px 0; font-size: 12px; color: var(--accent); }
 .automations-rules-panel > ul { list-style: none; margin: 0; padding: 0; }
 .automations-rules-panel > ul > li { border-top: 1px solid var(--border-1); }
-.automations-rule-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; padding: 10px 16px; border: 0; background: transparent; color: var(--text-1); text-align: left; font: inherit; cursor: pointer; }
+.automations-rule-line { display: flex; align-items: center; gap: 6px; padding-right: 16px; }
+.automations-rule-row { display: flex; flex: 1; min-width: 0; align-items: center; gap: 10px; min-height: 60px; padding: 10px 16px; border: 0; background: transparent; color: var(--text-1); text-align: left; font: inherit; cursor: pointer; }
+.automations-rule-line > .automation-switch { flex: none; }
+.automations-page .automations-rule-error { padding: 0 16px 12px; color: var(--danger); font-size: 13px; }
 .automations-rule-row:hover { background: var(--accent-soft); }
 .automations-rule-row > svg { flex: none; color: var(--accent); }
 .automations-rule-name { display: grid; gap: 3px; min-width: 0; flex: 1; }

@@ -1451,5 +1451,11 @@
   "Проверяем сценарий…": "Checking the routine…",
   "Сценарий не найден в текущей ферме. Проверьте аккаунт и режим демо.": "This routine was not found in the current farm. Check your account and demo mode.",
   "Поливной канал": "Watering channel",
-  "Открыть сценарий": "Open routine"
+  "Открыть сценарий": "Open routine",
+  "Сценарий: {{name}}": "Routine: {{name}}",
+  "Фото в журнал: {{count}}": "Photos for the journal: {{count}}",
+  "Открыть журнал растения": "Open plant journal",
+  "Вид": "Type",
+  "Неизвестна": "Unknown",
+  "Проверьте настройки сценария, готовность устройств и другие сценарии для них.": "Check the routine settings, device readiness and other routines using these devices."
 }

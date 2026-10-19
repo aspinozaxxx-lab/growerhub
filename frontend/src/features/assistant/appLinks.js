@@ -2,11 +2,12 @@ import guide from '../../../../backend/src/main/resources/advisor/interface-guid
 import { SITE_URL } from '../../domain/siteConfig';
 
 const paths = new Set(Object.values(guide.sections).map(section => section.path));
+const journalPath = new RegExp('^' + guide.sections.plants.journalPath.replace('{plantId}', '[1-9][0-9]*') + '$');
 export function supportedAppLink(href) {
   if (typeof href !== 'string' || /[\u0000-\u0020\\]/.test(href)) return null;
   try {
     const url = new URL(href, SITE_URL);
-    if (url.origin !== SITE_URL || url.username || url.password || url.hash || !paths.has(url.pathname)) return null;
+    if (url.origin !== SITE_URL || url.username || url.password || url.hash || !(paths.has(url.pathname) || journalPath.test(url.pathname))) return null;
     const keys = [...url.searchParams.keys()];
     if (new Set(keys).size !== keys.length) return null;
     for (const key of keys) {

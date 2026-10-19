@@ -9,10 +9,10 @@ import {
 import { canonicalizePublicLinksInHtml } from '../domain/siteConfig';
 import { getCurrentLocale } from '../locales/i18n';
 
-const expandMetadata = (rows, locale) => rows.map((row) => ({
-  ...Object.fromEntries(metadata.fields.map((field, index) => [field, row[index]])),
-  locale,
-}));
+const expandMetadata = (rows, locale) => rows.map((row) => {
+  const article = Object.fromEntries(metadata.fields.map((field, index) => [field, row[index]]));
+  return { ...article, source_file: article.source_file || `${article.slug}.md`, locale };
+});
 
 const metadataByLocale = Object.freeze({
   ru: expandMetadata(metadata.ru, 'ru'),

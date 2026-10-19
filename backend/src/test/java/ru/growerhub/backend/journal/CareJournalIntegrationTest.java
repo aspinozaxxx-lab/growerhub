@@ -24,7 +24,8 @@ import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.user.UserFacade;
 import ru.growerhub.backend.user.jpa.*;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {"telegram.enabled=true", "telegram.bot-token=test", "telegram.poll-ms=3600000", "telegram.webhook-secret=test-webhook"})
+// Ocheredi drugih Spring-kontekstov ne dolzhny popadat v proverki dostavki.
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {"spring.datasource.url=jdbc:h2:mem:care-journal;MODE=PostgreSQL;DB_CLOSE_DELAY=-1", "telegram.enabled=true", "telegram.bot-token=test", "telegram.poll-ms=3600000", "telegram.webhook-secret=test-webhook"})
 class CareJournalIntegrationTest extends IntegrationTestBase {
     @org.springframework.boot.test.web.server.LocalServerPort int port;
     @Autowired JournalFacade journal;

@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
 import AssistantText from './AssistantText';
 import { MemoryRouter } from 'react-router-dom';
+afterEach(cleanup);
 
 describe('assistant answer text', () => {
   it('shows emphasis and lists without exposing Markdown punctuation', () => {
@@ -23,5 +24,10 @@ describe('assistant answer text', () => {
   it('does not activate external, API, credential, redirect or unrecognised parameter links', () => {
     const { container } = render(<MemoryRouter><AssistantText text={'[Внешняя](https://remote.invalid/app/) [API](/api/automation/rules) [Секрет](/app/?token=secret) [Переход](/app/?redirect=https://remote.invalid) [Вход](https://name:secret@growerhub.ru/app/) [Чужой путь](/app/admin/users/)'} /></MemoryRouter>);
     expect(container.querySelector('a')).toBeNull();
+  });
+  it('opens plant journals but refuses malformed identifiers and unsupported operations', () => {
+    render(<MemoryRouter><AssistantText text={'[Журнал](https://growerhub.ru/app/plants/45/journal/) [Неверный](/app/plants/-1/journal/) [Удалить](/app/plants/45/delete/) [Секрет](/app/plants/45/journal/?token=secret)'} /></MemoryRouter>);
+    expect(screen.getAllByRole('link')).toHaveLength(1);
+    expect(screen.getByRole('link', { name: 'Журнал' })).toHaveAttribute('href', '/app/plants/45/journal/');
   });
 });

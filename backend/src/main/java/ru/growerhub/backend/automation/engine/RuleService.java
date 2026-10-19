@@ -77,10 +77,10 @@ public class RuleService {
                 conflicts.add("Канал уже использует правило «" + definition(existing.definitionJson).name() + "»");
         for (var farm : s.farms().farms()) {
             for (var scenario : farm.scenarios()) if (scenario.enabled() && !Collections.disjoint(writes, fixedWrites(scenario, s.farms())))
-                conflicts.add("Канал уже использует сценарий «" + scenario.scenarioType() + "» фермы «" + farm.name() + "»");
+                conflicts.add("Канал уже использует сценарий «" + scenarioName(scenario.scenarioType()) + "» фермы «" + farm.name() + "»");
             for (var greenhouse : farm.greenhouses()) for (var scenario : greenhouse.scenarios())
                 if (scenario.enabled() && !Collections.disjoint(writes, fixedWrites(scenario, s.farms())))
-                    conflicts.add("Канал уже использует сценарий «" + scenario.scenarioType() + "» теплицы «" + greenhouse.name() + "»");
+                    conflicts.add("Канал уже использует сценарий «" + scenarioName(scenario.scenarioType()) + "» теплицы «" + greenhouse.name() + "»");
         }
         return new Preview(true, describe(d), conflicts.stream().distinct().toList(), readiness, List.copyOf(resources), evaluator.timing(d, s.context()));
     }
@@ -348,6 +348,9 @@ public class RuleService {
         }).collect(Collectors.joining(" → "));
     }
     private String area(Definition d) { return d.scopeType() + ":" + d.scopeId(); }
+    private String scenarioName(String type) {
+        return Map.of("ROOM_CLIMATE", "Климат фермы", "BOX_CLIMATE", "Климат", "LIGHT_SCHEDULE", "Освещение", "WATERING", "Полив").getOrDefault(type, type);
+    }
     private LocalDateTime now() { return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC); }
     private String write(Object value) { try { return json.writeValueAsString(value); } catch (Exception ex) { throw bad("Неверные данные правила"); } }
     private JsonNode read(String value) { try { return json.readTree(value == null ? "{}" : value); } catch (Exception ex) { throw bad("Не удалось прочитать правило"); } }

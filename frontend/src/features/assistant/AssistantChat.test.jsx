@@ -2,10 +2,10 @@ import { beforeEach, afterEach, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AssistantChat from './AssistantChat';
-import { assistantRequest } from '../../api/assistant';
+import { assistantRequest, assistantPhoto } from '../../api/assistant';
 import { demoPrompts } from './demoPrompts';
 vi.mock('../../api/assistant', () => ({ assistantRequest: vi.fn(), watchAssistant: vi.fn().mockResolvedValue(), uploadAssistantPhoto: vi.fn(), assistantPhoto: vi.fn() }));
-vi.mock('../../locales/i18n', () => ({ getCurrentLocale: () => 'ru', translateApp: (value, params = {}) => value.replace(/\{\{(\w+)\}\}/g, (_, key) => String(params[key])) }));
+vi.mock('../../locales/i18n', () => ({ getCurrentLocale: () => 'ru', getIntlLocale: () => 'ru-RU', translateApp: (value, params = {}) => value.replace(/\{\{(\w+)\}\}/g, (_, key) => String(params[key])) }));
 const cap = { enabled: true, available: true, owner: false, demo: false, model: 'deepseek-flash', effort: 'high', models: [], limits: { remainingDay: 30 }, preferences: { telegram: false, report: 'off', hour: 9, weekday: 1 } };
 const chat = { id: 'chat-1', title: 'Уход', model: 'deepseek-flash', effort: 'high' };
 let history;
@@ -18,7 +18,7 @@ beforeEach(() => {
     return {};
   });
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const mount = () => render(<MemoryRouter><AssistantChat /></MemoryRouter>);
 test('demo examples fill editable text without sending or applying changes', async () => {
   const original = assistantRequest.getMockImplementation();
@@ -112,6 +112,29 @@ test('a saved rule has a direct link to its own details in automations', async (
   fireEvent.click(screen.getByRole('link', { name: 'Список сценариев' }));
   expect(close).toHaveBeenCalledTimes(2);
   expect(assistantRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+});
+
+test('plant changes show the fields and destination and link to the saved journal', async () => {
+  history = [{ id: 'plant', text: 'Перемести розмарин и добавь описание', status: 'completed', attachments: [], proposals: [{ id: 'change', title: 'Изменить растение: Розмарин', kind: 'plant', status: 'applied', result: { id: 45 }, payload: {
+    operation: 'update', plantName: 'Розмарин', fields: { description: 'Черенок от мамы' }, before: { description: 'Маленький куст' }, zoneChanged: true, previousZoneName: 'Теплица 1', zoneName: 'Теплица 2',
+  } }] }];
+  mount(); await screen.findByText('Маленький куст → Черенок от мамы');
+  expect(screen.getByText('Теплица 1 → Теплица 2')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Открыть журнал растения' })).toHaveAttribute('href', '/app/plants/45/journal/');
+  expect(assistantRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+});
+test('a journal photo proposal shows its plant and photo and waits for confirmation', async () => {
+  vi.stubGlobal('URL', class extends URL { static createObjectURL() { return 'blob:plant-photo'; } static revokeObjectURL() {} });
+  assistantPhoto.mockResolvedValue(new Blob(['photo'], { type: 'image/jpeg' }));
+  history = [{ id: 'photo', text: 'В журнал розмарина', status: 'completed', attachments: [], proposals: [{ id: 'care', revision: 'photo-revision', title: 'Записать уход: Розмарин', kind: 'care', status: 'pending', payload: {
+    plantId: 45, plantName: 'Розмарин', action: 'photo', text: 'Новый прирост', eventAt: '2026-10-19T10:00:00Z', photoIds: ['attached-photo'],
+  } }] }];
+  mount(); await screen.findByText('Фото в журнал: 1');
+  expect(await screen.findByAltText('Фото растения')).toHaveAttribute('src', 'blob:plant-photo');
+  expect(screen.getByText('Розмарин')).toBeInTheDocument();
+  expect(assistantRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: 'Подтвердить', exact: true }));
+  await waitFor(() => expect(assistantRequest).toHaveBeenCalledWith('/proposals/care/confirm', 'POST', { revision: 'photo-revision' }));
 });
 test('feature request displays the complete text and waits for explicit sending', async () => {
   history = [{ id: 'message-1', text: 'Нужна доработка', status: 'completed', attachments: [], proposals: [{ id: 'request-1', title: 'Отправить команде: Удобрения', kind: 'feature_request', payload: { description: 'Расход по растениям', benefit: 'Планировать покупки' }, status: 'pending', revision: 'reviewed-text-2' }] }];
