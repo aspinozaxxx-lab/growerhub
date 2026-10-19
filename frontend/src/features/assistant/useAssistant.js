@@ -86,7 +86,11 @@ export default function useAssistant(initialText = '') {
     const message = await assistantRequest(`/conversations/${id}/messages`, 'POST', request);
     if (!live.current) return;
     setMessages(old => [...old.filter(m => m.id !== message.id), message]); setPending(null); setText(''); setFiles([]);
-    const [cap, conversations] = await Promise.all([assistantRequest('/capabilities'), assistantRequest('/conversations')]);
+    let [cap, conversations] = await Promise.all([assistantRequest('/capabilities'), assistantRequest('/conversations')]);
+    if (cap.owner && !cap.models?.length) {
+      const models = await assistantRequest('/models');
+      cap = { ...await assistantRequest('/capabilities'), models };
+    }
     if (live.current) { setCapabilities(cap); setChats(conversations); }
   });
   const proposal = (item, reject) => run(async () => {

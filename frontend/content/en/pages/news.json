@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id": "assistant-models-after-restart", "published_at": "2026-10-19", "kind": "fix", "text": "Fixed owner model choices disappearing after sending a message when the server had restarted while the chat was open."},
     {"id": "firmware-build-platform-pin", "published_at": "2026-10-19", "kind": "fix", "text": "Pinned the verified build environment so external tool updates do not delay server fixes."},
     {"id": "assistant-calendar-pulse-chat", "published_at": "2026-10-19", "kind": "feature", "article_id": "svoi-scenarii-poliva-cherez-pomoshchnika", "preview_position": "50% 50%"},
     {"id": "assistant-compact-chat-guide", "published_at": "2026-10-19", "kind": "article_update", "article_id": "pomoshchnik-rasteniy-i-scenarii-growerhub", "text": "The guide now covers the bottom composer, owner model controls and routine previews."},

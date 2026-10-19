@@ -61,6 +61,24 @@ test('a proposal is never applied by reading the chat and confirmation carries i
   await waitFor(() => expect(assistantRequest).toHaveBeenCalledWith('/proposals/proposal-1/confirm', 'POST', { revision: 'version-7' }));
   expect(screen.queryByLabelText('Модель')).not.toBeInTheDocument();
 });
+test('owner model choices recover after a server restart clears the catalog during an open chat', async () => {
+  const models = [{ id: 'sol', name: 'Sol', efforts: ['low', 'max'], defaultEffort: 'low' }];
+  assistantRequest.mockImplementation(async (path, method, body) => {
+    if (path === '/capabilities') return { ...cap, owner: true, demo: true, model: null, models: [] };
+    if (path === '/models') return models;
+    if (path === '/conversations') return [{ ...chat, model: 'sol', effort: 'max' }];
+    if (path.endsWith('/messages') && method === 'POST') return { id: 'sent', text: body.text, status: 'completed', answer: 'Готово', attachments: [], proposals: [] };
+    if (path.endsWith('/messages')) return [];
+    return {};
+  });
+  mount(); await screen.findByLabelText('Модель');
+  fireEvent.change(screen.getByRole('textbox', { name: 'Ваш вопрос' }), { target: { value: 'Как растения?' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Отправить', exact: true }));
+  await waitFor(() => expect(assistantRequest.mock.calls.filter(([p]) => p === '/models')).toHaveLength(2));
+  await waitFor(() => expect(screen.getByLabelText('Модель')).toHaveValue('sol'));
+  expect(screen.getByLabelText('Усилие')).toHaveValue('max');
+  expect(screen.getByLabelText('Модель')).toBeEnabled();
+});
 test('an ambiguous send does not automatically retry and manual retry keeps the same request key', async () => {
   const ordinary = assistantRequest.getMockImplementation(); let failed = false;
   assistantRequest.mockImplementation(async (path, method, body) => {
