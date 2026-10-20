@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id": "spider-plant-plantlets-guide", "published_at": "2026-10-20", "kind": "article", "article_id": "hlorofitum-razmnozhenie-detkami", "preview_position": "50% 50%"},
     {"id": "plant-diary-picture-guide-update", "published_at": "2026-10-20", "kind": "article_update", "article_id": "dnevnik-rasteniy-bez-oborudovaniya-growerhub", "text": "Updated the journal guide: where photos stay and how to choose a plant picture and its stage."},
     {"id": "plant-pictures-and-named-stages", "published_at": "2026-10-20", "kind": "feature", "article_id": "kartinki-rasteniy-i-stadii-rosta", "preview_position": "50% 45%"},
     {"id": "one-plant-card-with-or-without-equipment", "published_at": "2026-10-20", "kind": "fix", "text": "Plants added by the assistant and through the form now share one card. All cards show the latest entry and next task; equipment appears only when connected."},
