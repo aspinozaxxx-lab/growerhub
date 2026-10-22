@@ -160,7 +160,7 @@ export class CodexProvider {
       await Promise.all([turn, completed]);
       return { status: limited ? 'incomplete' : 'completed', text, inputTokens, outputTokens, usageKnown: true, code: null };
     } catch (error) {
-      if (!signal.aborted && error.code === 'context_limit' && text)
+      if (!signal.aborted && error.code === 'context_limit' && (text || calls > 0 || toolCount > 0))
         return { status: 'incomplete', text, inputTokens, outputTokens, usageKnown: true, code: null };
       return { status: signal.aborted ? 'cancelled' : 'failed', text, inputTokens, outputTokens,
         usageKnown: false, code: error instanceof ProviderFailure ? error.code : 'codex_unavailable' };

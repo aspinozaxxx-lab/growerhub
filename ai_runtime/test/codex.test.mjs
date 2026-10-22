@@ -8,7 +8,14 @@ class FakeRpc {
   notify() {}
   close() { this.closed = true; }
   reject(id) { this.rejected = id; }
-  respond(id, result) { this.results.push({ id, result }); this.event('turn/completed', { turn: { status: 'completed' } }); }
+  respond(id, result) {
+    this.results.push({ id, result });
+    if (this.mode === 'contextAfterTool') {
+      this.event('thread/tokenUsage/updated', { tokenUsage: { total: { inputTokens: 16001, outputTokens: 30 }, last: { inputTokens: 16001, outputTokens: 30 } } });
+      return;
+    }
+    this.event('turn/completed', { turn: { status: 'completed' } });
+  }
   event(method, params, id) { this.listeners.forEach(l => l({ method, params: { threadId: 't1', ...params }, ...(id === undefined ? {} : { id }) })); }
   async request(method, params) {
     this.requests.push({ method, params });
@@ -19,7 +26,7 @@ class FakeRpc {
     if (method === 'turn/start') {
       queueMicrotask(() => {
         if (this.mode === 'last') for (let n=1;n<=3;n++) this.event('thread/tokenUsage/updated', {tokenUsage:{total:{inputTokens:n*100,outputTokens:n*10},last:{inputTokens:100,outputTokens:10}}});
-        this.event('item/agentMessage/delta', { delta: 'Готово' });
+        if (this.mode !== 'contextAfterTool') this.event('item/agentMessage/delta', { delta: 'Готово' });
         this.event('item/tool/call', { callId: 'call1', tool: this.mode === 'bad' ? 'exec_command' : 'gh_farm_report', arguments: {} }, 40);
       });
       return { turn: { id: 'turn1' } };
@@ -52,4 +59,22 @@ test('Unexpected Codex RPC never reaches a backend tool', async () => {
   const instances = []; const provider = new CodexProvider({ cwd: '/empty', startRpc: () => { const rpc = new FakeRpc('bad'); instances.push(rpc); return rpc; } });
   const outcome = await provider.run(job, { signal: new AbortController().signal, emit() {}, tool() { assert.fail('must not run'); } });
   assert.equal(outcome.code, 'tool_rejected'); assert.equal(instances[1].rejected, 40); assert.ok(instances[1].closed);
+});
+
+test('limit posle podgotovki bez teksta ostavlyaet incomplete i ne povtoryaet instrument', async () => {
+  const instances = []; let tools = 0;
+  const provider = new CodexProvider({ cwd: '/empty', startRpc: () => { const rpc = new FakeRpc('contextAfterTool'); instances.push(rpc); return rpc; } });
+  const result = await provider.run(job, { signal: new AbortController().signal, emit() {}, tool: async () => { tools++; return { id: 'prepared', status: 'pending' }; } });
+  assert.equal(result.status, 'incomplete'); assert.equal(result.text, ''); assert.equal(result.code, null);
+  assert.equal(result.usageKnown, true); assert.equal(tools, 1); assert.equal(instances[1].results.length, 1);
+  assert.equal(instances[1].requests.filter(request => request.method === 'turn/start').length, 1);
+  assert.ok(instances.every(rpc => rpc.closed));
+});
+
+test('nepomestivshiysya pervyy kontekst ostayotsya failed bez modelnogo zaprosa', async () => {
+  const instances = [];
+  const provider = new CodexProvider({ cwd: '/empty', startRpc: () => { const rpc = new FakeRpc(); instances.push(rpc); return rpc; } });
+  const result = await provider.run({ ...job, maxInputTokens: 1 }, { signal: new AbortController().signal, emit() {}, tool() { assert.fail('No tools'); } });
+  assert.equal(result.status, 'failed'); assert.equal(result.code, 'context_limit');
+  assert.ok(instances.every(rpc => rpc.requests.every(request => request.method !== 'turn/start')));
 });

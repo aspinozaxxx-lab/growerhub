@@ -124,6 +124,36 @@ test('a saved rule has a direct link to its own details in automations', async (
   expect(assistantRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
 });
 
+test.each(['failed', 'incomplete'])('nezavershennyy otvet %s ne skryvaet gotovuyu kartochku i ne povtoryaet podtverzhdenie', async status => {
+  history = [{ id: 'limited', text: 'Подготовь обдув', answer: '', status, error: 'context_limit', attachments: [], proposals: [{ id: 'ready', title: 'Обдув при свете', kind: 'rule', payload: { enabled: false }, status: 'pending', revision: 'revision-3' }] }];
+  const ordinary = assistantRequest.getMockImplementation(); let finish;
+  assistantRequest.mockImplementation((path, method, body) => path === '/proposals/ready/confirm'
+    ? new Promise(resolve => { finish = resolve; }) : ordinary(path, method, body));
+  mount();
+  await screen.findByText('Подготовленные предложения доступны в карточках ниже. Проверьте их перед подтверждением.');
+  expect(screen.queryByText('Ответ недоступен')).not.toBeInTheDocument();
+  expect(screen.queryByText('Попробуйте задать вопрос короче или открыть новый разговор.')).not.toBeInTheDocument();
+  expect(screen.getByText('Сохранится выключенным')).toBeInTheDocument();
+  expect(screen.getByText(status === 'failed' ? 'Не удалось завершить пояснение' : 'Ответ остановлен на лимите')).toBeInTheDocument();
+  expect(assistantRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+  const confirm = screen.getByRole('button', { name: 'Подтвердить', exact: true });
+  fireEvent.click(confirm); fireEvent.click(confirm);
+  expect(assistantRequest.mock.calls.filter(([path]) => path === '/proposals/ready/confirm')).toEqual([['/proposals/ready/confirm', 'POST', { revision: 'revision-3' }]]);
+  history = [{ ...history[0], proposals: [{ ...history[0].proposals[0], status: 'applied', result: { id: 'saved-disabled' } }] }];
+  finish({});
+  await screen.findByText('Сохранён выключенным');
+  expect(screen.queryByRole('button', { name: 'Подтвердить', exact: true })).not.toBeInTheDocument();
+});
+
+test.each([{ proposals: [] }, { proposals: [{ id: 'old', title: 'Старое предложение', kind: 'rule', payload: { enabled: false }, status: 'expired' }] }])('otkaz bez dostupnogo predlozheniya ostayotsya oshibkoy', async ({ proposals }) => {
+  history = [{ id: 'failed', text: 'Подготовь обдув', answer: '', status: 'failed', error: 'context_limit', proposals }];
+  mount();
+  await screen.findByText('Ответ недоступен');
+  expect(screen.getByText('Попробуйте задать вопрос короче или открыть новый разговор.')).toBeInTheDocument();
+  expect(screen.queryByText('Подготовленные предложения доступны в карточках ниже. Проверьте их перед подтверждением.')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Подтвердить', exact: true })).not.toBeInTheDocument();
+});
+
 test('plant changes show the fields and destination and link to the saved journal', async () => {
   history = [{ id: 'plant', text: 'Перемести розмарин и добавь описание', status: 'completed', attachments: [], proposals: [{ id: 'change', title: 'Изменить растение: Розмарин', kind: 'plant', status: 'applied', result: { id: 45 }, payload: {
     operation: 'update', plantName: 'Розмарин', fields: { description: 'Черенок от мамы' }, before: { description: 'Маленький куст' }, zoneChanged: true, previousZoneName: 'Теплица 1', zoneName: 'Теплица 2',

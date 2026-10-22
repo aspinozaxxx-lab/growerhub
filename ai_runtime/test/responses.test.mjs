@@ -50,6 +50,18 @@ test('the final permitted model call can prepare a proposal without a fourth gen
   assert.equal(result.status, 'incomplete'); assert.equal(result.code, null); assert.equal(result.usageKnown, true);
 });
 
+test('limit konteksta posle instrumenta sohranyaet chastichnyy rezultat bez novoy generatsii', async () => {
+  let generations = 0, tools = 0;
+  const provider = new ResponsesProvider({ apiKey: 'test', transport: async () => {
+    generations++;
+    return completed([{ type: 'function_call', call_id: 'prepare', name: 'gh_farm_report', arguments: '{}' }]);
+  } });
+  const result = await provider.run({ ...job(), maxInputTokens: 4000 }, context({ tool: async () => { tools++; return { facts: 'x'.repeat(5000) }; } }));
+  assert.equal(result.status, 'incomplete'); assert.equal(result.text, ''); assert.equal(result.code, null);
+  assert.equal(result.usageKnown, true); assert.equal(generations, 1); assert.equal(tools, 1);
+  assert.equal(result.inputTokens, 120); assert.equal(result.outputTokens, 40);
+});
+
 test('raw provider tool markup is never executed or shown as a successful answer', async () => {
   const leaked = '<｜｜DSML｜｜ calls><｜｜DSML｜｜ invoke name="gh_prepare_change">';
   const emitted = [];
@@ -110,7 +122,7 @@ test('measured prefix never exempts new oversized tool results from the input li
     generations++; return completed([{type:'function_call',call_id:'c1',name:'gh_farm_report',arguments:'{}'}]);
   }});
   const result = await provider.run(job(), context({tool:async()=>({facts:'z'.repeat(16000)})}));
-  assert.equal(result.code, 'context_limit'); assert.equal(generations, 1); assert.equal(result.usageKnown, true);
+  assert.equal(result.status, 'incomplete'); assert.equal(result.code, null); assert.equal(generations, 1); assert.equal(result.usageKnown, true);
 });
 
 test('network failure after dispatch keeps conservative accounting; refusal before generation does not', async () => {

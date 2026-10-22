@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"assistant-partial-reply-proposals","published_at":"2026-10-22","kind":"fix","text":"Помощник отдельно показывает незавершённое пояснение и подготовленные предложения. Доступную карточку можно проверить и подтвердить, не отправляя тот же запрос повторно."},
     {"id":"pushok-cloud-command-recovery","published_at":"2026-10-22","kind":"fix","text":"Исправили восстановление подключения ПушОка после служебного отказа хаба. Ошибка чтения одного устройства больше не отключает остальные, а команды розеткам не ждут обновления всего списка устройств."},
     {"id":"automation-control-priorities","published_at":"2026-10-22","kind":"feature","article_id":"prioritety-scenariev-i-vremennoe-upravlenie","preview_position":"50% 50%"},
     {"id":"compact-related-article-index","published_at":"2026-10-22","kind":"fix","text":"Каталог статей передаёт меньше повторяющихся данных о связанных материалах, уменьшая объём первоначальной загрузки сайта."},

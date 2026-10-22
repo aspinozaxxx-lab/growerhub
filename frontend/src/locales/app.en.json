@@ -1521,5 +1521,7 @@
   "Теплице требуется охлаждение": "This greenhouse needs cooling",
   "Запрос теплицы на охлаждение снят": "The greenhouse cooling request has ended",
   "мин": "min",
-  "Подтверждено устройством": "Confirmed by the device"
+  "Подтверждено устройством": "Confirmed by the device",
+  "Не удалось завершить пояснение": "The explanation could not be completed",
+  "Подготовленные предложения доступны в карточках ниже. Проверьте их перед подтверждением.": "Prepared proposals are available in the cards below. Review them before confirming."
 }

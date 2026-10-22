@@ -169,6 +169,8 @@ export class ResponsesProvider {
       }
       throw new ProviderFailure('model_call_limit');
     } catch (error) {
+      if (!signal.aborted && error.code === 'context_limit' && callCount > 0)
+        return { status: 'incomplete', text, inputTokens, outputTokens, usageKnown: !outstanding, code: null };
       return { status: signal.aborted ? 'cancelled' : 'failed', text, inputTokens, outputTokens,
         usageKnown: !outstanding && error.usageKnown !== false, code: error instanceof ProviderFailure ? error.code : 'provider_unavailable' };
     }
