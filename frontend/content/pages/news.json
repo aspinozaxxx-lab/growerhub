@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"compact-related-article-index","published_at":"2026-10-22","kind":"fix","text":"Каталог статей передаёт меньше повторяющихся данных о связанных материалах, уменьшая объём первоначальной загрузки сайта."},
     {"id":"cape-primrose-pot-guide","published_at":"2026-10-22","kind":"article","article_id":"gorshok-dlya-streptokarpusa","preview_position":"50% 50%"},
     {"id": "spider-plant-plantlets-guide", "published_at": "2026-10-20", "kind": "article", "article_id": "hlorofitum-razmnozhenie-detkami", "preview_position": "50% 50%"},
     {"id": "plant-diary-picture-guide-update", "published_at": "2026-10-20", "kind": "article_update", "article_id": "dnevnik-rasteniy-bez-oborudovaniya-growerhub", "text": "Уточнили, где остаются фотографии и как выбрать картинку растения с подходящей стадией."},

@@ -21,6 +21,7 @@ const markdown = (id, locale) => `---
 slug: ${id}${locale === 'en' ? '-en' : ''}
 ${locale === 'en' ? `translation_of: ${id}\n` : ''}title: Article ${id}
 summary: Summary ${id}
+related: [enabled, standalone, unknown-slug]
 created_at: '2026-10-08'
 ${clusters[locale][id] ? `cluster: ${clusters[locale][id]}\n` : ''}
 ${flags[locale][id] === undefined ? '' : `product_cta: ${flags[locale][id]}\n`}---
@@ -68,6 +69,15 @@ it('rubriki originala i perevoda dolzhny sovpadat', async () => {
 });
 
 afterEach(() => vi.restoreAllMocks());
+
+it('svyazi ssylayutsya na obshchie ID nezavisimo ot sluga perevoda', async () => {
+  await import('./generate-article-metadata.mjs');
+  const metadata = JSON.parse(fs.writeFileSync.mock.calls[0][1]);
+  const relatedIndex = metadata.fields.indexOf('related');
+  for (const locale of ['ru', 'en']) {
+    expect(metadata[locale][0][relatedIndex]).toEqual([0, 2, 'unknown-slug']);
+  }
+});
 
 it('generator peredayot boolean opt-out i prezhniy default v obe lokali', async () => {
   await import('./generate-article-metadata.mjs');

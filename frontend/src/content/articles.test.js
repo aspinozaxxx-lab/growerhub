@@ -1,5 +1,7 @@
 // @vitest-environment node
 import { beforeEach, expect, it, vi } from 'vitest';
+import fs from 'node:fs';
+import matter from 'gray-matter';
 
 const { loadMarkdownIndex } = vi.hoisted(() => ({ loadMarkdownIndex: vi.fn() }));
 const mockMarkdownIndex = () => {
@@ -57,4 +59,16 @@ it.each(['ru', 'en'])('kompaktnye metadata %s vosstanavlivayut defaults i sohran
   expect(article.download).toBeNull();
   expect(article.source_file).toBe(`${article.slug}.md`);
   expect(getArticles(locale).some(item => item.product_cta === false)).toBe(true);
+});
+
+it.each(['ru', 'en'])('svyazi vseh statey %s sovpadayut s ishodnym Markdown', async (locale) => {
+  const { getArticles } = await import('./articles');
+  for (const article of getArticles(locale)) {
+    const directory = locale === 'en' ? '../../content/en/articles/' : '../../content/articles/';
+    const raw = fs.readFileSync(new URL(`${directory}${article.source_file}`, import.meta.url), 'utf8');
+    const related = matter(raw).data.related || [];
+    const expected = (Array.isArray(related) ? related : String(related).split(','))
+      .map(String).map((id) => id.trim()).filter(Boolean);
+    expect(article.related, article.id).toEqual(expected);
+  }
 });

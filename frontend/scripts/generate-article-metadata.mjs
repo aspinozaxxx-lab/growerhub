@@ -149,6 +149,9 @@ const compactDefaults = (row) => {
   while (row.length > 10 && row.at(-1) === trailingDefaults[row.length - 11][1]) row.pop();
   return row;
 };
+const sortedRu = withSortDates(ru);
+const articleIndices = new Map(sortedRu.map((article, index) => [article.id, index]));
+const compactRelated = (related) => related.map((id) => articleIndices.get(id) ?? id);
 
 fs.writeFileSync(
   OUTPUT_PATH,
@@ -170,7 +173,7 @@ fs.writeFileSync(
       'download',
       'product_cta',
     ],
-    ru: withSortDates(ru).map((article) => [
+    ru: sortedRu.map((article) => [
       article.id,
       article.slug === article.id ? null : article.slug,
       article.title,
@@ -178,7 +181,7 @@ fs.writeFileSync(
       article.created_at,
       article.updated_at,
       article.cluster,
-      article.related,
+      compactRelated(article.related),
       article.hero_image,
       article.hero_alt,
       article.source_file === `${article.slug}.md` ? null : article.source_file,
@@ -194,7 +197,7 @@ fs.writeFileSync(
       article.created_at,
       article.updated_at,
       article.cluster,
-      article.related,
+      compactRelated(article.related),
       article.hero_image,
       article.hero_alt,
       article.source_file === `${article.slug}.md` ? null : article.source_file,
