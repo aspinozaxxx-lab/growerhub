@@ -10,11 +10,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-10-23</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/novosti/</loc>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-10-23</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/avtomatizatsiya-mini-fermy/</loc>
@@ -50,7 +50,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/svet-dlya-rasteniy/</loc>
-    <lastmod>2026-10-13</lastmod>
+    <lastmod>2026-10-23</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/avtopoliv-i-kontroller-vyrashchivaniya/</loc>
@@ -58,7 +58,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zhurnal-i-sovetnik-uhoda/</loc>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-10-23</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zigbee-hub-i-ustroystva/</loc>
@@ -73,16 +73,24 @@
     <lastmod>2026-10-04</lastmod>
   </url>
   <url>
+    <loc>https://growerhub.ru/articles/avtomatizatsiya-sveta-v-groubokse/</loc>
+    <lastmod>2026-10-23</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/dnevnik-rasteniy-bez-oborudovaniya-growerhub/</loc>
+    <lastmod>2026-10-23</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/istoriya-mikroklimata-i-grafiki/</loc>
+    <lastmod>2026-10-23</lastmod>
+  </url>
+  <url>
     <loc>https://growerhub.ru/articles/gorshok-dlya-streptokarpusa/</loc>
     <lastmod>2026-10-22</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/prioritety-scenariev-i-vremennoe-upravlenie/</loc>
     <lastmod>2026-10-22</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/dnevnik-rasteniy-bez-oborudovaniya-growerhub/</loc>
-    <lastmod>2026-10-20</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/hlorofitum-razmnozhenie-detkami/</loc>
@@ -133,10 +141,6 @@
     <lastmod>2026-10-12</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/articles/avtomatizatsiya-sveta-v-groubokse/</loc>
-    <lastmod>2026-10-11</lastmod>
-  </url>
-  <url>
     <loc>https://growerhub.ru/articles/dosvetka-rasteniy-na-podokonnike-zimoy/</loc>
     <lastmod>2026-10-11</lastmod>
   </url>
@@ -174,10 +178,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/home-assistant-dlya-rasteniy/</loc>
-    <lastmod>2026-10-04</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/istoriya-mikroklimata-i-grafiki/</loc>
     <lastmod>2026-10-04</lastmod>
   </url>
   <url>
@@ -414,11 +414,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-10-23</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/news/</loc>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-10-23</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/farm-automation/</loc>
@@ -454,7 +454,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/plant-lighting/</loc>
-    <lastmod>2026-10-13</lastmod>
+    <lastmod>2026-10-23</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/automated-watering-and-grow-controllers/</loc>
@@ -462,7 +462,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/plant-journal-and-care-guidance/</loc>
-    <lastmod>2026-10-22</lastmod>
+    <lastmod>2026-10-23</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/zigbee-hubs-and-devices/</loc>
@@ -477,16 +477,24 @@
     <lastmod>2026-10-04</lastmod>
   </url>
   <url>
+    <loc>https://growerhub.ru/en/articles/automation-of-light-in-a-grow-box-schedule-relays-and-protection/</loc>
+    <lastmod>2026-10-23</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/microclimate-history-and-charts-how-to-read-data-without-panic/</loc>
+    <lastmod>2026-10-23</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/plant-care-journal-and-telegram-growerhub/</loc>
+    <lastmod>2026-10-23</lastmod>
+  </url>
+  <url>
     <loc>https://growerhub.ru/en/articles/choosing-a-pot-for-cape-primrose/</loc>
     <lastmod>2026-10-22</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/routine-priorities-and-temporary-control/</loc>
     <lastmod>2026-10-22</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/plant-care-journal-and-telegram-growerhub/</loc>
-    <lastmod>2026-10-20</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/plant-pictures-and-growth-stages/</loc>
@@ -537,10 +545,6 @@
     <lastmod>2026-10-12</lastmod>
   </url>
   <url>
-    <loc>https://growerhub.ru/en/articles/automation-of-light-in-a-grow-box-schedule-relays-and-protection/</loc>
-    <lastmod>2026-10-11</lastmod>
-  </url>
-  <url>
     <loc>https://growerhub.ru/en/articles/find-and-save-growerhub-articles/</loc>
     <lastmod>2026-10-11</lastmod>
   </url>
@@ -578,10 +582,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/home-assistant-plant-watering-safe-step-by-step-setup/</loc>
-    <lastmod>2026-10-04</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/microclimate-history-and-charts-how-to-read-data-without-panic/</loc>
     <lastmod>2026-10-04</lastmod>
   </url>
   <url>

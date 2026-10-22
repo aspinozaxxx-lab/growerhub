@@ -6,7 +6,7 @@ summary: >-
   How to automate lighting in a grow room without dangerous overloads: schedule,
   relays, smart sockets, manual mode and connection with a care log.
 created_at: '2026-07-23'
-updated_at: "2026-10-11"
+updated_at: "2026-10-23"
 cluster: "svet-dlya-rasteniy"
 tags:
   - GrowerHub
@@ -35,6 +35,18 @@ Before automation, check the rated power of the lamp, the driver starting curren
 It is better to keep the light according to an understandable regime, and not change it every day. For most neutral house crops and seedlings, stability is important: the plant gets used to the cycle, and the owner notices problems more easily. In GrowerHub, it is convenient to link the light schedule with the care log: if you change the mode, this should be visible next to watering, fertilizing and photos.
 
 Complex scenarios like “light depends on cloud cover” should be added only after basic stability. In a room with a window this can be useful, but in a closed box the main light source is usually artificial. There, the more important thing is not smart adaptation, but precise switching on and off.
+
+## Two shelves, two schedules, one request
+
+When each zone has its own light, describe both schedules to the assistant together. Here is the request in English, with the zone names translated. Use the names displayed on your farm:
+
+> On the demo farm, prepare two new disabled lighting rules. For the “Tomatoes” zone, name the rule “Tomato light — example”: turn the lamp on every day at 07:00 and off at 21:00. For “Strawberries”, name it “Strawberry light — example”: on at 08:00 and off at 20:00. Use the farm time zone. Leave existing rules unchanged. Show the cards for review.
+
+Our Russian-language test produced two cards: tomatoes on at 07:00, a 14-hour light period and off at 21:00; strawberries from 08:00 to 20:00, a 12-hour period. These are test times; choose the period for your plants and conditions.
+
+The written explanation did not finish in that check, so we reviewed the cards themselves: zone, lamp, duration and farm time zone. We confirmed each, then opened its details on the rules page. Both new rules were saved **disabled**. The existing Lighting schedule stayed in place; the check showed that it already used those channels. Review the active schedule before enabling a replacement.
+
+[Open the assistant in the demo](/app/demo/?view=assistant&lang=en) and review the proposed cards first. Saving a disabled rule lets you inspect the result before starting the lamp.
 
 ## Relay, socket and security
 

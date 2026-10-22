@@ -4,7 +4,7 @@ slug: "plant-care-journal-and-telegram-growerhub"
 title: "A plant journal without hardware: photos, care and Telegram"
 summary: "Keep your plants, photographs and care notes together. Plan tasks and receive Telegram reminders without sensors, a coordinator or automation setup."
 created_at: "2026-10-07"
-updated_at: "2026-10-20"
+updated_at: "2026-10-23"
 cluster: "zhurnal-i-sovetnik-uhoda"
 tags: ["GrowerHub", "plant journal", "Telegram", "houseplants"]
 keywords: ["plant care journal", "watering reminders", "plant photo diary"]
@@ -48,6 +48,16 @@ Choose **Add reminder**, then enter a title, date and care type. “Check the mo
 **Watered by hand** or **Done** creates a care entry. **Tomorrow** postpones a task and **Skip** closes the current occurrence without claiming care was performed. Tasks can be edited or deleted.
 
 A schedule cannot determine your plant’s water needs. Check the soil and plant before logging watering. Postpone or skip when watering is unnecessary.
+
+## Ask for a reminder in ordinary words
+
+Sometimes you just want to say the task out loud: check a plant tomorrow and see whether its soil has dried. The assistant can prepare that reminder. Here is an English translation of the request we checked in Russian. Use the zone name displayed on your farm:
+
+> On the demo farm, choose one plant in the “Tomatoes” zone. Prepare a reminder to check its soil moisture tomorrow at 10:00 in the farm time zone. Before confirmation, name the plant and the date. Leave other records and rules unchanged.
+
+In the Russian-language check, it selected “Cherry tomato” and named the date before confirmation: 24 October 2026 at 10:00 in the farm time zone. Confirming the card produced **Change applied**. “Tomorrow” depends on the current date, so check your own due date alongside the plant name.
+
+In your own journal, name the plant you mean. A soil-check reminder leaves the watering decision with you and does not start a pump. [Try this request on the demo farm](/app/demo/?view=assistant&lang=en).
 
 ## Connect Telegram
 

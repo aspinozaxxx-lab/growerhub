@@ -6,7 +6,7 @@ summary: >-
   How to look at graphs of temperature, humidity, light and watering so that you
   find patterns, rather than reacting to every peak.
 created_at: '2026-07-23'
-updated_at: '2026-10-04'
+updated_at: "2026-10-23"
 cluster: zhurnal-i-sovetnik-uhoda
 tags:
   - GrowerHub
@@ -35,6 +35,16 @@ In GrowerHub, the history of the microclimate should answer practical questions:
 The current temperature of 31 degrees in itself says little. Was she like this for five minutes or three hours? Is it repeated every day or did it happen once? Plants are more likely to suffer from a long peak outside the normal range than from a short peak. Therefore, it is useful to look at the day, week and period after changing the setting.
 
 The same applies to soil moisture. One low point could be sensor noise. But if the graph drops faster than usual for several days, the water flow or microclimate has changed. Then you need to look for the cause: heat, new lamp, ventilation, plant growth, drip or substrate.
+
+## Ask what happened overnight
+
+In the morning, you may want a quick account of the greenhouse's night. Give the assistant a zone and an exact interval. Here is an English translation of the request we checked in Russian on the demo farm. Use the zone name displayed on your farm:
+
+> Check the air temperature in the demo “Tomatoes” zone for the last completed night: from 22:00 on 21 October to 08:00 on 22 October 2026, in the farm time zone. Give the minimum and maximum and say whether readings cover the whole interval. If data is missing, say so. Do not change settings.
+
+In the Russian-language check, there were no saved readings for that night: the available history began later. The assistant said it could not give a minimum or maximum. An empty section is not evidence that the temperature stayed steady.
+
+For your own check, use dates for a night that has already ended and the farm's time zone. Compare the answer with the chart: when do readings start, and are there gaps? If the history is too short, wait for the full interval you need. [Ask the assistant in the demo](/app/demo/?view=assistant&lang=en) without changing any rules.
 
 ## Link schedules to events
 

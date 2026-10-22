@@ -12,6 +12,9 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"assistant-soil-check-reminder-example","published_at":"2026-10-23","kind":"article_update","article_id":"dnevnik-rasteniy-bez-oborudovaniya-growerhub","text":"В руководство по дневнику добавили проверенный пример: попросить помощника напомнить о проверке грунта, сверить растение и срок, затем подтвердить карточку."},
+    {"id":"assistant-two-zone-lighting-example","published_at":"2026-10-23","kind":"article_update","article_id":"avtomatizatsiya-sveta-v-groubokse","text":"В статье об освещении показали просьбу о двух разных расписаниях: проверку часов и ламп, сохранение сценариев выключенными и конфликт с прежним режимом."},
+    {"id":"assistant-night-history-example","published_at":"2026-10-23","kind":"article_update","article_id":"istoriya-mikroklimata-i-grafiki","text":"В разбор графиков добавили вопрос помощнику о конкретной ночи и пример ответа, когда сохранённых показаний за неё ещё нет."},
     {"id":"assistant-partial-reply-proposals","published_at":"2026-10-22","kind":"fix","text":"Помощник отдельно показывает незавершённое пояснение и подготовленные предложения. Доступную карточку можно проверить и подтвердить, не отправляя тот же запрос повторно."},
     {"id":"pushok-cloud-command-recovery","published_at":"2026-10-22","kind":"fix","text":"Исправили восстановление подключения ПушОка после служебного отказа хаба. Ошибка чтения одного устройства больше не отключает остальные, а команды розеткам не ждут обновления всего списка устройств."},
     {"id":"automation-control-priorities","published_at":"2026-10-22","kind":"feature","article_id":"prioritety-scenariev-i-vremennoe-upravlenie","preview_position":"50% 50%"},
