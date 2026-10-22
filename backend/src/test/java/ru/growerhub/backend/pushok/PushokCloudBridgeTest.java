@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,9 @@ class PushokCloudBridgeTest {
             "00124B0000000001", "socket-before", "00124B0000000003", "socket-after"));
 
     private Object session() throws Exception {
-        var bridge = new PushokCloudBridge(mock(ZigbeeFacade.class), new PushokSettings(),
+        var settings = new PushokSettings();
+        settings.setRequestTimeoutSeconds(8);
+        var bridge = new PushokCloudBridge(mock(ZigbeeFacade.class), settings,
                 new ZigbeeSelfServiceSettings(), mock(PushokCredentials.class), mapper);
         var connection = new PushokConnection(1, UUID.fromString("00000000-0000-0000-0000-000000000001"),
                 "pushok-ABCDEF-1234", "test", "gh/z2m/test", "mqtts://example.invalid:8883",
@@ -109,5 +112,106 @@ class PushokCloudBridgeTest {
         assertThat(recognized.path("definition").path("exposes").get(0).path("property").asText()).isEqualTo("state");
         assertThat(published.get("gh/z2m/test/recognized-relay").path("state").asText()).isEqualTo("ON");
         verify(cloud, never()).request(eq("setState"), any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"getAttributes", "getAdapter", "getState"})
+    void rejectedDeviceReadKeepsOtherDevicesWorkingAndDoesNotRepublishOldState(String method) throws Exception {
+        Object session = session();
+        names.put("00124B0000000002", "middle-socket");
+        when(cloud.request(eq("listObjects"), any())).thenReturn(list("\"socket\""));
+        ReflectionTestUtils.invokeMethod(session, "refresh");
+        JsonNode adapter = mapper.readTree("{\"params\":[{\"address\":0,\"access\":\"rw\",\"type\":\"bool\",\"viewParams\":{\"name\":\"state\"}}]}");
+        JsonNode updated = list("\"changed-driver\"");
+        when(cloud.request(eq("listObjects"), any())).thenReturn(updated);
+        var params = "getAdapter".equals(method) ? Map.of("drv", "changed-driver")
+                : Map.of("id", "00124B0000000002", "type", "zigbee");
+        when(cloud.request(eq(method), eq(params))).thenThrow(new PushokCloudClient.Failure("HUB_COMMAND_REJECTED", method));
+        published.clear();
+
+        ReflectionTestUtils.invokeMethod(session, "refresh");
+
+        assertThat(published.get("gh/z2m/test/bridge/devices").size()).isEqualTo(3);
+        assertThat(published.get("gh/z2m/test/bridge/devices").get(1).path("supported").asBoolean()).isTrue();
+        assertThat(published).doesNotContainKey("gh/z2m/test/middle-socket");
+        assertThat(published.get("gh/z2m/test/middle-socket/availability").path("state").asText()).isEqualTo("offline");
+        for (String name : new String[] {"socket-before", "socket-after"})
+            assertThat(published.get("gh/z2m/test/" + name + "/availability").path("state").asText()).isEqualTo("online");
+
+        when(cloud.request(eq(method), eq(params))).thenReturn(switch (method) {
+            case "getAttributes" -> mapper.createObjectNode().put("name", "middle-socket");
+            case "getAdapter" -> adapter;
+            default -> mapper.readTree("{\"0\":{\"ack\":true,\"value\":false,\"time\":\"200\"},\"251\":{\"ack\":true,\"value\":false,\"time\":\"200\"}}");
+        });
+        published.clear();
+        ReflectionTestUtils.invokeMethod(session, "refresh");
+        assertThat(published.get("gh/z2m/test/middle-socket/availability").path("state").asText()).isEqualTo("online");
+        verify(cloud, never()).request(eq("setState"), any());
+    }
+
+    @Test
+    void transportFailureStillStopsTheRefreshForReconnect() throws Exception {
+        Object session = session();
+        when(cloud.request(eq("listObjects"), any())).thenReturn(list("missing"));
+        when(cloud.request(eq("getState"), any())).thenThrow(new PushokCloudClient.Failure("CLOUD_UNAVAILABLE"));
+        assertThatThrownBy(() -> ReflectionTestUtils.invokeMethod(session, "refresh"))
+                .isInstanceOf(PushokCloudClient.Failure.class).hasMessage("CLOUD_UNAVAILABLE");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void ambiguousNamesAndExpiredCommandsAreRejectedWithoutSendingOrRetrying() throws Exception {
+        Object session = session();
+        when(cloud.request(eq("listObjects"), any())).thenReturn(list("missing"));
+        ReflectionTestUtils.invokeMethod(session, "refresh");
+        var devices = (Map<String, PushokDevice>) ReflectionTestUtils.getField(session, "devices");
+        var duplicate = new PushokDevice(mapper.readTree("{\"id\":\"00124B0000000004\"}"), "socket-before",
+                mapper.readTree("{\"params\":[{\"address\":0,\"access\":\"rw\",\"type\":\"bool\",\"viewParams\":{\"name\":\"state\"}}]}"));
+        duplicate.update(mapper.readTree("{\"0\":{\"ack\":true,\"value\":true},\"251\":{\"ack\":true,\"value\":false}}"));
+        devices.put(duplicate.id(), duplicate);
+        var queue = (ArrayBlockingQueue<Object>) ReflectionTestUtils.getField(session, "commands");
+        var constructor = Class.forName(PushokCloudBridge.class.getName() + "$Command")
+                .getDeclaredConstructor(String.class, JsonNode.class, long.class);
+        constructor.setAccessible(true);
+        queue.add(constructor.newInstance("socket-before/set", mapper.readTree("{\"state\":\"OFF\"}"), System.currentTimeMillis()));
+        queue.add(constructor.newInstance("socket-after/set", mapper.readTree("{\"state\":\"OFF\"}"), 0L));
+
+        ReflectionTestUtils.invokeMethod(session, "drainCommands");
+        ReflectionTestUtils.invokeMethod(session, "drainCommands");
+
+        verify(cloud, never()).request(eq("setState"), any());
+        assertThat(queue).isEmpty();
+        assertThat(published.get("gh/z2m/test/bridge/response/device/set").path("status").asText()).isEqualTo("error");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void pendingCommandIsSentBetweenDeviceReadsAndNeverPretendsToBeConfirmedState() throws Exception {
+        Object session = session();
+        when(cloud.request(eq("listObjects"), any())).thenReturn(list("missing"));
+        ReflectionTestUtils.invokeMethod(session, "refresh");
+        clearInvocations(cloud);
+        when(cloud.request(eq("setState"), any())).thenReturn(mapper.getNodeFactory().booleanNode(true));
+        var queue = (ArrayBlockingQueue<Object>) ReflectionTestUtils.getField(session, "commands");
+        var constructor = Class.forName(PushokCloudBridge.class.getName() + "$Command")
+                .getDeclaredConstructor(String.class, JsonNode.class, long.class);
+        constructor.setAccessible(true);
+        when(cloud.request(eq("getState"), any())).thenAnswer(invocation -> {
+            if ("00124B0000000001".equals(((Map<?, ?>) invocation.getArgument(1)).get("id")))
+                queue.add(constructor.newInstance("socket-after/set", mapper.readTree("{\"state\":\"OFF\"}"), System.currentTimeMillis()));
+            return mapper.readTree("{\"0\":{\"ack\":true,\"value\":true,\"time\":\"200\"},\"251\":{\"ack\":true,\"value\":false,\"time\":\"200\"}}");
+        });
+        published.clear();
+
+        ReflectionTestUtils.invokeMethod(session, "refresh");
+        ReflectionTestUtils.invokeMethod(session, "drainCommands");
+
+        var order = inOrder(cloud);
+        order.verify(cloud).request("getState", Map.of("id", "00124B0000000001", "type", "zigbee"));
+        order.verify(cloud).request("setState", Map.of("id", "00124B0000000003", "type", "zigbee", "field", 0, "value", false));
+        order.verify(cloud).request("getState", Map.of("id", "00124B0000000003", "type", "zigbee"));
+        verify(cloud, times(1)).request(eq("setState"), any());
+        assertThat(published.get("gh/z2m/test/bridge/response/device/set").path("status").asText()).isEqualTo("ok");
+        assertThat(published.get("gh/z2m/test/socket-after").path("state").asText()).isEqualTo("ON");
     }
 }

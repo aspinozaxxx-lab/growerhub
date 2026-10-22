@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -94,7 +96,9 @@ class PushokConnectionIntegrationTest extends IntegrationTestBase {
         request(owner).get("/api/zigbee/coordinators/" + id).then().body("connection_status", equalTo("ACTIVE")).body("connection_error", nullValue());
         verify(broker, times(1)).provision(anyString(), anyString(), anyString(), anyString());
     }
-    @Test void temporaryDisconnectKeepsTheBindingAndRestoresOnlyAfterLiveTraffic() {
+    @ParameterizedTest
+    @ValueSource(strings = {"CLOUD_UNAVAILABLE", "HUB_COMMAND_REJECTED"})
+    void temporaryDisconnectKeepsTheBindingAndRestoresOnlyAfterLiveTraffic(String errorCode) {
         String id = create();
         var connection = connections.findByHubId(hub).orElseThrow();
         var coordinator = coordinators.findByPublicIdAndArchivedAtIsNull(UUID.fromString(id)).orElseThrow();
@@ -107,10 +111,10 @@ class PushokConnectionIntegrationTest extends IntegrationTestBase {
         facade.handleMqttSnapshot(online);
         request(owner).get("/api/zigbee/coordinators/" + id).then().body("status", equalTo("ONLINE"));
 
-        facade.reportPushokPairing(connection.getCoordinatorId(), connection.getAttemptAt(), null, "CLOUD_UNAVAILABLE");
+        facade.reportPushokPairing(connection.getCoordinatorId(), connection.getAttemptAt(), null, errorCode);
         request(owner).get("/api/zigbee/coordinators/" + id).then()
                 .body("status", equalTo("OFFLINE")).body("connection_status", equalTo("ACTIVE"))
-                .body("connection_error", equalTo("CLOUD_UNAVAILABLE"));
+                .body("connection_error", equalTo(errorCode));
         var offline = coordinators.findByPublicIdAndArchivedAtIsNull(UUID.fromString(id)).orElseThrow();
         assertThat(offline.getLastSeenAt()).isEqualTo(seenAt);
         var preserved = connections.findByHubId(hub).orElseThrow();
@@ -134,10 +138,12 @@ class PushokConnectionIntegrationTest extends IntegrationTestBase {
         verify(broker, times(1)).provision(anyString(), anyString(), anyString(), anyString());
         verify(broker, never()).revoke(anyString(), anyString());
     }
-    @Test void firstConnectionFailureAndChangedHubIdentityStillRequireExplicitRetry() {
+    @ParameterizedTest
+    @ValueSource(strings = {"CLOUD_UNAVAILABLE", "HUB_COMMAND_REJECTED"})
+    void firstConnectionFailureAndChangedHubIdentityStillRequireExplicitRetry(String errorCode) {
         String id = create();
         var initial = connections.findByHubId(hub).orElseThrow();
-        facade.reportPushokPairing(initial.getCoordinatorId(), initial.getAttemptAt(), null, "CLOUD_UNAVAILABLE");
+        facade.reportPushokPairing(initial.getCoordinatorId(), initial.getAttemptAt(), null, errorCode);
         request(owner).get("/api/zigbee/coordinators/" + id).then()
                 .body("status", equalTo("ERROR")).body("connection_status", equalTo("ERROR"));
         assertThat(facade.getPushokConnections()).noneMatch(item -> item.publicId().toString().equals(id));

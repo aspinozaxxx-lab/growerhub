@@ -90,8 +90,7 @@ public class PushokCloudBridge {
                 while (active && cloud.isOpen() && mqtt.isConnected() && !stopping) {
                     JsonNode event;
                     while ((event = cloud.pollEvent()) != null) handleEvent(event);
-                    Command command;
-                    while ((command = commands.poll()) != null) handleCommand(command);
+                    drainCommands();
                     if (System.currentTimeMillis() >= nextRefresh) {
                         refresh();
                         publish("bridge/state", Map.of("state", "online"));
@@ -101,7 +100,8 @@ public class PushokCloudBridge {
                 }
             } catch (Exception error) {
                 String code = error instanceof PushokCloudClient.Failure failure ? failure.code() : "CLOUD_UNAVAILABLE";
-                log.warn("PushOk {}: {}", connection.publicId(), code);
+                log.warn("PushOk {}: {} method={}", connection.publicId(), code,
+                        error instanceof PushokCloudClient.Failure failure ? failure.method() : null);
                 facade.reportPushokPairing(connection.coordinatorId(), connection.attemptAt(), null, code);
             } finally {
                 close();
@@ -144,41 +144,63 @@ public class PushokCloudBridge {
             if (!list.isArray()) throw new PushokCloudClient.Failure("HUB_PROTOCOL_ERROR");
             var current = new LinkedHashMap<String, PushokDevice>();
             var names = new HashSet<String>();
+            var unavailable = new HashSet<String>();
             for (JsonNode description : list) {
+                // Obnovlenie bolshogo spiska ne dolzhno zaderzhivat prinyatye komandy do istecheniya ih sroka.
+                drainCommands();
                 String id = description.path("id").asText();
                 if (!id.matches("[A-Fa-f0-9]{16}")) continue;
-                var params = Map.of("id", id, "type", "zigbee");
-                String driver = description.path("drv").isTextual() ? description.path("drv").asText() : "";
-                JsonNode attributes = driver.isBlank() ? mapper.createObjectNode() : cloud.request("getAttributes", params);
-                String name = PushokDevice.name(attributes, id, mapper);
-                if (!names.add(name)) { name += " " + id; names.add(name); }
-                // Bez drajvera hub znaet tolko identity; zaprosy parametrov takogo ustrojstva otklonyayutsya.
-                if (driver.isBlank()) {
-                    current.put(id, new PushokDevice(description, name, mapper.createObjectNode()));
-                    continue;
+                try {
+                    var params = Map.of("id", id, "type", "zigbee");
+                    String driver = description.path("drv").isTextual() ? description.path("drv").asText() : "";
+                    JsonNode attributes = driver.isBlank() ? mapper.createObjectNode() : cloud.request("getAttributes", params);
+                    String name = PushokDevice.name(attributes, id, mapper);
+                    if (!names.add(name)) { name += " " + id; names.add(name); }
+                    // Bez drajvera hub znaet tolko identity; zaprosy parametrov takogo ustrojstva otklonyayutsya.
+                    if (driver.isBlank()) {
+                        current.put(id, new PushokDevice(description, name, mapper.createObjectNode()));
+                        continue;
+                    }
+                    String adapterKey = driver + ":" + description.path("adptr-crc").asText();
+                    JsonNode adapter = adapters.get(adapterKey);
+                    if (adapter == null) {
+                        JsonNode raw = cloud.request("getAdapter", Map.of("drv", driver));
+                        adapter = raw.path("content").isTextual() ? mapper.readTree(raw.path("content").asText()) : raw;
+                        adapters.put(adapterKey, adapter);
+                    }
+                    var device = new PushokDevice(description, name, adapter);
+                    device.update(cloud.request("getState", params));
+                    current.put(id, device);
+                } catch (PushokCloudClient.Failure failure) {
+                    if (!"HUB_COMMAND_REJECTED".equals(failure.code())) throw failure;
+                    // Otklonennyi zapros odnogo ustrojstva ne otklyuchaet ostalnye i ne osvezhaet staruyu telemetriyu.
+                    var device = devices.get(id);
+                    if (device == null) device = new PushokDevice(description, PushokDevice.name(mapper.createObjectNode(), id, mapper), mapper.createObjectNode());
+                    device.markUnavailable();
+                    current.put(id, device);
+                    unavailable.add(id);
+                    log.warn("PushOk {}: device refresh rejected method={}", connection.publicId(), failure.method());
                 }
-                String adapterKey = driver + ":" + description.path("adptr-crc").asText();
-                JsonNode adapter = adapters.get(adapterKey);
-                if (adapter == null) {
-                    JsonNode raw = cloud.request("getAdapter", Map.of("drv", driver));
-                    adapter = raw.path("content").isTextual() ? mapper.readTree(raw.path("content").asText()) : raw;
-                    adapters.put(adapterKey, adapter);
-                }
-                var device = new PushokDevice(description, name, adapter);
-                device.update(cloud.request("getState", params));
-                current.put(id, device);
             }
             var metadata = current.values().stream().map(device -> device.metadata(selfService.getWritableProperties())).toList();
             publish("bridge/devices", metadata);
             for (var device : current.values()) {
                 var previous = devices.get(device.id());
                 publish(device.friendlyName() + "/availability", Map.of("state", device.offline() ? "offline" : "online"));
-                if (previous == null || !previous.state().equals(device.state()) || !previous.timestamps().equals(device.timestamps())
-                        || !previous.friendlyName().equals(device.friendlyName()))
+                if (!unavailable.contains(device.id()) && (previous == null || !previous.state().equals(device.state())
+                        || !previous.timestamps().equals(device.timestamps()) || !previous.friendlyName().equals(device.friendlyName())))
                     publish(device.friendlyName(), device.state());
             }
             devices.clear(); devices.putAll(current);
             nextRefresh = System.currentTimeMillis() + settings.getRefreshSeconds() * 1000L;
+        }
+
+        private void drainCommands() {
+            int available = commands.size();
+            for (int index = 0; index < available; index++) {
+                Command command = commands.poll();
+                if (command != null) handleCommand(command);
+            }
         }
 
         private void handleEvent(JsonNode event) {
@@ -201,7 +223,9 @@ public class PushokCloudBridge {
                     throw new IllegalArgumentException("USE_UPRAVLYATOR");
                 }
                 String name = command.relativeTopic().substring(0, command.relativeTopic().length() - 4);
-                var device = devices.values().stream().filter(item -> item.friendlyName().equals(name)).findFirst().orElseThrow();
+                var matches = devices.values().stream().filter(item -> item.friendlyName().equals(name)).toList();
+                if (matches.size() != 1) throw new IllegalArgumentException("AMBIGUOUS_OR_UNKNOWN_DEVICE");
+                var device = matches.getFirst();
                 if (!command.payload().isObject() || command.payload().size() != 1) throw new IllegalArgumentException("ONE_PROPERTY_REQUIRED");
                 var field = command.payload().fields().next();
                 if (!selfService.getWritableProperties().contains(field.getKey())) throw new IllegalArgumentException("PROPERTY_NOT_ALLOWED");

@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id":"pushok-cloud-command-recovery","published_at":"2026-10-22","kind":"fix","text":"Fixed PushOk connection recovery after a hub request is rejected. A failed device read no longer disconnects other devices, and socket commands are processed between device reads instead of waiting for the whole list to refresh."},
     {"id":"automation-control-priorities","published_at":"2026-10-22","kind":"feature","article_id":"prioritety-scenariev-i-vremennoe-upravlenie","preview_position":"50% 50%"},
     {"id":"compact-related-article-index","published_at":"2026-10-22","kind":"fix","text":"The article catalogue sends less repeated data about related reading, reducing the initial page download."},
     {"id":"cape-primrose-pot-guide","published_at":"2026-10-22","kind":"article","article_id":"gorshok-dlya-streptokarpusa","preview_position":"50% 50%"},

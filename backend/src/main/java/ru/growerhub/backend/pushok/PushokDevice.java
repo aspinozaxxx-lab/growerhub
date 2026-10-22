@@ -56,6 +56,7 @@ final class PushokDevice {
     String id() { return id; }
     String friendlyName() { return friendlyName; }
     boolean offline() { return offline; }
+    void markUnavailable() { offline = true; }
     Map<String, Object> state() { return Map.copyOf(state); }
     Map<Integer, Long> timestamps() { return Map.copyOf(timestamps); }
 

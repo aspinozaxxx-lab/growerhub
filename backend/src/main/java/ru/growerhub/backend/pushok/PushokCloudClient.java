@@ -37,8 +37,11 @@ import ru.growerhub.backend.common.config.zigbee.PushokSettings;
 final class PushokCloudClient implements AutoCloseable {
     static final class Failure extends RuntimeException {
         private final String code;
-        Failure(String code) { super(code); this.code = code; }
+        private final String method;
+        Failure(String code) { this(code, null); }
+        Failure(String code, String method) { super(code); this.code = code; this.method = method; }
         String code() { return code; }
+        String method() { return method; }
     }
     private final ObjectMapper mapper;
     private final PushokSettings settings;
@@ -114,7 +117,13 @@ final class PushokCloudClient implements AutoCloseable {
             if (params != null) message.set("p", mapper.valueToTree(params));
             socket.sendText(mapper.writeValueAsString(message), true).get(settings.getRequestTimeoutSeconds(), TimeUnit.SECONDS);
             JsonNode response = future.get(settings.getRequestTimeoutSeconds(), TimeUnit.SECONDS);
-            if (response.has("error")) throw new Failure("addUser".equals(method) ? "PAIRING_REQUIRED" : "HUB_COMMAND_REJECTED");
+            if (response.has("error")) {
+                String code = switch (method) {
+                    case "addUser", "challenge", "authenticate" -> "PAIRING_REQUIRED";
+                    default -> "HUB_COMMAND_REJECTED";
+                };
+                throw new Failure(code, method);
+            }
             return response.path("result");
         } catch (Failure failure) { throw failure; }
         catch (Exception ex) { throw new Failure("CLOUD_UNAVAILABLE"); }
