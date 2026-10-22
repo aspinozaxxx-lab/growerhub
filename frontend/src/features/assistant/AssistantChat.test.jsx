@@ -98,6 +98,16 @@ test('an ambiguous send does not automatically retry and manual retry keeps the 
   await waitFor(() => expect(sent()).toHaveLength(2));
   expect(sent()[0][2]).toEqual(sent()[1][2]);
 });
+test('manual takeover displays its duration before the user confirms it', async () => {
+  history = [{ id: 'manual', text: 'Выключи вытяжку на десять минут', status: 'completed', attachments: [], proposals: [{
+    id: 'manual-proposal', title: 'Вытяжка', kind: 'device', payload: { type: 'set', value: 'OFF', ttlSeconds: 600 }, status: 'pending', revision: 'manual-version',
+  }] }];
+  mount(); await screen.findByText('Ручное управление на 10 мин');
+  expect(assistantRequest.mock.calls.some(([, method]) => method === 'POST')).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: 'Подтвердить', exact: true }));
+  await waitFor(() => expect(assistantRequest).toHaveBeenCalledWith('/proposals/manual-proposal/confirm', 'POST', { revision: 'manual-version' }));
+});
+
 test('device delivery is shown separately from actual device state', async () => {
   history = [{ id: 'message-1', text: 'Включи', status: 'completed', attachments: [], proposals: [{ id: 'proposal-1', title: 'Лампа', kind: 'device', payload: { type: 'set', value: 'ON' }, status: 'applied', revision: 'version-7' }] }];
   mount(); await screen.findByText('Команда передана устройству. Фактическое состояние смотрите на ферме.');

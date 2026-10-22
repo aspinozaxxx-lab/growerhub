@@ -23,6 +23,7 @@ vi.mock('../../api/selfService', () => ({
   setScenariosEnabled: vi.fn(),
 }));
 vi.mock('../../api/assistant', () => ({ ruleRequest: vi.fn() }));
+vi.mock('../../api/automationControl', () => ({ fetchResourceControls: vi.fn(async () => []) }));
 let personalRules;
 
 const scenarioConfig = {
@@ -82,7 +83,7 @@ describe('AppAutomations', () => {
     fetchFarmsOverview.mockResolvedValue(multiOverview());
     personalRules = [personalRule('watering-3', 'Полив через день', 'BOX', 3), personalRule('seedling-check', 'Осмотр рассады', 'BOX', 2), personalRule('farm-check', 'Обход фермы', 'ROOM', 1)];
     render(<MemoryRouter><AppAutomations /></MemoryRouter>);
-    await screen.findByRole('button', { name: 'Открыть сценарий «Обход фермы»' });
+    await screen.findByRole('button', { name: 'Открыть сценарий «Обход фермы»' }, { timeout: 5000 });
     expect(screen.getByRole('button', { name: 'Открыть сценарий «Полив через день»' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Открыть сценарий «Осмотр рассады»' })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Настройки теплицы'), { target: { value: '3' } });

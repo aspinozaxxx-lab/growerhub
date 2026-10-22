@@ -9,9 +9,9 @@ import './assistant.css';
 function scheduleLabel(trigger) {
   if (trigger.type === 'calendar') return `${t('Каждые')} ${trigger.every} ${t(trigger.unit === 'week' ? 'нед.' : 'дн.')} · ${trigger.at}`;
   if (trigger.type === 'schedule') return `${trigger.at}${!trigger.days || trigger.days.length === 7 ? ` · ${t('Каждый день')}` : ''}`;
-  if (trigger.type === 'interval') {
+  if (trigger.type === 'interval' || trigger.type === 'repeat_while') {
     const unit = trigger.seconds % 3600 === 0 ? 3600 : trigger.seconds % 60 === 0 ? 60 : 1;
-    return `${t('Каждые')} ${trigger.seconds / unit} ${t(unit === 3600 ? 'ч' : unit === 60 ? 'мин' : 'с')}`;
+    return `${t('Каждые')} ${trigger.seconds / unit} ${t(unit === 3600 ? 'ч' : unit === 60 ? 'мин' : 'с')}${trigger.type === 'repeat_while' ? ` · ${t('Пока выполняется условие')}` : ''}`;
   }
   return t('При изменении показаний');
 }
@@ -46,7 +46,7 @@ export function RuleDetails({ manager, farms, onClose, compact }) {
   const scopeName = d.scopeType === 'ROOM' ? farms.find(f => f.id === d.scopeId)?.name : farms.flatMap(f => f.greenhouses || []).find(g => g.id === d.scopeId)?.name;
   return <Modal isOpen title={d.name} onClose={onClose} presentation={compact ? 'sheet' : 'dialog'}>
     <div className="assistant-rule-details ym-hide-content"><p className="automations-rule-status">{t(selected.enabled ? 'Включён' : 'Выключен')}</p>
-      <RuleExplanation definition={d} resourceNames={resourceNames} scopeName={scopeName} timing={preview?.timing} />
+      <RuleExplanation definition={d} resourceNames={resourceNames} scopeName={scopeName} timing={preview?.timing} coordination={preview?.coordination} />
       {detailLoading && <p role="status">{t('Проверяем сценарий…')}</p>}
       {error && <p role="alert">{error}</p>}
       {preview && <section><h3>{t('Предварительная проверка')}</h3>{[...preview.conflicts, ...preview.readiness].map((v, i) => <p key={i} role="status">{t(v)}</p>)}
@@ -57,7 +57,7 @@ export function RuleDetails({ manager, farms, onClose, compact }) {
         <Link to="/app/assistant/" state={{ prompt: `${t('Помоги изменить мой сценарий')} «${d.name}»${scopeName ? ` (${scopeName})` : ''}.` }}>{t('Изменить с помощником')}</Link>
       </div>
       <section><h3>{t('Последние запуски')}</h3>{!detailLoading && !history.length && <p>{t('Запусков пока нет')}</p>}
-        <ul>{history.map(r => <li key={r.id}>{r.startedAt} UTC · {t(r.reason)}</li>)}</ul></section>
+        <ul>{history.map(r => <li key={r.id}>{r.startedAt} UTC · {r.status === 'partial' ? `${t('Выполнено частично')} · ` : ''}{t(r.reason)}</li>)}</ul></section>
       <section><h3>{t('Предыдущие версии')}</h3>{versions.filter(v => v.revision !== selected.revision).map(v => <p key={v.revision}>{t('Версия')} {v.revision} · {v.definition.name} <Button size="sm" disabled={busy} onClick={() => manager.restore(v.revision)}>{t('Восстановить выключенной')}</Button></p>)}</section>
     </div>
   </Modal>;

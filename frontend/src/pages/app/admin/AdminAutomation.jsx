@@ -36,6 +36,7 @@ import {
 } from './automationPlantDrafts';
 import './AdminPages.css';
 import { formatDateTimeDDMMYYYY } from '../../../utils/formatters';
+import { translateApp as t } from '../../../locales/i18n';
 
 const ROOM_SCOPE = 'ROOM';
 const BOX_SCOPE = 'BOX';
@@ -745,7 +746,7 @@ function AdminAutomation() {
                             {listOrEmpty(box.last_actions).map((item) => (
                               <div className="admin-event-list__item" key={item.id}>
                                 <span className="admin-event-list__title">
-                                  {item.action} · {formatValue(item.result)}
+                                  {item.action} · {item.result === 'confirmed' ? t('Подтверждено устройством') : formatValue(item.result)}
                                 </span>
                                 <span className="admin-event-list__meta">
                                   {formatDateTime(item.created_at)} · {item.reason || '-'}

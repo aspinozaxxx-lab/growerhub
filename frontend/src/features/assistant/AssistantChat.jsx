@@ -30,6 +30,9 @@ function Proposal({ item, onAction, busy }) {
   return <section className="assistant-proposal">
     <strong>{item.title}</strong>
     {item.kind === 'device' && <p>{p.type === 'water' ? `${t('Полив')}: ${p.durationSeconds} ${t('с')}` : `${t('Состояние')}: ${p.value}`}</p>}
+    {item.kind === 'device' && p.type === 'set' && p.ttlSeconds > 0 && <p>{p.ttlSeconds % 60 === 0
+      ? t('Ручное управление на {{minutes}} мин', { minutes: p.ttlSeconds / 60 })
+      : t('Ручное управление на {{seconds}} с', { seconds: p.ttlSeconds })}</p>}
     {item.kind === 'reminder' && <p>{p.title} · {p.dueAt} UTC</p>}
     {item.kind === 'plant' && <PlantChange payload={p} />}
     {item.kind === 'care' && <div className="assistant-change-summary"><p><strong>{p.plantName}</strong> · {t(careAction(p.action)[1])}</p>
@@ -38,7 +41,7 @@ function Proposal({ item, onAction, busy }) {
     </div>}
     {item.kind === 'feature_request' && <><p>{p.description}</p><p><strong>{t('Зачем это нужно:')}</strong> {p.benefit}</p><small>{t('Команда получит этот текст и номер вашего аккаунта. Решение о доработке появится после рассмотрения.')}</small></>}
     {['rule', 'scenario'].includes(item.kind) && <p>{t(item.status === 'applied' ? (p.enabled ? 'Сохранён включённым' : 'Сохранён выключенным') : (p.enabled ? 'Начнёт работать при ближайшем выполнении условий' : 'Сохранится выключенным'))}</p>}
-    {item.kind === 'rule' && <RuleExplanation definition={p.definition} resourceNames={p.resourceNames} scopeName={p.scopeName} timing={p.timing} />}
+    {item.kind === 'rule' && <RuleExplanation definition={p.definition} resourceNames={p.resourceNames} scopeName={p.scopeName} timing={p.timing} coordination={p.coordination} />}
     {item.status === 'pending' && <small>{t(item.kind === 'feature_request' ? 'Запрос отправится только после вашего подтверждения.' : 'Изменение начнётся только после вашего подтверждения.')}</small>}
     {item.kind === 'scenario' && <details><summary>{t('Настройки сценария')}</summary><dl>{Object.entries(p.config || {}).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{String(v)}</dd></div>)}</dl></details>}
     <p role="status">{t(item.kind === 'feature_request' && item.status === 'applied' ? 'Запрос передан команде GrowerHub на рассмотрение.' : item.kind === 'device' && item.status === 'applied' ? 'Команда передана устройству. Фактическое состояние смотрите на ферме.' : status[item.status] || item.status)}</p>

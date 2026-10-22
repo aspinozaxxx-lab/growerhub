@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id":"automation-control-priorities","published_at":"2026-10-22","kind":"feature","article_id":"prioritety-scenariev-i-vremennoe-upravlenie","preview_position":"50% 50%"},
     {"id":"compact-related-article-index","published_at":"2026-10-22","kind":"fix","text":"The article catalogue sends less repeated data about related reading, reducing the initial page download."},
     {"id":"cape-primrose-pot-guide","published_at":"2026-10-22","kind":"article","article_id":"gorshok-dlya-streptokarpusa","preview_position":"50% 50%"},
     {"id": "spider-plant-plantlets-guide", "published_at": "2026-10-20", "kind": "article", "article_id": "hlorofitum-razmnozhenie-detkami", "preview_position": "50% 50%"},

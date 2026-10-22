@@ -14,6 +14,7 @@ import LightScheduleRange from '../../features/automation/LightScheduleRange';
 import useAutomations from '../../features/automation/useAutomations';
 import WateringScenarioFields from '../../features/automation/WateringScenarioFields';
 import WateringPlan from '../../features/automation/WateringPlan';
+import ResourceControls from '../../features/automation/ResourceControls';
 import { lightDuration, timeToMinutes } from '../../features/automation/lightSchedule';
 import { getUiTimeZone } from '../../utils/formatters';
 import { translateApp as t } from '../../locales/i18n';
@@ -275,6 +276,10 @@ function AppAutomations() {
           </> : <>{climateEditor}{wateringEditor}</>}
         </div>
       </> : null}
+      {selected && <ResourceControls key={selected.id} resources={[
+        ...listOrEmpty(selected.slots),
+        ...farms.filter(farm => farm.greenhouses?.some(greenhouse => greenhouse.id === selected.id)).flatMap(farm => listOrEmpty(farm.slots)),
+      ]} refreshKey={overview} scopeName={selected.name} />}
       {greenhouses.filter(greenhouse => custom.rules.length
         ? custom.rules.some(rule => rule.definition.scopeType === 'BOX' && rule.definition.scopeId === greenhouse.id)
         : greenhouse.id === greenhouses[0]?.id).map(greenhouse =>

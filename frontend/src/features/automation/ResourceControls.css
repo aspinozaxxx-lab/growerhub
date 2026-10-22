@@ -1,0 +1,28 @@
+.resource-controls { min-width: 0; border: 1px solid var(--border-1); border-radius: 12px; background: var(--surface-1); }
+.resource-controls > header { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 13px 16px; }
+.resource-controls h2 { font-size: 15px; line-height: 1.4; }
+.resource-controls header > span { color: var(--text-2); font-size: 12px; overflow-wrap: anywhere; }
+.resource-controls > ul, .resource-control-demands ul { list-style: none; margin: 0; padding: 0; }
+.resource-controls > ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.resource-control-row { min-width: 0; padding: 13px 16px; border-top: 1px solid var(--border-1); }
+.resource-control-summary, .resource-control-owner { display: flex; gap: 8px; justify-content: space-between; align-items: baseline; }
+.resource-control-summary > div { min-width: 0; display: grid; gap: 3px; }
+.resource-control-summary strong { font-size: 14px; }
+.resource-control-summary span, .resource-control-detail { font-size: 12px; color: var(--text-2); overflow-wrap: anywhere; }
+.resource-control-actual { flex: none; }
+.resource-control-owner { margin: 9px 0 4px; flex-wrap: wrap; font-size: 13px; overflow-wrap: anywhere; }
+.resource-control-owner > span { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-size: 12px; }
+.resource-control-detail { display: block; line-height: 1.5; }
+.resource-control-row.is-error .resource-control-detail, .resource-controls [role="alert"] { color: var(--danger); }
+.resource-control-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.resource-control-actions .gh-btn { font-size: 12px; }
+.resource-control-demands { margin-top: 8px; font-size: 12px; color: var(--text-2); }
+.resource-control-demands summary { cursor: pointer; padding: 4px 0; }
+.resource-control-demands li { display: grid; gap: 3px; padding: 5px 0; overflow-wrap: anywhere; }
+.resource-control-editor { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; padding: 12px; background: var(--surface-2); border-radius: 9px; }
+.resource-control-editor > p, .resource-control-editor > small, .resource-control-editor > div { grid-column: 1 / -1; }
+.resource-control-editor p { margin: 0; font-size: 13px; }
+.resource-control-editor > small { line-height: 1.5; color: var(--text-2); }
+.resource-control-editor > div { display: flex; gap: 8px; flex-wrap: wrap; }
+.resource-controls-error { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 0 16px 12px; font-size: 13px; }
+@media (max-width: 680px) { .resource-controls > header, .resource-control-row { padding: 11px 12px; } }
