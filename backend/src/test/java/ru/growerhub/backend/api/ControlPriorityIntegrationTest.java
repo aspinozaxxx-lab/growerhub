@@ -11,6 +11,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.automation.AutomationFacade;
@@ -45,6 +47,8 @@ class ControlPriorityIntegrationTest extends IntegrationTestBase {
     private static final AtomicInteger RESOURCE_IDS = new AtomicInteger(1000);
     @SpyBean AutomationFacade automation;
     @Autowired UserRepository users;
+    @Autowired JdbcTemplate jdbc;
+    @Autowired EntityManagerFactory entityManagerFactory;
     @Autowired TestClock clock;
     @MockBean ZigbeeFacade zigbee;
     @MockBean PlantFacade plants;
@@ -227,6 +231,45 @@ class ControlPriorityIntegrationTest extends IntegrationTestBase {
         assertThat(automation.listControls(otherAdmin)).isEmpty();
         verify(zigbee, never()).setDeviceProperty(any(), any(), any(), any(), any());
         verifyNoInteractions(mqtt);
+    }
+
+    @Test void terminalHistoryStaysOutOfActiveQueriesAndAnOldRequestCannotRunAgain() {
+        UUID oldRequest = UUID.randomUUID();
+        var archived = automation.setManualControl(resourceId, new Manual(oldRequest, "ON", 60), owner).demands().getFirst();
+        automation.releaseManualControl(resourceId, archived.id(), archived.revision(), owner);
+        var historicalIds = java.util.stream.IntStream.range(0, 256).mapToObj(n -> UUID.randomUUID()).toList();
+        jdbc.batchUpdate("""
+                insert into automation_control_demands
+                  (id,user_id,resource_id,target_key,binding_fingerprint,source_type,source_id,source_key,source_name,
+                   reason,revision,priority,value_json,kind,status,requested_at,created_at,interrupted)
+                select ?,user_id,resource_id,target_key,binding_fingerprint,source_type,source_id,?,source_name,
+                   reason,revision,priority,value_json,kind,'released',?,?,false
+                from automation_control_demands where id=?
+                """, historicalIds, 256, (statement, id) -> {
+            statement.setObject(1, id); statement.setString(2, "archive:" + id);
+            statement.setObject(3, now().minusDays(30)); statement.setObject(4, now().minusDays(30));
+            statement.setObject(5, archived.id());
+        });
+        var statistics = entityManagerFactory.unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        boolean statisticsEnabled = statistics.isStatisticsEnabled();
+        statistics.setStatisticsEnabled(true); statistics.clear();
+        try {
+            var active = automation.setManualControl(resourceId, new Manual(UUID.randomUUID(), "ON", 60), owner).demands().getFirst();
+            assertThat(automation.listControls(owner)).singleElement().satisfies(status -> assertThat(status.demands()).hasSize(1));
+            dispatchOne(); acknowledge("ON", START.plusSeconds(1));
+            automation.releaseManualControl(resourceId, active.id(), active.revision(), owner);
+            observed = "OFF"; observedAt = now();
+            var replay = automation.setManualControl(resourceId, new Manual(oldRequest, "ON", 60), owner);
+            assertThat(replay.status()).isEqualTo("idle");
+            assertThat(replay.demands()).isEmpty();
+            assertThat(automation.claimControlCommand(owner.id())).isNull();
+            assertThat(jdbc.queryForObject("select status from automation_control_demands where id=?", String.class, archived.id())).isEqualTo("released");
+            assertThat(jdbc.queryForObject("select count(*) from automation_control_demands where user_id=?", Integer.class, owner.id())).isEqualTo(258);
+            assertThat(statistics.getEntityStatistics(ru.growerhub.backend.automation.jpa.ControlDemandEntity.class.getName()).getLoadCount())
+                    .as("terminal history must not be hydrated during active control and UUID replay").isLessThan(32);
+            verify(zigbee, times(1)).setDeviceProperty(owner, coordinator, "0xcontrol", "state", "ON");
+            verifyNoInteractions(mqtt);
+        } finally { statistics.setStatisticsEnabled(statisticsEnabled); }
     }
 
     private void dispatchOne() {

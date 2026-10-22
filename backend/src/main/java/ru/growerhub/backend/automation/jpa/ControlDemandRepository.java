@@ -4,7 +4,8 @@ import java.util.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ControlDemandRepository extends JpaRepository<ControlDemandEntity, UUID> {
-    List<ControlDemandEntity> findByUserId(Integer userId);
+    List<ControlDemandEntity> findByUserIdAndStatusIn(Integer userId, Collection<String> statuses);
+    List<ControlDemandEntity> findByUserIdAndTargetKeyAndStatusIn(Integer userId, String targetKey, Collection<String> statuses);
     Optional<ControlDemandEntity> findByUserIdAndSourceKey(Integer userId, String key);
     List<ControlDemandEntity> findByStatusIn(Collection<String> statuses);
     interface CleanupCandidate { UUID getId(); Integer getUserId(); }

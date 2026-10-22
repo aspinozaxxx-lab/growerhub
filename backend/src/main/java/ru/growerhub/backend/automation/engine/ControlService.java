@@ -67,8 +67,8 @@ public class ControlService {
             return status(r, user);
         }
         if (!r.ready()) throw bad("Устройство сейчас недоступно");
-        for (var old : demands.findByUserId(user.id()))
-            if (LIVE.contains(old.status) && "manual".equals(old.sourceType) && target(r).equals(old.targetKey)) release(old, "Заменено новой ручной командой");
+        for (var old : demands.findByUserIdAndTargetKeyAndStatusIn(user.id(), target(r), LIVE))
+            if ("manual".equals(old.sourceType)) release(old, "Заменено новой ручной командой");
         add(r, user, "manual", request.requestId().toString(), sourceKey, "Ручное управление",
                 "Временная команда пользователя", settings.manualPriority(), value, request.ttlSeconds(), "manual", null, null);
         reconcile(user); return status(r, user);
@@ -94,8 +94,8 @@ public class ControlService {
         lock(user); String value = value(r, requested);
         var old = demands.findByUserIdAndSourceKey(user.id(), executionKey).orElse(null);
         if (old != null) return old.id;
-        for (var demand : demands.findByUserId(user.id()))
-            if (LIVE.contains(demand.status) && "legacy".equals(demand.kind) && target(r).equals(demand.targetKey)) release(demand, "Следующая команда правила");
+        for (var demand : demands.findByUserIdAndTargetKeyAndStatusIn(user.id(), target(r), LIVE))
+            if ("legacy".equals(demand.kind)) release(demand, "Следующая команда правила");
         return add(r, user, "rule", ruleId.toString(), executionKey, name, "Команда пользовательского правила",
                 settings.legacyPriority(), value, null, "legacy", fingerprint, null).id;
     }
@@ -121,7 +121,7 @@ public class ControlService {
                 null, "baseline", fingerprint, now().plusSeconds(settings.baselineTtlSeconds()));
     }
     public void releaseRule(Integer userId, UUID ruleId, String reason) {
-        for (var d : demands.findByUserId(userId)) if (LIVE.contains(d.status) && "rule".equals(d.sourceType)
+        for (var d : demands.findByUserIdAndStatusIn(userId, LIVE)) if ("rule".equals(d.sourceType)
                 && ruleId.toString().equals(d.sourceId)) release(d, reason);
     }
     public Demand demand(UUID id, AuthenticatedUser user) {
@@ -157,8 +157,8 @@ public class ControlService {
         }
     }
     private void reconcile(AuthenticatedUser user) {
-        var snapshot = snapshot(user); var all = demands.findByUserId(user.id());
-        for (var d : all) if (LIVE.contains(d.status)) {
+        var snapshot = snapshot(user); var all = demands.findByUserIdAndStatusIn(user.id(), LIVE);
+        for (var d : all) {
             var r = snapshot.resources.get(d.resourceId);
             String issue = r == null || !switchChannel(r) || !Objects.equals(d.bindingFingerprint, binding(r)) ? "Назначение оборудования изменилось"
                     : !"manual".equals(d.sourceType) && !snapshot.enabled.getOrDefault(d.resourceId, false) ? "Ферма или теплица выключена"
@@ -299,8 +299,8 @@ public class ControlService {
     }
     public String scenarioFingerprint(AutomationScenarioConfigEntity c) { return digest(c.getId() + ":" + c.isEnabled() + ":" + c.getConfigJson() + ":" + c.getUpdatedAt()); }
     private Status status(ResourceBinding r, AuthenticatedUser user) {
-        var all = demands.findByUserId(user.id()).stream().filter(d -> target(r).equals(d.targetKey) && LIVE.contains(d.status)
-                && (d.expiresAt == null || d.expiresAt.isAfter(now())) && (d.validUntil == null || d.validUntil.isAfter(now())))
+        var all = demands.findByUserIdAndTargetKeyAndStatusIn(user.id(), target(r), LIVE).stream().filter(d ->
+                (d.expiresAt == null || d.expiresAt.isAfter(now())) && (d.validUntil == null || d.validUntil.isAfter(now())))
                 .sorted(ORDER).toList();
         var channel = channels.findByUserIdAndTargetKey(user.id(), target(r)).orElse(null);
         var winner = all.isEmpty() ? channel != null && "error".equals(channel.status) && channel.winnerId != null
