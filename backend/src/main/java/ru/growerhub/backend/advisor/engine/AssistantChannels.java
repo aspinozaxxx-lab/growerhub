@@ -208,6 +208,9 @@ public class AssistantChannels {
             String when = switch (trigger.path("type").asText()) {
                 case "schedule" -> "В " + trigger.path("at").asText() + (trigger.path("days").size() == 0 || trigger.path("days").size() == 7 ? ", каждый день" : ", дни " + trigger.path("days").toString());
                 case "interval" -> "Каждые " + trigger.path("seconds").asInt() + " сек., начало " + trigger.path("anchor").asText();
+                case "repeat_while" -> "Пока выполняется условие: каждые " + trigger.path("seconds").asInt() + " сек., первый цикл "
+                        + ("immediate".equals(trigger.path("first").asText()) ? "сразу" : "через период") + ", при потере условия — "
+                        + ("finish".equals(trigger.path("onConditionLoss").asText()) ? "закончить начатое удержание" : "освободить управление") + "; устаревшие данные всегда освобождают управление";
                 case "calendar" -> "Каждые " + trigger.path("every").asInt() + ("week".equals(trigger.path("unit").asText()) ? " нед." : " дн.")
                         + " в " + trigger.path("at").asText() + ", с " + trigger.path("startDate").asText() + " (" + p.path("timing").path("timezone").asText() + ")";
                 default -> "При изменении показаний №" + trigger.path("resourceId").asInt() + ", свежесть до " + trigger.path("maxAgeSeconds").asInt() + " сек.";
@@ -215,6 +218,8 @@ public class AssistantChannels {
             var actions = new ArrayList<String>();
             for (var a : d.path("actions")) actions.add(switch (a.path("type").asText()) {
                 case "set" -> resourceName(p, a) + ": " + a.path("value").asText();
+                case "hold" -> resourceName(p, a) + ": удерживать " + a.path("value").asText() + " " + a.path("durationSeconds").asInt()
+                        + " сек. после подтверждения устройства, приоритет " + a.path("priority").asInt() + "; затем освободить управление";
                 case "water" -> resourceName(p, a) + ": полив " + a.path("durationSeconds").asInt() + " секунд работы насоса"
                         + (a.hasNonNull("pulse") ? ", импульс " + a.path("pulse").path("runSeconds").asInt() + " сек., пауза " + a.path("pulse").path("pauseSeconds").asInt() + " сек. после остановки" : "");
                 case "delay" -> "Пауза " + a.path("seconds").asInt() + " секунд";
@@ -224,9 +229,11 @@ public class AssistantChannels {
             for (var at : p.path("timing").path("nextRuns")) next.add(at.path("localAt").asText());
             return p.path("scopeName").asText("") + "\n" + (p.path("enabled").asBoolean() ? "Сценарий будет включён." : "Сценарий сохранится выключенным.") + "\n" + when + "\nУсловия: " + condition(d.path("condition"))
                     + "\n" + String.join(" → ", actions) + "\nПауза между запусками: " + d.path("cooldownSeconds").asInt() + " сек."
-                    + (p.has("timing") ? "\nПлановая длительность цикла: " + p.path("timing").path("cycleSeconds").asLong() + " сек.\nБлижайшие запуски: " + String.join(", ", next) : "");
+                    + (p.has("timing") ? "\nПлановая длительность цикла: " + p.path("timing").path("cycleSeconds").asLong() + " сек.\nБлижайшие запуски: " + String.join(", ", next) : "")
+                    + (p.path("coordination").isArray() ? "\n" + java.util.stream.StreamSupport.stream(p.path("coordination").spliterator(), false).map(com.fasterxml.jackson.databind.JsonNode::asText).collect(java.util.stream.Collectors.joining("\n")) : "");
         }
-        if ("device".equals(proposal.kind())) return "water".equals(p.path("type").asText()) ? "Полив " + p.path("durationSeconds").asInt() + " секунд" : "Состояние: " + p.path("value").asText();
+        if ("device".equals(proposal.kind())) return "water".equals(p.path("type").asText()) ? "Полив " + p.path("durationSeconds").asInt() + " секунд"
+                : "Состояние: " + p.path("value").asText() + ", ручное управление на " + p.path("ttlSeconds").asInt() + " секунд после подтверждения устройства";
         return "Состояние: " + (p.path("enabled").asBoolean() ? "включён" : "выключен") + ". Настройки:\n" + p.path("config").toPrettyString();
     }
     private String resourceName(com.fasterxml.jackson.databind.JsonNode payload, com.fasterxml.jackson.databind.JsonNode action) {

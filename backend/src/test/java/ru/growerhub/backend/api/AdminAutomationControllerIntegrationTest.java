@@ -32,6 +32,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
@@ -41,6 +42,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import ru.growerhub.backend.IntegrationTestBase;
 import ru.growerhub.backend.automation.AutomationFacade;
+import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.device.DeviceFacade;
 import ru.growerhub.backend.device.contract.DeviceShadowState;
 import ru.growerhub.backend.mqtt.MqttPublisher;
@@ -51,8 +53,6 @@ import ru.growerhub.backend.user.jpa.UserRepository;
 import ru.growerhub.backend.zigbee.ZigbeeFacade;
 import ru.growerhub.backend.zigbee.contract.ZigbeeMqttMessageType;
 import ru.growerhub.backend.zigbee.contract.ZigbeeMqttSnapshotMessage;
-import ru.growerhub.backend.zigbee.jpa.ZigbeeCoordinatorEntity;
-import ru.growerhub.backend.zigbee.jpa.ZigbeeCoordinatorRepository;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -79,9 +79,6 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
     private ZigbeeFacade zigbeeFacade;
 
     @Autowired
-    private ZigbeeCoordinatorRepository coordinatorRepository;
-
-    @Autowired
     private AutomationFacade automationFacade;
 
     @Autowired
@@ -95,6 +92,8 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private TestPublisher testPublisher;
+    @MockBean
+    private ru.growerhub.backend.automation.engine.ControlWorker controlWorker;
 
     @BeforeEach
     void setUp() {
@@ -487,6 +486,7 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
     @Test
     void legacyLightAutomationKeepsPublishingToExistingBaseTopic() {
         UserEntity admin = createUser("automation-legacy-light@example.com", "admin");
+        jdbcTemplate.update("UPDATE zigbee_coordinators SET user_id=? WHERE base_topic='zigbee2growerhub'", admin.getId());
         String token = buildToken(admin.getId());
         Integer roomId = createRoom(token, "Legacy Room");
         Integer boxId = createBox(token, roomId, "Legacy Box");
@@ -523,18 +523,36 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
                 .statusCode(200);
 
         automationFacade.evaluateAll();
+        assertThat(testPublisher.published()).isEmpty();
+        var actor = new AuthenticatedUser(admin.getId(), "admin");
+        var queued = automationFacade.listControls(actor);
+        assertThat(queued).singleElement().satisfies(c -> {
+            assertThat(c.sourceType()).isEqualTo("scenario");
+            assertThat(c.desiredValue()).isEqualTo("ON");
+            assertThat(c.actualConfirmed()).isFalse();
+        });
+        automationFacade.reconcileControls(admin.getId());
+        var command = automationFacade.claimControlCommand(admin.getId());
+        assertThat(command).isNotNull();
+        automationFacade.executeControlCommand(command);
+        automationFacade.finishControlCommand(command, true);
 
-        assertThat(testPublisher.published()).anySatisfy(message -> {
+        assertThat(testPublisher.published()).singleElement().satisfies(message -> {
             assertThat(message.topic()).isEqualTo("zigbee2growerhub/smartplug1/set");
             assertThat(message.payload()).isInstanceOf(Map.class);
             assertThat(((Map<?, ?>) message.payload()).get("state")).isEqualTo("ON");
         });
-        assertThat(jdbcTemplate.queryForObject(
-                "SELECT result FROM automation_action_log WHERE scope_type='BOX' AND scope_id=? "
-                        + "AND scenario_type='LIGHT_SCHEDULE' ORDER BY id DESC LIMIT 1",
-                String.class,
-                boxId
-        )).isEqualTo("published");
+        assertThat(automationFacade.listControls(actor).getFirst().actualConfirmed()).isFalse();
+        zigbeeFacade.handleMqttSnapshot(new ZigbeeMqttSnapshotMessage(
+                ZigbeeMqttMessageType.DEVICE_STATE, "zigbee2growerhub/smartplug1", "smartplug1", "smartplug1",
+                "{\"state\":\"ON\"}", Map.of("state", "ON"), LocalDateTime.now(ZoneOffset.UTC)));
+        automationFacade.reconcileControls(admin.getId());
+        assertThat(automationFacade.listControls(actor)).singleElement().satisfies(c -> {
+            assertThat(c.actualConfirmed()).isTrue();
+            assertThat(c.status()).isEqualTo("active");
+        });
+        assertThat(automationFacade.claimControlCommand(admin.getId())).isNull();
+        assertThat(testPublisher.published()).hasSize(1);
     }
 
     @Test
@@ -1254,14 +1272,12 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
     private void seedLegacyCoordinator() {
         UserEntity owner = createUser("automation-legacy-owner@example.com", "admin");
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        coordinatorRepository.save(ZigbeeCoordinatorEntity.create(
-                UUID.fromString("00000000-0000-0000-0000-000000000001"),
-                owner.getId(),
-                "Legacy coordinator",
-                "legacy",
-                "zigbee2growerhub",
-                now
-        ));
+        jdbcTemplate.update("""
+                INSERT INTO zigbee_coordinators(id,public_id,user_id,name,mqtt_username,base_topic,status,
+                    credential_issued_at,created_at,updated_at,execution_kind,transport_kind)
+                VALUES (1,?,?,?,?,?,?,?,?,?,'PHYSICAL','ZIGBEE2MQTT')
+                """, UUID.fromString("00000000-0000-0000-0000-000000000001"), owner.getId(),
+                "Legacy coordinator", "legacy", "zigbee2growerhub", "PROVISIONING", now, now, now);
     }
 
     private void seedLeakState(LocalDateTime receivedAt, boolean leak) {
@@ -1516,6 +1532,8 @@ class AdminAutomationControllerIntegrationTest extends IntegrationTestBase {
     }
 
     private void clearDatabase() {
+        jdbcTemplate.update("DELETE FROM automation_control_channels");
+        jdbcTemplate.update("DELETE FROM automation_control_demands");
         jdbcTemplate.update("DELETE FROM automation_action_log");
         jdbcTemplate.update("DELETE FROM automation_scenario_states");
         jdbcTemplate.update("DELETE FROM automation_scenario_configs");

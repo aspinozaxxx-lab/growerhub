@@ -32,6 +32,8 @@ import ru.growerhub.backend.demo.DemoFacade;
 import org.springframework.beans.factory.ObjectProvider;
 import ru.growerhub.backend.automation.engine.WateringPlanEngine;
 import ru.growerhub.backend.automation.engine.RuleService;
+import ru.growerhub.backend.automation.engine.ControlService;
+import ru.growerhub.backend.automation.contract.ControlData;
 import ru.growerhub.backend.automation.contract.RuleData;
 import ru.growerhub.backend.common.config.automation.WateringPlanSettings;
 import ru.growerhub.backend.automation.jpa.AutomationActionLogEntity;
@@ -146,6 +148,7 @@ public class AutomationFacade {
     private final WeatherForecastGateway weatherForecast;
     private final ObjectProvider<DemoFacade> demos;
     private final RuleService rules;
+    private final ControlService controls;
 
     public AutomationFacade(
             AutomationRoomRepository roomRepository,
@@ -167,7 +170,7 @@ public class AutomationFacade {
             java.time.Clock clock,
             WateringPlanEngine wateringPlans,
             WateringPlanSettings wateringPlanSettings,
-            WeatherSettings weatherSettings, WeatherForecastGateway weatherForecast, ObjectProvider<DemoFacade> demos, RuleService rules
+            WeatherSettings weatherSettings, WeatherForecastGateway weatherForecast, ObjectProvider<DemoFacade> demos, RuleService rules, ControlService controls
     ) {
         this.roomRepository = roomRepository;
         this.boxRepository = boxRepository;
@@ -190,6 +193,49 @@ public class AutomationFacade {
         this.wateringPlanSettings = wateringPlanSettings;
         this.weatherSettings = weatherSettings; this.weatherForecast = weatherForecast; this.demos = demos;
         this.rules = rules;
+        this.controls = controls;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ControlData.Status> listControls(AuthenticatedUser user) { return controls.list(user); }
+    @Transactional(readOnly = true)
+    public ControlData.Status getControl(Integer resourceId, AuthenticatedUser user) { return controls.get(resourceId, user); }
+    public ControlData.Status setManualControl(Integer resourceId, ControlData.Manual request, AuthenticatedUser user) { return controls.manual(resourceId, request, user); }
+    public ControlData.Status releaseManualControl(Integer resourceId, UUID demandId, int revision, AuthenticatedUser user) { return controls.releaseManual(resourceId, demandId, revision, user); }
+    @Transactional(readOnly = true)
+    public List<Integer> controlOwnersDue() { return controls.ownersDue(); }
+    public void reconcileControls(Integer owner) { controls.reconcile(owner); }
+    public ControlData.Step claimControlCommand(Integer owner) { return controls.claim(owner); }
+    public void executeControlCommand(ControlData.Step step) { controls.execute(step); }
+    public void finishControlCommand(ControlData.Step step, boolean success) { controls.finish(step, success); }
+    public void maintainControls() { controls.maintain(); }
+
+    public ru.growerhub.backend.zigbee.contract.ZigbeeCommandPublishResult setManualZigbeeProperty(
+            AuthenticatedUser user, UUID coordinator, String ieee, String property, Object value, Integer ttl, UUID requestId) {
+        String normalizedProperty = property == null ? null : property.trim().toLowerCase(Locale.ROOT);
+        String normalizedIeee = ieee == null ? null : ieee.trim().toLowerCase(Locale.ROOT);
+        var target = getFarmsOverview(user).farms().stream().flatMap(f -> java.util.stream.Stream.concat(f.slots().stream(), f.greenhouses().stream().flatMap(g -> g.slots().stream())))
+                .filter(r -> Objects.equals(r.zigbeeCoordinatorId(), coordinator) && Objects.equals(r.zigbeeIeeeAddress(), normalizedIeee)
+                        && Objects.equals(r.commandProperty(), normalizedProperty) && controls.switchChannel(r)).findFirst().orElse(null);
+        if (target != null) {
+            controls.manual(target.id(), new ControlData.Manual(requestId == null ? UUID.randomUUID() : requestId, value,
+                    ttl == null ? controls.defaultManualTtlSeconds() : ttl), user);
+            return new ru.growerhub.backend.zigbee.contract.ZigbeeCommandPublishResult("control request saved", null);
+        }
+        return zigbeeFacade.setDeviceProperty(user, coordinator, normalizedIeee, normalizedProperty, value);
+    }
+
+    public ru.growerhub.backend.zigbee.contract.ZigbeeCommandPublishResult setLegacyManualZigbeeProperty(
+            AuthenticatedUser user, String ieee, String property, Object value, Integer ttl, UUID requestId) {
+        if (user == null || !user.isAdmin()) throw new DomainException("forbidden", "Нужны права администратора");
+        var device = zigbeeFacade.getDevicesForUser(user).stream().filter(d -> d.device().ieeeAddress().equalsIgnoreCase(ieee)).findFirst().orElse(null);
+        if (device == null) throw new DomainException("not_found", "Устройство не найдено среди ваших координаторов");
+        String normalizedProperty = property == null ? null : property.trim().toLowerCase(Locale.ROOT);
+        boolean bound = getFarmsOverview(user).farms().stream().flatMap(f -> java.util.stream.Stream.concat(f.slots().stream(), f.greenhouses().stream().flatMap(g -> g.slots().stream())))
+                .anyMatch(r -> Objects.equals(r.zigbeeCoordinatorId(), device.coordinatorId()) && Objects.equals(r.zigbeeIeeeAddress(), device.device().ieeeAddress())
+                        && Objects.equals(r.commandProperty(), normalizedProperty) && controls.switchChannel(r));
+        if (!bound) return zigbeeFacade.setOwnedAdminDeviceProperty(user, device.coordinatorId(), device.device().ieeeAddress(), normalizedProperty, value);
+        return setManualZigbeeProperty(user, device.coordinatorId(), ieee, property, value, ttl, requestId);
     }
 
     @Transactional(readOnly = true)
@@ -219,6 +265,8 @@ public class AutomationFacade {
     public RuleData.Step claimRuleStep(Integer owner) { return rules.claim(owner); }
     public com.fasterxml.jackson.databind.JsonNode executeRuleStep(RuleData.Step step) { return rules.execute(step); }
     public void finishRuleStep(RuleData.Step step, com.fasterxml.jackson.databind.JsonNode result, boolean success) { rules.finish(step, result, success); }
+    @Transactional(readOnly = true)
+    public boolean ruleControlConditionAllowed(UUID ruleId, int revision, AuthenticatedUser user, boolean started) { return rules.controlConditionAllowed(ruleId, revision, user, started); }
 
     @Transactional(readOnly = true)
     public void previewScenario(AuthenticatedUser user, String scope, Integer scopeId, AutomationData.ScenarioConfigRequest command) {
@@ -473,6 +521,7 @@ public class AutomationFacade {
             Integer farmId,
             AutomationData.SaveRoomRequest request
     ) {
+        lockControlOwner(user.id());
         AutomationRoomEntity farm = requireOwnedFarm(user, farmId);
         if (request != null && request.name() != null) {
             farm.setName(requiredName(request.name()));
@@ -486,6 +535,7 @@ public class AutomationFacade {
     }
 
     public void deleteUserFarm(AuthenticatedUser user, Integer farmId) {
+        lockControlOwner(user.id());
         deleteRoomWithResources(requireOwnedFarm(user, farmId));
     }
 
@@ -537,6 +587,7 @@ public class AutomationFacade {
             Integer greenhouseId,
             AutomationData.SaveGreenhouseRequest request
     ) {
+        lockControlOwner(user.id());
         AutomationBoxEntity greenhouse = requireOwnedGreenhouse(user, greenhouseId);
         AutomationRoomEntity previousFarm = greenhouse.getRoom();
         if (request != null && request.farmId() != null
@@ -560,6 +611,7 @@ public class AutomationFacade {
     }
 
     public void deleteGreenhouse(AuthenticatedUser user, Integer greenhouseId) {
+        lockControlOwner(user.id());
         AutomationBoxEntity greenhouse = requireOwnedGreenhouse(user, greenhouseId);
         AutomationRoomEntity farm = greenhouse.getRoom();
         Integer pumpId = automationPumpId(greenhouse.getId());
@@ -577,6 +629,7 @@ public class AutomationFacade {
             Integer farmId,
             AutomationData.SaveZoneSlotsRequest request
     ) {
+        lockControlOwner(user.id());
         AutomationRoomEntity farm = requireOwnedFarm(user, farmId);
         List<AutomationData.ResourceBindingRequest> slots =
                 request != null && request.slots() != null ? request.slots() : List.of();
@@ -602,6 +655,7 @@ public class AutomationFacade {
             Integer greenhouseId,
             AutomationData.SaveZoneSlotsRequest request
     ) {
+        lockControlOwner(user.id());
         AutomationBoxEntity greenhouse = requireOwnedGreenhouse(user, greenhouseId);
         List<AutomationData.ResourceBindingRequest> slots =
                 request != null && request.slots() != null ? request.slots() : List.of();
@@ -917,6 +971,7 @@ public class AutomationFacade {
             AutomationData.SaveRoomRequest request
     ) {
         AutomationRoomEntity room = requireRoom(user, roomId);
+        lockControlOwner(room.getUserId());
         if (request != null && request.name() != null) {
             room.setName(requiredName(request.name()));
         }
@@ -934,6 +989,7 @@ public class AutomationFacade {
     }
 
     private void deleteRoomWithResources(AutomationRoomEntity room) {
+        lockControlOwner(room.getUserId());
         List<AutomationBoxEntity> boxes = boxRepository.findAllByRoom_IdOrderByNameAscIdAsc(room.getId());
         Set<Integer> pumpIds = boxes.stream()
                 .map(AutomationBoxEntity::getId)
@@ -972,6 +1028,7 @@ public class AutomationFacade {
             AutomationData.SaveBoxRequest request
     ) {
         AutomationBoxEntity box = requireBox(user, boxId);
+        lockControlOwner(box.getRoom().getUserId());
         if (request != null && request.name() != null) {
             box.setName(requiredName(request.name()));
         }
@@ -985,6 +1042,7 @@ public class AutomationFacade {
 
     public void deleteBox(AuthenticatedUser user, Integer boxId) {
         AutomationBoxEntity box = requireBox(user, boxId);
+        lockControlOwner(box.getRoom().getUserId());
         AutomationRoomEntity farm = box.getRoom();
         Integer pumpId = automationPumpId(box.getId());
         deleteBoxResources(box.getId());
@@ -1562,6 +1620,7 @@ public class AutomationFacade {
             AutomationData.SaveResourcesRequest request,
             Catalog catalog
     ) {
+        lockControlOwner(AutomationData.SCOPE_ROOM.equals(scopeType) ? requireRoom(scopeId).getUserId() : requireBox(scopeId).getRoom().getUserId());
         LocalDateTime now = nowUtc();
         List<AutomationData.ResourceBindingRequest> resources =
                 request != null && request.resources() != null ? request.resources() : List.of();
@@ -1614,6 +1673,7 @@ public class AutomationFacade {
             List<String> allowedTypes,
             AutomationData.SaveScenariosRequest request
     ) {
+        lockControlOwner(AutomationData.SCOPE_ROOM.equals(scopeType) ? requireRoom(scopeId).getUserId() : requireBox(scopeId).getRoom().getUserId());
         LocalDateTime now = nowUtc();
         List<AutomationData.ScenarioConfigRequest> scenarios =
                 request != null && request.scenarios() != null ? request.scenarios() : List.of();
@@ -1839,6 +1899,10 @@ public class AutomationFacade {
             sendSwitchIfNeeded(exhaustBinding, false, catalog, AutomationData.SCENARIO_BOX_CLIMATE,
                     AutomationData.SCOPE_BOX, box.getId(), "Температура " + value + " °C", now, null);
             runtime.put("exhaust_desired_state", "OFF");
+        } else {
+            Object prior = runtime.get("exhaust_desired_state");
+            if (prior != null) sendSwitchIfNeeded(exhaustBinding, "ON".equals(prior), catalog, AutomationData.SCENARIO_BOX_CLIMATE,
+                    AutomationData.SCOPE_BOX, box.getId(), "Сохраняется выбранное климатом состояние в зоне гистерезиса", now, null);
         }
 
         boolean acRequest = state.isAcRequestActive();
@@ -2193,6 +2257,10 @@ public class AutomationFacade {
                 + binding.getZigbeeCoordinatorId() + ":" + binding.getZigbeeIeeeAddress() + ":" + binding.getZigbeeProperty();
     }
 
+    private void lockControlOwner(Integer owner) {
+        if (userFacade.isDemoOwner(owner)) userFacade.lockDemoOwner(owner); else userFacade.lockAccount(owner);
+    }
+
     private boolean sendSwitchIfNeeded(
             AutomationResourceBindingEntity binding,
             boolean on,
@@ -2208,23 +2276,13 @@ public class AutomationFacade {
             return false;
         }
         String desired = on ? defaultOnValue(binding.getOnValue()) : defaultOffValue(binding.getOffValue());
-        Object current = readSwitchValue(binding, catalog);
-        if (current != null && desired.equalsIgnoreCase(String.valueOf(current))) {
-            return false;
-        }
-        String property = defaultCommandProperty(binding.getRole(), binding.getCommandProperty());
         try {
-            zigbeeFacade.setAutomationDeviceProperty(
-                    binding.getZigbeeCoordinatorId(),
-                    binding.getZigbeeIeeeAddress(),
-                    property,
-                    desired
-            );
-            logAction(scopeType, scopeId, scenarioType, binding,
-                    switchAction(binding.getRole(), on), reason, "published", durationS, now);
-            AutomationScenarioStateEntity state = stateFor(scopeType, scopeId, scenarioType, now);
-            state.setLastActionAt(now);
-            stateRepository.save(state);
+            Integer owner = AutomationData.SCOPE_ROOM.equals(scopeType) ? roomRepository.findById(scopeId).orElseThrow().getUserId()
+                    : boxRepository.findById(scopeId).orElseThrow().getRoom().getUserId();
+            var user = new AuthenticatedUser(owner, userFacade.isDemoOwner(owner) ? "demo" : "user");
+            var config = configFor(scopeType, scopeId, scenarioType);
+            controls.scenario(binding.getId(), user, scopeType + ":" + scopeId + ":" + scenarioType,
+                    scenarioType, reason, desired, controls.scenarioFingerprint(config));
             return true;
         } catch (RuntimeException ex) {
             logAction(scopeType, scopeId, scenarioType, binding,
@@ -4354,6 +4412,9 @@ public class AutomationFacade {
         }
 
         boolean isOn = isSwitchOn(binding, resourceStatus.value());
+        boolean published = sendSwitchIfNeeded(
+                binding, shouldBeOn, catalog, scenarioType, scopeType, scopeId,
+                shouldBeOn ? onReason : offReason, now, null);
         if (shouldBeOn && isOn) {
             updateAcControlRuntime(runtime, AC_PHASE_COOLING, desiredState, requestCount, null);
             return;
@@ -4363,17 +4424,6 @@ public class AutomationFacade {
             return;
         }
 
-        boolean published = sendSwitchIfNeeded(
-                binding,
-                shouldBeOn,
-                catalog,
-                scenarioType,
-                scopeType,
-                scopeId,
-                shouldBeOn ? onReason : offReason,
-                now,
-                null
-        );
         String phase;
         if (published) {
             phase = shouldBeOn ? AC_PHASE_SWITCHING_ON : AC_PHASE_SWITCHING_OFF;

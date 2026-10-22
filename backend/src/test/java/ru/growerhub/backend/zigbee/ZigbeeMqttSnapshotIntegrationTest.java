@@ -233,6 +233,31 @@ class ZigbeeMqttSnapshotIntegrationTest extends IntegrationTestBase {
         Assertions.assertNull(coordinatorRepository.findById(coordinator.getId()).orElseThrow().getLastSeenAt());
     }
 
+    @Test
+    void controlObservationIgnoresRetainedAndOtherPropertyMessages() throws Exception {
+        var c = coordinator("control-properties");
+        inventory(c, "lamp");
+        var owner = new AuthenticatedUser(901, "user");
+        var first = LocalDateTime.of(2026, 10, 22, 9, 0);
+        snapshot(c, "lamp", Map.of("state", "ON"), first, false);
+        snapshot(c, "lamp", Map.of("power", 12), first.plusSeconds(31), false);
+        snapshot(c, "lamp", Map.of("state", "OFF"), first.plusSeconds(32), true);
+        var observation = zigbeeFacade.controlObservation(owner, c.getPublicId(), "0xsame", "state");
+        Assertions.assertEquals("ON", observation.value());
+        Assertions.assertEquals(first, observation.observedAt());
+        var power = zigbeeFacade.controlObservation(owner, c.getPublicId(), "0xsame", "power");
+        Assertions.assertEquals(12, power.value());
+        Assertions.assertEquals(first.plusSeconds(31), power.observedAt());
+        Assertions.assertThrows(ru.growerhub.backend.common.contract.DomainException.class,
+                () -> zigbeeFacade.controlObservation(new AuthenticatedUser(902, "admin"), c.getPublicId(), "0xsame", "state"));
+    }
+
+    private void snapshot(ZigbeeCoordinatorEntity c, String name, Map<String, Object> payload, LocalDateTime at, boolean retained) throws Exception {
+        zigbeeFacade.handleMqttSnapshot(new ru.growerhub.backend.zigbee.contract.ZigbeeMqttSnapshotMessage(
+                c.getMqttUsername(), c.getBaseTopic(), ru.growerhub.backend.zigbee.contract.ZigbeeMqttMessageType.DEVICE_STATE,
+                c.getBaseTopic() + "/" + name, name, name, objectMapper.writeValueAsString(payload), payload, at, retained));
+    }
+
     private ZigbeeCoordinatorEntity coordinator(String username) {
         return coordinatorRepository.save(ZigbeeCoordinatorEntity.create(UUID.randomUUID(), 901, "Test", username,
                 "gh/z2m/" + username, LocalDateTime.now()));

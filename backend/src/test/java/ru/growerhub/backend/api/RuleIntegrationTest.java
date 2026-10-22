@@ -19,12 +19,14 @@ import ru.growerhub.backend.common.contract.*;
 import ru.growerhub.backend.plant.PlantFacade;
 import ru.growerhub.backend.user.jpa.*;
 import ru.growerhub.backend.zigbee.ZigbeeFacade;
+import ru.growerhub.backend.zigbee.contract.ZigbeeControlObservation;
 @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:rules;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class RuleIntegrationTest extends IntegrationTestBase {
     @SpyBean AutomationFacade facade;
     @Autowired TestClock clock;
     @MockBean ru.growerhub.backend.automation.engine.RuleWorker worker;
+    @MockBean ru.growerhub.backend.automation.engine.ControlWorker controlWorker;
     @MockBean ZigbeeFacade zigbee;
     @MockBean PlantFacade plants;
     @Autowired UserRepository users;
@@ -33,6 +35,8 @@ class RuleIntegrationTest extends IntegrationTestBase {
     AuthenticatedUser user, other;
     UUID coordinator = UUID.randomUUID();
     Instant at = Instant.parse("2026-10-18T09:00:00Z");
+    Object observedValue;
+    LocalDateTime observedAt;
     static class TestClock extends Clock {
         volatile Instant value = Instant.parse("2026-10-18T09:00:00Z");
         @Override public ZoneId getZone() { return ZoneOffset.UTC; }
@@ -47,37 +51,76 @@ class RuleIntegrationTest extends IntegrationTestBase {
         new ResourceDatabasePopulator(new ClassPathResource("db/migration/V35__declarative_rules.sql")).execute(Objects.requireNonNull(jdbc.getDataSource()));
     }
     @BeforeEach void prepare() {
-        for (String table : List.of("automation_rule_runs", "automation_rule_versions", "automation_rules")) jdbc.execute("delete from " + table);
+        for (String table : List.of("automation_control_channels", "automation_control_demands", "automation_rule_runs", "automation_rule_versions", "automation_rules")) jdbc.execute("delete from " + table);
         users.deleteAll(); user = account("owner"); other = account("other");
         clock.value = at;
+        observedValue = "OFF"; observedAt = LocalDateTime.ofInstant(at, ZoneOffset.UTC);
+        when(zigbee.controlObservation(eq(user), eq(coordinator), eq("0x1"), eq("state")))
+                .thenAnswer(call -> new ZigbeeControlObservation(observedValue, observedAt, true));
         when(plants.listPlants(any())).thenReturn(List.of());
         doReturn(overview(false, true, "OFF")).when(facade).getFarmsOverview(user);
         doReturn(new FarmsOverview(List.of(), null, List.of(), null)).when(facade).getFarmsOverview(other);
     }
+    @Test void missingUnrelatedSwitchDoesNotBlockIndependentNotificationRules() throws Exception {
+        when(zigbee.controlObservation(eq(user), eq(coordinator), eq("0x1"), eq("state")))
+                .thenThrow(new DomainException("not_found", "Устройство удалено"));
+        for (boolean metadataReady : List.of(false, true)) {
+            doReturn(overview(false, metadataReady, "OFF")).when(facade).getFarmsOverview(user);
+            var d = definition("[{\"type\":\"notify\",\"text\":\"Пора осмотреть растения\"}]");
+            var rule = facade.saveRule(null, new Save(null, true, d), user);
+            assertThat(facade.previewRule(rule.id(), d, user).readiness()).isEmpty();
+        }
+        verify(zigbee, never()).setDeviceProperty(any(), any(), any(), any(), any());
+    }
+
     @Test void restartDuringDelayResumesOnceAndTelemetryDoesNotInvalidateBinding() throws Exception {
         var rule = facade.saveRule(null, new Save(null, true, definition("[{\"type\":\"set\",\"resourceId\":1,\"value\":\"ON\"},{\"type\":\"delay\",\"seconds\":90},{\"type\":\"set\",\"resourceId\":1,\"value\":\"OFF\"}]")), user);
         facade.evaluateRules(user.id()); facade.evaluateRules(user.id());
         assertThat(facade.ruleHistory(rule.id(), user)).hasSize(1);
         var on = facade.claimRuleStep(user.id()); assertThat(on).isNotNull();
         facade.finishRuleStep(on, facade.executeRuleStep(on), true);
+        verify(zigbee, never()).setDeviceProperty(any(), any(), any(), any(), any());
+        assertThat(facade.claimRuleStep(user.id())).isNull();
+        dispatchControl();
+        assertThat(facade.ruleHistory(rule.id(), user).getFirst().step()).isZero();
+        clock.value = at.plusSeconds(5); acknowledge("ON");
         assertThat(facade.claimRuleStep(user.id())).isNull();
         assertThat(facade.claimRuleStep(user.id())).isNull();
-        clock.value = at.plusSeconds(91);
+        clock.value = at.plusSeconds(94);
+        assertThat(facade.claimRuleStep(user.id())).isNull();
+        clock.value = at.plusSeconds(95);
         doReturn(overview(false, true, "ON")).when(facade).getFarmsOverview(user);
         var off = facade.claimRuleStep(user.id()); assertThat(off.action().path("value").asText()).isEqualTo("OFF");
-        facade.finishRuleStep(off, facade.executeRuleStep(off), true); facade.claimRuleStep(user.id());
+        facade.finishRuleStep(off, facade.executeRuleStep(off), true);
+        dispatchControl();
+        assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("waiting");
+        clock.value = at.plusSeconds(96); acknowledge("OFF");
+        facade.claimRuleStep(user.id()); facade.claimRuleStep(user.id());
         assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("completed");
         verify(zigbee).setDeviceProperty(user, coordinator, "0x1", "state", "ON");
         verify(zigbee).setDeviceProperty(user, coordinator, "0x1", "state", "OFF");
         assertThatThrownBy(() -> facade.executeRuleStep(off)).isInstanceOf(DomainException.class);
     }
-    @Test void lostAcknowledgementNeverResendsWateringOrSwitchCommand() throws Exception {
+    @Test void lostRuleStepResultRecoversStableControlWithoutResendingTheSwitchCommand() throws Exception {
         var rule = facade.saveRule(null, new Save(null, true, definition("[{\"type\":\"set\",\"resourceId\":1,\"value\":\"ON\"}]")), user);
         facade.evaluateRules(user.id()); var step = facade.claimRuleStep(user.id());
-        facade.executeRuleStep(step);
+        var result = facade.executeRuleStep(step);
+        assertThat(result.hasNonNull("waitingForControl")).isTrue();
+        verify(zigbee, never()).setDeviceProperty(any(), any(), any(), any(), any());
+        dispatchControl();
+        clock.value = at.plusSeconds(2); acknowledge("ON");
         clock.value = at.plusSeconds(61);
         assertThat(facade.claimRuleStep(user.id())).isNull();
-        assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("uncertain");
+        assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("waiting");
+        assertThat(facade.claimRuleStep(user.id())).isNull();
+        assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("completed");
+        assertThat(jdbc.queryForObject("select count(*) from automation_control_demands where source_key=?", Integer.class,
+                "rule:" + step.runId() + ":0")).isEqualTo(1);
+        assertThat(facade.getControl(1, user).demands()).isEmpty();
+        assertThat(jdbc.queryForObject("select id from automation_control_demands where source_key=?", UUID.class,
+                "rule:" + step.runId() + ":0").toString()).isEqualTo(result.path("waitingForControl").asText());
+        assertThat(jdbc.queryForObject("select status from automation_control_demands where source_key=?", String.class,
+                "rule:" + step.runId() + ":0")).isEqualTo("released");
         assertThatThrownBy(() -> facade.executeRuleStep(step)).isInstanceOf(DomainException.class);
         verify(zigbee, times(1)).setDeviceProperty(any(), any(), any(), any(), any());
     }
@@ -98,7 +141,7 @@ class RuleIntegrationTest extends IntegrationTestBase {
         var restored = facade.restoreRule(rule.id(), new Restore(disabled.revision(), 1), user);
         assertThat(restored.enabled()).isFalse(); assertThat(restored.revision()).isEqualTo(3);
         assertThat(facade.ruleVersions(rule.id(), user)).hasSize(3);
-        verifyNoInteractions(zigbee);
+        verify(zigbee, never()).setDeviceProperty(any(), any(), any(), any(), any());
     }
     @Test void boundedWateringAndReadinessAreCheckedBeforeStarting() throws Exception {
         var d = definition("[{\"type\":\"water\",\"resourceId\":2,\"durationSeconds\":301}]");
@@ -113,7 +156,7 @@ class RuleIntegrationTest extends IntegrationTestBase {
         assertThat(facade.getRule(rule.id(), user).reason()).contains("Суточный лимит");
         doReturn(overview(false, false, "OFF")).when(facade).getFarmsOverview(user);
         assertThat(facade.previewRule(rule.id(), safe, user).readiness()).isNotEmpty();
-        verifyNoInteractions(zigbee);
+        verify(zigbee, never()).setDeviceProperty(any(), any(), any(), any(), any());
     }
     Definition pulseRule(String suffix) throws Exception {
         var d = definition("[{\"type\":\"water\",\"resourceId\":2,\"durationSeconds\":480,\"pulse\":{\"runSeconds\":180,\"pauseSeconds\":300}}" + suffix + "]");
@@ -140,7 +183,7 @@ class RuleIntegrationTest extends IntegrationTestBase {
         assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("waiting");
         clock.value = at.plusSeconds(80); assertThat(facade.claimRuleStep(user.id())).isNull();
         verify(facade, times(1)).startRuleWatering(any(), eq("rule:" + step.runId() + ":0"), eq(user));
-        verifyNoInteractions(zigbee);
+        verify(zigbee, never()).setDeviceProperty(any(), any(), any(), any(), any());
         var finished = at.plusSeconds(1080); clock.value = finished;
         doReturn(session("completed", "duration", finished)).when(facade).ruleWateringExecution(anyString(), eq(user));
         assertThat(facade.claimRuleStep(user.id())).isNull();
@@ -148,7 +191,12 @@ class RuleIntegrationTest extends IntegrationTestBase {
         clock.value = finished.plusSeconds(299); assertThat(facade.claimRuleStep(user.id())).isNull();
         clock.value = finished.plusSeconds(300); var light = facade.claimRuleStep(user.id());
         assertThat(light.action().path("type").asText()).isEqualTo("set");
-        facade.finishRuleStep(light, facade.executeRuleStep(light), true); facade.claimRuleStep(user.id());
+        facade.finishRuleStep(light, facade.executeRuleStep(light), true);
+        verify(zigbee, never()).setDeviceProperty(any(), any(), any(), any(), any());
+        assertThat(facade.claimRuleStep(user.id())).isNull();
+        dispatchControl();
+        clock.value = clock.instant().plusSeconds(5); acknowledge("ON");
+        facade.claimRuleStep(user.id()); facade.claimRuleStep(user.id());
         facade.evaluateRules(user.id());
         assertThat(facade.ruleHistory(rule.id(), user)).hasSize(1);
         assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("completed");
@@ -172,7 +220,7 @@ class RuleIntegrationTest extends IntegrationTestBase {
         doReturn(session("completed", "manual", at.plusSeconds(10))).when(facade).ruleWateringExecution(anyString(), eq(user));
         clock.value = at.plusSeconds(10); assertThat(facade.claimRuleStep(user.id())).isNull();
         assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("failed");
-        verifyNoInteractions(zigbee);
+        verify(zigbee, never()).setDeviceProperty(any(), any(), any(), any(), any());
     }
     @Test void incompleteRuntimeNeverAllowsFollowingActionsEvenWithCompletedPhase() throws Exception {
         doNothing().when(facade).validateRuleWatering(any(), eq(user));
@@ -186,7 +234,17 @@ class RuleIntegrationTest extends IntegrationTestBase {
         doReturn(json.treeToValue(shortResult, ru.growerhub.backend.pump.contract.PumpSessionData.View.class)).when(facade).ruleWateringExecution(anyString(), eq(user));
         clock.value = at.plusSeconds(10); assertThat(facade.claimRuleStep(user.id())).isNull();
         assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("failed");
-        verifyNoInteractions(zigbee);
+        verify(zigbee, never()).setDeviceProperty(any(), any(), any(), any(), any());
+    }
+    void dispatchControl() {
+        facade.reconcileControls(user.id());
+        var step = facade.claimControlCommand(user.id()); assertThat(step).isNotNull();
+        facade.executeControlCommand(step); facade.finishControlCommand(step, true);
+    }
+    void acknowledge(String value) {
+        observedValue = value; observedAt = LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
+        doReturn(overview(false, true, value)).when(facade).getFarmsOverview(user);
+        facade.reconcileControls(user.id());
     }
     Definition definition(String actions) throws Exception { return new Definition(1, "Проба", "ROOM", 1, json.readTree("{\"type\":\"interval\",\"seconds\":3600,\"anchor\":\"2026-10-18T09:00:00Z\"}"), null, Arrays.asList(json.readValue(actions, JsonNode[].class)), 60); }
     AuthenticatedUser account(String name) { var now = LocalDateTime.ofInstant(at, ZoneOffset.UTC); var row = users.save(UserEntity.create(name + "@rules.test", name, "user", true, now, now)); return new AuthenticatedUser(row.getId(), "user"); }

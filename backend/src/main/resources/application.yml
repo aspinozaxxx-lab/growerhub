@@ -367,6 +367,41 @@ weather:
   demo-default-kind: sunny
 
 automation:
+  controls:
+    # Period soglasovaniya obychnyh kanalov sveta i klimata.
+    worker-ms: 1000
+    # Predel ozhidaniya zhivogo podtverzhdeniya, otdelno ot TTL uderzhaniya.
+    ack-seconds: 30
+    # Prosrochennoe ozhidayushchee trebovanie ne zapuskaet propushchennyj cikl.
+    pending-ttl-seconds: 90
+    # Maksimalnyj vozrast fakticheskogo sostoyaniya konkretnogo svojstva.
+    freshness-seconds: 120
+    # Srok aktualnosti trebovaniya vstroennogo scenariya bez novoj proverki.
+    baseline-ttl-seconds: 120
+    # Prioritet gotovyh raspisanij i klimata.
+    scenario-priority: 10
+    # Prioritet eksklyuzivnyh pravil versij 1 i 2.
+    legacy-priority: 20
+    # Ruchnoj vybor vyshe obychnyh pravil, nizhe apparatnyh zashchit.
+    manual-priority: 200
+    # Minimalnyj dostupnyj prioritet polzovatelskogo uderzhaniya.
+    min-rule-priority: 1
+    # Polzovatelskoe pravilo ne mozhet povysit sebya do ruchnogo ili avarijnogo upravleniya.
+    max-rule-priority: 100
+    # Minimalnaya dlitelnost uderzhaniya.
+    min-ttl-seconds: 1
+    # Verhnij predel uderzhaniya i ruchnogo pereopredeleniya.
+    max-ttl-seconds: 86400
+    # Sovmestimyj srok staryh ruchnyh API; novyj interfejs ukazyvaet ego yavno.
+    default-manual-ttl-seconds: 900
+    # Ogranichennyj paket podgotovlennyh komand za tik.
+    commands-per-tick: 16
+    # Istoriya terminalnyh trebovanij i okno deduplikacii ruchnyh requestId.
+    retention-days: 90
+    # Ogranichennaya porciya udaleniya staryh terminalnyh trebovanij.
+    cleanup-batch: 200
+    # Ochistka ne zanimaet potok upravleniya ustrojstvami.
+    cleanup-ms: 3600000
   rules:
     # Maksimalnoe chislo polzovatelskih pravil.
     maximum: 50

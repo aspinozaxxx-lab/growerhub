@@ -554,7 +554,7 @@ public class ZigbeeFacade {
         if (user == null || user.id() == null) {
             throw new DomainException("unauthorized", "Необходимо войти в аккаунт");
         }
-        if (!selfServiceSettings.isEnabled() && !user.isDemo()) {
+        if (!selfServiceSettings.isEnabled() && !user.isDemo() && !user.isAdmin()) {
             return List.of();
         }
         List<ZigbeeCoordinatorEntity> coordinators = coordinatorRepository
@@ -679,6 +679,37 @@ public class ZigbeeFacade {
                 normalizedProperty,
                 value
         );
+    }
+
+    @Transactional(readOnly = true)
+    public ru.growerhub.backend.zigbee.contract.ZigbeeControlObservation controlObservation(
+            AuthenticatedUser user, UUID coordinatorPublicId, String ieeeAddress, String property) {
+        var coordinator = findOwnedCoordinator(user, coordinatorPublicId);
+        var device = deviceRepository.findByCoordinatorIdAndIeeeAddress(coordinator.getId(), ieeeAddress)
+                .orElseThrow(() -> new DomainException("not_found", "Устройство не найдено"));
+        var properties = objectMapper.valueToTree(readJson(device.getLivePropertiesJson()));
+        var entry = properties.path(property);
+        Object value = null;
+        LocalDateTime at = null;
+        if (entry.hasNonNull("at") && entry.has("value")) {
+            try {
+                at = LocalDateTime.parse(entry.get("at").asText());
+                value = objectMapper.convertValue(entry.get("value"), Object.class);
+            } catch (RuntimeException ignored) { /* Nekorrektnoe nablyudenie ne podtverzhdaet komandu. */ }
+        } else if (device.getLivePropertiesJson() == null) {
+            var raw = objectMapper.valueToTree(readJson(device.getLiveStateJson()));
+            if (raw.has(property)) { value = objectMapper.convertValue(raw.get(property), Object.class); at = device.getLastLiveStateAt(); }
+        }
+        return new ru.growerhub.backend.zigbee.contract.ZigbeeControlObservation(value, at,
+                !Boolean.TRUE.equals(device.getDisabled()) && !"offline".equalsIgnoreCase(device.getAvailability()));
+    }
+
+    @Transactional
+    public ZigbeeCommandPublishResult setOwnedAdminDeviceProperty(AuthenticatedUser user, UUID coordinatorPublicId,
+            String ieeeAddress, String property, Object value) {
+        if (user == null || !user.isAdmin()) throw new DomainException("forbidden", "Нужны права администратора");
+        var coordinator = findOwnedCoordinator(user, coordinatorPublicId);
+        return setDeviceProperty(coordinator.getId(), coordinator.getBaseTopic(), ieeeAddress, property, value);
     }
 
     @Transactional
@@ -1289,6 +1320,11 @@ public class ZigbeeFacade {
         if (feature == null) {
             throw new DomainException("bad_request", "Свойство Zigbee недоступно для записи");
         }
+        if ("binary".equals(feature.type())) {
+            String requested = String.valueOf(value);
+            if (feature.valueOn() != null && (requested.equalsIgnoreCase("ON") || requested.equalsIgnoreCase(String.valueOf(feature.valueOn())))) value = feature.valueOn();
+            else if (feature.valueOff() != null && (requested.equalsIgnoreCase("OFF") || requested.equalsIgnoreCase(String.valueOf(feature.valueOff())))) value = feature.valueOff();
+        }
         wateringService.requireGenericCommandAllowed(coordinatorId, device, normalizedProperty, value);
         commandGateway.publishSet(baseTopic, device.getFriendlyName(), Map.of(normalizedProperty, value));
         return new ZigbeeCommandPublishResult(
@@ -1414,6 +1450,18 @@ public class ZigbeeFacade {
         if (!message.retained()) {
             device.setLiveStateJson(message.rawPayload());
             device.setLastLiveStateAt(message.receivedAt());
+            var properties = objectMapper.createObjectNode();
+            var previousProperties = objectMapper.valueToTree(readJson(device.getLivePropertiesJson()));
+            if (previousProperties.isObject()) properties.setAll((com.fasterxml.jackson.databind.node.ObjectNode) previousProperties);
+            var live = objectMapper.valueToTree(message.payload());
+            live.fields().forEachRemaining(entry -> {
+                if (!entry.getValue().isValueNode() || entry.getValue().isNull()) return;
+                var saved = properties.path(entry.getKey());
+                if (saved.hasNonNull("at") && saved.get("at").asText().compareTo(message.receivedAt().toString()) > 0) return;
+                properties.putObject(entry.getKey()).set("value", entry.getValue());
+                ((com.fasterxml.jackson.databind.node.ObjectNode) properties.get(entry.getKey())).put("at", message.receivedAt().toString());
+            });
+            device.setLivePropertiesJson(properties.toString());
         }
         device.setUpdatedAt(message.receivedAt());
         deviceRepository.save(device);

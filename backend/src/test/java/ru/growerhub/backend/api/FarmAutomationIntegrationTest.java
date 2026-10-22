@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -48,6 +49,7 @@ import ru.growerhub.backend.zigbee.contract.ZigbeeDeviceData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeFeatureData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeOwnedDeviceData;
 import ru.growerhub.backend.zigbee.contract.ZigbeePowerStatistics;
+import ru.growerhub.backend.zigbee.contract.ZigbeeControlObservation;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -77,6 +79,9 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
 
     @MockBean
     private ZigbeeFacade zigbeeFacade;
+    @MockBean
+    private ru.growerhub.backend.automation.engine.ControlWorker controlWorker;
+    private final Map<String, ZigbeeControlObservation> controlFacts = new HashMap<>();
 
     @BeforeEach
     void setUp() {
@@ -84,6 +89,19 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
         RestAssured.port = port;
         when(zigbeeFacade.getDevicesForUser(any(AuthenticatedUser.class))).thenReturn(List.of());
         when(zigbeeFacade.getDevicesForAutomation()).thenReturn(List.of());
+        controlFacts.clear();
+        when(zigbeeFacade.controlObservation(any(), any(), any(), any())).thenAnswer(call -> {
+            AuthenticatedUser user = call.getArgument(0);
+            UUID coordinator = call.getArgument(1);
+            String ieee = call.getArgument(2), property = call.getArgument(3);
+            var explicit = controlFacts.get(coordinator + ":" + ieee + ":" + property);
+            if (explicit != null) return explicit;
+            return zigbeeFacade.getDevicesForUser(user).stream()
+                    .filter(d -> coordinator.equals(d.coordinatorId()) && ieee.equals(d.device().ieeeAddress()))
+                    .map(d -> new ZigbeeControlObservation(((Map<?, ?>) d.device().state()).get(property),
+                            d.device().lastStateAt(), "online".equalsIgnoreCase(d.device().availability())))
+                    .findFirst().orElse(null);
+        });
         clearDatabase();
     }
 
@@ -592,14 +610,16 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
 
         automationFacade.evaluateAll();
 
-        verify(zigbeeFacade).setAutomationDeviceProperty(
-                coordinatorInternalId,
+        verify(zigbeeFacade, never()).setDeviceProperty(any(), any(), any(), any(), any());
+        driveControls(owner);
+        verify(zigbeeFacade).setDeviceProperty(
+                new AuthenticatedUser(owner.getId(), owner.getRole()), coordinatorId,
                 localAcIeee,
                 "state",
                 "ON"
         );
-        verify(zigbeeFacade).setAutomationDeviceProperty(
-                coordinatorInternalId,
+        verify(zigbeeFacade).setDeviceProperty(
+                new AuthenticatedUser(owner.getId(), owner.getRole()), coordinatorId,
                 sharedAcIeee,
                 "state",
                 "ON"
@@ -639,6 +659,11 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                                 + " }.states.find { it.scenario_type == 'ROOM_CLIMATE' }"
                                 + ".runtime.ac_control.phase",
                         equalTo("switching_on"));
+        var actor = new AuthenticatedUser(owner.getId(), owner.getRole());
+        assertThat(automationFacade.listControls(actor)).hasSize(2).allMatch(c -> !c.actualConfirmed());
+        acknowledgeSwitch(owner, coordinatorId, localAcIeee, "ON");
+        acknowledgeSwitch(owner, coordinatorId, sharedAcIeee, "ON");
+        assertThat(automationFacade.listControls(actor)).hasSize(2).allMatch(c -> c.actualConfirmed());
     }
 
     @Test
@@ -661,6 +686,7 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
         replaceFarmAirConditioner(token, farmId, coordinatorId, acIeee);
         enableGreenhouseClimate(token, greenhouseId);
         automationFacade.evaluateAll();
+        driveControls(owner);
 
         given()
                 .header("Authorization", "Bearer " + token)
@@ -677,9 +703,10 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
 
         addSensorReading(sensor, 20.0);
         automationFacade.evaluateAll();
+        driveControls(owner);
 
-        verify(zigbeeFacade).setAutomationDeviceProperty(
-                coordinatorInternalId,
+        verify(zigbeeFacade).setDeviceProperty(
+                new AuthenticatedUser(owner.getId(), owner.getRole()), coordinatorId,
                 acIeee,
                 "state",
                 "OFF"
@@ -709,6 +736,62 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
+    void oneClimateScenarioMaintainsIndependentExhaustAndAirConditionerDemands() {
+        UserEntity owner = createUser("greenhouse-two-controls@example.com", "user");
+        String token = buildToken(owner.getId());
+        var actor = new AuthenticatedUser(owner.getId(), "user");
+        Integer farmId = createFarm(token, "Ферма с обдувом и кондиционером");
+        Integer greenhouseId = createGreenhouse(token, farmId, "Теплица");
+        SensorEntity sensor = createSensor(owner, 32.0);
+        UUID coordinatorId = UUID.randomUUID();
+        String fan = "0x00124b0000000020", ac = "0x00124b0000000021";
+        var devices = List.of(switchDevice(45, coordinatorId, fan, "Обдув"),
+                switchDevice(45, coordinatorId, ac, "Кондиционер"));
+        when(zigbeeFacade.getDevicesForUser(any(AuthenticatedUser.class))).thenReturn(devices);
+        when(zigbeeFacade.getDevicesForAutomation()).thenReturn(devices);
+        given()
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .body("""
+                        {"slots":[
+                          {"role":"AIR_TEMPERATURE_SENSOR","source_type":"NATIVE_SENSOR","native_sensor_id":%d},
+                          {"role":"EXHAUST_SWITCH","source_type":"ZIGBEE_DEVICE","zigbee_coordinator_id":"%s","zigbee_ieee_address":"%s"},
+                          {"role":"AC_SWITCH","source_type":"ZIGBEE_DEVICE","zigbee_coordinator_id":"%s","zigbee_ieee_address":"%s"}
+                        ]}
+                        """.formatted(sensor.getId(), coordinatorId, fan, coordinatorId, ac))
+                .when().put("/api/automation/greenhouses/" + greenhouseId + "/slots")
+                .then().statusCode(200);
+        enableGreenhouseClimate(token, greenhouseId);
+        automationFacade.evaluateAll();
+        var controls = automationFacade.listControls(actor);
+        assertThat(controls).hasSize(2).allSatisfy(c -> {
+            assertThat(c.sourceType()).isEqualTo("scenario");
+            assertThat(c.desiredValue()).isEqualTo("ON");
+            assertThat(c.demands()).hasSize(1);
+            assertThat(c.actualConfirmed()).isFalse();
+        });
+        assertThat(controls.stream().map(c -> c.demands().getFirst().id()).distinct()).hasSize(2);
+        driveControls(owner);
+        verify(zigbeeFacade).setDeviceProperty(actor, coordinatorId, fan, "state", "ON");
+        verify(zigbeeFacade).setDeviceProperty(actor, coordinatorId, ac, "state", "ON");
+        acknowledgeSwitch(owner, coordinatorId, fan, "ON");
+        acknowledgeSwitch(owner, coordinatorId, ac, "ON");
+        assertThat(automationFacade.listControls(actor)).hasSize(2).allMatch(c -> c.actualConfirmed());
+
+        addSensorReading(sensor, 26.0);
+        automationFacade.evaluateAll();
+        driveControls(owner);
+        verify(zigbeeFacade).setDeviceProperty(actor, coordinatorId, fan, "state", "OFF");
+        verify(zigbeeFacade).setDeviceProperty(actor, coordinatorId, ac, "state", "OFF");
+        acknowledgeSwitch(owner, coordinatorId, fan, "OFF");
+        acknowledgeSwitch(owner, coordinatorId, ac, "OFF");
+        assertThat(automationFacade.listControls(actor)).hasSize(2).allSatisfy(c -> {
+            assertThat(c.actualConfirmed()).isTrue();
+            assertThat(c.desiredValue()).isEqualTo("OFF");
+        });
+    }
+
+    @Test
     void localAirConditionerSwitchesOffImmediatelyWithoutRequest() {
         UserEntity owner = createUser("greenhouse-ac-immediate-off@example.com", "user");
         String token = buildToken(owner.getId());
@@ -727,9 +810,10 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
         replaceGreenhouseClimateSlots(token, greenhouseId, sensor.getId(), coordinatorId, acIeee);
         enableGreenhouseClimate(token, greenhouseId);
         automationFacade.evaluateAll();
+        driveControls(owner);
 
-        verify(zigbeeFacade).setAutomationDeviceProperty(
-                coordinatorInternalId,
+        verify(zigbeeFacade).setDeviceProperty(
+                new AuthenticatedUser(owner.getId(), owner.getRole()), coordinatorId,
                 acIeee,
                 "state",
                 "OFF"
@@ -767,13 +851,9 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
 
         replaceGreenhouseClimateSlots(token, greenhouseId, sensor.getId(), coordinatorId, acIeee);
         automationFacade.evaluateAll();
+        driveControls(owner);
 
-        verify(zigbeeFacade, never()).setAutomationDeviceProperty(
-                coordinatorInternalId,
-                acIeee,
-                "state",
-                "OFF"
-        );
+        verify(zigbeeFacade, never()).setDeviceProperty(any(), any(), any(), any(), any());
         given()
                 .header("Authorization", "Bearer " + token)
                 .when()
@@ -1113,6 +1193,22 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
                 .statusCode(200);
     }
 
+    private void driveControls(UserEntity owner) {
+        automationFacade.reconcileControls(owner.getId());
+        for (int index = 0; index < 8; index++) {
+            var step = automationFacade.claimControlCommand(owner.getId());
+            if (step == null) break;
+            automationFacade.executeControlCommand(step);
+            automationFacade.finishControlCommand(step, true);
+        }
+    }
+
+    private void acknowledgeSwitch(UserEntity owner, UUID coordinator, String ieee, String value) {
+        controlFacts.put(coordinator + ":" + ieee + ":state",
+                new ZigbeeControlObservation(value, LocalDateTime.now(ZoneOffset.UTC), true));
+        automationFacade.reconcileControls(owner.getId());
+    }
+
     private ZigbeeOwnedDeviceData switchDevice(
             int coordinatorInternalId,
             UUID coordinatorId,
@@ -1288,6 +1384,8 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
     }
 
     private void clearDatabase() {
+        jdbcTemplate.update("DELETE FROM automation_control_channels");
+        jdbcTemplate.update("DELETE FROM automation_control_demands");
         jdbcTemplate.update("DELETE FROM automation_action_log");
         jdbcTemplate.update("DELETE FROM automation_scenario_states");
         jdbcTemplate.update("DELETE FROM automation_scenario_configs");

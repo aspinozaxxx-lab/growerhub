@@ -4,6 +4,8 @@ public final class DemoAccessPolicy {
     private DemoAccessPolicy() {}
 
     public static boolean allows(String method, String path) {
+        if (path.equals("/api/automation/controls")) return "GET".equals(method);
+        if (path.matches("/api/automation/resources/\\d+/control")) return java.util.Set.of("GET", "PUT", "DELETE").contains(method);
         if (path.matches("/api/automation/rules(?:/preview|/[0-9a-fA-F-]+(?:/(enabled|restore|versions|history))?)?"))
             return java.util.Set.of("GET", "POST", "PUT").contains(method);
         if (path.matches("/api/advisor/(capabilities|models|conversations(?:/[0-9a-fA-F-]+(?:/messages|/photos)?)?|messages/[0-9a-fA-F-]+(?:/stream)?|photos/[0-9a-fA-F-]+|proposals/[0-9a-fA-F-]+/(confirm|reject))"))

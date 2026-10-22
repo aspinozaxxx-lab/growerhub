@@ -13,6 +13,7 @@ import java.util.UUID;
 import ru.growerhub.backend.api.dto.ZigbeeDtos;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.zigbee.ZigbeeFacade;
+import ru.growerhub.backend.automation.AutomationFacade;
 import ru.growerhub.backend.zigbee.contract.ZigbeeBridgeData;
 import ru.growerhub.backend.zigbee.contract.ZigbeeCommandPublishResult;
 import ru.growerhub.backend.zigbee.contract.ZigbeeCommandResponseData;
@@ -26,9 +27,11 @@ import ru.growerhub.backend.zigbee.contract.ZigbeeOverviewData;
 @Validated
 public class AdminZigbeeController {
     private final ZigbeeFacade zigbeeFacade;
+    private final AutomationFacade automation;
 
-    public AdminZigbeeController(ZigbeeFacade zigbeeFacade) {
+    public AdminZigbeeController(ZigbeeFacade zigbeeFacade, AutomationFacade automation) {
         this.zigbeeFacade = zigbeeFacade;
+        this.automation = automation;
     }
 
     @GetMapping("/api/admin/zigbee")
@@ -81,9 +84,9 @@ public class AdminZigbeeController {
             @RequestBody ZigbeeDtos.SetStateRequest request
     ) {
         requireAdmin(user);
-        ZigbeeCommandPublishResult result = zigbeeFacade.setDeviceState(
-                ieeeAddress,
-                request != null ? request.state() : null
+        ZigbeeCommandPublishResult result = automation.setLegacyManualZigbeeProperty(
+                user, ieeeAddress, "state", request != null ? request.state() : null,
+                request != null ? request.ttlSeconds() : null, request != null ? request.requestId() : null
         );
         return toCommandPublishResponse(result);
     }
@@ -95,10 +98,11 @@ public class AdminZigbeeController {
             @RequestBody ZigbeeDtos.SetPropertyRequest request
     ) {
         requireAdmin(user);
-        ZigbeeCommandPublishResult result = zigbeeFacade.setDeviceProperty(
-                ieeeAddress,
+        ZigbeeCommandPublishResult result = automation.setLegacyManualZigbeeProperty(
+                user, ieeeAddress,
                 request != null ? request.property() : null,
-                request != null ? request.value() : null
+                request != null ? request.value() : null, request != null ? request.ttlSeconds() : null,
+                request != null ? request.requestId() : null
         );
         return toCommandPublishResponse(result);
     }

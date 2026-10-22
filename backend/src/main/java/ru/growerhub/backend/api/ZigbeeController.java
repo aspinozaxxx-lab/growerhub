@@ -17,14 +17,17 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.growerhub.backend.api.dto.ZigbeeDtos;
 import ru.growerhub.backend.common.contract.AuthenticatedUser;
 import ru.growerhub.backend.zigbee.ZigbeeFacade;
+import ru.growerhub.backend.automation.AutomationFacade;
 
 @RestController
 @RequestMapping("/api/zigbee/coordinators")
 public class ZigbeeController {
     private final ZigbeeFacade zigbeeFacade;
+    private final AutomationFacade automation;
 
-    public ZigbeeController(ZigbeeFacade zigbeeFacade) {
+    public ZigbeeController(ZigbeeFacade zigbeeFacade, AutomationFacade automation) {
         this.zigbeeFacade = zigbeeFacade;
+        this.automation = automation;
     }
 
     @PostMapping
@@ -122,11 +125,12 @@ public class ZigbeeController {
             @PathVariable("ieee_address") String ieeeAddress,
             @RequestBody ZigbeeDtos.SetStateRequest request
     ) {
-        return ZigbeeApiMapper.toCommandPublish(zigbeeFacade.setDeviceState(
+        return ZigbeeApiMapper.toCommandPublish(automation.setManualZigbeeProperty(
                 user,
                 coordinatorId,
                 ieeeAddress,
-                request != null ? request.state() : null
+                "state", request != null ? request.state() : null, request != null ? request.ttlSeconds() : null,
+                request != null ? request.requestId() : null
         ));
     }
 
@@ -137,12 +141,13 @@ public class ZigbeeController {
             @PathVariable("ieee_address") String ieeeAddress,
             @RequestBody ZigbeeDtos.SetPropertyRequest request
     ) {
-        return ZigbeeApiMapper.toCommandPublish(zigbeeFacade.setDeviceProperty(
+        return ZigbeeApiMapper.toCommandPublish(automation.setManualZigbeeProperty(
                 user,
                 coordinatorId,
                 ieeeAddress,
                 request != null ? request.property() : null,
-                request != null ? request.value() : null
+                request != null ? request.value() : null, request != null ? request.ttlSeconds() : null,
+                request != null ? request.requestId() : null
         ));
     }
 

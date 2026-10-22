@@ -49,7 +49,7 @@ final class RuleSchedule {
     }
 
     List<NextRun> next(JsonNode t, int version, Instant now, ZoneId accountZone, int count) {
-        if (t.path("type").asText().equals("change")) return List.of();
+        if (Set.of("change", "repeat_while").contains(t.path("type").asText())) return List.of();
         ZoneId zone = t.path("type").asText().equals("calendar") ? zone(t, accountZone) : accountZone;
         List<NextRun> result = new ArrayList<>();
         Instant cursor = now;

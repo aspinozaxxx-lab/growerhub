@@ -58,8 +58,8 @@ public class AssistantTools {
             tool("gh_sensor_history", "История своего датчика за hours часов (до 2160), resourceId из gh_farm_report. Сохранённые точки: учитывай пропуски, свежесть, калибровку почвы. Для сравнения вызови по каждому датчику.", Map.of("resourceId", integer(), "hours", integer()), List.of("resourceId", "hours")),
             tool("gh_feature_requests", "Мои отправленные запросы на доработки и решения команды. page — страница с нуля.", Map.of("page", Map.of("type", "integer", "minimum", 0)), List.of()),
             tool("gh_rule_details", "Без параметров: свои правила и схема новых сценариев, включая ежедневное уведомление без устройств. ruleId: подробности своего правила. scopeType=ROOM|BOX и scopeId: настройки существующих готовых сценариев, не схема нового правила.", Map.of("ruleId", Map.of("type", "string"), "scopeType", Map.of("type", "string"), "scopeId", integer()), List.of()),
-            tool("gh_validate_rule", "Проверить правило, ближайшие даты, этапы цикла, конфликты и готовность без сохранения. payload — определение version=2 из gh_rule_details.", Map.of("payload", Map.of("type", "object")), List.of("payload")),
-            tool("gh_prepare_change", "Подготовить предложение, НЕ применяя его. kind=plant: {operation:create|update,plantId?:number,fields:{name?,plantType?,strain?,growthStage?,description?,locationLabel?,avatarKey?:tomato|cucumber|strawberry|rosemary|basil|lettuce|pepper|petunia|pelargonium|monstera,avatarStage?:sprout|young|mature|peak,plantedAt?:ISO UTC,dateUnknown?:boolean},zoneId?:number|null}; zoneId — ID теплицы из gh_farm_report, null убирает размещение, отсутствие сохраняет прежнее. Для create обязательно fields.name, неизвестную дату не выдумывай. Картинка и avatarStage не меняют growthStage и автоматику; названия стадий есть в gh_plant_details.avatarOptions. kind=care: {plantId,entryId?:number,action,text,eventAt?:ISO UTC,photoIds?:UUID[]}; entryId исправляет ручную запись, иначе создаёт новую. Фото бери только из списка вложений этого разговора. action=watering|fertilizing|repotting|pruning|treatment|inspection|photo|note. reminder: {plantId,action,title,dueAt,repeatDays,repeatMode}; scenario: {scopeType:ROOM|BOX,scopeId,scenarioType,enabled,config}; rule: {ruleId?:UUID,revision?:number,enabled:boolean,definition:object из gh_rule_details}; device: {type:set|water,resourceId,value?:string,durationSeconds?:integer}; feature_request: {title до 120 символов,description до 2000,benefit до 1000}. Человек подтверждает кнопкой. Чужие данные и владельца указывать нельзя.",
+            tool("gh_validate_rule", "Проверить правило, ближайшие даты, этапы цикла, конфликты и готовность без сохранения. payload — определение версии 2 либо 3 из gh_rule_details: hold/repeat_while используют 3.", Map.of("payload", Map.of("type", "object")), List.of("payload")),
+            tool("gh_prepare_change", "Подготовить предложение, НЕ применяя его. kind=plant: {operation:create|update,plantId?:number,fields:{name?,plantType?,strain?,growthStage?,description?,locationLabel?,avatarKey?:tomato|cucumber|strawberry|rosemary|basil|lettuce|pepper|petunia|pelargonium|monstera,avatarStage?:sprout|young|mature|peak,plantedAt?:ISO UTC,dateUnknown?:boolean},zoneId?:number|null}; zoneId — ID теплицы из gh_farm_report, null убирает размещение, отсутствие сохраняет прежнее. Для create обязательно fields.name, неизвестную дату не выдумывай. Картинка и avatarStage не меняют growthStage и автоматику; названия стадий есть в gh_plant_details.avatarOptions. kind=care: {plantId,entryId?:number,action,text,eventAt?:ISO UTC,photoIds?:UUID[]}; entryId исправляет ручную запись, иначе создаёт новую. Фото бери только из списка вложений этого разговора. action=watering|fertilizing|repotting|pruning|treatment|inspection|photo|note. reminder: {plantId,action,title,dueAt,repeatDays,repeatMode}; scenario: {scopeType:ROOM|BOX,scopeId,scenarioType,enabled,config}; rule: {ruleId?:UUID,revision?:number,enabled:boolean,definition:object из gh_rule_details}; device: {type:set|water,resourceId,value?:string,ttlSeconds?:integer (обязательно для set, явный срок ручного управления),durationSeconds?:integer (для water)}; feature_request: {title до 120 символов,description до 2000,benefit до 1000}. Человек подтверждает кнопкой. Чужие данные и владельца указывать нельзя.",
                 Map.of("kind", Map.of("type", "string", "enum", List.of("plant", "care", "reminder", "scenario", "rule", "device", "feature_request")), "payload", Map.of("type", "object")), List.of("kind", "payload"))));
         if (adminRead(user)) {
             result.add(tool("gh_admin_users", "Только для владельца-администратора: поиск аккаунтов по имени, email или ID. Без секретов. offset — смещение, до 20 записей.", Map.of("query", Map.of("type", "string", "maxLength", 100), "offset", Map.of("type", "integer", "minimum", 0)), List.of()));
@@ -123,7 +123,7 @@ public class AssistantTools {
             case "gh_rule_details" -> {
                 if (input.hasNonNull("scopeId")) yield json.valueToTree(scenarioSource(input, user));
                 if (input.hasNonNull("ruleId")) { UUID rule = uuid(input, "ruleId"); yield json.valueToTree(Map.of("rule", automation.getRule(rule, user), "history", automation.ruleHistory(rule, user))); }
-                yield json.valueToTree(Map.of("rules", automation.listRules(user), "schema", automation.ruleSchema()));
+                yield json.valueToTree(Map.of("rules", automation.listRules(user), "schema", automation.ruleSchema(), "controls", automation.listControls(user)));
             }
             case "gh_validate_rule" -> json.valueToTree(automation.previewRule(null, ruleDefinition(input.get("payload")), user));
             default -> throw bad("Такого инструмента у помощника нет");
@@ -192,12 +192,14 @@ public class AssistantTools {
 
     public JsonNode report(AuthenticatedUser user) {
         var overview = automation.getFarmsOverview(user);
+        var controls = automation.listControls(user);
+        var controlById = controls.stream().collect(java.util.stream.Collectors.toMap(ru.growerhub.backend.automation.contract.ControlData.Status::resourceId, c -> c));
         List<Map<String, Object>> farms = overview.farms().stream().map(farm -> {
             var row = new LinkedHashMap<String, Object>(); row.put("id", farm.id()); row.put("name", farm.name());
-            row.put("enabled", farm.enabled()); row.put("resources", farm.slots().stream().map(this::compactResource).toList()); row.put("scenarios", farm.scenarios().stream().map(this::compactScenario).toList());
+            row.put("enabled", farm.enabled()); row.put("resources", farm.slots().stream().map(r -> compactResource(r, controlById.get(r.id()))).toList()); row.put("scenarios", farm.scenarios().stream().map(this::compactScenario).toList());
             row.put("greenhouses", farm.greenhouses().stream().map(zone -> {
                 var z = new LinkedHashMap<String, Object>(); z.put("id", zone.id()); z.put("name", zone.name()); z.put("enabled", zone.enabled());
-                z.put("resources", zone.slots().stream().map(this::compactResource).toList()); z.put("scenarios", zone.scenarios().stream().map(this::compactScenario).toList());
+                z.put("resources", zone.slots().stream().map(r -> compactResource(r, controlById.get(r.id()))).toList()); z.put("scenarios", zone.scenarios().stream().map(this::compactScenario).toList());
                 z.put("plants", zone.plants().stream().map(p -> Map.of("id", p.id(), "name", p.name())).toList()); return z;
             }).toList()); return (Map<String, Object>) row;
         }).toList();
@@ -211,11 +213,11 @@ public class AssistantTools {
             var row = new LinkedHashMap<String, Object>(); row.put("id", p.id()); row.put("name", p.name()); row.put("stage", p.growthStage());
             row.put("type", p.plantType()); row.put("strain", p.strain()); row.put("location", p.locationLabel()); return row;
         }).toList());
-        result.put("reminders", journal.careReminders(user)); return json.valueToTree(result);
+        result.put("controls", controls); result.put("reminders", journal.careReminders(user)); return json.valueToTree(result);
     }
-    private Map<String, Object> compactResource(ResourceBinding r) {
+    private Map<String, Object> compactResource(ResourceBinding r, ru.growerhub.backend.automation.contract.ControlData.Status control) {
         var value = new LinkedHashMap<String, Object>(); value.put("id", r.id()); value.put("role", r.role()); value.put("name", r.label());
-        value.put("value", r.currentValue()); value.put("at", r.lastSeenAt()); value.put("ready", r.ready());
+        value.put("value", control == null ? r.currentValue() : control.actualValue()); value.put("at", control == null ? r.lastSeenAt() : control.actualAt()); value.put("ready", r.ready());
         if (!r.ready()) value.put("reason", r.reason()); if (r.onValue() != null) { value.put("on", r.onValue()); value.put("off", r.offValue()); }
         return value;
     }
@@ -278,6 +280,7 @@ public class AssistantTools {
                 if (ruleId != null && automation.getRule(ruleId, user).revision() != id(payload, "revision")) throw new DomainException("conflict", "Версия правила изменилась");
                 var shown = payload.deepCopy();
                 ((com.fasterxml.jackson.databind.node.ObjectNode) shown).set("timing", json.valueToTree(check.timing()));
+                ((com.fasterxml.jackson.databind.node.ObjectNode) shown).set("coordination", json.valueToTree(check.coordination()));
                 var names = new LinkedHashMap<String, String>();
                 var overview = automation.getFarmsOverview(user);
                 overview.farms().stream().flatMap(f -> java.util.stream.Stream.concat(f.slots().stream(), f.greenhouses().stream().flatMap(g -> g.slots().stream())))
@@ -288,7 +291,15 @@ public class AssistantTools {
                 ((com.fasterxml.jackson.databind.node.ObjectNode) shown).put("scopeName", scopeName);
                 yield new Prepared("Сценарий «" + d.name() + "»: " + check.description(), shown, fingerprint(List.of(automation.ruleFingerprint(d, user), ruleId == null ? "new" : automation.getRule(ruleId, user).revision())));
             }
-            case "device" -> new Prepared("Команда устройству: " + automation.previewDeviceCommand(payload, user).path("device").asText(), payload, fingerprint(automation.previewDeviceCommand(payload, user)));
+            case "device" -> {
+                var normalized = payload.deepCopy();
+                if ("set".equals(payload.path("type").asText()) && !payload.has("ttlSeconds"))
+                    throw bad("Укажите ttlSeconds — на сколько секунд включить ручное управление");
+                var preview = automation.previewDeviceCommand(normalized, user);
+                if ("set".equals(payload.path("type").asText())) ((com.fasterxml.jackson.databind.node.ObjectNode) normalized).set("value", preview.path("action").path("value"));
+                yield new Prepared("Команда устройству: " + automation.previewDeviceCommand(normalized, user).path("device").asText(), normalized,
+                        fingerprint(automation.previewDeviceCommand(normalized, user)));
+            }
             default -> throw bad("Этот вид изменения недоступен");
         };
     }
@@ -326,7 +337,11 @@ public class AssistantTools {
             }
             case "rule" -> json.valueToTree(automation.saveRule(payload.hasNonNull("ruleId") ? uuid(payload, "ruleId") : null,
                     new RuleData.Save(payload.hasNonNull("revision") ? id(payload, "revision") : null, payload.path("enabled").asBoolean(), ruleDefinition(payload.get("definition"))), user));
-            case "device" -> automation.applyDeviceCommand(payload, user);
+            case "device" -> {
+                var action = payload.deepCopy();
+                if ("set".equals(action.path("type").asText())) ((com.fasterxml.jackson.databind.node.ObjectNode) action).put("requestId", proposalId.toString());
+                yield automation.applyDeviceCommand(action, user);
+            }
             default -> throw bad("Неподдерживаемое изменение");
         };
     }

@@ -142,13 +142,15 @@ public class ZigbeeDtos {
     public record PermitJoinRequest(@JsonProperty("seconds") Integer seconds) {
     }
 
-    public record SetStateRequest(@JsonProperty("state") String state) {
+    public record SetStateRequest(@JsonProperty("state") String state, Integer ttlSeconds, java.util.UUID requestId) {
+        public SetStateRequest(String state) { this(state, null, null); }
     }
 
     public record SetPropertyRequest(
             @JsonProperty("property") String property,
-            @JsonProperty("value") Object value
+            @JsonProperty("value") Object value, Integer ttlSeconds, java.util.UUID requestId
     ) {
+        public SetPropertyRequest(String property, Object value) { this(property, value, null, null); }
     }
 
     public record RenameRequest(@JsonProperty("friendly_name") String friendlyName) {

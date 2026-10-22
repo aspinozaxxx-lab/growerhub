@@ -226,7 +226,10 @@ public class DemoFacade {
     }
 
     public DemoData.Device addDevice(AuthenticatedUser user, DemoData.AddDevice request) {
-        DemoSpaceEntity space = owned(user); users.lockDemoOwner(space.dataUserId);
+        DemoSpaceEntity space = owned(user);
+        space = spaces.lockById(space.id).filter(value -> user.id().equals(value.dataUserId))
+                .orElseThrow(() -> new DomainException("unauthorized", "Demo session expired"));
+        users.lockDemoOwner(space.dataUserId);
         if (request == null) throw new DomainException("bad_request", "Device profile required");
         DemoTemplate.Profile profile = profile(request.profile());
         String name = request.name() == null || request.name().isBlank() ? label(profile.name(), space.locale) : request.name().strip();
@@ -395,6 +398,7 @@ public class DemoFacade {
         for (UUID id : spaces.findIdleIds(now.minusMinutes(settings.inactiveMinutes()), PageRequest.of(0, settings.workerBatchSize()))) {
             DemoSpaceEntity space = spaces.lockById(id).orElse(null);
             if (space == null || space.lastActiveAt.isAfter(now.minusMinutes(settings.inactiveMinutes()))) continue;
+            users.lockDemoOwner(space.dataUserId);
             pause(space, now); space.paused = true; spaces.save(space);
         }
         for (UUID id : spaces.findExpiredIds(now, PageRequest.of(0, settings.workerBatchSize()))) {
@@ -424,7 +428,7 @@ public class DemoFacade {
     }
 
     private void clearResources(DemoSpaceEntity space) {
-        users.requireDemoOwner(space.dataUserId); pause(space, now());
+        users.lockDemoOwner(space.dataUserId); pause(space, now());
         AuthenticatedUser user = demoUser(space);
         pumps.deleteSimulatedZigbeeHistory(zigbee.getSimulationCoordinator(space.dataUserId).id());
         for (var device : devices.findBySpaceId(space.id)) {

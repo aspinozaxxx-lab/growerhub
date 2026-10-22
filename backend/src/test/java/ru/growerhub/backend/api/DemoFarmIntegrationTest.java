@@ -74,6 +74,8 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
     @MockBean MqttPublisher publisher;
     @MockBean DemoWorker demoWorker;
     @MockBean AutomationWorker automationWorker;
+    @MockBean ru.growerhub.backend.automation.engine.ControlWorker controlWorker;
+    @MockBean ru.growerhub.backend.automation.engine.RuleWorker ruleWorker;
     @MockBean ru.growerhub.backend.automation.contract.WeatherForecastGateway weatherGateway;
 
     @BeforeEach
@@ -112,6 +114,7 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         String nativeId = status.path("devices.find { it.profile == 'controller' }.id");
         request(token).body(Map.of("device_id", nativeId, "temperature", 34)).post("/api/demo/environment").then().statusCode(200);
         automation.evaluateDemoOwner(space.dataUserId);
+        driveControls(space.dataUserId);
         assertThat(automation.getFarmsOverview(owner).farms().getFirst().greenhouses().stream()
                 .flatMap(greenhouse -> greenhouse.slots().stream()).filter(slot -> "EXHAUST_SWITCH".equals(slot.role()))
                 .anyMatch(slot -> "ON".equals(slot.currentValue()))).isTrue();
@@ -675,6 +678,18 @@ class DemoFarmIntegrationTest extends IntegrationTestBase {
         request(reset.path("access_token")).get("/api/demo/status").then().statusCode(200)
                 .body("devices.findAll { it.profile == 'controller' && it.state.environment != null }.size()", equalTo(4));
         verifyNoInteractions(publisher);
+    }
+
+    private void driveControls(Integer ownerId) {
+        for (int pass = 0; pass < 3; pass++) {
+            automation.reconcileControls(ownerId);
+            for (int command = 0; command < 16; command++) {
+                var step = automation.claimControlCommand(ownerId);
+                if (step == null) break;
+                automation.executeControlCommand(step);
+                automation.finishControlCommand(step, true);
+            }
+        }
     }
 
     private Response start() {

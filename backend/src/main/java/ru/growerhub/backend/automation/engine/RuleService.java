@@ -36,12 +36,14 @@ public class RuleService {
     private final NotificationFacade notifications;
     private final ZigbeeFacade zigbee;
     private final ObjectProvider<AutomationFacade> automation;
+    private final ControlService controls;
     public RuleService(RuleRepository rules, RuleVersionRepository versions, RuleRunRepository runs, RuleEvaluator evaluator,
             RuleSettings settings, ObjectMapper json, Clock clock, UserFacade users, PlantFacade plants,
-            NotificationFacade notifications, ZigbeeFacade zigbee, ObjectProvider<AutomationFacade> automation) {
+            NotificationFacade notifications, ZigbeeFacade zigbee, ObjectProvider<AutomationFacade> automation, ControlService controls) {
         this.rules = rules; this.versions = versions; this.runs = runs; this.evaluator = evaluator; this.settings = settings;
         this.json = json; this.clock = clock; this.users = users; this.plants = plants;
         this.notifications = notifications; this.zigbee = zigbee; this.automation = automation;
+        this.controls = controls;
     }
     private record Snapshot(FarmsOverview farms, RuleEvaluator.Context context, Map<String, Boolean> areas) {}
     public List<Rule> list(AuthenticatedUser user) { require(user); return rules.findByUserIdOrderByUpdatedAtDesc(user.id()).stream().map(this::view).toList(); }
@@ -73,16 +75,40 @@ public class RuleService {
         }
         Set<Integer> writes = writes(d); var conflicts = new ArrayList<String>();
         for (var existing : rules.findByUserIdOrderByUpdatedAtDesc(user.id()))
-            if (existing.enabled && !existing.id.equals(id) && !Collections.disjoint(writes, writes(definition(existing.definitionJson))))
+            if (existing.enabled && !existing.id.equals(id) && !(cooperative(d) && cooperative(definition(existing.definitionJson))) && !Collections.disjoint(writes, writes(definition(existing.definitionJson))))
                 conflicts.add("Канал уже использует правило «" + definition(existing.definitionJson).name() + "»");
         for (var farm : s.farms().farms()) {
-            for (var scenario : farm.scenarios()) if (scenario.enabled() && !Collections.disjoint(writes, fixedWrites(scenario, s.farms())))
+            for (var scenario : farm.scenarios()) if (!cooperative(d) && scenario.enabled() && !Collections.disjoint(writes, fixedWrites(scenario, s.farms())))
                 conflicts.add("Канал уже использует сценарий «" + scenarioName(scenario.scenarioType()) + "» фермы «" + farm.name() + "»");
             for (var greenhouse : farm.greenhouses()) for (var scenario : greenhouse.scenarios())
-                if (scenario.enabled() && !Collections.disjoint(writes, fixedWrites(scenario, s.farms())))
+                if (!cooperative(d) && scenario.enabled() && !Collections.disjoint(writes, fixedWrites(scenario, s.farms())))
                     conflicts.add("Канал уже использует сценарий «" + scenarioName(scenario.scenarioType()) + "» теплицы «" + greenhouse.name() + "»");
         }
-        return new Preview(true, describe(d), conflicts.stream().distinct().toList(), readiness, List.copyOf(resources), evaluator.timing(d, s.context()));
+        var coordination = new ArrayList<String>();
+        if (cooperative(d)) {
+            for (var action : d.actions()) if ("hold".equals(action.path("type").asText())) {
+                coordination.add("Удержание устройства №" + action.path("resourceId").asInt() + ": приоритет " + action.path("priority").asInt()
+                        + ", " + action.path("durationSeconds").asInt() + " сек. после фактического подтверждения. По окончании управление возвращается актуальным требованиям.");
+                int priority = action.path("priority").asInt();
+                for (var farm : s.farms().farms()) {
+                    for (var scenario : farm.scenarios()) if (scenario.enabled() && fixedWrites(scenario, s.farms()).contains(action.path("resourceId").asInt()))
+                        coordination.add(relation(scenarioName(scenario.scenarioType()) + ": " + farm.name(), controls.scenarioPriority(), priority));
+                    for (var greenhouse : farm.greenhouses()) for (var scenario : greenhouse.scenarios())
+                        if (scenario.enabled() && fixedWrites(scenario, s.farms()).contains(action.path("resourceId").asInt()))
+                            coordination.add(relation(scenarioName(scenario.scenarioType()) + ": " + greenhouse.name(), controls.scenarioPriority(), priority));
+                }
+            }
+            for (var existing : rules.findByUserIdOrderByUpdatedAtDesc(user.id()))
+                if (existing.enabled && !existing.id.equals(id) && !Collections.disjoint(writes, writes(definition(existing.definitionJson))))
+                    coordination.add("На этих каналах также работает «" + definition(existing.definitionJson).name() + "»: выигрывает больший приоритет, равные — в неизменном порядке создания и ключа.");
+            coordination.add("Удержание согласуется с готовыми сценариями. Ручное временное управление выше пользовательских правил. Аппаратные защиты и остановка полива не переопределяются.");
+        }
+        return new Preview(true, describe(d), conflicts.stream().distinct().toList(), readiness, List.copyOf(resources), evaluator.timing(d, s.context()), List.copyOf(coordination));
+    }
+    private String relation(String source, int priority, int holdPriority) {
+        return "«" + source + "»: приоритет " + priority + ". Удержание с приоритетом " + holdPriority
+                + (holdPriority > priority ? " будет выше этого сценария." : holdPriority < priority ? " уступит этому сценарию."
+                : " имеет равный приоритет: выигрывает более раннее неизменное время создания, затем ключ источника.");
     }
     public Rule save(UUID id, Save command, AuthenticatedUser user) {
         lock(user);
@@ -120,7 +146,7 @@ public class RuleService {
         var s = snapshot(user);
         var targets = fixedWrites(new ScenarioConfig(null, scope, scopeId, type, true, Map.of(), null, null, null), s.farms());
         for (var rule : rules.findByUserIdOrderByUpdatedAtDesc(user.id()))
-            if (rule.enabled && !Collections.disjoint(targets, writes(definition(rule.definitionJson))))
+            if (rule.enabled && !cooperative(definition(rule.definitionJson)) && !Collections.disjoint(targets, writes(definition(rule.definitionJson))))
                 throw bad("Сначала отключите правило «" + definition(rule.definitionJson).name() + "», которое управляет этим каналом");
     }
     public List<Integer> ownersDue() {
@@ -136,6 +162,13 @@ public class RuleService {
             var d = definition(row.definitionJson); var runtime = (ObjectNode) read(row.runtimeJson);
             try {
                 var preview = preview(row.id, d, user, s);
+                var condition = evaluator.conditions(d, s.context(), runtime);
+                if (d.version() >= 3 && (!condition.valid() || !condition.value())
+                        && (!condition.valid() || !"finish".equals(d.trigger().path("onConditionLoss").asText()))) {
+                    controls.releaseRule(ownerId, row.id, condition.reason());
+                    for (var running : runs.findByUserIdAndStatusIn(ownerId, List.of("waiting", "dispatching")))
+                        if (running.ruleId.equals(row.id)) stop(running, condition.reason());
+                }
                 var decision = evaluator.evaluate(d, s.context(), runtime);
                 String key = row.revision + ":" + decision.key();
                 if (!preview.conflicts().isEmpty() || !preview.readiness().isEmpty()) {
@@ -161,6 +194,7 @@ public class RuleService {
             if ("dispatching".equals(run.status)) {
                 if (run.leasedUntil == null || !run.leasedUntil.isAfter(now())) {
                     if (waitingWater(d, run)) resumeWatering(run, user);
+                    else if (waitingControl(d, run)) resumeControl(run, user);
                     else { run.status = "uncertain"; run.reason = "Результат команды неизвестен. Повтор автоматически не отправлен"; runs.save(run); }
                 }
                 continue;
@@ -169,6 +203,9 @@ public class RuleService {
             var rule = rules.findById(run.ruleId).orElse(null);
             if (rule == null || !rule.enabled || rule.revision != run.revision) { stop(run, "Правило изменено или отключено"); continue; }
             var results = read(run.resultJson);
+            if (waitingControl(d, run) && !results.isEmpty() && results.get(results.size() - 1).has("waitingForControl")) {
+                resumeControl(run, user); continue;
+            }
             if (waitingWater(d, run) && !results.isEmpty() && results.get(results.size() - 1).has("waitingForWatering")) {
                 resumeWatering(run, user); continue;
             }
@@ -200,6 +237,16 @@ public class RuleService {
             var session = automation.getObject().startRuleWatering(watering(action), executionKey(run), step.user());
             return json.valueToTree(Map.of("waitingForWatering", session.id()));
         }
+        if (waitingControl(definition(run.definitionJson), run)) {
+            var r = snapshot(step.user()).context().resources().get(action.get("resourceId").asInt());
+            UUID id;
+            if ("hold".equals(action.get("type").asText())) {
+                if (!controlConditionAllowed(run.ruleId, run.revision, step.user(), false)) throw bad("Условие удержания больше не выполнено");
+                id = controls.ruleHold(r, step.user(), run.ruleId, definition(run.definitionJson).name(), executionKey(run),
+                        json.convertValue(action.get("value"), Object.class), action.get("durationSeconds").asInt(), action.get("priority").asInt(), Integer.toString(run.revision));
+            } else id = controls.legacy(r, step.user(), run.ruleId, definition(run.definitionJson).name(), executionKey(run), json.convertValue(action.get("value"), Object.class), Integer.toString(run.revision));
+            return json.valueToTree(Map.of("waitingForControl", id));
+        }
         return command(action, step.user());
     }
     public void finish(Step step, JsonNode result, boolean success) {
@@ -207,6 +254,11 @@ public class RuleService {
         var history = (com.fasterxml.jackson.databind.node.ArrayNode) read(run.resultJson); history.add(result);
         run.resultJson = history.toString();
         boolean water = waitingWater(definition(run.definitionJson), run);
+        if (waitingControl(definition(run.definitionJson), run)) {
+            if (!success) { resumeControl(run, step.user()); return; }
+            run.status = "waiting"; run.reason = "Ожидает фактическое состояние и завершение удержания";
+            run.nextAt = now(); run.leasedUntil = null; runs.save(run); return;
+        }
         if (water && !success) { resumeWatering(run, step.user()); return; }
         if (!water || !success) run.stepIndex++;
         run.status = success ? "waiting" : "uncertain";
@@ -221,6 +273,39 @@ public class RuleService {
     }
     private boolean waitingWater(Definition d, RuleRunEntity run) {
         return d.version() >= 2 && run.stepIndex < d.actions().size() && "water".equals(d.actions().get(run.stepIndex).path("type").asText());
+    }
+    private boolean waitingControl(Definition d, RuleRunEntity run) {
+        return run.stepIndex < d.actions().size() && Set.of("set", "hold").contains(d.actions().get(run.stepIndex).path("type").asText());
+    }
+    public boolean controlConditionAllowed(UUID ruleId, int revision, AuthenticatedUser user, boolean started) {
+        var rule = owned(ruleId, user);
+        if (!rule.enabled || rule.revision != revision) return false;
+        var definition = definition(rule.definitionJson);
+        var check = evaluator.conditions(definition, snapshot(user).context(), (ObjectNode) read(rule.runtimeJson));
+        return check.valid() && (check.value() || started && "finish".equals(definition.trigger().path("onConditionLoss").asText()));
+    }
+    private void resumeControl(RuleRunEntity run, AuthenticatedUser user) {
+        var demand = controls.findExecution(executionKey(run), user); run.leasedUntil = null;
+        if (demand == null) { run.status = "uncertain"; run.reason = "Результат подготовки команды неизвестен. Команда не повторена"; runs.save(run); return; }
+        boolean hold = "hold".equals(definition(run.definitionJson).actions().get(run.stepIndex).path("type").asText());
+        if ("error".equals(demand.status())) { run.status = "failed"; run.reason = Objects.requireNonNullElse(demand.error(), "Устройство не подтвердило команду"); }
+        else if ((!hold && demand.confirmedAt() != null) || hold && demand.expiresAt() != null && !demand.expiresAt().isAfter(now())
+                && "released".equals(demand.status()) && "Срок удержания закончился".equals(demand.reason())) {
+            var history = (com.fasterxml.jackson.databind.node.ArrayNode) read(run.resultJson);
+            if (!history.isEmpty() && history.get(history.size() - 1).has("waitingForControl")) history.remove(history.size() - 1);
+            history.add(json.valueToTree(Map.of("controlId", demand.id(), "confirmedAt", demand.confirmedAt(), "completed", true)));
+            run.resultJson = history.toString(); run.status = "waiting"; run.stepIndex++;
+            run.nextAt = hold ? demand.expiresAt() : demand.confirmedAt(); run.reason = hold ? "Удержание завершено, остальные требования переоценены" : "Состояние устройства подтверждено";
+        } else if ("released".equals(demand.status())) {
+            run.status = demand.error() == null ? "cancelled" : "partial"; run.reason = demand.reason();
+            if (demand.error() != null) {
+                var history = (com.fasterxml.jackson.databind.node.ArrayNode) read(run.resultJson);
+                history.add(json.valueToTree(Map.of("controlId", demand.id(), "completed", false, "interrupted", true, "reason", demand.error())));
+                run.resultJson = history.toString();
+            }
+        }
+        else { run.status = "waiting"; run.reason = "blocked".equals(demand.status()) ? "Ожидает более приоритетное управление" : demand.confirmedAt() == null ? "Ожидает фактическое подтверждение устройства" : "Удерживает состояние до " + demand.expiresAt(); run.nextAt = now().plusNanos(settings.workerMs() * 1000000L); }
+        runs.save(run);
     }
     private String executionKey(RuleRunEntity run) { return "rule:" + run.id + ":" + run.stepIndex; }
     private void resumeWatering(RuleRunEntity run, AuthenticatedUser user) {
@@ -253,10 +338,18 @@ public class RuleService {
     public JsonNode validateCommand(JsonNode action, AuthenticatedUser user) {
         var s = snapshot(user); var r = s.context().resources().get(action.path("resourceId").asInt());
         if (r == null) throw bad("Устройство не найдено");
-        var d = new Definition(1, "Ручная команда", r.scopeType(), r.scopeId(), json.valueToTree(Map.of("type", "schedule", "at", "00:00")), null, List.of(action), settings.minCooldownSeconds());
+        var validation = action.deepCopy();
+        if (validation instanceof ObjectNode object) object.remove(List.of("ttlSeconds", "requestId"));
+        var d = new Definition(1, "Ручная команда", r.scopeType(), r.scopeId(), json.valueToTree(Map.of("type", "schedule", "at", "00:00")), null, List.of(validation), settings.minCooldownSeconds());
         evaluator.validate(d, s.context());
+        if ("set".equals(action.path("type").asText()) && action.has("ttlSeconds")) {
+            if (!action.get("ttlSeconds").isIntegralNumber() || !action.get("ttlSeconds").canConvertToInt()) throw bad("Укажите срок ручного управления целым числом секунд");
+            controls.ttl(action.get("ttlSeconds").asInt());
+        }
         if (!s.areas().getOrDefault(area(d), false) || !r.ready()) throw bad("Устройство сейчас недоступно");
-        return json.valueToTree(Map.of("device", r.label(), "action", action, "binding", binding(r)));
+        var shown = action.deepCopy();
+        if ("set".equals(action.path("type").asText())) ((ObjectNode) shown).set("value", json.valueToTree(controls.normalizeValue(r, json.convertValue(action.path("value"), Object.class))));
+        return json.valueToTree(Map.of("device", r.label(), "action", shown, "binding", binding(r)));
     }
     public JsonNode command(JsonNode action, AuthenticatedUser user) {
         lock(user); validateCommand(action, user);
@@ -268,8 +361,9 @@ public class RuleService {
                     : automation.getObject().startResourceWatering(r.id(), request, user));
         }
         Object value = json.convertValue(action.get("value"), Object.class);
-        zigbee.setDeviceProperty(user, r.zigbeeCoordinatorId(), r.zigbeeIeeeAddress(), r.commandProperty(), value);
-        return json.valueToTree(Map.of("sent", true, "resourceId", r.id(), "value", value));
+        var requestId = action.hasNonNull("requestId") ? UUID.fromString(action.get("requestId").asText()) : UUID.randomUUID();
+        return json.valueToTree(controls.manual(r.id(), new ru.growerhub.backend.automation.contract.ControlData.Manual(requestId, value,
+                action.has("ttlSeconds") ? action.get("ttlSeconds").asInt() : controls.defaultManualTtlSeconds()), user));
     }
     public String fingerprint(Definition d, AuthenticatedUser user) {
         var s = snapshot(user); Set<Integer> ids = evaluator.validate(d, s.context());
@@ -301,7 +395,8 @@ public class RuleService {
                     .flatMap(g -> Stream.concat(g.slots().stream(), "BOX_CLIMATE".equals(c.scenarioType()) ? f.slots().stream() : Stream.empty()));
         }).filter(r -> roles.contains(r.role())).map(ResourceBinding::id).collect(Collectors.toSet());
     }
-    private Set<Integer> writes(Definition d) { return d.actions().stream().filter(a -> Set.of("set", "water").contains(a.path("type").asText())).map(a -> a.path("resourceId").asInt()).collect(Collectors.toSet()); }
+    private Set<Integer> writes(Definition d) { return d.actions().stream().filter(a -> Set.of("set", "water", "hold").contains(a.path("type").asText())).map(a -> a.path("resourceId").asInt()).collect(Collectors.toSet()); }
+    private boolean cooperative(Definition d) { return d.version() >= 3 && d.actions().stream().noneMatch(a -> Set.of("set", "water").contains(a.path("type").asText())); }
     private Set<Integer> areaResources(Definition d, FarmsOverview f) {
         return f.farms().stream().flatMap(farm -> "ROOM".equals(d.scopeType()) && farm.id().equals(d.scopeId())
                 ? Stream.concat(farm.slots().stream(), farm.greenhouses().stream().flatMap(g -> g.slots().stream()))
@@ -313,6 +408,17 @@ public class RuleService {
             areas.put("ROOM:" + farm.id(), farm.enabled()); farm.slots().forEach(r -> resources.put(r.id(), r));
             for (var g : farm.greenhouses()) { areas.put("BOX:" + g.id(), farm.enabled() && g.enabled()); g.slots().forEach(r -> resources.put(r.id(), r)); }
         }
+        resources.replaceAll((id, r) -> {
+            if (!controls.switchChannel(r) || !r.ready()) return r;
+            ru.growerhub.backend.zigbee.contract.ZigbeeControlObservation observed;
+            boolean available = true;
+            try { observed = zigbee.controlObservation(user, r.zigbeeCoordinatorId(), r.zigbeeIeeeAddress(), r.commandProperty()); }
+            catch (DomainException ex) { observed = null; available = false; }
+            return new ResourceBinding(r.id(), r.scopeType(), r.scopeId(), r.role(), r.sourceType(), r.nativeSensorId(), r.nativePumpId(),
+                    r.zigbeeCoordinatorId(), r.zigbeeIeeeAddress(), r.zigbeeProperty(), r.commandProperty(), r.onValue(), r.offValue(),
+                    observed == null ? null : observed.value(), observed == null ? null : observed.observedAt(), r.connectionStatus(), r.connectionMessage(),
+                    r.label(), available && r.ready() && (observed == null || observed.online()), available ? r.reason() : "Устройство сейчас недоступно");
+        });
         var p = plants.listPlants(user).stream().collect(Collectors.toMap(v -> v.id(), v -> v));
         return new Snapshot(f, new RuleEvaluator.Context(resources, p, ZoneId.of(users.getTimezone(user.id())), clock.instant()), areas);
     }
@@ -324,6 +430,7 @@ public class RuleService {
         if (!run.userId.equals(step.user().id()) || !"dispatching".equals(run.status) || !Objects.equals(run.leaseKey, step.lease()) || run.leasedUntil.isBefore(now())) throw conflict(); return run;
     }
     private void cancelWaiting(UUID rule, Integer owner, String reason) {
+        controls.releaseRule(owner, rule, reason);
         for (var r : runs.findByUserIdAndStatusIn(owner, List.of("waiting", "dispatching"))) if (r.ruleId.equals(rule)) {
             var d = definition(r.definitionJson);
             if (waitingWater(d, r)) automation.getObject().stopRuleWatering(executionKey(r), principal(owner));
@@ -341,9 +448,11 @@ public class RuleService {
     private Rule view(RuleEntity row) { var d = definition(row.definitionJson); return new Rule(row.id, row.revision, row.enabled, d, describe(d), row.updatedAt, row.enabled ? read(row.runtimeJson).path("reason").asText("Ожидает проверки условий") : "Выключен"); }
     private String describe(Definition d) {
         String when = switch (d.trigger().path("type").asText()) { case "schedule" -> "В " + d.trigger().path("at").asText(); case "interval" -> "Каждые " + d.trigger().path("seconds").asInt() + " сек.";
+            case "repeat_while" -> "Пока выполняются условия, каждые " + d.trigger().path("seconds").asInt() + " сек.; первый цикл " + ("immediate".equals(d.trigger().path("first").asText()) ? "сразу" : "через период");
             case "calendar" -> "Каждые " + d.trigger().path("every").asInt() + ("week".equals(d.trigger().path("unit").asText()) ? " нед." : " дн.") + " в " + d.trigger().path("at").asText() + ", с " + d.trigger().path("startDate").asText(); default -> "При изменении показаний"; };
         return when + (d.condition() == null || d.condition().isNull() ? "" : ", если выполнены условия") + ": " + d.actions().stream().map(a -> switch (a.path("type").asText()) {
             case "set" -> "установить " + a.path("value").asText() + " на устройстве №" + a.path("resourceId").asInt();
+            case "hold" -> "удерживать " + a.path("value").asText() + " " + a.path("durationSeconds").asInt() + " сек. с приоритетом " + a.path("priority").asInt() + " на устройстве №" + a.path("resourceId").asInt();
             case "water" -> "поливать " + a.path("durationSeconds").asInt() + " сек."; case "delay" -> "подождать " + a.path("seconds").asInt() + " сек."; default -> "отправить уведомление";
         }).collect(Collectors.joining(" → "));
     }

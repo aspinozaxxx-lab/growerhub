@@ -17,6 +17,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -58,6 +60,8 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
 
     @Autowired
     private TestPublisher testPublisher;
+    @MockBean
+    private ru.growerhub.backend.automation.engine.ControlWorker controlWorker;
 
     @BeforeEach
     void setUp() {
@@ -65,6 +69,7 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
         RestAssured.port = port;
         testPublisher.clear();
         clearDatabase();
+        seedOwnedLegacyCoordinator();
         seedZigbee();
     }
 
@@ -201,6 +206,7 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
     @Test
     void publishesPermitJoinSetStateAndRenameCommands() {
         UserEntity admin = createUser("zigbee-admin-actions@example.com", "admin");
+        jdbcTemplate.update("UPDATE zigbee_coordinators SET user_id=? WHERE id=1", admin.getId());
         String token = buildToken(admin.getId());
 
         given()
@@ -259,6 +265,7 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
     @Test
     void genericSetRejectsUnknownAndReadOnlyProperties() {
         UserEntity admin = createUser("zigbee-admin-reject@example.com", "admin");
+        jdbcTemplate.update("UPDATE zigbee_coordinators SET user_id=? WHERE id=1", admin.getId());
         String token = buildToken(admin.getId());
 
         given()
@@ -280,6 +287,32 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
                 .then()
                 .statusCode(400)
                 .body("detail", equalTo("Свойство Zigbee недоступно для записи"));
+    }
+
+    @Test
+    void administratorCannotUseLegacyCommandRouteForAnotherOwnersDevice() {
+        UserEntity other = createUser("zigbee-other-admin@example.com", "admin");
+        given()
+                .header("Authorization", "Bearer " + buildToken(other.getId()))
+                .contentType("application/json")
+                .body("{\"state\":\"ON\"}")
+                .when()
+                .post("/api/admin/zigbee/devices/0xa4c13895af2c1df3/set-state")
+                .then()
+                .statusCode(404)
+                .body("detail", equalTo("Устройство не найдено среди ваших координаторов"));
+        Assertions.assertTrue(testPublisher.getPublished().isEmpty());
+    }
+
+    private void seedOwnedLegacyCoordinator() {
+        UserEntity owner = createUser("zigbee-legacy-owner@example.com", "admin");
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        jdbcTemplate.update("""
+                INSERT INTO zigbee_coordinators(id,public_id,user_id,name,mqtt_username,base_topic,status,
+                    credential_issued_at,created_at,updated_at,execution_kind,transport_kind)
+                VALUES (1,?,?,?,?,?,?,?,?,?,'PHYSICAL','ZIGBEE2MQTT')
+                """, UUID.fromString("00000000-0000-0000-0000-000000000001"), owner.getId(),
+                "Legacy coordinator", "legacy", "zigbee2growerhub", "PROVISIONING", now, now, now);
     }
 
     private void seedZigbee() {
@@ -455,11 +488,14 @@ class AdminZigbeeControllerIntegrationTest extends IntegrationTestBase {
     }
 
     private void clearDatabase() {
+        jdbcTemplate.update("DELETE FROM automation_control_channels");
+        jdbcTemplate.update("DELETE FROM automation_control_demands");
         jdbcTemplate.update("DELETE FROM zigbee_device_property_readings");
         jdbcTemplate.update("DELETE FROM zigbee_device_state_events");
         jdbcTemplate.update("DELETE FROM zigbee_command_response_snapshots");
         jdbcTemplate.update("DELETE FROM zigbee_device_snapshots");
         jdbcTemplate.update("DELETE FROM zigbee_bridge_snapshots");
+        jdbcTemplate.update("DELETE FROM zigbee_coordinators");
         jdbcTemplate.update("DELETE FROM user_auth_identities");
         jdbcTemplate.update("DELETE FROM user_refresh_tokens");
         jdbcTemplate.update("DELETE FROM users");

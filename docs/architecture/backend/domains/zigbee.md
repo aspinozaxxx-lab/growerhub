@@ -38,6 +38,9 @@
 - `getOldestHistoryTimestamp()`
 - `compactHistoryDay(LocalDateTime fromTs, LocalDateTime toTs)`
 
+- `controlObservation` — живое наблюдение конкретного свойства собственного устройства.
+- `setOwnedAdminDeviceProperty` — техническая публикация разрешённого exposed-свойства собственного устройства администратора; ручной арбитраж выполняет AutomationFacade.
+
 ## Публичные контракты
 
 - `ZigbeeWaterMeterData`: происхождение, времена операции и получения, литры, л/мин, дневной счётчик и проблемы отчёта. Дневные границы и точность ещё требуют проверки.
@@ -61,6 +64,8 @@
 - `ZigbeeWateringData` — цель, проверенные возможности, исполнитель и живое состояние.
 - `ZigbeeOverviewData`
 - `ZigbeePowerStatistics`
+
+`ZigbeeControlObservation` содержит значение, время последнего live-пакета именно с этим свойством и доступность. Retained и сообщения других свойств его не освежают.
 
 ## Владение данными
 

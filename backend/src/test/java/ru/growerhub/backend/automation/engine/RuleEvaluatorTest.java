@@ -11,7 +11,8 @@ import ru.growerhub.backend.common.contract.DomainException;
 import ru.growerhub.backend.plant.contract.PlantInfo;
 class RuleEvaluatorTest {
     final ObjectMapper json = new ObjectMapper();
-    final RuleEvaluator engine = new RuleEvaluator(new RuleSettings(50, 16, 5, 64, 60, 86400, 300, 1800, 900, 60, 5000, 60, 50, 31536000, 1800, 90, 3, 64));
+    final RuleEvaluator engine = new RuleEvaluator(new RuleSettings(50, 16, 5, 64, 60, 86400, 300, 1800, 900, 60, 5000, 60, 50, 31536000, 1800, 90, 3, 64),
+            new ru.growerhub.backend.common.config.automation.ControlSettings(1000, 30, 120, 120, 10, 20, 200, 1, 100, 1, 86400, 900, 16, 90, 90, 200, 3600000));
     final Instant at = Instant.parse("2026-10-18T09:00:00Z");
     JsonNode node(String text) throws Exception { return json.readTree(text); }
     Definition rule(JsonNode condition) throws Exception {
@@ -113,7 +114,7 @@ class RuleEvaluatorTest {
         var d = modern("{\"type\":\"interval\",\"seconds\":604800,\"anchor\":\"2026-10-19T13:00:00Z\"}", "[{\"type\":\"delay\",\"seconds\":86401}]");
         assertThatThrownBy(() -> engine.validate(d, context(at, 25, at))).isInstanceOf(DomainException.class);
         var schema = json.valueToTree(engine.schema());
-        assertThat(schema.path("version").asInt()).isEqualTo(2);
+        assertThat(schema.path("version").asInt()).isEqualTo(3);
         assertThat(schema.path("triggers").get(1).path("seconds").path("maximum").asInt()).isEqualTo(31536000);
         assertThat(schema.path("limits").path("maxCycleSeconds").asInt()).isEqualTo(86400);
     }
