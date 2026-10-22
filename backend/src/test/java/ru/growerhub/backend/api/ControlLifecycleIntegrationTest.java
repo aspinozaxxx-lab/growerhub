@@ -38,6 +38,7 @@ import ru.growerhub.backend.zigbee.ZigbeeFacade;
 
 @SpringBootTest(properties = {
         "MQTT_HOST=", "demo.enabled=true", "demo.history-days=1", "demo.history-step-minutes=360",
+        "assistant.hmac-secret=control-schema-test-secret-at-least-32-characters",
         "demo.max-guest-spaces=100", "demo.max-active-spaces=100", "demo.max-creates-per-hour=100",
         "spring.datasource.url=jdbc:h2:mem:control_lifecycle;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE"
 })
@@ -49,6 +50,7 @@ class ControlLifecycleIntegrationTest extends IntegrationTestBase {
     @Autowired ZigbeeFacade zigbee;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
+    @Autowired ru.growerhub.backend.advisor.engine.AssistantTools assistantTools;
     @Autowired TestClock clock;
     @MockBean MqttPublisher mqtt;
     @MockBean RuleWorker ruleWorker;
@@ -238,6 +240,33 @@ class ControlLifecycleIntegrationTest extends IntegrationTestBase {
         assertThat(jdbc.queryForObject("select count(*) from automation_action_log where resource_binding_id=?", Integer.class, target.id())).isEqualTo(count + 1);
         assertThat(jdbc.queryForObject("select last_action_at from automation_scenario_states where scope_type='BOX' and scope_id=? and scenario_type='BOX_CLIMATE'",
                 java.time.LocalDateTime.class, zone.id())).isEqualTo(acknowledgedAt);
+        verifyNoInteractions(mqtt);
+    }
+
+    @Test void advertisedRepeatHoldShapeAndItsExamplePrepareADisabledRuleWithoutCommands() throws Exception {
+        var schema = json.valueToTree(automation.ruleSchema());
+        var payload = (com.fasterxml.jackson.databind.node.ObjectNode) schema.path("examples").path("repeatHoldWhileLightOn").path("payload").deepCopy();
+        var definition = (com.fasterxml.jackson.databind.node.ObjectNode) payload.path("definition");
+        definition.put("scopeId", zone.id());
+        ((com.fasterxml.jackson.databind.node.ObjectNode) definition.path("condition")).put("resourceId", source.id());
+        ((com.fasterxml.jackson.databind.node.ObjectNode) definition.path("actions").get(0)).put("resourceId", target.id());
+        var triggerPrototype = (com.fasterxml.jackson.databind.node.ObjectNode) java.util.stream.StreamSupport.stream(schema.path("triggers").spliterator(), false)
+                .filter(node -> "repeat_while".equals(node.path("type").asText())).findFirst().orElseThrow().deepCopy();
+        var actionPrototype = (com.fasterxml.jackson.databind.node.ObjectNode) java.util.stream.StreamSupport.stream(schema.path("actions").spliterator(), false)
+                .filter(node -> "hold".equals(node.path("type").asText())).findFirst().orElseThrow().deepCopy();
+        definition.path("trigger").properties().forEach(field -> triggerPrototype.set(field.getKey(), field.getValue()));
+        definition.path("actions").get(0).properties().forEach(field -> actionPrototype.set(field.getKey(), field.getValue()));
+        var prototypeDefinition = definition.deepCopy();
+        prototypeDefinition.set("trigger", triggerPrototype);
+        ((com.fasterxml.jackson.databind.node.ArrayNode) prototypeDefinition.path("actions")).set(0, actionPrototype);
+        var checked = automation.previewRule(null, json.treeToValue(prototypeDefinition, Definition.class), owner);
+        assertThat(checked.resources()).containsExactlyInAnyOrder(source.id(), target.id());
+        var prepared = assistantTools.prepare("rule", payload, owner);
+        assertThat(prepared.payload().path("enabled").asBoolean()).isFalse();
+        assertThat(prepared.payload().path("timing").isObject()).isTrue();
+        assertThat(prepared.payload().path("coordination").isEmpty()).isFalse();
+        assertThat(automation.listRules(owner)).isEmpty();
+        assertThat(automation.listControls(owner)).allSatisfy(status -> assertThat(status.demands()).isEmpty());
         verifyNoInteractions(mqtt);
     }
 
