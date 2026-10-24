@@ -12,6 +12,13 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {
+      "id": "assistant-two-zone-lighting-guide",
+      "published_at": "2026-10-24",
+      "kind": "article",
+      "article_id": "raznyy-svet-v-dvuh-zonah-cherez-pomoshchnika",
+      "preview_position": "50% 50%"
+    },
     {"id":"assistant-soil-check-reminder-example","published_at":"2026-10-23","kind":"article_update","article_id":"dnevnik-rasteniy-bez-oborudovaniya-growerhub","text":"The journal guide now includes a checked soil-inspection reminder request: review the selected plant and due date, then confirm the card."},
     {"id":"assistant-two-zone-lighting-example","published_at":"2026-10-23","kind":"article_update","article_id":"avtomatizatsiya-sveta-v-groubokse","text":"The lighting guide now shows a request for two different schedules, reviewing the lamps and times, saving disabled rules and checking the existing schedule."},
     {"id":"assistant-night-history-example","published_at":"2026-10-23","kind":"article_update","article_id":"istoriya-mikroklimata-i-grafiki","text":"The charts guide now includes an overnight temperature question and a checked example with no saved readings for the requested night."},

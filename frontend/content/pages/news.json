@@ -12,6 +12,13 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {
+      "id": "assistant-two-zone-lighting-guide",
+      "published_at": "2026-10-24",
+      "kind": "article",
+      "article_id": "raznyy-svet-v-dvuh-zonah-cherez-pomoshchnika",
+      "preview_position": "50% 50%"
+    },
     {"id":"assistant-soil-check-reminder-example","published_at":"2026-10-23","kind":"article_update","article_id":"dnevnik-rasteniy-bez-oborudovaniya-growerhub","text":"В руководство по дневнику добавили проверенный пример: попросить помощника напомнить о проверке грунта, сверить растение и срок, затем подтвердить карточку."},
     {"id":"assistant-two-zone-lighting-example","published_at":"2026-10-23","kind":"article_update","article_id":"avtomatizatsiya-sveta-v-groubokse","text":"В статье об освещении показали просьбу о двух разных расписаниях: проверку часов и ламп, сохранение сценариев выключенными и конфликт с прежним режимом."},
     {"id":"assistant-night-history-example","published_at":"2026-10-23","kind":"article_update","article_id":"istoriya-mikroklimata-i-grafiki","text":"В разбор графиков добавили вопрос помощнику о конкретной ночи и пример ответа, когда сохранённых показаний за неё ещё нет."},
