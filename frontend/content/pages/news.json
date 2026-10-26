@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"assistant-soil-check-reminder-guide","published_at":"2026-10-26","kind":"article","article_id":"napomnit-proverit-grunt-cherez-pomoshchnika","preview_position":"50% 50%"},
     {
       "id": "assistant-two-zone-lighting-guide",
       "published_at": "2026-10-24",
