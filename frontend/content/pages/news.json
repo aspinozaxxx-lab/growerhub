@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"telegram-reminders-and-scenario-messages-clarified","published_at":"2026-10-27","kind":"article_update","article_id":"uvedomleniya-v-mini-ferme","text":"Уточнили доступные сообщения в Telegram: напоминания об уходе из дневника и шаги своих сценариев. Отделили их от готовых аварийных профилей и добавили ссылки на инструкции."},
     {"id":"assistant-soil-check-reminder-guide","published_at":"2026-10-26","kind":"article","article_id":"napomnit-proverit-grunt-cherez-pomoshchnika","preview_position":"50% 50%"},
     {
       "id": "assistant-two-zone-lighting-guide",

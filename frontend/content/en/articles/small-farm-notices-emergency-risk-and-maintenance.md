@@ -3,10 +3,10 @@ translation_of: uvedomleniya-v-mini-ferme
 slug: mini-farm-alerts-emergencies-risks-and-maintenance
 title: 'Mini-farm alerts: emergencies, risks and maintenance'
 summary: >-
-  Which greenhouse alerts are useful, how to choose thresholds, and what you
-  can already check in GrowerHub: readings, history and automation.
+  Telegram care reminders and messages from custom routines are already
+  available in GrowerHub. Choose useful events, thresholds and a clear next step.
 created_at: '2026-07-23'
-updated_at: '2026-09-19'
+updated_at: "2026-10-27"
 cluster: mini-ferma-i-neskolko-boksov
 tags:
   - GrowerHub
@@ -32,9 +32,11 @@ A message such as “check the seedlings: moisture is below your chosen threshol
 
 ## What GrowerHub supports today
 
-**GrowerHub does not currently send Telegram, email or push notifications.** It also has no ready-made alert profiles with thresholds for individual plant species. The recommendations below describe how to choose useful alerts, rather than how to enable an existing feature.
+**Telegram care reminders are already available.** Save a task for a plant in the journal and receive messages about planned care. The [journal without hardware guide](/en/articles/plant-care-journal-and-telegram-growerhub/) explains how to connect Telegram.
 
-You can already view sensor readings and history, equipment state and watering records, and configure lighting, irrigation and climate scenarios. [Open Automations in the demo](/app/demo/?lang=en&view=automations) to try them with virtual devices and simulated readings. An automation scenario controls equipment; it does not also send its owner a message.
+A [custom routine](/en/articles/plant-assistant-and-custom-scenarios-growerhub/) can also include a Telegram message step. Connect Telegram and explicitly add the notification to the routine; switching a light or watering does not create that step automatically. The demo farm sends no messages to a real Telegram chat.
+
+There are no ready-made emergency alert profiles with thresholds for every plant species. The sections below help you choose a useful event and a clear message for your own setup.
 
 Keep any important alerts already configured in your current system while trying GrowerHub. Choose one automatic controller per actuator. See [GrowerHub and Home Assistant via MQTT](/articles/growerhub-i-home-assistant-cherez-mqtt) for the connection steps.
 
@@ -60,7 +62,7 @@ For example: “Seedlings: temperature has exceeded your threshold for 30 minute
 
 Include batteries, filters, drippers and the reservoir in your regular inspection. Give reminders a convenient time and an owner so that they do not get lost among urgent events.
 
-GrowerHub does not currently schedule these reminders. You can record completed work and observations in the plant journal.
+For planned plant care, [ask the assistant for an inspection reminder](/en/articles/ask-for-a-soil-check-reminder/). After confirmation, the task and its due time stay in the journal. The reminder helps you return to the inspection; checking the equipment is a separate action.
 
 ## Information events
 
@@ -68,4 +70,4 @@ An ordinary completed watering session does not always need a message. In Grower
 
 ## Start with one useful event
 
-Choose one zone, one measurable value and one action when it changes. Check that readings are fresh and look at their history. If you need GrowerHub alerts, tell us what you grow, which sensor you use and which event you want to notice in time. A concrete example helps define a useful feature without promising unsupported capabilities.
+Choose one zone, one measurement and one action when it changes. Check that readings are fresh and look at their history. Then [prepare a custom routine](/en/articles/plant-assistant-and-custom-scenarios-growerhub/) with the condition and message you need. Before enabling it, check that Telegram is connected and that the message belongs to the event you chose.
