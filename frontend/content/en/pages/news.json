@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id":"plant-shelf-grow-light-selection-guide","published_at":"2026-10-28","kind":"article","article_id":"kak-vybrat-fitolampu-dlya-polki","preview_position":"50% 50%"},
     {"id":"telegram-reminders-and-scenario-messages-clarified","published_at":"2026-10-27","kind":"article_update","article_id":"uvedomleniya-v-mini-ferme","text":"Clarified the Telegram messages already available: journal care reminders and message steps in custom routines. Distinguished them from ready-made emergency alert profiles and linked the relevant guides."},
     {"id":"assistant-soil-check-reminder-guide","published_at":"2026-10-26","kind":"article","article_id":"napomnit-proverit-grunt-cherez-pomoshchnika","preview_position":"50% 50%"},
     {

@@ -10,11 +10,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-10-27</lastmod>
+    <lastmod>2026-10-28</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/novosti/</loc>
-    <lastmod>2026-10-27</lastmod>
+    <lastmod>2026-10-28</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/avtomatizatsiya-mini-fermy/</loc>
@@ -50,7 +50,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/svet-dlya-rasteniy/</loc>
-    <lastmod>2026-10-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/avtopoliv-i-kontroller-vyrashchivaniya/</loc>
@@ -71,6 +71,10 @@
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
     <lastmod>2026-10-04</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/kak-vybrat-fitolampu-dlya-polki/</loc>
+    <lastmod>2026-10-28</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/uvedomleniya-v-mini-ferme/</loc>
@@ -422,11 +426,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-10-27</lastmod>
+    <lastmod>2026-10-28</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/news/</loc>
-    <lastmod>2026-10-27</lastmod>
+    <lastmod>2026-10-28</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/farm-automation/</loc>
@@ -462,7 +466,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/plant-lighting/</loc>
-    <lastmod>2026-10-24</lastmod>
+    <lastmod>2026-10-28</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/automated-watering-and-grow-controllers/</loc>
@@ -483,6 +487,10 @@
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/home-assistant-and-diy/</loc>
     <lastmod>2026-10-04</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/choosing-a-grow-light-for-a-plant-shelf/</loc>
+    <lastmod>2026-10-28</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/mini-farm-alerts-emergencies-risks-and-maintenance/</loc>
