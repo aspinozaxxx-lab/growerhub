@@ -33,6 +33,7 @@ class RuleDemoIntegrationTest extends IntegrationTestBase {
     @Autowired ObjectMapper json;
     @Autowired RuleSettings settings;
     @Autowired MutableClock clock;
+    @Autowired ru.growerhub.backend.advisor.engine.AssistantTools assistant;
     @MockBean MqttPublisher publisher;
     @MockBean ru.growerhub.backend.demo.engine.DemoWorker demoWorker;
     @MockBean ru.growerhub.backend.automation.engine.AutomationWorker automationWorker;
@@ -89,5 +90,55 @@ class RuleDemoIntegrationTest extends IntegrationTestBase {
         assertThatThrownBy(() -> automation.ruleWateringExecution(key, new AuthenticatedUser(-1, "user")))
                 .isInstanceOf(ru.growerhub.backend.common.contract.DomainException.class);
         verifyNoInteractions(publisher);
+    }
+
+    @Test void assistantReadsSavedWateringPlanAndConflictInOneToolWithoutApplyingAnything() throws Exception {
+        Instant previous = clock.value;
+        try {
+            clock.value = Instant.parse("2026-10-29T17:00:00Z");
+            jdbc.update("MERGE INTO demo_capacity (id) KEY(id) VALUES (1)");
+            var space = demo.createGuest("ru", "Europe/Moscow", "assistant-read-only-demo");
+            var user = new AuthenticatedUser(space.dataUserId(), "demo");
+            var zone = automation.getFarmsOverview(user).farms().getFirst().greenhouses().stream()
+                    .filter(g -> g.slots().stream().anyMatch(s -> s.nativePumpId() != null)).findFirst().orElseThrow();
+            var pump = zone.slots().stream().filter(s -> s.nativePumpId() != null).findFirst().orElseThrow();
+            var trigger = json.readTree("{\"type\":\"calendar\",\"every\":2,\"unit\":\"day\",\"startDate\":\"2026-10-20\",\"at\":\"16:00\",\"timezone\":\"Europe/Moscow\"}");
+            var action = json.valueToTree(Map.of("type", "water", "resourceId", pump.id(), "durationSeconds", 480,
+                    "pulse", Map.of("runSeconds", 180, "pauseSeconds", 300)));
+            var definition = new Definition(2, "Полив через день", "BOX", zone.id(), trigger, null, List.of(action), 60);
+            var saved = automation.saveRule(null, new Save(null, false, definition), user);
+            var before = automation.getFarmsOverview(user);
+            int proposals = jdbc.queryForObject("select count(*) from assistant_proposals", Integer.class);
+
+            var result = assistant.read("gh_rule_details", json.readTree("{\"query\":\"Полив через день\"}"), user);
+            assertThat(result.path("rule").path("id").asText()).isEqualTo(saved.id().toString());
+            assertThat(result.path("rule").path("enabled").asBoolean()).isFalse();
+            var preview = result.path("preview");
+            assertThat(preview.path("timing").path("activeWateringSeconds").asInt()).isEqualTo(480);
+            assertThat(preview.path("timing").path("cycleSeconds").asInt()).isEqualTo(1080);
+            assertThat(preview.path("timing").path("timezone").asText()).isEqualTo("Europe/Moscow");
+            assertThat(preview.path("timing").path("nextRuns").get(0).path("at").asText()).startsWith("2026-10-30T13:00:00");
+            assertThat(preview.path("conflicts").toString()).contains("Полив");
+            assertThat(result.has("schema")).isFalse();
+            assertThat(result.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length).isLessThan(6000);
+            assertThat(automation.getRule(saved.id(), user)).isEqualTo(saved);
+            assertThat(automation.getFarmsOverview(user)).isEqualTo(before);
+            assertThat(jdbc.queryForObject("select count(*) from assistant_proposals", Integer.class)).isEqualTo(proposals);
+            assertThat(automation.ruleHistory(saved.id(), user)).isEmpty();
+
+            var another = demo.createGuest("ru", "Europe/Moscow", "assistant-read-other-demo");
+            var other = new AuthenticatedUser(another.dataUserId(), "demo");
+            assertThat(assistant.read("gh_rule_details", json.readTree("{\"query\":\"Полив через день\"}"), other).path("rules")).isEmpty();
+            assertThatThrownBy(() -> assistant.read("gh_rule_details", json.valueToTree(Map.of("ruleId", saved.id().toString())), other))
+                    .isInstanceOf(ru.growerhub.backend.common.contract.DomainException.class);
+
+            automation.saveRule(null, new Save(null, false, definition), user);
+            var ambiguous = assistant.read("gh_rule_details", json.readTree("{\"query\":\"Полив через день\"}"), user);
+            assertThat(ambiguous.path("needsClarification").asBoolean()).isTrue();
+            assertThat(ambiguous.path("rules")).hasSize(2);
+            assertThat(ambiguous.path("rules").get(0).path("scopeName").asText()).isEqualTo(zone.name());
+            assertThat(ambiguous.has("preview")).isFalse();
+            verifyNoInteractions(publisher);
+        } finally { clock.value = previous; }
     }
 }

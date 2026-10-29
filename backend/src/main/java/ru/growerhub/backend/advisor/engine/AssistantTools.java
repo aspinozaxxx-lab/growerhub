@@ -57,7 +57,7 @@ public class AssistantTools {
             tool("gh_resource_history", "История и энергопотребление своей розетки. hours — число часов", Map.of("resourceId", integer(), "hours", integer()), List.of("resourceId", "hours")),
             tool("gh_sensor_history", "История своего датчика за hours часов (до 2160), resourceId из gh_farm_report. Сохранённые точки: учитывай пропуски, свежесть, калибровку почвы. Для сравнения вызови по каждому датчику.", Map.of("resourceId", integer(), "hours", integer()), List.of("resourceId", "hours")),
             tool("gh_feature_requests", "Мои отправленные запросы на доработки и решения команды. page — страница с нуля.", Map.of("page", Map.of("type", "integer", "minimum", 0)), List.of()),
-            tool("gh_rule_details", "Без параметров: свои правила, схема и пример. Для нового правила вызови вместе с gh_farm_report. ruleId — своё правило; scopeType=ROOM|BOX и scopeId — готовые сценарии.", Map.of("ruleId", Map.of("type", "string"), "scopeType", Map.of("type", "string"), "scopeId", integer()), List.of()),
+            tool("gh_rule_details", "Чтение: query=название или ruleId сразу дают своё правило, длительность, ближайшие даты и конфликты. Без параметров: список, схема и пример для нового правила; вызови вместе с gh_farm_report. scopeType=ROOM|BOX и scopeId — готовые сценарии.", Map.of("query", Map.of("type", "string"), "ruleId", Map.of("type", "string"), "scopeType", Map.of("type", "string"), "scopeId", integer()), List.of()),
             tool("gh_validate_rule", "Проверка definition без карточки. Перед gh_prepare_change не нужен: он сам проверяет. payload — definition из gh_rule_details.", Map.of("payload", Map.of("type", "object")), List.of("payload")),
             tool("gh_prepare_change", "Подготовить предложение, НЕ применяя его. kind=rule сам проверяет; отдельный gh_validate_rule не нужен. kind=plant: {operation:create|update,plantId?:number,fields:{name?,plantType?,strain?,growthStage?,description?,locationLabel?,avatarKey?:tomato|cucumber|strawberry|rosemary|basil|lettuce|pepper|petunia|pelargonium|monstera,avatarStage?:sprout|young|mature|peak,plantedAt?:ISO UTC,dateUnknown?:boolean},zoneId?:number|null}; zoneId — ID теплицы из gh_farm_report, null убирает размещение, отсутствие сохраняет прежнее. Для create обязательно fields.name, неизвестную дату не выдумывай. Картинка и avatarStage не меняют growthStage и автоматику; названия стадий есть в gh_plant_details.avatarOptions. kind=care: {plantId,entryId?:number,action,text,eventAt?:ISO UTC,photoIds?:UUID[]}; entryId исправляет ручную запись, иначе создаёт новую. Фото бери только из списка вложений этого разговора. action=watering|fertilizing|repotting|pruning|treatment|inspection|photo|note. reminder: {plantId,action,title,dueAt,repeatDays,repeatMode}; scenario: {scopeType:ROOM|BOX,scopeId,scenarioType,enabled,config}; rule: {ruleId?:UUID,revision?:number,enabled:boolean,definition:object из gh_rule_details}; device: {type:set|water,resourceId,value?:string,ttlSeconds?:integer (обязательно для set, явный срок ручного управления),durationSeconds?:integer (для water)}; feature_request: {title до 120 символов,description до 2000,benefit до 1000}. Человек подтверждает кнопкой. Чужие данные и владельца указывать нельзя.",
                 Map.of("kind", Map.of("type", "string", "enum", List.of("plant", "care", "reminder", "scenario", "rule", "device", "feature_request")), "payload", Map.of("type", "object")), List.of("kind", "payload"))));
@@ -122,12 +122,43 @@ public class AssistantTools {
             }
             case "gh_rule_details" -> {
                 if (input.hasNonNull("scopeId")) yield json.valueToTree(scenarioSource(input, user));
-                if (input.hasNonNull("ruleId")) { UUID rule = uuid(input, "ruleId"); yield json.valueToTree(Map.of("rule", automation.getRule(rule, user), "history", automation.ruleHistory(rule, user))); }
-                yield json.valueToTree(Map.of("rules", automation.listRules(user), "schema", automation.ruleSchema(), "controls", automation.listControls(user)));
+                if (input.hasNonNull("ruleId")) {
+                    var rule = automation.getRule(uuid(input, "ruleId"), user);
+                    var result = rulePreview(rule, user);
+                    result.set("history", json.valueToTree(automation.ruleHistory(rule.id(), user)));
+                    yield result;
+                }
+                var rules = automation.listRules(user);
+                if (input.hasNonNull("query")) {
+                    String query = text(input, "query").strip().toLowerCase(Locale.ROOT);
+                    var exact = rules.stream().filter(rule -> rule.definition().name().toLowerCase(Locale.ROOT).equals(query)).toList();
+                    var matched = exact.isEmpty() ? rules.stream().filter(rule -> rule.definition().name().toLowerCase(Locale.ROOT).contains(query)).toList() : exact;
+                    if (matched.size() == 1) yield rulePreview(matched.getFirst(), user);
+                    yield json.valueToTree(Map.of("rules", ruleSummaries(matched, user), "needsClarification", matched.size() > 1));
+                }
+                yield json.valueToTree(Map.of("rules", ruleSummaries(rules, user), "schema", automation.ruleSchema()));
             }
             case "gh_validate_rule" -> json.valueToTree(automation.previewRule(null, ruleDefinition(input.get("payload")), user));
             default -> throw bad("Такого инструмента у помощника нет");
         };
+    }
+
+    private com.fasterxml.jackson.databind.node.ObjectNode rulePreview(RuleData.Rule rule, AuthenticatedUser user) {
+        return json.valueToTree(Map.of("rule", rule, "preview", automation.previewRule(rule.id(), rule.definition(), user), "now", clock.instant()));
+    }
+
+    private List<Map<String, Object>> ruleSummaries(List<RuleData.Rule> rules, AuthenticatedUser user) {
+        var names = new HashMap<String, String>();
+        for (var farm : automation.getFarmsOverview(user).farms()) {
+            names.put("ROOM:" + farm.id(), farm.name());
+            farm.greenhouses().forEach(zone -> names.put("BOX:" + zone.id(), zone.name()));
+        }
+        return rules.stream().map(rule -> {
+            var definition = rule.definition();
+            return Map.<String, Object>of("id", rule.id(), "revision", rule.revision(), "name", definition.name(), "enabled", rule.enabled(),
+                    "scopeType", definition.scopeType(), "scopeId", definition.scopeId(),
+                    "scopeName", names.getOrDefault(definition.scopeType() + ":" + definition.scopeId(), ""), "description", rule.description());
+        }).toList();
     }
 
     private void requireAdminRead(AuthenticatedUser user) {
@@ -213,7 +244,8 @@ public class AssistantTools {
             var row = new LinkedHashMap<String, Object>(); row.put("id", p.id()); row.put("name", p.name()); row.put("stage", p.growthStage());
             row.put("type", p.plantType()); row.put("strain", p.strain()); row.put("location", p.locationLabel()); return row;
         }).toList());
-        result.put("controls", controls); result.put("reminders", journal.careReminders(user)); return json.valueToTree(result);
+        result.put("controls", controls.stream().filter(control -> control.sourceId() != null || control.error() != null || !control.demands().isEmpty()).toList());
+        result.put("reminders", journal.careReminders(user)); return json.valueToTree(result);
     }
     private Map<String, Object> compactResource(ResourceBinding r, ru.growerhub.backend.automation.contract.ControlData.Status control) {
         var value = new LinkedHashMap<String, Object>(); value.put("id", r.id()); value.put("role", r.role()); value.put("name", r.label());
