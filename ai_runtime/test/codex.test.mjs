@@ -78,3 +78,58 @@ test('nepomestivshiysya pervyy kontekst ostayotsya failed bez modelnogo zaprosa'
   assert.equal(result.status, 'failed'); assert.equal(result.code, 'context_limit');
   assert.ok(instances.every(rpc => rpc.requests.every(request => request.method !== 'turn/start')));
 });
+
+test('povtory usage snapshot i nachalnyy nol ne rashoduyut tri modelnyh shaga', async () => {
+  class UsageRpc extends FakeRpc {
+    usage(n) {
+      const value = { total: { inputTokens: n * 100, outputTokens: n * 10 }, last: { inputTokens: n ? 100 : 0, outputTokens: n ? 10 : 0 } };
+      this.event('thread/tokenUsage/updated', { tokenUsage: value });
+      this.event('thread/tokenUsage/updated', { tokenUsage: value });
+    }
+    async request(method, params) {
+      if (method !== 'turn/start') return super.request(method, params);
+      this.requests.push({ method, params });
+      queueMicrotask(() => {
+        this.usage(0); this.usage(1);
+        this.event('item/tool/call', { callId: 'read1', tool: 'gh_farm_report', arguments: {} }, 40);
+      });
+      return { turn: { id: 'turn1' } };
+    }
+    respond(id, result) {
+      this.results.push({ id, result });
+      if (id === 40) {
+        this.usage(2);
+        this.event('item/tool/call', { callId: 'read2', tool: 'gh_farm_report', arguments: {} }, 41);
+      } else {
+        this.event('item/agentMessage/delta', { delta: 'План проверен' });
+        this.usage(3);
+        this.event('turn/completed', { turn: { status: 'completed' } });
+      }
+    }
+  }
+  const instances = []; let tools = 0;
+  const provider = new CodexProvider({ cwd: '/empty', startRpc: () => { const rpc = new UsageRpc(); instances.push(rpc); return rpc; } });
+  const outcome = await provider.run(job, { signal: new AbortController().signal, emit() {}, tool: async () => { tools++; return { ok: true }; } });
+  assert.equal(outcome.status, 'completed'); assert.equal(outcome.text, 'План проверен');
+  assert.equal(tools, 2); assert.equal(outcome.inputTokens, 300); assert.equal(outcome.outputTokens, 30);
+  assert.equal(instances[1].results.length, 2); assert.ok(instances.every(rpc => rpc.closed));
+});
+
+test('chetvertyy realnyy usage rost po-prezhnemu ostanavlivaet otvet', async () => {
+  class FourCallsRpc extends FakeRpc {
+    async request(method, params) {
+      if (method !== 'turn/start') return super.request(method, params);
+      this.requests.push({ method, params });
+      queueMicrotask(() => {
+        this.event('item/agentMessage/delta', { delta: 'Частичный ответ' });
+        for (let n = 1; n <= 4; n++) this.event('thread/tokenUsage/updated', { tokenUsage: { total: { inputTokens: n * 100, outputTokens: n * 10 }, last: { inputTokens: 100, outputTokens: 10 } } });
+        this.event('turn/completed', { turn: { status: 'completed' } });
+      });
+      return { turn: { id: 'turn1' } };
+    }
+  }
+  const provider = new CodexProvider({ cwd: '/empty', startRpc: () => new FourCallsRpc() });
+  const outcome = await provider.run(job, { signal: new AbortController().signal, emit() {}, tool() { assert.fail('No tools expected'); } });
+  assert.equal(outcome.status, 'incomplete'); assert.equal(outcome.text, 'Частичный ответ');
+  assert.equal(outcome.inputTokens, 400); assert.equal(outcome.outputTokens, 40);
+});

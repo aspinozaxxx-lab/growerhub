@@ -144,7 +144,11 @@ export class CodexProvider {
             emit({ type: 'delta', text: p.delta });
           }
           if (message.method === 'thread/tokenUsage/updated') {
-            calls++; inputTokens = p.tokenUsage.total.inputTokens; outputTokens = p.tokenUsage.total.outputTokens;
+            // Povtornyy snapshot i nachalnyy nol ne yavlyayutsya novoy generaciey.
+            const nextInput = Math.max(inputTokens, p.tokenUsage.total.inputTokens);
+            const nextOutput = Math.max(outputTokens, p.tokenUsage.total.outputTokens);
+            if (nextInput > inputTokens || nextOutput > outputTokens) calls++;
+            inputTokens = nextInput; outputTokens = nextOutput;
             if (p.tokenUsage.last.inputTokens > Math.min(job.maxInputTokens, LIMITS.input)
                 || p.tokenUsage.last.outputTokens > Math.min(job.maxOutputTokens, LIMITS.output)
                 || calls > Math.min(job.maxModelCalls, LIMITS.calls)) reject(new ProviderFailure('context_limit'));
