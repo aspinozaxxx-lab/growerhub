@@ -49,7 +49,7 @@ public class AssistantTools {
 
     public List<Map<String, Object>> catalog(AuthenticatedUser user) {
         var result = new ArrayList<>(List.of(
-            tool("gh_farm_report", "Текущее состояние собственной фермы, устройства, показания, сценарии и растения. Числа рассчитывает сервер.", Map.of(), List.of()),
+            tool("gh_farm_report", "Своя ферма: устройства, показания, сценарии, растения. zoneName — одна теплица. Новое правило: gh_rule_details zoneName уже даёт отчёт и схему.", Map.of("zoneName", Map.of("type", "string")), List.of()),
             tool("gh_app_help", "Справка интерфейса: разделы, шаги, ссылки. section=scenarios — свои сценарии с точными ссылками; ruleId уточняет один свой. Без section — список разделов. Только чтение.", Map.of("section", Map.of("type", "string", "enum", interfaceGuide.path("sections").properties().stream().map(Map.Entry::getKey).toList()), "ruleId", Map.of("type", "string")), List.of()),
             tool("gh_plant_details", "Карточка, размещение, первая страница журнала и дела своего растения. ID растения возьми из gh_farm_report. Следующие страницы или поиск записей — gh_journal.", Map.of("plantId", integer()), List.of("plantId")),
             tool("gh_journal", "Свой журнал с фото. Фильтры: plantId, query, action, from/until (ISO UTC), page с нуля. entryId — одна своя запись для исправления. Автоматический полив только читается.",
@@ -57,7 +57,7 @@ public class AssistantTools {
             tool("gh_resource_history", "История и энергопотребление своей розетки. hours — число часов", Map.of("resourceId", integer(), "hours", integer()), List.of("resourceId", "hours")),
             tool("gh_sensor_history", "История своего датчика за hours часов (до 2160), resourceId из gh_farm_report. Сохранённые точки: учитывай пропуски, свежесть, калибровку почвы. Для сравнения вызови по каждому датчику.", Map.of("resourceId", integer(), "hours", integer()), List.of("resourceId", "hours")),
             tool("gh_feature_requests", "Мои отправленные запросы на доработки и решения команды. page — страница с нуля.", Map.of("page", Map.of("type", "integer", "minimum", 0)), List.of()),
-            tool("gh_rule_details", "Чтение: query=название или ruleId сразу дают своё правило, длительность, ближайшие даты и конфликты. Без параметров: список, схема и пример для нового правила; вызови вместе с gh_farm_report. scopeType=ROOM|BOX и scopeId — готовые сценарии.", Map.of("query", Map.of("type", "string"), "ruleId", Map.of("type", "string"), "scopeType", Map.of("type", "string"), "scopeId", integer()), List.of()),
+            tool("gh_rule_details", "query=название или ruleId: своё правило, план, даты, конфликты. Новое правило: zoneName даёт отчёт, схему и пример. {} — список и схема. scopeType=ROOM|BOX и scopeId — готовые сценарии.", Map.of("zoneName", Map.of("type", "string"), "query", Map.of("type", "string"), "ruleId", Map.of("type", "string"), "scopeType", Map.of("type", "string"), "scopeId", integer()), List.of()),
             tool("gh_validate_rule", "Проверка definition без карточки. Перед gh_prepare_change не нужен: он сам проверяет. payload — definition из gh_rule_details.", Map.of("payload", Map.of("type", "object")), List.of("payload")),
             tool("gh_prepare_change", "Подготовить предложение, НЕ применяя его. kind=rule сам проверяет; отдельный gh_validate_rule не нужен. kind=plant: {operation:create|update,plantId?:number,fields:{name?,plantType?,strain?,growthStage?,description?,locationLabel?,avatarKey?:tomato|cucumber|strawberry|rosemary|basil|lettuce|pepper|petunia|pelargonium|monstera,avatarStage?:sprout|young|mature|peak,plantedAt?:ISO UTC,dateUnknown?:boolean},zoneId?:number|null}; zoneId — ID теплицы из gh_farm_report, null убирает размещение, отсутствие сохраняет прежнее. Для create обязательно fields.name, неизвестную дату не выдумывай. Картинка и avatarStage не меняют growthStage и автоматику; названия стадий есть в gh_plant_details.avatarOptions. kind=care: {plantId,entryId?:number,action,text,eventAt?:ISO UTC,photoIds?:UUID[]}; entryId исправляет ручную запись, иначе создаёт новую. Фото бери только из списка вложений этого разговора. action=watering|fertilizing|repotting|pruning|treatment|inspection|photo|note. reminder: {plantId,action,title,dueAt,repeatDays,repeatMode}; scenario: {scopeType:ROOM|BOX,scopeId,scenarioType,enabled,config}; rule: {ruleId?:UUID,revision?:number,enabled:boolean,definition:object из gh_rule_details}; device: {type:set|water,resourceId,value?:string,ttlSeconds?:integer (обязательно для set, явный срок ручного управления),durationSeconds?:integer (для water)}; feature_request: {title до 120 символов,description до 2000,benefit до 1000}. Человек подтверждает кнопкой. Чужие данные и владельца указывать нельзя.",
                 Map.of("kind", Map.of("type", "string", "enum", List.of("plant", "care", "reminder", "scenario", "rule", "device", "feature_request")), "payload", Map.of("type", "object")), List.of("kind", "payload"))));
@@ -94,7 +94,7 @@ public class AssistantTools {
                         "startedDiary", accounts.stream().filter(u -> u.careStartedAt() != null).count(),
                         "publicAssistantConfigured", settings.publicEnabled(), "monthlyApiLimitUsd", settings.budget().monthMicros() / 1000000d));
             }
-            case "gh_farm_report" -> report(user);
+            case "gh_farm_report" -> report(user, optionalText(input, "zoneName"));
             case "gh_app_help" -> interfaceHelp(input, user);
             case "gh_feature_requests" -> json.valueToTree(requests.list(user, false, input.path("page").asInt(0)));
             case "gh_journal" -> {
@@ -136,7 +136,11 @@ public class AssistantTools {
                     if (matched.size() == 1) yield rulePreview(matched.getFirst(), user);
                     yield json.valueToTree(Map.of("rules", ruleSummaries(matched, user), "needsClarification", matched.size() > 1));
                 }
-                yield json.valueToTree(Map.of("rules", ruleSummaries(rules, user), "schema", automation.ruleSchema()));
+                var result = json.createObjectNode();
+                result.set("rules", json.valueToTree(ruleSummaries(rules, user)));
+                result.set("schema", json.valueToTree(automation.ruleSchema()));
+                if (input.hasNonNull("zoneName")) result.set("farm", report(user, text(input, "zoneName")));
+                yield result;
             }
             case "gh_validate_rule" -> json.valueToTree(automation.previewRule(null, ruleDefinition(input.get("payload")), user));
             default -> throw bad("Такого инструмента у помощника нет");
@@ -221,31 +225,44 @@ public class AssistantTools {
         return result;
     }
 
-    public JsonNode report(AuthenticatedUser user) {
+    public JsonNode report(AuthenticatedUser user) { return report(user, null); }
+
+    private JsonNode report(AuthenticatedUser user, String zoneName) {
         var overview = automation.getFarmsOverview(user);
+        String focus = zoneName == null ? null : zoneName.strip().toLowerCase(Locale.ROOT);
+        var zones = overview.farms().stream().flatMap(farm -> farm.greenhouses().stream())
+                .filter(zone -> focus == null || zone.name().toLowerCase(Locale.ROOT).equals(focus)).toList();
+        if (focus != null && zones.size() != 1) throw bad(zones.isEmpty() ? "Теплица с таким названием не найдена" : "Уточните теплицу: найдено несколько одинаковых названий");
+        var zoneIds = zones.stream().map(zone -> zone.id()).collect(java.util.stream.Collectors.toSet());
+        var scopedFarms = overview.farms().stream().filter(farm -> focus == null || farm.greenhouses().stream().anyMatch(zone -> zoneIds.contains(zone.id()))).toList();
         var controls = automation.listControls(user);
         var controlById = controls.stream().collect(java.util.stream.Collectors.toMap(ru.growerhub.backend.automation.contract.ControlData.Status::resourceId, c -> c));
-        List<Map<String, Object>> farms = overview.farms().stream().map(farm -> {
+        List<Map<String, Object>> farms = scopedFarms.stream().map(farm -> {
             var row = new LinkedHashMap<String, Object>(); row.put("id", farm.id()); row.put("name", farm.name());
             row.put("enabled", farm.enabled()); row.put("resources", farm.slots().stream().map(r -> compactResource(r, controlById.get(r.id()))).toList()); row.put("scenarios", farm.scenarios().stream().map(this::compactScenario).toList());
-            row.put("greenhouses", farm.greenhouses().stream().map(zone -> {
+            row.put("greenhouses", farm.greenhouses().stream().filter(zone -> zoneIds.contains(zone.id())).map(zone -> {
                 var z = new LinkedHashMap<String, Object>(); z.put("id", zone.id()); z.put("name", zone.name()); z.put("enabled", zone.enabled());
                 z.put("resources", zone.slots().stream().map(r -> compactResource(r, controlById.get(r.id()))).toList()); z.put("scenarios", zone.scenarios().stream().map(this::compactScenario).toList());
                 z.put("plants", zone.plants().stream().map(p -> Map.of("id", p.id(), "name", p.name())).toList()); return z;
             }).toList()); return (Map<String, Object>) row;
         }).toList();
-        var resources = overview.farms().stream().flatMap(f -> java.util.stream.Stream.concat(f.slots().stream(), f.greenhouses().stream().flatMap(g -> g.slots().stream()))).toList();
+        var resources = scopedFarms.stream().flatMap(f -> java.util.stream.Stream.concat(f.slots().stream(), f.greenhouses().stream().filter(zone -> zoneIds.contains(zone.id())).flatMap(g -> g.slots().stream()))).toList();
+        var resourceIds = resources.stream().map(resource -> resource.id()).collect(java.util.stream.Collectors.toSet());
+        var plantIds = zones.stream().flatMap(zone -> zone.plants().stream()).map(plant -> plant.id()).collect(java.util.stream.Collectors.toSet());
+        var ownPlants = plants.listPlants(user).stream().filter(plant -> focus == null || plantIds.contains(plant.id())).toList();
         var result = new LinkedHashMap<String, Object>();
         result.put("at", LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)); result.put("timezone", users.getTimezone(user.id()));
-        result.put("demo", user.isDemo()); result.put("farms", farms); result.put("plantCount", plants.listPlants(user).size());
-        result.put("farmCount", farms.size()); result.put("greenhouseCount", overview.farms().stream().mapToInt(f -> f.greenhouses().size()).sum());
+        result.put("demo", user.isDemo()); result.put("farms", farms); result.put("plantCount", ownPlants.size());
+        result.put("farmCount", farms.size()); result.put("greenhouseCount", zones.size());
         result.put("resourceCount", resources.size()); result.put("notReadyCount", resources.stream().filter(r -> !r.ready()).count());
-        result.put("plants", plants.listPlants(user).stream().map(p -> {
+        result.put("plants", ownPlants.stream().map(p -> {
             var row = new LinkedHashMap<String, Object>(); row.put("id", p.id()); row.put("name", p.name()); row.put("stage", p.growthStage());
             row.put("type", p.plantType()); row.put("strain", p.strain()); row.put("location", p.locationLabel()); return row;
         }).toList());
-        result.put("controls", controls.stream().filter(control -> control.sourceId() != null || control.error() != null || !control.demands().isEmpty()).toList());
-        result.put("reminders", journal.careReminders(user)); return json.valueToTree(result);
+        result.put("controls", controls.stream().filter(control -> focus == null || resourceIds.contains(control.resourceId()))
+                .filter(control -> control.sourceId() != null || control.error() != null || !control.demands().isEmpty()).toList());
+        result.put("reminders", journal.careReminders(user).stream().filter(reminder -> focus == null || plantIds.contains(reminder.plantId())).toList());
+        return json.valueToTree(result);
     }
     private Map<String, Object> compactResource(ResourceBinding r, ru.growerhub.backend.automation.contract.ControlData.Status control) {
         var value = new LinkedHashMap<String, Object>(); value.put("id", r.id()); value.put("role", r.role()); value.put("name", r.label());

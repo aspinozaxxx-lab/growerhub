@@ -121,6 +121,12 @@ class RuleDemoIntegrationTest extends IntegrationTestBase {
             assertThat(preview.path("conflicts").toString()).contains("Полив");
             assertThat(result.has("schema")).isFalse();
             assertThat(result.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length).isLessThan(6000);
+            var context = assistant.read("gh_rule_details", json.valueToTree(Map.of("zoneName", zone.name())), user);
+            assertThat(context.has("schema")).isTrue();
+            assertThat(context.path("farm").path("greenhouseCount").asInt()).isEqualTo(1);
+            assertThat(context.path("farm").path("farms").get(0).path("greenhouses")).hasSize(1);
+            assertThat(context.path("farm").path("farms").get(0).path("greenhouses").get(0).path("id").asInt()).isEqualTo(zone.id());
+            assertThat(context.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length).isLessThan(10000);
             assertThat(automation.getRule(saved.id(), user)).isEqualTo(saved);
             assertThat(automation.getFarmsOverview(user)).isEqualTo(before);
             assertThat(jdbc.queryForObject("select count(*) from assistant_proposals", Integer.class)).isEqualTo(proposals);
