@@ -2,10 +2,11 @@
 translation_of: zhurnal-poliva-obem-ph-udobreniya
 slug: watering-log-volume-ph-fertilizers-and-date
 title: 'Plant watering log: example and free printable template'
-summary: 'Download a one-page A4 watering log. Record date, plant, water volume, reason and feeding; see a filled example and try a virtual watering history.'
+summary: "Download a one-page A4 watering log. Record date, plant, water volume, reason and feeding; follow a filled example and start your own plant diary without hardware."
 created_at: '2026-07-23'
-updated_at: '2026-10-02'
+updated_at: "2026-10-30"
 cluster: zhurnal-i-sovetnik-uhoda
+product_cta: false
 tags:
   - GrowerHub
   - watering log
@@ -77,7 +78,19 @@ Compare the total **known** water volume, the gaps between watering events and y
 
 If the pump ran but the substrate stayed dry, check the reservoir, tubing, drippers and actual delivery. A log entry alone cannot diagnose the cause. Compare [moisture trends and observations](/articles/pereliv-ili-nedoliv-po-dannym-datchika/) and review [greenhouse water accounting](/articles/uchet-vody-i-polivov-v-teplitse/).
 
-## Try an electronic watering history
+## Record watering for your own plant
+
+If you prefer keeping notes on your phone, start with one plant of your own. A GrowerHub diary works without sensors, a pump or a greenhouse setup.
+
+1. [Sign in to GrowerHub](/app/onboarding/?lang=en). On your first visit, find **A journal without equipment** and select **Start a plant journal**.
+2. In **Plants**, select **Add a plant**. Give it a name such as “Monstera by the window”, then open **Journal**.
+3. Select **Watered by hand** and enter the date you actually watered. Use the note to record what you noticed and the volume with its units, if measured. Once saved, the entry stays in that plant’s history.
+
+This records care; it does not start a pump. At your next check, open the same plant to see the previous watering and your observations together. To plan that check ahead, select **Add reminder** and choose a suitable time.
+
+The [plant diary guide](/en/articles/plant-care-journal-and-telegram-growerhub/) covers photos and tasks. If you would rather describe a task, see the [tested conversation about a reminder](/en/articles/ask-for-a-soil-check-reminder/): the assistant prepares it, and you check the plant and date before confirming. Start with one entry about your own watering; you can add more detail later.
+
+## See a pump log on the demo farm
 
 [Open manual watering in the GrowerHub demo farm](/app/demo/?lang=en&view=watering). Open the pump log on a greenhouse card to inspect its prefilled history. To add your own example, start a one-minute watering cycle. The log opens automatically; after the run finishes, it shows duration, volume when the delivery rate is known, and the completion reason.
 
