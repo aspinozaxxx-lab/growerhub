@@ -4,7 +4,7 @@ slug: "try-the-assistant-on-a-demo-farm"
 title: "Meet the assistant: a farm tour, sensor history and your own routine"
 summary: "Three ready-to-use tasks to try without equipment. Explore a day of readings and send the team a request for a feature you need."
 created_at: "2026-10-18"
-updated_at: "2026-10-19"
+updated_at: "2026-10-30"
 cluster: "zhurnal-i-sovetnik-uhoda"
 tags: ["GrowerHub", "demo farm", "assistant", "sensors", "routines"]
 keywords: ["GrowerHub demo farm", "plant care assistant", "soil moisture history"]

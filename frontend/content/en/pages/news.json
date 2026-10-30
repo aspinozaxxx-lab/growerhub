@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id":"assistant-guide-language-links","published_at":"2026-10-30","kind":"fix","article_id":"poprobovat-pomoshchnika-na-demoferme","text":"Fixed demo links in seven guides so the assistant opens in the guide’s language after switching between the Russian and English site."},
     {"id":"assistant-grow-light-energy-guide","published_at":"2026-10-30","kind":"article","article_id":"raskhod-fitolampy-cherez-pomoshchnika","preview_position":"50% 50%"},
     {"id":"assistant-model-step-accounting","published_at":"2026-10-30","kind":"fix","text":"Fixed premature stops in the owner assistant mode: repeated usage updates no longer count as new model steps. Clarified that a routine is proposed first and saved only after confirmation."},
     {"id":"watering-log-own-plant-first-entry","published_at":"2026-10-30","kind":"article_update","article_id":"zhurnal-poliva-obem-ph-udobreniya","text":"Added steps for recording care for your own plant without hardware and a link to a reminder example. The virtual pump log now has its own section."},

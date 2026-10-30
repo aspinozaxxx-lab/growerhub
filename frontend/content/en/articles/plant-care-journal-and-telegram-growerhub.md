@@ -4,7 +4,7 @@ slug: "plant-care-journal-and-telegram-growerhub"
 title: "A plant journal without hardware: photos, care and Telegram"
 summary: "Keep your plants, photographs and care notes together. Plan tasks and receive Telegram reminders without sensors, a coordinator or automation setup."
 created_at: "2026-10-07"
-updated_at: "2026-10-23"
+updated_at: "2026-10-30"
 cluster: "zhurnal-i-sovetnik-uhoda"
 tags: ["GrowerHub", "plant journal", "Telegram", "houseplants"]
 keywords: ["plant care journal", "watering reminders", "plant photo diary"]

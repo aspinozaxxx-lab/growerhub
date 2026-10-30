@@ -4,7 +4,7 @@ slug: "ask-for-a-soil-check-reminder"
 title: "Check the soil tomorrow: ask for a plant reminder"
 summary: "Ask the assistant for a plant reminder, check its date and save the task. A practical conversation checked on the demo farm."
 created_at: "2026-10-26"
-updated_at: "2026-10-26"
+updated_at: "2026-10-30"
 cluster: "zhurnal-i-sovetnik-uhoda"
 product_cta: false
 tags: ["plant journal", "reminders", "assistant"]

@@ -4,7 +4,7 @@ slug: "plants-and-journal-photos-with-the-assistant"
 title: "Plants and journal photos: just tell the assistant"
 summary: "Add a rosemary plant, move it to another greenhouse, save a Telegram photo or find a previous feeding record in everyday words, with a review before saving."
 created_at: "2026-10-19"
-updated_at: "2026-10-19"
+updated_at: "2026-10-30"
 cluster: "zhurnal-i-sovetnik-uhoda"
 tags: ["journal", "assistant", "Telegram", "rosemary", "GrowerHub"]
 keywords: ["plant care journal", "plant photos in Telegram", "plant diary with photos"]
@@ -55,4 +55,4 @@ Try asking:
 
 The assistant searches your records by words, care type and date. Editing a manual entry also requires confirmation. Changing only its text or adding a photo preserves its date. Actual equipment history can be read but cannot be rewritten as manual care.
 
-Start in the [demo farm](/app/demo/?view=assistant) if you want to practise creating a plant and reviewing proposals first. A real Telegram chat connects to your main account.
+Start in the [demo farm](/app/demo/?view=assistant&lang=en) if you want to practise creating a plant and reviewing proposals first. A real Telegram chat connects to your main account.

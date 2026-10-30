@@ -4,7 +4,7 @@ slug: "different-light-schedules-with-an-assistant"
 title: "Different light schedules for two zones: set them up in a conversation"
 summary: "One lamp starts at seven, the other at eight. Ask the assistant for two schedules, check the times and save them before switching anything on."
 created_at: "2026-10-24"
-updated_at: "2026-10-24"
+updated_at: "2026-10-30"
 cluster: "svet-dlya-rasteniy"
 product_cta: false
 tags: ["lighting", "assistant", "schedules", "demo farm"]

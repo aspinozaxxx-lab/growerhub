@@ -6,7 +6,7 @@ summary: >-
   How to look at graphs of temperature, humidity, light and watering so that you
   find patterns, rather than reacting to every peak.
 created_at: '2026-07-23'
-updated_at: "2026-10-23"
+updated_at: "2026-10-30"
 cluster: zhurnal-i-sovetnik-uhoda
 tags:
   - GrowerHub
