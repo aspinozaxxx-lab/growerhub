@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id":"public-about-text-contrast","published_at":"2026-10-31","kind":"fix","text":"Fixed text and link contrast on the About page in the light theme."},
     {"id":"about-current-use-20261031","published_at":"2026-10-31","kind":"fix","text":"Updated About GrowerHub: a journal without equipment, the assistant and connection options."},
     {"id":"assistant-guide-language-links","published_at":"2026-10-30","kind":"fix","article_id":"poprobovat-pomoshchnika-na-demoferme","text":"Fixed demo links in seven guides so the assistant opens in the guide’s language after switching between the Russian and English site."},
     {"id":"assistant-grow-light-energy-guide","published_at":"2026-10-30","kind":"article","article_id":"raskhod-fitolampy-cherez-pomoshchnika","preview_position":"50% 50%"},

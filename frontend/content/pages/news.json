@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"public-about-text-contrast","published_at":"2026-10-31","kind":"fix","text":"Исправили контраст текста и ссылок на странице «О проекте» в светлой теме."},
     {"id":"about-current-use-20261031","published_at":"2026-10-31","kind":"fix","text":"Обновили страницу «О проекте»: дневник без оборудования, помощник и способы подключения."},
     {"id":"assistant-guide-language-links","published_at":"2026-10-30","kind":"fix","article_id":"poprobovat-pomoshchnika-na-demoferme","text":"В семи руководствах исправили переходы в демо: помощник открывается на языке статьи, даже после переключения между русской и английской версиями сайта."},
     {"id":"assistant-grow-light-energy-guide","published_at":"2026-10-30","kind":"article","article_id":"raskhod-fitolampy-cherez-pomoshchnika","preview_position":"50% 50%"},
