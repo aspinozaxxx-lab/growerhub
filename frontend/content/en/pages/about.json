@@ -1,10 +1,10 @@
 {
-  "updated_at": "2026-07-23",
+  "updated_at": "2026-10-31",
   "audited_at": "2026-07-23",
-  "title": "GrowerHub: from one irrigation controller to a farm management platform",
-  "intro": "GrowerHub evolved on a working installation. Its public repository history starts on October 6, 2025: since then the project has moved from one ESP32 irrigation controller to a platform with sensor history, zones, Zigbee2MQTT, and automations.",
-  "mission": "Turn the accumulated experience into a clear platform where people can connect equipment themselves, see its state, and gradually automate a farm.",
-  "value": "We do not hide the project's radical changes: Git shows which ideas were introduced, tested, and replaced. The operational snapshot confirms that the code is connected to a long history of real measurements and actions, not only synthetic demo screens.",
+  "title": "GrowerHub: a plant journal and greenhouse assistant",
+  "intro": "GrowerHub brings a plant journal and a conversational assistant to homes, growing shelves and small nurseries. Start with your own plant or try lighting, watering and ventilation routines on a demo farm.",
+  "mission": "Tell the assistant how your greenhouse or growing shelf should work. It prepares a routine for supported equipment; you review the conditions and confirm the changes. The demo farm lets you try this with virtual devices.",
+  "value": "Without equipment, you can save photos, record plant care and receive reminders in Telegram. For your devices, choose a suitable connection: the Pushok cloud, an existing Zigbee2MQTT network or a Grovika controller. Capabilities depend on the exact model and action.",
   "evidence": {
     "title": "Verifiable facts",
     "intro": "This snapshot was recorded on July 23, 2026. The repository and production aggregates were checked separately; no device addresses, IEEE values, logins, or credentials are published.",
@@ -120,6 +120,21 @@
           {
             "label": "English version",
             "url": "https://github.com/aspinozaxxx-lab/growerhub/commit/0dcd5057dfe7b7914cccd6dac9a430a5e0e81367"
+          }
+        ]
+      },
+      {
+        "date": "October 2026",
+        "title": "A journal and an assistant",
+        "text": "The journal became a way to start without sensors. Guides tested on the demo farm show conversations about light schedules, reminders and energy history.",
+        "links": [
+          {
+            "label": "Start your plant journal",
+            "url": "https://growerhub.ru/en/articles/plant-care-journal-and-telegram-growerhub/"
+          },
+          {
+            "label": "Try the assistant",
+            "url": "https://growerhub.ru/en/articles/try-the-assistant-on-a-demo-farm/"
           }
         ]
       }
