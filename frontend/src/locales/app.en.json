@@ -1,4 +1,6 @@
 {
+  "Должно быть: {{state}}": "Requested state: {{state}}",
+  "Сценарии не задают состояние. Устройство сохраняет последнее состояние.": "No routine is requesting a state. The device keeps its last state.",
   "Обновление принято": "Update accepted",
   "Загружаем выбранную версию": "Downloading the selected version",
   "Проверяем совместимость": "Checking compatibility",

@@ -13,7 +13,7 @@
 .resource-control-owner { margin: 9px 0 4px; flex-wrap: wrap; font-size: 13px; overflow-wrap: anywhere; }
 .resource-control-owner > span { display: inline-flex; align-items: center; gap: 4px; color: var(--accent); font-size: 12px; }
 .resource-control-detail { display: block; line-height: 1.5; }
-.resource-control-row.is-error .resource-control-detail, .resource-controls [role="alert"] { color: var(--danger); }
+.resource-control-row.is-error .resource-control-detail, .resource-controls [role="alert"], .resource-control-demand-error { color: var(--danger); }
 .resource-control-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .resource-control-actions .gh-btn { font-size: 12px; }
 .resource-control-demands { margin-top: 8px; font-size: 12px; color: var(--text-2); }

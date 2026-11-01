@@ -128,7 +128,9 @@ public class RuleEvaluator {
         Check condition = condition(d.condition(), context, (ObjectNode) runtime.get("conditions"), "root");
         String key;
         if (type(d.trigger()).equals("repeat_while")) {
-            if (!condition.valid() || !condition.value()) {
+            // Poterya svyazi ne yavlyaetsya novym vklyucheniem usloviya i ne sbivaet period.
+            if (!condition.valid()) return new Decision(null, false, condition.reason());
+            if (!condition.value()) {
                 runtime.put("repeatActive", false); runtime.remove("repeatAnchor");
                 return new Decision(null, false, condition.reason());
             }

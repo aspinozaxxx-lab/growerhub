@@ -109,7 +109,15 @@ public class ControlService {
             demand.validUntil = now().plusSeconds(settings.baselineTtlSeconds()); demands.save(demand); return;
         }
         if (demand != null && "error".equals(demand.status) && same(read(demand.valueJson), value)
-                && Objects.equals(demand.bindingFingerprint, binding(r)) && Objects.equals(demand.sourceFingerprint, fingerprint)) return;
+                && Objects.equals(demand.bindingFingerprint, binding(r)) && Objects.equals(demand.sourceFingerprint, fingerprint)) {
+            demand.validUntil = now().plusSeconds(settings.baselineTtlSeconds());
+            demand.reason = reason;
+            var observed = observation(r, user);
+            // Oshibka ne otmenyaet zhelaemoe sostoyanie. Novaya komanda nuzhdaetsya v novom zhivom fakte.
+            if (!fresh(observed) || demand.ackDeadlineAt == null || !observed.observedAt().isAfter(demand.ackDeadlineAt)) {
+                demands.save(demand); return;
+            }
+        }
         if (demand != null) {
             demand.revision++; demand.valueJson = write(value); demand.status = "pending"; demand.error = null;
             demand.resourceId = r.id(); demand.targetKey = target(r); demand.bindingFingerprint = binding(r);
@@ -130,7 +138,7 @@ public class ControlService {
     }
     public Demand findExecution(String key, AuthenticatedUser user) { return demands.findByUserIdAndSourceKey(user.id(), key).map(d -> view(d, null)).orElse(null); }
     public List<Integer> ownersDue() {
-        return Stream.concat(demands.findByStatusIn(LIVE).stream().map(d -> d.userId),
+        return Stream.concat(demands.currentOwners(LIVE).stream(),
                 channels.findByStatusIn(Set.of("pending", "dispatching", "awaiting", "confirmed")).stream().map(c -> c.userId)).distinct().sorted().toList();
     }
     public void reconcile(Integer owner) {
@@ -148,7 +156,8 @@ public class ControlService {
             else continue;
             for (var candidate : candidates) if (owner.equals(candidate.getUserId())) {
                 var demand = demands.findById(candidate.getId()).orElse(null);
-                if (demand == null || LIVE.contains(demand.status) || !demand.requestedAt.isBefore(cutoff)) continue;
+                if (demand == null || LIVE.contains(demand.status) || !demand.requestedAt.isBefore(cutoff)
+                        || current(demand) && demand.validUntil != null && demand.validUntil.isAfter(now())) continue;
                 for (var channel : channels.findByUserId(owner)) if (Objects.equals(channel.winnerId, demand.id)) idle(channel);
                 demands.delete(demand);
             }
@@ -157,7 +166,7 @@ public class ControlService {
         }
     }
     private void reconcile(AuthenticatedUser user) {
-        var snapshot = snapshot(user); var all = demands.findByUserIdAndStatusIn(user.id(), LIVE);
+        var snapshot = snapshot(user); var all = demands.currentForOwner(user.id(), LIVE);
         for (var d : all) {
             var r = snapshot.resources.get(d.resourceId);
             String issue = r == null || !switchChannel(r) || !Objects.equals(d.bindingFingerprint, binding(r)) ? "Назначение оборудования изменилось"
@@ -171,7 +180,7 @@ public class ControlService {
         snapshot.resources.values().stream().filter(this::switchChannel).forEach(r -> targets.put(target(r), r));
         for (var entry : targets.entrySet()) {
             var r = entry.getValue();
-            var live = all.stream().filter(d -> LIVE.contains(d.status) && entry.getKey().equals(d.targetKey)).sorted(ORDER).toList();
+            var live = all.stream().filter(d -> current(d) && entry.getKey().equals(d.targetKey)).sorted(ORDER).toList();
             var channel = channels.findByUserIdAndTargetKey(user.id(), entry.getKey()).orElse(null);
             if (live.isEmpty()) { if (channel != null && !"error".equals(channel.status)) idle(channel); continue; }
             var winner = live.getFirst();
@@ -179,15 +188,23 @@ public class ControlService {
                 if (!d.id.equals(winner.id) && d.confirmedAt != null && "hold".equals(d.kind) && !same(read(d.valueJson), read(winner.valueJson))) {
                     d.interrupted = true; d.error = "Удержание прерывалось более приоритетным управлением; полный цикл не подтверждён";
                 }
-                d.status = d.id.equals(winner.id) ? d.confirmedAt == null ? "pending" : "active" : "blocked"; demands.save(d);
+                if (!"error".equals(d.status)) {
+                    d.status = d.id.equals(winner.id) ? d.confirmedAt == null ? "pending" : "active" : "blocked";
+                    demands.save(d);
+                }
             }
             if (channel == null) {
                 channel = new ControlChannelEntity(); channel.id = UUID.randomUUID(); channel.userId = user.id();
                 channel.resourceId = r.id(); channel.targetKey = entry.getKey();
             }
             boolean changed = !Objects.equals(channel.winnerId, winner.id) || !Objects.equals(channel.valueJson, winner.valueJson)
-                    || !Objects.equals(channel.bindingFingerprint, binding(r)) || channel.revision == 0;
+                    || !Objects.equals(channel.bindingFingerprint, binding(r)) || channel.revision == 0
+                    || "error".equals(channel.status) && !"error".equals(winner.status);
             if (changed) prepare(channel, winner, r);
+            if ("error".equals(winner.status)) {
+                channel.status = "error"; channel.error = winner.error;
+                channels.save(channel); continue;
+            }
             var observation = observation(r, user);
             boolean matching = fresh(observation) && same(observation.value(), read(winner.valueJson));
             if (matching && ("pending".equals(channel.status)
@@ -210,7 +227,7 @@ public class ControlService {
                 prepare(channel, winner, r);
             } else if (!"confirmed".equals(channel.status) && channel.ackDeadlineAt != null && !channel.ackDeadlineAt.isAfter(now())) {
                 channel.status = "error"; channel.error = "Устройство не подтвердило команду вовремя. Команда не повторена";
-                winner.status = "error"; winner.error = channel.error; demands.save(winner);
+                winner.status = "error"; winner.error = channel.error; winner.ackDeadlineAt = channel.ackDeadlineAt; demands.save(winner);
             }
             channels.save(channel);
         }
@@ -279,6 +296,7 @@ public class ControlService {
         d.ackDeadlineAt = now().plusSeconds(settings.ackSeconds()); return demands.saveAndFlush(d);
     }
     private void release(ControlDemandEntity d, String reason) { d.status = "released"; d.reason = reason; demands.save(d); }
+    private boolean current(ControlDemandEntity d) { return LIVE.contains(d.status) || "error".equals(d.status) && "baseline".equals(d.kind); }
     private boolean sourceValid(ControlDemandEntity d) {
         if ("rule".equals(d.sourceType)) {
             try {
@@ -299,15 +317,17 @@ public class ControlService {
     }
     public String scenarioFingerprint(AutomationScenarioConfigEntity c) { return digest(c.getId() + ":" + c.isEnabled() + ":" + c.getConfigJson() + ":" + c.getUpdatedAt()); }
     private Status status(ResourceBinding r, AuthenticatedUser user) {
-        var all = demands.findByUserIdAndTargetKeyAndStatusIn(user.id(), target(r), LIVE).stream().filter(d ->
-                (d.expiresAt == null || d.expiresAt.isAfter(now())) && (d.validUntil == null || d.validUntil.isAfter(now())))
+        var all = demands.currentForTarget(user.id(), target(r), LIVE).stream().filter(d ->
+                (d.expiresAt == null || d.expiresAt.isAfter(now())) && (d.validUntil == null || d.validUntil.isAfter(now()))
+                        && (!"error".equals(d.status) || Objects.equals(d.bindingFingerprint, binding(r)) && sourceValid(d)))
                 .sorted(ORDER).toList();
         var channel = channels.findByUserIdAndTargetKey(user.id(), target(r)).orElse(null);
         var winner = all.isEmpty() ? channel != null && "error".equals(channel.status) && channel.winnerId != null
                 ? demands.findById(channel.winnerId).filter(d -> user.id().equals(d.userId) && "error".equals(d.status)).orElse(null)
                 : null : all.getFirst(); var observation = observation(r, user);
         boolean confirmed = winner != null && winner.confirmedAt != null && fresh(observation) && same(observation.value(), read(winner.valueJson));
-        var error = channel == null ? null : channel.error;
+        var error = winner != null && "error".equals(winner.status) ? winner.error
+                : channel != null && (winner == null || Objects.equals(channel.winnerId, winner.id)) ? channel.error : null;
         return new Status(r.id(), winner == null ? null : winner.sourceType, winner == null ? null : winner.sourceId,
                 winner == null ? null : winner.sourceName, winner == null ? null : winner.reason,
                 winner == null ? null : winner.priority, winner == null ? null : read(winner.valueJson),
@@ -318,7 +338,7 @@ public class ControlService {
                 (all.isEmpty() && winner != null ? List.of(winner) : all).stream().map(d -> view(d, winner)).toList());
     }
     private Demand view(ControlDemandEntity d, ControlDemandEntity winner) {
-        String status = winner != null && !winner.id.equals(d.id) ? "blocked" : d.status;
+        String status = winner != null && !winner.id.equals(d.id) && !"error".equals(d.status) ? "blocked" : d.status;
         return new Demand(d.id, d.revision, d.sourceType, d.sourceId, d.sourceName, d.reason, d.priority, read(d.valueJson),
                 d.requestedAt, d.confirmedAt, d.expiresAt, remaining(d), status, d.error);
     }

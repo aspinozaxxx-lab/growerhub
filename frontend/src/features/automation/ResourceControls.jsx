@@ -43,11 +43,14 @@ function ResourceControlRow({ resource, control, manager }) {
       <span className="resource-control-actual">{valueLabel(control?.actualValue ?? resource.current_value, resource)}</span></div>
     <p className="resource-control-owner">{sourceLabel(control?.sourceName || states[status])}
       {control?.expiresAt && <span><Clock3 size={13} aria-hidden="true" />{t('До {{time}}', { time: time(control.expiresAt) })}</span>}</p>
+    {control?.desiredValue != null && <small className="resource-control-detail">{t('Должно быть: {{state}}', { state: valueLabel(control.desiredValue, resource) })}</small>}
+    {control && status === 'idle' && <small className="resource-control-detail">{t('Сценарии не задают состояние. Устройство сохраняет последнее состояние.')}</small>}
     {control && status !== 'idle' && <small className="resource-control-detail">{t(states[status] || status)}{control.reason ? ` · ${reasonLabel(control.reason)}` : ''}</small>}
     {control?.error && <p role="alert">{t(control.error)}</p>}
     {control?.demands?.length > 1 && <details className="resource-control-demands"><summary>{t('Другие требования')}: {control.demands.length - 1}</summary>
       <ul>{control.demands.filter(d => d.sourceId !== control.sourceId || d.sourceType !== control.sourceType).map(d => <li key={d.id || `${d.sourceType}:${d.sourceId}`}>
         <span>{sourceLabel(d.sourceName)} · {valueLabel(d.desiredValue, resource)}</span><small>{t('Приоритет')}: {d.priority}{d.expiresAt ? ` · ${t('До {{time}}', { time: time(d.expiresAt) })}` : ''}</small>
+        {d.error && <small className="resource-control-demand-error">{t(d.error)}</small>}
       </li>)}</ul></details>}
     <div className="resource-control-actions"><Button size="sm" disabled={disabled || !control || resource.ready === false} onClick={open}>{t('Изменить на время')}</Button>
       {manual && <Button size="sm" disabled={disabled} onClick={() => manager.release(resource.id, manual)}>{t('Снять ручное управление')}</Button>}</div>

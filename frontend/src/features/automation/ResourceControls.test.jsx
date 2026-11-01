@@ -12,6 +12,23 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 const show = () => render(<ResourceControls resources={[resource]} refreshKey="farm" scopeName="Теплица" />);
 
 describe('ResourceControls', () => {
+  it('keeps the desired off state visible when a failed climate command leaves the fan on', async () => {
+    snapshot = [{ ...active, sourceType: 'scenario', sourceName: 'BOX_CLIMATE', status: 'error', desiredValue: 'OFF', actualConfirmed: false, expiresAt: null,
+      error: 'Устройство не подтвердило команду вовремя. Команда не повторена' }];
+    show();
+    expect(await screen.findByText('Должно быть: Выключено')).toBeInTheDocument();
+    expect(screen.getByText('Включено')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Устройство не подтвердило команду');
+    expect(screen.queryByText('Нет активного управления')).not.toBeInTheDocument();
+    expect(setResourceControl).not.toHaveBeenCalled();
+  });
+  it('explains an unassigned state instead of implying the device is controlled', async () => {
+    snapshot = [{ resourceId: 11, status: 'idle', actualValue: 'ON', demands: [] }];
+    show();
+    expect(await screen.findByText('Сценарии не задают состояние. Устройство сохраняет последнее состояние.')).toBeInTheDocument();
+    expect(screen.queryByText(/Должно быть:/)).not.toBeInTheDocument();
+    expect(setResourceControl).not.toHaveBeenCalled();
+  });
   it('shows the actual owner and confirmation independently of the displayed switch state', async () => {
     show();
     expect(await screen.findByText('Обдув при свете')).toBeInTheDocument();

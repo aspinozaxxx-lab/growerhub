@@ -196,6 +196,79 @@ class ControlLifecycleIntegrationTest extends IntegrationTestBase {
         verifyNoInteractions(mqtt);
     }
 
+    @Test void failedClimateDoesNotDisappearBehindAnExpiredHoldAndRecoversOnlyFromANewFact() {
+        failClimateOffCommand();
+
+        automation.saveRule(null, new Save(null, true, hold("Короткий обдув", "ON", 10, 50, interval(), null)), owner);
+        startRules(); driveControls();
+        var overridden = automation.getControl(target.id(), owner);
+        assertThat(overridden.sourceType()).isEqualTo("rule");
+        assertThat(overridden.demands()).anySatisfy(d -> {
+            assertThat(d.sourceType()).isEqualTo("scenario");
+            assertThat(d.status()).isEqualTo("error");
+            assertThat(d.desiredValue()).isEqualTo("OFF");
+        });
+        clock.value = START.plusSeconds(42);
+        automation.evaluateDemoOwner(owner.id()); driveControls(); startRules();
+        var expired = automation.getControl(target.id(), owner);
+        assertThat(expired.sourceType()).isEqualTo("scenario");
+        assertThat(expired.desiredValue()).isEqualTo("OFF");
+        assertThat(expired.status()).isEqualTo("error");
+        assertThat(expired.error()).isNotBlank();
+        assertThat(current(target)).isEqualTo("ON");
+        assertThat(automation.claimControlCommand(owner.id())).isNull();
+
+        clock.value = START.plusSeconds(43);
+        setFact(target, "ON");
+        automation.evaluateDemoOwner(owner.id()); driveControls();
+        var recovered = automation.getControl(target.id(), owner);
+        assertThat(recovered.sourceType()).isEqualTo("scenario");
+        assertThat(recovered.status()).isEqualTo("active");
+        assertThat(recovered.desiredValue()).isEqualTo("OFF");
+        assertThat(current(target)).isEqualTo("OFF");
+        assertThat(recovered.error()).isNull();
+        assertThat(automation.claimControlCommand(owner.id())).isNull();
+        verifyNoInteractions(mqtt);
+    }
+
+    @Test void matchingLiveStateRecoversClimateWithoutRepublishingTheFailedCommand() {
+        failClimateOffCommand();
+        clock.value = START.plusSeconds(40);
+        setFact(target, "OFF");
+        automation.evaluateDemoOwner(owner.id());
+        automation.reconcileControls(owner.id());
+        var recovered = automation.getControl(target.id(), owner);
+        assertThat(recovered.sourceType()).isEqualTo("scenario");
+        assertThat(recovered.desiredValue()).isEqualTo("OFF");
+        assertThat(recovered.status()).isEqualTo("active");
+        assertThat(recovered.error()).isNull();
+        assertThat(automation.claimControlCommand(owner.id())).isNull();
+        assertThat(jdbc.queryForObject("select count(*) from automation_action_log where resource_binding_id=?", Integer.class, target.id())).isZero();
+        verifyNoInteractions(mqtt);
+    }
+
+    private void failClimateOffCommand() {
+        var configs = automation.getFarmsOverview(owner).farms().getFirst().greenhouses().stream()
+                .filter(g -> g.id().equals(zone.id())).findFirst().orElseThrow().scenarios();
+        automation.replaceGreenhouseScenarios(owner, zone.id(), new SaveScenariosRequest(configs.stream()
+                .map(c -> new ScenarioConfigRequest(c.scenarioType(), "BOX_CLIMATE".equals(c.scenarioType()), c.config())).toList()));
+        var temperature = zone.slots().stream().filter(r -> "AIR_TEMPERATURE_SENSOR".equals(r.role())).findFirst().orElseThrow();
+        var environmentId = jdbc.queryForObject("select d.id from demo_devices d join sensors s on s.device_id=d.native_device_id where s.id=?",
+                UUID.class, temperature.nativeSensorId());
+        demo.environment(owner, new ru.growerhub.backend.demo.contract.DemoData.Environment(environmentId, 20d, null, null));
+        setFact(target, "ON");
+        automation.evaluateDemoOwner(owner.id());
+        var failedCommand = automation.claimControlCommand(owner.id());
+        assertThat(failedCommand).isNotNull();
+        assertThat(failedCommand.ieeeAddress()).isEqualTo(target.zigbeeIeeeAddress());
+        automation.finishControlCommand(failedCommand, false);
+        clock.value = START.plusSeconds(31);
+        automation.reconcileControls(owner.id());
+        assertThat(automation.getControl(target.id(), owner).status()).isEqualTo("error");
+        automation.evaluateDemoOwner(owner.id());
+        assertThat(automation.claimControlCommand(owner.id())).isNull();
+    }
+
     @Test void builtInHistoryRecordsActualAcknowledgementOnceAndDoesNotCallPendingAnAction() {
         var configs = automation.getFarmsOverview(owner).farms().getFirst().greenhouses().stream()
                 .filter(g -> g.id().equals(zone.id())).findFirst().orElseThrow().scenarios();

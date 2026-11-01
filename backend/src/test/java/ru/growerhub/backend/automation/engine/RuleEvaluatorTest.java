@@ -118,4 +118,29 @@ class RuleEvaluatorTest {
         assertThat(schema.path("triggers").get(1).path("seconds").path("maximum").asInt()).isEqualTo(31536000);
         assertThat(schema.path("limits").path("maxCycleSeconds").asInt()).isEqualTo(86400);
     }
+
+    @Test void missingReportsDoNotRestartTheThirtyMinutePeriodAfterRecovery() throws Exception {
+        var d = new Definition(3, "Обдув при свете", "ROOM", 1,
+                node("{\"type\":\"repeat_while\",\"seconds\":1800,\"first\":\"immediate\",\"onConditionLoss\":\"release\"}"),
+                node("{\"type\":\"sensor\",\"resourceId\":1,\"op\":\"eq\",\"value\":\"ON\",\"maxAgeSeconds\":120}"),
+                rule(null).actions(), 60);
+        var state = json.createObjectNode();
+        assertThat(engine.evaluate(d, context(at, "ON", at), state).key()).isEqualTo("repeat:1:0");
+        state.put("lastStarted", at.getEpochSecond());
+        assertThat(engine.evaluate(d, context(at.plusSeconds(121), "ON", at), state).ready()).isFalse();
+        state = (com.fasterxml.jackson.databind.node.ObjectNode) json.readTree(state.toString());
+        var resumed = engine.evaluate(d, context(at.plusSeconds(240), "ON", at.plusSeconds(240)), state);
+        assertThat(resumed.ready()).isFalse();
+        assertThat(state.path("repeatAnchor").asLong()).isEqualTo(at.getEpochSecond());
+        assertThat(state.path("repeatGeneration").asLong()).isEqualTo(1);
+        assertThat(engine.evaluate(d, context(at.plusSeconds(1800), "ON", at.plusSeconds(1800)), state).key())
+                .isEqualTo("repeat:1:1");
+        assertThat(engine.evaluate(d, context(at.plusSeconds(3600), "ON", at.plusSeconds(1800)), state).ready()).isFalse();
+        assertThat(engine.evaluate(d, context(at.plusSeconds(4000), "ON", at.plusSeconds(4000)), state).ready()).isFalse();
+        assertThat(engine.evaluate(d, context(at.plusSeconds(5400), "ON", at.plusSeconds(5400)), state).key())
+                .isEqualTo("repeat:1:3");
+        assertThat(engine.evaluate(d, context(at.plusSeconds(5410), "OFF", at.plusSeconds(5410)), state).ready()).isFalse();
+        assertThat(engine.evaluate(d, context(at.plusSeconds(5420), "ON", at.plusSeconds(5420)), state).key())
+                .isEqualTo("repeat:2:0");
+    }
 }
