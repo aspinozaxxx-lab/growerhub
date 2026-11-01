@@ -86,21 +86,49 @@ class ControlLifecycleIntegrationTest extends IntegrationTestBase {
         automation.setUserScenariosEnabled(owner, new SetScenariosEnabledRequest(false));
         setFact(source, "ON");
         setFact(target, "OFF");
+        driveControls();
         clearInvocations(mqtt);
     }
 
 
-    @Test void legacySetDoesNotBecomeAnEndlessHoldAfterItsAcknowledgement() {
+    @Test void emergencyOverridesRulesButNotManualAndFreshReadingsRestoreBaseline() {
+        var policy = automation.getControl(target.id(), owner).policy();
+        automation.setControlPolicy(target.id(), new ControlData.Policy(policy.revision(), policy.bindingToken(), "OFF", "ON"), owner);
+        automation.saveRule(null, new Save(null, true, hold("Обдув при свете", "ON", 20, 50, repeat("immediate", "release"), condition(30))), owner);
+        startRules(); driveControls();
+        clock.value = START.plusSeconds(21); driveControls();
+        assertThat(current(target)).isEqualTo("OFF");
+        assertThat(automation.getControl(target.id(), owner).sourceType()).isEqualTo("baseline");
+        clock.value = START.plusSeconds(31); driveControls();
+        assertThat(current(target)).isEqualTo("ON");
+        assertThat(automation.getControl(target.id(), owner).sourceType()).isEqualTo("emergency");
+        assertThat(automation.getControl(target.id(), owner).warning()).isNotBlank();
+        automation.setManualControl(target.id(), new ControlData.Manual(UUID.randomUUID(), "OFF", 10), owner); driveControls();
+        assertThat(current(target)).isEqualTo("OFF");
+        assertThat(automation.getControl(target.id(), owner).warning()).isNotBlank();
+        clock.value = START.plusSeconds(42); driveControls();
+        assertThat(current(target)).isEqualTo("ON");
+        setFact(source, "OFF"); driveControls();
+        assertThat(current(target)).isEqualTo("OFF");
+        assertThat(automation.getControl(target.id(), owner).sourceType()).isEqualTo("baseline");
+        assertThat(automation.getControl(target.id(), owner).warning()).isNull();
+        verifyNoInteractions(mqtt);
+    }
+
+    @Test void legacySetLeavesAnExplicitTargetUntilNextCommandOrRuleDisable() {
         var rule = automation.saveRule(null, new Save(null, true, new Definition(2, "Разовая команда", "BOX", zone.id(), interval(), null,
                 List.of(json.valueToTree(Map.of("type", "set", "resourceId", target.id(), "value", "ON"))), 60)), owner);
         startRules(); driveControls(); clock.value = START.plusSeconds(5); startRules(); startRules();
         assertThat(automation.ruleHistory(rule.id(), owner).getFirst().status()).isEqualTo("completed");
-        assertThat(automation.getControl(target.id(), owner).demands()).isEmpty();
+        assertThat(automation.getControl(target.id(), owner).sourceType()).isEqualTo("rule");
         clock.value = START.plusSeconds(10);
         setFact(target, "OFF");
         driveControls(); startRules();
+        assertThat(current(target)).isEqualTo("ON");
+        automation.saveRule(rule.id(), new Save(rule.revision(), false, rule.definition()), owner);
+        driveControls();
         assertThat(current(target)).isEqualTo("OFF");
-        assertThat(automation.getControl(target.id(), owner).demands()).isEmpty();
+        assertThat(automation.getControl(target.id(), owner).sourceType()).isEqualTo("baseline");
         verifyNoInteractions(mqtt);
     }
 
@@ -121,7 +149,7 @@ class ControlLifecycleIntegrationTest extends IntegrationTestBase {
         var run = automation.ruleHistory(rule.id(), owner).getFirst();
         assertThat(run.status()).isEqualTo("partial");
         assertThat(run.result().toString()).contains("\"interrupted\":true", "\"completed\":false");
-        assertThat(current(target)).isEqualTo("ON");
+        assertThat(current(target)).isEqualTo("OFF");
         verifyNoInteractions(mqtt);
     }
 
@@ -135,7 +163,7 @@ class ControlLifecycleIntegrationTest extends IntegrationTestBase {
         automation.finishControlCommand(step, false);
         driveControls();
         assertThat(current(target)).isEqualTo("OFF");
-        assertThat(automation.getControl(target.id(), owner).demands()).isEmpty();
+        assertThat(automation.getControl(target.id(), owner).demands()).noneMatch(d -> !java.util.Set.of("baseline", "emergency").contains(d.sourceType()));
         verifyNoInteractions(mqtt);
     }
 
@@ -166,7 +194,7 @@ class ControlLifecycleIntegrationTest extends IntegrationTestBase {
         assertThat(observed.value()).isEqualTo("ON");
         assertThat(observed.observedAt()).isEqualTo(java.time.LocalDateTime.ofInstant(START, java.time.ZoneOffset.UTC));
         startRules(); driveControls();
-        assertThat(automation.getControl(target.id(), owner).demands()).isEmpty();
+        assertThat(automation.getControl(target.id(), owner).demands()).noneMatch(d -> !java.util.Set.of("baseline", "emergency").contains(d.sourceType()));
         verifyNoInteractions(mqtt);
     }
 
@@ -339,7 +367,7 @@ class ControlLifecycleIntegrationTest extends IntegrationTestBase {
         assertThat(prepared.payload().path("timing").isObject()).isTrue();
         assertThat(prepared.payload().path("coordination").isEmpty()).isFalse();
         assertThat(automation.listRules(owner)).isEmpty();
-        assertThat(automation.listControls(owner)).allSatisfy(status -> assertThat(status.demands()).isEmpty());
+        assertThat(automation.listControls(owner)).allSatisfy(status -> assertThat(status.demands()).noneMatch(d -> !java.util.Set.of("baseline", "emergency").contains(d.sourceType())));
         verifyNoInteractions(mqtt);
     }
 
@@ -383,6 +411,10 @@ class ControlLifecycleIntegrationTest extends IntegrationTestBase {
     }
 
     private void setFact(ResourceBinding binding, String value) {
+        if (source != null && binding.id().equals(source.id())) {
+            var policy = automation.getControl(binding.id(), owner).policy();
+            automation.setControlPolicy(binding.id(), new ControlData.Policy(policy.revision(), policy.bindingToken(), value, "OFF"), owner);
+        }
         zigbee.setDeviceProperty(owner, binding.zigbeeCoordinatorId(), binding.zigbeeIeeeAddress(), binding.commandProperty(), value);
     }
 

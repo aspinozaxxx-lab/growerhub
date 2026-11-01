@@ -9,5 +9,8 @@ public record ControlSettings(int workerMs, int ackSeconds, int freshnessSeconds
         int retentionDays, int cleanupBatch, long cleanupMs) {
     public ControlSettings {
         if (commandsPerTick < 1) throw new IllegalArgumentException("automation.controls.commands-per-tick must be positive");
+        if (minRulePriority < 1 || (long) manualPriority <= 1L + Math.max(maxRulePriority, Math.max(scenarioPriority, legacyPriority)) || scenarioPriority < 1 || legacyPriority < 1)
+            throw new IllegalArgumentException("Control priorities must leave baseline below routines and emergency below manual control");
     }
+    public int emergencyPriority() { return 1 + Math.max(maxRulePriority, Math.max(scenarioPriority, legacyPriority)); }
 }

@@ -51,10 +51,30 @@ public class ControlService {
 
     public List<Status> list(AuthenticatedUser user) {
         var snapshot = snapshot(user);
+        var warnings = automation.getObject().controlInputWarnings(user);
         return snapshot.resources.values().stream().filter(this::switchChannel)
-                .sorted(Comparator.comparing(ResourceBinding::id)).map(r -> status(r, user)).toList();
+                .sorted(Comparator.comparing(ResourceBinding::id)).map(r -> status(r, user, warnings.get(r.id()))).toList();
     }
     public Status get(Integer resourceId, AuthenticatedUser user) { return status(resource(resourceId, user), user); }
+    public Status savePolicy(Integer resourceId, Policy request, AuthenticatedUser user) {
+        lock(user); var r = resource(resourceId, user); var before = policy(r);
+        if (request == null || request.revision() != before.revision() || !Objects.equals(request.bindingToken(), before.bindingToken())) throw conflict();
+        if (!Set.of("ON", "OFF").contains(Objects.requireNonNullElse(request.baseline(), ""))
+                || !Set.of("ON", "OFF").contains(Objects.requireNonNullElse(request.emergency(), ""))) throw bad("Выберите включение или выключение для обоих режимов");
+        var row = configs.findByScopeTypeAndScopeIdAndScenarioType("RESOURCE", resourceId, "CONTROL_POLICY")
+                .orElseGet(() -> AutomationScenarioConfigEntity.create("RESOURCE", resourceId, "CONTROL_POLICY", now()));
+        row.setEnabled(true); row.setUpdatedAt(now());
+        row.setConfigJson(write(new Policy(before.revision() + 1, binding(r), request.baseline(), request.emergency())));
+        configs.saveAndFlush(row); reconcile(user); return status(r, user);
+    }
+    private Policy policy(ResourceBinding r) {
+        var row = configs.findByScopeTypeAndScopeIdAndScenarioType("RESOURCE", r.id(), "CONTROL_POLICY").orElse(null);
+        if (row != null) try {
+            var saved = json.readValue(row.getConfigJson(), Policy.class);
+            if (Objects.equals(saved.bindingToken(), binding(r))) return saved;
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) { throw new IllegalStateException("Invalid control policy", ex); }
+        return new Policy(0, binding(r), "OFF", "OFF");
+    }
     public Status manual(Integer resourceId, Manual request, AuthenticatedUser user) {
         lock(user); var r = resource(resourceId, user);
         if (request == null || request.requestId() == null || request.ttlSeconds() == null) throw bad("Укажите команду, срок и идентификатор запроса");
@@ -94,8 +114,8 @@ public class ControlService {
         lock(user); String value = value(r, requested);
         var old = demands.findByUserIdAndSourceKey(user.id(), executionKey).orElse(null);
         if (old != null) return old.id;
-        for (var demand : demands.findByUserIdAndTargetKeyAndStatusIn(user.id(), target(r), LIVE))
-            if ("legacy".equals(demand.kind)) release(demand, "Следующая команда правила");
+        for (var demand : demands.currentForTarget(user.id(), target(r), LIVE))
+            if ("legacy".equals(demand.kind) || demand.sourceKey.equals("setpoint:" + target(r))) release(demand, "Следующая команда правила");
         return add(r, user, "rule", ruleId.toString(), executionKey, name, "Команда пользовательского правила",
                 settings.legacyPriority(), value, null, "legacy", fingerprint, null).id;
     }
@@ -157,7 +177,7 @@ public class ControlService {
             for (var candidate : candidates) if (owner.equals(candidate.getUserId())) {
                 var demand = demands.findById(candidate.getId()).orElse(null);
                 if (demand == null || LIVE.contains(demand.status) || !demand.requestedAt.isBefore(cutoff)
-                        || current(demand) && demand.validUntil != null && demand.validUntil.isAfter(now())) continue;
+                        || current(demand) && (demand.validUntil == null || demand.validUntil.isAfter(now()))) continue;
                 for (var channel : channels.findByUserId(owner)) if (Objects.equals(channel.winnerId, demand.id)) idle(channel);
                 demands.delete(demand);
             }
@@ -166,11 +186,26 @@ public class ControlService {
         }
     }
     private void reconcile(AuthenticatedUser user) {
-        var snapshot = snapshot(user); var all = demands.currentForOwner(user.id(), LIVE);
+        var snapshot = snapshot(user);
+        var warnings = automation.getObject().controlInputWarnings(user);
+        for (var r : snapshot.resources.values()) if (switchChannel(r)) {
+            boolean enabled = snapshot.enabled.getOrDefault(r.id(), false);
+            var policy = policy(r); String warning = enabled ? warnings.get(r.id()) : null;
+            persistent(r, user, warning == null ? "baseline" : "emergency", r.id().toString(), "policy:" + target(r),
+                    warning == null ? "Базовый режим" : "Аварийный режим",
+                    !enabled ? "Ферма или теплица выключена" : warning == null ? "Между действиями сценариев" : warning,
+                    warning == null ? 0 : settings.emergencyPriority(),
+                    value(r, !enabled ? "OFF" : warning == null ? policy.baseline() : policy.emergency()), write(policy));
+        }
+        var all = demands.currentForOwner(user.id(), LIVE);
         for (var d : all) {
             var r = snapshot.resources.get(d.resourceId);
+            // Arenda ogranichena dlya otkata staroj versii; novyj worker vosstanavlivaet yavnuju cel iz BD.
+            if ("rule".equals(d.sourceType) && "baseline".equals(d.kind) && r != null && switchChannel(r)
+                    && Objects.equals(d.bindingFingerprint, binding(r)) && snapshot.enabled.getOrDefault(r.id(), false) && sourceValid(d))
+                persistent(r, user, d.sourceType, d.sourceId, d.sourceKey, d.sourceName, d.reason, d.priority, read(d.valueJson), d.sourceFingerprint);
             String issue = r == null || !switchChannel(r) || !Objects.equals(d.bindingFingerprint, binding(r)) ? "Назначение оборудования изменилось"
-                    : !"manual".equals(d.sourceType) && !snapshot.enabled.getOrDefault(d.resourceId, false) ? "Ферма или теплица выключена"
+                    : !Set.of("manual", "baseline").contains(d.sourceType) && !snapshot.enabled.getOrDefault(d.resourceId, false) ? "Ферма или теплица выключена"
                     : d.expiresAt != null && !d.expiresAt.isAfter(now()) ? d.interrupted ? "Срок закончился: удержание было прервано другим управлением" : "Срок удержания закончился"
                     : d.validUntil != null && !d.validUntil.isAfter(now()) ? "Требование больше не подтверждено"
                     : !sourceValid(d) ? "Сценарий изменён или отключён" : null;
@@ -216,7 +251,12 @@ public class ControlService {
                     winner.confirmedAt = channel.confirmedAt; winner.status = "active";
                     if (!"baseline".equals(winner.kind)) winner.validUntil = null;
                     if (winner.durationSeconds != null) winner.expiresAt = winner.confirmedAt.plusSeconds(winner.durationSeconds);
-                    if ("legacy".equals(winner.kind)) { winner.status = "released"; winner.reason = "Разовая команда подтверждена"; }
+                    if ("legacy".equals(winner.kind)) {
+                        winner.status = "released"; winner.reason = "Разовая команда подтверждена";
+                        persistent(r, user, "rule", winner.sourceId, "setpoint:" + target(r), winner.sourceName,
+                                "Состояние до следующей команды или отключения сценария", settings.legacyPriority(),
+                                read(winner.valueJson), winner.sourceFingerprint);
+                    }
                     demands.save(winner);
                 }
             } else if ("confirmed".equals(channel.status) && fresh(observation) && !matching) {
@@ -259,17 +299,20 @@ public class ControlService {
         return null;
     }
     public void execute(Step step) {
-        lock(step.user()); var channel = channel(step);
+        lock(step.user()); reconcile(step.user()); var channel = channel(step);
         var r = resource(channel.resourceId, step.user());
         var d = demands.findById(channel.winnerId).orElseThrow(ControlService::conflict);
         if (!LIVE.contains(d.status) || !Objects.equals(channel.bindingFingerprint, binding(r)) || !sourceValid(d)
-                || !r.ready() || !"manual".equals(d.sourceType) && !snapshot(step.user()).enabled.getOrDefault(r.id(), false)
+                || !r.ready() || !Set.of("manual", "baseline").contains(d.sourceType) && !snapshot(step.user()).enabled.getOrDefault(r.id(), false)
                 || d.validUntil != null && !d.validUntil.isAfter(now())
                 || d.expiresAt != null && !d.expiresAt.isAfter(now()) || !"dispatching".equals(channel.status)) throw conflict();
         zigbee.setDeviceProperty(step.user(), step.coordinatorId(), step.ieeeAddress(), step.property(), step.value());
     }
     public void finish(Step step, boolean success) {
-        lock(step.user()); var channel = channel(step);
+        lock(step.user());
+        var channel = channels.findById(step.channelId()).filter(c -> c.userId.equals(step.user().id())
+                && c.revision == step.revision() && Objects.equals(c.commandId, step.commandId())).orElse(null);
+        if (channel == null) return;
         if (!"dispatching".equals(channel.status)) return;
         channel.status = "awaiting";
         if (!success) channel.error = "Результат отправки неизвестен. Ожидает фактическое состояние без повторной команды";
@@ -296,6 +339,27 @@ public class ControlService {
         d.ackDeadlineAt = now().plusSeconds(settings.ackSeconds()); return demands.saveAndFlush(d);
     }
     private void release(ControlDemandEntity d, String reason) { d.status = "released"; d.reason = reason; demands.save(d); }
+    private void persistent(ResourceBinding r, AuthenticatedUser user, String type, String sourceId, String key,
+            String name, String reason, int priority, Object value, String fingerprint) {
+        var d = demands.findByUserIdAndSourceKey(user.id(), key).orElse(null);
+        if (d == null) { add(r, user, type, sourceId, key, name, reason, priority, value, null, "baseline", fingerprint, now().plusSeconds(settings.baselineTtlSeconds())); return; }
+        boolean unchanged = Objects.equals(d.bindingFingerprint, binding(r)) && Objects.equals(d.sourceFingerprint, fingerprint)
+                && same(read(d.valueJson), value) && d.priority == priority && Objects.equals(d.sourceType, type) && Objects.equals(d.sourceId, sourceId);
+        if (unchanged && current(d) && (d.validUntil == null || !d.validUntil.isAfter(now().plusSeconds(settings.baselineTtlSeconds() / 2)))) {
+            d.validUntil = now().plusSeconds(settings.baselineTtlSeconds()); demands.save(d);
+        }
+        if (unchanged && "error".equals(d.status)) {
+            var observed = observation(r, user);
+            if (!fresh(observed) || d.ackDeadlineAt == null || !observed.observedAt().isAfter(d.ackDeadlineAt)) return;
+        } else if (unchanged && LIVE.contains(d.status)) {
+            if (!Objects.equals(d.reason, reason)) { d.reason = reason; demands.save(d); }
+            return;
+        }
+        d.revision++; d.resourceId = r.id(); d.bindingFingerprint = binding(r); d.sourceFingerprint = fingerprint;
+        d.sourceType = type; d.sourceId = sourceId; d.sourceName = name; d.reason = reason; d.priority = priority;
+        d.valueJson = write(value); d.status = "pending"; d.error = null; d.requestedAt = now(); d.confirmedAt = null;
+        d.expiresAt = null; d.validUntil = now().plusSeconds(settings.baselineTtlSeconds()); d.ackDeadlineAt = now().plusSeconds(settings.ackSeconds()); demands.save(d);
+    }
     private boolean current(ControlDemandEntity d) { return LIVE.contains(d.status) || "error".equals(d.status) && "baseline".equals(d.kind); }
     private boolean sourceValid(ControlDemandEntity d) {
         if ("rule".equals(d.sourceType)) {
@@ -317,6 +381,9 @@ public class ControlService {
     }
     public String scenarioFingerprint(AutomationScenarioConfigEntity c) { return digest(c.getId() + ":" + c.isEnabled() + ":" + c.getConfigJson() + ":" + c.getUpdatedAt()); }
     private Status status(ResourceBinding r, AuthenticatedUser user) {
+        return status(r, user, automation.getObject().controlInputWarnings(user).get(r.id()));
+    }
+    private Status status(ResourceBinding r, AuthenticatedUser user, String warning) {
         var all = demands.currentForTarget(user.id(), target(r), LIVE).stream().filter(d ->
                 (d.expiresAt == null || d.expiresAt.isAfter(now())) && (d.validUntil == null || d.validUntil.isAfter(now()))
                         && (!"error".equals(d.status) || Objects.equals(d.bindingFingerprint, binding(r)) && sourceValid(d)))
@@ -335,7 +402,7 @@ public class ControlService {
                 winner == null ? null : winner.expiresAt, winner == null ? 0 : remaining(winner),
                 winner == null ? error == null ? "idle" : "error" : "error".equals(winner.status) ? "error" : confirmed ? "active" : "pending",
                 observation == null ? null : observation.value(), observation == null ? null : observation.observedAt(), confirmed, error,
-                (all.isEmpty() && winner != null ? List.of(winner) : all).stream().map(d -> view(d, winner)).toList());
+                (all.isEmpty() && winner != null ? List.of(winner) : all).stream().map(d -> view(d, winner)).toList(), policy(r), warning);
     }
     private Demand view(ControlDemandEntity d, ControlDemandEntity winner) {
         String status = winner != null && !winner.id.equals(d.id) && !"error".equals(d.status) ? "blocked" : d.status;

@@ -284,6 +284,33 @@ public class RuleService {
         var check = evaluator.conditions(definition, snapshot(user).context(), (ObjectNode) read(rule.runtimeJson));
         return check.valid() && (check.value() || started && "finish".equals(definition.trigger().path("onConditionLoss").asText()));
     }
+    public Map<Integer, String> controlInputWarnings(AuthenticatedUser user) {
+        var snapshot = snapshot(user); var result = new HashMap<Integer, String>();
+        for (var row : rules.findByUserIdOrderByUpdatedAtDesc(user.id())) {
+            if (!row.enabled) continue;
+            var d = definition(row.definitionJson);
+            if (!snapshot.areas().getOrDefault(area(d), false)) continue;
+            String issue = evaluator.unavailableInput(d, snapshot.context(), (ObjectNode) read(row.runtimeJson));
+            if (issue == null) continue;
+            for (var action : d.actions()) if (Set.of("hold", "set").contains(action.path("type").asText()))
+                result.putIfAbsent(action.path("resourceId").asInt(), "«" + d.name() + "»: " + issue);
+        }
+        for (var farm : snapshot.farms().farms()) {
+            if (!farm.enabled()) continue;
+            fixedWarnings(farm.scenarios(), farm.states(), snapshot.farms(), result);
+            for (var greenhouse : farm.greenhouses()) if (greenhouse.enabled())
+                fixedWarnings(greenhouse.scenarios(), greenhouse.states(), snapshot.farms(), result);
+        }
+        return result;
+    }
+    private void fixedWarnings(List<ScenarioConfig> configs, List<ScenarioState> states, FarmsOverview farms, Map<Integer, String> warnings) {
+        for (var config : configs) if (config.enabled()) {
+            var state = states.stream().filter(s -> s.scenarioType().equals(config.scenarioType())).findFirst().orElse(null);
+            String issue = config.readiness() != null && !config.readiness().ready() ? config.readiness().reason()
+                    : state != null && Set.of("stale", "unready").contains(state.status()) ? state.unavailableReason() : null;
+            if (issue != null) for (var id : fixedWrites(config, farms)) warnings.putIfAbsent(id, scenarioName(config.scenarioType()) + ": " + issue);
+        }
+    }
     private void resumeControl(RuleRunEntity run, AuthenticatedUser user) {
         var demand = controls.findExecution(executionKey(run), user); run.leasedUntil = null;
         if (demand == null) { run.status = "uncertain"; run.reason = "Результат подготовки команды неизвестен. Команда не повторена"; runs.save(run); return; }

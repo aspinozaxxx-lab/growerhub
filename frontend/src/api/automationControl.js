@@ -12,6 +12,7 @@ async function controlRequest(path, method = 'GET', body, signal) {
 
 export const fetchResourceControls = signal => controlRequest('/controls', 'GET', undefined, signal);
 export const setResourceControl = (resourceId, command) => controlRequest(`/resources/${resourceId}/control`, 'PUT', command);
+export const setResourceControlPolicy = (resourceId, policy) => controlRequest(`/resources/${resourceId}/control/policy`, 'PUT', policy);
 export const releaseResourceControl = (resourceId, demand) => controlRequest(
   `/resources/${resourceId}/control?${new URLSearchParams({ demandId: demand.id, revision: demand.revision })}`, 'DELETE',
 );

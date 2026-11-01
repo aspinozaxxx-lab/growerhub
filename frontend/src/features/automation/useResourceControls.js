@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchResourceControls, releaseResourceControl, setResourceControl } from '../../api/automationControl';
+import { fetchResourceControls, releaseResourceControl, setResourceControl, setResourceControlPolicy } from '../../api/automationControl';
 
 export default function useResourceControls(refreshKey) {
   const [controls, setControls] = useState([]);
@@ -67,5 +67,6 @@ export default function useResourceControls(refreshKey) {
       return result;
     }),
     release: (id, demand) => run(id, () => releaseResourceControl(id, demand)),
+    savePolicy: (id, policy) => run(id, () => setResourceControlPolicy(id, policy)),
   };
 }

@@ -1,9 +1,9 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchResourceControls, releaseResourceControl, setResourceControl } from '../../api/automationControl';
+import { fetchResourceControls, releaseResourceControl, setResourceControl, setResourceControlPolicy } from '../../api/automationControl';
 import ResourceControls from './ResourceControls';
 
-vi.mock('../../api/automationControl', () => ({ fetchResourceControls: vi.fn(), releaseResourceControl: vi.fn(), setResourceControl: vi.fn() }));
+vi.mock('../../api/automationControl', () => ({ fetchResourceControls: vi.fn(), releaseResourceControl: vi.fn(), setResourceControl: vi.fn(), setResourceControlPolicy: vi.fn() }));
 const resource = { id: 11, role: 'EXHAUST_SWITCH', label: 'Розетка вытяжки', current_value: 'OFF', ready: true };
 const active = { resourceId: 11, status: 'active', sourceType: 'rule', sourceId: 'rule-1', sourceName: 'Обдув при свете', priority: 50, actualValue: 'ON', actualConfirmed: true, expiresAt: '2026-10-22T14:03:00Z', demands: [] };
 let snapshot;
@@ -12,6 +12,30 @@ afterEach(() => { cleanup(); vi.clearAllMocks(); });
 const show = () => render(<ResourceControls resources={[resource]} refreshKey="farm" scopeName="Теплица" />);
 
 describe('ResourceControls', () => {
+  it('saves the reviewed policy revision and keeps an emergency warning visible during manual control', async () => {
+    const policy = { revision: 4, bindingToken: 'device-version', baseline: 'OFF', emergency: 'ON' };
+    snapshot = [{ ...active, policy, sourceType: 'manual', sourceName: 'Ручное управление', warning: 'Нет актуальной температуры теплицы' }];
+    setResourceControlPolicy.mockImplementation(async (_, next) => { snapshot = [{ ...snapshot[0], policy: { ...next, revision: 5 } }]; return snapshot[0]; });
+    show(); await screen.findByText('Ручное управление');
+    expect(screen.getByRole('status')).toHaveTextContent('Аварийное состояние: Включено');
+    fireEvent.click(screen.getByRole('button', { name: 'Базовый и аварийный режимы' }));
+    fireEvent.change(screen.getByLabelText('Если не хватает показаний'), { target: { value: 'OFF' } });
+    expect(setResourceControlPolicy).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить режимы' }));
+    await waitFor(() => expect(setResourceControlPolicy).toHaveBeenCalledWith(11, { ...policy, emergency: 'OFF' }));
+    await waitFor(() => expect(screen.queryByLabelText('Базовое состояние')).not.toBeInTheDocument());
+    expect(screen.getByRole('status')).toHaveTextContent('Аварийное состояние: Выключено');
+    expect(setResourceControl).not.toHaveBeenCalled();
+  });
+  it('keeps a failed policy form open without showing unconfirmed settings as saved', async () => {
+    snapshot = [{ ...active, policy: { revision: 0, bindingToken: 'device', baseline: 'OFF', emergency: 'OFF' } }];
+    setResourceControlPolicy.mockRejectedValue(new Error('Команда изменилась. Обновите страницу'));
+    show(); await screen.findByText('Обдув при свете');
+    fireEvent.click(screen.getByRole('button', { name: 'Базовый и аварийный режимы' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Сохранить режимы' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Обновите страницу');
+    expect(screen.getByLabelText('Базовое состояние')).toBeInTheDocument();
+  });
   it('keeps the desired off state visible when a failed climate command leaves the fan on', async () => {
     snapshot = [{ ...active, sourceType: 'scenario', sourceName: 'BOX_CLIMATE', status: 'error', desiredValue: 'OFF', actualConfirmed: false, expiresAt: null,
       error: 'Устройство не подтвердило команду вовремя. Команда не повторена' }];

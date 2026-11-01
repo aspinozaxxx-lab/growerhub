@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"device-baseline-fallback-modes","published_at":"2026-11-01","kind":"feature","article_id":"bazovyy-i-avariynyy-rezhimy-ustroystv","preview_position":"50% 45%"},
     {"id":"automation-climate-recovery-repeat-period","published_at":"2026-11-01","kind":"fix","text":"Исправили возврат обдува под управление климата после временного сценария: ошибка подтверждения больше не теряет требуемое состояние. Пропуски показаний не запускают лишний цикл проветривания. В разделе «Кто сейчас управляет» отдельно показаны фактическое и требуемое состояния устройства."},
     {"id":"article-metadata-shared-translations","published_at":"2026-11-01","kind":"fix","text":"Уменьшили начальную загрузку каталога статей: общие данные переводов больше не передаются дважды."},
     {"id":"monstera-leaf-splits-guide","published_at":"2026-11-01","kind":"article","article_id":"monstera-listya-bez-prorezey","preview_position":"50% 50%"},

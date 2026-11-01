@@ -16,5 +16,6 @@ public class ControlController {
     @GetMapping("/controls") public List<Status> list(@AuthenticationPrincipal AuthenticatedUser user) { return facade.listControls(user); }
     @GetMapping("/resources/{id}/control") public Status get(@PathVariable Integer id, @AuthenticationPrincipal AuthenticatedUser user) { return facade.getControl(id, user); }
     @PutMapping("/resources/{id}/control") public Status manual(@PathVariable Integer id, @RequestBody Manual request, @AuthenticationPrincipal AuthenticatedUser user) { return facade.setManualControl(id, request, user); }
+    @PutMapping("/resources/{id}/control/policy") public Status policy(@PathVariable Integer id, @RequestBody Policy request, @AuthenticationPrincipal AuthenticatedUser user) { return facade.setControlPolicy(id, request, user); }
     @DeleteMapping("/resources/{id}/control") public Status release(@PathVariable Integer id, @RequestParam UUID demandId, @RequestParam int revision, @AuthenticationPrincipal AuthenticatedUser user) { return facade.releaseManualControl(id, demandId, revision, user); }
 }

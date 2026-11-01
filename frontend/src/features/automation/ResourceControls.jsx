@@ -28,11 +28,12 @@ function ResourceControlRow({ resource, control, manager }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState('ON');
   const [minutes, setMinutes] = useState('15');
+  const [policy, setPolicy] = useState(null);
   const name = t(SLOT_ROLE_LABELS[resource.role] || resource.role);
   const manual = control?.demands?.find(isManual);
   const disabled = manager.busy !== null;
   const status = control?.status || 'loading';
-  const open = () => { setValue(stateOf(control?.actualValue ?? resource.current_value, resource) === true ? 'OFF' : 'ON'); setEditing(true); };
+  const open = () => { setValue(stateOf(control?.actualValue ?? resource.current_value, resource) === true ? 'OFF' : 'ON'); setPolicy(null); setEditing(true); };
   const submit = async event => {
     event.preventDefault();
     if (await manager.set(resource.id, value, Number(minutes) * 60)) setEditing(false);
@@ -47,13 +48,27 @@ function ResourceControlRow({ resource, control, manager }) {
     {control && status === 'idle' && <small className="resource-control-detail">{t('Сценарии не задают состояние. Устройство сохраняет последнее состояние.')}</small>}
     {control && status !== 'idle' && <small className="resource-control-detail">{t(states[status] || status)}{control.reason ? ` · ${reasonLabel(control.reason)}` : ''}</small>}
     {control?.error && <p role="alert">{t(control.error)}</p>}
+    {control?.warning && <p className="resource-control-warning" role="status">{t('Нет данных для автоматизации')}: {reasonLabel(control.warning)}. {t('Аварийное состояние: {{state}}', { state: valueLabel(control.policy?.emergency, resource) })}</p>}
     {control?.demands?.length > 1 && <details className="resource-control-demands"><summary>{t('Другие требования')}: {control.demands.length - 1}</summary>
       <ul>{control.demands.filter(d => d.sourceId !== control.sourceId || d.sourceType !== control.sourceType).map(d => <li key={d.id || `${d.sourceType}:${d.sourceId}`}>
         <span>{sourceLabel(d.sourceName)} · {valueLabel(d.desiredValue, resource)}</span><small>{t('Приоритет')}: {d.priority}{d.expiresAt ? ` · ${t('До {{time}}', { time: time(d.expiresAt) })}` : ''}</small>
         {d.error && <small className="resource-control-demand-error">{t(d.error)}</small>}
       </li>)}</ul></details>}
     <div className="resource-control-actions"><Button size="sm" disabled={disabled || !control || resource.ready === false} onClick={open}>{t('Изменить на время')}</Button>
-      {manual && <Button size="sm" disabled={disabled} onClick={() => manager.release(resource.id, manual)}>{t('Снять ручное управление')}</Button>}</div>
+      {manual && <Button size="sm" disabled={disabled} onClick={() => manager.release(resource.id, manual)}>{t('Снять ручное управление')}</Button>}
+      {control?.policy && <Button size="sm" disabled={disabled} onClick={() => { setPolicy({ ...control.policy }); setEditing(false); }}>{t('Базовый и аварийный режимы')}</Button>}</div>
+    {policy && <form className="resource-control-editor resource-control-policy" onSubmit={async event => {
+      event.preventDefault(); if (await manager.savePolicy(resource.id, policy)) setPolicy(null);
+    }}>
+      <p>{t('Когда сценарии не управляют устройством')}</p>
+      <label>{t('Базовое состояние')}<select value={policy.baseline} disabled={disabled} onChange={event => setPolicy({ ...policy, baseline: event.target.value })}>
+        <option value="OFF">{t('Выключено')}</option><option value="ON">{t('Включено')}</option></select></label>
+      <label>{t('Если не хватает показаний')}<select value={policy.emergency} disabled={disabled} onChange={event => setPolicy({ ...policy, emergency: event.target.value })}>
+        <option value="OFF">{t('Выключено')}</option><option value="ON">{t('Включено')}</option></select></label>
+      <small>{t('Базовое состояние действует между сценариями. Аварийное — при потере нужных им показаний; оно важнее сценариев. Временная ручная команда важнее обоих режимов.')}</small>
+      <small>{t('После восстановления показаний сценарии продолжат работу. Отключённая теплица задаёт устройству «выключено». Без связи команда ждёт подтверждения устройства.')}</small>
+      <div><Button type="submit" variant="primary" size="sm" disabled={disabled}>{t('Сохранить режимы')}</Button><Button size="sm" disabled={disabled} onClick={() => setPolicy(null)}>{t('Отмена')}</Button></div>
+    </form>}
     {editing && <form className="resource-control-editor" onSubmit={submit}>
       <p>{t('Временно управлять устройством «{{name}}»', { name })}</p>
       <label>{t('Состояние')}<select value={value} disabled={disabled} onChange={e => setValue(e.target.value)}>

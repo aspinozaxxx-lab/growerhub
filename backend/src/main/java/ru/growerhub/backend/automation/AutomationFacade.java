@@ -201,6 +201,7 @@ public class AutomationFacade {
     @Transactional(readOnly = true)
     public ControlData.Status getControl(Integer resourceId, AuthenticatedUser user) { return controls.get(resourceId, user); }
     public ControlData.Status setManualControl(Integer resourceId, ControlData.Manual request, AuthenticatedUser user) { return controls.manual(resourceId, request, user); }
+    public ControlData.Status setControlPolicy(Integer resourceId, ControlData.Policy request, AuthenticatedUser user) { return controls.savePolicy(resourceId, request, user); }
     public ControlData.Status releaseManualControl(Integer resourceId, UUID demandId, int revision, AuthenticatedUser user) { return controls.releaseManual(resourceId, demandId, revision, user); }
     @Transactional(readOnly = true)
     public List<Integer> controlOwnersDue() { return controls.ownersDue(); }
@@ -267,6 +268,8 @@ public class AutomationFacade {
     public void finishRuleStep(RuleData.Step step, com.fasterxml.jackson.databind.JsonNode result, boolean success) { rules.finish(step, result, success); }
     @Transactional(readOnly = true)
     public boolean ruleControlConditionAllowed(UUID ruleId, int revision, AuthenticatedUser user, boolean started) { return rules.controlConditionAllowed(ruleId, revision, user, started); }
+    @Transactional(readOnly = true)
+    public Map<Integer, String> controlInputWarnings(AuthenticatedUser user) { return rules.controlInputWarnings(user); }
 
     @Transactional(readOnly = true)
     public void previewScenario(AuthenticatedUser user, String scope, Integer scopeId, AutomationData.ScenarioConfigRequest command) {
@@ -301,7 +304,7 @@ public class AutomationFacade {
         long enabled = 0;
 
         for (AutomationScenarioConfigEntity scenario : configRepository.findAll()) {
-            if (!scenario.isEnabled()) {
+            if (!scenario.isEnabled() || "RESOURCE".equals(scenario.getScopeType())) {
                 continue;
             }
             Integer userId = AutomationData.SCOPE_ROOM.equals(scenario.getScopeType())
@@ -1555,6 +1558,7 @@ public class AutomationFacade {
         for (AutomationRoomEntity room : rooms) {
             evaluateRoomClimate(room, boxes, catalog, now);
         }
+        rooms.stream().map(AutomationRoomEntity::getUserId).distinct().sorted().forEach(controls::reconcile);
     }
 
     @Transactional(readOnly = true)
@@ -1662,7 +1666,7 @@ public class AutomationFacade {
                 requireWateringIdle(previousWatering);
             }
         }
-        resourceRepository.deleteAllByScopeTypeAndScopeId(scopeType, scopeId);
+        deleteBindings(scopeType, scopeId);
         resourceRepository.flush();
         resourceRepository.saveAll(next);
     }
@@ -3260,6 +3264,7 @@ public class AutomationFacade {
                 .map(AutomationResourceBindingEntity::getNativePumpId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
+        conflicts.forEach(binding -> configRepository.deleteAllByScopeTypeAndScopeId("RESOURCE", binding.getId()));
         resourceRepository.deleteAll(conflicts);
         resourceRepository.flush();
         affectedPumps.forEach(this::syncAutomationPump);
@@ -3986,7 +3991,7 @@ public class AutomationFacade {
     }
 
     private void deleteRoomResources(Integer roomId) {
-        resourceRepository.deleteAllByScopeTypeAndScopeId(AutomationData.SCOPE_ROOM, roomId);
+        deleteBindings(AutomationData.SCOPE_ROOM, roomId);
         configRepository.deleteAllByScopeTypeAndScopeId(AutomationData.SCOPE_ROOM, roomId);
         stateRepository.deleteAllByScopeTypeAndScopeId(AutomationData.SCOPE_ROOM, roomId);
     }
@@ -3994,9 +3999,15 @@ public class AutomationFacade {
     private void deleteBoxResources(Integer boxId) {
         requireWateringIdle(resource(AutomationData.SCOPE_BOX, boxId, AutomationData.ROLE_WATER_PUMP));
         boxPlantRepository.deleteAllByBox_Id(boxId);
-        resourceRepository.deleteAllByScopeTypeAndScopeId(AutomationData.SCOPE_BOX, boxId);
+        deleteBindings(AutomationData.SCOPE_BOX, boxId);
         configRepository.deleteAllByScopeTypeAndScopeId(AutomationData.SCOPE_BOX, boxId);
         stateRepository.deleteAllByScopeTypeAndScopeId(AutomationData.SCOPE_BOX, boxId);
+    }
+
+    private void deleteBindings(String scopeType, Integer scopeId) {
+        resourceRepository.findAllByScopeTypeAndScopeId(scopeType, scopeId)
+                .forEach(binding -> configRepository.deleteAllByScopeTypeAndScopeId("RESOURCE", binding.getId()));
+        resourceRepository.deleteAllByScopeTypeAndScopeId(scopeType, scopeId);
     }
 
     private List<AutomationData.ActionLog> overviewActionLogs(

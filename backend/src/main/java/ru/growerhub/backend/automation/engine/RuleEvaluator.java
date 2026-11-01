@@ -160,6 +160,14 @@ public class RuleEvaluator {
         return new ConditionDecision(check.valid(), check.value(), check.reason());
     }
 
+    public String unavailableInput(Definition d, Context context, ObjectNode runtime) {
+        var condition = conditions(d, context, runtime.deepCopy());
+        if (!condition.valid()) return condition.reason();
+        if ("change".equals(type(d.trigger())) && !fresh(context.resources().get(integer(d.trigger(), "resourceId")), context, freshness(d.trigger())))
+            return "Нет свежих показаний для запуска по изменению";
+        return null;
+    }
+
     public Timing timing(Definition d, Context context) {
         List<TimelineStep> timeline = new ArrayList<>(); long offset = 0; int active = 0;
         for (int i = 0; i < d.actions().size(); i++) {

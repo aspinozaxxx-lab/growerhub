@@ -1525,5 +1525,19 @@
   "мин": "min",
   "Подтверждено устройством": "Confirmed by the device",
   "Не удалось завершить пояснение": "The explanation could not be completed",
-  "Подготовленные предложения доступны в карточках ниже. Проверьте их перед подтверждением.": "Prepared proposals are available in the cards below. Review them before confirming."
+  "Подготовленные предложения доступны в карточках ниже. Проверьте их перед подтверждением.": "Prepared proposals are available in the cards below. Review them before confirming.",
+  "Базовый режим": "Baseline mode",
+  "Аварийный режим": "Fallback mode",
+  "Базовый и аварийный режимы": "Baseline and fallback modes",
+  "Базовое состояние": "Baseline state",
+  "Если не хватает показаний": "When required readings are missing",
+  "Когда сценарии не управляют устройством": "When no routine is controlling the device",
+  "Нет данных для автоматизации": "Required automation readings are missing",
+  "Аварийное состояние: {{state}}": "Fallback state: {{state}}",
+  "Сохранить режимы": "Save modes",
+  "Между действиями сценариев": "Between routine actions",
+  "Ферма или теплица выключена": "The farm or greenhouse is disabled",
+  "Состояние до следующей команды или отключения сценария": "State until the next command or until this routine is disabled",
+  "Базовое состояние действует между сценариями. Аварийное — при потере нужных им показаний; оно важнее сценариев. Временная ручная команда важнее обоих режимов.": "The baseline applies between routines. Fallback takes priority over routines when their required readings are missing. Temporary manual control takes priority over both modes.",
+  "После восстановления показаний сценарии продолжат работу. Отключённая теплица задаёт устройству «выключено». Без связи команда ждёт подтверждения устройства.": "Routines resume when readings return. A disabled greenhouse requests OFF. Without a connection, the device cannot confirm the command."
 }

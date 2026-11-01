@@ -92,6 +92,47 @@ class ControlPriorityIntegrationTest extends IntegrationTestBase {
                 .thenAnswer(call -> new ZigbeeControlObservation(observed, observedAt, online));
     }
 
+    @Test void policyIsVersionedOwnerScopedAndBoundToTheActualDevice() {
+        var initial = automation.getControl(resourceId, owner).policy();
+        assertThat(initial.baseline()).isEqualTo("OFF");
+        assertThat(initial.emergency()).isEqualTo("OFF");
+        var request = new ru.growerhub.backend.automation.contract.ControlData.Policy(initial.revision(), initial.bindingToken(), "ON", "OFF");
+        assertThatThrownBy(() -> automation.setControlPolicy(resourceId, request, otherAdmin)).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> automation.setControlPolicy(resourceId, new ru.growerhub.backend.automation.contract.ControlData.Policy(0, initial.bindingToken(), "TOGGLE", "OFF"), owner)).isInstanceOf(DomainException.class);
+        var saved = automation.setControlPolicy(resourceId, request, owner);
+        assertThat(saved.policy().revision()).isEqualTo(1);
+        assertThat(saved.desiredValue()).isEqualTo("ON");
+        assertThatThrownBy(() -> automation.setControlPolicy(resourceId, request, owner)).isInstanceOf(DomainException.class);
+        entityManagerFactory.getCache().evictAll();
+        automation.reconcileControls(owner.id());
+        assertThat(automation.getControl(resourceId, owner).policy()).isEqualTo(saved.policy());
+        coordinator = UUID.randomUUID();
+        assertThatThrownBy(() -> automation.setControlPolicy(resourceId, saved.policy(), owner)).isInstanceOf(DomainException.class);
+        assertThat(automation.getControl(resourceId, owner).policy().baseline()).isEqualTo("OFF");
+        verify(zigbee, never()).setDeviceProperty(any(), any(), any(), any(), any());
+    }
+
+    @Test void failedBaselineSurvivesReloadWithoutBlindRetryAndRecoversFromNewLiveFact() {
+        observed = "ON";
+        var command = automation.claimControlCommand(owner.id());
+        assertThat(command.value()).isEqualTo("OFF");
+        automation.finishControlCommand(command, false);
+        clock.value = START.plusSeconds(31);
+        automation.reconcileControls(owner.id());
+        var failed = automation.getControl(resourceId, owner);
+        assertThat(failed.status()).isEqualTo("error");
+        assertThat(failed.desiredValue()).isEqualTo("OFF");
+        entityManagerFactory.getCache().evictAll();
+        automation.reconcileControls(owner.id());
+        assertThat(automation.claimControlCommand(owner.id())).isNull();
+        assertThat(automation.getControl(resourceId, owner).demands().getFirst().id()).isEqualTo(failed.demands().getFirst().id());
+        clock.value = START.plusSeconds(35); observed = "OFF"; observedAt = now();
+        automation.reconcileControls(owner.id());
+        assertThat(automation.getControl(resourceId, owner).status()).isEqualTo("active");
+        assertThat(automation.claimControlCommand(owner.id())).isNull();
+        verify(zigbee, never()).setDeviceProperty(any(), any(), any(), any(), any());
+    }
+
     @Test void publishedCommandNeedsNewPropertyObservationAndTtlStartsAtAcknowledgement() {
         UUID request = UUID.randomUUID();
         var pending = automation.setManualControl(resourceId, new Manual(request, "ON", 120), owner);
@@ -115,7 +156,7 @@ class ControlPriorityIntegrationTest extends IntegrationTestBase {
 
         clock.value = START.plusSeconds(52);
         var replay = automation.setManualControl(resourceId, new Manual(request, "ON", 120), owner);
-        assertThat(replay.demands()).singleElement().satisfies(d -> {
+        assertThat(replay.demands()).filteredOn(d -> "manual".equals(d.sourceType())).singleElement().satisfies(d -> {
             assertThat(d.id()).isEqualTo(active.demands().getFirst().id());
             assertThat(d.revision()).isEqualTo(active.demands().getFirst().revision());
             assertThat(d.expiresAt()).isEqualTo(active.expiresAt());
@@ -137,12 +178,14 @@ class ControlPriorityIntegrationTest extends IntegrationTestBase {
 
         clock.value = START.plusSeconds(40);
         automation.reconcileControls(owner.id());
-        assertThat(automation.getControl(resourceId, owner).status()).isEqualTo("error");
-        assertThat(automation.claimControlCommand(owner.id())).isNull();
+        assertThat(automation.getControl(resourceId, owner).sourceType()).isEqualTo("baseline");
+        assertThat(automation.getControl(resourceId, owner).desiredValue()).isEqualTo("OFF");
+        dispatchOne(); acknowledge("OFF", START.plusSeconds(41));
         clock.value = START.plusSeconds(300);
         automation.reconcileControls(owner.id());
         assertThat(automation.claimControlCommand(owner.id())).isNull();
-        verify(zigbee, times(1)).setDeviceProperty(any(), any(), any(), any(), any());
+        verify(zigbee, times(1)).setDeviceProperty(owner, coordinator, "0xcontrol", "state", "ON");
+        verify(zigbee, times(1)).setDeviceProperty(owner, coordinator, "0xcontrol", "state", "OFF");
         verifyNoInteractions(mqtt);
     }
 
@@ -165,8 +208,9 @@ class ControlPriorityIntegrationTest extends IntegrationTestBase {
         automation.releaseManualControl(resourceId, current.id(), current.revision(), owner);
         automation.reconcileControls(owner.id());
         var released = automation.getControl(resourceId, owner);
-        assertThat(released.demands()).isEmpty();
-        assertThat(released.status()).isEqualTo("idle");
+        assertThat(released.sourceType()).isEqualTo("baseline");
+        assertThat(released.desiredValue()).isEqualTo("OFF");
+        assertThat(released.status()).isEqualTo("active");
         assertThat(automation.claimControlCommand(owner.id())).isNull();
         verify(zigbee, times(2)).setDeviceProperty(any(), any(), any(), any(), any());
         verifyNoInteractions(mqtt);
@@ -204,7 +248,7 @@ class ControlPriorityIntegrationTest extends IntegrationTestBase {
         verifyNoInteractions(mqtt);
     }
 
-    @Test void persistedExpiryDoesNotMoveOnReconciliationAndExpiresWithoutForcedCommand() {
+    @Test void persistedExpiryDoesNotMoveOnReconciliationAndReturnsToBaseline() {
         automation.setManualControl(resourceId, new Manual(UUID.randomUUID(), "ON", 60), owner);
         dispatchOne();
         acknowledge("ON", START.plusSeconds(3));
@@ -215,9 +259,12 @@ class ControlPriorityIntegrationTest extends IntegrationTestBase {
         assertThat(automation.getControl(resourceId, owner).remainingSeconds()).isEqualTo(18);
         clock.value = START.plusSeconds(64);
         automation.reconcileControls(owner.id());
-        assertThat(automation.getControl(resourceId, owner).demands()).isEmpty();
+        assertThat(automation.getControl(resourceId, owner).sourceType()).isEqualTo("baseline");
+        assertThat(automation.getControl(resourceId, owner).desiredValue()).isEqualTo("OFF");
+        dispatchOne(); acknowledge("OFF", START.plusSeconds(65));
         assertThat(automation.claimControlCommand(owner.id())).isNull();
-        verify(zigbee, times(1)).setDeviceProperty(any(), any(), any(), any(), any());
+        verify(zigbee, times(1)).setDeviceProperty(owner, coordinator, "0xcontrol", "state", "ON");
+        verify(zigbee, times(1)).setDeviceProperty(owner, coordinator, "0xcontrol", "state", "OFF");
     }
 
     @Test void adminCannotReadWriteOrReleaseSomeoneElsesResource() {
@@ -255,16 +302,16 @@ class ControlPriorityIntegrationTest extends IntegrationTestBase {
         statistics.setStatisticsEnabled(true); statistics.clear();
         try {
             var active = automation.setManualControl(resourceId, new Manual(UUID.randomUUID(), "ON", 60), owner).demands().getFirst();
-            assertThat(automation.listControls(owner)).singleElement().satisfies(status -> assertThat(status.demands()).hasSize(1));
+            assertThat(automation.listControls(owner)).singleElement().satisfies(status -> assertThat(status.demands()).hasSize(2));
             dispatchOne(); acknowledge("ON", START.plusSeconds(1));
             automation.releaseManualControl(resourceId, active.id(), active.revision(), owner);
             observed = "OFF"; observedAt = now();
             var replay = automation.setManualControl(resourceId, new Manual(oldRequest, "ON", 60), owner);
-            assertThat(replay.status()).isEqualTo("idle");
-            assertThat(replay.demands()).isEmpty();
+            assertThat(replay.sourceType()).isEqualTo("baseline");
+            assertThat(replay.desiredValue()).isEqualTo("OFF");
             assertThat(automation.claimControlCommand(owner.id())).isNull();
             assertThat(jdbc.queryForObject("select status from automation_control_demands where id=?", String.class, archived.id())).isEqualTo("released");
-            assertThat(jdbc.queryForObject("select count(*) from automation_control_demands where user_id=?", Integer.class, owner.id())).isEqualTo(258);
+            assertThat(jdbc.queryForObject("select count(*) from automation_control_demands where user_id=?", Integer.class, owner.id())).isEqualTo(259);
             assertThat(statistics.getEntityStatistics(ru.growerhub.backend.automation.jpa.ControlDemandEntity.class.getName()).getLoadCount())
                     .as("terminal history must not be hydrated during active control and UUID replay").isLessThan(32);
             verify(zigbee, times(1)).setDeviceProperty(owner, coordinator, "0xcontrol", "state", "ON");

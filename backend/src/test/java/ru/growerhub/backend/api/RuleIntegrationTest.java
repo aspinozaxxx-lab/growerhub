@@ -116,13 +116,38 @@ class RuleIntegrationTest extends IntegrationTestBase {
         assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("completed");
         assertThat(jdbc.queryForObject("select count(*) from automation_control_demands where source_key=?", Integer.class,
                 "rule:" + step.runId() + ":0")).isEqualTo(1);
-        assertThat(facade.getControl(1, user).demands()).isEmpty();
+        assertThat(facade.getControl(1, user).sourceType()).isEqualTo("rule");
+        assertThat(facade.getControl(1, user).desiredValue()).isEqualTo("ON");
+        clock.value = at.plusSeconds(300);
+        facade.reconcileControls(user.id());
+        assertThat(facade.getControl(1, user).sourceType()).isEqualTo("rule");
+        assertThat(facade.getControl(1, user).desiredValue()).isEqualTo("ON");
         assertThat(jdbc.queryForObject("select id from automation_control_demands where source_key=?", UUID.class,
                 "rule:" + step.runId() + ":0").toString()).isEqualTo(result.path("waitingForControl").asText());
         assertThat(jdbc.queryForObject("select status from automation_control_demands where source_key=?", String.class,
                 "rule:" + step.runId() + ":0")).isEqualTo("released");
         assertThatThrownBy(() -> facade.executeRuleStep(step)).isInstanceOf(DomainException.class);
         verify(zigbee, times(1)).setDeviceProperty(any(), any(), any(), any(), any());
+    }
+    @Test void followingOffCommandReplacesAnUnconfirmedPersistentTarget() throws Exception {
+        var rule = facade.saveRule(null, new Save(null, true, definition("[{\"type\":\"set\",\"resourceId\":1,\"value\":\"ON\"},{\"type\":\"delay\",\"seconds\":90},{\"type\":\"set\",\"resourceId\":1,\"value\":\"OFF\"}]")), user);
+        facade.evaluateRules(user.id()); var on = facade.claimRuleStep(user.id());
+        facade.finishRuleStep(on, facade.executeRuleStep(on), true); dispatchControl();
+        clock.value = at.plusSeconds(5); acknowledge("ON");
+        facade.claimRuleStep(user.id()); facade.claimRuleStep(user.id());
+        clock.value = at.plusSeconds(10); acknowledge("OFF"); dispatchControl();
+        clock.value = at.plusSeconds(41); facade.reconcileControls(user.id());
+        assertThat(facade.getControl(1, user).status()).isEqualTo("error");
+        clock.value = at.plusSeconds(95);
+        var off = facade.claimRuleStep(user.id()); assertThat(off.action().path("value").asText()).isEqualTo("OFF");
+        facade.finishRuleStep(off, facade.executeRuleStep(off), true);
+        facade.reconcileControls(user.id());
+        assertThat(facade.getControl(1, user).desiredValue()).isEqualTo("OFF");
+        assertThat(facade.claimControlCommand(user.id())).isNull();
+        facade.claimRuleStep(user.id()); facade.claimRuleStep(user.id());
+        assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("completed");
+        verify(zigbee, times(2)).setDeviceProperty(user, coordinator, "0x1", "state", "ON");
+        verify(zigbee, never()).setDeviceProperty(user, coordinator, "0x1", "state", "OFF");
     }
     @Test void versionsAndConflictsPreventStaleOrCompetingControl() throws Exception {
         var d = definition("[{\"type\":\"set\",\"resourceId\":1,\"value\":\"ON\"}]");

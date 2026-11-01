@@ -92,9 +92,15 @@ class ControlConcurrencyIntegrationTest extends IntegrationTestBase {
         var device = zigbee.getDevicesForUser(owner).stream()
                 .filter(d -> target.zigbeeIeeeAddress().equals(d.device().ieeeAddress())).findFirst().orElseThrow();
         zigbee.setDeviceProperty(owner, coordinator.publicId(), target.zigbeeIeeeAddress(), target.commandProperty(), "OFF");
+        for (int i = 0; i < 16; i++) {
+            var baseline = automation.claimControlCommand(owner.id());
+            if (baseline == null) break;
+            automation.executeControlCommand(baseline); automation.finishControlCommand(baseline, true);
+        }
         automation.setManualControl(target.id(), new Manual(UUID.randomUUID(), "ON", 60), owner);
         var command = automation.claimControlCommand(owner.id());
         assertThat(command).isNotNull();
+        assertThat(command.ieeeAddress()).isEqualTo(target.zigbeeIeeeAddress());
         clearInvocations(demo, mqtt);
 
         var resetBeforeOwner = new CountDownLatch(1);
@@ -151,7 +157,7 @@ class ControlConcurrencyIntegrationTest extends IntegrationTestBase {
             assertThat(fresh.farms().getFirst().greenhouses()).hasSize(4);
             assertThat(fresh.farms().getFirst().greenhouses()).allSatisfy(g ->
                     assertThat(g.slots()).noneMatch(r -> target.id().equals(r.id())));
-            assertThat(automation.listControls(owner)).allSatisfy(c -> assertThat(c.demands()).isEmpty());
+            assertThat(automation.listControls(owner)).allSatisfy(c -> assertThat(c.demands()).allSatisfy(d -> { assertThat(d.sourceType()).isEqualTo("baseline"); assertThat(d.desiredValue()).isEqualTo("OFF"); }));
             assertThatThrownBy(() -> automation.executeControlCommand(command)).isInstanceOf(DomainException.class);
             verify(demo, times(1)).commandZigbee(coordinator.baseTopic(), device.device().friendlyName(), Map.of("state", "ON"));
             verifyNoInteractions(mqtt);

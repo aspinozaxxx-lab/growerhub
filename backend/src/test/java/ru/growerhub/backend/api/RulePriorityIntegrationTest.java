@@ -84,6 +84,7 @@ class RulePriorityIntegrationTest extends IntegrationTestBase {
         automation.setUserScenariosEnabled(owner, new SetScenariosEnabledRequest(false));
         setFact(source, "ON");
         setFact(target, "OFF");
+        driveControls();
         clearInvocations(mqtt);
     }
 
@@ -97,7 +98,7 @@ class RulePriorityIntegrationTest extends IntegrationTestBase {
         assertThat(highState.sourceName()).contains("Тихий час");
         assertThat(highState.desiredValue()).isEqualTo("OFF");
         assertThat(highState.actualConfirmed()).isTrue();
-        assertThat(highState.demands()).hasSize(2);
+        assertThat(highState.demands()).filteredOn(d -> "rule".equals(d.sourceType())).hasSize(2);
         var highEnd = highState.expiresAt();
 
         clock.value = START.plusSeconds(2);
@@ -125,8 +126,8 @@ class RulePriorityIntegrationTest extends IntegrationTestBase {
         assertThat(automation.getControl(target.id(), owner).sourceName()).contains("Обычный обдув");
         clock.value = lowEnd.toInstant(ZoneOffset.UTC).plusSeconds(1);
         driveControls();
-        assertThat(automation.getControl(target.id(), owner).demands()).isEmpty();
-        assertThat(current(target)).isEqualTo("ON");
+        assertThat(automation.getControl(target.id(), owner).demands()).noneMatch(d -> !java.util.Set.of("baseline", "emergency").contains(d.sourceType()));
+        assertThat(current(target)).isEqualTo("OFF");
         assertThat(automation.ruleHistory(low.id(), owner)).hasSize(1);
         assertThat(automation.ruleHistory(high.id(), owner)).hasSize(1);
         verifyNoInteractions(mqtt);
@@ -168,13 +169,13 @@ class RulePriorityIntegrationTest extends IntegrationTestBase {
         startRules();
         driveControls();
         assertThat(automation.ruleHistory(rule.id(), owner)).hasSize(1);
-        assertThat(automation.getControl(target.id(), owner).demands()).hasSize(1);
+        assertThat(automation.getControl(target.id(), owner).demands()).filteredOn(d -> "rule".equals(d.sourceType())).hasSize(1);
 
         clock.value = START.plusSeconds(10);
         setFact(source, "OFF");
         startRules();
         driveControls();
-        assertThat(automation.getControl(target.id(), owner).demands()).isEmpty();
+        assertThat(automation.getControl(target.id(), owner).demands()).noneMatch(d -> !java.util.Set.of("baseline", "emergency").contains(d.sourceType()));
 
         clock.value = START.plusSeconds(70);
         setFact(source, "ON");
@@ -184,7 +185,7 @@ class RulePriorityIntegrationTest extends IntegrationTestBase {
         clock.value = START.plusSeconds(101);
         startRules();
         driveControls();
-        assertThat(automation.getControl(target.id(), owner).demands()).isEmpty();
+        assertThat(automation.getControl(target.id(), owner).demands()).noneMatch(d -> !java.util.Set.of("baseline", "emergency").contains(d.sourceType()));
         assertThat(automation.ruleHistory(rule.id(), owner)).hasSize(2);
         verifyNoInteractions(mqtt);
     }
@@ -195,7 +196,7 @@ class RulePriorityIntegrationTest extends IntegrationTestBase {
         startRules();
         driveControls();
         var selected = automation.getControl(target.id(), owner);
-        assertThat(selected.demands()).hasSize(2);
+        assertThat(selected.demands()).filteredOn(d -> "rule".equals(d.sourceType())).hasSize(2);
         for (int i = 1; i <= 5; i++) {
             clock.value = START.plusSeconds(i);
             driveControls();
@@ -213,14 +214,14 @@ class RulePriorityIntegrationTest extends IntegrationTestBase {
         automation.saveRule(null, new Save(null, true, hold("Долгий тихий час", "OFF", 120, 80, interval(), null)), owner);
         startRules();
         driveControls();
-        assertThat(automation.getControl(target.id(), owner).demands()).hasSize(2);
+        assertThat(automation.getControl(target.id(), owner).demands()).filteredOn(d -> "rule".equals(d.sourceType())).hasSize(2);
         clock.value = START.plusSeconds(91);
         driveControls();
-        assertThat(automation.getControl(target.id(), owner).demands()).singleElement()
+        assertThat(automation.getControl(target.id(), owner).demands()).filteredOn(d -> "rule".equals(d.sourceType())).singleElement()
                 .satisfies(d -> assertThat(d.sourceName()).contains("Долгий тихий час"));
         clock.value = START.plusSeconds(122);
         driveControls();
-        assertThat(automation.getControl(target.id(), owner).demands()).isEmpty();
+        assertThat(automation.getControl(target.id(), owner).demands()).noneMatch(d -> !java.util.Set.of("baseline", "emergency").contains(d.sourceType()));
         assertThat(current(target)).isEqualTo("OFF");
         verifyNoInteractions(mqtt);
     }
@@ -270,12 +271,12 @@ class RulePriorityIntegrationTest extends IntegrationTestBase {
         setFact(source, "OFF");
         startRules();
         driveControls();
-        assertThat(automation.getControl(target.id(), owner).demands()).hasSize(1);
+        assertThat(automation.getControl(target.id(), owner).demands()).filteredOn(d -> "rule".equals(d.sourceType())).hasSize(1);
         assertThat(automation.getControl(target.id(), owner).expiresAt()).isEqualTo(deadline);
         clock.value = START.plusSeconds(41);
         startRules();
         driveControls();
-        assertThat(automation.getControl(target.id(), owner).demands()).isEmpty();
+        assertThat(automation.getControl(target.id(), owner).demands()).noneMatch(d -> !java.util.Set.of("baseline", "emergency").contains(d.sourceType()));
         assertThat(automation.ruleHistory(rule.id(), owner)).hasSize(1);
         verifyNoInteractions(mqtt);
     }
@@ -343,6 +344,10 @@ class RulePriorityIntegrationTest extends IntegrationTestBase {
     }
 
     private void setFact(ResourceBinding binding, String value) {
+        if (source != null && binding.id().equals(source.id())) {
+            var policy = automation.getControl(binding.id(), owner).policy();
+            automation.setControlPolicy(binding.id(), new ru.growerhub.backend.automation.contract.ControlData.Policy(policy.revision(), policy.bindingToken(), value, "OFF"), owner);
+        }
         zigbee.setDeviceProperty(owner, binding.zigbeeCoordinatorId(), binding.zigbeeIeeeAddress(), binding.commandProperty(), value);
     }
 

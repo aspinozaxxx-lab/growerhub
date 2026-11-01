@@ -767,7 +767,8 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
         assertThat(controls).hasSize(2).allSatisfy(c -> {
             assertThat(c.sourceType()).isEqualTo("scenario");
             assertThat(c.desiredValue()).isEqualTo("ON");
-            assertThat(c.demands()).hasSize(1);
+            assertThat(c.demands()).hasSize(2);
+            assertThat(c.demands()).anySatisfy(d -> { assertThat(d.sourceType()).isEqualTo("baseline"); assertThat(d.desiredValue()).isEqualTo("OFF"); });
             assertThat(c.actualConfirmed()).isFalse();
         });
         assertThat(controls.stream().map(c -> c.demands().getFirst().id()).distinct()).hasSize(2);
@@ -834,7 +835,7 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
     }
 
     @Test
-    void disabledClimateDoesNotControlRunningAirConditioner() {
+    void disabledClimateReturnsRunningAirConditionerToBaseline() {
         UserEntity owner = createUser("greenhouse-ac-disabled@example.com", "user");
         String token = buildToken(owner.getId());
         Integer farmId = createFarm(token, "Ферма");
@@ -853,7 +854,10 @@ class FarmAutomationIntegrationTest extends IntegrationTestBase {
         automationFacade.evaluateAll();
         driveControls(owner);
 
-        verify(zigbeeFacade, never()).setDeviceProperty(any(), any(), any(), any(), any());
+        verify(zigbeeFacade).setDeviceProperty(new AuthenticatedUser(owner.getId(), "user"), coordinatorId, acIeee, "state", "OFF");
+        assertThat(automationFacade.listControls(new AuthenticatedUser(owner.getId(), "user"))).allSatisfy(c -> {
+            assertThat(c.sourceType()).isEqualTo("baseline"); assertThat(c.desiredValue()).isEqualTo("OFF");
+        });
         given()
                 .header("Authorization", "Bearer " + token)
                 .when()
