@@ -152,59 +152,48 @@ const compactDefaults = (row) => {
 const sortedRu = withSortDates(ru);
 const articleIndices = new Map(sortedRu.map((article, index) => [article.id, index]));
 const compactRelated = (related) => related.map((id) => articleIndices.get(id) ?? id);
+const fields = [
+  'id', 'slug', 'title', 'summary', 'created_at', 'updated_at', 'cluster',
+  'related', 'hero_image', 'hero_alt', 'source_file', 'hero_in_body', 'download', 'product_cta',
+];
+const inheritedFields = ['created_at', 'updated_at', 'cluster', 'related', 'hero_image'];
+const toRow = (article) => [
+  article.id,
+  article.slug === article.id ? null : article.slug,
+  article.title,
+  article.summary,
+  article.created_at,
+  article.updated_at,
+  article.cluster,
+  compactRelated(article.related),
+  article.hero_image,
+  article.hero_alt,
+  article.source_file === `${article.slug}.md` ? null : article.source_file,
+  article.hero_in_body,
+  article.download,
+  article.product_cta,
+];
+const ruRows = sortedRu.map(toRow);
+const enRows = withSortDates(en).map((article) => {
+  const row = toRow(article);
+  const originalIndex = articleIndices.get(article.id);
+  const original = ruRows[originalIndex];
+  for (const field of inheritedFields) {
+    const index = fields.indexOf(field);
+    if (JSON.stringify(row[index]) === JSON.stringify(original[index])) row[index] = null;
+  }
+  row[0] = originalIndex;
+  return compactDefaults(row);
+});
 
 fs.writeFileSync(
   OUTPUT_PATH,
   `${JSON.stringify({
     defaults: Object.fromEntries(trailingDefaults),
-    fields: [
-      'id',
-      'slug',
-      'title',
-      'summary',
-      'created_at',
-      'updated_at',
-      'cluster',
-      'related',
-      'hero_image',
-      'hero_alt',
-      'source_file',
-      'hero_in_body',
-      'download',
-      'product_cta',
-    ],
-    ru: sortedRu.map((article) => [
-      article.id,
-      article.slug === article.id ? null : article.slug,
-      article.title,
-      article.summary,
-      article.created_at,
-      article.updated_at,
-      article.cluster,
-      compactRelated(article.related),
-      article.hero_image,
-      article.hero_alt,
-      article.source_file === `${article.slug}.md` ? null : article.source_file,
-      article.hero_in_body,
-      article.download,
-      article.product_cta,
-    ]).map(compactDefaults),
-    en: withSortDates(en).map((article) => [
-      article.id,
-      article.slug === article.id ? null : article.slug,
-      article.title,
-      article.summary,
-      article.created_at,
-      article.updated_at,
-      article.cluster,
-      compactRelated(article.related),
-      article.hero_image,
-      article.hero_alt,
-      article.source_file === `${article.slug}.md` ? null : article.source_file,
-      article.hero_in_body,
-      article.download,
-      article.product_cta,
-    ]).map(compactDefaults),
+    fields,
+    inheritedFields,
+    ru: ruRows.map(compactDefaults),
+    en: enRows,
   })}\n`,
   'utf8',
 );

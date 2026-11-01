@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"article-metadata-shared-translations","published_at":"2026-11-01","kind":"fix","text":"Уменьшили начальную загрузку каталога статей: общие данные переводов больше не передаются дважды."},
     {"id":"monstera-leaf-splits-guide","published_at":"2026-11-01","kind":"article","article_id":"monstera-listya-bez-prorezey","preview_position":"50% 50%"},
     {"id":"public-about-text-contrast","published_at":"2026-10-31","kind":"fix","text":"Исправили контраст текста и ссылок на странице «О проекте» в светлой теме."},
     {"id":"about-current-use-20261031","published_at":"2026-10-31","kind":"fix","text":"Обновили страницу «О проекте»: дневник без оборудования, помощник и способы подключения."},

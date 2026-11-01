@@ -10,11 +10,17 @@ import { canonicalizePublicLinksInHtml } from '../domain/siteConfig';
 import { getCurrentLocale } from '../locales/i18n';
 
 const articleIds = metadata.ru.map((row) => row[0]);
-const expandMetadata = (rows, locale) => rows.map((row) => {
-  const article = Object.fromEntries(metadata.fields.map((field, index) => [field, index < row.length ? row[index] : metadata.defaults?.[field]]));
-  const slug = article.slug || article.id;
+const expandMetadata = (rows, locale, originals = []) => rows.map((row) => {
+  const original = typeof row[0] === 'number' ? originals[row[0]] : undefined;
+  const article = Object.fromEntries(metadata.fields.map((field, index) => {
+    const value = index < row.length ? row[index] : metadata.defaults?.[field];
+    return [field, value === null && original && metadata.inheritedFields?.includes(field) ? original[field] : value];
+  }));
+  const id = typeof article.id === 'number' ? articleIds[article.id] : article.id;
+  const slug = article.slug || id;
   return {
     ...article,
+    id,
     related: article.related.map((id) => typeof id === 'number' ? articleIds[id] : id),
     slug,
     source_file: article.source_file || `${slug}.md`,
@@ -22,9 +28,10 @@ const expandMetadata = (rows, locale) => rows.map((row) => {
   };
 });
 
+const russianMetadata = expandMetadata(metadata.ru, 'ru');
 const metadataByLocale = Object.freeze({
-  ru: expandMetadata(metadata.ru, 'ru'),
-  en: expandMetadata(metadata.en, 'en'),
+  ru: russianMetadata,
+  en: expandMetadata(metadata.en, 'en', russianMetadata),
 });
 
 const articlesById = {

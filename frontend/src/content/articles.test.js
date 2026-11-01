@@ -61,14 +61,30 @@ it.each(['ru', 'en'])('kompaktnye metadata %s vosstanavlivayut defaults i sohran
   expect(getArticles(locale).some(item => item.product_cta === false)).toBe(true);
 });
 
-it.each(['ru', 'en'])('svyazi vseh statey %s sovpadayut s ishodnym Markdown', async (locale) => {
+it.each(['ru', 'en'])('metadata vseh statey %s sovpadayut s ishodnym Markdown bez poter dannyh', async (locale) => {
   const { getArticles } = await import('./articles');
   for (const article of getArticles(locale)) {
     const directory = locale === 'en' ? '../../content/en/articles/' : '../../content/articles/';
     const raw = fs.readFileSync(new URL(`${directory}${article.source_file}`, import.meta.url), 'utf8');
-    const related = matter(raw).data.related || [];
+    const { data, content } = matter(raw);
+    const related = data.related || [];
     const expected = (Array.isArray(related) ? related : String(related).split(','))
       .map(String).map((id) => id.trim()).filter(Boolean);
-    expect(article.related, article.id).toEqual(expected);
+    const date = value => value instanceof Date ? value.toISOString() : value;
+    expect(article, article.id).toMatchObject({
+      id: locale === 'ru' ? data.slug : data.translation_of,
+      slug: data.slug,
+      title: data.title,
+      summary: data.summary,
+      created_at: date(data.created_at),
+      updated_at: date(data.updated_at || data.created_at),
+      cluster: data.cluster || 'vyrashchivanie-i-uhod',
+      related: expected,
+      hero_image: data.hero_image || '',
+      hero_alt: data.hero_alt || data.title,
+      hero_in_body: Boolean(data.hero_image && content.includes(`](${data.hero_image})`)),
+      download: data.download || null,
+      product_cta: data.product_cta ?? true,
+    });
   }
 });

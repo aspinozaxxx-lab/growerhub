@@ -52,7 +52,7 @@ it('statya bez rubriki popadaet v uhod vmesto ischeznoveniya iz kataloga', async
   const metadata = JSON.parse(fs.writeFileSync.mock.calls[0][1]);
   const index = metadata.fields.indexOf('cluster');
   for (const locale of ['ru', 'en']) {
-    expect(metadata[locale].every((row) => row[index] === 'vyrashchivanie-i-uhod')).toBe(true);
+    expect(metadata[locale].every((row) => (row[index] ?? metadata.ru[row[0]][index]) === 'vyrashchivanie-i-uhod')).toBe(true);
   }
 });
 
@@ -75,7 +75,8 @@ it('svyazi ssylayutsya na obshchie ID nezavisimo ot sluga perevoda', async () =>
   const metadata = JSON.parse(fs.writeFileSync.mock.calls[0][1]);
   const relatedIndex = metadata.fields.indexOf('related');
   for (const locale of ['ru', 'en']) {
-    expect(metadata[locale][0][relatedIndex]).toEqual([0, 2, 'unknown-slug']);
+    const row = metadata[locale][0];
+    expect(row[relatedIndex] ?? metadata.ru[row[0]][relatedIndex]).toEqual([0, 2, 'unknown-slug']);
   }
 });
 
@@ -87,9 +88,30 @@ it('generator peredayot boolean opt-out i prezhniy default v obe lokali', async 
   const flagIndex = metadata.fields.indexOf('product_cta');
   expect(flagIndex).toBeGreaterThan(-1);
   for (const locale of ['ru', 'en']) {
-    expect(Object.fromEntries(metadata[locale].map((row) => [row[idIndex], row[flagIndex] ?? metadata.defaults.product_cta])))
+    expect(Object.fromEntries(metadata[locale].map((row) => [
+      typeof row[idIndex] === 'number' ? metadata.ru[row[idIndex]][idIndex] : row[idIndex],
+      row[flagIndex] ?? metadata.defaults.product_cta,
+    ])))
       .toEqual({ legacy: true, enabled: true, standalone: false });
   }
+});
+
+it('perevod sohranyaet sobstvennye daty i oblozhku pri obshchih rubrike i svyazyah', async () => {
+  const read = fs.readFileSync.getMockImplementation();
+  fs.readFileSync.mockImplementation((filePath) => {
+    const raw = read(filePath);
+    return filePath.replaceAll('\\', '/').endsWith('/en/articles/standalone.md')
+      ? raw.replace("created_at: '2026-10-08'", "created_at: '2026-10-09'\nhero_image: '/translated.webp'")
+      : raw;
+  });
+  await import('./generate-article-metadata.mjs');
+  const metadata = JSON.parse(fs.writeFileSync.mock.calls[0][1]);
+  const row = metadata.en.find(item => metadata.ru[item[0]][0] === 'standalone');
+  expect(row[metadata.fields.indexOf('created_at')]).toBe('2026-10-09');
+  expect(row[metadata.fields.indexOf('updated_at')]).toBe('2026-10-09');
+  expect(row[metadata.fields.indexOf('hero_image')]).toBe('/translated.webp');
+  expect(row[metadata.fields.indexOf('cluster')]).toBeNull();
+  expect(row[metadata.fields.indexOf('related')]).toBeNull();
 });
 
 it.each(['ru', 'en'].flatMap((locale) => ['"false"', 'null', '0'].map((value) => ({ locale, value }))))(

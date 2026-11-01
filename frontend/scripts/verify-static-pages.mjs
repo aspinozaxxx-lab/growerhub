@@ -347,9 +347,15 @@ const articleUrls = urls.filter((url) => (
 for (const [locale, news] of [['ru', ruNews], ['en', enNews]]) {
   const url = `${SITE_URL}${getPublicPath('news', locale)}`;
   const html = read(urlToFile(url));
-  const localeArticles = articleMetadata[locale].map((row) => Object.fromEntries(
-    articleMetadata.fields.map((field, index) => [field, row[index]]),
-  ));
+  const localeArticles = articleMetadata[locale].map((row) => {
+    const original = typeof row[0] === 'number' ? articleMetadata.ru[row[0]] : undefined;
+    const article = Object.fromEntries(articleMetadata.fields.map((field, index) => {
+      const value = index < row.length ? row[index] : articleMetadata.defaults?.[field];
+      return [field, value === null && original && articleMetadata.inheritedFields?.includes(field) ? original[index] : value];
+    }));
+    if (original) article.id = original[0];
+    return article;
+  });
   const articleById = new Map(localeArticles.map((article) => [article.id, article]));
   assert(urlSet.has(url), `News missing from sitemap: ${locale}`);
   assert(html.includes('data-react-ssr="1"'), `News must hydrate shared React markup: ${locale}`);
