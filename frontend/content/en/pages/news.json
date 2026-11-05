@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id":"indoor-lemon-leaf-drop-guide","published_at":"2026-11-05","kind":"article","article_id":"limon-sbrasyvaet-listya-posle-balkona","preview_position":"50% 50%"},
     {"id":"npk-fertilizer-label-guide","published_at":"2026-11-03","kind":"article","article_id":"npk-na-udobrenii-kak-chitat-etiketku","preview_position":"50% 50%"},
     {"id":"device-baseline-fallback-modes","published_at":"2026-11-01","kind":"feature","article_id":"bazovyy-i-avariynyy-rezhimy-ustroystv","preview_position":"50% 45%"},
     {"id":"automation-climate-recovery-repeat-period","published_at":"2026-11-01","kind":"fix","text":"Fixed airflow returning to climate control after a temporary routine: a missing acknowledgement no longer loses the requested state. Gaps in sensor reports no longer start extra ventilation cycles. The control panel now shows actual and requested device states separately."},
