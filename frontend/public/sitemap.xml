@@ -58,11 +58,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zhurnal-i-sovetnik-uhoda/</loc>
-    <lastmod>2026-11-01</lastmod>
+    <lastmod>2026-11-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/zigbee-hub-i-ustroystva/</loc>
-    <lastmod>2026-10-06</lastmod>
+    <lastmod>2026-11-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/mini-ferma-i-neskolko-boksov/</loc>
@@ -71,6 +71,14 @@
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
     <lastmod>2026-10-04</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/dnevnik-rasteniy-bez-oborudovaniya-growerhub/</loc>
+    <lastmod>2026-11-05</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/gotovyy-zigbee-hub-dlya-growerhub/</loc>
+    <lastmod>2026-11-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/limon-sbrasyvaet-listya-posle-balkona/</loc>
@@ -90,10 +98,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/avtomatizatsiya-sveta-v-groubokse/</loc>
-    <lastmod>2026-10-30</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/dnevnik-rasteniy-bez-oborudovaniya-growerhub/</loc>
     <lastmod>2026-10-30</lastmod>
   </url>
   <url>
@@ -243,10 +247,6 @@
   <url>
     <loc>https://growerhub.ru/articles/uchet-vody-rashodomer-growerhub/</loc>
     <lastmod>2026-10-02</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/gotovyy-zigbee-hub-dlya-growerhub/</loc>
-    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/zigbee2mqtt-prostymi-slovami/</loc>
@@ -494,11 +494,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/plant-journal-and-care-guidance/</loc>
-    <lastmod>2026-11-01</lastmod>
+    <lastmod>2026-11-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/zigbee-hubs-and-devices/</loc>
-    <lastmod>2026-10-06</lastmod>
+    <lastmod>2026-11-05</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/small-farms-and-multiple-grow-boxes/</loc>
@@ -510,6 +510,14 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/lemon-leaf-drop-after-moving-indoors/</loc>
+    <lastmod>2026-11-05</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/plant-care-journal-and-telegram-growerhub/</loc>
+    <lastmod>2026-11-05</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/ready-zigbee-hub-for-growerhub-when-it-is-more-convenient-than-self-assembly/</loc>
     <lastmod>2026-11-05</lastmod>
   </url>
   <url>
@@ -542,10 +550,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/microclimate-history-and-charts-how-to-read-data-without-panic/</loc>
-    <lastmod>2026-10-30</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/plant-care-journal-and-telegram-growerhub/</loc>
     <lastmod>2026-10-30</lastmod>
   </url>
   <url>
@@ -679,10 +683,6 @@
   <url>
     <loc>https://growerhub.ru/en/articles/water-meter-daily-monthly-growerhub/</loc>
     <lastmod>2026-10-02</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/ready-zigbee-hub-for-growerhub-when-it-is-more-convenient-than-self-assembly/</loc>
-    <lastmod>2026-10-01</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/zigbee2mqtt-in-simple-words-how-the-sensor-coordinator-and-mqtt-are-connected/</loc>

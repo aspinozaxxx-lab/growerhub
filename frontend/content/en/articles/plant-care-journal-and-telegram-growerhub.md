@@ -2,10 +2,11 @@
 translation_of: "dnevnik-rasteniy-bez-oborudovaniya-growerhub"
 slug: "plant-care-journal-and-telegram-growerhub"
 title: "A plant journal without hardware: photos, care and Telegram"
-summary: "Keep your plants, photographs and care notes together. Plan tasks and receive Telegram reminders without sensors, a coordinator or automation setup."
+summary: "Start your own journal: sign in, add one plant and save a real care event or observation. No sensors or preliminary demo session are needed."
 created_at: "2026-10-07"
-updated_at: "2026-10-30"
+updated_at: "2026-11-05"
 cluster: "zhurnal-i-sovetnik-uhoda"
+product_cta: false
 tags: ["GrowerHub", "plant journal", "Telegram", "houseplants"]
 keywords: ["plant care journal", "watering reminders", "plant photo diary"]
 related: ["foto-dnevnik-rosta-rasteniy", "dnevnik-rasteniya-chto-zapisyvat", "zhurnal-poliva-obem-ph-udobreniya"]
@@ -13,16 +14,20 @@ hero_image: "/screenshots/care/plant-en.webp"
 hero_alt: "A pelargonium card, photos, care notes and a soil-check reminder in GrowerHub"
 ---
 
-When did you last repot your monstera? What did its new leaf look like last week? GrowerHub can keep those answers even when your setup is just a windowsill plant and a phone.
+**[Start my own plant journal](/app/onboarding/?lang=en).** You will first see the account sign-in screen, with “Continue with Yandex” and “Continue with Google”. After signing in, you can keep records for your own plants. If you already have an account, use your usual sign-in method.
 
-**No coordinator, sensors or pump are required.** Each plant gets a card, photographs, care history and planned tasks. Add hardware later while keeping the same account and journal.
+Start with one plant of your own and one entry, so the last watering or repotting date has a place to live. There is no need to move your whole collection at once. Your account holds the plant's photos and care history; no sensors, coordinator or pump are required.
 
-## Start with one plant
+## Your own journal: from sign-in to the first entry
 
-1. Sign in to [GrowerHub](/app/onboarding/). During initial setup, choose **A journal without equipment**.
-2. In **Plants**, choose **Add plant**. Give it a recognisable name; the other fields are optional.
-3. Open its journal. **About this plant** lets you add a description and location, such as “living room” or “seedling shelf”. You may leave the planting date unknown.
-4. Save an observation or photo. Search your plant list by name, variety or location.
+1. In initial setup, find **A journal without equipment** and choose **Start a plant journal**. If you have already started a journal, open [Plants](/app/plants/?lang=en).
+2. Choose **Add a plant**, give it a recognisable name, such as “Monstera by the window”, then choose **Save**. Other details can wait; leave the planting date blank if it is unknown.
+3. Open that plant's journal. If you actually watered it, choose **Watered by hand**; for an observation, choose **Note**. Set the date and time of the event and briefly record what you did or noticed. A photo is optional.
+4. Choose **Save** and check the new entry in the plant's history for the right event and date. The next care event gives you a reason to return and add another entry beside it.
+
+**The demo is optional.** You can [look around a journal with virtual plants without signing in](/app/demo/?view=plants&lang=en). To keep your own history, use “Start my own plant journal” above. Reminders and Telegram can wait until later too.
+
+Use **About this plant** to add a location, such as “living room” or “seedling shelf”. You can then search the plant list by name, variety or location.
 
 The screenshot shows a training journal with a plant illustration instead of a personal photograph. This is the working interface, not a mockup.
 

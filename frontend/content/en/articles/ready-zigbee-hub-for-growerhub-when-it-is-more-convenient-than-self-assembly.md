@@ -2,12 +2,11 @@
 translation_of: gotovyy-zigbee-hub-dlya-growerhub
 slug: ready-zigbee-hub-for-growerhub-when-it-is-more-convenient-than-self-assembly
 title: 'A ready-made Zigbee hub for GrowerHub: starting without a separate computer'
-summary: >-
-  Connect PushOk to GrowerHub over the internet using its ID and pairing button.
-  Compare it with Zigbee2MQTT, SMHUB Nano and ZS-EHT, including hardware checks.
+summary: "Already own PushOk POK100v2 or a Zigbee2MQTT network? Start with fresh readings from your own sensor. If you still need equipment, choose a kit for your task."
 created_at: '2026-07-23'
-updated_at: '2026-10-01'
+updated_at: "2026-11-05"
 cluster: zigbee-hub-i-ustroystva
+product_cta: false
 tags:
   - GrowerHub
   - Zigbee Hub
@@ -26,19 +25,29 @@ hero_alt: >-
   Illustration of GrowerHub: ready-made Zigbee Hub, plant sensors and local
   network
 ---
+
+**[I already have a compatible hub](#own-hub)** · **[Help me choose a kit](#choose-kit)**
+
+For a first connection, choose one temperature or humidity sensor beside your plants. Start by seeing its fresh readings and how they help with your growing area. The route depends on the equipment you already own.
+
+<h2 id="start">Connect your own hub or choose a kit?</h2>
+
+<h3 id="own-hub">You already have a compatible hub or network</h3>
+
+- **PushOk POK100v2.** Follow the [steps to connect your own PushOk](#pushok). The cloud route was tested on POK100v2 with firmware 95; other models and revisions need a separate check. This route needs neither Home Assistant nor a separate computer.
+- **Zigbee2MQTT already runs, perhaps alongside Home Assistant.** Connect the existing network using the [local MQTT bridge guide](/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/). You do not need to buy a new hub. Having Home Assistant alone does not mean you use Zigbee2MQTT.
+
+The first result is an updating measurement time and history from your own sensor in GrowerHub. For example, you can check how the temperature beside your plants changes overnight. Connecting grants access to devices on the selected hub or network, including supported commands; starting with one sensor does not limit access to that sensor alone. Scenarios are enabled separately.
+
+<h3 id="choose-kit">You still need to choose equipment</h3>
+
+Open the [ready-made kits and help with choosing equipment](/en/equipment/). Compare contents and current prices, or ask for help choosing. A selected kit goes through the cart as a request: contents, supply and payment are agreed afterwards; the website does not take payment.
+
+For just a sensor and hub, check the [minimum equipment and connection options](/en/equipment/zigbee-coordinators/) first. A USB coordinator needs a computer running Zigbee2MQTT. SMHUB Nano with built-in Zigbee2MQTT has not been tested with GrowerHub, and ZS-EHT-54P2 / 54P7 replaces the radio, not the computer. Details and limits follow below.
+
+You can [look around the demo separately without hardware](/app/demo/?lang=en). It is optional before connecting your own hub or choosing a kit, and shows virtual data.
+
 ![Illustration GrowerHub: ready Zigbee Hub, plant sensors and local network](/content/articles/illustrations/gotovyy-zigbee-hub-dlya-growerhub.webp)
-
-One temperature sensor beside your plants is enough for a first setup. You can start by [opening the demo farm without hardware](/app/demo/?lang=en), exploring charts and trying virtual watering before buying a pump or a complete greenhouse kit.
-
-Physical devices can use Zigbee2MQTT or the PushOk cloud pilot. A Zigbee logo alone does not establish compatibility: the hub's software and connection method matter.
-
-## Choose a starting point
-
-- **Zigbee2MQTT already runs, perhaps alongside Home Assistant.** Keep your hub and connect the existing network through a [local MQTT bridge](/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/). Having Home Assistant does not necessarily mean you use Zigbee2MQTT.
-- **An always-on computer is available.** Use a [USB coordinator and one compatible sensor](/en/equipment/zigbee-coordinators/). Zigbee2MQTT runs on that computer; new readings stop reaching GrowerHub when it is off.
-- **You want one box without a separate computer.** The [cloud route](#pushok) was tested on PushOk POK100v2. See the [hub and first-purchase checklist](/en/equipment/zigbee-coordinators/). A hub with built-in Zigbee2MQTT, such as SMHUB Nano, is another option, not yet physically tested with GrowerHub.
-- **You already own PushOk.** Connect it over the internet using the hub ID and pairing button. No separate computer or Home Assistant is needed. We are starting with POK100v2; see the steps and limits below.
-- **You own ZS-EHT-54P2 or 54P7.** Join a trial connection. It replaces the USB radio, but still needs a computer running Zigbee2MQTT.
 
 <h2 id="zs-eht">ZS-EHT-54P2 / 54P7: an affordable coordinator that needs a computer</h2>
 
@@ -112,7 +121,7 @@ The cloud pilot is available in GrowerHub. On **POK100v2 with firmware 95 and a 
 
 ### Connect to GrowerHub
 
-1. Sign in and open **Settings → Connections → Connect PushOk**. The first-connection wizard offers the same option.
+1. [Open Connections in your own account](/app/settings/connections/?lang=en). If you are not signed in, you will see the sign-in screen first and return to Connections after signing in. Choose **Connect PushOk**. The same option is available in initial setup.
 2. Paste the ID, give it a recognizable name and confirm access. All devices on this hub will appear in your account; GrowerHub can read their values and send supported commands. Automations do not start automatically.
 3. **Briefly press the hub's pairing button with the indicator twice.** While it flashes, press **Button pressed — connect** in GrowerHub. You do not need to copy phone keys, Wi-Fi passwords or router settings.
 4. Wait for the success message and open **Settings → Devices**. Check the state and last-update time. Add and rename Zigbee devices in Upravlyator; GrowerHub refreshes its list automatically.
@@ -130,7 +139,7 @@ If the hub's pairing window expires and an error appears, press its button twice
 - **The test TS011F is not approved for automatic watering.** Valves and pumps require separate checks of their local timer and safe stopping after connection loss.
 - To disconnect, archive the coordinator in GrowerHub. The server stops connecting and deletes its key; recorded history remains. You can remove GrowerHub's separate access on the hub itself through Upravlyator.
 
-**Already own PushOk?** [Try connecting](/en/getting-started/#pushok) one device and tell us how it went. If you have not bought a hub, discuss the exact model and intended use first. This is an independent GrowerHub integration; no manufacturer partnership is claimed.
+After pairing, check the freshness of your own sensor as described above. If the exact model differs from the tested one, check compatibility first. This is an independent GrowerHub integration, with no claim of partnership with the manufacturer.
 
 ## Distinguish the different types of hub
 
@@ -142,4 +151,4 @@ For Tuya, Aqara and other hubs, check the exact model and available integration.
 
 Start by observing temperature or humidity. Once readings arrive reliably, choose one useful automation and verify its operation. GrowerHub automations run on the server and require connectivity to it; a hub's local capabilities do not make GrowerHub automations run locally.
 
-For watering, separately check the specific valve or pump and how it stops after a connection failure. Read the [automatic watering safety guide](/en/articles/safe-automatic-watering-water-limits-pauses-and-emergency-stop/) before enabling it. If you do not own hardware yet, try the [demo farm](/app/demo/?lang=en) and choose a kit around one useful task.
+For watering, separately check the specific valve or pump and how it stops after a connection failure. Read the [automatic watering safety guide](/en/articles/safe-automatic-watering-water-limits-pauses-and-emergency-stop/) before enabling it. Return to the [choice of your own connection or a kit](#start) at the beginning of this guide.
