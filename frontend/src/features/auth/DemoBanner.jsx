@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { startTransition, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronDown, FlaskConical, MessageCircle, RotateCcw } from 'lucide-react';
 import Modal from '../../components/ui/Modal';
@@ -21,7 +21,9 @@ export default function DemoBanner() {
   if (!demoActive) return null;
   const connect = () => {
     trackProductGoal('demo_real_setup_start', { placement: 'demo_banner' });
-    leaveDemo(); navigate('/app/onboarding/');
+    startTransition(() => {
+      leaveDemo(); navigate(`/app/onboarding/?lang=${getCurrentLocale()}`);
+    });
   };
   const reset = async () => {
     setBusy(true); setError('');
@@ -41,7 +43,7 @@ export default function DemoBanner() {
         {!demoSession?.saved ? <Link className="demo-link demo-link--primary" to="/app/demo/?save=1">{t('Сохранить демоферму')}</Link> : null}
         <Link className="demo-link" to={getPublicPath('gettingStarted', getCurrentLocale())}>{t('Оборудование и способы подключения')}</Link>
         <button className="demo-link" onClick={connect}>{t('Подключить свои устройства')}</button>
-        {accountUser ? <button className="demo-link" onClick={() => { trackProductGoal('demo_exit'); leaveDemo(); navigate('/app/'); }}>{t('Моя ферма')}</button> : null}
+        {accountUser ? <button className="demo-link" onClick={() => { trackProductGoal('demo_exit'); startTransition(() => { leaveDemo(); navigate('/app/'); }); }}>{t('Моя ферма')}</button> : null}
         <TelegramContactLink className="demo-link" placement={compact ? 'demo_menu_feedback' : 'demo_banner_feedback'}><MessageCircle size={16} aria-hidden="true" />{t('Вопрос или отзыв в Telegram')}</TelegramContactLink>
         <button className="demo-link demo-reset" onClick={() => setConfirmReset(true)} aria-label={t('Восстановить демоферму')}><RotateCcw size={16} /><span>{t('Сбросить демо')}</span></button>
       </div>

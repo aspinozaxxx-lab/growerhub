@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id":"demo-exit","published_at":"2026-11-06","kind":"fix","text":"Fixed demo exit."},
     {"id":"zigbee2mqtt-own-network-first-reading","published_at":"2026-11-06","kind":"article_update","article_id":"growerhub-i-home-assistant-cherez-mqtt","text":"Updated the guide for connecting your existing Zigbee2MQTT network: account sign-in, leaving demo mode and checking a fresh sensor reading. It also explains an ONLINE coordinator with only a retained value."},
     {"id":"home-own-plant-diary-entry","published_at":"2026-11-06","kind":"fix","text":"The homepage now has a “Keep a diary for your plant” link. It opens the existing diary setup through account sign-in, with no hardware needed. Kit selection and the demo farm remain separate options."},
     {"id":"plant-journal-first-entry-path","published_at":"2026-11-05","kind":"article_update","article_id":"dnevnik-rasteniy-bez-oborudovaniya-growerhub","text":"The journal guide now starts with your own plant and first entry: account sign-in, saving a care event and checking the history. The demo is a separate, optional introduction."},
