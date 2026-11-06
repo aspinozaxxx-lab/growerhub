@@ -26,7 +26,7 @@ related:
 
 Already running Home Assistant, Zigbee2MQTT and sensors? Keep that installation and add GrowerHub for greenhouse zones, plants, history and automation. The supported path is a separate MQTT connector between your existing broker and GrowerHub. Your Zigbee devices stay paired to their current coordinator.
 
-If the link opens “Devices and growing conditions” with a Demo banner, choose “Connect my devices” in that banner. On a phone, expand “Demo” first. This leaves demo mode and opens setup for your own equipment; after signing in, use the Connections link above again.
+If the link opens “Devices and growing conditions” with a Demo banner, first use the dashboard navigation to open “Overview”. From Overview, choose “Connect my devices” in the banner; on a phone, expand “Demo” first. This path leaves demo mode and opens setup for your own equipment. After signing in, use the Connections link above again.
 
 You can explore the interface in the [demo without signing up](/app/demo/?lang=en). Its devices and readings are simulated. Check your own sensor in your account outside demo mode.
 
