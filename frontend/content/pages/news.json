@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"home-own-plant-diary-entry","published_at":"2026-11-06","kind":"fix","text":"На главной появилась ссылка «Вести дневник своего растения». Она ведёт в существующий дневник через вход в аккаунт; оборудование не требуется. Выбор комплекта и демоферма по-прежнему доступны отдельно."},
     {"id":"plant-journal-first-entry-path","published_at":"2026-11-05","kind":"article_update","article_id":"dnevnik-rasteniy-bez-oborudovaniya-growerhub","text":"В инструкции дневника показали прямое начало со своим растением и первой записью: вход в аккаунт, сохранение ухода и проверка истории. Демо вынесли в отдельную необязательную пробу."},
     {"id":"existing-hub-or-kit-path","published_at":"2026-11-05","kind":"article_update","article_id":"gotovyy-zigbee-hub-dlya-growerhub","text":"В начале инструкции хаба разделили подключение уже имеющегося совместимого оборудования и подбор комплекта. Уточнили первый шаг с показаниями своего датчика и ссылку на подключения в аккаунте."},
     {"id":"indoor-lemon-leaf-drop-guide","published_at":"2026-11-05","kind":"article","article_id":"limon-sbrasyvaet-listya-posle-balkona","preview_position":"50% 50%"},

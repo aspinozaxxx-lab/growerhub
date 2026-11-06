@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-06",
+  "updated_at": "2026-11-06",
   "title": "GrowerHub — more time for the plants you love",
   "description": "Lighting, watering and ventilation for a small nursery. Smart plugs, soil sensors, automations and energy history. We will help you choose and connect your equipment.",
   "hero": {
@@ -8,6 +8,8 @@
     "subtitle": "Lighting, watering and ventilation in one app. Set up automations, follow soil conditions and see electricity use. We will help you choose and connect the equipment.",
     "cta": "Choose a kit",
     "demo_cta": "Try without hardware",
+    "diary_cta": "Keep a diary for your plant",
+    "diary_note": "Sign in to your account. No hardware needed.",
     "reassurance": "Explore the app without signing up or buying anything",
     "preview_image": "/content/nursery/hero.webp",
     "preview_alt": "A woman tending flowering pelargoniums in a small nursery",

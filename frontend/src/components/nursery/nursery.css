@@ -69,6 +69,8 @@
 .nursery-hero__actions .nursery-actions { gap: 10px; }
 .nursery-hero__actions .nursery-button { font-size: .92rem; padding-inline: 18px; }
 .nursery-hero__actions p { margin: 14px 0 0; max-width: 450px; }
+.nursery-hero__diary .nursery-text-link { font-size: 1rem; }
+.nursery-hero__diary .nursery-small { display: block; margin-top: 3px; }
 .nursery-hero__note { position: absolute; right: 26px; bottom: 28px; z-index: 1; max-width: 170px; padding: 8px 10px; color: #3c244f; background: #fffbffe8; border-radius: 12px; }
 .nursery-service-strip { margin: 0 14px 40px; padding: 20px 24px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; position: relative; background: #eee5f4; border: 1px solid #e7dced; border-radius: 0 0 18px 18px; }
 .nursery-service-strip li { display: flex; align-items: center; gap: 15px; padding: 0 20px; line-height: 1.4; min-width: 0; }
@@ -224,7 +226,7 @@
   .nursery-hero__actions .nursery-actions { display: grid; grid-template-columns: 1fr; gap: 10px; }
   .nursery-hero__actions .nursery-button { font-size: .98rem; }
   .nursery-hero__actions p { text-align: center; margin: 12px 0 0; font-size: .79rem; max-width: none; }
-  .nursery-hero__note { right: 18px; bottom: 193px; font-size: 1.05rem; max-width: 130px; }
+  .nursery-hero__note { right: 18px; bottom: 18px; font-size: 1.05rem; max-width: 130px; }
   .nursery-service-strip { padding: 20px 22px; grid-template-columns: 1fr; gap: 18px; margin: 0 6px 32px; }
   .nursery-service-strip li, .nursery-service-strip li:first-child { padding: 0; gap: 17px; }
   .nursery-service-strip li + li { border: 0; }
@@ -268,7 +270,6 @@
   .nursery-hero__copy .nursery-eyebrow { display: none; }
   .nursery-hero__photo { height: 235px; }
   .nursery-hero__actions { padding-inline: 16px; }
-  .nursery-hero__note { bottom: 195px; }
   .nursery-home-kits { grid-template-columns: 1fr; gap: 18px; }
   .nursery-home-additions { grid-template-columns: 1fr; }
   .nursery-kit-card__copy { padding: 23px 22px 0; min-height: 0; }

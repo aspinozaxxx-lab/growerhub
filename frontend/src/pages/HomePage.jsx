@@ -5,14 +5,16 @@ import { NurseryDemoBanner, NurseryFootnote, NurseryHelpCard, NurseryKitCard, Nu
 import { getNurseryCopy } from '../components/nursery/copy';
 import { getPageContent } from '../content/pages';
 import { getPublicPath } from '../domain/localizedRoutes';
-import { DEMO_PUBLIC_ENABLED, GITHUB_REPOSITORY_URL, ORGANIZATION_ID, SITE_NAME, SITE_URL, TELEGRAM_CHANNEL_URL } from '../domain/siteConfig';
+import { DEMO_PUBLIC_ENABLED, GITHUB_REPOSITORY_URL, ORGANIZATION_ID, SELF_SERVICE_PUBLIC_ENABLED, SITE_NAME, SITE_URL, TELEGRAM_CHANNEL_URL } from '../domain/siteConfig';
+import { useAuth } from '../features/auth/AuthContext';
 import { useShop } from '../features/shop';
-import { getCurrentLocale } from '../locales/i18n';
+import { getCurrentLocale, rememberLocale } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
 
 function HomePage() {
   const locale = getCurrentLocale();
   const { homeContent } = getPageContent(locale);
+  const { demoActive, leaveDemo } = useAuth();
   const { catalog } = useShop();
   const { hero, kits, help, demo, faq } = homeContent;
   const path = getPublicPath('home', locale);
@@ -44,15 +46,21 @@ function HomePage() {
           <h1 id="nursery-hero-title">{hero.title}</h1>
           <p>{hero.subtitle}</p>
         </div>
-        <div className="nursery-hero__photo"><img src={hero.preview_image} alt={hero.preview_alt} width="1600" height="914" fetchPriority="high" /></div>
+        <div className="nursery-hero__photo">
+          <img src={hero.preview_image} alt={hero.preview_alt} width="1600" height="914" fetchPriority="high" />
+          <NurseryNote className="nursery-hero__note">{hero.note}</NurseryNote>
+        </div>
         <div className="nursery-hero__actions">
           <div className="nursery-actions">
             <Link className="nursery-button" to={getPublicPath('equipment', locale)}>{hero.cta}</Link>
             <DemoStartLink className="nursery-button nursery-button--outline" placement="home_hero_demo">{hero.demo_cta}</DemoStartLink>
           </div>
           {DEMO_PUBLIC_ENABLED && <p className="nursery-small">{hero.reassurance}</p>}
+          {SELF_SERVICE_PUBLIC_ENABLED && <p className="nursery-hero__diary">
+            <Link className="nursery-text-link" to={`/app/onboarding/?lang=${locale}`} onClick={() => { rememberLocale(locale); if (demoActive) leaveDemo(); }}>{hero.diary_cta}</Link>
+            <span className="nursery-small">{hero.diary_note}</span>
+          </p>}
         </div>
-        <NurseryNote className="nursery-hero__note">{hero.note}</NurseryNote>
       </section>
       <NurseryServiceStrip items={homeContent.service} />
 
