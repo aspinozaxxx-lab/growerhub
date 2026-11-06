@@ -10,7 +10,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-11-05</lastmod>
+    <lastmod>2026-11-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/novosti/</loc>
@@ -70,7 +70,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
-    <lastmod>2026-10-04</lastmod>
+    <lastmod>2026-11-06</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/growerhub-i-home-assistant-cherez-mqtt/</loc>
+    <lastmod>2026-11-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/dnevnik-rasteniy-bez-oborudovaniya-growerhub/</loc>
@@ -223,10 +227,6 @@
   <url>
     <loc>https://growerhub.ru/articles/home-assistant-dlya-rasteniy/</loc>
     <lastmod>2026-10-04</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/articles/growerhub-i-home-assistant-cherez-mqtt/</loc>
-    <lastmod>2026-10-03</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/poliv-s-uchetom-dozhdya-growerhub/</loc>
@@ -446,7 +446,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-11-05</lastmod>
+    <lastmod>2026-11-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/news/</loc>
@@ -506,7 +506,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/home-assistant-and-diy/</loc>
-    <lastmod>2026-10-04</lastmod>
+    <lastmod>2026-11-06</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/</loc>
+    <lastmod>2026-11-06</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/lemon-leaf-drop-after-moving-indoors/</loc>
@@ -662,10 +666,6 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/drying-forecast-watering-plan-growerhub/</loc>
-    <lastmod>2026-10-03</lastmod>
-  </url>
-  <url>
-    <loc>https://growerhub.ru/en/articles/growerhub-and-home-assistant-via-mqtt-practical-integration-scheme/</loc>
     <lastmod>2026-10-03</lastmod>
   </url>
   <url>
