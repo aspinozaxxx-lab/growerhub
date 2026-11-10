@@ -12,6 +12,8 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id":"tomato-seed-storage-guide","published_at":"2026-11-10","kind":"article","article_id":"hranenie-semyan-tomatov","preview_position":"50% 50%"},
+    {"id":"deferred-news-section","published_at":"2026-11-10","kind":"fix","text":"Лента новостей загружается при открытии раздела, поэтому остальные страницы скачивают меньше JavaScript."},
     {"id":"demo-exit","published_at":"2026-11-06","kind":"fix","text":"Исправлен выход из демо."},
     {"id":"zigbee2mqtt-own-network-first-reading","published_at":"2026-11-06","kind":"article_update","article_id":"growerhub-i-home-assistant-cherez-mqtt","text":"Уточнили подключение своей работающей сети Zigbee2MQTT: вход в аккаунт, выход из деморежима и проверка нового показания датчика. В инструкции разобран случай ONLINE с сохранённым значением."},
     {"id":"home-own-plant-diary-entry","published_at":"2026-11-06","kind":"fix","text":"На главной появилась ссылка «Вести дневник своего растения». Она ведёт в существующий дневник через вход в аккаунт; оборудование не требуется. Выбор комплекта и демоферма по-прежнему доступны отдельно."},

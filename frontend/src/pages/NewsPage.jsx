@@ -1,16 +1,16 @@
 import { Link } from 'react-router-dom';
 import LeadCta from '../components/LeadCta';
 import { getArticleById } from '../content/articles';
-import { getPageContent } from '../content/pages';
+import newsRu from '../../content/pages/news.json';
+import newsEn from '../../content/en/pages/news.json';
 import { getArticlePath, getPublicPath } from '../domain/localizedRoutes';
 import { SITE_URL } from '../domain/siteConfig';
 import { getCurrentLocale, getIntlLocale } from '../locales/i18n';
 import useSeoMeta from '../utils/useSeoMeta';
-import './NewsPage.css';
 
 function NewsPage() {
   const locale = getCurrentLocale();
-  const { newsContent: content } = getPageContent(locale);
+  const content = locale === 'en' ? newsEn : newsRu;
   const path = getPublicPath('news', locale);
   const entries = [...content.entries].sort((left, right) => (
     right.published_at.localeCompare(left.published_at)

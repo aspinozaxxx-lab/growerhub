@@ -5,7 +5,7 @@ import AboutPage from './pages/AboutPage';
 import ArticleClusterPage from './pages/ArticleClusterPage';
 import ArticlePage from './pages/ArticlePage';
 import ArticlesListPage from './pages/ArticlesListPage';
-import NewsPage from './pages/NewsPage';
+import './pages/NewsPage.css';
 import HomePage from './pages/HomePage';
 import EquipmentCategoryPage from './pages/EquipmentCategoryPage';
 import EquipmentIndexPage from './pages/EquipmentIndexPage';
@@ -20,6 +20,7 @@ import { loadAppTranslations, translateCommon } from './locales/i18n';
 import { trackPageView, trackProductGoalOnce } from './utils/analytics';
 import { AuthProvider, useAuth } from './features/auth/AuthContext';
 
+const LazyNewsPage = lazy(() => import('./pages/NewsPage'));
 const AppSection = lazy(async () => {
   await loadAppTranslations();
   return import('./pages/app/AppSection');
@@ -58,7 +59,9 @@ function AnalyticsRouteTracker() {
   return null;
 }
 
-function App({ initialArticle } = {}) {
+function App({ initialArticle, initialNewsPage } = {}) {
+  const news = <Suspense fallback={null}>{initialNewsPage ?? <LazyNewsPage />}</Suspense>;
+
   return (
     <AuthProvider>
       <ShopProvider>
@@ -85,8 +88,8 @@ function App({ initialArticle } = {}) {
         <Route path="/en/equipment/irrigation-pump/" element={<PumpEarlyAccessPage />} />
         <Route path="/articles/" element={<ArticlesListPage />} />
         <Route path="/en/articles/" element={<ArticlesListPage />} />
-        <Route path="/novosti/" element={<NewsPage />} />
-        <Route path="/en/news/" element={<NewsPage />} />
+        <Route path="/novosti/" element={news} />
+        <Route path="/en/news/" element={news} />
         <Route path="/articles/clusters/:clusterSlug/" element={<ArticleClusterPage />} />
         <Route path="/en/articles/clusters/:clusterSlug/" element={<ArticleClusterPage />} />
         <Route path="/articles/:slug/" element={<ArticlePage initialArticle={initialArticle} />} />
