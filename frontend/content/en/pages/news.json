@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id":"white-deposit-potting-soil-guide","published_at":"2026-11-13","kind":"article","article_id":"belyy-nalet-na-grunte-v-gorshke","preview_position":"50% 50%"},
     {"id":"tomato-seed-storage-guide","published_at":"2026-11-10","kind":"article","article_id":"hranenie-semyan-tomatov","preview_position":"50% 50%"},
     {"id":"deferred-news-section","published_at":"2026-11-10","kind":"fix","text":"The news feed loads when you open the section, reducing the JavaScript downloaded by other pages."},
     {"id":"demo-exit","published_at":"2026-11-06","kind":"fix","text":"Fixed demo exit."},
