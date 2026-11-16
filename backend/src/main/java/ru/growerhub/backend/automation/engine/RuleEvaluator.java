@@ -2,6 +2,7 @@ package ru.growerhub.backend.automation.engine;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,7 +20,12 @@ public class RuleEvaluator {
     private final RuleSchedule schedule;
     private final ControlSettings controls;
     public RuleEvaluator(RuleSettings settings, ControlSettings controls) { this.settings = settings; this.schedule = new RuleSchedule(settings); this.controls = controls; }
-    public record Context(Map<Integer, ResourceBinding> resources, Map<Integer, PlantInfo> plants, ZoneId timezone, Instant now) {}
+    public record Context(Map<Integer, ResourceBinding> resources, Map<Integer, PlantInfo> plants, ZoneId timezone, Instant now,
+            Map<Integer, ResourceBinding> connections) {
+        public Context(Map<Integer, ResourceBinding> resources, Map<Integer, PlantInfo> plants, ZoneId timezone, Instant now) {
+            this(resources, plants, timezone, now, resources);
+        }
+    }
     public record Decision(String key, boolean ready, String reason) {}
     public record ConditionDecision(boolean valid, boolean value, String reason) {}
     private record Check(boolean valid, boolean value, String reason) {}
@@ -33,6 +39,15 @@ public class RuleEvaluator {
         switch (type) {
             case "schedule", "interval", "calendar" -> schedule.validate(trigger, d.version());
             case "change" -> { fields(trigger, "type", "resourceId", "maxAgeSeconds"); resource(trigger, context, used); freshness(trigger); }
+            case "connection_lost" -> {
+                if (d.version() != 2) throw bad("Для уведомления о потере связи используйте версию 2");
+                fields(trigger, "type", "resourceId", "seconds");
+                var monitored = resource(trigger, context, used);
+                if (!"LIGHT_SWITCH".equals(monitored.role()) || monitored.zigbeeCoordinatorId() == null)
+                    throw bad("Выберите розетку, назначенную для освещения");
+                bounded(trigger, "seconds", settings.minIntervalSeconds(), settings.maxIntervalSeconds());
+                if (d.condition() != null && !d.condition().isNull()) throw bad("Для уведомления о потере связи дополнительные условия не нужны");
+            }
             case "repeat_while" -> {
                 if (d.version() < 3) throw bad("Для повторяемого удержания используйте версию 3");
                 fields(trigger, "type", "seconds", "first", "onConditionLoss");
@@ -45,6 +60,8 @@ public class RuleEvaluator {
         }
         validateCondition(d.condition(), context, used, 0, new AtomicInteger());
         if (d.actions() == null || d.actions().isEmpty() || d.actions().size() > settings.actions()) throw bad("Последовательность должна содержать от 1 до " + settings.actions() + " действий");
+        if (type.equals("connection_lost") && (d.actions().size() != 1 || !"notify".equals(d.actions().getFirst().path("type").asText())))
+            throw bad("При потере связи доступно одно уведомление Telegram");
         if (d.version() >= 3 && (d.actions().stream().noneMatch(a -> "hold".equals(a.path("type").asText()))
                 || d.actions().stream().anyMatch(a -> Set.of("set", "water").contains(a.path("type").asText()))))
             throw bad("Версия 3 предназначена для hold; прямые команды и ограниченный полив сохраняйте отдельным правилом версии 2");
@@ -143,6 +160,10 @@ public class RuleEvaluator {
             if (elapsed < 0 || slot == 0 && "after_interval".equals(d.trigger().get("first").asText())
                     || elapsed % seconds > settings.scheduleGraceSeconds()) return new Decision(null, false, "Ожидает следующего периода, пропущенные циклы не догоняются");
             key = "repeat:" + runtime.path("repeatGeneration").asLong() + ":" + slot;
+        } else if (type(d.trigger()).equals("connection_lost")) {
+            key = connectionLossKey(d, context);
+            if (key != null && key.equals(runtime.path("notifiedConnection").asText()))
+                return new Decision(key, false, "Уведомление об этой потере связи уже подготовлено");
         } else if (d.version() >= 2 && !type(d.trigger()).equals("change")) {
             var occurrence = schedule.current(d.trigger(), d.version(), context.now(), context.timezone());
             key = occurrence == null ? null : occurrence.key();
@@ -152,6 +173,15 @@ public class RuleEvaluator {
         if (runtime.has("lastStarted") && context.now().getEpochSecond() - runtime.get("lastStarted").asLong() < d.cooldownSeconds())
             return new Decision(key, false, "Пауза между запусками ещё не закончилась");
         return new Decision(key, true, "Условия выполнены");
+    }
+
+    public String connectionLossKey(Definition d, Context context) {
+        var resource = context.connections().get(integer(d.trigger(), "resourceId"));
+        if (resource == null || !resource.ready() || resource.lastSeenAt() == null) return null;
+        var lastSeen = resource.lastSeenAt().toInstant(ZoneOffset.UTC);
+        if (lastSeen.plusSeconds(d.trigger().get("seconds").asLong()).isAfter(context.now())) return null;
+        String identity = resource.zigbeeCoordinatorId() + ":" + resource.zigbeeIeeeAddress() + ":" + resource.commandProperty() + ":" + lastSeen;
+        return "connection_lost:" + resource.id() + ":" + UUID.nameUUIDFromBytes(identity.getBytes(StandardCharsets.UTF_8));
     }
 
     public ConditionDecision conditions(Definition d, Context context, ObjectNode runtime) {
@@ -193,9 +223,10 @@ public class RuleEvaluator {
             }
         }
         List<String> notes = new ArrayList<>();
-        notes.add("device_ack_delay");
+        if (type(d.trigger()).equals("connection_lost")) notes.add("connection_loss_once");
+        else notes.add("device_ack_delay");
         if (type(d.trigger()).equals("repeat_while")) { notes.add("repeat_while_no_catchup"); notes.add("priority_arbitration"); }
-        else if (d.version() >= 2 && !type(d.trigger()).equals("change")) notes.add(d.trigger().path("misfire").asText("skip").equals("run_once")
+        else if (d.version() >= 2 && !Set.of("change", "connection_lost").contains(type(d.trigger()))) notes.add(d.trigger().path("misfire").asText("skip").equals("run_once")
                 ? "misfire_run_once" : "misfire_skip");
         if (timeline.size() == settings.previewTimelineSteps()) notes.add("timeline_truncated");
         if (d.version() == 1 && d.actions().stream().anyMatch(a -> type(a).equals("water"))) notes.add("legacy_nonblocking_water");
@@ -213,6 +244,7 @@ public class RuleEvaluator {
                 Map.of("type", "interval", "seconds", range(settings.minIntervalSeconds(), settings.maxIntervalSeconds()), "anchor", "ISO UTC первого запуска", "misfire?", "skip|run_once"),
                 Map.of("type", "calendar", "every", range(1, settings.maxIntervalSeconds() / 86400), "unit", "day|week (для week максимум " + settings.maxIntervalSeconds() / 604800 + ")", "startDate", "YYYY-MM-DD", "at", "HH:mm", "timezone?", "IANA, по умолчанию пояс аккаунта", "misfire?", "skip|run_once"),
                 Map.of("type", "change", "resourceId", "ID своего датчика", "maxAgeSeconds", range(1, settings.maxFreshnessSeconds())),
+                Map.of("type", "connection_lost", "resourceId", "ID LIGHT_SWITCH своей теплицы", "seconds", range(settings.minIntervalSeconds(), settings.maxIntervalSeconds()), "constraints", "Только version=2, condition=null и одно действие notify. Отсчёт от последнего живого сообщения розетки; одно уведомление за эпизод."),
                 Map.of("type", "repeat_while", "seconds", range(settings.minIntervalSeconds(), settings.maxIntervalSeconds()), "first", "immediate|after_interval", "onConditionLoss", "release|finish")));
         result.put("conditions", List.of("{type:all|any,conditions:[...]}", "{type:not,condition:...}", "{type:time,from:HH:mm,until:HH:mm,days?:[1..7]}", "{type:stage,plantId,stage}",
                 "{type:sensor,resourceId,op:gt|gte|lt|lte|eq|ne,value,hysteresis?:number,holdSeconds?:0.." + settings.maxDelaySeconds() + ",maxAgeSeconds:1.." + settings.maxFreshnessSeconds() + "}"));
@@ -221,14 +253,19 @@ public class RuleEvaluator {
                 Map.of("type", "water", "resourceId", "ID WATER_PUMP", "durationSeconds", range(1, settings.maxTotalWateringSeconds()), "pulse?", Map.of("runSeconds", range(1, settings.maxWateringSeconds()), "pauseSeconds", range(1, settings.maxDelaySeconds())), "constraints", "Без pulse durationSeconds не более " + settings.maxWateringSeconds() + ". С pulse это общая работа насоса, паузы не входят."),
                 Map.of("type", "delay", "seconds", range(1, settings.maxDelaySeconds())), Map.of("type", "notify", "text", "строка до 1000 символов")));
         result.put("limits", Map.of("maxActions", settings.actions(), "maxCycleSeconds", settings.maxDelaySeconds(), "maxDailyWateringSecondsPerChannel", settings.maxDailyWateringSeconds(), "scheduleGraceSeconds", settings.scheduleGraceSeconds()));
-        result.put("examples", Map.of("repeatHoldWhileLightOn", Map.of("kind", "rule", "payload", Map.of("enabled", false,
+        result.put("examples", Map.of("lightingConnectionLost", Map.of("kind", "rule", "payload", Map.of("enabled", false,
+                "definition", Map.of("version", 2, "name", "Нет связи с розеткой света", "scopeType", "BOX", "scopeId", "$greenhouseId",
+                        "trigger", Map.of("type", "connection_lost", "resourceId", "$lightResourceId", "seconds", 10800),
+                        "actions", List.of(Map.of("type", "notify", "text", "Проверьте связь с розеткой света в выбранной теплице.")),
+                        "cooldownSeconds", settings.minCooldownSeconds()))),
+                "repeatHoldWhileLightOn", Map.of("kind", "rule", "payload", Map.of("enabled", false,
                 "definition", Map.of("version", 3, "name", "Проветривание при включённом свете", "scopeType", "BOX", "scopeId", "$greenhouseId",
                         "trigger", Map.of("type", "repeat_while", "seconds", 1800, "first", "immediate", "onConditionLoss", "release"),
                         "condition", Map.of("type", "sensor", "resourceId", "$lightResourceId", "op", "eq", "value", "ON", "maxAgeSeconds", Math.min(controls.freshnessSeconds(), settings.maxFreshnessSeconds())),
                         "actions", List.of(Map.of("type", "hold", "resourceId", "$exhaustResourceId", "value", "ON", "durationSeconds", 180,
                                 "priority", Math.min(controls.maxRulePriority(), Math.max(controls.minRulePriority(), controls.scenarioPriority() + 1)))),
                         "cooldownSeconds", settings.minCooldownSeconds())))));
-        result.put("instructions", "Вложенность: condition находится в definition.condition рядом с trigger; version — только в definition.version, не в trigger или action. Для repeat_while definition.condition обязательно. examples.repeatHoldWhileLightOn — готовая структура gh_prepare_change; замени $greenhouseId, $lightResourceId, $exhaustResourceId целыми ID из gh_farm_report. Для совместного управления светом/климатом создавай version=3 с hold. hold удерживает значение с priority только durationSeconds от фактического подтверждения. По окончании снимается только требование: никогда не добавляй OFF/восстановление прошлого состояния для освобождения канала. Более высокий priority выигрывает; равные — более раннее неизменное время создания, затем ключ источника. Готовые сценарии имеют priority=" + controls.scenarioPriority() + ", ручные=" + controls.manualPriority() + ". Для периодического удержания пока фактически включён свет: repeat_while, seconds=период, first=immediate|after_interval, onConditionLoss=release|finish, condition sensor eq onValue с maxAgeSeconds. release сразу снимает требование при OFF; finish даёт закончить начатое удержание. Устаревшие данные всегда снимают требование. Пропущенные периоды не догоняются. Остальные сценарии, особенно water, могут использовать version=2 и сохраняют эксклюзивность. calendar — каждые N дней в местное время, interval — точные секунды, misfire=skip по умолчанию. Полив pulse — один ограниченный сеанс pump, никогда не заменяй его set/hold. gh_prepare_change kind=rule с payload {enabled,definition} сам проверяет правило и возвращает план и согласование; отдельный gh_validate_rule перед ним не нужен. Подготовка только показывает карточку и ничего не включает. Для ручного set укажи ttlSeconds: это временное вмешательство, не отключение автоматики навсегда.");
+        result.put("instructions", "Для потери связи с розеткой света используй examples.lightingConnectionLost: version=2, connection_lost, condition=null, одно notify. Замени ID и напиши понятный текст с названием теплицы. Ресурс должен уже иметь живое сообщение. На несколько розеток подготовь отдельные подтверждаемые правила. Вложенность: condition находится в definition.condition рядом с trigger; version — только в definition.version, не в trigger или action. Для repeat_while definition.condition обязательно. examples.repeatHoldWhileLightOn — готовая структура gh_prepare_change; замени $greenhouseId, $lightResourceId, $exhaustResourceId целыми ID из gh_farm_report. Для совместного управления светом/климатом создавай version=3 с hold. hold удерживает значение с priority только durationSeconds от фактического подтверждения. По окончании снимается только требование: никогда не добавляй OFF/восстановление прошлого состояния для освобождения канала. Более высокий priority выигрывает; равные — более раннее неизменное время создания, затем ключ источника. Готовые сценарии имеют priority=" + controls.scenarioPriority() + ", ручные=" + controls.manualPriority() + ". Для периодического удержания пока фактически включён свет: repeat_while, seconds=период, first=immediate|after_interval, onConditionLoss=release|finish, condition sensor eq onValue с maxAgeSeconds. release сразу снимает требование при OFF; finish даёт закончить начатое удержание. Устаревшие данные всегда снимают требование. Пропущенные периоды не догоняются. Остальные сценарии, особенно water, могут использовать version=2 и сохраняют эксклюзивность. calendar — каждые N дней в местное время, interval — точные секунды, misfire=skip по умолчанию. Полив pulse — один ограниченный сеанс pump, никогда не заменяй его set/hold. gh_prepare_change kind=rule с payload {enabled,definition} сам проверяет правило и возвращает план и согласование; отдельный gh_validate_rule перед ним не нужен. Подготовка только показывает карточку и ничего не включает. Для ручного set укажи ttlSeconds: это временное вмешательство, не отключение автоматики навсегда.");
         return Collections.unmodifiableMap(result);
     }
     private Map<String, Integer> range(int min, int max) { return Map.of("minimum", min, "maximum", max); }

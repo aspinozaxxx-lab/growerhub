@@ -69,9 +69,19 @@ public class RuleService {
             automation.getObject().validateRuleWatering(watering(action), user);
         var readiness = new ArrayList<String>();
         if (!s.areas().get(area(d))) readiness.add("Выбранная ферма или теплица отключена");
+        boolean connectionLoss = "connection_lost".equals(d.trigger().path("type").asText());
         for (int resourceId : resources) {
             var resource = s.context().resources().get(resourceId);
-            if (!resource.ready()) readiness.add(resource.label() + ": " + Objects.requireNonNullElse(resource.reason(), "нет связи"));
+            if (!resource.ready() && (!connectionLoss || !s.context().connections().get(resourceId).ready()))
+                readiness.add(resource.label() + ": " + Objects.requireNonNullElse(resource.reason(), "нет связи"));
+        }
+        if (connectionLoss) {
+            if (user.isDemo()) readiness.add("Уведомления о связи доступны в своём аккаунте");
+            else {
+                var channel = notifications.status(user);
+                if (!channel.available() || !channel.connected() || !channel.enabled())
+                    readiness.add("Подключите Telegram и включите уведомления в настройках");
+            }
         }
         Set<Integer> writes = writes(d); var conflicts = new ArrayList<String>();
         for (var existing : rules.findByUserIdOrderByUpdatedAtDesc(user.id()))
@@ -122,7 +132,12 @@ public class RuleService {
         var row = existing == null ? new RuleEntity() : existing;
         if (existing == null) { row.id = UUID.randomUUID(); row.userId = user.id(); row.createdAt = now(); }
         row.revision++; row.enabled = command.enabled(); row.definitionJson = write(command.definition());
-        row.runtimeJson = "{}"; row.updatedAt = now(); rules.save(row);
+        var runtime = json.createObjectNode();
+        if (existing != null && "connection_lost".equals(command.definition().trigger().path("type").asText())) {
+            var notified = read(existing.runtimeJson).get("notifiedConnection");
+            if (notified != null) runtime.set("notifiedConnection", notified);
+        }
+        row.runtimeJson = runtime.toString(); row.updatedAt = now(); rules.save(row);
         var version = new RuleVersionEntity(); version.id = UUID.randomUUID(); version.ruleId = row.id; version.revision = row.revision;
         version.enabled = row.enabled; version.definitionJson = row.definitionJson; version.createdAt = now(); versions.save(version);
         cancelWaiting(row.id, user.id(), "Правило изменено"); return view(row);
@@ -182,6 +197,7 @@ public class RuleService {
                     run.bindingFingerprint = fingerprint(d, user); run.status = "waiting"; run.resultJson = "[]";
                     run.nextAt = now(); run.createdAt = now(); run.reason = "Условия выполнены"; runs.save(run);
                     runtime.put("lastStarted", clock.instant().getEpochSecond()); runtime.put("reason", "Последовательность запущена");
+                    if ("connection_lost".equals(d.trigger().path("type").asText())) runtime.put("notifiedConnection", decision.key());
                 }
             } catch (DomainException ex) { runtime.put("reason", ex.getMessage()); }
             row.runtimeJson = runtime.toString(); rules.save(row);
@@ -211,8 +227,13 @@ public class RuleService {
             }
             try {
                 if (!run.bindingFingerprint.equals(fingerprint(d, user))) { stop(run, "Состав оборудования изменился"); continue; }
-                var check = preview(rule.id, d, user);
+                var current = snapshot(user);
+                var check = preview(rule.id, d, user, current);
                 if (!check.conflicts().isEmpty() || !check.readiness().isEmpty()) { stop(run, "Оборудование или настройки недоступны"); continue; }
+                if ("connection_lost".equals(d.trigger().path("type").asText())
+                        && !run.triggerKey.equals(run.revision + ":" + evaluator.connectionLossKey(d, current.context()))) {
+                    stop(run, "Связь с розеткой восстановилась до подготовки уведомления"); continue;
+                }
             } catch (DomainException ex) { stop(run, ex.getMessage()); continue; }
             if (run.stepIndex >= d.actions().size()) { run.status = "completed"; run.reason = "Все действия завершены"; runs.save(run); continue; }
             var action = d.actions().get(run.stepIndex);
@@ -230,6 +251,10 @@ public class RuleService {
         if (!rule.enabled || rule.revision != run.revision || !run.bindingFingerprint.equals(fingerprint(definition(run.definitionJson), step.user()))) throw conflict();
         var action = definition(run.definitionJson).actions().get(run.stepIndex);
         if ("notify".equals(action.get("type").asText())) {
+            var definition = definition(run.definitionJson);
+            if ("connection_lost".equals(definition.trigger().path("type").asText())
+                    && !run.triggerKey.equals(run.revision + ":" + evaluator.connectionLossKey(definition, snapshot(step.user()).context())))
+                throw bad("Связь с розеткой уже восстановилась");
             boolean sent = notifications.enqueueMessage(step.user(), "rule:" + run.id + ":" + run.stepIndex, action.get("text").asText(), null);
             return json.valueToTree(Map.of("notificationQueued", sent, "demo", step.user().isDemo()));
         }
@@ -435,6 +460,7 @@ public class RuleService {
             areas.put("ROOM:" + farm.id(), farm.enabled()); farm.slots().forEach(r -> resources.put(r.id(), r));
             for (var g : farm.greenhouses()) { areas.put("BOX:" + g.id(), farm.enabled() && g.enabled()); g.slots().forEach(r -> resources.put(r.id(), r)); }
         }
+        var connections = Map.copyOf(resources);
         resources.replaceAll((id, r) -> {
             if (!controls.switchChannel(r) || !r.ready()) return r;
             ru.growerhub.backend.zigbee.contract.ZigbeeControlObservation observed;
@@ -447,7 +473,7 @@ public class RuleService {
                     r.label(), available && r.ready() && (observed == null || observed.online()), available ? r.reason() : "Устройство сейчас недоступно");
         });
         var p = plants.listPlants(user).stream().collect(Collectors.toMap(v -> v.id(), v -> v));
-        return new Snapshot(f, new RuleEvaluator.Context(resources, p, ZoneId.of(users.getTimezone(user.id())), clock.instant()), areas);
+        return new Snapshot(f, new RuleEvaluator.Context(resources, p, ZoneId.of(users.getTimezone(user.id())), clock.instant(), connections), areas);
     }
     private JsonNode binding(ResourceBinding r) {
         var node = (ObjectNode) json.valueToTree(r); node.remove(List.of("current_value", "last_seen_at", "connection_status", "connection_message", "ready", "reason")); return node;
@@ -475,6 +501,7 @@ public class RuleService {
     private Rule view(RuleEntity row) { var d = definition(row.definitionJson); return new Rule(row.id, row.revision, row.enabled, d, describe(d), row.updatedAt, row.enabled ? read(row.runtimeJson).path("reason").asText("Ожидает проверки условий") : "Выключен"); }
     private String describe(Definition d) {
         String when = switch (d.trigger().path("type").asText()) { case "schedule" -> "В " + d.trigger().path("at").asText(); case "interval" -> "Каждые " + d.trigger().path("seconds").asInt() + " сек.";
+            case "connection_lost" -> "После " + d.trigger().path("seconds").asInt() + " сек. без живых сообщений розетки света";
             case "repeat_while" -> "Пока выполняются условия, каждые " + d.trigger().path("seconds").asInt() + " сек.; первый цикл " + ("immediate".equals(d.trigger().path("first").asText()) ? "сразу" : "через период");
             case "calendar" -> "Каждые " + d.trigger().path("every").asInt() + ("week".equals(d.trigger().path("unit").asText()) ? " нед." : " дн.") + " в " + d.trigger().path("at").asText() + ", с " + d.trigger().path("startDate").asText(); default -> "При изменении показаний"; };
         return when + (d.condition() == null || d.condition().isNull() ? "" : ", если выполнены условия") + ": " + d.actions().stream().map(a -> switch (a.path("type").asText()) {

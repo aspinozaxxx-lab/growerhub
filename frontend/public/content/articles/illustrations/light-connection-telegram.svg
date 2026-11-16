@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" fill="none">
+  <title>A lighting socket, a three-hour interval and one message</title>
+  <rect width="1200" height="675" rx="40" fill="#F2F5EC"/>
+  <circle cx="237" cy="336" r="164" fill="#E0E9D7"/>
+  <rect x="141" y="192" width="192" height="288" rx="45" fill="white" stroke="#48664C" stroke-width="9"/>
+  <circle cx="237" cy="320" r="65" fill="#F2F5EC" stroke="#48664C" stroke-width="7"/>
+  <circle cx="213" cy="316" r="10" fill="#48664C"/>
+  <circle cx="261" cy="316" r="10" fill="#48664C"/>
+  <path d="M237 260v18m0 83v18" stroke="#48664C" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="237" cy="425" r="13" fill="#C39448"/>
+  <path d="M374 337h83m281 0h87" stroke="#C39448" stroke-width="8" stroke-dasharray="10 16" stroke-linecap="round"/>
+  <circle cx="600" cy="337" r="123" fill="white" stroke="#C39448" stroke-width="9"/>
+  <path d="M600 237v13m100 87h-13m-87 100v-13m-100-87h13" stroke="#C39448" stroke-width="7" stroke-linecap="round"/>
+  <path d="M600 266v71h63" stroke="#48664C" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="600" y="393" text-anchor="middle" fill="#48664C" font-size="36" font-family="Arial, sans-serif">3 h</text>
+  <rect x="847" y="220" width="250" height="221" rx="35" fill="white" stroke="#48664C" stroke-width="9"/>
+  <path d="M899 441v42l50-42" fill="white"/>
+  <path d="M899 441v42l50-42m-51-154h145m-145 48h111m-111 48h70" stroke="#48664C" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="1077" cy="227" r="37" fill="#48664C"/>
+  <text x="1077" y="240" text-anchor="middle" fill="white" font-size="38" font-family="Arial, sans-serif">1</text>
+</svg>

@@ -29,6 +29,7 @@ class RuleIntegrationTest extends IntegrationTestBase {
     @MockBean ru.growerhub.backend.automation.engine.ControlWorker controlWorker;
     @MockBean ZigbeeFacade zigbee;
     @MockBean PlantFacade plants;
+    @MockBean ru.growerhub.backend.notification.NotificationFacade notifications;
     @Autowired UserRepository users;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper json;
@@ -60,6 +61,55 @@ class RuleIntegrationTest extends IntegrationTestBase {
         when(plants.listPlants(any())).thenReturn(List.of());
         doReturn(overview(false, true, "OFF")).when(facade).getFarmsOverview(user);
         doReturn(new FarmsOverview(List.of(), null, List.of(), null)).when(facade).getFarmsOverview(other);
+    }
+    Definition connectionLossRule() throws Exception {
+        return new Definition(2, "Связь со светом", "ROOM", 1,
+                json.readTree("{\"type\":\"connection_lost\",\"resourceId\":1,\"seconds\":10800}"), null,
+                List.of(json.readTree("{\"type\":\"notify\",\"text\":\"Проверьте связь со светом\"}")), 60);
+    }
+    void connectedTelegram() {
+        when(notifications.status(user)).thenReturn(new ru.growerhub.backend.notification.contract.TelegramData.Status(
+                true, true, "Личный чат", null, null, true, 9, 22, 8, "UTC", "connected"));
+        when(notifications.enqueueMessage(eq(user), anyString(), anyString(), isNull())).thenReturn(true);
+    }
+    @Test void offlineLightNotifiesOnceEvenAfterRunHistoryCleanupAndRearmsOnLiveContact() throws Exception {
+        connectedTelegram();
+        when(zigbee.controlObservation(eq(user), eq(coordinator), eq("0x1"), eq("state")))
+                .thenAnswer(call -> new ZigbeeControlObservation(observedValue, observedAt, false));
+        var rule = facade.saveRule(null, new Save(null, true, connectionLossRule()), user);
+        clock.value = at.plusSeconds(10799); facade.evaluateRules(user.id());
+        assertThat(facade.ruleHistory(rule.id(), user)).isEmpty();
+        clock.value = at.plusSeconds(10800); facade.evaluateRules(user.id());
+        var step = facade.claimRuleStep(user.id()); assertThat(step).isNotNull();
+        facade.finishRuleStep(step, facade.executeRuleStep(step), true);
+        assertThat(facade.claimRuleStep(user.id())).isNull();
+        jdbc.execute("delete from automation_rule_runs");
+        clock.value = at.plusSeconds(86400); facade.evaluateRules(user.id());
+        assertThat(facade.ruleHistory(rule.id(), user)).isEmpty();
+        rule = facade.toggleRule(rule.id(), new Toggle(rule.revision(), false), user);
+        rule = facade.toggleRule(rule.id(), new Toggle(rule.revision(), true), user);
+        facade.evaluateRules(user.id());
+        assertThat(facade.ruleHistory(rule.id(), user)).isEmpty();
+        doReturn(overview(false, true, "OFF")).when(facade).getFarmsOverview(user);
+        facade.evaluateRules(user.id());
+        clock.value = clock.instant().plusSeconds(10800); facade.evaluateRules(user.id());
+        step = facade.claimRuleStep(user.id()); assertThat(step).isNotNull();
+        facade.finishRuleStep(step, facade.executeRuleStep(step), true);
+        verify(notifications, times(2)).enqueueMessage(eq(user), anyString(), anyString(), isNull());
+        verify(zigbee, never()).setDeviceProperty(any(), any(), any(), any(), any());
+        assertThatThrownBy(() -> facade.previewRule(null, connectionLossRule(), other)).isInstanceOf(DomainException.class);
+    }
+    @Test void restoredLightCancelsPendingAlertAndTelegramIsRequiredBeforeEnabling() throws Exception {
+        connectedTelegram();
+        var rule = facade.saveRule(null, new Save(null, true, connectionLossRule()), user);
+        clock.value = at.plusSeconds(10800); facade.evaluateRules(user.id());
+        doReturn(overview(false, true, "OFF")).when(facade).getFarmsOverview(user);
+        assertThat(facade.claimRuleStep(user.id())).isNull();
+        assertThat(facade.ruleHistory(rule.id(), user).getFirst().status()).isEqualTo("cancelled");
+        verify(notifications, never()).enqueueMessage(any(), anyString(), anyString(), any());
+        when(notifications.status(user)).thenReturn(new ru.growerhub.backend.notification.contract.TelegramData.Status(
+                true, false, null, null, null, false, 9, 22, 8, "UTC", null));
+        assertThatThrownBy(() -> facade.saveRule(null, new Save(null, true, connectionLossRule()), user)).isInstanceOf(DomainException.class);
     }
     @Test void missingUnrelatedSwitchDoesNotBlockIndependentNotificationRules() throws Exception {
         when(zigbee.controlObservation(eq(user), eq(coordinator), eq("0x1"), eq("state")))

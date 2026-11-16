@@ -27,7 +27,7 @@ function coordinationLabel(message, resourceNames) {
 }
 function Timing({ timing, resourceNames }) {
   if (!timing) return null;
-  const notes = { device_ack_delay: 'Длительность плановая: подтверждения устройств могут добавить задержку.', misfire_run_once: 'После пропуска выполнится только последний актуальный запуск.', misfire_skip: 'Опоздавший более чем на {{seconds}} с запуск будет пропущен.', timeline_truncated: 'Показаны первые {{count}} этапов, итог учитывает весь цикл.', legacy_nonblocking_water: 'Для ожидания завершения полива подготовьте правило версии 2.', repeat_while_no_catchup: 'Циклы повторяются только при выполнении условия. Пропущенные циклы не догоняются.', priority_arbitration: 'Временное удержание согласуется с другими сценариями по приоритету.' };
+  const notes = { device_ack_delay: 'Длительность плановая: подтверждения устройств могут добавить задержку.', connection_loss_once: 'Одно уведомление за период недоступности. Отсчёт начинается с последнего живого сообщения розетки.', misfire_run_once: 'После пропуска выполнится только последний актуальный запуск.', misfire_skip: 'Опоздавший более чем на {{seconds}} с запуск будет пропущен.', timeline_truncated: 'Показаны первые {{count}} этапов, итог учитывает весь цикл.', legacy_nonblocking_water: 'Для ожидания завершения полива подготовьте правило версии 2.', repeat_while_no_catchup: 'Циклы повторяются только при выполнении условия. Пропущенные циклы не догоняются.', priority_arbitration: 'Временное удержание согласуется с другими сценариями по приоритету.' };
   return <section className="assistant-timing" aria-label={t('Предварительный план')}>
     <p><strong>{t('Весь цикл')}: {duration(timing.cycleSeconds)}</strong>{timing.activeWateringSeconds > 0 && <> · {t('Работа насоса')}: {duration(timing.activeWateringSeconds)}</>}</p>
     {timing.nextRuns?.length > 0 && <><strong>{t('Ближайшие запуски')}</strong><ol>{timing.nextRuns.map(r => <li key={r.at}>{new Date(r.at).toLocaleString(getCurrentLocale(), { timeZone: timing.timezone, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</li>)}</ol><small>{timing.timezone}</small></>}
@@ -35,10 +35,27 @@ function Timing({ timing, resourceNames }) {
     {timing.notes?.map(n => <small key={n}>{t(notes[n] || n, { seconds: timing.scheduleGraceSeconds, count: timing.previewStepLimit })}</small>)}
   </section>;
 }
+function triggerLabel(trigger, resourceNames) {
+  if (trigger?.type === 'connection_lost') {
+    const unit = trigger.seconds % 3600 === 0 ? 3600 : trigger.seconds % 60 === 0 ? 60 : 1;
+    return t('{{device}}: нет связи дольше {{duration}}', {
+      device: resourceNames[trigger.resourceId] || t('Розетка света'),
+      duration: `${trigger.seconds / unit} ${t(unit === 3600 ? 'ч' : unit === 60 ? 'мин' : 'с')}`,
+    });
+  }
+  if (trigger?.type === 'schedule') return trigger.at;
+  if (['interval', 'repeat_while'].includes(trigger?.type)) {
+    return `${t('Каждые')} ${trigger.seconds % 60 === 0 ? trigger.seconds / 60 : trigger.seconds} ${t(trigger.seconds % 60 === 0 ? 'мин' : 'с')}`;
+  }
+  if (trigger?.type === 'calendar') {
+    return `${t('Каждые')} ${trigger.every} ${t(trigger.unit === 'week' ? 'нед.' : 'дн.')} · ${trigger.at} · ${t('С даты')} ${trigger.startDate}`;
+  }
+  return t('При изменении показаний');
+}
 export default function RuleExplanation({ definition: d, resourceNames = {}, scopeName, timing, coordination }) {
   if (!d) return null;
   const trigger = d.trigger;
-  return <div className="assistant-rule-description">{scopeName && <p>{scopeName}</p>}<p><strong>{t('Когда')}</strong>: {trigger?.type === 'schedule' ? trigger.at : ['interval', 'repeat_while'].includes(trigger?.type) ? `${t('Каждые')} ${trigger.seconds % 60 === 0 ? trigger.seconds / 60 : trigger.seconds} ${t(trigger.seconds % 60 === 0 ? 'мин' : 'с')}` : trigger?.type === 'calendar' ? `${t('Каждые')} ${trigger.every} ${t(trigger.unit === 'week' ? 'нед.' : 'дн.')} · ${trigger.at} · ${t('С даты')} ${trigger.startDate}` : t('При изменении показаний')}{trigger?.days?.length ? ` · ${trigger.days.length === 7 ? t('Каждый день') : trigger.days.map(day => t(weekdays[day - 1])).join(', ')}` : ''}</p>
+  return <div className="assistant-rule-description">{scopeName && <p>{scopeName}</p>}<p><strong>{t('Когда')}</strong>: {triggerLabel(trigger, resourceNames)}{trigger?.days?.length ? ` · ${trigger.days.length === 7 ? t('Каждый день') : trigger.days.map(day => t(weekdays[day - 1])).join(', ')}` : ''}</p>
     {trigger?.type === 'repeat_while' && <><p>{t(trigger.first === 'after_interval' ? 'Первый запуск через один период после выполнения условия.' : 'Первый запуск сразу при выполнении условия.')}</p><p>{t(trigger.onConditionLoss === 'finish' ? 'Если условие пропадёт, текущий цикл завершится. Устаревшие данные отменяют удержание.' : 'Если условие пропадёт или данные устареют, удержание сразу отменится.')}</p></>}
     {d.condition && <ul><Condition node={d.condition} resourceNames={resourceNames} /></ul>}
     <ol>{d.actions?.map((a, i) => <li key={i}>{t(roles[a.type] || a.type)}{a.resourceId ? ` · ${resourceNames[a.resourceId] || t(a.type === 'water' ? 'Поливной канал' : 'Устройство')}` : ''}{a.type === 'hold' ? <>: {switchValue(a.value)} · {duration(a.durationSeconds)} · {t('Приоритет')}: {a.priority}</> : a.type === 'set' ? `: ${a.value}` : a.type === 'water' ? <>: {duration(a.durationSeconds)}{a.pulse && <> · {t('Импульс')}: {duration(a.pulse.runSeconds)} · {t('Пауза')}: {duration(a.pulse.pauseSeconds)}</>}</> : a.type === 'delay' ? `: ${a.seconds} ${t('с')}` : `: ${a.text}`}</li>)}</ol>

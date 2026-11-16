@@ -12,6 +12,15 @@ const definition = {
 };
 
 describe('RuleExplanation coordinated holds', () => {
+  it('shows the monitored socket and a single connection-loss alert', () => {
+    render(<RuleExplanation definition={{ ...definition, version: 2, condition: null,
+      trigger: { type: 'connection_lost', resourceId: 10, seconds: 10800 },
+      actions: [{ type: 'notify', text: 'Проверьте свет в теплице' }],
+    }} resourceNames={{ 10: 'Свет в теплице' }} timing={{ cycleSeconds: 0, notes: ['connection_loss_once'] }} />);
+    expect(screen.getByText(/Свет в теплице: нет связи дольше 3 ч/)).toBeInTheDocument();
+    expect(screen.getByText(/Одно уведомление за период недоступности/)).toBeInTheDocument();
+    expect(screen.queryByText('При изменении показаний')).not.toBeInTheDocument();
+  });
   it('explains recurrence, confirmation and release before the user enables it', () => {
     render(<RuleExplanation definition={definition} resourceNames={{ 10: 'Свет', 11: 'Вытяжка' }} />);
     expect(screen.getByText(/Каждые 30 мин/)).toBeInTheDocument();

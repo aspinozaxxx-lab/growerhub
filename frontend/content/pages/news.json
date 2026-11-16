@@ -12,6 +12,7 @@
     "article_update": "Обновление статьи"
   },
   "entries": [
+    {"id": "lighting-connection-telegram-alerts", "published_at": "2026-11-16", "kind": "feature", "article_id": "telegram-pri-potere-svyazi-s-rozetkoy-sveta", "preview_position": "50% 50%"},
     {"id":"winter-echeveria-care-guide","published_at":"2026-11-16","kind":"article","article_id":"eheveriya-zimoy-na-podokonnike","preview_position":"50% 70%"},
     {"id":"white-deposit-potting-soil-guide","published_at":"2026-11-13","kind":"article","article_id":"belyy-nalet-na-grunte-v-gorshke","preview_position":"50% 50%"},
     {"id":"tomato-seed-storage-guide","published_at":"2026-11-10","kind":"article","article_id":"hranenie-semyan-tomatov","preview_position":"50% 50%"},

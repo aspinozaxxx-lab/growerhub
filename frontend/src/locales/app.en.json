@@ -1539,5 +1539,19 @@
   "Ферма или теплица выключена": "The farm or greenhouse is disabled",
   "Состояние до следующей команды или отключения сценария": "State until the next command or until this routine is disabled",
   "Базовое состояние действует между сценариями. Аварийное — при потере нужных им показаний; оно важнее сценариев. Временная ручная команда важнее обоих режимов.": "The baseline applies between routines. Fallback takes priority over routines when their required readings are missing. Temporary manual control takes priority over both modes.",
-  "После восстановления показаний сценарии продолжат работу. Отключённая теплица задаёт устройству «выключено». Без связи команда ждёт подтверждения устройства.": "Routines resume when readings return. A disabled greenhouse requests OFF. Without a connection, the device cannot confirm the command."
+  "После восстановления показаний сценарии продолжат работу. Отключённая теплица задаёт устройству «выключено». Без связи команда ждёт подтверждения устройства.": "Routines resume when readings return. A disabled greenhouse requests OFF. Without a connection, the device cannot confirm the command.",
+  "Нет связи дольше": "No connection for more than",
+  "{{device}}: нет связи дольше {{duration}}": "{{device}}: no connection for more than {{duration}}",
+  "Розетка света": "Lighting socket",
+  "Одно уведомление за период недоступности. Отсчёт начинается с последнего живого сообщения розетки.": "One alert per outage. The timer starts from the socket’s last live message.",
+  "Для уведомления о потере связи используйте версию 2": "Use version 2 for a connection-loss alert",
+  "Выберите розетку, назначенную для освещения": "Choose a socket assigned to lighting",
+  "Для уведомления о потере связи дополнительные условия не нужны": "A connection-loss alert uses no additional conditions",
+  "При потере связи доступно одно уведомление Telegram": "A connection-loss rule supports one Telegram notification",
+  "Уведомление об этой потере связи уже подготовлено": "An alert for this outage has already been prepared",
+  "Уведомления о связи доступны в своём аккаунте": "Connection alerts are available in your own account",
+  "Подключите Telegram и включите уведомления в настройках": "Connect Telegram and enable notifications in Settings",
+  "Связь с розеткой восстановилась до подготовки уведомления": "The socket reconnected before the alert was prepared",
+  "Связь с розеткой уже восстановилась": "The socket has already reconnected",
+  "Уведомление готово к включению": "The alert is ready to enable"
 }

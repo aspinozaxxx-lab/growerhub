@@ -24,6 +24,49 @@ class RuleEvaluatorTest {
             value, LocalDateTime.ofInstant(seen, ZoneOffset.UTC), "ONLINE", null, "Температура", true, null);
         return new RuleEvaluator.Context(Map.of(1, sensor), Map.of(8, new PlantInfo(8, "Роза", null, null, "flower", "rose", "flowering", 1)), ZoneOffset.UTC, now);
     }
+    Definition connectionLossRule() throws Exception {
+        return new Definition(2, "Связь со светом", "BOX", 1,
+                node("{\"type\":\"connection_lost\",\"resourceId\":1,\"seconds\":10800}"), null,
+                List.of(node("{\"type\":\"notify\",\"text\":\"Проверьте розетку света\"}")), 60);
+    }
+    RuleEvaluator.Context lightContext(Instant now, Instant liveAt, Instant propertyAt) {
+        var coordinator = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        var connection = new ResourceBinding(1, "BOX", 1, "LIGHT_SWITCH", "ZIGBEE_DEVICE", null, null, coordinator,
+                "0x1", "state", "state", "ON", "OFF", "OFF", liveAt == null ? null : LocalDateTime.ofInstant(liveAt, ZoneOffset.UTC),
+                "warning", "нет связи", "Свет", true, null);
+        var property = new ResourceBinding(1, "BOX", 1, "LIGHT_SWITCH", "ZIGBEE_DEVICE", null, null, coordinator,
+                "0x1", "state", "state", "ON", "OFF", "OFF", LocalDateTime.ofInstant(propertyAt, ZoneOffset.UTC),
+                "warning", "нет связи", "Свет", false, "нет связи");
+        return new RuleEvaluator.Context(Map.of(1, property), Map.of(), ZoneOffset.UTC, now, Map.of(1, connection));
+    }
+    @Test void connectionLossUsesLiveDeviceMessagesAndSurvivesSerializedRuntime() throws Exception {
+        var definition = connectionLossRule(); var runtime = json.createObjectNode();
+        engine.validate(definition, lightContext(at, at, at));
+        assertThat(engine.evaluate(definition, lightContext(at.plusSeconds(10799), at, at), runtime).ready()).isFalse();
+        var due = engine.evaluate(definition, lightContext(at.plusSeconds(10800), at, at), runtime);
+        assertThat(due.ready()).isTrue();
+        runtime.put("notifiedConnection", due.key());
+        runtime = (com.fasterxml.jackson.databind.node.ObjectNode) json.readTree(runtime.toString());
+        assertThat(engine.evaluate(definition, lightContext(at.plusSeconds(86400), at, at), runtime).ready()).isFalse();
+        assertThat(engine.evaluate(definition, lightContext(at.plusSeconds(10800), at.plusSeconds(10800), at), runtime).ready()).isFalse();
+        assertThat(engine.evaluate(definition, lightContext(at.plusSeconds(21600), at.plusSeconds(10800), at), runtime).ready()).isTrue();
+    }
+    @Test void connectionLossDoesNotInventLastContactOrUseAnOldSwitchProperty() throws Exception {
+        var definition = connectionLossRule(); var runtime = json.createObjectNode();
+        assertThat(engine.evaluate(definition, lightContext(at, null, at), runtime).ready()).isFalse();
+        assertThat(engine.evaluate(definition, lightContext(at, at.plusSeconds(1), at), runtime).ready()).isFalse();
+        assertThat(engine.evaluate(definition, lightContext(at.plusSeconds(20000), at.plusSeconds(20000), at), runtime).ready()).isFalse();
+        var timing = engine.timing(definition, lightContext(at, at, at));
+        assertThat(timing.nextRuns()).isEmpty();
+        assertThat(timing.notes()).containsExactly("connection_loss_once");
+    }
+    @Test void connectionLossCannotControlEquipmentOrWatchAnotherResourceType() throws Exception {
+        var definition = connectionLossRule();
+        var command = new Definition(2, definition.name(), "BOX", 1, definition.trigger(), null,
+                List.of(node("{\"type\":\"set\",\"resourceId\":1,\"value\":\"OFF\"}")), 60);
+        assertThatThrownBy(() -> engine.validate(command, lightContext(at, at, at))).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> engine.validate(definition, context(at, 25, at))).isInstanceOf(DomainException.class);
+    }
     @Test void staleOrMissingDataNeverBecomesTrueThroughNegation() throws Exception {
         var d = rule(node("{\"type\":\"not\",\"condition\":{\"type\":\"sensor\",\"resourceId\":1,\"op\":\"gt\",\"value\":25,\"maxAgeSeconds\":60}}"));
         engine.validate(d, context(at, 28, at));

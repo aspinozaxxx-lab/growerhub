@@ -9,6 +9,10 @@ import './assistant.css';
 function scheduleLabel(trigger) {
   if (trigger.type === 'calendar') return `${t('Каждые')} ${trigger.every} ${t(trigger.unit === 'week' ? 'нед.' : 'дн.')} · ${trigger.at}`;
   if (trigger.type === 'schedule') return `${trigger.at}${!trigger.days || trigger.days.length === 7 ? ` · ${t('Каждый день')}` : ''}`;
+  if (trigger.type === 'connection_lost') {
+    const unit = trigger.seconds % 3600 === 0 ? 3600 : trigger.seconds % 60 === 0 ? 60 : 1;
+    return `${t('Нет связи дольше')} ${trigger.seconds / unit} ${t(unit === 3600 ? 'ч' : unit === 60 ? 'мин' : 'с')}`;
+  }
   if (trigger.type === 'interval' || trigger.type === 'repeat_while') {
     const unit = trigger.seconds % 3600 === 0 ? 3600 : trigger.seconds % 60 === 0 ? 60 : 1;
     return `${t('Каждые')} ${trigger.seconds / unit} ${t(unit === 3600 ? 'ч' : unit === 60 ? 'мин' : 'с')}${trigger.type === 'repeat_while' ? ` · ${t('Пока выполняется условие')}` : ''}`;
@@ -50,7 +54,7 @@ export function RuleDetails({ manager, farms, onClose, compact }) {
       {detailLoading && <p role="status">{t('Проверяем сценарий…')}</p>}
       {error && <p role="alert">{error}</p>}
       {preview && <section><h3>{t('Предварительная проверка')}</h3>{[...preview.conflicts, ...preview.readiness].map((v, i) => <p key={i} role="status">{t(v)}</p>)}
-        {!preview.conflicts.length && !preview.readiness.length && <p>{t('Устройства готовы, конфликтов нет')}</p>}</section>}
+        {!preview.conflicts.length && !preview.readiness.length && <p>{t(d.trigger.type === 'connection_lost' ? 'Уведомление готово к включению' : 'Устройства готовы, конфликтов нет')}</p>}</section>}
       <div className="assistant-actions">
         {selected.enabled ? <Button disabled={busy} onClick={() => manager.toggle(false)}>{t('Выключить')}</Button>
           : <Button variant="primary" disabled={busy || detailLoading || !preview || preview.conflicts.length > 0 || preview.readiness.length > 0} onClick={() => manager.toggle(true)}>{t('Подтвердить и включить')}</Button>}
