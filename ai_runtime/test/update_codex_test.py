@@ -4,6 +4,7 @@ import contextlib
 import importlib.util
 import json
 import pathlib
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -112,8 +113,29 @@ class Updates(unittest.TestCase):
         self.probe.side_effect = RuntimeError('incompatible')
         m.perform(job)
         self.assertEqual(m.load()['phase'], 'failed')
+        self.assertEqual(m.load()['error'], 'candidate_models_failed')
         self.assertEqual(m.ENV.read_text(), self.original)
         self.assertFalse(any(c.args[:2] == ('systemctl', 'stop') for c in self.run.call_args_list))
+
+    def test_failed_runtime_tests_are_reported_without_switching(self):
+        job = self.job()
+        def run(*args, **kwargs):
+            if args[:2] == (m.NODE + '/node', '--test'):
+                raise subprocess.CalledProcessError(1, args)
+            return Mock(stdout='')
+        self.run.side_effect = run
+        m.perform(job)
+        self.assertEqual(m.load()['error'], 'runtime_tests_failed')
+        self.assertEqual(m.ENV.read_text(), self.original)
+        self.smoke.assert_not_called()
+        self.assertFalse(any(c.args[:2] == ('systemctl', 'stop') for c in self.run.call_args_list))
+
+    def test_wrong_candidate_version_is_distinct_from_failed_runtime_tests(self):
+        job = self.job()
+        self.version.side_effect = lambda binary=None: '0.165.0' if binary else '0.163.0'
+        m.perform(job)
+        self.assertEqual(m.load()['error'], 'candidate_version_failed')
+        self.assertEqual(m.ENV.read_text(), self.original)
 
     def test_busy_conversation_is_not_killed(self):
         job = self.job()
@@ -121,6 +143,7 @@ class Updates(unittest.TestCase):
         with patch.object(m.time, 'monotonic', side_effect=[0, 61]):
             m.perform(job)
         self.assertEqual(m.load()['phase'], 'failed')
+        self.assertEqual(m.load()['error'], 'busy')
         self.assertEqual(m.ENV.read_text(), self.original)
         self.request.assert_any_call('drain', {'enabled': False})
         self.assertFalse(any(c.args[:2] == ('systemctl', 'stop') for c in self.run.call_args_list))

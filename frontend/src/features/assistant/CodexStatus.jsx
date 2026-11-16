@@ -11,6 +11,14 @@ const phases = {
   rolled_back: 'Восстановлена предыдущая версия, проверка пройдена', failed: 'Обновление остановлено до переключения',
   rollback_failed: 'Откат не прошёл проверку — требуется проверка на сервере',
 };
+const failures = {
+  runtime_tests_failed: 'Проверка компонентов помощника не пройдена. Предыдущая версия сохранена. Требуется проверка на сервере.',
+  candidate_version_failed: 'Новая версия не прошла проверку совместимости. Предыдущая версия сохранена. Требуется проверка на сервере.',
+  candidate_models_failed: 'Новая версия не прошла проверку совместимости. Предыдущая версия сохранена. Требуется проверка на сервере.',
+  preflight_failed: 'Новая версия не прошла проверку совместимости. Предыдущая версия сохранена. Требуется проверка на сервере.',
+  busy: 'Текущий ответ помощника ещё не завершён. Дождитесь ответа и повторите обновление. Предыдущая версия сохранена.',
+  install_failed: 'Не удалось загрузить новую версию. Предыдущая версия сохранена. Повторите попытку позже.',
+};
 
 export default function CodexStatus() {
   const [state, setState] = useState(null); const [maintenance, setMaintenance] = useState(null);
@@ -63,7 +71,7 @@ export default function CodexStatus() {
     {operation && <div className="assistant-settings" aria-live="polite">
       <strong>{t(phases[operation.phase] || 'Проверяем состояние операции')}</strong>
       <p>{operation.previous} → {operation.target}{operation.installed && <> · {t('Установлена версия')}: {operation.installed}</>}</p>
-      {operation.phase === 'failed' && <p>{t('Предыдущая версия сохранена. Завершите текущий разговор и повторите проверку обновлений.')}</p>}
+      {operation.phase === 'failed' && <p>{t(failures[operation.error] || 'Предыдущая версия сохранена. Требуется проверка причины остановки на сервере.')}</p>}
       {operation.updatedAt && <small>{t('Последнее состояние')}: {new Date(operation.updatedAt).toLocaleString()}</small>}
       {active && Date.now() - new Date(operation.updatedAt).getTime() > 120000 && <p>{t('Ждём подтверждения от сервера. Повторный запуск не нужен.')}</p>}
     </div>}

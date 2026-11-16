@@ -221,6 +221,7 @@ def perform(job):
         return
     switched = False
     phase = 'installing'
+    check_error = 'preflight_failed'
     try:
         if version() != job['previous'] or latest() != job['target']:
             raise RuntimeError('release_changed')
@@ -233,10 +234,13 @@ def perform(job):
         binary = stage / 'node_modules/.bin/codex'
         phase = 'checking'
         save(job, phase)
+        check_error = 'candidate_version_failed'
         if version(str(binary)) != job['target']:
             raise RuntimeError('version_mismatch')
+        check_error = 'runtime_tests_failed'
         run(NODE + '/node', '--test', cwd=ROOT, env=env, timeout=120)
         run('python3', '-m', 'unittest', 'discover', '-s', 'test', '-p', '*_test.py', cwd=ROOT, timeout=60)
+        check_error = 'candidate_models_failed'
         probe(binary)
         BACKUPS.mkdir(mode=0o700, exist_ok=True)
         backup = BACKUPS / ('owner-before-codex-' + job['id'] + '.env')
@@ -265,9 +269,13 @@ def perform(job):
             raise RuntimeError('health_failed')
         smoke()
         save(job, 'succeeded', installed=job['target'], error=None)
-    except Exception:
-        code = {'installing': 'install_failed', 'checking': 'preflight_failed', 'waiting': 'busy_or_unavailable',
+    except Exception as error:
+        code = {'installing': 'install_failed', 'checking': check_error, 'waiting': 'busy_or_unavailable',
                 'switching': 'switch_failed', 'verifying': 'health_failed'}[phase]
+        if phase == 'waiting' and isinstance(error, RuntimeError) and error.args == ('busy',):
+            code = 'busy'
+        print(json.dumps({'id': job['id'], 'phase': phase, 'error': code,
+                          'exception': type(error).__name__, 'exitCode': getattr(error, 'returncode', None)}), flush=True)
         if switched:
             rollback(job, code)
         else:

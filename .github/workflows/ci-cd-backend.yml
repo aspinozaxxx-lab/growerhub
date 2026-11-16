@@ -64,6 +64,18 @@ jobs:
           node --test
           python3 -m unittest discover -s test -p '*_test.py'
 
+      - name: Upload tested AI runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-runtime
+          path: |
+            ai_runtime/src/
+            ai_runtime/test/
+            ai_runtime/deploy/
+            ai_runtime/package.json
+            !ai_runtime/**/__pycache__/**
+          if-no-files-found: error
+
       - name: Install PlatformIO
         run: pip install platformio
 

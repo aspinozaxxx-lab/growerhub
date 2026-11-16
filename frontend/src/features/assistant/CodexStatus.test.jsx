@@ -14,6 +14,30 @@ beforeEach(() => {
   });
 });
 afterEach(cleanup);
+
+test.each([
+  ['preflight_failed', 'Новая версия не прошла проверку совместимости.'],
+  ['runtime_tests_failed', 'Проверка компонентов помощника не пройдена.'],
+  ['candidate_models_failed', 'Новая версия не прошла проверку совместимости.'],
+  ['install_failed', 'Не удалось загрузить новую версию.'],
+  ['busy_or_unavailable', 'Требуется проверка причины остановки на сервере.'],
+  ['unknown', 'Требуется проверка причины остановки на сервере.'],
+])('shows the actual failure for %s without blaming the conversation', async (error, message) => {
+  const original = assistantRequest.getMockImplementation();
+  assistantRequest.mockImplementation((path, ...args) => path === '/runtime/update' ? Promise.resolve({ enabled: true,
+    operation: { phase: 'failed', error, previous: '0.163.0', installed: '0.163.0', target: '0.164.0', finishedAt: new Date().toISOString() } }) : original(path, ...args));
+  render(<CodexStatus />);
+  await screen.findByText(text => text.includes(message));
+  expect(screen.queryByText(/Дождитесь ответа|Завершите текущий разговор/)).not.toBeInTheDocument();
+});
+
+test('only a confirmed busy reply suggests waiting for that reply', async () => {
+  const original = assistantRequest.getMockImplementation();
+  assistantRequest.mockImplementation((path, ...args) => path === '/runtime/update' ? Promise.resolve({ enabled: true,
+    operation: { phase: 'failed', error: 'busy', finishedAt: new Date().toISOString() } }) : original(path, ...args));
+  render(<CodexStatus />);
+  await screen.findByText(/Дождитесь ответа и повторите обновление/);
+});
 test('requires a separate confirmation and binds it to the displayed release', async () => {
   render(<CodexStatus />);
   fireEvent.click(await screen.findByRole('button', { name: 'Обновить Codex' }));
