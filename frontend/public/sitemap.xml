@@ -10,11 +10,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/</loc>
-    <lastmod>2026-11-16</lastmod>
+    <lastmod>2026-11-19</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/novosti/</loc>
-    <lastmod>2026-11-16</lastmod>
+    <lastmod>2026-11-19</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/avtomatizatsiya-mini-fermy/</loc>
@@ -46,7 +46,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/vyrashchivanie-i-uhod/</loc>
-    <lastmod>2026-11-16</lastmod>
+    <lastmod>2026-11-19</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/clusters/svet-dlya-rasteniy/</loc>
@@ -71,6 +71,10 @@
   <url>
     <loc>https://growerhub.ru/articles/clusters/home-assistant-i-diy/</loc>
     <lastmod>2026-11-06</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/articles/poliv-sverhu-ili-cherez-poddon/</loc>
+    <lastmod>2026-11-19</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/articles/eheveriya-zimoy-na-podokonnike/</loc>
@@ -462,11 +466,11 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/</loc>
-    <lastmod>2026-11-16</lastmod>
+    <lastmod>2026-11-19</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/news/</loc>
-    <lastmod>2026-11-16</lastmod>
+    <lastmod>2026-11-19</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/farm-automation/</loc>
@@ -498,7 +502,7 @@
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/plant-care/</loc>
-    <lastmod>2026-11-16</lastmod>
+    <lastmod>2026-11-19</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/plant-lighting/</loc>
@@ -523,6 +527,10 @@
   <url>
     <loc>https://growerhub.ru/en/articles/clusters/home-assistant-and-diy/</loc>
     <lastmod>2026-11-06</lastmod>
+  </url>
+  <url>
+    <loc>https://growerhub.ru/en/articles/top-or-bottom-watering-houseplants/</loc>
+    <lastmod>2026-11-19</lastmod>
   </url>
   <url>
     <loc>https://growerhub.ru/en/articles/telegram-alerts-for-offline-lighting-sockets/</loc>

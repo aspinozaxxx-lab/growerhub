@@ -12,6 +12,7 @@
     "article_update": "Guide update"
   },
   "entries": [
+    {"id":"top-or-bottom-watering-guide","published_at":"2026-11-19","kind":"article","article_id":"poliv-sverhu-ili-cherez-poddon","preview_position":"35% 55%"},
     {"id": "codex-update-preflight-fix", "published_at": "2026-11-16", "kind": "fix", "text": "Fixed server Codex updates from settings. If a check stops the update, the interface explains the reason and keeps the previous version."},
     {"id": "lighting-connection-telegram-alerts", "published_at": "2026-11-16", "kind": "feature", "article_id": "telegram-pri-potere-svyazi-s-rozetkoy-sveta", "preview_position": "50% 50%"},
     {"id":"winter-echeveria-care-guide","published_at":"2026-11-16","kind":"article","article_id":"eheveriya-zimoy-na-podokonnike","preview_position":"50% 70%"},
